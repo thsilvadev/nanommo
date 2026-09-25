@@ -1,0 +1,27 @@
+{
+  "name": "nanommo",
+  "version": "0.0.1",
+  "description": "NanoMMO - Browser idle MMORPG",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "db:migrate": "cd apps/api && pnpm db:migrate",
+    "db:drop": "cd apps/api && pnpm db:drop",
+    "start": "docker-compose up"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  }
+}

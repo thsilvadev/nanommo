@@ -1,0 +1,12 @@
+localhost:80 {
+  reverse_proxy /api/* localhost:3000
+  reverse_proxy /socket.io localhost:3000
+  
+  # Frontend served from Vercel in production, localhost in dev
+  reverse_proxy /* localhost:4200 {
+    transport http {
+      dial_timeout 1s
+      response_header_timeout 20s
+    }
+  }
+}

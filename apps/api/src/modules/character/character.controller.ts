@@ -1,0 +1,54 @@
+import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Request as ExpressRequest } from 'express';
+import { CharacterService } from './character.service';
+import { CreateCharacterDto, CharacterDto, SpendAttributePointsDto } from '@nanommo/shared';
+
+@Controller('characters')
+export class CharacterController {
+  constructor(private characterService: CharacterService) {}
+
+  @Post()
+  @UseGuards(AuthGuard('jwt'))
+  async create(@Request() req: ExpressRequest, @Body() dto: CreateCharacterDto): Promise<CharacterDto> {
+    return this.characterService.createCharacter((req.user as any).userId, dto.username);
+  }
+
+  @Get()
+  @UseGuards(AuthGuard('jwt'))
+  async getMyCharacter(@Request() req: ExpressRequest): Promise<CharacterDto | null> {
+    const character = await this.characterService.getCharacterByUserId((req.user as any).userId);
+    if (!character) return null;
+    return {
+      id: character.id,
+      userId: character.userId,
+      name: character.name,
+      level: character.level,
+      xp: character.xp,
+      unspentAttributePoints: character.unspentAttributePoints,
+      str: character.str,
+      agi: character.agi,
+      dex: character.dex,
+      vit: character.vit,
+      int: character.int,
+      sor: character.sor,
+      gold: Number(character.gold),
+      hpCurrent: character.hpCurrent,
+      spCurrent: character.spCurrent,
+      currentMapId: character.currentMapId || undefined,
+      status: character.status,
+      activeGambitPageId: character.activeGambitPageId || undefined,
+      lastSeenAt: character.lastSeenAt,
+      createdAt: character.createdAt,
+      updatedAt: character.updatedAt,
+    };
+  }
+
+  @Post('attributes/spend')
+  @UseGuards(AuthGuard('jwt'))
+  async spendAttributes(@Request() req: ExpressRequest, @Body() dto: SpendAttributePointsDto): Promise<CharacterDto> {
+    const character = await this.characterService.getCharacterByUserId((req.user as any).userId);
+    if (!character) throw new Error('Character not found');
+    return this.characterService.spendAttributePoints(character.id, dto.attributes);
+  }
+}

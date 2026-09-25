@@ -1,0 +1,72 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: nanommo-postgres
+    environment:
+      POSTGRES_USER: nanommo
+      POSTGRES_PASSWORD: nanommo_dev_password
+      POSTGRES_DB: nanommo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nanommo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: nanommo-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: nanommo-backend
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: "postgresql://nanommo:nanommo_dev_password@db:5432/nanommo"
+      REDIS_URL: "redis://redis:6379"
+      JWT_SECRET: "dev_secret_key_change_in_production"
+      COOKIE_SECRET: "dev_cookie_secret_change_in_production"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/api/src:/app/src
+
+  caddy:
+    image: caddy:latest
+    container_name: nanommo-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

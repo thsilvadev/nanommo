@@ -1,0 +1,321 @@
+{
+  "meta": {
+    "pagesPerCharacter": 3,
+    "maxGambitsPerPage": 20,
+    "maxConditionsPerLine": 2,
+    "conditionCombinators": [
+      "AND",
+      "OR"
+    ],
+    "onlyOneActivePageAtATime": true,
+    "pageSwitchAllowedOnlyOutOfBattle": true,
+    "executionRule": "Each tick, evaluate lines top to bottom. The first line whose condition(s) evaluate true AND whose action can currently be legally executed (skill known+equipped+off cooldown, item in stock, enough SP, etc.) performs its action and ends the tick. If a line's condition is true but its action cannot be legally executed, that line is skipped (NOT counted as 'first true'), and evaluation continues to the next line.",
+    "botFallbackPage": "If the active page produces no legal action on a tick (all conditions false or all matching actions illegal), the character does nothing that tick (idles) and simply re-evaluates on the next tick.",
+    "uiRule": "Any gambit line referencing a skill not unlocked/equipped, or an item with 0 stock, must render greyed-out in the editor with a tooltip explaining why it cannot fire."
+  },
+  "conditions": [
+    {
+      "id": "always",
+      "label": "Always",
+      "params": [],
+      "category": "generic"
+    },
+    {
+      "id": "self_hp_band",
+      "label": "Self HP is...",
+      "params": [
+        {
+          "name": "band",
+          "type": "enum",
+          "values": [
+            "FULL",
+            "HIGH",
+            "MEDIUM",
+            "LOW",
+            "CRITICAL"
+          ]
+        }
+      ],
+      "category": "self"
+    },
+    {
+      "id": "self_sp_band",
+      "label": "Self SP is...",
+      "params": [
+        {
+          "name": "band",
+          "type": "enum",
+          "values": [
+            "FULL",
+            "HIGH",
+            "MEDIUM",
+            "LOW",
+            "CRITICAL"
+          ]
+        }
+      ],
+      "category": "self"
+    },
+    {
+      "id": "foe_hp_band",
+      "label": "Target HP is...",
+      "params": [
+        {
+          "name": "band",
+          "type": "enum",
+          "values": [
+            "FULL",
+            "HIGH",
+            "MEDIUM",
+            "LOW",
+            "CRITICAL"
+          ]
+        }
+      ],
+      "category": "foe"
+    },
+    {
+      "id": "self_has_status",
+      "label": "Self afflicted by...",
+      "params": [
+        {
+          "name": "status",
+          "type": "enum",
+          "values": [
+            "poison",
+            "stun",
+            "bleed",
+            "slow"
+          ]
+        }
+      ],
+      "category": "self"
+    },
+    {
+      "id": "self_missing_status",
+      "label": "Self NOT afflicted by...",
+      "params": [
+        {
+          "name": "status",
+          "type": "enum",
+          "values": [
+            "poison",
+            "stun",
+            "bleed",
+            "slow"
+          ]
+        }
+      ],
+      "category": "self"
+    },
+    {
+      "id": "foe_has_status",
+      "label": "Target afflicted by...",
+      "params": [
+        {
+          "name": "status",
+          "type": "enum",
+          "values": [
+            "poison",
+            "stun",
+            "bleed",
+            "slow"
+          ]
+        }
+      ],
+      "category": "foe"
+    },
+    {
+      "id": "self_hungry",
+      "label": "Self has no active food buff",
+      "params": [],
+      "category": "self"
+    },
+    {
+      "id": "foe_element_is",
+      "label": "Target element is...",
+      "params": [
+        {
+          "name": "element",
+          "type": "enum",
+          "values": [
+            "fire",
+            "water",
+            "earth",
+            "wind",
+            "holy",
+            "shadow",
+            "none"
+          ]
+        }
+      ],
+      "category": "foe"
+    },
+    {
+      "id": "skill_ready",
+      "label": "Skill <X> is off cooldown",
+      "params": [
+        {
+          "name": "skillId",
+          "type": "skillRef"
+        }
+      ],
+      "category": "self"
+    },
+    {
+      "id": "item_in_stock",
+      "label": "Item <X> quantity in inventory is...",
+      "params": [
+        {
+          "name": "itemId",
+          "type": "itemRef"
+        },
+        {
+          "name": "comparator",
+          "type": "enum",
+          "values": [
+            "ANY",
+            "NONE"
+          ]
+        }
+      ],
+      "category": "self"
+    }
+  ],
+  "actions": [
+    {
+      "id": "attack",
+      "label": "Attack current target",
+      "params": [],
+      "usesWeaponBasicAttack": true
+    },
+    {
+      "id": "use_skill",
+      "label": "Use skill...",
+      "params": [
+        {
+          "name": "skillId",
+          "type": "skillRef"
+        }
+      ],
+      "requires": "skill unlocked in equipped weapon's tree, weapon equipped, off cooldown, enough SP"
+    },
+    {
+      "id": "use_item",
+      "label": "Use item...",
+      "params": [
+        {
+          "name": "itemId",
+          "type": "itemRef"
+        }
+      ],
+      "requires": "item present in inventory, item off cooldown (potions share a 5s cooldown category)"
+    },
+    {
+      "id": "defend",
+      "label": "Brace (reduce next incoming hit)",
+      "params": [],
+      "requires": "none"
+    },
+    {
+      "id": "wait",
+      "label": "Wait / regenerate",
+      "params": [],
+      "requires": "none"
+    }
+  ],
+  "hpBandThresholds": {
+    "FULL": "100%",
+    "HIGH": "70-99%",
+    "MEDIUM": "30-69%",
+    "LOW": "10-29%",
+    "CRITICAL": "1-9%"
+  },
+  "exampleGambitPage": {
+    "title": "Balanced Grind",
+    "lines": [
+      {
+        "priority": 1,
+        "conditions": [
+          {
+            "id": "self_hp_band",
+            "band": "CRITICAL"
+          }
+        ],
+        "combinator": null,
+        "action": {
+          "id": "use_item",
+          "itemId": "pot_hp_large"
+        }
+      },
+      {
+        "priority": 2,
+        "conditions": [
+          {
+            "id": "self_has_status",
+            "status": "poison"
+          }
+        ],
+        "combinator": null,
+        "action": {
+          "id": "use_item",
+          "itemId": "antidote"
+        }
+      },
+      {
+        "priority": 3,
+        "conditions": [
+          {
+            "id": "self_hp_band",
+            "band": "LOW"
+          }
+        ],
+        "combinator": null,
+        "action": {
+          "id": "use_item",
+          "itemId": "pot_hp_medium"
+        }
+      },
+      {
+        "priority": 4,
+        "conditions": [
+          {
+            "id": "foe_hp_band",
+            "band": "CRITICAL"
+          }
+        ],
+        "combinator": null,
+        "action": {
+          "id": "use_skill",
+          "skillId": "sword_execute"
+        }
+      },
+      {
+        "priority": 5,
+        "conditions": [
+          {
+            "id": "self_hungry",
+            "band": null
+          }
+        ],
+        "combinator": null,
+        "action": {
+          "id": "use_item",
+          "itemId": "food_stew"
+        }
+      },
+      {
+        "priority": 6,
+        "conditions": [
+          {
+            "id": "always"
+          }
+        ],
+        "combinator": null,
+        "action": {
+          "id": "attack"
+        }
+      }
+    ]
+  }
+}

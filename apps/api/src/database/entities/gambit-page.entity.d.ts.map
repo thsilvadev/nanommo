@@ -1,0 +1,1 @@
+{"version":3,"file":"gambit-page.entity.d.ts","sourceRoot":"","sources":["gambit-page.entity.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,SAAS,EAAE,MAAM,oBAAoB,CAAC;AAE/C,qBAEa,UAAU;IAErB,EAAE,EAAG,MAAM,CAAC;IAGZ,WAAW,EAAG,MAAM,CAAC;IAIrB,SAAS,CAAC,EAAE,SAAS,CAAC;IAGtB,SAAS,EAAG,MAAM,CAAC;IAGnB,KAAK,CAAC,EAAE,MAAM,CAAC;IAGf,KAAK,EAAG,GAAG,EAAE,CAAC;CACf"}
