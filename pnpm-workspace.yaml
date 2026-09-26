@@ -4,4 +4,11 @@ packages:
 allowBuilds:
   '@nestjs/core': true
   argon2: false
+  esbuild: set this to true or false
+  esbuild@0.21.5: true
+  esbuild@0.23.0: true
+  lmdb: set this to true or false
+  lmdb@3.0.13: true
   msgpackr-extract: true
+  nice-napi: set this to true or false
+  nice-napi@1.0.2: true
