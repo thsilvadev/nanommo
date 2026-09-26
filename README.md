@@ -286,6 +286,14 @@ A GitHub Actions workflow is included (`deploy-backend.yml` pattern) for:
 
 See `.github/workflows/` for configuration.
 
+## REDE DOCKER
+
+- TEM QUE CRIAR MANUALMENTE A 'rede-compartilhada' no servidor usando 
+```bash
+docker network create rede-compartilhada
+```
+
+
 ## Contributing
 
 1. Create feature branch: `git checkout -b feature/my-feature`
