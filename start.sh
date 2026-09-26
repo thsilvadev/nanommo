@@ -32,11 +32,11 @@ pnpm install
 
 echo ""
 echo "🔧 Setting up environment..."
-if [ ! -f .env.local ]; then
-    cp .env.example .env.local
-    echo "   ✓ Created .env.local (edit with your settings)"
+if [ ! -f .env ]; then
+    cp .env.example .env
+    echo "   ✓ Created .env (edit with your settings)"
 else
-    echo "   ✓ .env.local already exists"
+    echo "   ✓ .env already exists"
 fi
 
 echo ""

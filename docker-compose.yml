@@ -9,10 +9,8 @@ services:
   db:
     image: postgres:16-alpine
     container_name: nanommo-postgres
-    environment:
-      POSTGRES_USER: nanommo
-      POSTGRES_PASSWORD: nanommo_dev_password
-      POSTGRES_DB: nanommo
+    env_file:
+      - .env
     ports:
       - "5432:5432"
     volumes:
@@ -50,21 +48,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      NODE_ENV: development
-      DB_HOST: "db"
-      DB_PORT: "5432"
-      DB_USER: "nanommo"
-      DB_PASSWORD: "nanommo_dev_password"
-      DB_NAME: "nanommo"
-      REDIS_HOST: "redis"
-      REDIS_PORT: "6379"
-      JWT_SECRET: "dev_secret_key_change_in_production"
-      COOKIE_SECRET: "dev_cookie_secret_change_in_production"
+    env_file:
+      - .env
     ports:
       - "3000:3000"
-    # volumes:
-    #   - ./apps/api/src:/app/apps/api/src
     networks:
       - rede-compartilhada
 

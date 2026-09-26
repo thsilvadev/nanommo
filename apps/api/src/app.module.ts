@@ -21,7 +21,7 @@ import { DataModule } from './modules/data/data.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: '../../.env',
     }),
     BullModule.forRoot({
       redis: {
