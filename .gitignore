@@ -12,3 +12,4 @@ build/
 *~
 .turbo/
 pnpm-lock.yaml
+project/

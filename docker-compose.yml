@@ -1,11 +1,10 @@
-version: "3.8"
-
 networks:
   default:
     driver: bridge
     driver_opts:
       com.docker.network.enable_ipv6: "false"
-
+  rede-compartilhada:
+      external: true
 services:
   db:
     image: postgres:16-alpine
@@ -23,6 +22,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - rede-compartilhada
 
   redis:
     image: redis:7-alpine
@@ -36,6 +37,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - rede-compartilhada
 
   backend:
     build:
@@ -49,30 +52,22 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: development
-      DATABASE_URL: "postgresql://nanommo:nanommo_dev_password@db:5432/nanommo"
-      REDIS_URL: "redis://redis:6379"
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      DB_USER: "nanommo"
+      DB_PASSWORD: "nanommo_dev_password"
+      DB_NAME: "nanommo"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
       JWT_SECRET: "dev_secret_key_change_in_production"
       COOKIE_SECRET: "dev_cookie_secret_change_in_production"
     ports:
       - "3000:3000"
     # volumes:
     #   - ./apps/api/src:/app/apps/api/src
-
-  caddy:
-    image: caddy:latest
-    container_name: nanommo-caddy
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - backend
+    networks:
+      - rede-compartilhada
 
 volumes:
   postgres_data:
   redis_data:
-  caddy_data:
-  caddy_config:

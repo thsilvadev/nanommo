@@ -1,5 +1,7 @@
 # Build stage
-FROM node:20-bookworm AS builder
+# Node 22+ required: argon2 0.45.1's N-API prebuilds segfault on dlopen
+# under every node:20.x (verified 20.18/20.19/20.20). 22 and 24 load fine.
+FROM node:22-bookworm AS builder
 
 WORKDIR /app
 
@@ -15,7 +17,7 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 RUN cd apps/api && pnpm build
 
 # Runtime stage
-FROM node:20-bookworm
+FROM node:22-bookworm
 
 WORKDIR /app/apps/api
 

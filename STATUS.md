@@ -140,6 +140,12 @@ async addItem(@Body() body: { itemId: string; quantity?: number }) {
 **Fix:** Always rebuild after editing TS, and verify the output path matches what's actually loaded. The authoritative runtime artifact is `dist/apps/api/src/...`.
 **This Session:** This was the actual root cause of the entire `remaining=undefined` bug — the `inventory.controller.ts` was already fixed but the stale `inventory.controller.js` in `src/` was being loaded.
 
+### 6. ⚠️ OPEN: CORS Origin `*` + `credentials: true` Is Rejected By Browsers
+**Problem:** `apps/api/src/main.ts:18-21` sets `app.enableCors({ origin: process.env.CORS_ORIGIN || '*', credentials: true })`. Per the Fetch spec, a wildcard `Access-Control-Allow-Origin: *` cannot be combined with credentialed requests — the browser blocks the actual request even though the preflight returns 204.
+**Reproduction:** `curl -X OPTIONS http://localhost/auth/register -H "Origin: http://localhost:4200" -H "Access-Control-Request-Method: POST"` returns `Access-Control-Allow-Origin: *` together with `Access-Control-Allow-Credentials: true`.
+**Impact:** None today (no browser client exists). **This becomes a hard blocker the moment the Vercel Angular frontend calls the API** — every authenticated request will fail in the browser while working fine in curl, which makes it look like a backend bug.
+**Fix (do before the frontend milestone):** set `CORS_ORIGIN` to the real frontend origin (e.g. `https://nanommo.vercel.app`) instead of relying on the `*` fallback.
+
 ---
 
 ## 📊 FINAL TEST RESULTS TABLE
