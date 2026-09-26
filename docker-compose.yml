@@ -1,5 +1,11 @@
 version: "3.8"
 
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+
 services:
   db:
     image: postgres:16-alpine
@@ -49,8 +55,8 @@ services:
       COOKIE_SECRET: "dev_cookie_secret_change_in_production"
     ports:
       - "3000:3000"
-    volumes:
-      - ./apps/api/src:/app/src
+    # volumes:
+    #   - ./apps/api/src:/app/apps/api/src
 
   caddy:
     image: caddy:latest

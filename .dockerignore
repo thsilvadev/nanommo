@@ -1,0 +1,16 @@
+# Build artifacts (stale compiled JS in src)
+apps/api/src/**/*.js
+apps/api/src/**/*.js.map
+apps/api/src/**/*.d.ts
+apps/api/dist/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Test / coverage
+*.log
+.coverage
+htmlcov/
