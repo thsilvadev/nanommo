@@ -269,16 +269,17 @@ node dist/apps/api/src/main.js
 **Note:** Full browser-based E2E test (steps 1-5 from requirements) requires manual browser testing since the dev server runs on `localhost:4200` and backend on `localhost:3000`. The API integration has been verified via curl; the Angular components compile and serve without errors.
 
 ### ⚠️ KNOWN ISSUES / TODO
-- Backend logout endpoint (`POST /auth/logout`) does not exist — frontend `logout()` only clears local state
+- Backend logout endpoint (`POST /auth/logout`) does not exist — frontend `logout()` only clears local state (informing user per requirements)
 - CORS `origin: '*'` with `credentials: true` will break in production — must set `CORS_ORIGIN` to frontend URL before deploying
 - Email verification and password reset UI not implemented (per scope)
 - Tailwind v4 PostCSS plugin issue — using v3 for compatibility with Angular 18
+- VERCEL BUILD FIX: `vercel.json` referenced non-existent `scripts/set-env.js` — removed reference; build now uses `pnpm --filter @nanommo/frontend build` directly
 
 ### 📁 FILES CREATED/MODIFIED THIS SESSION
 - `apps/frontend/` — entire Angular application
   - `package.json` — deps: `@angular/cdk`, `@nanommo/shared`, `tailwindcss@3`
   - `tailwind.config.js`, `postcss.config.js`, `src/styles.css`
-  - `src/environments/environment.ts`, `environment.prod.ts`
+  - `src/environments/environment.ts` (dev: `http://localhost:3000`), `environment.prod.ts`
   - `src/app/app.config.ts` — HTTP client + interceptor + animations
   - `src/app/app.routes.ts` — routes with guards
   - `src/app/app.component.ts/html` — minimal router outlet
@@ -288,3 +289,4 @@ node dist/apps/api/src/main.js
   - `src/app/features/auth/register.component.ts` — register form
   - `src/app/features/auth/login.component.ts` — login form
   - `src/app/features/play/play.component.ts` — protected page
+- `vercel.json` — fixed build command (removed non-existent script reference)
