@@ -83,7 +83,8 @@ export class MapService {
     });
     if (!character) throw new NotFoundException('Character not found');
 
-    character.currentMapId = undefined;
+    // null, not undefined: TypeORM skips undefined columns on save
+    character.currentMapId = null as any;
     character.status = 'town';
     await this.characterRepo.save(character);
 

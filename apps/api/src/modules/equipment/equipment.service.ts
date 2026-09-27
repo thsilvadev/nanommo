@@ -50,13 +50,27 @@ export class EquipmentService {
   ) {}
 
   /**
-   * Get all equipped items for a character
+   * All equipped items for a character
    */
   async getEquipment(characterId: string): Promise<EquippedItem[]> {
     return this.equippedItemRepo.find({
       where: { characterId },
     });
   }
+
+  /**
+   * Weapon proficiency level per weapon type (SPEC §9.1).
+   * A weapon type the character has never trained defaults to level 1.
+   */
+  async getWeaponProficiencyLevels(characterId: string): Promise<Record<string, number>> {
+    const rows = await this.weaponProfRepo.find({ where: { characterId } });
+    const levels: Record<string, number> = {};
+    for (const row of rows) {
+      levels[row.weaponType] = Number(row.level ?? 1);
+    }
+    return levels;
+  }
+
 
   /**
    * Get item equipped in a specific slot

@@ -44,6 +44,13 @@ export class BattleQueueEntry {
   @Column({ type: 'jsonb', default: '[]' })
   drops!: any[];
 
+  /**
+   * Items the engine actually spent during the simulation (SPEC §7.3 `use_item`).
+   * Stored so resolve can deduct them from the real inventory.
+   */
+  @Column({ type: 'jsonb', default: '[]' })
+  itemsConsumed!: Array<{ itemId: string; quantity: number }>;
+
   @Column({ type: 'int' })
   hpAfter!: number;
 

@@ -5,6 +5,7 @@ import { BattleQueueEntry } from '../../database/entities/battle-queue-entry.ent
 import { Character } from '../../database/entities/character.entity';
 import { MapKillCounter } from '../../database/entities/map-kill-counter.entity';
 import { GambitPage } from '../../database/entities/gambit-page.entity';
+import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { BattleController } from './battle.controller';
 import { BattleService } from './battle.service';
 import { BattleQueueProcessor } from './battle-queue.processor';
@@ -16,7 +17,13 @@ import { RedisModule } from '../../config/redis.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([BattleQueueEntry, Character, MapKillCounter, GambitPage]),
+    TypeOrmModule.forFeature([
+      BattleQueueEntry,
+      Character,
+      MapKillCounter,
+      GambitPage,
+      InventoryItem,
+    ]),
     BullModule.registerQueue({
       name: 'battle-queue',
       defaultJobOptions: {
