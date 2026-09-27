@@ -274,6 +274,7 @@ node dist/apps/api/src/main.js
 - Email verification and password reset UI not implemented (per scope)
 - Tailwind v4 PostCSS plugin issue — using v3 for compatibility with Angular 18
 - VERCEL BUILD FIX: `vercel.json` referenced non-existent `scripts/set-env.js` — created the script to generate `environment.prod.ts` at build time from `API_URL` env var; vercel.json now correctly references it
+- VERCEL 404 FIX: `outputDirectory` updated from `dist/frontend` to `dist/frontend/browser` — Angular 18's `@angular-devkit/build-angular:application` builder outputs to a `browser/` subdirectory by default; pointing Vercel at the wrong path caused NOT_FOUND on all routes
 - VERCEL ROUTING FIX: Added `rewrites` rule to route all SPA routes (`/login`, `/register`, `/play`, etc.) to `/index.html` for Angular client-side routing; without this, Vercel returns 404 for non-root routes
 
 ### 📁 FILES CREATED/MODIFIED THIS SESSION

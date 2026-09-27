@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "node scripts/set-env.js && pnpm --filter @nanommo/frontend build --configuration production",
-  "outputDirectory": "dist/frontend",
+  "outputDirectory": "dist/frontend/browser",
   "installCommand": "pnpm install --frozen-lockfile",
   "trailingSlash": false,
   "rewrites": [
