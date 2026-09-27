@@ -1,688 +1,688 @@
 [
   {
     "level": 1,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 17,
+    "cumulativeXp": 17,
+    "estHoursAtThisLevel": 0.0039,
+    "estDaysAtThisLevel": 0.0002
   },
   {
     "level": 2,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 18,
+    "cumulativeXp": 35,
+    "estHoursAtThisLevel": 0.0019,
+    "estDaysAtThisLevel": 0.0001
   },
   {
     "level": 3,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 19,
+    "cumulativeXp": 54,
+    "estHoursAtThisLevel": 0.0012,
+    "estDaysAtThisLevel": 0.0001
   },
   {
     "level": 4,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 20,
+    "cumulativeXp": 74,
+    "estHoursAtThisLevel": 0.0009,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 5,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 21,
+    "cumulativeXp": 95,
+    "estHoursAtThisLevel": 0.0008,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 6,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 23,
+    "cumulativeXp": 118,
+    "estHoursAtThisLevel": 0.0007,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 7,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 24,
+    "cumulativeXp": 142,
+    "estHoursAtThisLevel": 0.0006,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 8,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 26,
+    "cumulativeXp": 168,
+    "estHoursAtThisLevel": 0.0006,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 9,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 28,
+    "cumulativeXp": 196,
+    "estHoursAtThisLevel": 0.0005,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 10,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 30,
+    "cumulativeXp": 226,
+    "estHoursAtThisLevel": 0.0005,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 11,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 32,
+    "cumulativeXp": 258,
+    "estHoursAtThisLevel": 0.0005,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 12,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 34,
+    "cumulativeXp": 292,
+    "estHoursAtThisLevel": 0.0005,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 13,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 37,
+    "cumulativeXp": 329,
+    "estHoursAtThisLevel": 0.0004,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 14,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 40,
+    "cumulativeXp": 369,
+    "estHoursAtThisLevel": 0.0004,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 15,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 44,
+    "cumulativeXp": 413,
+    "estHoursAtThisLevel": 0.0005,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 16,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 48,
+    "cumulativeXp": 461,
+    "estHoursAtThisLevel": 0.0005,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 17,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 53,
+    "cumulativeXp": 514,
+    "estHoursAtThisLevel": 0.0005,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 18,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 59,
+    "cumulativeXp": 573,
+    "estHoursAtThisLevel": 0.0005,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 19,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 65,
+    "cumulativeXp": 638,
+    "estHoursAtThisLevel": 0.0005,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 20,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 73,
+    "cumulativeXp": 711,
+    "estHoursAtThisLevel": 0.0005,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 21,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 82,
+    "cumulativeXp": 793,
+    "estHoursAtThisLevel": 0.0006,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 22,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 93,
+    "cumulativeXp": 886,
+    "estHoursAtThisLevel": 0.0006,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 23,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 106,
+    "cumulativeXp": 992,
+    "estHoursAtThisLevel": 0.0007,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 24,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 123,
+    "cumulativeXp": 1115,
+    "estHoursAtThisLevel": 0.0007,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 25,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 142,
+    "cumulativeXp": 1257,
+    "estHoursAtThisLevel": 0.0008,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 26,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
+    "xpToNext": 167,
+    "cumulativeXp": 1424,
+    "estHoursAtThisLevel": 0.0009,
     "estDaysAtThisLevel": 0.0
   },
   {
     "level": 27,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 197,
+    "cumulativeXp": 1621,
+    "estHoursAtThisLevel": 0.001,
+    "estDaysAtThisLevel": 0.0001
   },
   {
     "level": 28,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 235,
+    "cumulativeXp": 1856,
+    "estHoursAtThisLevel": 0.0012,
+    "estDaysAtThisLevel": 0.0001
   },
   {
     "level": 29,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 283,
+    "cumulativeXp": 2139,
+    "estHoursAtThisLevel": 0.0014,
+    "estDaysAtThisLevel": 0.0001
   },
   {
     "level": 30,
-    "xpToNext": 0,
-    "cumulativeXp": 0,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 345,
+    "cumulativeXp": 2484,
+    "estHoursAtThisLevel": 0.0016,
+    "estDaysAtThisLevel": 0.0001
   },
   {
     "level": 31,
-    "xpToNext": 0,
-    "cumulativeXp": 1,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 424,
+    "cumulativeXp": 2908,
+    "estHoursAtThisLevel": 0.0019,
+    "estDaysAtThisLevel": 0.0001
   },
   {
     "level": 32,
-    "xpToNext": 1,
-    "cumulativeXp": 1,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 528,
+    "cumulativeXp": 3436,
+    "estHoursAtThisLevel": 0.0023,
+    "estDaysAtThisLevel": 0.0001
   },
   {
     "level": 33,
-    "xpToNext": 1,
-    "cumulativeXp": 2,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 664,
+    "cumulativeXp": 4100,
+    "estHoursAtThisLevel": 0.0028,
+    "estDaysAtThisLevel": 0.0001
   },
   {
     "level": 34,
-    "xpToNext": 2,
-    "cumulativeXp": 4,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 846,
+    "cumulativeXp": 4946,
+    "estHoursAtThisLevel": 0.0034,
+    "estDaysAtThisLevel": 0.0002
   },
   {
     "level": 35,
-    "xpToNext": 4,
-    "cumulativeXp": 8,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 1091,
+    "cumulativeXp": 6037,
+    "estHoursAtThisLevel": 0.0042,
+    "estDaysAtThisLevel": 0.0002
   },
   {
     "level": 36,
-    "xpToNext": 8,
-    "cumulativeXp": 17,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 1425,
+    "cumulativeXp": 7462,
+    "estHoursAtThisLevel": 0.0054,
+    "estDaysAtThisLevel": 0.0003
   },
   {
     "level": 37,
-    "xpToNext": 17,
-    "cumulativeXp": 34,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 1887,
+    "cumulativeXp": 9349,
+    "estHoursAtThisLevel": 0.0069,
+    "estDaysAtThisLevel": 0.0003
   },
   {
     "level": 38,
-    "xpToNext": 34,
-    "cumulativeXp": 67,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 2533,
+    "cumulativeXp": 11882,
+    "estHoursAtThisLevel": 0.0089,
+    "estDaysAtThisLevel": 0.0004
   },
   {
     "level": 39,
-    "xpToNext": 67,
-    "cumulativeXp": 134,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 3450,
+    "cumulativeXp": 15332,
+    "estHoursAtThisLevel": 0.0118,
+    "estDaysAtThisLevel": 0.0006
   },
   {
     "level": 40,
-    "xpToNext": 134,
-    "cumulativeXp": 269,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 4768,
+    "cumulativeXp": 20100,
+    "estHoursAtThisLevel": 0.0159,
+    "estDaysAtThisLevel": 0.0008
   },
   {
     "level": 41,
-    "xpToNext": 269,
-    "cumulativeXp": 537,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 6690,
+    "cumulativeXp": 26790,
+    "estHoursAtThisLevel": 0.0216,
+    "estDaysAtThisLevel": 0.0011
   },
   {
     "level": 42,
-    "xpToNext": 537,
-    "cumulativeXp": 1075,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 9536,
+    "cumulativeXp": 36326,
+    "estHoursAtThisLevel": 0.03,
+    "estDaysAtThisLevel": 0.0015
   },
   {
     "level": 43,
-    "xpToNext": 1075,
-    "cumulativeXp": 2149,
-    "estHoursAtThisLevel": 0.0,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 13813,
+    "cumulativeXp": 50139,
+    "estHoursAtThisLevel": 0.0423,
+    "estDaysAtThisLevel": 0.0021
   },
   {
     "level": 44,
-    "xpToNext": 2149,
-    "cumulativeXp": 4298,
-    "estHoursAtThisLevel": 0.01,
-    "estDaysAtThisLevel": 0.0
+    "xpToNext": 20343,
+    "cumulativeXp": 70482,
+    "estHoursAtThisLevel": 0.0607,
+    "estDaysAtThisLevel": 0.003
   },
   {
     "level": 45,
-    "xpToNext": 4298,
-    "cumulativeXp": 8597,
-    "estHoursAtThisLevel": 0.01,
-    "estDaysAtThisLevel": 0.001
+    "xpToNext": 30475,
+    "cumulativeXp": 100957,
+    "estHoursAtThisLevel": 0.0886,
+    "estDaysAtThisLevel": 0.0044
   },
   {
     "level": 46,
-    "xpToNext": 8597,
-    "cumulativeXp": 17194,
-    "estHoursAtThisLevel": 0.02,
-    "estDaysAtThisLevel": 0.001
+    "xpToNext": 46462,
+    "cumulativeXp": 147419,
+    "estHoursAtThisLevel": 0.1317,
+    "estDaysAtThisLevel": 0.0066
   },
   {
     "level": 47,
-    "xpToNext": 17194,
-    "cumulativeXp": 34387,
-    "estHoursAtThisLevel": 0.05,
-    "estDaysAtThisLevel": 0.002
+    "xpToNext": 72123,
+    "cumulativeXp": 219542,
+    "estHoursAtThisLevel": 0.1994,
+    "estDaysAtThisLevel": 0.01
   },
   {
     "level": 48,
-    "xpToNext": 34387,
-    "cumulativeXp": 68775,
-    "estHoursAtThisLevel": 0.09,
-    "estDaysAtThisLevel": 0.005
+    "xpToNext": 114045,
+    "cumulativeXp": 333587,
+    "estHoursAtThisLevel": 0.3077,
+    "estDaysAtThisLevel": 0.0154
   },
   {
     "level": 49,
-    "xpToNext": 68775,
-    "cumulativeXp": 137549,
-    "estHoursAtThisLevel": 0.18,
-    "estDaysAtThisLevel": 0.009
+    "xpToNext": 183785,
+    "cumulativeXp": 517372,
+    "estHoursAtThisLevel": 0.4843,
+    "estDaysAtThisLevel": 0.0242
   },
   {
     "level": 50,
-    "xpToNext": 137549,
-    "cumulativeXp": 275098,
-    "estHoursAtThisLevel": 0.35,
-    "estDaysAtThisLevel": 0.018
+    "xpToNext": 301987,
+    "cumulativeXp": 819359,
+    "estHoursAtThisLevel": 0.7775,
+    "estDaysAtThisLevel": 0.0389
   },
   {
     "level": 51,
-    "xpToNext": 275098,
-    "cumulativeXp": 550197,
-    "estHoursAtThisLevel": 0.69,
-    "estDaysAtThisLevel": 0.035
+    "xpToNext": 506196,
+    "cumulativeXp": 1325555,
+    "estHoursAtThisLevel": 1.2739,
+    "estDaysAtThisLevel": 0.0637
   },
   {
     "level": 52,
-    "xpToNext": 550197,
-    "cumulativeXp": 1100393,
-    "estHoursAtThisLevel": 1.35,
-    "estDaysAtThisLevel": 0.068
+    "xpToNext": 865985,
+    "cumulativeXp": 2191540,
+    "estHoursAtThisLevel": 2.1312,
+    "estDaysAtThisLevel": 0.1066
   },
   {
     "level": 53,
-    "xpToNext": 1100393,
-    "cumulativeXp": 2200787,
-    "estHoursAtThisLevel": 2.65,
-    "estDaysAtThisLevel": 0.132
+    "xpToNext": 1512781,
+    "cumulativeXp": 3704321,
+    "estHoursAtThisLevel": 3.6423,
+    "estDaysAtThisLevel": 0.1821
   },
   {
     "level": 54,
-    "xpToNext": 2200787,
-    "cumulativeXp": 4401573,
-    "estHoursAtThisLevel": 5.19,
-    "estDaysAtThisLevel": 0.259
+    "xpToNext": 2699768,
+    "cumulativeXp": 6404089,
+    "estHoursAtThisLevel": 6.3619,
+    "estDaysAtThisLevel": 0.3181
   },
   {
     "level": 55,
-    "xpToNext": 4401573,
-    "cumulativeXp": 8803146,
-    "estHoursAtThisLevel": 10.16,
-    "estDaysAtThisLevel": 0.508
+    "xpToNext": 4924643,
+    "cumulativeXp": 11328732,
+    "estHoursAtThisLevel": 11.3625,
+    "estDaysAtThisLevel": 0.5681
   },
   {
     "level": 56,
-    "xpToNext": 8803146,
-    "cumulativeXp": 17606292,
-    "estHoursAtThisLevel": 19.89,
-    "estDaysAtThisLevel": 0.995
+    "xpToNext": 9186162,
+    "cumulativeXp": 20514894,
+    "estHoursAtThisLevel": 20.7603,
+    "estDaysAtThisLevel": 1.038
   },
   {
     "level": 57,
-    "xpToNext": 17606292,
-    "cumulativeXp": 35212584,
-    "estHoursAtThisLevel": 38.99,
-    "estDaysAtThisLevel": 1.949
+    "xpToNext": 17531492,
+    "cumulativeXp": 38046386,
+    "estHoursAtThisLevel": 38.8221,
+    "estDaysAtThisLevel": 1.9411
   },
   {
     "level": 58,
-    "xpToNext": 35212584,
-    "cumulativeXp": 70425169,
-    "estHoursAtThisLevel": 76.43,
-    "estDaysAtThisLevel": 3.822
+    "xpToNext": 34248694,
+    "cumulativeXp": 72295080,
+    "estHoursAtThisLevel": 74.3392,
+    "estDaysAtThisLevel": 3.717
   },
   {
     "level": 59,
-    "xpToNext": 70425169,
-    "cumulativeXp": 140850338,
-    "estHoursAtThisLevel": 149.89,
-    "estDaysAtThisLevel": 7.494
+    "xpToNext": 68521248,
+    "cumulativeXp": 140816328,
+    "estHoursAtThisLevel": 145.835,
+    "estDaysAtThisLevel": 7.2917
   },
   {
     "level": 60,
-    "xpToNext": 140850338,
-    "cumulativeXp": 281700675,
-    "estHoursAtThisLevel": 294.04,
-    "estDaysAtThisLevel": 14.702
+    "xpToNext": 140468558,
+    "cumulativeXp": 281284886,
+    "estHoursAtThisLevel": 293.2388,
+    "estDaysAtThisLevel": 14.6619
   },
   {
     "level": 61,
-    "xpToNext": 190147956,
-    "cumulativeXp": 471848631,
-    "estHoursAtThisLevel": 389.47,
-    "estDaysAtThisLevel": 19.474
+    "xpToNext": 199465352,
+    "cumulativeXp": 480750238,
+    "estHoursAtThisLevel": 408.5587,
+    "estDaysAtThisLevel": 20.4279
   },
   {
     "level": 62,
-    "xpToNext": 256699740,
-    "cumulativeXp": 728548372,
-    "estHoursAtThisLevel": 516.05,
-    "estDaysAtThisLevel": 25.802
+    "xpToNext": 283240801,
+    "cumulativeXp": 763991039,
+    "estHoursAtThisLevel": 569.4055,
+    "estDaysAtThisLevel": 28.4703
   },
   {
     "level": 63,
-    "xpToNext": 346544650,
-    "cumulativeXp": 1075093021,
-    "estHoursAtThisLevel": 683.96,
-    "estDaysAtThisLevel": 34.198
+    "xpToNext": 402201937,
+    "cumulativeXp": 1166192976,
+    "estHoursAtThisLevel": 793.814,
+    "estDaysAtThisLevel": 39.6907
   },
   {
     "level": 64,
-    "xpToNext": 467835277,
-    "cumulativeXp": 1542928298,
-    "estHoursAtThisLevel": 906.78,
-    "estDaysAtThisLevel": 45.339
+    "xpToNext": 571126750,
+    "cumulativeXp": 1737319726,
+    "estHoursAtThisLevel": 1106.9851,
+    "estDaysAtThisLevel": 55.3493
   },
   {
     "level": 65,
-    "xpToNext": 631577624,
-    "cumulativeXp": 2174505922,
-    "estHoursAtThisLevel": 1202.52,
-    "estDaysAtThisLevel": 60.126
+    "xpToNext": 810999985,
+    "cumulativeXp": 2548319711,
+    "estHoursAtThisLevel": 1544.1402,
+    "estDaysAtThisLevel": 77.207
   },
   {
     "level": 66,
-    "xpToNext": 852629792,
-    "cumulativeXp": 3027135715,
-    "estHoursAtThisLevel": 1595.15,
-    "estDaysAtThisLevel": 79.757
+    "xpToNext": 1151619979,
+    "cumulativeXp": 3699939690,
+    "estHoursAtThisLevel": 2154.517,
+    "estDaysAtThisLevel": 107.7258
   },
   {
     "level": 67,
-    "xpToNext": 1151050220,
-    "cumulativeXp": 4178185934,
-    "estHoursAtThisLevel": 2116.53,
-    "estDaysAtThisLevel": 105.827
+    "xpToNext": 1635300370,
+    "cumulativeXp": 5335240060,
+    "estHoursAtThisLevel": 3006.9608,
+    "estDaysAtThisLevel": 150.348
   },
   {
     "level": 68,
-    "xpToNext": 1553917796,
-    "cumulativeXp": 5732103731,
-    "estHoursAtThisLevel": 2809.05,
-    "estDaysAtThisLevel": 140.452
+    "xpToNext": 2322126526,
+    "cumulativeXp": 7657366586,
+    "estHoursAtThisLevel": 4197.753,
+    "estDaysAtThisLevel": 209.8877
   },
   {
     "level": 69,
-    "xpToNext": 2097789025,
-    "cumulativeXp": 7829892756,
-    "estHoursAtThisLevel": 3729.08,
-    "estDaysAtThisLevel": 186.454
+    "xpToNext": 3297419666,
+    "cumulativeXp": 10954786252,
+    "estHoursAtThisLevel": 5861.5709,
+    "estDaysAtThisLevel": 293.0785
   },
   {
     "level": 70,
-    "xpToNext": 2832015184,
-    "cumulativeXp": 10661907940,
-    "estHoursAtThisLevel": 4951.64,
-    "estDaysAtThisLevel": 247.582
+    "xpToNext": 4682335926,
+    "cumulativeXp": 15637122178,
+    "estHoursAtThisLevel": 8186.8357,
+    "estDaysAtThisLevel": 409.3418
   },
   {
     "level": 71,
-    "xpToNext": 3823220498,
-    "cumulativeXp": 14485128438,
-    "estHoursAtThisLevel": 6576.56,
-    "estDaysAtThisLevel": 328.828
+    "xpToNext": 6648917015,
+    "cumulativeXp": 22286039193,
+    "estHoursAtThisLevel": 11437.2092,
+    "estDaysAtThisLevel": 571.8605
   },
   {
     "level": 72,
-    "xpToNext": 5161347673,
-    "cumulativeXp": 19646476111,
-    "estHoursAtThisLevel": 8736.69,
-    "estDaysAtThisLevel": 436.835
+    "xpToNext": 9441462162,
+    "cumulativeXp": 31727501355,
+    "estHoursAtThisLevel": 15981.7061,
+    "estDaysAtThisLevel": 799.0853
   },
   {
     "level": 73,
-    "xpToNext": 6967819358,
-    "cumulativeXp": 26614295470,
-    "estHoursAtThisLevel": 11608.92,
-    "estDaysAtThisLevel": 580.446
+    "xpToNext": 13406876270,
+    "cumulativeXp": 45134377625,
+    "estHoursAtThisLevel": 22336.8828,
+    "estDaysAtThisLevel": 1116.8441
   },
   {
     "level": 74,
-    "xpToNext": 9406556134,
-    "cumulativeXp": 36020851604,
-    "estHoursAtThisLevel": 15428.74,
-    "estDaysAtThisLevel": 771.437
+    "xpToNext": 19037764303,
+    "cumulativeXp": 64172141928,
+    "estHoursAtThisLevel": 31225.9544,
+    "estDaysAtThisLevel": 1561.2977
   },
   {
     "level": 75,
-    "xpToNext": 12698850781,
-    "cumulativeXp": 48719702384,
-    "estHoursAtThisLevel": 20509.74,
-    "estDaysAtThisLevel": 1025.487
+    "xpToNext": 27033625310,
+    "cumulativeXp": 91205767238,
+    "estHoursAtThisLevel": 43661.6446,
+    "estDaysAtThisLevel": 2183.0822
   },
   {
     "level": 76,
-    "xpToNext": 17143448554,
-    "cumulativeXp": 65863150938,
-    "estHoursAtThisLevel": 27269.6,
-    "estDaysAtThisLevel": 1363.48
+    "xpToNext": 38387747941,
+    "cumulativeXp": 129593515179,
+    "estHoursAtThisLevel": 61062.3138,
+    "estDaysAtThisLevel": 3053.1157
   },
   {
     "level": 77,
-    "xpToNext": 23143655548,
-    "cumulativeXp": 89006806486,
-    "estHoursAtThisLevel": 36264.68,
-    "estDaysAtThisLevel": 1813.234
+    "xpToNext": 54510602076,
+    "cumulativeXp": 184104117255,
+    "estHoursAtThisLevel": 85414.7547,
+    "estDaysAtThisLevel": 4270.7377
   },
   {
     "level": 78,
-    "xpToNext": 31243934990,
-    "cumulativeXp": 120250741476,
-    "estHoursAtThisLevel": 48236.21,
-    "estDaysAtThisLevel": 2411.811
+    "xpToNext": 77405054948,
+    "cumulativeXp": 261509172203,
+    "estHoursAtThisLevel": 119502.4429,
+    "estDaysAtThisLevel": 5975.1221
   },
   {
     "level": 79,
-    "xpToNext": 42179312236,
-    "cumulativeXp": 162430053712,
-    "estHoursAtThisLevel": 64171.85,
-    "estDaysAtThisLevel": 3208.593
+    "xpToNext": 109915178026,
+    "cumulativeXp": 371424350229,
+    "estHoursAtThisLevel": 167225.6012,
+    "estDaysAtThisLevel": 8361.2801
   },
   {
     "level": 80,
-    "xpToNext": 56942071519,
-    "cumulativeXp": 219372125231,
-    "estHoursAtThisLevel": 85387.84,
-    "estDaysAtThisLevel": 4269.392
+    "xpToNext": 156079552796,
+    "cumulativeXp": 527503903025,
+    "estHoursAtThisLevel": 234050.0726,
+    "estDaysAtThisLevel": 11702.5036
   },
   {
     "level": 81,
-    "xpToNext": 76871796550,
-    "cumulativeXp": 296243921781,
-    "estHoursAtThisLevel": 113638.51,
-    "estDaysAtThisLevel": 5681.925
+    "xpToNext": 221632964971,
+    "cumulativeXp": 749136867996,
+    "estHoursAtThisLevel": 327636.9225,
+    "estDaysAtThisLevel": 16381.8461
   },
   {
     "level": 82,
-    "xpToNext": 103776925343,
-    "cumulativeXp": 400020847124,
-    "estHoursAtThisLevel": 151262.45,
-    "estDaysAtThisLevel": 7563.122
+    "xpToNext": 314718810258,
+    "cumulativeXp": 1063855678254,
+    "estHoursAtThisLevel": 458725.649,
+    "estDaysAtThisLevel": 22936.2824
   },
   {
     "level": 83,
-    "xpToNext": 140098849213,
-    "cumulativeXp": 540119696337,
-    "estHoursAtThisLevel": 201377.53,
-    "estDaysAtThisLevel": 10068.877
+    "xpToNext": 446900710567,
+    "cumulativeXp": 1510756388821,
+    "estHoursAtThisLevel": 642373.3159,
+    "estDaysAtThisLevel": 32118.6658
   },
   {
     "level": 84,
-    "xpToNext": 189133446437,
-    "cumulativeXp": 729253142774,
-    "estHoursAtThisLevel": 268141.11,
-    "estDaysAtThisLevel": 13407.056
+    "xpToNext": 634599009005,
+    "cumulativeXp": 2145355397826,
+    "estHoursAtThisLevel": 899693.2533,
+    "estDaysAtThisLevel": 44984.6627
   },
   {
     "level": 85,
-    "xpToNext": 255330152690,
-    "cumulativeXp": 984583295465,
-    "estHoursAtThisLevel": 357097.32,
-    "estDaysAtThisLevel": 17854.866
+    "xpToNext": 901130592787,
+    "cumulativeXp": 3046485990613,
+    "estHoursAtThisLevel": 1260295.027,
+    "estDaysAtThisLevel": 63014.7513
   },
   {
     "level": 86,
-    "xpToNext": 344695706132,
-    "cumulativeXp": 1329279001597,
-    "estHoursAtThisLevel": 475640.59,
-    "estDaysAtThisLevel": 23782.029
+    "xpToNext": 1279605441758,
+    "cumulativeXp": 4326091432371,
+    "estHoursAtThisLevel": 1765708.9265,
+    "estDaysAtThisLevel": 88285.4463
   },
   {
     "level": 87,
-    "xpToNext": 465339203278,
-    "cumulativeXp": 1794618204875,
-    "estHoursAtThisLevel": 633634.41,
-    "estDaysAtThisLevel": 31681.721
+    "xpToNext": 1817039727296,
+    "cumulativeXp": 6143131159667,
+    "estHoursAtThisLevel": 2474192.7809,
+    "estDaysAtThisLevel": 123709.639
   },
   {
     "level": 88,
-    "xpToNext": 628207924426,
-    "cumulativeXp": 2422826129301,
-    "estHoursAtThisLevel": 844237.41,
-    "estDaysAtThisLevel": 42211.87
+    "xpToNext": 2580196412761,
+    "cumulativeXp": 8723327572428,
+    "estHoursAtThisLevel": 3467479.8604,
+    "estDaysAtThisLevel": 173373.993
   },
   {
     "level": 89,
-    "xpToNext": 848080697975,
-    "cumulativeXp": 3270906827276,
-    "estHoursAtThisLevel": 1125006.22,
-    "estDaysAtThisLevel": 56250.311
+    "xpToNext": 3663878906120,
+    "cumulativeXp": 12387206478548,
+    "estHoursAtThisLevel": 4860252.7764,
+    "estDaysAtThisLevel": 243012.6388
   },
   {
     "level": 90,
-    "xpToNext": 1144908942266,
-    "cumulativeXp": 4415815769542,
-    "estHoursAtThisLevel": 1499368.27,
-    "estDaysAtThisLevel": 74968.413
+    "xpToNext": 5202708046691,
+    "cumulativeXp": 17589914525239,
+    "estHoursAtThisLevel": 6813446.0773,
+    "estDaysAtThisLevel": 340672.3039
   },
   {
     "level": 91,
-    "xpToNext": 1545627072059,
-    "cumulativeXp": 5961442841601,
-    "estHoursAtThisLevel": 1998588.43,
-    "estDaysAtThisLevel": 99929.421
+    "xpToNext": 7387845426301,
+    "cumulativeXp": 24977759951540,
+    "estHoursAtThisLevel": 9552926.851,
+    "estDaysAtThisLevel": 477646.3426
   },
   {
     "level": 92,
-    "xpToNext": 2086596547280,
-    "cumulativeXp": 8048039388881,
-    "estHoursAtThisLevel": 2664395.77,
-    "estDaysAtThisLevel": 133219.789
+    "xpToNext": 10490740505348,
+    "cumulativeXp": 35468500456888,
+    "estHoursAtThisLevel": 13395730.3366,
+    "estDaysAtThisLevel": 669786.5168
   },
   {
     "level": 93,
-    "xpToNext": 2816905338828,
-    "cumulativeXp": 10864944727709,
-    "estHoursAtThisLevel": 3552492.05,
-    "estDaysAtThisLevel": 177624.603
+    "xpToNext": 14896851517594,
+    "cumulativeXp": 50365351974482,
+    "estHoursAtThisLevel": 18786909.8488,
+    "estDaysAtThisLevel": 939345.4924
   },
   {
     "level": 94,
-    "xpToNext": 3802822207418,
-    "cumulativeXp": 14667766935127,
-    "estHoursAtThisLevel": 4737238.42,
-    "estDaysAtThisLevel": 236861.921
+    "xpToNext": 21153529154984,
+    "cumulativeXp": 71518881129466,
+    "estHoursAtThisLevel": 26351300.5843,
+    "estDaysAtThisLevel": 1317565.0292
   },
   {
     "level": 95,
-    "xpToNext": 5133809980014,
-    "cumulativeXp": 19801576915141,
-    "estHoursAtThisLevel": 6317916.72,
-    "estDaysAtThisLevel": 315895.836
+    "xpToNext": 30038011400077,
+    "cumulativeXp": 101556892529543,
+    "estHoursAtThisLevel": 36966240.5175,
+    "estDaysAtThisLevel": 1848312.0259
   },
   {
     "level": 96,
-    "xpToNext": 6930643473019,
-    "cumulativeXp": 26732220388160,
-    "estHoursAtThisLevel": 8427095.07,
-    "estDaysAtThisLevel": 421354.754
+    "xpToNext": 42653976188109,
+    "cumulativeXp": 144210868717652,
+    "estHoursAtThisLevel": 51863743.0967,
+    "estDaysAtThisLevel": 2593187.1548
   },
   {
     "level": 97,
-    "xpToNext": 9356368688575,
-    "cumulativeXp": 36088589076735,
-    "estHoursAtThisLevel": 11241805.98,
-    "estDaysAtThisLevel": 562090.299
+    "xpToNext": 60568646187115,
+    "cumulativeXp": 204779514904767,
+    "estHoursAtThisLevel": 72774063.4898,
+    "estDaysAtThisLevel": 3638703.1745
   },
   {
     "level": 98,
-    "xpToNext": 12631097729577,
-    "cumulativeXp": 48719686806312,
-    "estHoursAtThisLevel": 14998483.91,
-    "estDaysAtThisLevel": 749924.195
+    "xpToNext": 86007477585703,
+    "cumulativeXp": 290786992490470,
+    "estHoursAtThisLevel": 102127447.3752,
+    "estDaysAtThisLevel": 5106372.3688
   }
 ]
