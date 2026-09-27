@@ -378,7 +378,7 @@ export class BattleService {
       .execute();
 
     if (!claimed.affected) {
-      this.logger.debug(`Battle ${battleId} already resolved - skipping`);
+      this.logger.log(`Battle ${battleId} already resolved - skipping`);
       return;
     }
 

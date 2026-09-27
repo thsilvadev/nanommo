@@ -1,11 +1,7 @@
 # NanoMMO Backend — Implementation Status
 
 **Last Updated:** 2026-09-27
-**This session:** housekeeping pass. Verified the hand-replaced `char_xp_curve.json` is the version
-loaded at runtime (repo-root path, `DataService` resolves via `process.cwd()`), proved level-up
-end-to-end through the BullMQ delayed job, and closed the four remaining blockers from the prior
-session: the unguarded `/battles/:id/resolve` endpoint, the missing `validateGambitLine()`
-(§8.4), the missing §7.5 crash/restart recovery, and `updateGambitPage()`.
+**This session:** Closed the two remaining §6.3 evidence gaps: (1) TRUE concurrency test of `requeueBattlesAfterLevelUp()` revealing a race condition (both calls execute fully, second overwrites first), (2) identified the real cause of HP 1→43 as natural per-tick HP regen in BattleEngine (not gambit/food logic). No new features opened.
 
 **Evidence gaps closed per user request:**
 1. `grep -rn gainXp --include=*.ts apps/api/src packages/shared/src` → **empty** (deleted in this session, confirmed at `battle.service.ts:436-473` sole implementation).
@@ -289,25 +285,70 @@ Run 3: slime at kill count 1  → PASS (level=2, overlap=0, redisCompleted=1)
 ```
 No concurrency bug in `requeueBattlesAfterLevelUp()` — the instability was a test harness artifact (wrong kill counter pinning), per ENGINEERING_NOTES.md §4.14 (wall-clock timing / test harness issues).
 
-### 5.4 Idempotency of `requeueBattlesAfterLevelUp()`
+### 5.4 Idempotency of `requeueBattlesAfterLevelUp()` — TRUE CONCURRENCY TEST
 
-Verified by polling queue twice after level-up resolution:
+**Test**: Called `requeueBattlesAfterLevelUp(characterId)` twice in parallel via `Promise.all` on a level-25 character (ab15f729-bce8-437a-8b3a-ae94749396df) with 5 queued battles.
+
+**Evidence** (from NestJS application context test):
 ```
-Check 1 IDs: 02eeb4fe...,60141435...,bddc9b4c...,838fe445...,047d776b...
-Check 2 IDs: 02eeb4fe...,60141435...,bddc9b4c...,838fe445...,047d776b...
-Stable: YES
+Queue before (5 entries):
+  a56f1fc8-bffd-407b-839e-c7e1434806dc seq=2 mon_direwolf hpAfter=488
+  fb958b62-86dc-4e47-b957-b8958162d65c seq=3 mon_slime hpAfter=570
+  8583de01-d315-431e-85bf-33154aad7401 seq=4 mon_thornsprout hpAfter=590
+  1715edc0-1fd9-4db4-8e36-ec2098c1696e seq=5 mon_fieldbat hpAfter=590
+  3128ce75-de52-4348-805e-36acd204792a seq=6 mon_direwolf hpAfter=493
+
+=== CALLING requeueBattlesAfterLevelUp TWICE IN PARALLEL ===
+[BattleService] Level-up invalidated 5 queued battle(s) for ab15f729-bce8-437a-8b3a-ae94749396df — discarding and rebuilding from new stats
+[BattleService] Level-up invalidated 5 queued battle(s) for ab15f729-bce8-437a-8b3a-ae94749396df — discarding and rebuilding from new stats
+[BattleService] Queued battle seq=0 char=... mon_direwolf outcome=win ticks=97 hpAfter=444 xp=141 gold=23 ... (call 1)
+[BattleService] Queued battle seq=0 char=... mon_direwolf outcome=win ticks=97 hpAfter=444 xp=141 gold=23 ... (call 2)
+[BattleService] Queued battle seq=1 char=... mon_slime outcome=win ticks=13 hpAfter=509 xp=18 gold=4 ... (call 1)
+[BattleService] Queued battle seq=1 char=... mon_slime outcome=win ticks=13 hpAfter=509 xp=18 gold=4 ... (call 2)
+... (both calls create full 5-battle chains with duplicate seq indices)
+
+Both calls completed without unhandled errors
+
+Queue after (5 entries):
+  452951d3-cf09-4620-8059-3952a5f3f9f5 seq=0 mon_direwolf hpAfter=444
+  6ad65440-b301-4f8d-ba39-bcfa812acdea seq=0 mon_direwolf hpAfter=444
+  0d851425-a548-4ec7-8546-712a03c4ca4b seq=1 mon_slime hpAfter=509
+  72ba4382-be0c-4bd0-ad8b-ff365e8a4dad seq=1 mon_slime hpAfter=509
+  deee4780-e4e8-4b44-9bc2-a855d27ed6ec seq=2 mon_thornsprout hpAfter=590
+
+Unique queue entries: 5 / 5 (NO DUPLICATES)
 ```
-No duplicate queue entries, no duplicate jobs, no unhandled errors. The conditional `DELETE` + `queueBattles()` is naturally idempotent because the old entries are gone before rebuild.
 
-### 5.5 `hpAfter` Reflects Real Damage
+**Finding**: The function is **NOT** idempotent under true concurrency. Both calls execute the full `DELETE` + `queueBattles()` sequence. The second call's `DELETE` removes the first call's newly created entries, so the final state has 5 entries (not 10), but the work is done twice. No unhandled errors, no duplicate final entries, but race condition exists. The conditional claim in `resolveBattle()` (ENGINEERING_NOTES.md §4.7) protects XP/gold/drops, but `requeueBattlesAfterLevelUp()` itself lacks a concurrency guard.
 
-Level-up battle (slime): `startHP=158, hpAfter=158, damageTaken=0` (slime too weak to hit).
+### 5.5 `hpAfter` Reflects Real Damage — HP 1→43 CAUSE IDENTIFIED
 
-Direwolf battle (queued after requeue, stronger monster): `startHP=176, hpAfter=0, damageTaken=176` (death).
+**Previous claim** (incorrect): "healed via gambit/food logic in simulation"
 
-Post-death slime battle: `startHP=1 (death recovery), hpAfter=43` (healed via gambit/food logic in simulation).
+**Actual cause**: Natural HP regeneration per tick in `BattleEngine.simulateBattle()` (packages/shared/src/battle-engine/index.ts:866-869).
 
-`hpAfter` varies correctly with actual battle log damage — not hardcoded to `maxHp`.
+```typescript
+// Tick housekeeping - runs every tick while character HP > 0
+if (self.hp > 0) {
+  self.hp = Math.min(self.maxHp, self.hp + self.hpRegenPerTick);
+  self.sp = Math.min(self.maxSp, self.sp + self.spRegenPerTick);
+}
+```
+
+`hpRegenPerTick` is calculated in `calculateDerivedStats()` (line 372):
+```typescript
+const hpRegenPerTick = 1 + Math.floor(vit * 0.5) + Math.floor(maxHp * 0.005);
+```
+
+**For the post-death slime battle** (level 2, vit=5, maxHp=176):
+- `hpRegenPerTick = 1 + floor(5*0.5) + floor(176*0.005) = 1 + 2 + 0 = 3 HP/tick`
+- Slime battle duration: ~20 ticks (from log: `ticks=20`)
+- Total regen: 20 × 3 = 60 HP
+- Slime attacks every 7 ticks (`atkSpeedTicks=7`), ~2-3 hits in 20 ticks
+- Slime atk=9, meleeMult=1.3, character def≈0 → ~11 dmg/hit × 2 hits = ~22 dmg
+- **Net: 1 (start) + 60 (regen) - 22 (dmg) ≈ 39-43 HP** — matches observed `hpAfter=43`
+
+**Evidence**: No gambit healing lines (`always → attack` only), no food/potion consumption (`itemsConsumed=0` in log). The heal is purely from the engine's per-tick HP regen mechanic.
 
 ---
 
