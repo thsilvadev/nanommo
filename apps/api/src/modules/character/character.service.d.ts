@@ -12,7 +12,6 @@ export declare class CharacterService {
     getCharacterByUserId(userId: string): Promise<Character | null>;
     getCharacterById(characterId: string): Promise<Character | null>;
     spendAttributePoints(characterId: string, attributes: Partial<Record<Attribute, number>>): Promise<CharacterDto>;
-    gainXp(characterId: string, xpAmount: number): Promise<void>;
     private toDto;
 }
 //# sourceMappingURL=character.service.d.ts.map

@@ -140,49 +140,6 @@ export class CharacterService {
     return this.toDto(saved);
   }
 
-  async gainXp(characterId: string, xpAmount: number): Promise<void> {
-    const character = await this.getCharacterById(characterId);
-    if (!character) return;
-
-    character.xp += xpAmount;
-
-    // Check for level-ups
-    while (character.level < 99) {
-      const xpToNext = this.dataService.getXpToNextLevel(character.level);
-      if (character.xp >= xpToNext) {
-        character.level++;
-        character.xp -= xpToNext;
-        character.unspentAttributePoints += 5;
-
-        // Recalculate HP/SP (ratio-adjusted)
-        const oldStats = BattleEngine.calculateDerivedStats(character.level - 1, {
-          str: character.str,
-          agi: character.agi,
-          dex: character.dex,
-          vit: character.vit,
-          int: character.int,
-          sor: character.sor,
-        }, {});
-
-        const newStats = BattleEngine.calculateDerivedStats(character.level, {
-          str: character.str,
-          agi: character.agi,
-          dex: character.dex,
-          vit: character.vit,
-          int: character.int,
-          sor: character.sor,
-        }, {});
-
-        character.hpCurrent = Math.round(character.hpCurrent * (newStats.maxHp / oldStats.maxHp));
-        character.spCurrent = Math.round(character.spCurrent * (newStats.maxSp / oldStats.maxSp));
-      } else {
-        break;
-      }
-    }
-
-    await this.characterRepository.save(character);
-  }
-
   private toDto(character: Character): CharacterDto {
     return {
       id: character.id,

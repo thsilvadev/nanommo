@@ -501,6 +501,15 @@ export class BattleService {
     // `resolved` was already claimed atomically at the top of this method.
     await this.battleQueueRepo.save(battle);
 
+    // SPEC §3.4 / §6.3: a level-up changes derived stats (maxHp/maxSp/atk...),
+    // which invalidates every remaining entry in the chain — they were simulated
+    // against the OLD stats. Discard them and rebuild the queue from scratch with
+    // the new character state. Must run AFTER the kill counter is bumped so the
+    // rebuilt chain does not re-encounter the same monster index it just killed.
+    if (leveledUp) {
+      await this.requeueBattlesAfterLevelUp(character.id);
+    }
+
     this.logger.log(
       `Resolved battle ${battle.id} char=${character.id} ${battle.monsterId} ` +
         `xp+=${battle.xpGain} gold+=${battle.goldGain} drops=${JSON.stringify(battle.drops)} ` +
@@ -616,5 +625,48 @@ export class BattleService {
    */
   async getKillCounter(characterId: string, mapId: string): Promise<MapKillCounter | null> {
     return this.mapKillCounterRepo.findOne({ where: { characterId, mapId } });
+  }
+
+  /**
+   * SPEC §3.4 + §6.3: a level-up invalidates the battle queue.
+   *
+   * Every remaining unresolved entry in the chain was simulated against the
+   * character's pre-level-up stats (old maxHp/maxSp/atk/def...), so they are
+   * garbage. Delete them and rebuild the queue from the current character state
+   * back up to the target depth.
+   *
+   * This is the ONLY level-up code path that requeues — the §7.5 boot recovery
+   * pass and the BullMQ processor both call `resolveBattle()` and then rely on
+   * this single hook instead of each caller duplicating the requeue logic.
+   */
+  private async requeueBattlesAfterLevelUp(characterId: string): Promise<void> {
+    const remaining = await this.battleQueueRepo.find({
+      where: { characterId, resolved: false },
+    });
+
+    if (remaining.length === 0) return;
+
+    this.logger.log(
+      `Level-up invalidated ${remaining.length} queued battle(s) for ${characterId} ` +
+        `— discarding and rebuilding from new stats`,
+    );
+
+    for (const entry of remaining) {
+      try {
+        await this.bullQueue
+          .getJob(entry.id)
+          .then((job) => job?.remove())
+          .catch(() => undefined);
+      } catch {
+        // BullMQ job removal is best-effort: a pending job whose row is deleted
+        // is a clean discard (see battle-queue.processor.ts), not a retry.
+      }
+    }
+
+    await this.battleQueueRepo.delete({ id: In(remaining.map((b) => b.id)) });
+
+    // Rebuild with the character's CURRENT (post-level-up) stats. queueBattles()
+    // loads the live character row, so it picks up the new level/maxHp/maxSp.
+    await this.queueBattles(characterId, this.QUEUE_DEPTH_TARGET);
   }
 }
