@@ -314,12 +314,45 @@ Queue after (5 entries):
   6ad65440-b301-4f8d-ba39-bcfa812acdea seq=0 mon_direwolf hpAfter=444
   0d851425-a548-4ec7-8546-712a03c4ca4b seq=1 mon_slime hpAfter=509
   72ba4382-be0c-4bd0-ad8b-ff365e8a4dad seq=1 mon_slime hpAfter=509
-  deee4780-e4e8-4b44-9bc2-a855d27ed6ec seq=2 mon_thornsprout hpAfter=590
+  deee4780-e4e8-4b44-9bc2-a885d27ed6ec seq=2 mon_thornsprout hpAfter=590
 
 Unique queue entries: 5 / 5 (NO DUPLICATES)
 ```
 
 **Finding**: The function is **NOT** idempotent under true concurrency. Both calls execute the full `DELETE` + `queueBattles()` sequence. The second call's `DELETE` removes the first call's newly created entries, so the final state has 5 entries (not 10), but the work is done twice. No unhandled errors, no duplicate final entries, but race condition exists. The conditional claim in `resolveBattle()` (ENGINEERING_NOTES.md §4.7) protects XP/gold/drops, but `requeueBattlesAfterLevelUp()` itself lacks a concurrency guard.
+
+### 5.4.1 — Alcançabilidade em produção
+
+**RESPOSTA: não alcançável em produção**
+
+**Justificativa:**
+
+1. **battle-recovery.service.ts:77-80** — O loop que resolve linhas atrasadas usa `for...of` com `await` sequencial:
+   ```typescript
+   for (const battle of stale) {
+     try {
+       await this.battleService.resolveBattle(battle.id);
+       resolved += 1;
+     } ...
+   ```
+   Não usa `Promise.all`/`Promise.allSettled`. Cada `resolveBattle()` termina completamente antes do próximo iniciar.
+
+2. **battle-queue.processor.ts:11** + **battle.module.ts:28-37** — O BullMQ Worker/Processor usa `@Processor('battle-queue')` sem parâmetro `concurrency` (padrão do BullMQ = 1). O `BullModule.registerQueue` não define `defaultJobOptions.concurrency`. Logo, **uma única job `resolve-battle` roda por vez por worker**. Duas entradas do MESMO personagem **não podem** estar "active" simultaneamente no mesmo processo. (Se houver múltiplos workers em processos distintos, o `resolveBattle()` condicional em `battle.service.ts:371-380` garante idempotência de efeitos: o `UPDATE ... WHERE resolved=false` faz claim atômico — o segundo worker vê `affected=0` e retorna cedo.)
+
+3. **grep -rn requeueBattlesAfterLevelUp** → apenas 2 ocorrências:
+   - `battle.service.ts:510`: chamada dentro de `resolveBattle()` (linha 510: `await this.requeueBattlesAfterLevelUp(character.id);`)
+   - `battle.service.ts:642`: definição da função privada
+   
+   **grep -rn resolveBattle** → 5 chamadas reais (excluindo `.d.ts` e comentários):
+   - `battle-queue.processor.ts:33`: `await this.battleService.resolveBattle(battleId);` (job BullMQ)
+   - `battle-recovery.service.ts:79`: `await this.battleService.resolveBattle(battle.id);` (recovery boot, sequencial)
+   - `battle.service.ts:371`: definição
+   - `battle.controller.ts:40`: comentário dizendo que rota foi removida
+   - `battle.service.ts:510`: chamada interna (dentro do próprio `resolveBattle` não há chamada recursiva)
+   
+   **Nenhum outro caminho de código chama `requeueBattlesAfterLevelUp()` ou `resolveBattle()` diretamente.**
+
+**Conclusão**: Em produção, com concurrency=1 no processor e loop sequencial no recovery, **não há caminho real** que invoque `requeueBattlesAfterLevelUp()` duas vezes em paralelo para o mesmo `characterId`. A race condition só aparece em teste artificial com `Promise.all` chamando a função privada direto — fora do fluxo real do sistema.
 
 ### 5.5 `hpAfter` Reflects Real Damage — HP 1→43 CAUSE IDENTIFIED
 
