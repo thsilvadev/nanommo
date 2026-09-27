@@ -143,3 +143,23 @@ node dist/apps/api/src/main.js
 ```
 
 `NODE_ENV=development` is required for `synchronize: true` in `app.module.ts`.
+
+---
+
+## 4.16 `requeueBattlesAfterLevelUp()` race condition — production mitigations and future triggers
+
+**Bug**: `requeueBattlesAfterLevelUp(characterId)` has no internal concurrency guard. If invoked twice in parallel for the same `characterId`, both calls execute the full `DELETE` (all unresolved queue entries) + `queueBattles()` (rebuild 5-deep chain) sequence. The second call's `DELETE` removes the first call's newly created entries, so the final state has 5 entries (not 10), but the work is done twice. No unhandled errors, no duplicate final entries, but race condition exists. Discovered via artificial `Promise.all` test calling the private function directly.
+
+**Two premises that prevent this from firing in production today:**
+
+1. **Single-threaded call paths (observed/tested in code):**
+   - BullMQ Processor uses default `concurrency=1` — `@Processor('battle-queue')` at `battle-queue.processor.ts:11` with no concurrency parameter; `BullModule.registerQueue` at `battle.module.ts:28-37` does not set `defaultJobOptions.concurrency`. Only one `resolve-battle` job runs per worker process at a time.
+   - Recovery pass uses sequential `for...of` with `await` at `battle-recovery.service.ts:77-80` — each `resolveBattle()` completes before the next starts. No `Promise.all`/`Promise.allSettled`.
+
+2. **Atomic claim in `resolveBattle()` (inferred by analogy, not reproduced with real dual-worker test):**
+   - `resolveBattle()` at `battle.service.ts:371-380` uses a conditional `UPDATE ... WHERE resolved=false` to claim the battle row atomically. If multiple workers in *separate processes* somehow pick up the same battle, the second sees `affected=0` and returns early. This protects XP/gold/drops idempotency (ENGINEERING_NOTES.md §4.7), and by extension would prevent double `requeueBattlesAfterLevelUp()` since it's called from inside `resolveBattle()` after the claim. **This path has never been exercised with a real test of two concurrent workers.**
+
+**Future trigger warning — re-read this entry before any change that:**
+- (i) Sets processor `concurrency > 1` (e.g., `@Processor('battle-queue', { concurrency: 5 })`)
+- (ii) Parallelizes the recovery pass loop (e.g., `Promise.all(stale.map(...))`)
+- (iii) Creates a new code path calling `requeueBattlesAfterLevelUp()` or `resolveBattle()` outside the two mapped callers (`battle-queue.processor.ts:33` and `battle-recovery.service.ts:79`)
