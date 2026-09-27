@@ -9,6 +9,7 @@ import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { BattleController } from './battle.controller';
 import { BattleService } from './battle.service';
 import { BattleQueueProcessor } from './battle-queue.processor';
+import { BattleRecoveryService } from './battle-recovery.service';
 import { DataModule } from '../data/data.module';
 import { CharacterModule } from '../character/character.module';
 import { InventoryModule } from '../inventory/inventory.module';
@@ -41,7 +42,7 @@ import { RedisModule } from '../../config/redis.module';
     RedisModule,
   ],
   controllers: [BattleController],
-  providers: [BattleService, BattleQueueProcessor],
+  providers: [BattleService, BattleQueueProcessor, BattleRecoveryService],
   exports: [BattleService],
 })
 export class BattleModule {}

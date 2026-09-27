@@ -114,6 +114,13 @@ export class CharacterService {
       throw new NotFoundException('Character not found');
     }
 
+    // The DTO carries no class-validator metadata, so a malformed body reaches
+    // here as `undefined`. Reject it as a 400 instead of letting
+    // `Object.values(undefined)` surface as a 500.
+    if (attributes === null || typeof attributes !== 'object' || Array.isArray(attributes)) {
+      throw new BadRequestException('attributes must be an object');
+    }
+
     const totalToSpend = Object.values(attributes).reduce((sum, val) => sum + (val ?? 0), 0);
     if (totalToSpend > character.unspentAttributePoints) {
       throw new BadRequestException('Not enough unspent attribute points');

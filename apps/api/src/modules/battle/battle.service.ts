@@ -361,8 +361,44 @@ export class BattleService {
   /**
    * Resolve a battle and apply its effects. This is the ONLY place where
    * xp / gold / drops / consumed items / the kill counter actually mutate.
+   *
+   * Idempotent: the row is claimed with a conditional UPDATE before any effect
+   * is applied. The same battle can legitimately be handed to this method twice —
+   * once by the BullMQ delayed job and once by the §7.5 boot recovery pass (or
+   * by a BullMQ retry after a partial failure) — and XP/gold/drops/inventory
+   * must not be granted twice.
    */
   async resolveBattle(battleId: string): Promise<void> {
+    const claimed = await this.battleQueueRepo
+      .createQueryBuilder()
+      .update(BattleQueueEntry)
+      .set({ resolved: true })
+      .where('"id" = :battleId', { battleId })
+      .andWhere('"resolved" = false')
+      .execute();
+
+    if (!claimed.affected) {
+      this.logger.debug(`Battle ${battleId} already resolved - skipping`);
+      return;
+    }
+
+    // A delayed job that is still pending for this battle is now redundant, so
+    // drop it. This is the case when the §7.5 boot recovery pass wins the race.
+    // When we are the job's own handler the job is `active` and locked, and
+    // BullMQ refuses removal — that is expected, not an error.
+    try {
+      const job = await this.bullQueue.getJob(battleId);
+      if (job && (await job.getState()) !== 'active') {
+        await job.remove();
+      }
+    } catch (error) {
+      this.logger.debug(
+        `Could not remove BullMQ job for battle ${battleId}: ${
+          error instanceof Error ? error.message : 'unknown'
+        }`,
+      );
+    }
+
     const battle = await this.battleQueueRepo.findOne({ where: { id: battleId } });
     if (!battle) throw new NotFoundException('Battle not found');
 
@@ -398,23 +434,42 @@ export class BattleService {
     character.spCurrent = Math.max(0, battle.spAfter);
 
     // --- level ups
-    let leveledUp = false;
+    let levelsGained = 0;
     for (;;) {
       const xpNeeded = this.dataService.getXpToNextLevel(character.level);
       if (xpNeeded <= 0 || Number(character.xp) < xpNeeded) break;
       character.xp = Number(character.xp) - xpNeeded;
       character.level += 1;
       character.unspentAttributePoints += 5;
-      leveledUp = true;
+      levelsGained += 1;
     }
+    const leveledUp = levelsGained > 0;
     if (leveledUp) {
-      const fresh = await this.buildCharacterSnapshot(
-        character,
-        character.hpCurrent,
-        character.spCurrent,
+      // SPEC §6.3: maxHp/maxSp recompute immediately, but hpCurrent/spCurrent are
+      // NOT auto-topped - they stay ratio-adjusted so a mid-grind level-up can
+      // neither heal for free nor leave HP nonsensically low against the new max.
+      // A single ratio step is applied for the whole batch of levels gained, using
+      // the stats before the first level-up and the stats after the last one.
+      const preLevel = character.level - levelsGained;
+      const attributes = {
+        str: character.str,
+        agi: character.agi,
+        dex: character.dex,
+        vit: character.vit,
+        int: character.int,
+        sor: character.sor,
+      };
+      const before = BattleEngine.calculateDerivedStats(preLevel, attributes, {});
+      const after = BattleEngine.calculateDerivedStats(character.level, attributes, {});
+
+      character.hpCurrent = Math.min(
+        after.maxHp,
+        Math.max(1, Math.round(Number(character.hpCurrent) * (after.maxHp / before.maxHp))),
       );
-      character.hpCurrent = fresh.maxHp;
-      character.spCurrent = fresh.maxSp;
+      character.spCurrent = Math.min(
+        after.maxSp,
+        Math.max(0, Math.round(Number(character.spCurrent) * (after.maxSp / before.maxSp))),
+      );
     }
 
     await this.characterRepo.save(character);
@@ -443,7 +498,7 @@ export class BattleService {
     // --- the kill actually happened: bump the counter (SPEC §11.2)
     const killCounter = await this.incrementKillCounter(character.id, battle.mapId, battle.monsterId);
 
-    battle.resolved = true;
+    // `resolved` was already claimed atomically at the top of this method.
     await this.battleQueueRepo.save(battle);
 
     this.logger.log(
