@@ -224,7 +224,7 @@ Unique index on `(characterId, weaponType)`. One row per weapon type is created 
 | location | enum('inventory','warehouse') | inventory = 50 slots, warehouse = 10 slots |
 | slotIndex | int | position, enforced unique per `(characterId, location, slotIndex)` |
 | itemId | varchar | references static `items.json` id |
-| quantity | int, default 1 | stackables up to 20; equipment always 1 |
+| quantity | int, default 1 | stackables up to 50; equipment always 1 |
 | instanceData | jsonb, nullable | for equipment: `{ rolledAttribute, rolledValue }` (see §10.3). Null for stackables. |
 
 ### 4.5 `EquippedItem`
