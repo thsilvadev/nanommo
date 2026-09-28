@@ -6,7 +6,7 @@ FROM node:22-bookworm AS builder
 WORKDIR /app
 
 # Copy workspace root and package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 
