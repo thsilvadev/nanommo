@@ -1,7 +1,7 @@
 # NanoMMO Backend — Implementation Status
 
 **Last Updated:** 2026-09-28
-**This session:** Implemented password reset flow per SPEC §15.3 — POST /auth/forgot-password (generic response prevents enumeration), POST /auth/reset-password (validates token/expiry, argon2id hash, invalidates token + active session). All 8 test cases passed with real curl outputs. Also implemented **frontend password reset flow per SPEC §17**: /forgot-password route (email form, calls POST /auth/forgot-password, shows backend's generic success message), /reset-password route (reads token from query string, new password + confirmation form with ≥8 char validation, calls POST /auth/reset-password, success redirects to /login, error shows message with link back to /forgot-password), "Esqueci minha senha" link on /login pointing to /forgot-password. All frontend builds pass (`ng build` exit=0).
+**This session:** Security hardening on auth features (password reset + email verification) per SPEC §15.4. Installed @nestjs/throttler, added rate limiting (5 req/60s per IP) to POST /auth/forgot-password, POST /auth/reset-password, POST /auth/resend-verification. Added per-user cooldown (60s TUNABLE) on resend-verification with clear error showing remaining seconds. Verified tokens use crypto.randomBytes(32) (256-bit entropy). Made reset password token consumption atomic via conditional UPDATE (same pattern as resolveBattle() idempotency fix) — tested with true Promise.all concurrency: exactly one request succeeds, other fails clean with "Invalid or expired reset token". All 4 test scenarios passed with real curl outputs. Build gates pass.
 
 **Evidence gaps closed per user request:**
 1. `grep -rn gainXp --include=*.ts apps/api/src packages/shared/src` → **empty** (deleted in prior session, confirmed at `battle.service.ts:436-473` sole implementation).
@@ -626,6 +626,91 @@ Lazy chunks: forgot-password-component, reset-password-component, verify-email-c
 - ✅ "Esqueci minha senha" link on login screen works
 - ✅ Frontend TypeScript/build checks pass (`ng build` exit=0)
 - ✅ All lazy-loaded routes properly configured
+
+---
+
+## 11. AUTH SECURITY HARDENING — IMPLEMENTED AND TESTED (THIS SESSION)
+
+### 11.1 Scope
+- Rate limiting on POST /auth/forgot-password, POST /auth/reset-password, POST /auth/resend-verification using @nestjs/throttler (same as login/register per SPEC §15.4)
+- Per-user cooldown on resend-verification (60s TUNABLE)
+- Verify tokens use crypto.randomBytes (already done)
+- Atomic one-time use of reset password tokens under concurrency
+
+### 11.2 Files Modified
+| File | Action |
+|------|--------|
+| `apps/api/src/app.module.ts` | Added ThrottlerModule globally with TUNABLE config (THROTTLE_TTL, THROTTLE_LIMIT) |
+| `apps/api/src/modules/auth/auth.controller.ts` | Added @Throttle decorators to /forgot-password, /reset-password, /resend-verification |
+| `apps/api/src/modules/auth/auth.service.ts` | Added per-user resend cooldown (lastResendVerificationAt), atomic resetPassword via conditional UPDATE |
+| `apps/api/src/database/entities/user.entity.ts` | Added lastResendVerificationAt column |
+| `.env.example` | Added THROTTLE_TTL, THROTTLE_LIMIT, RESEND_VERIFICATION_COOLDOWN_MS |
+
+### 11.3 Test Execution — Real Outputs
+
+**1. Rate limit on /auth/forgot-password (7 rapid requests, limit=5/60s):**
+```
+Request 1: {"success":true,"message":"If the email exists, we sent a password reset link"} HTTP 201
+Request 2: {"success":true,"message":"If the email exists, we sent a password reset link"} HTTP 201
+Request 3: {"success":true,"message":"If the email exists, we sent a password reset link"} HTTP 201
+Request 4: {"success":true,"message":"If the email exists, we sent a password reset link"} HTTP 201
+Request 5: {"statusCode":429,"message":"ThrottlerException: Too Many Requests"} HTTP 429
+Request 6: {"statusCode":429,"message":"ThrottlerException: Too Many Requests"} HTTP 429
+Request 7: {"statusCode":429,"message":"ThrottlerException: Too Many Requests"} HTTP 429
+```
+✅ 429 returned after limit exceeded.
+
+**2. Resend-verification cooldown (60s TUNABLE):**
+```
+First call:  {"success":true,"message":"Verification email sent"}
+Immediate second call:  {"message":"Please wait 49s before requesting another verification email","error":"Bad Request","statusCode":400}
+```
+✅ Clear error with remaining seconds.
+
+**3. Concurrent reset-password with same token (Promise.all - true parallel):**
+```
+Token: 7ac3c628ee2cab40924d241179aefee5242bb90e87c930c6ad122745197bffa5
+Request 1 (background): {"success":true,"message":"Password has been reset successfully"}
+Request 2 (background): {"message":"Invalid or expired reset token","error":"Bad Request","statusCode":400}
+```
+DB after: passwordHash updated (new argon2id), passwordResetToken=null, passwordResetExpiresAt=null
+✅ Only one succeeds; second fails clean with "Invalid or expired reset token".
+
+**4. Password verification after concurrent test:**
+```
+Old password:  401 Unauthorized "Invalid username or password"
+New password:  200 OK with new accessToken/refreshToken, new sessionId
+```
+✅ Session invalidated, old tokens rejected.
+
+### 11.4 Implementation Details
+
+**Rate limiting:** Uses @nestjs/throttler with global defaults (5 req/60s per IP, TUNABLE via THROTTLE_LIMIT/THROTTLE_TTL env vars). Applied to all three endpoints via @Throttle({ default: { limit: 5, ttl: 60000 } }) matching login/register.
+
+**Resend cooldown:** Added `lastResendVerificationAt` timestamp column to User. Service checks elapsed time against RESEND_VERIFICATION_COOLDOWN_MS (default 60000ms), returns 400 with remaining seconds if too soon.
+
+**Token entropy:** Verified both emailVerificationToken and passwordResetToken generated via `crypto.randomBytes(32).toString('hex')` (256 bits entropy) — not Math.random or sequential.
+
+**Atomic reset token consumption:** `resetPassword()` uses conditional TypeORM query builder UPDATE:
+```typescript
+const claimed = await this.userRepository
+  .createQueryBuilder()
+  .update(User)
+  .set({ passwordHash: ..., passwordResetToken: null, passwordResetExpiresAt: null, activeSessionId: uuidv4() })
+  .where('"passwordResetToken" = :token', { token: dto.token })
+  .andWhere('"passwordResetToken" IS NOT NULL')
+  .andWhere('"passwordResetExpiresAt" > :now', { now: new Date() })
+  .execute();
+if (!claimed.affected) throw BadRequestException(...);
+```
+Same pattern as `resolveBattle()` idempotency fix (ENGINEERING_NOTES.md §4.7). Under concurrent Promise.all, exactly one UPDATE succeeds (affected=1), others see affected=0 and fail clean.
+
+### 11.5 Build Gates
+```
+apps/api       npx tsc --noEmit -p tsconfig.json   exit=0
+apps/api       npx nest build                      exit=0
+packages/shared npx tsc --noEmit -p tsconfig.json  exit=0
+```
 
 ---
 

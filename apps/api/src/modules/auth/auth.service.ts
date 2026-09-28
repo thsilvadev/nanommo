@@ -13,6 +13,9 @@ import { MailerService } from '../mailer/mailer.service';
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
+  // TUNABLE: Cooldown for resend-verification in milliseconds (default 60s)
+  private readonly RESEND_VERIFICATION_COOLDOWN_MS = parseInt(process.env.RESEND_VERIFICATION_COOLDOWN_MS || '60000', 10);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -193,12 +196,22 @@ export class AuthService {
       throw new BadRequestException('Email already verified');
     }
 
+    // Check cooldown
+    if (user.lastResendVerificationAt) {
+      const elapsed = Date.now() - user.lastResendVerificationAt.getTime();
+      if (elapsed < this.RESEND_VERIFICATION_COOLDOWN_MS) {
+        const remainingSeconds = Math.ceil((this.RESEND_VERIFICATION_COOLDOWN_MS - elapsed) / 1000);
+        throw new BadRequestException(`Please wait ${remainingSeconds}s before requesting another verification email`);
+      }
+    }
+
     // Generate new token (invalidates old one)
     const verificationToken = this.generateVerificationToken();
     const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     user.emailVerificationToken = verificationToken;
     user.emailVerificationTokenExpiresAt = verificationTokenExpiresAt;
+    user.lastResendVerificationAt = new Date();
     await this.userRepository.save(user);
 
     // Send verification email
@@ -244,41 +257,40 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ success: boolean; message: string }> {
-    const user = await this.userRepository.findOne({
-      where: { passwordResetToken: dto.token },
-    });
+    // Atomic claim: only proceed if token matches AND not expired AND not already used (passwordResetToken is not null)
+    const claimed = await this.userRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({
+        passwordHash: await argon2.hash(dto.newPassword, {
+          type: argon2.argon2id,
+          memoryCost: 19456,
+          timeCost: 2,
+          parallelism: 1,
+        }),
+        passwordResetToken: null,
+        passwordResetExpiresAt: null,
+        activeSessionId: uuidv4(),
+      })
+      .where('"passwordResetToken" = :token', { token: dto.token })
+      .andWhere('"passwordResetToken" IS NOT NULL')
+      .andWhere('"passwordResetExpiresAt" > :now', { now: new Date() })
+      .execute();
 
-    if (!user) {
+    if (!claimed.affected) {
+      // Check if token exists but expired to give a clearer error
+      const user = await this.userRepository.findOne({
+        where: { passwordResetToken: dto.token },
+      });
+      if (user) {
+        if (user.passwordResetExpiresAt && user.passwordResetExpiresAt < new Date()) {
+          throw new BadRequestException('Reset token has expired');
+        }
+        // Token was already used (passwordResetToken is null)
+        throw new BadRequestException('Invalid or expired reset token');
+      }
       throw new BadRequestException('Invalid or expired reset token');
     }
-
-    // Check if token is expired
-    if (user.passwordResetExpiresAt && user.passwordResetExpiresAt < new Date()) {
-      throw new BadRequestException('Reset token has expired');
-    }
-
-    // Validate new password
-    if (!dto.newPassword || dto.newPassword.length < 8) {
-      throw new BadRequestException('Password must be at least 8 characters');
-    }
-
-    // Hash new password with argon2id (same as registration)
-    const passwordHash = await argon2.hash(dto.newPassword, {
-      type: argon2.argon2id,
-      memoryCost: 19456,
-      timeCost: 2,
-      parallelism: 1,
-    });
-
-    // Update password and invalidate reset token
-    user.passwordHash = passwordHash;
-    user.passwordResetToken = null;
-    user.passwordResetExpiresAt = null;
-
-    // Invalidate active session (force re-login) - generate new sessionId
-    user.activeSessionId = uuidv4();
-
-    await this.userRepository.save(user);
 
     return { success: true, message: 'Password has been reset successfully' };
   }

@@ -26,6 +26,7 @@
     "@nestjs/passport": "^10.0.0",
     "@nestjs/platform-express": "^10.2.0",
     "@nestjs/platform-socket.io": "^12.1.0",
+    "@nestjs/throttler": "^6.7.1",
     "@nestjs/typeorm": "^9.0.0",
     "@nestjs/websockets": "^10.2.0",
     "argon2": "^0.45.1",

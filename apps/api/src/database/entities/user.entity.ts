@@ -47,6 +47,9 @@ export class User {
   @Column({ type: 'timestamptz', nullable: true })
   lastSeenAt?: Date;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  lastResendVerificationAt?: Date;
+
   @CreateDateColumn()
   createdAt!: Date;
 
