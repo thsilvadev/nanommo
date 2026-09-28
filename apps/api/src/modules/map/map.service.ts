@@ -58,7 +58,7 @@ export class MapService {
 
     // Check email verification gate (§15.1)
     const user = await this.userRepo.findOne({ where: { id: character.userId } });
-    if (!user?.emailVerified) {
+    if (user?.emailVerified !== true) {
       throw new BadRequestException('EMAIL_NOT_VERIFIED');
     }
 

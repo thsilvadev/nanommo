@@ -169,7 +169,7 @@ export class AuthService {
     }
 
     // Check if already verified
-    if (user.emailVerified) {
+    if (user.emailVerified === true) {
       throw new BadRequestException('Email already verified');
     }
 
@@ -192,7 +192,7 @@ export class AuthService {
       return { success: true, message: 'If the email exists, a verification email has been sent' };
     }
 
-    if (user.emailVerified) {
+    if (user.emailVerified === true) {
       throw new BadRequestException('Email already verified');
     }
 

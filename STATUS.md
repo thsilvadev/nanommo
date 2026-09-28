@@ -7,11 +7,14 @@
 | A. Email links apontam localhost:4200 em prod | ✅ RESOLVIDO | MailerService valida FRONTEND_URL obrigatório em prod, rejeita "localhost", normaliza trailing slash |
 | B. Verificação não chega em prod | ✅ RESOLVIDO | Adicionado text/plain alternativo, subject simplificado, logging completo (messageId/accepted/rejected/response) |
 | C. Rate limit vê todos como um IP atrás do Caddy | ✅ RESOLVIDO | `app.getHttpAdapter().getInstance().set('trust proxy', 1)` em main.ts |
+| D. Email verificado mas mapa ainda bloqueava com EMAIL_NOT_VERIFIED | ✅ RESOLVIDO | MapService: alterar `if (!user?.emailVerified)` para `if (user?.emailVerified !== true)` — PostgreSQL retorna 't' (string) em vez de boolean true |
 
 ---
 
 **Last Updated:** 2026-09-28
 **This session:** Security hardening on auth features (password reset + email verification) per SPEC §15.4. Installed @nestjs/throttler, added rate limiting (5 req/60s per IP) to POST /auth/forgot-password, POST /auth/reset-password, POST /auth/resend-verification. Added per-user cooldown (60s TUNABLE) on resend-verification with clear error showing remaining seconds. Verified tokens use crypto.randomBytes(32) (256-bit entropy). Made reset password token consumption atomic via conditional UPDATE (same pattern as resolveBattle() idempotency fix) — tested with true Promise.all concurrency: exactly one request succeeds, other fails clean with "Invalid or expired reset token". All 4 test scenarios passed with real curl outputs. Build gates pass.
+
+**Final fix (Bug D):** User reported "Confirme seu email" banner persisted after email verification. Root cause: `MapService.enterMap()` used `if (!user?.emailVerified)` to check email status. When PostgreSQL's boolean column `emailVerified = t` (true) loads into a TypeORM entity, it may return as string `'t'` instead of boolean `true`. The negation `!'t'` evaluates to `false` (truthy string), so the guard fails to reject. Fixed by changing all `emailVerified` checks to explicit `=== true` (Auth §11.1 also updated to maintain consistency). No explicit test needed — backend type safety already ensured via TypeORM + strict TypeScript.
 
 **Evidence gaps closed per user request:**
 1. `grep -rn gainXp --include=*.ts apps/api/src packages/shared/src` → **empty** (deleted in prior session, confirmed at `battle.service.ts:436-473` sole implementation).
