@@ -863,41 +863,141 @@ Equipment changes, food consumption, attribute point allocation, inventory/wareh
 ### 17.1 Stack decisions
 
 - **Angular 18+**, standalone components throughout, no NgModules.
-- **State:** Signals for local component/feature state; a small set of injectable Signal-based "stores" in `core/state/` (e.g. `CharacterStore`, `InventoryStore`, `BattleStore`, `ChatStore`, `MarketStore`) exposing `signal()`/`computed()` and plain methods that call HTTP or push socket messages. RxJS is used specifically for the socket event streams (`Socket.IO` client wrapped in an RxJS `Observable` per event type) and for anything inherently stream-like (chat feed, presence ticks); it is bridged into signals via `toSignal()` where a component wants synchronous reads. No NgRx.
-- **Styling:** Tailwind CSS + Angular CDK (`DragDropModule` for the gambit editor and inventory grid, `OverlayModule` for tooltips/modals).
-- **i18n:** `@angular/localize`, `pt-BR` as the source/default locale, `en` scaffolded (extract via `ng extract-i18n`, translate the `en` xlf, build both locale bundles). Backend strings (error messages, item/monster names from the JSON data files) are **English-only** (confirmed) — the frontend is responsible for any translation of dynamic content it displays, via a lookup dictionary keyed by the static `id` fields (e.g. `monsters.json`'s `mon_slime` → i18n key `monster.mon_slime.name`), not by translating the JSON files themselves.
-- **Responsive/mobile-first:** every view must work at ≥360px width. The main grind/battle view and gambit editor are the two screens most likely to be checked from a phone — prioritize their mobile layout.
+- **State:** Signals for local/component state; small injectable Signal-based stores in
+  `core/state/` (`CharacterStore`, `InventoryStore`, `BattleStore`, `ChatStore`,
+  `MarketStore`). RxJS is reserved for Socket.IO event streams and genuinely stream-like
+  sources. No NgRx.
+- **Styling:** Tailwind CSS + Angular CDK (`DragDropModule` for drag/drop,
+  `OverlayModule` for tooltips/modals).
+- **i18n:** `@angular/localize`, pt-BR default + en scaffolded.
+- **Responsive:** every view works at >=360px. `/play` and Character/Gambit screens get
+  the highest responsive attention.
+- **Icons/assets:** dependency-free SVG assets and/or a small local `IconComponent`.
+  Angular Material is not required solely for icons.
 
 ### 17.2 Visual direction
 
-Dark UI, a monospace or pixel-leaning numeric typeface for stats/damage numbers (keeps the "numbers going up" idle-game feel readable), color-coded item rarity (common = white/grey, part-rare = blue, equipment tiers = green/blue/purple by tier 1/2/3, `TUNABLE` exact palette — see `frontend-design` skill for concrete token choices when implementing).
+NanoMMO is a **fantasy MMORPG game client**, not a SaaS dashboard.
+
+Visual language:
+- dark brown/black panel surfaces;
+- bronze/gold frames and highlights;
+- cream text;
+- red HP and blue SP;
+- compact numeric/data typography;
+- dense but readable hierarchy;
+- large framed game navigation tabs;
+- map-first visual center;
+- subtle inner highlights/noise and restrained shadows.
+
+Avoid white cards, glassmorphism, giant rounded SaaS cards, screenshot-as-background
+implementations, and unnecessary animation.
+
+The implementation-level visual contract is `PLAY_WINDOW_SPEC.md`.
+Concept references:
+- `assets/concepts/play-window-concept.png`
+- `assets/concepts/character-window-concept.png`
 
 ### 17.3 Routes
 
-```
+```text
 /login, /register, /verify-email, /reset-password
-/play                          -> shell layout (top bar + side panels), redirects to /play/town or /play/grind based on Character.status
-/play/town                     -> vendor, warehouse, market, mail tabs live here
-/play/grind                    -> map selection + battle bar + live event feed
-/play/character                -> stats, attribute allocation, equipment paper-doll
-/play/gambits                  -> gambit editor (3 pages)
+/play                          -> shell; redirects to town or grind by Character.status
+/play/town                     -> vendor, warehouse, market, mail
+/play/grind                    -> map selection + battle bar + inventory + event feed
+/play/character                -> Character / Gambits / Equipment internal tabs
+/play/gambits                  -> deep-link to /play/character with Gambits selected
 ```
 
-### 17.4 Layout
+There is one Gambit editor implementation. `/play/gambits` is a route-level entry point,
+not a second editor.
 
-Persistent top bar: character name/level, gold, mail badge (numeric), online/map presence counter, chat toggle. Left panel: character portrait/stats/equipment paper-doll. Center: context-dependent — map view with the battle progress bar and a live scrolling event feed while grinding ("You defeated Slime, +18 XP, dropped Slime Gel") or the Town hub (vendor/warehouse/market/mail as sub-tabs) while in town. Right panel: inventory grid (50 slots) + quick access to the gambit editor. Chat is a collapsible panel/drawer, always reachable regardless of current view (confirmed always-available design), with Global/Town tabs.
+### 17.4 Global layout
 
-### 17.5 Gambit editor UX
+At desktop widths, the shell uses:
+- persistent top bar;
+- left character summary;
+- center context;
+- right grind/progression panel;
+- collapsible chat drawer.
 
-- A **reorderable list** (Angular CDK `cdkDropList`/`cdkDrag`) of up to 20 rows per page, each row: condition 1 (select), optional AND/OR (select) + condition 2 (select), action (select), and a small toggle switch to enable/disable that line without deleting it (a disabled line is skipped entirely by the engine — store as an `enabled: boolean` on `GambitLine`, add it to the shape in §8.2).
-- Condition/action selects are populated from `gambit_catalog.json`; `use_skill`/`use_item` sub-selects only list options relevant to the currently equipped weapon/owned items, but — per §8.5 — do **not** hide unavailable ones entirely; instead grey them out with a tooltip, so the player can still pre-configure a page for gear they plan to switch to.
-- Row-level "enabled" toggle icon (e.g. a small power icon) is separate from the greyed-out-due-to-unavailable state — a line can be enabled but currently unusable (grey + tooltip), or explicitly disabled by the player (also visually muted, but with a distinct icon state, e.g. a struck-through toggle vs. a warning-triangle tooltip).
-- A page-level "Title" text input and a tab strip to switch between the 3 pages, with a clear "Active" badge on whichever page is currently live, and the "set active" action disabled (with an explanatory tooltip) while a battle is in flight (§8.1).
-- No dry-run/simulation UI in MVP (explicitly descoped).
+The `/play/grind` center is:
+- `Currently in: {mapName}`;
+- illustrated fantasy map;
+- selectable square grind tiles;
+- battle progress/status;
+- 50-slot inventory.
 
-### 17.6 Feedback & feel
+The left panel answers who the character is, what is equipped, HP/SP, active statuses,
+and derived combat stats.
 
-Toasts for drops/level-ups, a live scrolling combat/event feed during grind, sound effects on key moments (hit, crit, level-up, death — short, non-looping SFX, muteable), and the "Last Death" button opening a modal that renders `Character.lastDeathLog` (§7.7) as a readable timeline with damage-source breakdown. Battle progress bar is driven purely by `startAt`/`endAt` timestamps from the current `BattleQueueEntry` (survives page refresh cleanly — on load, fetch the live queue and compute bar position from `now()` relative to those timestamps, no client-side battle state to rehydrate).
+The right panel answers what is being fought, consumable availability, XP progress,
+current battle time, and weapon proficiency.
+
+Exact component composition, dimensions, responsive behavior, visual tokens and states
+are defined in `PLAY_WINDOW_SPEC.md`.
+
+### 17.5 Character screen
+
+`/play/character` is the extended character-management screen.
+
+Internal tabs:
+1. **Character** — attribute allocation, derived stats, status effects, paper doll,
+   weapon proficiency and build summary.
+2. **Gambits** — the full three-page Gambit editor.
+3. **Equipment** — detailed equipment/paper-doll management.
+
+Attribute allocation:
+- shows all six attributes;
+- shows unspent points;
+- +/- controls;
+- pending preview;
+- Reset Allocation;
+- Apply Changes;
+- remains visible but disabled at 0 points;
+- server rejection restores authoritative state and shows a specific error.
+
+The screen exposes the 8 equipment slots:
+`head, body, mainHand, offHand, shoes, cape, accessoryLeft, accessoryRight`.
+
+### 17.6 Gambit editor UX
+
+- Reorderable list using Angular CDK `cdkDropList`/`cdkDrag`, up to 20 rows per page.
+- Each row: condition 1, optional AND/OR + condition 2, action, enabled toggle.
+- Condition/action selects come from `gambit_catalog.json`.
+- Unavailable actions remain visible but greyed out with an explanatory tooltip.
+- Disabled-by-player and unavailable-by-state are visually distinct.
+- Three pages, one active page, optional title.
+- Switching active page is blocked while a battle is in flight.
+- Server field-level validation highlights the exact failing control.
+- No dry-run/simulation UI in MVP.
+
+### 17.7 Feedback & feel
+
+- Toasts for drops and level-ups.
+- Live event feed during grind.
+- Short, muteable SFX for hit, crit, level-up and death.
+- Last Death modal renders `Character.lastDeathLog`.
+- Battle progress is calculated only from server `startAt`/`endAt` timestamps.
+- Reduced-motion mode disables nonessential movement/scroll animations.
+
+### 17.8 Asset and Angular implementation policy
+
+Use semantic DOM and CSS grid/flex. Do not recreate the reference screenshot through
+absolute pixel positioning.
+
+Preferred icons:
+- SVG assets in `assets/ui/`;
+- local `IconComponent` for dynamic state/color;
+- CSS/Tailwind for panel surfaces, borders, bars and state styling.
+
+Use Angular CDK for drag/drop and overlay behavior. Do not add another UI framework merely
+to obtain icons.
+
+### 17.9 Detailed screen specification
+
+See `FRONTEND_SPEC.md` and `PLAY_WINDOW_SPEC.md` for the route-by-route implementation
+contract, states, component boundaries and responsive behavior.
 
 ---
 
@@ -1085,10 +1185,10 @@ Use these as literal, sequential prompts to your IDE's AI assistant, one at a ti
 9. **Backend: battle module + gateway.** Wire the shared battle engine into the real flow: map:enter → build 5-deep queue → BullMQ scheduled resolution → crash recovery on boot (§7.4–§7.6). This is the most complex phase — budget real time for it, and lean on the §19.1 snapshot tests plus the new §19.4 integration tests to verify correctness.
 10. **Backend: inventory, equipment drops, market, mail, warehouse, vendor.** §10, §12–§14. Pay special attention to the transactional locking rules in §15.5.
 11. **Backend: chat + presence.** Redis-backed rooms, rate limiting, mute/report flow (§12.3).
-12. **Frontend: shell + auth.** Routes, layout, login/register/verify/reset screens, the socket connection service.
-13. **Frontend: character sheet + equipment paper-doll + gambit editor.** §17.5 in full, including the greyed-out/tooltip behavior wired to real catalog + character state.
-14. **Frontend: grind view + battle bar + event feed + town hub (vendor/warehouse/market/mail) + chat drawer.** §17.4/§17.6.
-15. **Polish pass.** Sound effects, toasts, i18n extraction (pt-BR/en), responsive pass on the two priority mobile screens (§17.1).
+12. **Frontend: shell + auth.** Routes, game-client visual shell, login/register/verify/reset screens, socket connection service, and shared SVG icon/panel primitives.
+13. **Frontend: character sheet + equipment paper-doll + Gambit sub-tab/editor.** Implement `/play/character` with Character/Gambits/Equipment tabs and `/play/gambits` as a deep-link to the same Gambit implementation.
+14. **Frontend: grind view + battle bar + 50-slot inventory + map tile selection + event feed + town hub + chat drawer.** Follow `FRONTEND_SPEC.md` and `PLAY_WINDOW_SPEC.md` without changing backend contracts.
+15. **Polish pass.** Sound effects, toasts, i18n extraction (pt-BR/en), reduced-motion, accessibility, responsive pass, and visual consistency against the concept references.
 16. **Balance pass.** Run the §19.3 simulation script, adjust `TUNABLE` constants as needed, regenerate the two XP curve JSONs if `C1`/exponents change.
 
 ---
