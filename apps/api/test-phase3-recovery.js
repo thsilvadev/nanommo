@@ -171,7 +171,7 @@ async function assertOrderedRecovery() {
     '§6.3 the normalised chain grants no XP, so no level-up can truncate it mid-recovery',
     stale.reduce((sum, e) => sum + Number(e.xpGain), 0),
     0,
-    'a level-up during recovery deletes and rebuilds the rest of the chain (battle.service.ts:474-476), which would turn the ordering question into a rebuild question',
+    'a level-up during recovery deletes and rebuilds the rest of the chain (battle.service.ts:522), which would turn the ordering question into a rebuild question',
   );
 
   await restartBackend();
@@ -199,11 +199,11 @@ async function assertOrderedRecovery() {
     `${before.level}:${before.xp}`,
     `level/xp ${before.level}:${before.xp} -> ${after.level}:${after.xp}`,
   );
-  h.divergence(
-    2,
-    'resolveBattle() marks rows resolved and re-saves them rather than deleting them ' +
-      '(battle.service.ts:502), against §7.4.3\'s "on resolve, the row is deleted". The recovery pass therefore re-reads ' +
-      'rows that a previous resolve already applied, which is exactly why the conditional claim matters here.',
+  h.note(
+    '§4.7/§7.4.3 (settled 2026-09-28, was design.md divergence #2): resolveBattle() marks rows resolved and ' +
+      're-saves them (battle.service.ts:514) rather than deleting them, and SPEC §4.7/§7.4.3 now says exactly that. ' +
+      'The recovery pass therefore re-reads rows a previous resolve already applied, which is why the conditional ' +
+      'claim at battle.service.ts:371-383 is what makes this pass a no-op rather than a second payout.',
   );
 
   // --- §7.3 exactly once

@@ -451,16 +451,28 @@ export class BattleService {
       // A single ratio step is applied for the whole batch of levels gained, using
       // the stats before the first level-up and the stats after the last one.
       const preLevel = character.level - levelsGained;
+      // SPEC §5.2 / §6.3: the ratio is taken between two maxHp/maxSp values, so both
+      // sides must be derived from the SAME character+equipment state the battles were
+      // simulated against. `buildCharacterSnapshot()` (battle.service.ts:144-160) folds
+      // `statBonus` into the attributes and passes the real `def`/`mdefPercent`/weapon
+      // ATK; passing `{}` here instead scaled an equipped character by the wrong ratio.
+      const equipmentStats = await this.equipmentService.calculateEquipmentStats(character.id);
       const attributes = {
-        str: character.str,
-        agi: character.agi,
-        dex: character.dex,
-        vit: character.vit,
-        int: character.int,
-        sor: character.sor,
+        str: character.str + (equipmentStats.statBonus.STR || 0),
+        agi: character.agi + (equipmentStats.statBonus.AGI || 0),
+        dex: character.dex + (equipmentStats.statBonus.DEX || 0),
+        vit: character.vit + (equipmentStats.statBonus.VIT || 0),
+        int: character.int + (equipmentStats.statBonus.INT || 0),
+        sor: character.sor + (equipmentStats.statBonus.SOR || 0),
       };
-      const before = BattleEngine.calculateDerivedStats(preLevel, attributes, {});
-      const after = BattleEngine.calculateDerivedStats(character.level, attributes, {});
+      const equipment = {
+        def: equipmentStats.def,
+        mdefPercent: equipmentStats.mdefPercent,
+        weaponFixedAtk: equipmentStats.weaponFixedAtk,
+        weaponFixedMatk: equipmentStats.weaponFixedMatk,
+      };
+      const before = BattleEngine.calculateDerivedStats(preLevel, attributes, equipment);
+      const after = BattleEngine.calculateDerivedStats(character.level, attributes, equipment);
 
       character.hpCurrent = Math.min(
         after.maxHp,

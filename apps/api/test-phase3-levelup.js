@@ -15,6 +15,14 @@
  * precondition is seeded directly in Postgres per design.md D3. The character
  * and the queue are still built through the real API path.
  *
+ * Four scenarios:
+ *   1. a single level-up on a default, unequipped character;
+ *   2. two thresholds crossed in one resolve (divergence #4 — recorded, not fixed);
+ *   3. the same level-up on an EQUIPPED character, where the ratio must come
+ *      from the real loadout (divergence #3, fixed in battle.service.ts:453-484);
+ *   4. the SP half of "never topped up", on a character whose fight is short
+ *      enough that the engine's SP regen has not already refilled the pool.
+ *
  * Run: node apps/api/test-phase3-levelup.js
  */
 
@@ -34,32 +42,69 @@ const SEED_HP = 80;
 const SEED_SP = 5;
 
 /**
- * SPEC §6.3 / design.md divergence #3: the level-up ratio is computed with an
- * EMPTY equipment argument (battle.service.ts:462-463), so it is reproduced
- * here with `{}` too. `buildCharacterSnapshot()` passes real equipment stats,
- * so on an equipped character the two disagree — that is divergence #3, and
- * this script asserts the code's current behaviour.
+ * The derived stats the resolver's ratio step is built from.
+ *
+ * `equipmentStats` is a `GET /equipment/stats/total` payload, folded in exactly
+ * the way `buildCharacterSnapshot()` (battle.service.ts:144-160) folds it: the
+ * `statBonus` goes into the attributes, `def`/`mdefPercent`/weapon ATK go into
+ * the third argument. Omitting it reproduces the equipment-BLIND reading, which
+ * is what a scenario needs in order to show the two disagree.
  */
-function derivedStatsFor(row, level) {
+function derivedStatsFor(row, level, equipmentStats = null) {
+  const base = h.attributesOf(row);
   return BattleEngine.calculateDerivedStats(
     level,
-    {
-      str: Number(row.str),
-      agi: Number(row.agi),
-      dex: Number(row.dex),
-      vit: Number(row.vit),
-      int: Number(row.int),
-      sor: Number(row.sor),
-    },
-    {},
+    equipmentStats ? h.attributesWithEquipment(base, equipmentStats) : base,
+    equipmentStats ? h.equipmentArgsOf(equipmentStats) : {},
   );
+}
+
+/** The loadout as the API reports it — all zeros for an unequipped character. */
+async function fetchEquipmentStats(token) {
+  const res = await h.request('GET', '/equipment/stats/total', null, token);
+  if (res.status >= 400 || !res.data) {
+    throw new Error(`GET /equipment/stats/total -> ${res.status} ${res.raw.slice(0, 200)}`);
+  }
+  return res.data;
+}
+
+/**
+ * Replay `queueBattles()`'s first entry for every encounter index and return the
+ * first one a scenario can use.
+ *
+ * `accept(probe, levelStats)` is the scenario's own admissibility test — a plain
+ * level-1 fight is fine for one scenario and unusable for another, because what
+ * has to stay observable differs (HP below the new maximum, SP below the new
+ * maximum, …). The XP window is shared: seeding `xp = xpToNext(level) - 1` before
+ * the resolve must cross exactly one threshold, which needs
+ * `xpToNext(level) - 1 + xpGain < xpToNext(level + 1)`.
+ */
+function findKillIndex({ charId, mapId, epoch, level, attributes, equipmentStats, startHp, startSp, accept, scan = 120 }) {
+  const needed = xpToNextLevel(level);
+  const nextNeeded = xpToNextLevel(level + 1);
+  const levelStats = derivedStatsFor({ ...attributes }, level, equipmentStats);
+
+  for (let killIndex = 0; killIndex < scan; killIndex++) {
+    const probe = h.simulateQueueStepAt({
+      charId, mapId, epoch, killIndex, level, attributes, chainHp: startHp, chainSp: startSp,
+      equipment: equipmentStats,
+    });
+    if (probe.simulation.outcome !== 'win') continue;
+    if (probe.simulation.hpAfter <= 0 || probe.simulation.spAfter <= 0) continue;
+    if (!accept(probe, levelStats)) continue;
+    // `xp = needed - 1`, then `xp += gain`, then one subtraction of `needed`
+    // must leave less than `nextNeeded` — i.e. exactly one level-up.
+    if (needed - 1 + probe.rewards.xpGain - needed >= nextNeeded) continue;
+    return { killIndex, ...probe, needed, nextNeeded, levelStats };
+  }
+  return null;
 }
 
 /**
  * Find a kill index whose first battle (a) is a win, (b) leaves the character
- * below full HP *and* full SP so the ratio scaling is visible on both, and
- * (c) grants an xpReward small enough that seeding `xp = xpToNext(1) - 1`
- * crosses exactly one threshold.
+ * below full HP so the ratio scaling is visible, and (c) grants an xpReward
+ * small enough that seeding `xp = xpToNext(1) - 1` crosses exactly one
+ * threshold.
  *
  * Constraint (b) matters for HP: `mon_slime` is a 34-tick fight and
  * `hpRegenPerTick` refills over the fight, so a starting HP at the maximum
@@ -67,31 +112,18 @@ function derivedStatsFor(row, level) {
  * the new maxHp — the "not topped up" assertion would then pass or fail for the
  * wrong reason.
  *
- * The same constraint is deliberately NOT applied to SP, because it is
- * unsatisfiable: every winning fight in Green Grounds runs at least 33 ticks
- * and `spRegenPerTick` is 3, so a character that starts the chain at any SP
- * finishes the fight at full SP. That is recorded as an observation below
- * rather than worked around.
+ * The SP half of (b) is deliberately NOT required here: at the default INT 5
+ * every winning Green Grounds fight runs long enough for `spRegenPerTick` to
+ * refill the pool, so an SP-starved chain cannot be built from a default
+ * character. `assertSpNeverToppedUp()` builds one that can.
  */
 function findSingleLevelUpKillIndex({ charId, mapId, epoch, level, attributes }) {
-  const needed = xpToNextLevel(level);
-  const nextNeeded = xpToNextLevel(level + 1);
-  const levelStats = BattleEngine.calculateDerivedStats(level, attributes, {});
-
-  for (let killIndex = 0; killIndex < 120; killIndex++) {
-    const { monster, simulation, rewards } = simulateQueueStepAt({
-      charId, mapId, epoch, killIndex, level, attributes, chainHp: SEED_HP, chainSp: SEED_SP,
-    });
-    if (simulation.outcome !== 'win') continue;
-    if (simulation.hpAfter <= 0 || simulation.spAfter <= 0) continue;
-    if (simulation.hpAfter >= levelStats.maxHp) continue;
-    // `xp = needed - 1`, then `xp += gain`, then one subtraction of `needed`
-    // must leave less than `nextNeeded` — i.e. exactly one level-up.
-    const remainder = needed - 1 + rewards.xpGain - needed;
-    if (remainder >= nextNeeded) continue;
-    return { killIndex, monster, simulation, rewards, needed, nextNeeded, levelStats };
-  }
-  return null;
+  return findKillIndex({
+    charId, mapId, epoch, level, attributes,
+    startHp: SEED_HP,
+    startSp: SEED_SP,
+    accept: (probe, levelStats) => probe.simulation.hpAfter < levelStats.maxHp,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +142,7 @@ function findSingleLevelUpKillIndex({ charId, mapId, epoch, level, attributes })
  * close the window, because a job that is already `active` cannot be removed.
  * Seeding first and entering once removes the race entirely.
  */
-async function buildSeededQueue({ label, targetLevel, pickKillIndex, startHp, startSp }) {
+async function buildSeededQueue({ label, targetLevel, pickKillIndex, startHp, startSp, equipmentStats = null }) {
   const ctx = await h.createCharacter({ enterMap: false, level: targetLevel });
   console.log(`\n[${label}] character ${ctx.charId} (not yet on a map)`);
 
@@ -120,13 +152,13 @@ async function buildSeededQueue({ label, targetLevel, pickKillIndex, startHp, st
 
   // `pickKillIndex` may choose the starting HP/SP itself (the multi-level case
   // needs a level-scaled value), so it is resolved before anything is seeded.
-  const pick = await pickKillIndex({ ctx, attributes, level: targetLevel, startHp, startSp });
+  const pick = await pickKillIndex({ ctx, attributes, level: targetLevel, startHp, startSp, equipmentStats });
   const hp = pick.hp ?? startHp ?? SEED_HP;
   const sp = pick.sp ?? startSp ?? SEED_SP;
   const seeded = { level: targetLevel, xp: 0, hpCurrent: hp, spCurrent: sp };
 
   await h.setCharacterProgression(ctx.charId, seeded);
-  const stats = derivedStatsFor(row, targetLevel);
+  const stats = derivedStatsFor(row, targetLevel, equipmentStats);
   h.note(
     `[${label}] seeded level=${targetLevel} hpCurrent=${hp}/${stats.maxHp} spCurrent=${sp}/${stats.maxSp} ` +
       'before the single map entry that builds the queue',
@@ -267,7 +299,7 @@ async function assertLevelUpEffects({ ctx, entries, first, found }, expectedLeve
   );
 
   // The level-up sets hpCurrent/spCurrent from the entry's hpAfter/spAfter
-  // FIRST, then ratio-scales them (battle.service.ts:433, 465-472).
+  // FIRST, then ratio-scales them (battle.service.ts:445, 477-484).
   const expectedHp = Math.min(
     afterDerived.maxHp,
     Math.max(1, Math.round(Number(first.hpAfter) * (afterDerived.maxHp / beforeDerived.maxHp))),
@@ -298,14 +330,17 @@ async function assertLevelUpEffects({ ctx, entries, first, found }, expectedLeve
 
   /**
    * SPEC §6.3 asks for the same guarantee on SP, and the code does apply the
-   * same ratio formula — but the "strictly less than the new maximum" half of
-   * that property is UNOBSERVABLE through the queue rather than violated.
+   * same ratio formula — but for THIS character the "strictly less than the new
+   * maximum" half of the property is not exercised, because the engine refilled
+   * SP during the fight before the level-up ever ran.
    *
-   * `spRegenPerTick = 1 + floor(INT/2) + floor(maxSp/2%)` is 3 at INT=5, and
-   * every winning fight in Green Grounds runs at least 33 ticks, so a character
-   * starting the chain at ANY SP finishes the entry at exactly maxSp. The ratio
-   * step from 98 to 106 therefore lands precisely on the new maximum. The
-   * level-up code did not top it up; the engine had already refilled it.
+   * `spRegenPerTick = 1 + floor(INT/2) + floor(maxSp*0.01)` is 3 at INT=5, and
+   * every winning fight a default character can win runs at least 33 ticks, so
+   * a character starting the chain at ANY SP finishes the entry at exactly
+   * maxSp. The ratio step from 98 to 106 therefore lands precisely on the new
+   * maximum. The level-up code did not top it up; the engine had already
+   * refilled it. `assertSpNeverToppedUp()` below is the case that separates the
+   * two explanations.
    */
   const spWasFullBeforeLevelUp = Number(first.spAfter) >= beforeDerived.maxSp;
   h.assert(
@@ -315,11 +350,10 @@ async function assertLevelUpEffects({ ctx, entries, first, found }, expectedLeve
       `→ ratio result ${expectedSp}, new maxSp ${afterDerived.maxSp}, actual ${after.spCurrent}; spRegenPerTick=${beforeDerived.spRegenPerTick}, battle ran ${first.log?.durationTicks} ticks`,
   );
   h.note(
-    '§6.3 observation (not a divergence, but it limits what the suite can prove): the "never topped up" guarantee is ' +
-      `demonstrable on HP but not on SP through the queue. Every winning Green Grounds fight lasts >= 33 ticks and ` +
-      `spRegenPerTick is ${beforeDerived.spRegenPerTick}, so spAfter is always maxSp before the level-up runs and the ratio ` +
-      'step lands on the new maximum. Proving the SP half would need a fight shorter than the regen window, which no ' +
-      'winnable Green Grounds encounter provides.',
+    '§6.3 observation: this character cannot show the "never topped up" half of the SP guarantee, because every ' +
+      `winning Green Grounds fight it can win lasts >= 33 ticks and spRegenPerTick is ${beforeDerived.spRegenPerTick}, ` +
+      'so spAfter is always maxSp before the level-up runs and the ratio step lands on the new maximum. Scenario 4 ' +
+      'below proves the SP half on a character whose fight is short enough for the regen window to stay open.',
   );
   h.assert(
     '§6.3 the cross-check against BattleEngine.calculateDerivedStats agrees with the engine used in-process',
@@ -336,12 +370,12 @@ async function assertLevelUpEffects({ ctx, entries, first, found }, expectedLeve
     `seeded ${xpToNextLevel(Number(before.level)) - 1} + xpGain ${first.xpGain} - ${levelsGained} × xpToNext`,
   );
 
-  h.divergence(
-    3,
-    'The ratio above was computed with an EMPTY equipment argument, matching battle.service.ts:462-463. ' +
-      'buildCharacterSnapshot() (battle.service.ts:144-160) passes real equipmentStats, so on an equipped character ' +
-      'the scaled HP is off by the equipment contribution. Masked here because this character is unequipped, exactly ' +
-      'as design.md divergence #3 describes.',
+  h.note(
+    'Divergence #3 (level-up ratio computed with an empty equipment argument) is no longer reachable from here: ' +
+      'battle.service.ts:453-484 now derives both ends of the ratio from the real loadout, exactly as ' +
+      'buildCharacterSnapshot() does. This scenario\'s character is unequipped, so the fix is invisible to it — ' +
+      'scenario 3 below runs the same level-up on an EQUIPPED character, where the two readings differ by ' +
+      'hundreds of HP, and asserts the equipment-aware one.',
   );
 
   return { before, after, beforeDerived, afterDerived, levelsGained, viaApiAfter, survivingIds, survivingJobIdsBefore };
@@ -425,7 +459,7 @@ async function assertQueueRebuild({ ctx, entries }, levelInfo) {
  *
  * design.md divergence #4: the code applies ONE ratio step across the whole
  * batch, from the stats before the first level-up to the stats after the last
- * one (battle.service.ts:453-472). For a single level-up that is exact; for a
+ * one (battle.service.ts:453-484). For a single level-up that is exact; for a
  * multi-level gain it differs from compounding the ratio per level. The SPEC
  * does not say which is intended, so this asserts the CURRENT behaviour.
  */
@@ -517,8 +551,9 @@ async function assertMultiLevelScaling() {
   h.divergence(
     4,
     'Multi-level scaling is ONE ratio step from the pre-first-level stats to the post-last-level stats ' +
-      '(battle.service.ts:453-472), not one step per level. The SPEC does not state which is intended, so this ' +
-      'asserts the code as written and prints the compounded alternative alongside it.',
+      '(battle.service.ts:453-484), not one step per level. Settled 2026-09-28 as a SPEC §6.3 footnote with no code ' +
+      'change: the two readings are unobservable in hpCurrent while maxHp is linear in level, so the choice can be ' +
+      'deferred. This asserts the code as written and prints the compounded alternative alongside it.',
   );
 
   const oneStepHp = Math.min(
@@ -566,6 +601,399 @@ async function assertMultiLevelScaling() {
   void entries;
 }
 
+// ---------------------------------------------------------------------------
+//  5. §6.3 on an EQUIPPED character — the ratio is derived from the real loadout
+// ---------------------------------------------------------------------------
+
+/**
+ * `items.json` tier-1 physical armour: `levelReq 1`, so a level-1 character can
+ * wear it, and each piece carries `VIT + 1` plus flat DEF. VIT feeds `maxHp`
+ * directly (`maxHp = floor(80 + VIT*12 + level*18)`), which is what the level-up
+ * ratio is taken over.
+ */
+const T1_ARMOR = [
+  { slot: 'head', itemId: 'equip_head_phys_t1', def: 4, vit: 1 },
+  { slot: 'body', itemId: 'equip_body_phys_t1', def: 8, vit: 1 },
+  { slot: 'cape', itemId: 'equip_cape_phys_t1', def: 3, vit: 1 },
+];
+
+/**
+ * SPEC §10.3: every equipment piece except shoes rolls ONE attribute for +1..6
+ * at drop time and stores it forever in `instanceData`. `equipItem()` nulls
+ * `instanceData` on every write (equipment.service.ts:266), so the roll is
+ * seeded directly — it is permanent game state, not something the endpoint can
+ * express. Three VIT+6 rolls take the total VIT bonus from 3 to 21.
+ */
+const EQUIP_ROLL = { rolledAttribute: 'VIT', rolledValue: 6 };
+
+/**
+ * A level-1 character has exactly 5 unspent points (SPEC §6.3). Spending all of
+ * them in STR is the one legal allocation that shortens a Green Grounds fight
+ * enough to leave both HP and SP below their maxima at the end.
+ */
+const SPENT_IN_STR = 10;
+
+/**
+ * 600 encounter indices rather than 120. The new scenarios need a fight that is
+ * both winnable and SHORT, which is a much narrower slice of the stream than
+ * "winnable and damaging" — roughly 100 qualifying indices per character here,
+ * against about 1 in 40 for the SP condition alone over 120 indices, so a
+ * 120-wide scan would fail often enough to be a flaky test rather than an
+ * honest one. `mapKillCount` is just an index into the deterministic stream
+ * (SPEC §11.2) and the §11.2 epoch rollover is at 10,000, so a wide scan costs
+ * nothing but CPU.
+ */
+const WIDE_SCAN = 600;
+
+/**
+ * The level-up ratio on an equipped character.
+ *
+ * `maxHp = floor(80 + VIT*12 + level*18)` and the armour below adds VIT 21, so
+ * the equipped maxima are ~2.6x the bare ones and the two readings of the rule
+ * are far apart: with `hpAfter` in the 300s the equipment-aware ratio lands
+ * around 360, while the equipment-blind one (`{}` for both ends of the ratio,
+ * which is what battle.service.ts:453-484 used to pass) computes 349 x
+ * 176/158 = 389 and then clamps it to the blind new maximum of 176. The
+ * scenario is therefore not a near-miss check — the old code cannot produce the
+ * asserted value.
+ */
+async function assertEquippedLevelUpRatio() {
+  const label = 'equipped';
+  const ctx = await h.createCharacter({ enterMap: false, level: 1 });
+  console.log(`\n[${label}] character ${ctx.charId} (not yet on a map)`);
+  await h.drainQueue(ctx.charId);
+
+  for (const piece of T1_ARMOR) {
+    const res = await h.request('PUT', '/equipment/equip', { slot: piece.slot, itemId: piece.itemId }, ctx.token);
+    if (res.status >= 400) {
+      throw new Error(`[${label}] PUT /equipment/equip ${piece.itemId} -> ${res.status} ${res.raw.slice(0, 200)}`);
+    }
+  }
+  for (const piece of T1_ARMOR) {
+    await h.setEquipmentRoll(ctx.charId, piece.slot, EQUIP_ROLL.rolledAttribute, EQUIP_ROLL.rolledValue);
+  }
+
+  const equipmentStats = await fetchEquipmentStats(ctx.token);
+  const expectedVit = T1_ARMOR.length * (T1_ARMOR[0].vit + EQUIP_ROLL.rolledValue);
+  const expectedDef = T1_ARMOR.reduce((sum, p) => sum + p.def, 0);
+  h.assert(
+    '§10.3 the character really is equipped: the API reports the summed VIT bonus and DEF',
+    Number(equipmentStats.statBonus?.VIT) === expectedVit && Number(equipmentStats.def) === expectedDef,
+    `GET /equipment/stats/total -> statBonus=${JSON.stringify(equipmentStats.statBonus)} def=${equipmentStats.def}; ` +
+      `expected VIT ${expectedVit} (${T1_ARMOR.length} x (${T1_ARMOR[0].vit} fixed + ${EQUIP_ROLL.rolledValue} rolled)) and def ${expectedDef}`,
+  );
+
+  await h.setCharacterAttributes(ctx.charId, { str: SPENT_IN_STR });
+  await h.setCharacterProgression(ctx.charId, {
+    level: 1, xp: 0, unspentAttributePoints: 0, hpCurrent: 5, spCurrent: 0,
+  });
+
+  const row = await h.getCharacterRow(ctx.charId);
+  const attributes = attributesOf(row);
+  const equippedAttributes = h.attributesWithEquipment(attributes, equipmentStats);
+  const equipmentArgs = h.equipmentArgsOf(equipmentStats);
+  const beforeDerived = BattleEngine.calculateDerivedStats(1, equippedAttributes, equipmentArgs);
+  const afterDerived = BattleEngine.calculateDerivedStats(2, equippedAttributes, equipmentArgs);
+  // The reading the resolver used before the fix: bare attributes, `{}` gear.
+  const blindBefore = BattleEngine.calculateDerivedStats(1, attributes, {});
+  const blindAfter = BattleEngine.calculateDerivedStats(2, attributes, {});
+
+  h.assert(
+    '§6.3 the equipment actually moves maxHp, so this scenario can tell the two readings apart',
+    beforeDerived.maxHp > blindBefore.maxHp,
+    `equipped maxHp=${beforeDerived.maxHp} (VIT ${equippedAttributes.vit} = ${attributes.vit} base + ${equipmentStats.statBonus.VIT} from gear) ` +
+      `vs equipment-blind maxHp=${blindBefore.maxHp} (VIT ${attributes.vit}); a character whose gear did not move VIT would ` +
+      'make the ratio assertion below vacuous',
+  );
+
+  const pick = findKillIndex({
+    charId: ctx.charId, mapId: ctx.mapId, epoch: 0, level: 1, attributes,
+    equipmentStats, startHp: 5, startSp: 0, scan: WIDE_SCAN,
+    // Both pools must still be short of their maximum when the level-up runs,
+    // otherwise the ratio result clamps to the new maximum in either reading.
+    accept: (probe, levelStats) =>
+      probe.simulation.hpAfter < levelStats.maxHp && probe.simulation.spAfter < levelStats.maxSp,
+  });
+  if (!pick) {
+    throw new Error(
+      `[${label}] no kill index in 0..${WIDE_SCAN - 1} yields a winnable fight that leaves HP and SP below their ` +
+        `maxima from hp=5/sp=0 at level 1 (equipped maxHp ${beforeDerived.maxHp}, maxSp ${beforeDerived.maxSp})`,
+    );
+  }
+  h.note(
+    `[${label}] pinned mapKillCount=${pick.killIndex} -> ${pick.monster.id} over ${pick.simulation.durationTicks} ticks; ` +
+      `preview hpAfter=${pick.simulation.hpAfter}/${beforeDerived.maxHp} spAfter=${pick.simulation.spAfter}/${beforeDerived.maxSp} xp=${pick.rewards.xpGain}`,
+  );
+
+  await h.setKillCounter(ctx.charId, ctx.mapId, { mapKillCount: pick.killIndex, epoch: 0, perMonsterKillCount: {} });
+  h.assertProgressionIntact(
+    ctx.charId,
+    { level: 1, xp: 0, hpCurrent: 5, spCurrent: 0 },
+    `[${label}] after pinning the encounter stream`,
+  );
+
+  const entered = await h.request('POST', `/maps/${ctx.mapId}/enter`, {}, ctx.token);
+  if (entered.status >= 400) {
+    throw new Error(`[${label}] POST /maps/${ctx.mapId}/enter -> ${entered.status} ${entered.raw.slice(0, 200)}`);
+  }
+  h.assertProgressionIntact(
+    ctx.charId,
+    { level: 1, xp: 0, hpCurrent: 5, spCurrent: 0 },
+    `[${label}] after the map entry that built the queue`,
+  );
+
+  const entries = await h.waitFor(
+    'a 5-deep queue to exist',
+    async () => {
+      const q = await h.getUnresolvedEntries(ctx.charId);
+      return q.length >= 5 ? q : null;
+    },
+    30_000,
+  );
+  const first = entries[0];
+  h.assert(
+    '§7.4.2 the seeded first entry is a win, so the resolve takes the payout path',
+    first.outcome === 'win',
+    `first entry ${first.id} vs ${first.monsterId} outcome=${first.outcome} hpAfter=${first.hpAfter}/${beforeDerived.maxHp} ` +
+      `spAfter=${first.spAfter}/${beforeDerived.maxSp} (previewed hpAfter=${pick.simulation.hpAfter} spAfter=${pick.simulation.spAfter})`,
+  );
+
+  // The queue was built by the real API, so its log header carries the stats the
+  // API derived — which already includes the equipment (buildCharacterSnapshot).
+  const snapshot = first.log?.header?.characterSnapshot;
+  h.assert(
+    '§6.3 the entry itself was simulated against the EQUIPPED stats, not the bare ones',
+    snapshot && snapshot.maxHp === beforeDerived.maxHp,
+    `entry log.header.characterSnapshot.maxHp=${snapshot?.maxHp} (level ${snapshot?.level}) vs the equipment-aware maxHp ${beforeDerived.maxHp}; ` +
+      `the equipment-blind reading would say ${blindBefore.maxHp}`,
+  );
+
+  await h.setCharacterProgression(ctx.charId, { xp: xpToNextLevel(1) - 1 });
+  await h.rewriteEndAtToPast(first.id, { secondsAgo: 5, startAtSecondsAgo: 90 });
+  await h.enqueueResolveJob(first.id);
+
+  const after = await h.waitFor(
+    'the equipped level-up resolve to land',
+    async () => {
+      const r = await h.getCharacterRow(ctx.charId);
+      return Number(r.level) > 1 ? r : null;
+    },
+    60_000,
+  );
+  await h.waitFor(
+    'the queue to be rebuilt to 5 entries',
+    async () => {
+      const q = await h.getUnresolvedEntries(ctx.charId);
+      return q.length === 5 ? q : null;
+    },
+    60_000,
+  );
+
+  const expectedHp = Math.min(
+    afterDerived.maxHp,
+    Math.max(1, Math.round(Number(first.hpAfter) * (afterDerived.maxHp / beforeDerived.maxHp))),
+  );
+  const blindHp = Math.min(
+    blindAfter.maxHp,
+    Math.max(1, Math.round(Number(first.hpAfter) * (blindAfter.maxHp / blindBefore.maxHp))),
+  );
+  const expectedSp = Math.min(
+    afterDerived.maxSp,
+    Math.max(0, Math.round(Number(first.spAfter) * (afterDerived.maxSp / beforeDerived.maxSp))),
+  );
+
+  h.assertEqual(
+    '§6.3 hpCurrent is ratio-adjusted with the REAL loadout: round(entry.hpAfter × newMaxHp/oldMaxHp) on the equipment-aware maxima',
+    Number(after.hpCurrent),
+    expectedHp,
+    `entry.hpAfter=${first.hpAfter}; equipped maxHp ${beforeDerived.maxHp} -> ${afterDerived.maxHp} ` +
+      `(ratio ${(afterDerived.maxHp / beforeDerived.maxHp).toFixed(5)}), so ${first.hpAfter} x ratio = ${expectedHp}. ` +
+      `The equipment-blind reading gives ${blindHp}.`,
+  );
+  h.assert(
+    '§6.3 the two readings are far enough apart that this assertion is not a near-miss',
+    Math.abs(expectedHp - blindHp) >= 5,
+    `equipment-aware hpCurrent would be ${expectedHp}, equipment-blind ${blindHp} (gap ${Math.abs(expectedHp - blindHp)} HP); ` +
+      'a gap under 5 HP would let a rounding accident masquerade as a pass',
+  );
+  h.assert(
+    '§6.3 hpCurrent is strictly below the new maxHp — ratio-adjusted, never topped up',
+    Number(after.hpCurrent) < afterDerived.maxHp,
+    `hp ${after.hpCurrent}/${afterDerived.maxHp} (${((Number(after.hpCurrent) / afterDerived.maxHp) * 100).toFixed(1)}% of the new maximum); ` +
+      `a top-up would have set it to ${afterDerived.maxHp}`,
+  );
+  h.assertEqual(
+    '§6.3 spCurrent is ratio-adjusted on the same pass (the loadout moves no INT, so both readings agree here)',
+    Number(after.spCurrent),
+    expectedSp,
+    `entry.spAfter=${first.spAfter}; maxSp ${beforeDerived.maxSp} -> ${afterDerived.maxSp} (ratio ${(afterDerived.maxSp / beforeDerived.maxSp).toFixed(5)}), ` +
+      `so ${first.spAfter} x ratio = ${expectedSp}, and it is ${((Number(after.spCurrent) / afterDerived.maxSp) * 100).toFixed(1)}% of the new maximum`,
+  );
+
+  // The rebuild is simulated by the same code path that fixed the ratio, so the
+  // new chain's header must carry the same equipment-aware maxima.
+  const rebuilt = await h.getUnresolvedEntries(ctx.charId);
+  const rebuiltSnapshot = rebuilt[0]?.log?.header?.characterSnapshot;
+  h.assert(
+    '§6.3 the rebuilt chain is simulated against the equipment-aware maxima of the new level',
+    rebuiltSnapshot && rebuiltSnapshot.level === Number(after.level) && rebuiltSnapshot.maxHp === afterDerived.maxHp,
+    `rebuilt entry ${rebuilt[0]?.id} header.characterSnapshot = { level: ${rebuiltSnapshot?.level}, maxHp: ${rebuiltSnapshot?.maxHp} } ` +
+      `vs post-level-up level ${after.level} / equipment-aware maxHp ${afterDerived.maxHp}`,
+  );
+
+  await h.drainQueue(ctx.charId);
+  return { expectedHp, blindHp, beforeDerived, afterDerived };
+}
+
+// ---------------------------------------------------------------------------
+//  6. §6.3 — "never topped up" on SP, proved on a real case
+// ---------------------------------------------------------------------------
+
+/**
+ * The SP half of the §6.3 guarantee, on a character whose fight is short enough
+ * for the regen window to stay open.
+ *
+ * The gap this closes (STATUS.md §6.4): every winning Green Grounds fight a
+ * DEFAULT character can win runs 33+ ticks and `spRegenPerTick` is 3, so
+ * `spAfter` is always `maxSp` and the ratio step lands exactly on the new
+ * maximum. The formula was assertable; "strictly below the new maximum" was
+ * not. Two changes make it observable, and both are ordinary game state:
+ *
+ *   - the character spends its 5 unspent points in STR (SPEC §6.3), which raises
+ *     atk from 13 to 24 and cuts a slime fight from 39 ticks to 23;
+ *   - the chain starts at `spCurrent = 0`, so 23 ticks x 3 SP of regen reaches
+ *     69 — under the level-1 maxSp of 98.
+ *
+ * The result is an entry that hands the resolver a genuinely partial SP pool, so
+ * "not topped up" and "the engine refilled it first" are distinguishable.
+ */
+async function assertSpNeverToppedUp() {
+  const label = 'sp-never-topped-up';
+  const ctx = await h.createCharacter({ enterMap: false, level: 1 });
+  console.log(`\n[${label}] character ${ctx.charId} (not yet on a map)`);
+  await h.drainQueue(ctx.charId);
+
+  await h.setCharacterAttributes(ctx.charId, { str: SPENT_IN_STR });
+  await h.setCharacterProgression(ctx.charId, {
+    level: 1, xp: 0, unspentAttributePoints: 0, hpCurrent: 80, spCurrent: 0,
+  });
+
+  const row = await h.getCharacterRow(ctx.charId);
+  const attributes = attributesOf(row);
+  const beforeDerived = derivedStatsFor(row, 1);
+  const afterDerived = derivedStatsFor(row, 2);
+
+  const pick = findKillIndex({
+    charId: ctx.charId, mapId: ctx.mapId, epoch: 0, level: 1, attributes,
+    startHp: 80, startSp: 0, scan: WIDE_SCAN,
+    accept: (probe, levelStats) => probe.simulation.spAfter < levelStats.maxSp,
+  });
+  if (!pick) {
+    throw new Error(
+      `[${label}] no kill index in 0..${WIDE_SCAN - 1} yields a winnable fight shorter than the SP regen window ` +
+        `(maxSp ${beforeDerived.maxSp}, spRegenPerTick ${beforeDerived.spRegenPerTick}) from sp=0 at level 1`,
+    );
+  }
+  h.note(
+    `[${label}] pinned mapKillCount=${pick.killIndex} -> ${pick.monster.id} over ${pick.simulation.durationTicks} ticks; ` +
+      `preview spAfter=${pick.simulation.spAfter}/${beforeDerived.maxSp} hpAfter=${pick.simulation.hpAfter}/${beforeDerived.maxHp} ` +
+      `(spRegenPerTick ${beforeDerived.spRegenPerTick} x ${pick.simulation.durationTicks} ticks = ` +
+      `${pick.simulation.durationTicks * beforeDerived.spRegenPerTick} SP, which is why the pool is still short)`,
+  );
+
+  await h.setKillCounter(ctx.charId, ctx.mapId, { mapKillCount: pick.killIndex, epoch: 0, perMonsterKillCount: {} });
+  h.assertProgressionIntact(
+    ctx.charId,
+    { level: 1, xp: 0, hpCurrent: 80, spCurrent: 0 },
+    `[${label}] after pinning the encounter stream`,
+  );
+
+  const entered = await h.request('POST', `/maps/${ctx.mapId}/enter`, {}, ctx.token);
+  if (entered.status >= 400) {
+    throw new Error(`[${label}] POST /maps/${ctx.mapId}/enter -> ${entered.status} ${entered.raw.slice(0, 200)}`);
+  }
+  h.assertProgressionIntact(
+    ctx.charId,
+    { level: 1, xp: 0, hpCurrent: 80, spCurrent: 0 },
+    `[${label}] after the map entry that built the queue`,
+  );
+
+  const entries = await h.waitFor(
+    'a 5-deep queue to exist',
+    async () => {
+      const q = await h.getUnresolvedEntries(ctx.charId);
+      return q.length >= 5 ? q : null;
+    },
+    30_000,
+  );
+  const first = entries[0];
+
+  h.assert(
+    '§6.3 the entry really did hand the resolver a partial SP pool (spAfter < maxSp) — otherwise "never topped up" is unobservable',
+    first.outcome === 'win' && Number(first.spAfter) < beforeDerived.maxSp,
+    `entry ${first.id} vs ${first.monsterId} outcome=${first.outcome} over ${first.log?.durationTicks} ticks: ` +
+      `spAfter=${first.spAfter} against maxSp ${beforeDerived.maxSp} at level 1 (spRegenPerTick ${beforeDerived.spRegenPerTick}, ` +
+      `chain started at sp=0). Preview agreed: spAfter=${pick.simulation.spAfter}.`,
+  );
+
+  await h.setCharacterProgression(ctx.charId, { xp: xpToNextLevel(1) - 1 });
+  await h.rewriteEndAtToPast(first.id, { secondsAgo: 5, startAtSecondsAgo: 90 });
+  await h.enqueueResolveJob(first.id);
+
+  const after = await h.waitFor(
+    'the SP level-up resolve to land',
+    async () => {
+      const r = await h.getCharacterRow(ctx.charId);
+      return Number(r.level) > 1 ? r : null;
+    },
+    60_000,
+  );
+  await h.waitFor(
+    'the queue to be rebuilt to 5 entries',
+    async () => {
+      const q = await h.getUnresolvedEntries(ctx.charId);
+      return q.length === 5 ? q : null;
+    },
+    60_000,
+  );
+
+  const expectedSp = Math.min(
+    afterDerived.maxSp,
+    Math.max(0, Math.round(Number(first.spAfter) * (afterDerived.maxSp / beforeDerived.maxSp))),
+  );
+
+  h.assertEqual(
+    '§6.3 spCurrent is ratio-adjusted, not topped up: round(entry.spAfter × newMaxSp/oldMaxSp)',
+    Number(after.spCurrent),
+    expectedSp,
+    `entry.spAfter=${first.spAfter}; maxSp ${beforeDerived.maxSp} -> ${afterDerived.maxSp} ` +
+      `(ratio ${(afterDerived.maxSp / beforeDerived.maxSp).toFixed(5)}), so ${first.spAfter} x ratio = ${expectedSp}`,
+  );
+  h.assert(
+    '§6.3 spCurrent is STRICTLY below the new maxSp — the level-up did not top the pool up',
+    Number(after.spCurrent) < afterDerived.maxSp,
+    `sp ${after.spCurrent}/${afterDerived.maxSp} (${((Number(after.spCurrent) / afterDerived.maxSp) * 100).toFixed(1)}% of the new maximum) ` +
+      `after a ${first.log?.durationTicks}-tick fight that ended with ${first.spAfter}/${beforeDerived.maxSp} SP. ` +
+      `A top-up would have set it to ${afterDerived.maxSp}.`,
+  );
+  h.assert(
+    '§6.3 the SP percentage of the maximum is preserved across the level-up, not raised to 100%',
+    Math.abs(Number(after.spCurrent) / afterDerived.maxSp - Number(first.spAfter) / beforeDerived.maxSp) < 0.01,
+    `before: ${first.spAfter}/${beforeDerived.maxSp} = ${((Number(first.spAfter) / beforeDerived.maxSp) * 100).toFixed(2)}%; ` +
+      `after: ${after.spCurrent}/${afterDerived.maxSp} = ${((Number(after.spCurrent) / afterDerived.maxSp) * 100).toFixed(2)}%`,
+  );
+  h.assert(
+    '§6.3 the same resolve kept HP ratio-adjusted too, so the SP result is not a coincidence of a different code path',
+    Number(after.hpCurrent) === Math.min(
+      afterDerived.maxHp,
+      Math.max(1, Math.round(Number(first.hpAfter) * (afterDerived.maxHp / beforeDerived.maxHp))),
+    ),
+    `entry.hpAfter=${first.hpAfter}, maxHp ${beforeDerived.maxHp} -> ${afterDerived.maxHp}, hpCurrent=${after.hpCurrent}`,
+  );
+
+  await h.drainQueue(ctx.charId);
+}
+
 async function main() {
   console.log('=== Phase 3 · Level-up mid-queue (SPEC §6.3, §3.4) ===');
   await h.preflight();
@@ -582,6 +1010,12 @@ async function main() {
 
   console.log('\n--- 2. Two level-ups in one resolve (SPEC §6.3, divergence #4) ---');
   await assertMultiLevelScaling();
+
+  console.log('\n--- 3. Level-up ratio on an EQUIPPED character (SPEC §6.3, divergence #3) ---');
+  await assertEquippedLevelUpRatio();
+
+  console.log('\n--- 4. SP is never topped up by a level-up (SPEC §6.3) ---');
+  await assertSpNeverToppedUp();
 
   await h.closeQueueAndRedis();
   h.summarize('Level-up mid-queue');

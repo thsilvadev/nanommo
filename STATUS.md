@@ -1,9 +1,9 @@
 # NanoMMO Backend — Battle Loop Implementation Status
 
-**Last Updated:** 2026-09-28 (Phase 3 verification — change `grind-loop-phase3-edge-cases`)
-**Session Focus:** Build the six Phase 3 edge-case verification scripts and record their results
+**Last Updated:** 2026-09-28 (Phase 4A — divergence #3 fixed, divergences #1/#2/#4 settled in SPEC, two proof gaps closed)
+**Session Focus:** Fix the level-up HP/SP ratio on an equipped character; close the two "limits of what the suite can prove" gaps from §6.4
 
-> **Evidence rule adopted this session.** A verification result is only recorded in this
+> **Evidence rule adopted in Phase 3 and still in force.** A verification result is only recorded in this
 > document if the script that produced it is committed and re-runnable
 > (SPEC delta `grind-loop-verification`, "Edge-case guarantees are covered by re-runnable
 > verification scripts"). Every claim in §7 below names the script and the assertion that
@@ -17,14 +17,15 @@
 | Aspect | State | Evidence |
 |--------|-------|----------|
 | **Core loop (Phase 1–2)** | ✅ verified | `test-phase3-all.js` — every stack-dependent scenario bootstraps a real character and drives the real endpoints |
-| **Phase 3 edge cases** | ✅ **143/143 assertions pass**, aggregate exit 0 | `node apps/api/test-phase3-all.js --restart` |
-| **Known divergences from SPEC** | ⚠️ 4 confirmed + 1 testability note | §7.7, printed by the scripts as `[DIVERGENCE #n]` |
+| **Full suite** | ✅ **163/163 assertions pass**, aggregate exit 0 | `node apps/api/test-phase3-all.js --restart` |
+| **Known divergences from SPEC** | ✅ **0 open** — #3 fixed in code; #1/#2/#4 settled by updating SPEC to match the code | §6.1 |
 | **Blocker issues** | none | No scenario failed |
-| **New issues found this session** | 2 real defects in *test evidence*, 1 in behaviour | §6 |
-| **Tech debt** | ⚠️ 3 items, all pre-existing | §6 |
+| **Proof gaps from last session** | ✅ both closed (drop idempotency, SP never topped up) | §6.4 |
+| **Tech debt** | ⚠️ 4 items, all pre-existing | §6.3 |
 
-**Phase 3 is complete.** All six scenarios pass and the suite is re-runnable with
-`node apps/api/test-phase3-all.js`.
+**Production code changed this session: one fix** — the level-up HP/SP ratio now derives both
+ends from the character's real loadout (`battle.service.ts:453-484`). No new dependency, no new
+endpoint, no WebSocket work.
 
 ---
 
@@ -49,7 +50,7 @@ Individual scenarios:
 ```bash
 node test-phase3-determinism.js                 # engine only, no stack needed for most assertions
 node test-phase3-gambits.js
-node test-phase3-levelup.js
+node test-phase3-levelup.js                     # 4 scenarios: single, multi-level, equipped, SP
 node test-phase3-death.js
 node test-phase3-idempotency.js
 PHASE3_RESTART=1 node test-phase3-recovery.js    # gated: restarts the container
@@ -74,14 +75,14 @@ PHASE3_RESTART=1 node test-phase3-recovery.js    # gated: restarts the container
 | `apps/api/test/helpers/phase3.js` | Shared harness: throttled HTTP, `pg`, `ioredis`, `bull`, character bootstrap, seeded preconditions, assertion tally |
 | `apps/api/test-phase3-determinism.js` | SPEC §3.1 / §11.2 — engine purity, stored-battle replay |
 | `apps/api/test-phase3-gambits.js` | SPEC §8.4 save-time + §7.2/§7.3 runtime |
-| `apps/api/test-phase3-levelup.js` | SPEC §6.3 / §3.4 — level-up mid-queue |
+| `apps/api/test-phase3-levelup.js` | SPEC §6.3 / §3.4 — level-up mid-queue: single, multi-level, **equipped**, **SP not topped up** |
 | `apps/api/test-phase3-death.js` | SPEC §7.6 / §6.4 / §7.7 — death |
-| `apps/api/test-phase3-idempotency.js` | design.md D4 — exactly-once resolution |
+| `apps/api/test-phase3-idempotency.js` | design.md D4 — exactly-once resolution, **with a real drop** |
 | `apps/api/test-phase3-recovery.js` | SPEC §7.5 — crash recovery |
 | `apps/api/test-phase3-all.js` | Aggregate runner (spawns child processes; `--restart` flag) |
 
-**No production code was changed, and no dependency was added.** `bull`, `pg` and `ioredis`
-were already direct dependencies of `apps/api`.
+**No dependency was added.** `bull`, `pg` and `ioredis` were already direct dependencies of
+`apps/api`. The only production change is the one-line-scope fix in `battle.service.ts` (§6.1 #3).
 
 ---
 
@@ -93,11 +94,14 @@ All figures from `node apps/api/test-phase3-all.js --restart` on 2026-09-28.
 |----------|-----------|-----------|------|
 | determinism | 6/6 | 52 s | 0 |
 | gambits | 41/41 | 338 s | 0 |
-| levelup | 28/28 | 157 s | 0 |
-| death | 32/32 | 525 s | 0 |
-| idempotency | 17/17 | 93 s | 0 |
-| recovery | 19/19 | 138 s | 0 |
-| **total** | **143/143** | **~22 min** | **0** |
+| levelup | 46/46 (was 28) | 358 s | 0 |
+| death | 32/32 | 515 s | 0 |
+| idempotency | 19/19 (was 17) | 93 s | 0 |
+| recovery | 19/19 | 139 s | 0 |
+| **total** | **163/163** (was 143) | **~25 min** | **0** |
+
+`6 ran, 0 skipped, 0 failed` — every scenario of the previous 143 is still green; the 20 new
+assertions are additive.
 
 Without `--restart`, recovery self-skips with a printed notice and the run reports
 `5 ran, 1 skipped, 0 failed`, exit 0. The runner never folds a skipped
@@ -107,6 +111,12 @@ scenario into the pass count.
 13 s between HTTP calls, and those two scripts make ~35 and ~30 calls respectively. This is
 the API's real behaviour, not harness overhead; running against a stack with a raised
 `THROTTLE_LIMIT` (and `PHASE3_API_MIN_INTERVAL_MS=0`) cuts the suite to roughly 2 minutes.
+The levelup script grew from ~157 s to ~6 min for the same reason: it now performs two extra
+character bootstraps, two extra map entries and (in the equipped scenario) three `PUT
+/equipment/equip` calls, all paced at 13 s each. This is the main reason Phase 4A took ~45 min
+of wall clock end to end; the fix itself is 20 lines and the evidence work is two scenarios.
+
+
 
 ---
 
@@ -163,7 +173,9 @@ a status code alone cannot prove the write never reached the repository.
 
 ### 4.3 Level-up mid-queue — `test-phase3-levelup.js`
 
-**Single level-up, seeded so the resolve crosses exactly one threshold.**
+Four scenarios. The first two are unchanged from Phase 3; the last two are new.
+
+**Scenario 1 — single level-up, default unequipped character.**
 
 | Assertion | Result |
 |-----------|--------|
@@ -181,9 +193,65 @@ a status code alone cannot prove the write never reached the repository.
 | No BullMQ job remains for the discarded entries | ✅ 0 of 4 |
 | Each rebuilt entry has a job; `GET /battles/queue` returns 5 | ✅ 5/5 and 5 |
 
-**Multi-level, two thresholds in one resolve** (level 10, `mon_thornsprout`, +64 XP):
+**Scenario 2 — multi-level, two thresholds in one resolve** (level 10, `mon_thornsprout`, +64 XP):
 2 thresholds crossed → level 12, `unspentAttributePoints` 0 → 10, `hpCurrent` 234 matches the
-single-step ratio.
+single-step ratio. This is divergence #4, which stays a recorded footnote (SPEC §6.3) and not a
+code change.
+
+**Scenario 3 — the ratio on an EQUIPPED character (new; proves the §6.1 #3 fix).**
+
+The character equips tier-1 physical armour through the real `PUT /equipment/equip` endpoint
+(head + body + cape = `VIT + 3`, `def 15`, all `levelReq 1`) and each piece carries the SPEC §10.3
+eternal roll (`VIT + 6` stored in `equipped_items.instanceData`, seeded because `equipItem()`
+nulls that column on every write), for a total `VIT 5 → 26`. It then spends its 5 unspent points
+in STR — legal game state, and the reason the fight is short enough (23 ticks) that HP and SP are
+both still below maximum when the level-up runs.
+
+| Assertion | Result |
+|-----------|--------|
+| the loadout really carries the summed VIT bonus and DEF | ✅ `GET /equipment/stats/total` → `statBonus.VIT = 21`, `def = 15` |
+| the equipment actually moves `maxHp`, so the scenario can discriminate | ✅ equipped 410 vs equipment-blind 158 |
+| the entry was simulated against the EQUIPPED stats | ✅ `log.header.characterSnapshot.maxHp = 410` (the blind reading would say 158) |
+| **`hpCurrent` = `round(hpAfter × newMax/oldMax)` on the equipment-aware maxima** | ✅ 364 from `hpAfter=349`, 410 → 428 (ratio 1.04390) |
+| the two readings are far enough apart that a pass is not a rounding accident | ✅ gap **188 HP** (364 vs 176) |
+| `hpCurrent` strictly below the new maxHp | ✅ 364/428 = 85.0 % |
+| `spCurrent` ratio-adjusted on the same pass | ✅ 75 from `spAfter=69` (the loadout moves no INT, so both readings agree here) |
+| the rebuilt chain is simulated against the equipment-aware maxima of the new level | ✅ `characterSnapshot.maxHp = 428` |
+
+**The fix is proven by a failing run, not only by a passing one.** The same scenario was executed
+against the pre-fix backend (the container built before the change) and produced
+`45/46 assertions passed`, with exactly one failure:
+
+```
+[FAIL] §6.3 hpCurrent is ratio-adjusted with the REAL loadout — expected 364, got 176
+       (entry.hpAfter=349; equipped maxHp 410 -> 428 (ratio 1.04390), so 349 x ratio = 364.
+        The equipment-blind reading gives 176.)
+```
+
+176 is exactly the clamped equipment-blind value, so the old code is not "close but off by a
+rounding" — it scaled by `176/158` and then clamped against the wrong maximum, leaving the
+character at 41 % of its real maximum after a level-up.
+
+**Scenario 4 — SP is never topped up (new; closes the §6.4 gap).**
+
+A bare level-1 character with its 5 unspent points in STR and `spCurrent = 0`, fighting a
+`mon_slime` over 23 ticks. `spRegenPerTick` is 3, so 23 ticks return 69 SP against a `maxSp` of
+98: the entry genuinely hands the resolver a partial pool, which is what makes "not topped up"
+distinguishable from "the engine refilled it first".
+
+| Assertion | Result |
+|-----------|--------|
+| the entry really did hand the resolver a partial SP pool | ✅ `spAfter=69 < maxSp 98` over 23 ticks, from a chain that started at `sp=0` |
+| `spCurrent` = `round(spAfter × newMaxSp/oldMaxSp)` | ✅ 75 (98 → 106, ratio 1.08163) |
+| **`spCurrent` is STRICTLY below the new maxSp** | ✅ 75/106 = 70.8 % — a top-up would have set 106 |
+| the SP *percentage* of the maximum is preserved, not raised to 100 % | ✅ 70.41 % → 70.75 % |
+| the same resolve kept HP ratio-adjusted, so the SP result is not a different code path | ✅ `hpAfter=122`, 158 → 176, `hpCurrent=136` |
+
+This retires the Phase 3 claim that "never topped up" was provable on HP but not on SP. The
+character that makes it observable is not exotic: it is a level-1 character that spent its five
+starting points in STR, and the constraint that made the old scenario's fights 39 ticks long was
+simply that nobody had spent them.
+
 
 ### 4.4 Death — `test-phase3-death.js`
 
@@ -211,29 +279,42 @@ Two `resolve-battle` jobs are injected for the same `battleId` with **different*
 | Assertion | Result |
 |-----------|--------|
 | The staged entry is a `win` | ✅ `mon_fieldbat`/`mon_slime` depending on the scanned index |
-| xp reflects exactly one `xpGain` after the §4.2 level-up loop | ✅ 0 + 89 → xp 15 at level 5; a double application gives xp 10 at level 9 |
-| `unspentAttributePoints` += 5 per level gained | ✅ 0 → 20; a double application would grant 40 |
-| gold += exactly one `goldGain` | ✅ |
-| each drop added exactly once | ⚠️ see caveat below |
-| `map_kill_counters.map_kill_count` += exactly 1 | ✅ |
-| consumed items decremented exactly once, clamped at stock | ✅ e.g. `[{"pot_hp_small": 4}]` → 12 → 8; total removed equals the simulated consumption, never negative |
+| **the entry carries a real drop, and it is the one the preview predicted** | ✅ `perMonsterKillCount[mon_fieldbat] = 2` → `[{itemId: "food_honey", quantity: 1}]`, identical in preview and in the row the API built |
+| xp reflects exactly one `xpGain` after the §4.2 level-up loop | ✅ 0 + 40 → xp 5 at level 3; a double application gives xp 6 at level 5 |
+| `unspentAttributePoints` += 5 per level gained | ✅ 0 → 10; a double application would grant 20 |
+| gold += exactly one `goldGain` | ✅ 0 → 6; a double application would show 12 |
+| **each drop added exactly once** | ✅ `food_honey +1` observed against `+1` expected; a double application would show `+2` |
+| `map_kill_counters.map_kill_count` += exactly 1 | ✅ 1 → 2 |
+| consumed items decremented exactly once, clamped at stock | ✅ 12 → 1 of 11 consumed, with the drop included in the same expectation |
+| total stock moved by exactly (consumption − drops), counted once | ✅ 12 → 2, i.e. 11 − 1; a double application would move 20 |
 | the conditional claim matches 1 row, then 0 rows | ✅ asserted directly: 1 then 0 |
 | a claimed row disappears from the live queue read path | ✅ |
-| total quantity removed equals the simulated consumption, counted once | ✅ e.g. 12 → 1 with `quantity: 11`; a double application would remove 22 |
 | **the losing caller logged `already resolved - skipping`** | ✅ 1 skip line; exactly 1 `Resolved battle` line |
+
+**The drop is arranged, not hoped for.** `resolveDrops()` (SPEC §11.2/§11.5) derives its stream
+from `${monsterId}:${perMonsterKillCount}:${entryIndex}` and nothing else — the battle seed is not
+part of it — so for a fixed monster the drop roll is a pure function of the per-monster kill
+count. `findRaceKillIndex()` scans a winnable fight, then scans per-monster kill counts for one
+that rolls a drop (a few tens of attempts at the 5 % + 1 % + 0.1 % + 0.01 % rates) and seeds it
+with `setKillCounter()`. The API then rolls the drop itself, and the scenario asserts the row
+matches the in-process prediction — which is what makes the add-drop branch reachable at all
+rather than a 6 %-per-run coincidence.
+
+**Consumption and drops are asserted against one combined inventory expectation**, not two. A
+drop can be the very item the gambit drank (the §11.5 consumable pool is all 15 consumables,
+potions included), so only the combined state is what a single application is supposed to
+produce. In the run recorded here the drop was `food_honey` and the drink was `pot_hp_small`, so
+the two happened not to collide; the expectation is built to survive that either way.
 
 **The overlap is real, not assumed.** The script greps `docker compose logs backend` for
 `already resolved - skipping` and fails if absent, so an exit 0 cannot come from two
 sequential resolves wearing a concurrency test's clothes. Every run observed the contention.
 
-**Restart-race mode** (`PHASE3_RESTART=1 node test-phase3-idempotency.js`): the container is
+**Restart-race mode** (`PHASE3_IDEMPOTENCY_WITH_RESTART=1 node test-phase3-idempotency.js`): the container is
 stopped after the jobs are submitted, so on boot the §7.5 recovery pass and the delayed jobs
-contend. **17/17, exit 0, overlap observed.**
+contend. **17/17, exit 0, overlap observed** (Phase 3 run; not re-run in Phase 4A — the staged entry
+now also carries a drop, which this mode has not yet been re-verified with).
 
-**Drop caveat, recorded in the output:** the entry this race used rolled zero drops, so the
-`add-drop` branch was not exercised. XP, gold, level-up points, the kill counter and the
-inventory decrement all prove single application; a drop-bearing entry is still needed to
-close the drop path.
 
 ### 4.6 Crash recovery — `test-phase3-recovery.js` (gated on `PHASE3_RESTART=1`)
 
@@ -281,7 +362,7 @@ left untouched, so log-based assertions still see real engine output.
 | Email verification gate | ✅ | bypassed via `UPDATE users SET "emailVerified" = true` — the column is camelCase, **not** `email_verified` as the task prose assumed |
 | Map entry + `queueBattles(5)` | ✅ | [re-verified 2026-09-28] — gambits, levelup, death, idempotency, recovery all build a real 5-deep chain |
 | XP curve loading | ✅ | [re-verified 2026-09-28] — `xpToNext(1)=17`, `xpToNext(10)=30`, `xpToNext(20)=73` read from `char_xp_curve.json` |
-| Level-up +5 points, ratio HP/SP | ✅ | [re-verified 2026-09-28] — see §4.3 |
+| Level-up +5 points, ratio HP/SP | ✅ | [re-verified 2026-09-28] — see §4.3, now including an **equipped** character (the ratio uses the real loadout) and the SP "never topped up" case |
 | Queue discard + rebuild on level-up | ✅ | [re-verified 2026-09-28] — see §4.3 |
 | Death → town, HP 1, XP loss, chain discarded | ✅ | [re-verified 2026-09-28] — see §4.4 |
 | Gambit save-time validation (6 rules) | ✅ | [re-verified 2026-09-28] — see §4.2 |
@@ -295,51 +376,66 @@ left untouched, so log-based assertions still see real engine output.
 
 ## 6. Issues
 
-### 6.1 Confirmed SPEC divergences (recorded, not fixed — no production changes this session)
+### 6.1 SPEC divergences — all four settled in Phase 4A
 
-These are printed by the scripts as `[DIVERGENCE #n]` on every run, so they cannot be lost.
+| # | Divergence | Resolution | Where |
+|---|-----------|-----------|-------|
+| 1 | Death XP penalty: `floor` vs `round`, and an undefined `cumulativeXp` clamp | **SPEC updated to match the code** (code unchanged) | SPEC §6.4 |
+| 2 | Resolve marks rows resolved instead of deleting them | **SPEC updated to match the code** (code unchanged) | SPEC §4.7, §7.4.3 |
+| 3 | Level-up ratio computed with an empty equipment argument | **Code fixed** (the only production change of this change) | `battle.service.ts:453-484` |
+| 4 | Multi-level scaling is one step, and the question is unobservable | **SPEC footnote added**, no code change — the question is unobservable, so deferring it is safe | SPEC §6.3 |
 
-**#1 — Death XP penalty: `floor` vs `round`, and an undefined clamp.**
-SPEC §6.4 says `round(xpToNextLevel(L) × 0.05)` with a clamp at `cumulativeXp[level-1]`. The
-code uses `Math.floor` and clamps the result at 0 (`battle.service.ts:533-534`). At level 10
-that is 1 XP where `round` gives 2. The `cumulativeXp` clamp is **undefined under the §4.2
-toward-next-level model** that `characters.xp` actually holds, so this is a spec-internal
-inconsistency, not only a code bug. `max(0, …)` is what actually prevents a de-level.
-*Open question, carried from `design.md`: fix the SPEC or the code?*
+**#1 — settled in SPEC.** The code was kept: `Math.floor` and a clamp at 0
+(`battle.service.ts:545-546`). SPEC §6.4 now says `floor`, states explicitly that there is **no**
+`cumulativeXp` floor (it is undefined under the §4.2 toward-next-level model that
+`characters.xp` actually holds, which was the spec-internal half of this divergence), and names the
+`test-phase3-death.js` assertions that pin both halves: level 10 → `floor(30 × 0.05) = 1`, and a
+level-20 character seeded at 1 XP with `floor(73 × 0.05) = 3` landing on exactly 0 with its level
+untouched. `design.md`'s open question ("which XP model is canonical?") is answered by §4.2, which
+the schema already follows.
 
-**#2 — Resolve marks rows resolved instead of deleting them.**
-`resolveBattle()` marks rows resolved and re-saves them (`battle.service.ts:502`), against
-§7.4.3's "on resolve, the row is deleted". The recovery pass therefore re-reads rows a
-previous resolve already applied, which is exactly why the conditional claim matters there.
-§7.6 death *does* delete the rest of the chain, so the two paths disagree.
+**#2 — settled in SPEC.** The code was kept. SPEC §4.7 and §7.4.3 now describe the row as **marked
+resolved, not deleted**, and name what *is* deleted: the rest of the chain after a death (§7.6) and
+the chain invalidated by a level-up (§3.4/§6.3). The two paths that used to disagree with each
+other are now spelled out as two different rules, so §7.6 is no longer an exception. The recovery
+pass re-reading already-applied rows is a consequence, not a bug: the conditional claim at
+`battle.service.ts:371-383` is what makes re-reading them a no-op, and that claim is asserted
+directly by `test-phase3-idempotency.js`.
 
-**#3 — Level-up ratio computed with an empty equipment argument.**
-`battle.service.ts:462-463` passes `{}` to `calculateDerivedStats`, while
-`buildCharacterSnapshot()` (`battle.service.ts:144-160`) passes real `equipmentStats`. On an
-equipped character the scaled HP is off by the equipment contribution. Masked in the suite
-because the fixture characters are unequipped.
+**#3 — FIXED, with a failing run as evidence.** `battle.service.ts` derived both ends of the
+level-up ratio from bare attributes and an empty equipment argument, while
+`buildCharacterSnapshot()` (`battle.service.ts:144-160`) folds `statBonus` into the attributes and
+passes the real `def`/`mdefPercent`/weapon ATK. The resolver now calls
+`equipmentService.calculateEquipmentStats()` and derives both ends the same way. The scenario that
+proves it, and the pre-fix run that fails it, are in §4.3 — the pre-fix run is the load-bearing
+part: `expected 364, got 176` on a 188 HP gap, with every other assertion in the scenario
+green, so the failure isolates the bug rather than the setup.
 
-**#4 — Multi-level scaling is one step, and the question is unobservable.**
-The code applies one ratio step from the pre-first-level stats to the post-last-level stats
-(`battle.service.ts:453-472`). The suite measures the alternative: the two readings differed by
-**0–1 HP**, because `maxHp = floor(80 + VIT*12 + level*18)` is *linear* in level, so
-compounding telescopes to the same product and only the `Math.round` at each intermediate step
-can differ. With the current formulas the "one step or compounded" decision is **not
+**#4 — settled as a SPEC footnote, no code change.** The code applies one ratio step from the
+pre-first-level stats to the post-last-level stats. The suite measures the alternative: the two
+readings differ by **0–1 HP**, because `maxHp = floor(80 + VIT*12 + level*18)` is *linear* in
+level, so compounding telescopes to the same product and only the `Math.round` at each intermediate
+step can differ. With the current formulas the "one step or compounded" decision is **not
 observable** in `hpCurrent`, and becomes observable only if `maxHp`/`maxSp` ever gains a
-non-linear level term. *This resolves the open question in `design.md` empirically: the choice
-is currently unobservable, so it can be deferred safely.*
+non-linear level term. SPEC §6.3 now records both the rule as implemented and the reason the
+alternative is unobservable, so the next reader does not have to re-derive it. This closes
+`design.md`'s open question empirically: the choice can be deferred safely.
 
 **#5 (testability note, not a divergence) — the shared potion cooldown is invisible at
 default DEX.** `castGaugeThreshold(dex) = max(3, 8 − floor(dex × 0.05))`, so at the default
 `dex=5` the cast gauge fires every 8 ticks while the potion category cooldown is 5 ticks — it
 has always expired before the next fire. The shared-category assertion therefore uses a
 `dex=100` fixture (3-tick cast period). It is a property of the engine, not of any character
-the API currently builds with low DEX and a potion gambit.
+the API currently builds with low DEX and a potion gambit. **Still open, out of scope here** —
+same as the WebSocket gap, it needs a character build the API does not currently produce.
 
-### 6.2 Test-evidence defects found and fixed this session
+
+### 6.2 Test-evidence defects found and fixed in Phase 3
 
 These were real bugs — in the *evidence*, not the product — and each one had produced a
-misleading green result before.
+misleading green result before. They are listed unchanged from Phase 3; Phase 4A found no new
+one of this class, because the two gaps it closed (§6.4) were gaps in coverage, not defects that
+had been passing for the wrong reason.
 
 | # | Defect | Why the earlier evidence was wrong |
 |---|--------|--------------------------------------|
@@ -359,20 +455,34 @@ misleading green result before.
 
 ### 6.4 Limits of what the suite can prove
 
-Recorded so a future green run is not over-read:
+Recorded so a future green run is not over-read. The two Phase 3 entries that were gaps are now
+closed; the two that remain were never gaps in the suite, they are facts about what the scenario
+can reach.
 
-- **"Never topped up" is demonstrable on HP but not SP.** Every winning Green Grounds fight
-  lasts ≥ 33 ticks and `spRegenPerTick` is 3, so `spAfter` is always `maxSp` before the
-  level-up runs and the ratio step lands exactly on the new maximum. The SP *formula* is
-  asserted exactly; the "strictly below max" half needs a fight shorter than the regen window,
-  which no winnable Green Grounds encounter provides.
-- **The drop branch of idempotency is unexercised** (the raced entry rolled no drops).
+- ~~**"Never topped up" is demonstrable on HP but not SP.**~~ **CLOSED in Phase 4A.** The claim
+  was true of the Phase 3 character, not of the system: every fight *that character* could win
+  lasted ≥ 33 ticks with `spRegenPerTick = 3`, because its five unspent attribute points were
+  never spent and it fought with base STR 5. A level-1 character that spends them in STR kills a
+  slime in 23 ticks instead of 39, and a chain that starts at `spCurrent = 0` hands the resolver
+  `spAfter = 69 < maxSp 98`. Scenario 4 in `test-phase3-levelup.js` asserts the ratio result
+  (75), the strict inequality (75 < 106) and the preserved percentage (70.4 % → 70.8 %). See §4.3.
+- ~~**The drop branch of idempotency is unexercised.**~~ **CLOSED in Phase 4A.** The drop roll is
+  a pure function of the monster and its per-monster kill count, so
+  `test-phase3-idempotency.js` now seeds a kill count that rolls one and asserts the API rolled
+  the same item the in-process preview did, before racing two resolve jobs over the entry. See §4.5.
 - **`lastDeathLog` overwrite is observed across two characters**, each of which died once. A
   character cannot die twice without re-entering a map, so a same-character double death is a
   separate scenario.
 - **The recovery pass is global.** The scenario deletes other characters' unresolved rows first
   (145 on a dirty database) so the ordering assertion is unambiguous; on a shared database that
   deletion is worth knowing about before running it.
+- **The level-up ratio is proven on one build shape** — VIT gear, level 1, one threshold
+  crossed. The fix is general (it derives both ends from `calculateEquipmentStats()` exactly as
+  `buildCharacterSnapshot()` does) but the *assertion* is one character. A future build that
+  moves `maxSp` from gear rather than `maxHp` would need its own scenario: the loadout here adds
+  VIT only, so the SP assertion passes identically under both readings and proves the ratio
+  formula, not the equipment's effect on SP.
+
 
 ---
 
@@ -403,6 +513,15 @@ Recorded so a future green run is not over-read:
   in-game battle in a test.
 - **Level-gated maps are checked at enter time**, so a scenario needing one must seed the level
   before `POST /maps/:mapId/enter`, not after.
+- **Attributes are seeded as ordinary game state.** A level-1 character has 5 in each attribute
+  and 5 unspent points (SPEC §6.3), so `str = 10` with `unspentAttributePoints = 0` is a
+  character that spent its starting points — not a hand-edited row. That allocation is what
+  makes a Green Grounds fight short enough (23 ticks instead of 39) for the SP regen window to
+  stay open, which is how §4.3 scenario 4 is reachable at all.
+- **`equipItem()` nulls `equipped_items.instanceData` on every write** (equipment.service.ts:266),
+  so the SPEC §10.3 eternal roll can only be seeded directly. `PUT /equipment/equip` also does
+  not check the inventory and does not invalidate the queue (the `TODO` at equipment.service.ts:277),
+  so equipping before `POST /maps/:mapId/enter` is safe and race-free.
 
 ---
 
@@ -410,13 +529,47 @@ Recorded so a future green run is not over-read:
 
 | Item | State |
 |------|-------|
-| Change | `grind-loop-phase3-edge-cases` |
-| `openspec validate grind-loop-phase3-edge-cases --strict` | ✅ `Change 'grind-loop-phase3-edge-cases' is valid` |
-| All 33 tasks | ✅ complete |
-| Spec delta | `grind-loop-verification` — 7 requirements, 30 scenarios |
-| Production code changed | none |
+| Previous change | `grind-loop-phase3-edge-cases` — complete, `openspec validate --strict` ✅ |
+| This change | Phase 4A — divergence #3 fix + SPEC convergence + two proof gaps closed |
+| Production code changed | **one fix:** `battle.service.ts:453-484`, the level-up HP/SP ratio now uses `calculateEquipmentStats()` |
+| SPEC changed | §6.3 (equipment-derived ratio + the #4 footnote), §6.4 (`floor`, no `cumulativeXp` floor), §4.7 and §7.4.3 (marked resolved, not deleted). `openspec/specs/SPEC.md` re-synced from it. |
+| Tests changed | `test-phase3-levelup.js` +2 scenarios / 18 assertions, `test-phase3-idempotency.js` +2 assertions, `test/helpers/phase3.js` +4 helpers, `test-phase3-death.js`/`test-phase3-recovery.js` notes re-worded (divergences #1/#2 are no longer divergences against SPEC) |
 | Dependencies added | none |
+| Full-suite result | `163/163`, `6 ran, 0 skipped, 0 failed`, exit 0 |
+| Not done, deliberately | no WebSocket work, no new functionality, no SPEC §19.3 balance pass |
 
-**Status: Phase 3 complete. 143/143 assertions pass; the suite is re-runnable with
-`node apps/api/test-phase3-all.js`. WebSocket event delivery remains unverified and is
-scoped out of this change.**
+**Status: 163/163 assertions pass across the six scenarios; the suite is re-runnable with
+`node apps/api/test-phase3-all.js --restart`. All four recorded SPEC divergences are settled
+(one code fix, three SPEC corrections). Both Phase 3 proof gaps are closed.**
+
+### 9.1 What this change did NOT do
+
+Left open on purpose, so the next session does not re-derive them:
+
+| Item | State | Why it is still open |
+|------|-------|----------------------|
+| **WebSocket event delivery** (`battleResolved`, `characterDied`) | ❌ unverified, not implemented | Explicit non-goal of this change and of Phase 3. No socket scenario exists in the suite; the gateway is not wired to the resolver. |
+| `maxHp: null` on the attribute-allocation response | ⚠️ open (Low, cosmetic) | Pre-existing §6.3 #1. The suite reads derived stats from Postgres instead. |
+| Idempotency **restart-race mode** with the new drop-bearing entry | ⚠️ not re-run | `PHASE3_IDEMPOTENCY_WITH_RESTART=1 node test-phase3-idempotency.js` was last run in Phase 3 (17/17, no drop). The staged entry now carries a drop, so that mode is worth one re-run (~2 min) before it is quoted as drop-under-restart evidence. |
+| Level-up ratio proven on one build shape | ⚠️ narrow by design | Only VIT gear at level 1 with one threshold. A loadout that moves `maxSp` rather than `maxHp` needs its own scenario (§6.4). |
+| `pnpm --filter @nanommo/api lint` | ⚠️ cannot run (Low, tooling) | Pre-existing §6.3 #4 — no eslint config resolves in `apps/api`. `npx tsc --noEmit -p apps/api/tsconfig.json` passes and was used instead. |
+| SPEC §19.3 balance pass, stub services (`Chat`, `Mail`, `Town`, `Market`) | ⏸️ out of scope | Unchanged from Phase 3. |
+
+### 9.2 How to re-derive the Phase 4A evidence
+
+```bash
+# The fix alone (levelup is the only scenario whose expectations changed)
+docker compose up --build -d backend
+cd apps/api && node test-phase3-levelup.js       # 46/46, exit 0
+
+# The pre-fix run that proves the test is not vacuous: revert battle.service.ts
+# to `calculateDerivedStats(preLevel, attributes, {})` / `(…, {})`, rebuild,
+# re-run test-phase3-levelup.js, and observe 45/46 with
+#   [FAIL] §6.3 hpCurrent is ratio-adjusted with the REAL loadout — expected 364, got 176
+# then restore the fix and rebuild.
+```
+
+Both runs were executed in this order (pre-fix first, on the container built before the change)
+so the failing evidence is not a reconstruction.
+
+

@@ -264,7 +264,7 @@ Unique index on `(characterId, weaponType)`. One row per weapon type is created 
 | resolved | boolean, default false | flips true once the resolver job has applied its effects |
 | seedUsed | varchar | the exact PRNG seed string used, for debugging/replay |
 
-Indexed on `(characterId, sequenceIndex)`. Only unresolved future entries live here; on resolve, the row is deleted (or archived — recommend deleting; the last-death log is copied into `Character.lastDeathLog` separately, so nothing is lost).
+Indexed on `(characterId, sequenceIndex)`. Only unresolved future entries live here. On resolve the row is **marked resolved, not deleted**: the row stays as the audit trail of what was fought, and "unresolved entries" means `resolved = false` (the field above) — every read path filters on it, including `GET /battles/queue` and the §7.5 recovery pass. The only rows ever **deleted** are the ones that never happened: the rest of the chain after a death (§7.6) and the chain invalidated by a level-up (§6.3/§3.4). The last-death log is copied into `Character.lastDeathLog` separately, so nothing is lost by keeping resolved rows.
 
 ### 4.8 `MapKillCounter`
 | field | type | notes |
@@ -443,9 +443,21 @@ Sanity checkpoints from the generated table (assumptions above): level 60 reache
 - `hpCurrent`/`spCurrent` are **not** auto-topped — a level-up mid-grind keeps current HP/SP ratio-adjusted: `hpCurrent = round(hpCurrent * newMaxHp/oldMaxHp)` (prevents a level-up from either healing for free or leaving HP nonsensically low relative to the new max).
 - Triggers a **battle queue recalculation** (§3.4) since stats changed.
 
+The ratio is taken between two `maxHp`/`maxSp` values, so **both ends must be derived from the same state the battles were simulated against** — the character's attributes *including* equipment `statBonus` (§5.2), with the character's real `def`/`mdefPercent`/weapon ATK as the third argument of `calculateDerivedStats`. Deriving the ratio from bare attributes instead scales an equipped character by the wrong factor (a level-1 character in tier-1 armour, VIT 5 → 26, would be scaled by 176/158 = 1.114 instead of 428/410 = 1.044, and the result would then be clamped against the wrong maximum). Implemented in `battle.service.ts:453-484`; verified by the equipped-character level-up scenario in `apps/api/test-phase3-levelup.js`.
+
+When one resolve crosses several thresholds, the whole batch is applied as a **single** ratio step from the stats before the first level-up to the stats after the last. With the current formulas (`maxHp = floor(80 + VIT*12 + level*18)` and `maxSp = floor(40 + INT*10 + level*8)`, both linear in level) compounding one step per level telescopes to the same product, so the choice is unobservable in `hpCurrent` today and only starts to matter if either formula gains a non-linear level term. Recorded, not fixed, in `design.md` as divergence #4.
+
 ### 6.4 XP loss on death
 
-On loss, before returning to town: `xp = max(0, xp - round(xpToNextLevel(currentLevel) * 0.05))` — i.e. **5% of the XP required for the current level** is lost, never dropping XP negative or below the previous level's cumulative threshold artificially (if the loss would de-level the character, clamp at `cumulativeXp[currentLevel-1]`, i.e. death can shave progress within a level but does not currently support de-leveling below the floor of the level — `TUNABLE` decision, documented here explicitly so it isn't silently changed).
+On loss, before returning to town: `xp = max(0, xp - floor(xpToNextLevel(currentLevel) * 0.05))` — i.e. **5% of the XP required for the current level** is lost, truncated to a whole number of XP and never dropping XP below 0.
+
+Two things this deliberately does *not* do, both settled as of 2026-09-28 (previously listed as divergence #1 in `design.md`; the code was kept and this section was brought in line with it):
+
+- **No `cumulativeXp` floor.** An earlier draft of this section clamped at `cumulativeXp[currentLevel-1]`. That clamp is undefined under the toward-next-level model §4.2 actually uses: `characters.xp` holds XP *toward the next level*, not a cumulative total, so there is no "previous level's threshold" to clamp at. The clamp at **0** is what actually prevents a de-level — a character who would lose more XP than they hold keeps their level and lands on exactly 0, never below.
+- **No rounding up.** `floor`, not `round`: at level 10 that is 1 XP where `round` would give 2.
+
+Implemented as written in `battle.service.ts:545-546`; verified by `apps/api/test-phase3-death.js` (level 10 → `floor(30 × 0.05) = 1`; level 20 seeded at 1 XP with `floor(73 × 0.05) = 3` → clamped to 0, level unchanged at 20).
+
 
 ### 6.5 Weapon proficiency XP formula
 
@@ -499,7 +511,7 @@ To satisfy "minimum requests, seemless experience" (confirmed design), the serve
 
 1. When a character enters a map (or the queue empties), the backend simulates **the next 5 battles in one shot**, chained: battle 2 starts from battle 1's `hpAfter`/`spAfter`/statuses/cooldown states, and so on. Each is written as a `BattleQueueEntry` with real wall-clock `startAt`/`endAt` (back-to-back, `startAt[n] = endAt[n-1]`).
 2. The full queue (5 entries, or fewer if a death cuts the chain short — see below) is sent to the client in one payload. The client renders the current battle's bar from `startAt`/`endAt` and has enough data to *know* what's coming next without asking.
-3. A **BullMQ delayed job** is scheduled for each entry's `endAt`. When it fires, the backend "resolves" that entry: applies `xpGain`, `goldGain`, inventory drops, HP/SP, death log if applicable, checks level-up, and emits a lightweight `battleResolved` socket event (the client already knew the outcome — this is just the authoritative sync + a trigger to fetch the extended queue). The resolved entry is then deleted, and if remaining queue depth `< 5` and the character is still alive and still on the map, **one new battle is appended** to bring it back to 5.
+3. A **BullMQ delayed job** is scheduled for each entry's `endAt`. When it fires, the backend "resolves" that entry: applies `xpGain`, `goldGain`, inventory drops, HP/SP, death log if applicable, checks level-up, and emits a lightweight `battleResolved` socket event (the client already knew the outcome — this is just the authoritative sync + a trigger to fetch the extended queue). The resolved entry is then **marked `resolved = true` and kept** (§4.7 — it is the audit trail, and it disappears from every live read path the moment `resolved` flips), and if remaining queue depth `< 5` and the character is still alive and still on the map, **one new battle is appended** to bring it back to 5.
 4. **If a battle in the pre-simulated chain ends in the character's death**, everything simulated *after* that point in the chain is simply never generated (the chain naturally stops there) — on resolve, the character is routed to town per §7.6, and no new battles are queued until the player returns to a map.
 
 This means, under ideal "automaticozão" conditions (good gambit, enough potions/food), the client can go minutes without a single request, and the server does a small burst of CPU work only every ~5 battles instead of on every single kill.

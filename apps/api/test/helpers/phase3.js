@@ -580,6 +580,49 @@ async function getCharacterRow(charId) {
 }
 
 /**
+ * SPEC §5: set the six attributes directly.
+ *
+ * Legal game state — the base is 5 in each and a level grants 5 unspent points
+ * (SPEC §6.3), so a level-1 character with 5 points spent is `str = 10` and
+ * `unspentAttributePoints = 0`. Used to reach a build the default 5/5/5/5/5/5
+ * cannot, e.g. the STR allocation that makes a Green Grounds fight finish
+ * before HP/SP regen refills the pools.
+ */
+async function setCharacterAttributes(charId, attributes) {
+  const cols = ['str', 'agi', 'dex', 'vit', 'int', 'sor'];
+  const sets = [];
+  const params = [charId];
+  for (const col of cols) {
+    if (attributes[col] === undefined) continue;
+    params.push(Number(attributes[col]));
+    sets.push(`"${col}" = $${params.length}`);
+  }
+  if (sets.length === 0) throw new Error('setCharacterAttributes: nothing to set');
+  const { rowCount } = await sql(`UPDATE characters SET ${sets.join(', ')} WHERE id = $1`, params);
+  return rowCount;
+}
+
+/**
+ * SPEC §10.3: the eternal equipment roll stored on an `equipped_items` row.
+ *
+ * `equipItem()` nulls `instanceData` on every write, so a rolled piece is
+ * seeded here instead — the roll is permanent game state, not something the
+ * equip endpoint can express.
+ */
+async function setEquipmentRoll(charId, slot, rolledAttribute, rolledValue) {
+  const { rowCount } = await sql(
+    `UPDATE equipped_items
+        SET "instanceData" = jsonb_build_object('rolledAttribute', $3::text, 'rolledValue', $4::int)
+      WHERE "characterId" = $1 AND slot = $2`,
+    [charId, slot, rolledAttribute, rolledValue],
+  );
+  if (rowCount === 0) {
+    throw new Error(`setEquipmentRoll: no equipped_items row for ${charId} in slot ${slot}`);
+  }
+  return rowCount;
+}
+
+/**
  * SPEC §11.2: pin the encounter stream.
  *
  * `mapKillCount` is the index `nextMonsterId()` reads (`rngForIndex(encounterSeed,
@@ -873,6 +916,39 @@ function attributesOf(row) {
 }
 
 /**
+ * The `equipment` argument `BattleEngine.calculateDerivedStats(level, attributes, equipment)`
+ * takes, in the shape `GET /equipment/stats/total` returns and
+ * `buildCharacterSnapshot()` (battle.service.ts:154-159) passes.
+ *
+ * `weaponFixedAtk`/`weaponFixedMatk` are absent from that payload unless a
+ * mainHand weapon is equipped — `calculateEquipmentStats()` never initialises
+ * them — and the production path lets the engine's `?? 0` absorb that. They are
+ * normalised to 0 here so an equipment-aware expectation is always a plain
+ * number.
+ */
+function equipmentArgsOf(stats) {
+  return {
+    def: Number(stats?.def ?? 0),
+    mdefPercent: Number(stats?.mdefPercent ?? 0),
+    weaponFixedAtk: Number(stats?.weaponFixedAtk ?? 0),
+    weaponFixedMatk: Number(stats?.weaponFixedMatk ?? 0),
+  };
+}
+
+/** Attributes with an equipment `statBonus` folded in — `buildCharacterSnapshot()`. */
+function attributesWithEquipment(attributes, equipmentStats) {
+  const bonus = equipmentStats?.statBonus ?? {};
+  return {
+    str: attributes.str + Number(bonus.STR ?? 0),
+    agi: attributes.agi + Number(bonus.AGI ?? 0),
+    dex: attributes.dex + Number(bonus.DEX ?? 0),
+    vit: attributes.vit + Number(bonus.VIT ?? 0),
+    int: attributes.int + Number(bonus.INT ?? 0),
+    sor: attributes.sor + Number(bonus.SOR ?? 0),
+  };
+}
+
+/**
  * Replicates `BattleService.getWeaponBaseAttackTicks()` for an unarmed character
  * (battle.service.ts:179-186): the rounded average of the whole
  * `skill_trees.json` table.
@@ -910,13 +986,31 @@ function applyXpWithLevelUps(xp, level, gain) {
  * queue is built from the character's CURRENT stats, so a level-10 scenario
  * previewed at level 1 picks a kill index whose real level-10 fight lands at
  * full HP.
+ *
+ * `equipment` mirrors `buildCharacterSnapshot()`: the caller passes the
+ * `GET /equipment/stats/total` payload, and the effective attributes are derived
+ * with `attributesWithEquipment()`, so an equipped character's preview is the
+ * fight the API actually builds.
+ *
+ * `dropKillIndex` is the per-monster kill count `queueBattles()` passes to
+ * `resolveRewards()` (`projectedPerMonster[monsterId] ?? 0`,
+ * battle.service.ts:300). `resolveDrops()` derives its stream from
+ * `${monsterId}:${killIndex}:${entryIndex}` only — the battle seed is not part of
+ * it — so a caller can choose a kill count that yields a drop and seed it with
+ * `setKillCounter()` to get a drop-bearing entry deterministically.
  */
-function simulateQueueStepAt({ charId, mapId, epoch, killIndex, level, attributes, chainHp, chainSp }) {
+function simulateQueueStepAt({
+  charId, mapId, epoch, killIndex, level, attributes, chainHp, chainSp,
+  equipment = null, dropKillIndex = 0,
+}) {
   const inMap = monstersData.monsters.filter((m) => m.map === mapId);
   if (inMap.length === 0) throw new Error(`no monsters in map ${mapId}`);
 
+  const effectiveAttributes = attributesWithEquipment(attributes, equipment);
+  const equipmentArgs = equipment ? equipmentArgsOf(equipment) : {};
+
   const monster = rngForIndex(mulberry32Seed(`${charId}:${mapId}:${epoch}`), killIndex).weightedPick(inMap);
-  const derived = BattleEngine.calculateDerivedStats(level, attributes, {});
+  const derived = BattleEngine.calculateDerivedStats(level, effectiveAttributes, equipmentArgs);
   const snapshot = {
     level,
     hp: Math.max(1, Math.min(chainHp, derived.maxHp)),
@@ -940,7 +1034,7 @@ function simulateQueueStepAt({ charId, mapId, epoch, killIndex, level, attribute
     mapId,
     outcome: simulation.outcome,
     items: itemsData,
-    killIndex: 0,
+    killIndex: dropKillIndex,
     seed,
   });
   return { monster, simulation, rewards, seed, derived };
@@ -985,6 +1079,8 @@ module.exports = {
 
   createCharacter,
   setCharacterProgression,
+  setCharacterAttributes,
+  setEquipmentRoll,
   getCharacterRow,
   getCharacterViaApi,
   setKillCounter,
@@ -1006,6 +1102,8 @@ module.exports = {
   ALWAYS_ATTACK_PAGE,
   xpToNextLevel,
   attributesOf,
+  equipmentArgsOf,
+  attributesWithEquipment,
   unarmedWeaponBaseAttackTicks,
   applyXpWithLevelUps,
   simulateQueueStepAt,

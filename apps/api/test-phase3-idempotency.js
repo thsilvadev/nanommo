@@ -8,6 +8,12 @@
  * hazard, not a hypothetical. It must apply XP / gold / drops / consumed items /
  * the kill counter exactly once.
  *
+ * The staged entry is chosen so all four payout branches are live in one run: it
+ * is a win (not the death path), it consumes at least one potion, and it carries
+ * at least one drop. The drop is not hoped for — `resolveDrops()` is a pure
+ * function of the monster and its per-monster kill count, so the scenario seeds
+ * a kill count that rolls one.
+ *
  * There is no `POST /battles/:id/resolve` route, so the race is staged at the
  * BullMQ layer: a second `resolve-battle` job is injected for the same
  * `battleId` alongside the first, with a distinct `jobId` so BullMQ keeps both.
@@ -57,26 +63,46 @@ const POTION_PAGE = [
 ];
 
 /**
- * Choose a kill index whose FIRST battle is a win AND consumes a potion, so the
- * race exercises the payout path (§7.5 reward application) and the inventory
- * decrement (battle.service.ts:411-417) in the same run.
+ * Choose a kill index whose FIRST battle is a win AND consumes a potion AND
+ * carries at least one drop, so the race exercises the payout path (§7.5 reward
+ * application), the inventory decrement (battle.service.ts:411-417) and the
+ * `add-drop` branch (battle.service.ts:478-496) in the same run.
  *
  * A fixed index is a coin flip: the monster at kill index N comes from
  * `rngForIndex(seed = characterId:mapId:epoch, N)`, so index 0 is a slime for one
  * character and a direwolf for the next. Pinning index 0 without checking made
  * this scenario intermittently stage a LOSS instead, which routes the resolve
  * into `handleCharacterDeath()` and never touches xp/gold/drops.
+ *
+ * The drop is arranged deterministically rather than hoped for. `resolveDrops()`
+ * (packages/shared/src/battle-engine/rewards.ts:113-158) derives its stream from
+ * `${monsterId}:${perMonsterKillCount}:${entryIndex}` and nothing else — the
+ * battle seed is not part of it — so for a fixed monster the drop roll is a
+ * pure function of the per-monster kill count. At the SPEC §11.5 rates
+ * (5% + 1% + 0.1% + 0.01% per kill) a few hundred consecutive kill counts
+ * contain several drops, and seeding the one that hits makes the entry's
+ * `drops` column reproduce the preview exactly. The battleId seed cannot be
+ * used for this: it embeds the character UUID.
  */
+const DROP_KILL_COUNT_SCAN = 400;
+
 function findRaceKillIndex({ charId, mapId, level, attributes, startHp, startSp }) {
   for (let killIndex = 0; killIndex < 120; killIndex++) {
-    const probe = h.simulateQueueStepAt({
-      charId, mapId, epoch: 0, killIndex, level, attributes, chainHp: startHp, chainSp: startSp,
-    });
+    const base = { charId, mapId, epoch: 0, killIndex, level, attributes, chainHp: startHp, chainSp: startSp };
+
+    // The fight itself does not depend on the drop roll, so probe it once.
+    const probe = h.simulateQueueStepAt(base);
     if (probe.simulation.outcome !== 'win') continue;
     // The potion line needs a chance to fire, which it cannot do if the fight
     // ends before the first cast-gauge fire (tick 8 at DEX 5).
     if (Number(probe.simulation.durationTicks) <= 9) continue;
-    return { killIndex, ...probe };
+
+    for (let dropKillCount = 0; dropKillCount < DROP_KILL_COUNT_SCAN; dropKillCount++) {
+      const withDrops = h.simulateQueueStepAt({ ...base, dropKillIndex: dropKillCount });
+      if (withDrops.rewards.drops.length > 0) {
+        return { ...withDrops, killIndex, dropKillIndex: dropKillCount };
+      }
+    }
   }
   return null;
 }
@@ -105,14 +131,26 @@ async function setup() {
     charId: ctx.charId, mapId: ctx.mapId, level: 1, attributes, startHp, startSp,
   });
   if (!pick) {
-    throw new Error(`no kill index in 0..119 gives a winnable fight lasting past the first cast-gauge fire for ${ctx.charId}`);
+    throw new Error(
+      `no kill index in 0..119 gives a winnable fight lasting past the first cast-gauge fire AND a per-monster ` +
+        `kill count in 0..${DROP_KILL_COUNT_SCAN - 1} that rolls a drop, for ${ctx.charId}`,
+    );
   }
   h.note(
-    `pinned mapKillCount=${pick.killIndex} -> ${pick.monster.id}, previewed as ` +
-      `${pick.simulation.outcome} over ${pick.simulation.durationTicks} ticks with xp ${pick.rewards.xpGain} and gold ${pick.rewards.goldGain}`,
+    `pinned mapKillCount=${pick.killIndex} perMonsterKillCount.${pick.monster.id}=${pick.dropKillIndex} -> ` +
+      `${pick.monster.id}, previewed as ${pick.simulation.outcome} over ${pick.simulation.durationTicks} ticks with ` +
+      `xp ${pick.rewards.xpGain}, gold ${pick.rewards.goldGain} and drops ${JSON.stringify(pick.rewards.drops)}`,
   );
 
-  await h.setKillCounter(ctx.charId, ctx.mapId, { mapKillCount: pick.killIndex, epoch: 0, perMonsterKillCount: {} });
+  await h.setKillCounter(ctx.charId, ctx.mapId, {
+    mapKillCount: pick.killIndex,
+    epoch: 0,
+    // SPEC §11.2: the drop roll is a pure function of the per-monster kill
+    // count, so seeding it is what makes the built entry carry the drop the
+    // preview predicted. The row is created by `getOrCreateKillCounter()` on
+    // the map entry, so it may not exist yet.
+    perMonsterKillCount: pick.dropKillIndex > 0 ? { [pick.monster.id]: pick.dropKillIndex } : {},
+  });
 
   const entered = await h.request('POST', `/maps/${ctx.mapId}/enter`, {}, ctx.token);
   if (entered.status >= 400) {
@@ -230,6 +268,39 @@ async function runRace(ctx, first, { withRestart = false } = {}) {
 //  §3.1 — exactly-once application
 // ---------------------------------------------------------------------------
 
+/**
+ * The inventory a SINGLE application of this entry must leave behind.
+ *
+ * Consumption and drops both touch `inventory_items`, and a drop can be the very
+ * same item the gambit drank (the §11.5 consumable pool is all 15 consumables,
+ * potions included), so the two cannot be asserted against separate
+ * expectations — only the combined one is the state the resolver is supposed to
+ * produce.
+ *
+ * Order matches `resolveBattle()`: consumption first (battle.service.ts:411-417,
+ * clamped at the stock held), then drops for a win (:478-496).
+ */
+function expectedInventoryAfterOnce(before, expected) {
+  const map = { ...before };
+  let removed = 0;
+  for (const consumed of expected.itemsConsumed) {
+    const take = Math.min(Number(map[consumed.itemId] ?? 0), Number(consumed.quantity));
+    map[consumed.itemId] = Number(map[consumed.itemId] ?? 0) - take;
+    removed += take;
+  }
+  for (const drop of expected.drops) {
+    map[drop.itemId] = Number(map[drop.itemId] ?? 0) + Number(drop.quantity ?? 1);
+  }
+  return { map, removed };
+}
+
+/** How much of `itemId` the entry's simulated consumption takes out. */
+function consumedOf(expected, itemId) {
+  return expected.itemsConsumed
+    .filter((c) => c.itemId === itemId)
+    .reduce((sum, c) => sum + Number(c.quantity), 0);
+}
+
 async function assertSingleApplication(result) {
   const { before, after, expected, first, marker } = result;
   const xpDelta = Number(after.row.xp) - Number(before.row.xp);
@@ -258,35 +329,44 @@ async function assertSingleApplication(result) {
     `gold ${before.row.gold} -> ${after.row.gold} (delta ${goldDelta}) against entry.goldGain=${expected.goldGain}; a double application would show ${expected.goldGain * 2}`,
   );
 
+  h.assert(
+    '§11.5 the staged entry really carried at least one drop, so the add-drop branch is exercised',
+    expected.drops.length > 0,
+    expected.drops.length > 0
+      ? `entry.drops = ${JSON.stringify(expected.drops)} — rolled by the API at queue-build time from the seeded ` +
+        'per-monster kill count, and identical to the in-process preview (asserted in step 1).'
+      : 'entry.drops was empty. The scenario picks a per-monster kill count that yields a drop (see findRaceKillIndex), ' +
+        'so an empty drops column means the preview and the API disagreed about the §11.2 drop stream.',
+  );
+
   // Drops are added by `inventoryService.addItem`, so a double application shows
-  // up as double the quantity. Compare the summed quantity per drop item.
+  // up as double the quantity. The observed delta is net of any consumption of
+  // the same item, so a drop that is also what the gambit drank still measures
+  // the add-drop branch alone.
   const dropDetail = expected.drops
     .map((d) => {
       const itemId = d.itemId;
       const qty = Number(d.quantity ?? 1);
-      const delta = Number(after.inventory[itemId] ?? 0) - Number(before.inventory[itemId] ?? 0);
-      return `${itemId}: expected +${qty}, got +${delta}`;
+      const net = Number(after.inventory[itemId] ?? 0) - Number(before.inventory[itemId] ?? 0) + consumedOf(expected, itemId);
+      return `${itemId}: +${qty} expected, +${net} observed` +
+        (consumedOf(expected, itemId) > 0 ? ` (net of ${consumedOf(expected, itemId)} consumed by the gambit)` : '');
     })
     .join('; ');
   const allDropsOnce = expected.drops.every((d) => {
     const qty = Number(d.quantity ?? 1);
-    return Number(after.inventory[d.itemId] ?? 0) - Number(before.inventory[d.itemId] ?? 0) === qty;
+    const net = Number(after.inventory[d.itemId] ?? 0) - Number(before.inventory[d.itemId] ?? 0) + consumedOf(expected, d.itemId);
+    return net === qty;
   });
 
   h.assert(
     '§3.1 each drop was added exactly once',
-    allDropsOnce,
+    allDropsOnce && expected.drops.length > 0,
     expected.drops.length === 0
-      ? `this entry rolled no drops (drop chance is per-monster, so a roll-free entry cannot prove drop idempotency — see the note below)`
-      : `${expected.drops.length} drop(s): ${dropDetail}`,
+      ? 'unreachable: the previous assertion fails when there are no drops'
+      : `${expected.drops.length} drop(s): ${dropDetail}. A double application would show ` +
+        `${expected.drops.map((d) => `${d.itemId} +${2 * Number(d.quantity ?? 1)}`).join(', ')}, a different number from ` +
+        'the asserted one, so a pass here is not a coincidence.',
   );
-  if (expected.drops.length === 0) {
-    h.note(
-      '§3.1 drop-idempotency caveat: the entry this race used rolled zero drops, so the drop path was not exercised. ' +
-        'The gold/XP/kill-counter assertions above still prove single application, and §6.4 below proves the same ' +
-        'for consumed items. A drop-bearing entry is needed to cover the add-drop branch.',
-    );
-  }
 
   h.assertEqual(
     '§11.2 map_kill_counters.map_kill_count incremented by exactly 1',
@@ -319,16 +399,16 @@ async function assertItemsConsumedOnce(ctx, result) {
     return;
   }
 
-  const expectedAfter = { ...before.inventory };
-  let expectedTotal = 0;
-  for (const consumed of expected.itemsConsumed) {
-    const itemId = consumed.itemId;
-    const want = Number(consumed.quantity);
-    // battle.service.ts:411-417: `take = Math.min(have, consumed.quantity)`, so
-    // the decrement is clamped at the stock actually held and can never go below 0.
-    const take = Math.min(Number(expectedAfter[itemId] ?? 0), want);
-    expectedAfter[itemId] = Number(expectedAfter[itemId] ?? 0) - take;
-    expectedTotal += take;
+  // Consumption and drops share one expectation: a drop may BE the item the
+  // gambit drank (the §11.5 consumable pool is all 15 consumables), and only the
+  // combined state is what a single application is supposed to produce.
+  const { map: expectedAfter, removed: expectedTotal } = expectedInventoryAfterOnce(before.inventory, expected);
+  const droppedIds = expected.drops.map((d) => d.itemId);
+  if (droppedIds.some((id) => expected.itemsConsumed.some((c) => c.itemId === id))) {
+    h.note(
+      `the entry both drank and dropped the same item(s): ${[...new Set(droppedIds.filter((id) => expected.itemsConsumed.some((c) => c.itemId === id)))].join(', ')}. ` +
+        'The inventory expectations below are net of both effects, which is what a single application yields.',
+    );
   }
 
   /**
@@ -347,7 +427,7 @@ async function assertItemsConsumedOnce(ctx, result) {
   const mismatches = itemIds.filter((id) => qty(after.inventory, id) !== qty(expectedAfter, id));
 
   h.assert(
-    '§7.3 consumed items were decremented exactly once, clamped at the stock held',
+    '§7.3 consumed items were decremented exactly once, clamped at the stock held (drops included)',
     mismatches.length === 0,
     mismatches.length === 0
       ? `every tracked item matches the single-application expectation: ${itemIds
@@ -360,13 +440,15 @@ async function assertItemsConsumedOnce(ctx, result) {
         itemIds.map((id) => `${id}=${qty(before.inventory, id) - 2 * (Number(expected.itemsConsumed.find((c) => c.itemId === id)?.quantity ?? 0) || qty(before.inventory, id))}`).join(', '),
   );
 
+  const dropQuantity = expected.drops.reduce((sum, d) => sum + Number(d.quantity ?? 1), 0);
   const totalBefore = itemIds.reduce((sum, id) => sum + qty(before.inventory, id), 0);
   const totalAfter = itemIds.reduce((sum, id) => sum + qty(after.inventory, id), 0);
   h.assert(
-    '§7.3 the total quantity removed equals the simulated consumption, counted once',
-    totalBefore - totalAfter === expectedTotal,
-    `total stock ${totalBefore} -> ${totalAfter} (removed ${totalBefore - totalAfter}) against entry.itemsConsumed total ${expectedTotal}; ` +
-      'a double application would have removed ' + expectedTotal * 2,
+    '§7.3 the total stock moved by exactly the simulated consumption minus the drops, counted once',
+    totalBefore - totalAfter === expectedTotal - dropQuantity,
+    `total stock ${totalBefore} -> ${totalAfter} (moved ${totalBefore - totalAfter}); entry.itemsConsumed totals ${expectedTotal} ` +
+      `and entry.drops totals ${dropQuantity}, so a single application nets ${expectedTotal - dropQuantity}. ` +
+      'A double application would move ' + (expectedTotal * 2 - dropQuantity * 2) + '.',
   );
   h.assert(
     '§7.3 no inventory quantity went negative',
@@ -518,7 +600,7 @@ async function main() {
   await h.preflight();
 
   console.log('\n--- 1. Stage two concurrent resolve-battle jobs for one battle ---');
-  const { ctx, entries, first } = await setup();
+  const { ctx, entries, first, pick } = await setup();
   h.note(
     `first entry ${first.id} vs ${first.monsterId}: outcome=${first.outcome} xpGain=${first.xpGain} ` +
       `goldGain=${first.goldGain} drops=${JSON.stringify(first.drops)} itemsConsumed=${JSON.stringify(first.itemsConsumed)} ` +
@@ -528,6 +610,13 @@ async function main() {
     '§7.4.2 the staged entry is a win, so the race exercises the payout path rather than the death path',
     first.outcome === 'win',
     `outcome=${first.outcome}; a loss would route to handleCharacterDeath and never touch xp/gold/drops`,
+  );
+  h.assert(
+    '§11.2 the API rolled exactly the drop the in-process preview predicted from the seeded per-monster kill count',
+    JSON.stringify(first.drops ?? []) === JSON.stringify(pick.rewards.drops ?? []) &&
+      (pick.rewards.drops ?? []).length > 0,
+    `preview (per-monster kill count ${pick.dropKillIndex}) = ${JSON.stringify(pick.rewards.drops)}; ` +
+      `entry built by POST /maps/:mapId/enter = ${JSON.stringify(first.drops)}`,
   );
 
   const result = await runRace(ctx, first, { withRestart: WITH_RESTART });

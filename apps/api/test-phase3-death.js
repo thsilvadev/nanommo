@@ -23,7 +23,7 @@ const h = require('./test/helpers/phase3.js');
 const { xpToNextLevel } = h;
 
 /**
- * SPEC §6.4 as implemented at battle.service.ts:533-534:
+ * SPEC §6.4 as implemented at battle.service.ts:545-546:
  * `xp = max(0, xp - floor(xpToNextLevel(level) * 0.05))`.
  *
  * design.md divergence #1: the SPEC says `round` and adds a clamp at
@@ -159,7 +159,7 @@ async function assertDeathEffects(ctx, prepared, row) {
   h.assert(
     '§7.6 currentMapId became null (not merely unset)',
     row.currentMapId === null,
-    `currentMapId = ${JSON.stringify(row.currentMapId)}; battle.service.ts:529 assigns null explicitly because TypeORM skips undefined columns on save`,
+    `currentMapId = ${JSON.stringify(row.currentMapId)}; battle.service.ts:541 assigns null explicitly because TypeORM skips undefined columns on save`,
   );
   h.assertEqual('§7.6 hpCurrent became exactly 1', Number(row.hpCurrent), 1);
 
@@ -213,13 +213,12 @@ async function assertXpLoss(label, level, seededXp) {
     `seeded xp=${seededXp}, xpToNextLevel(${level})=${xpToNextLevel(level)}, floor(${xpToNextLevel(level)} × 0.05)=${loss} → expected ${expected}, got ${actual}`,
   );
 
-  h.divergence(
-    1,
-    `SPEC §6.4 specifies round(xpToNextLevel × 0.05) with a clamp at cumulativeXp[level-1]; the code uses ` +
-      `Math.floor and floors the result at 0 (battle.service.ts:533-534). At level ${level} that is ` +
-      `${loss} XP, where round would give ${Math.round(xpToNextLevel(level) * 0.05)} XP. The cumulativeXp clamp is ` +
-      'undefined under the §4.2 toward-next-level model that characters.xp actually uses, so this is a spec-internal ' +
-      'inconsistency rather than only a code bug — see the open question in design.md.',
+  h.note(
+    `§6.4 (settled 2026-09-28, was design.md divergence #1): the code's rule is the SPEC's rule. ` +
+      `battle.service.ts:545-546 uses Math.floor and floors the result at 0, so at level ${level} the loss is ` +
+      `${loss} XP where round would give ${Math.round(xpToNextLevel(level) * 0.05)}. SPEC §6.4 was updated to say ` +
+      '`floor` and to state that there is no cumulativeXp floor: that clamp was undefined under the §4.2 ' +
+      'toward-next-level model that characters.xp actually uses, so the clamp at 0 is what prevents a de-level.',
   );
 
   return row;
@@ -409,7 +408,7 @@ async function main() {
     Number(zeroRow.xp),
     0,
     `seeded xp=1, floor(xpToNext(20) × 0.05)=floor(${xpToNextLevel(20)} × 0.05)=${zeroLoss} → 1 - ${zeroLoss} = ${1 - zeroLoss}, ` +
-      `clamped to 0 by max(0, …) at battle.service.ts:534; actual ${zeroRow.xp}. Without the floor this would be ${1 - zeroLoss}.`,
+      `clamped to 0 by max(0, …) at battle.service.ts:546; actual ${zeroRow.xp}. Without the floor this would be ${1 - zeroLoss}.`,
   );
   h.assert(
     '§6.4 the character is never de-leveled by a death',
