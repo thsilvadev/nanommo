@@ -1,0 +1,15 @@
+<section class="gambit-editor"><header class="gambit-head"><div><small>GAMBITS</small><h2>Combat priority pages</h2></div><div class="head-actions"><button (click)="addLine()" [disabled]="!page()||lines().length>=20">+ Add line</button><button (click)="save()" [disabled]="saving()">{{saving()?'Saving...':'Save Page'}}</button><button (click)="activate()" [disabled]="!page()||character.character()?.activeGambitPageId===page().id">Activate</button></div></header>
+<div class="page-tabs"><button *ngFor="let p of pages();let i=index" [class.active]="i===active()" (click)="active.set(i)">Page {{i+1}} <span *ngIf="p.id===character.character()?.activeGambitPageId">ACTIVE</span></button></div>
+<div *ngIf="page() as p;else empty" class="page-meta"><input [(ngModel)]="p.title" aria-label="Gambit page title"><span>{{lines().length}} / 20 lines</span></div>
+<div *ngIf="page() as p" cdkDropList class="line-list" (cdkDropListDropped)="reorder($event)">
+ <article *ngFor="let line of p.lines;let i=index" cdkDrag class="gambit-line" [class.disabled]="line.enabled===false">
+  <div class="priority">{{i+1}}</div><div class="line-main">
+   <label>IF <select [ngModel]="line.conditions[0].id" (ngModelChange)="line.conditions[0].id=$event"><option *ngFor="let c of conditionOptions()" [value]="c.id">{{c.label}}</option></select></label>
+   <select *ngIf="line.conditions.length>1" [ngModel]="line.combinator" (ngModelChange)="line.combinator=$event"><option value="AND">AND</option><option value="OR">OR</option></select><button class="cond-add" *ngIf="line.conditions.length===1" (click)="line.conditions.push({id: 'always'})">+ condition</button><select *ngIf="line.conditions.length>1" [ngModel]="line.conditions[1].id" (ngModelChange)="line.conditions[1].id=$event"><option *ngFor="let c of conditionOptions()" [value]="c.id">{{c.label}}</option></select>
+   <select [ngModel]="line.action.id" (ngModelChange)="line.action.id=$event"><option *ngFor="let a of actionOptions()" [value]="a.id">{{a.label}}</option></select>
+   <button class="toggle" (click)="line.enabled=line.enabled===false">{{line.enabled===false?'DISABLED':'ENABLED'}}</button>
+  </div><button class="remove" (click)="remove(i)">×</button>
+ </article>
+</div>
+<ng-template #empty><div class="empty">No Gambit pages found.</div></ng-template><p *ngIf="error()" class="error">{{error()}}</p><div *ngIf="validation().length" class="validation"><b>Server validation</b><div *ngFor="let e of validation()">{{e.path}} — {{e.message}}</div></div>
+</section>

@@ -19,6 +19,7 @@ import { InventoryService } from '../inventory/inventory.service';
 import { EquipmentService } from '../equipment/equipment.service';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
+import { GatewayService, BattleResolvedPayload, CharacterLeveledUpPayload, CharacterDiedPayload } from '../gateway/gateway.service';
 
 /** SPEC §11.2: epoch rollover once the counter reaches this many kills. */
 const EPOCH_ROLLOVER_AT = 10_000;
@@ -48,6 +49,7 @@ export class BattleService {
     private readonly characterService: CharacterService,
     private readonly inventoryService: InventoryService,
     private readonly equipmentService: EquipmentService,
+    private readonly gatewayService: GatewayService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
@@ -199,6 +201,7 @@ export class BattleService {
   async queueBattles(
     characterId: string,
     targetDepth: number = this.QUEUE_DEPTH_TARGET,
+    publishQueueEvent = true,
   ): Promise<BattleQueueEntry[]> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
@@ -351,7 +354,9 @@ export class BattleService {
       nextStartTime = new Date(nextStartTime.getTime() + battleDurationMs);
     }
 
-    return [...currentQueue, ...newBattles];
+    const liveQueue = [...currentQueue, ...newBattles];
+    if (publishQueueEvent) await this.safePublishQueueUpdated(characterId, liveQueue);
+    return liveQueue;
   }
 
   // ===========================================================================
@@ -417,7 +422,9 @@ export class BattleService {
     }
 
     if (battle.outcome === 'loss') {
-      await this.handleCharacterDeath(character, battle);
+      const deathLog = await this.handleCharacterDeath(character, battle);
+      await this.safePublishBattleResolved(character.id, battle, character);
+      await this.safePublishCharacterDied(character.id, deathLog);
       return;
     }
 
@@ -520,7 +527,19 @@ export class BattleService {
     // rebuilt chain does not re-encounter the same monster index it just killed.
     if (leveledUp) {
       await this.requeueBattlesAfterLevelUp(character.id);
+    } else if (character.currentMapId && character.status === 'grinding') {
+      await this.queueBattles(character.id, this.QUEUE_DEPTH_TARGET, false);
     }
+
+    await this.safePublishBattleResolved(character.id, battle, character);
+    if (leveledUp) {
+      await this.safePublishCharacterLeveledUp(character.id, {
+        newLevel: character.level,
+        unspentAttributePoints: character.unspentAttributePoints,
+      });
+    }
+    const liveQueue = await this.getBattleQueue(character.id, 5);
+    await this.safePublishQueueUpdated(character.id, liveQueue);
 
     this.logger.log(
       `Resolved battle ${battle.id} char=${character.id} ${battle.monsterId} ` +
@@ -533,7 +552,7 @@ export class BattleService {
   /**
    * Handle character death (SPEC §7.6)
    */
-  private async handleCharacterDeath(character: Character, battle: BattleQueueEntry): Promise<void> {
+  private async handleCharacterDeath(character: Character, battle: BattleQueueEntry): Promise<any> {
     // Consumed items are still gone, and the character is routed to town.
     character.status = 'town';
     // null, not undefined: TypeORM silently skips undefined columns on save,
@@ -573,6 +592,73 @@ export class BattleService {
       `Character ${character.id} died to ${battle.monsterId}; ` +
         `${doomed.length} queued battle(s) discarded`,
     );
+
+    return character.lastDeathLog;
+  }
+
+  async publishQueueUpdated(characterId: string): Promise<void> {
+    const entries = await this.getBattleQueue(characterId, 5);
+    await this.safePublishQueueUpdated(characterId, entries);
+  }
+
+  async cancelPendingBattles(characterId: string): Promise<void> {
+    const pending = await this.battleQueueRepo.find({
+      where: { characterId, resolved: false },
+    });
+    if (!pending.length) return;
+
+    await this.battleQueueRepo.delete({ id: In(pending.map((entry) => entry.id)) });
+    for (const entry of pending) {
+      await this.bullQueue.getJob(entry.id).then((job) => job?.remove()).catch(() => undefined);
+    }
+  }
+
+  private async safePublishQueueUpdated(characterId: string, entries: BattleQueueEntry[]): Promise<void> {
+    try {
+      await this.gatewayService.publishBattleQueueUpdated(characterId, entries);
+    } catch (error) {
+      this.logger.warn(`battle:queueUpdated publication failed for ${characterId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async safePublishBattleResolved(characterId: string, battle: BattleQueueEntry, character: Character): Promise<void> {
+    const payload: BattleResolvedPayload = {
+      entryId: battle.id,
+      outcome: battle.outcome,
+      xpGain: Number(battle.xpGain ?? 0),
+      goldGain: Number(battle.goldGain ?? 0),
+      drops: battle.drops ?? [],
+      characterAfter: {
+        id: character.id,
+        level: character.level,
+        xp: Number(character.xp),
+        hpCurrent: character.hpCurrent,
+        spCurrent: character.spCurrent,
+        gold: Number(character.gold),
+        status: character.status,
+      },
+    };
+    try {
+      await this.gatewayService.publishBattleResolved(characterId, payload);
+    } catch (error) {
+      this.logger.warn(`battle:resolved publication failed for ${characterId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async safePublishCharacterLeveledUp(characterId: string, payload: CharacterLeveledUpPayload): Promise<void> {
+    try {
+      await this.gatewayService.publishCharacterLeveledUp(characterId, payload);
+    } catch (error) {
+      this.logger.warn(`character:leveledUp publication failed for ${characterId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async safePublishCharacterDied(characterId: string, deathLog: any): Promise<void> {
+    try {
+      await this.gatewayService.publishCharacterDied(characterId, { deathLog });
+    } catch (error) {
+      this.logger.warn(`character:died publication failed for ${characterId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   // ===========================================================================
@@ -679,6 +765,6 @@ export class BattleService {
 
     // Rebuild with the character's CURRENT (post-level-up) stats. queueBattles()
     // loads the live character row, so it picks up the new level/maxHp/maxSp.
-    await this.queueBattles(characterId, this.QUEUE_DEPTH_TARGET);
+    await this.queueBattles(characterId, this.QUEUE_DEPTH_TARGET, false);
   }
 }

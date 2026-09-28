@@ -1,0 +1,2288 @@
+{
+  "monsterParts": [
+    {
+      "id": "part_slime_common",
+      "name": "Slime Gel",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_slime"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 345,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_slime_rare",
+      "name": "Pristine Slime Core",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_slime"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 10500,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_fieldbat_common",
+      "name": "Bat Wing",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_fieldbat"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 590,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_fieldbat_rare",
+      "name": "Sonar Membrane",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_fieldbat"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 11000,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_thornsprout_common",
+      "name": "Thorn Bark",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_thornsprout"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 835,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_thornsprout_rare",
+      "name": "Verdant Heartwood",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_thornsprout"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 11500,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_mudcrawler_common",
+      "name": "Mud Carapace",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_mudcrawler"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 1080,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_mudcrawler_rare",
+      "name": "Ever-Wet Sac",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_mudcrawler"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 12000,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_direwolf_common",
+      "name": "Wolf Fang",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_direwolf"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 1570,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_direwolf_rare",
+      "name": "Alpha's Claw",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_direwolf"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 13000,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_sandscorpion_common",
+      "name": "Scorpion Claw",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_sandscorpion"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 1815,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_sandscorpion_rare",
+      "name": "Venom Sac",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_sandscorpion"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 13500,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_duneraider_common",
+      "name": "Raider Cloth",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_duneraider"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 2305,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_duneraider_rare",
+      "name": "Raider's Signet",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_duneraider"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 14500,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_cindergolem_common",
+      "name": "Golem Core Shard",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_cindergolem"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 2550,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_cindergolem_rare",
+      "name": "Molten Heart",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_cindergolem"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 15000,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_venomviper_common",
+      "name": "Viper Fang",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_venomviper"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 3040,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_venomviper_rare",
+      "name": "Twin-Fang Gland",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_venomviper"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 16000,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_mirageStalker_common",
+      "name": "Stalker Hide",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_mirageStalker"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 3285,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_mirageStalker_rare",
+      "name": "Mirage Pelt",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_mirageStalker"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 16500,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_brokensentinel_common",
+      "name": "Sentinel Rune",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_brokensentinel"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 3530,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_brokensentinel_rare",
+      "name": "Intact Rune Core",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_brokensentinel"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 17000,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_wraith_common",
+      "name": "Wraith Essence",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_wraith"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 4020,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_wraith_rare",
+      "name": "Soulbound Chain",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_wraith"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 18000,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_arcanewisp_common",
+      "name": "Wisp Spark",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_arcanewisp"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 4265,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_arcanewisp_rare",
+      "name": "Condensed Mana Shard",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_arcanewisp"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 18500,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_boneknight_common",
+      "name": "Knight Bone",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_boneknight"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 4755,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_boneknight_rare",
+      "name": "Unbroken Femur",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_boneknight"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 19500,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_ruinsguardian_common",
+      "name": "Guardian Sigil",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_ruinsguardian"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 5000,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_ruinsguardian_rare",
+      "name": "Guardian's Eye",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_ruinsguardian"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 20000,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    }
+  ],
+  "consumables": [
+    {
+      "id": "pot_hp_small",
+      "name": "Small HP Potion",
+      "effect": {
+        "type": "heal_hp",
+        "amount": 60
+      },
+      "cooldownSeconds": 5,
+      "vendorSells": true,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "pot_hp_medium",
+      "name": "Medium HP Potion",
+      "effect": {
+        "type": "heal_hp",
+        "amount": 180
+      },
+      "cooldownSeconds": 5,
+      "vendorSells": true,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "pot_hp_large",
+      "name": "Large HP Potion",
+      "effect": {
+        "type": "heal_hp",
+        "amount": 450
+      },
+      "cooldownSeconds": 5,
+      "vendorSells": true,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "pot_sp_small",
+      "name": "Small SP Potion",
+      "effect": {
+        "type": "heal_sp",
+        "amount": 50
+      },
+      "cooldownSeconds": 5,
+      "vendorSells": true,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "pot_sp_medium",
+      "name": "Medium SP Potion",
+      "effect": {
+        "type": "heal_sp",
+        "amount": 150
+      },
+      "cooldownSeconds": 5,
+      "vendorSells": true,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "pot_sp_large",
+      "name": "Large SP Potion",
+      "effect": {
+        "type": "heal_sp",
+        "amount": 380
+      },
+      "cooldownSeconds": 5,
+      "vendorSells": true,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "antidote",
+      "name": "Antidote",
+      "effect": {
+        "type": "cure_status",
+        "status": "poison"
+      },
+      "cooldownSeconds": 5,
+      "vendorSells": true,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "elixir_greater",
+      "name": "Greater Elixir",
+      "effect": {
+        "type": "heal_hp_sp",
+        "hpAmount": 300,
+        "spAmount": 200
+      },
+      "cooldownSeconds": 5,
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "food_bread",
+      "name": "Bread",
+      "effect": {
+        "type": "food_buff",
+        "durationSeconds": 1800,
+        "hpRegenPerTick": 4,
+        "spRegenPerTick": 1
+      },
+      "cooldownSeconds": 0,
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "food_cheese",
+      "name": "Aged Cheese",
+      "effect": {
+        "type": "food_buff",
+        "durationSeconds": 1800,
+        "hpRegenPerTick": 8,
+        "spRegenPerTick": 1
+      },
+      "cooldownSeconds": 0,
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "food_blueberry",
+      "name": "Wild Blueberries",
+      "effect": {
+        "type": "food_buff",
+        "durationSeconds": 1800,
+        "hpRegenPerTick": 1,
+        "spRegenPerTick": 4
+      },
+      "cooldownSeconds": 0,
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "food_herbtea",
+      "name": "Herbal Tea",
+      "effect": {
+        "type": "food_buff",
+        "durationSeconds": 1800,
+        "hpRegenPerTick": 1,
+        "spRegenPerTick": 8
+      },
+      "cooldownSeconds": 0,
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "food_stew",
+      "name": "Hunter's Stew",
+      "effect": {
+        "type": "food_buff",
+        "durationSeconds": 1800,
+        "hpRegenPerTick": 5,
+        "spRegenPerTick": 5
+      },
+      "cooldownSeconds": 0,
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "food_honey",
+      "name": "Wild Honey",
+      "effect": {
+        "type": "food_buff",
+        "durationSeconds": 1800,
+        "hpRegenPerTick": 6,
+        "spRegenPerTick": 6
+      },
+      "cooldownSeconds": 0,
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    },
+    {
+      "id": "food_roast",
+      "name": "Roasted Boar Leg",
+      "effect": {
+        "type": "food_buff",
+        "durationSeconds": 1800,
+        "hpRegenPerTick": 10,
+        "spRegenPerTick": 2
+      },
+      "cooldownSeconds": 0,
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7
+    }
+  ],
+  "equipment": [
+    {
+      "id": "equip_sword_t1",
+      "name": "Worn Sword",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "sword",
+      "twoHanded": false,
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "atk": 8
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1800,
+      "marketBasePrice": 4500,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_sword_t2",
+      "name": "Reinforced Sword",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "sword",
+      "twoHanded": false,
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "atk": 18
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4680,
+      "marketBasePrice": 11700,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_sword_t3",
+      "name": "Ancient Sword",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "sword",
+      "twoHanded": false,
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "atk": 32
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_greatsword_t1",
+      "name": "Worn Greatsword",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "greatsword",
+      "twoHanded": true,
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "atk": 14
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 2300,
+      "marketBasePrice": 5750,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_greatsword_t2",
+      "name": "Reinforced Greatsword",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "greatsword",
+      "twoHanded": true,
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "atk": 31
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 5980,
+      "marketBasePrice": 14950,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_greatsword_t3",
+      "name": "Ancient Greatsword",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "greatsword",
+      "twoHanded": true,
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "atk": 56
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 11040,
+      "marketBasePrice": 27600,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_dagger_t1",
+      "name": "Worn Dagger",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "dagger",
+      "twoHanded": false,
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "atk": 6
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1800,
+      "marketBasePrice": 4500,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_dagger_t2",
+      "name": "Reinforced Dagger",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "dagger",
+      "twoHanded": false,
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "atk": 13
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4680,
+      "marketBasePrice": 11700,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_dagger_t3",
+      "name": "Ancient Dagger",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "dagger",
+      "twoHanded": false,
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "atk": 24
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_bow_t1",
+      "name": "Worn Bow",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "bow",
+      "twoHanded": true,
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "atk": 9
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1800,
+      "marketBasePrice": 4500,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_bow_t2",
+      "name": "Reinforced Bow",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "bow",
+      "twoHanded": true,
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "atk": 20
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4680,
+      "marketBasePrice": 11700,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_bow_t3",
+      "name": "Ancient Bow",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "bow",
+      "twoHanded": true,
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "atk": 36
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_staff_t1",
+      "name": "Worn Staff",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "twoHanded": true,
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "matk": 12
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1800,
+      "marketBasePrice": 4500,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_staff_t2",
+      "name": "Reinforced Staff",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "twoHanded": true,
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "matk": 26
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4680,
+      "marketBasePrice": 11700,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_staff_t3",
+      "name": "Ancient Staff",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "twoHanded": true,
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "matk": 48
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_wand_t1",
+      "name": "Worn Wand",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "wand",
+      "twoHanded": true,
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "matk": 8
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1800,
+      "marketBasePrice": 4500,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_wand_t2",
+      "name": "Reinforced Wand",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "wand",
+      "twoHanded": true,
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "matk": 18
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4680,
+      "marketBasePrice": 11700,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_wand_t3",
+      "name": "Ancient Wand",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "wand",
+      "twoHanded": true,
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "matk": 32
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_shield_t1",
+      "name": "Worn Shield",
+      "type": "equipment",
+      "slot": "offHand",
+      "weaponType": "shield",
+      "twoHanded": false,
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "def": 10
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1800,
+      "marketBasePrice": 4500,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_shield_t2",
+      "name": "Reinforced Shield",
+      "type": "equipment",
+      "slot": "offHand",
+      "weaponType": "shield",
+      "twoHanded": false,
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "def": 22
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4680,
+      "marketBasePrice": 11700,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_shield_t3",
+      "name": "Ancient Shield",
+      "type": "equipment",
+      "slot": "offHand",
+      "weaponType": "shield",
+      "twoHanded": false,
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "def": 40
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_head_phys_t1",
+      "name": "Worn Helm",
+      "type": "equipment",
+      "slot": "head",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "def": 4,
+        "statBonus": {
+          "VIT": 1,
+          "STR": 0
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1600,
+      "marketBasePrice": 4000,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_head_magic_t1",
+      "name": "Worn Arcane Helm",
+      "type": "equipment",
+      "slot": "head",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "mdefPercent": 3,
+        "statBonus": {
+          "INT": 1,
+          "DEX": 0
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1600,
+      "marketBasePrice": 4000,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_head_phys_t2",
+      "name": "Reinforced Helm",
+      "type": "equipment",
+      "slot": "head",
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "def": 9,
+        "statBonus": {
+          "VIT": 2,
+          "STR": 1
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4160,
+      "marketBasePrice": 10400,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_head_magic_t2",
+      "name": "Reinforced Arcane Helm",
+      "type": "equipment",
+      "slot": "head",
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "mdefPercent": 6,
+        "statBonus": {
+          "INT": 2,
+          "DEX": 1
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4160,
+      "marketBasePrice": 10400,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_head_phys_t3",
+      "name": "Ancient Helm",
+      "type": "equipment",
+      "slot": "head",
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "def": 16,
+        "statBonus": {
+          "VIT": 3,
+          "STR": 2
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_head_magic_t3",
+      "name": "Ancient Arcane Helm",
+      "type": "equipment",
+      "slot": "head",
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "mdefPercent": 9,
+        "statBonus": {
+          "INT": 3,
+          "DEX": 2
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_body_phys_t1",
+      "name": "Worn Chestplate",
+      "type": "equipment",
+      "slot": "body",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "def": 8,
+        "statBonus": {
+          "VIT": 1,
+          "STR": 0
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1600,
+      "marketBasePrice": 4000,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_body_magic_t1",
+      "name": "Worn Arcane Chestplate",
+      "type": "equipment",
+      "slot": "body",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "mdefPercent": 6,
+        "statBonus": {
+          "INT": 1,
+          "DEX": 0
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1600,
+      "marketBasePrice": 4000,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_body_phys_t2",
+      "name": "Reinforced Chestplate",
+      "type": "equipment",
+      "slot": "body",
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "def": 18,
+        "statBonus": {
+          "VIT": 2,
+          "STR": 1
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4160,
+      "marketBasePrice": 10400,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_body_magic_t2",
+      "name": "Reinforced Arcane Chestplate",
+      "type": "equipment",
+      "slot": "body",
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "mdefPercent": 12,
+        "statBonus": {
+          "INT": 2,
+          "DEX": 1
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4160,
+      "marketBasePrice": 10400,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_body_phys_t3",
+      "name": "Ancient Chestplate",
+      "type": "equipment",
+      "slot": "body",
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "def": 32,
+        "statBonus": {
+          "VIT": 3,
+          "STR": 2
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_body_magic_t3",
+      "name": "Ancient Arcane Chestplate",
+      "type": "equipment",
+      "slot": "body",
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "mdefPercent": 18,
+        "statBonus": {
+          "INT": 3,
+          "DEX": 2
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_cape_phys_t1",
+      "name": "Worn Cape",
+      "type": "equipment",
+      "slot": "cape",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "def": 3,
+        "statBonus": {
+          "VIT": 1,
+          "STR": 0
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1600,
+      "marketBasePrice": 4000,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_cape_magic_t1",
+      "name": "Worn Arcane Cape",
+      "type": "equipment",
+      "slot": "cape",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "mdefPercent": 2,
+        "statBonus": {
+          "INT": 1,
+          "DEX": 0
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1600,
+      "marketBasePrice": 4000,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_cape_phys_t2",
+      "name": "Reinforced Cape",
+      "type": "equipment",
+      "slot": "cape",
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "def": 7,
+        "statBonus": {
+          "VIT": 2,
+          "STR": 1
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4160,
+      "marketBasePrice": 10400,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_cape_magic_t2",
+      "name": "Reinforced Arcane Cape",
+      "type": "equipment",
+      "slot": "cape",
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "mdefPercent": 4,
+        "statBonus": {
+          "INT": 2,
+          "DEX": 1
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4160,
+      "marketBasePrice": 10400,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_cape_phys_t3",
+      "name": "Ancient Cape",
+      "type": "equipment",
+      "slot": "cape",
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "def": 12,
+        "statBonus": {
+          "VIT": 3,
+          "STR": 2
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_cape_magic_t3",
+      "name": "Ancient Arcane Cape",
+      "type": "equipment",
+      "slot": "cape",
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "mdefPercent": 6,
+        "statBonus": {
+          "INT": 3,
+          "DEX": 2
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_accessory_sor_t1",
+      "name": "Worn Lucky Ring",
+      "type": "equipment",
+      "slot": "accessory",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "statBonus": {
+          "SOR": 2
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1200,
+      "marketBasePrice": 3000,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_accessory_dex_t1",
+      "name": "Worn Precise Ring",
+      "type": "equipment",
+      "slot": "accessory",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "statBonus": {
+          "DEX": 2
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1200,
+      "marketBasePrice": 3000,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_accessory_sor_t2",
+      "name": "Reinforced Lucky Ring",
+      "type": "equipment",
+      "slot": "accessory",
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "statBonus": {
+          "SOR": 4
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 3120,
+      "marketBasePrice": 7800,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_accessory_dex_t2",
+      "name": "Reinforced Precise Ring",
+      "type": "equipment",
+      "slot": "accessory",
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "statBonus": {
+          "DEX": 4
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 3120,
+      "marketBasePrice": 7800,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_accessory_sor_t3",
+      "name": "Ancient Lucky Ring",
+      "type": "equipment",
+      "slot": "accessory",
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "statBonus": {
+          "SOR": 6
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 5760,
+      "marketBasePrice": 14400,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_accessory_dex_t3",
+      "name": "Ancient Precise Ring",
+      "type": "equipment",
+      "slot": "accessory",
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "statBonus": {
+          "DEX": 6
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 5760,
+      "marketBasePrice": 14400,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_shoes_earth_t1",
+      "name": "Grounded Boots",
+      "type": "equipment",
+      "slot": "shoes",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "elementalImmunity": "earth"
+      },
+      "randomRollOnDrop": {
+        "enabled": false
+      },
+      "sellPriceToVendor": 1400,
+      "marketBasePrice": 3500,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_shoes_water_t1",
+      "name": "Wading Boots",
+      "type": "equipment",
+      "slot": "shoes",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "elementalImmunity": "water"
+      },
+      "randomRollOnDrop": {
+        "enabled": false
+      },
+      "sellPriceToVendor": 1400,
+      "marketBasePrice": 3500,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_shoes_fire_t2",
+      "name": "Cinderproof Boots",
+      "type": "equipment",
+      "slot": "shoes",
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "elementalImmunity": "fire"
+      },
+      "randomRollOnDrop": {
+        "enabled": false
+      },
+      "sellPriceToVendor": 3640,
+      "marketBasePrice": 9100,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_shoes_shadow_t2",
+      "name": "Umbral Boots",
+      "type": "equipment",
+      "slot": "shoes",
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "elementalImmunity": "shadow"
+      },
+      "randomRollOnDrop": {
+        "enabled": false
+      },
+      "sellPriceToVendor": 3640,
+      "marketBasePrice": 9100,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_shoes_wind_t3",
+      "name": "Stormtread Boots",
+      "type": "equipment",
+      "slot": "shoes",
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "elementalImmunity": "wind"
+      },
+      "randomRollOnDrop": {
+        "enabled": false
+      },
+      "sellPriceToVendor": 6720,
+      "marketBasePrice": 16800,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
+      "id": "equip_shoes_holy_t3",
+      "name": "Sanctified Boots",
+      "type": "equipment",
+      "slot": "shoes",
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "elementalImmunity": "holy"
+      },
+      "randomRollOnDrop": {
+        "enabled": false
+      },
+      "sellPriceToVendor": 6720,
+      "marketBasePrice": 16800,
+      "dropPool": [
+        "map_ruins"
+      ]
+    }
+  ]
+}

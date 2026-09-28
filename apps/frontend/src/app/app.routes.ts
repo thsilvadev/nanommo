@@ -34,6 +34,12 @@ export const routes: Routes = [
     path: 'play',
     loadComponent: () => import('./features/play/play.component').then((m) => m.PlayComponent),
     canActivate: [authGuard],
+    children: [
+      { path: '', redirectTo: 'grind', pathMatch: 'full' },
+      { path: 'grind', loadComponent: () => import('./features/play/grind.component').then((m) => m.GrindComponent) },
+      { path: 'character', loadComponent: () => import('./features/character/character-page.component').then((m) => m.CharacterPageComponent) },
+      { path: 'gambits', loadComponent: () => import('./features/character/character-page.component').then((m) => m.CharacterPageComponent), data: { defaultTab: 'gambits' } },
+    ],
   },
   {
     path: '**',

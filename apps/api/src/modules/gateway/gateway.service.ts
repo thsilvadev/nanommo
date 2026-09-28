@@ -4,7 +4,7 @@ import { Redis } from 'ioredis';
 
 export interface BattleResolvedPayload {
   entryId: string;
-  outcome: 'victory' | 'defeat';
+  outcome: 'win' | 'loss';
   xpGain: number;
   goldGain: number;
   drops: Array<{ itemId: string; quantity: number }>;

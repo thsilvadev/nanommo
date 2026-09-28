@@ -226,3 +226,204 @@ When visual details conflict with backend/game rules:
 
 Do not change formulas, server authority, battle timing, inventory rules, or Gambit
 semantics to achieve a visual effect.
+
+---
+
+## 11. Battle WebSocket synchronization contract
+
+This section defines the realtime contract implemented by the `/game` Socket.IO gateway.
+It is intentionally transport-only: **the server is authoritative**. The client sends intents,
+receives facts, updates its local store, and renders them. The client never decides battle outcome,
+resolution timing, queue contents, or resolution order.
+
+### 11.1 Connection and authentication
+
+Connect to Socket.IO namespace `/game` with the same JWT access token used by REST:
+
+```ts
+io('/game', {
+  auth: { token: accessToken },
+});
+```
+
+The server validates the JWT and requires `payload.sessionId === users.activeSessionId`.
+A successful connection joins the private room `char:<characterId>`. If the character is already
+grinding, the socket also joins `map:<mapId>` for presence-related traffic.
+
+A disconnect does **not** pause, cancel, resolve, or otherwise alter the battle loop.
+
+### 11.2 Authoritative state bootstrap and reconnect
+
+WebSocket events are not an event log and are not replayed after reconnect. After every initial
+connection and every reconnect, the frontend MUST resynchronize through REST:
+
+1. `GET /characters` — authoritative character state.
+2. `GET /battles/queue` — authoritative live unresolved queue.
+3. Reconcile the current route/map from `character.currentMapId` and `character.status`.
+
+`GET /battles/queue` currently returns a **bare `BattleQueueEntry[]`**, not `{ entries: [...] }`.
+
+REST wins over stale cached socket state. Do not reconstruct missed battles from elapsed wall-clock
+time, local timers, or previously cached queue entries.
+
+### 11.3 `battle:queueUpdated`
+
+**Payload actually emitted:**
+
+```ts
+type BattleQueueUpdated = {
+  entries: BattleQueueEntry[];
+};
+```
+
+`BattleQueueEntry` is the persisted backend entity and currently contains:
+
+```ts
+{
+  id: string;
+  characterId: string;
+  sequenceIndex: number;
+  mapId: string;
+  monsterId: string;
+  startAt: string; // ISO timestamp after JSON serialization
+  endAt: string;   // ISO timestamp after JSON serialization
+  outcome: 'win' | 'loss';
+  log: unknown;
+  xpGain: number;
+  goldGain: number;
+  drops: unknown[];
+  itemsConsumed: Array<{ itemId: string; quantity: number }>;
+  hpAfter: number;
+  spAfter: number;
+  resolved: false;
+  seedUsed: string;
+}
+```
+
+Only live unresolved entries are returned by the queue read path. The frontend should normally use
+`sequenceIndex`, `startAt`, `endAt`, `monsterId`, `outcome`, `xpGain`, `goldGain`, `drops`, and
+`itemsConsumed` for the battle UI; it should not expose `seedUsed` or treat `log` as authoritative
+input for simulation.
+
+**When it is emitted:** map entry, queue top-up, and queue rebuild after a level-up. A death does
+not create a replacement queue.
+
+**UI action:** replace the BattleStore's live queue with the received authoritative entries. Select
+the currently active entry by the earliest unresolved sequence/time, render its progress from
+`startAt`/`endAt`, and show the next entries as the predicted server queue. Do not locally append,
+remove, reorder, or mutate queue entries based only on animation completion.
+
+### 11.4 `battle:resolved`
+
+**Payload actually emitted:**
+
+```ts
+type BattleResolved = {
+  entryId: string;
+  outcome: 'win' | 'loss';
+  xpGain: number;
+  goldGain: number;
+  drops: unknown[];
+  characterAfter: {
+    id: string;
+    level: number;
+    xp: number;
+    hpCurrent: number;
+    spCurrent: number;
+    gold: number;
+    status: string;
+  };
+};
+```
+
+This event is emitted only after the resolver successfully claims the row and applies its
+authoritative effects. A duplicate resolution attempt does not emit a second `battle:resolved`.
+
+**UI action:** update the CharacterStore with `characterAfter`, mark the referenced `entryId` as
+resolved in transient UI state, and refresh any reward/event-feed presentation from `xpGain`,
+`goldGain`, and `drops`. Do not treat the event as permission to invent a new queue. The following
+`battle:queueUpdated`, when applicable, is the authoritative live queue.
+
+### 11.5 `character:leveledUp`
+
+**Payload actually emitted:**
+
+```ts
+type CharacterLeveledUp = {
+  newLevel: number;
+  unspentAttributePoints: number;
+};
+```
+
+One event is emitted for a resolution that crosses one or more thresholds; the payload contains the
+final level and final unspent points.
+
+**UI action:** update the displayed level and available attribute points, play the level-up feedback,
+and refresh derived character presentation from authoritative character state. Do not calculate the
+new level locally from XP or assume that exactly one level was gained.
+
+A queue rebuild may follow this event. The frontend must accept the subsequent
+`battle:queueUpdated` as the replacement queue.
+
+### 11.6 `character:died`
+
+**Payload actually emitted:**
+
+```ts
+type CharacterDied = {
+  deathLog: {
+    monsterId: string;
+    mapId: string;
+    timestamp: string;
+    log: unknown;
+  };
+};
+```
+
+`deathLog` is the exact object stored in `Character.lastDeathLog` by the death handler.
+
+**UI action:** mark the character as dead/town-bound, stop rendering an active battle as if it were
+still progressing, surface the latest death information, and route to the Town view according to
+frontend navigation rules. Then resync through `GET /characters` and `GET /battles/queue` so the UI
+uses the persisted `status`, `currentMapId`, HP, XP, and empty live queue rather than inferring them
+from the event alone.
+
+No replacement battle queue is emitted after death.
+
+### 11.7 Event ordering and rendering rules
+
+For a normal winning resolution, the authoritative flow is:
+
+1. battle effects are persisted;
+2. `battle:resolved` is published;
+3. `character:leveledUp` is published if applicable;
+4. `battle:queueUpdated` is published with the final live queue.
+
+For death:
+
+1. death state and `lastDeathLog` are persisted;
+2. `battle:resolved` is published for the loss;
+3. `character:died` is published;
+4. no replacement queue is published.
+
+The frontend may animate between these facts, but animation completion never triggers server
+resolution. `startAt` and `endAt` are server timestamps and are the only timing authority for the
+battle progress bar.
+
+### 11.8 Event delivery failure and reconnect behavior
+
+Event delivery is best-effort synchronization. Redis/Socket.IO publication failure must not prevent
+battle resolution, XP/gold/drop application, death handling, level-up handling, or queue rebuilding.
+
+Therefore:
+
+- Never retry a battle locally because an event was not observed.
+- Never resolve a battle from the browser.
+- Never assume an event was lost merely because a UI animation ended.
+- On reconnect, REST state is authoritative and replaces stale local battle state.
+- After resync, subsequent socket events are incremental synchronization facts.
+
+### 11.9 Out of scope for this battle-loop contract
+
+Chat, Mail, Market, and Town workflows are not part of the battle-loop synchronization contract.
+Their future realtime behavior must not be used as a dependency for battle resolution.

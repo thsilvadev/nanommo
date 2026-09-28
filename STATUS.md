@@ -370,7 +370,7 @@ left untouched, so log-based assertions still see real engine output.
 | Recovery pass on boot | ✅ | [re-verified 2026-09-28] — see §4.6 |
 | Idempotent resolution | ✅ | [re-verified 2026-09-28] — see §4.5 |
 | Determinism / no `Math.random()` | ✅ | [re-verified 2026-09-28] — see §4.1 |
-| WebSocket battle events | ❌ not implemented, not in scope | `design.md` non-goals exclude WS events from this change; no scenario covers them |
+| WebSocket battle events | ✅ integrated | `/game` gateway, authenticated character room, map socket intents, battle/progression events, and REST resync contract implemented; dedicated `test-battle-gateway.js` passes |
 
 ---
 
@@ -494,7 +494,7 @@ can reach.
 | **MailService** | Stub | Separate from `MailerService` (auth emails) |
 | **TownService** | Stub | Vendor, warehouse, NPC interactions |
 | **MarketService** | Stub (not started) | Buy/sell orders, order matching |
-| **WebSocket gateway** | Not integrated | Socket.IO infrastructure exists but no battle events are emitted. `design.md` lists WebSocket events (`battleResolved`, `characterDied` per §16.2) as an explicit **non-goal** of this change, alongside the balance pass, the `maxHp: null` DTO issue and the stubbed services. There is consequently **no WS scenario in the suite, and WS event delivery remains unverified** — open for a Phase 4 change. |
+| **WebSocket gateway** | Integrated | `/game` is enabled with JWT + `activeSessionId` handshake auth, `char:<characterId>` rooms, socket map entry/leave, battle/progression publication through Redis, non-blocking event emission, and frontend REST resync documentation. Dedicated gateway smoke test passes. |
 
 ---
 
@@ -530,7 +530,7 @@ can reach.
 | Item | State |
 |------|-------|
 | Previous change | `grind-loop-phase3-edge-cases` — complete, `openspec validate --strict` ✅ |
-| This change | Phase 4A — divergence #3 fix + SPEC convergence + two proof gaps closed |
+| This change | `battle-loop-websocket-gateway` — applied; gateway + frontend synchronization contract integrated |
 | Production code changed | **one fix:** `battle.service.ts:453-484`, the level-up HP/SP ratio now uses `calculateEquipmentStats()` |
 | SPEC changed | §6.3 (equipment-derived ratio + the #4 footnote), §6.4 (`floor`, no `cumulativeXp` floor), §4.7 and §7.4.3 (marked resolved, not deleted). `openspec/specs/SPEC.md` re-synced from it. |
 | Tests changed | `test-phase3-levelup.js` +2 scenarios / 18 assertions, `test-phase3-idempotency.js` +2 assertions, `test/helpers/phase3.js` +4 helpers, `test-phase3-death.js`/`test-phase3-recovery.js` notes re-worded (divergences #1/#2 are no longer divergences against SPEC) |

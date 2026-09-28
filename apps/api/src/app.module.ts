@@ -18,6 +18,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { MailerModule } from './modules/mailer/mailer.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { DataModule } from './modules/data/data.module';
+import { GatewayModule } from './modules/gateway/gateway.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { DataModule } from './modules/data/data.module';
     MailerModule,
     ChatModule,
     DataModule,
+    GatewayModule,
   ],
   providers: [
     {

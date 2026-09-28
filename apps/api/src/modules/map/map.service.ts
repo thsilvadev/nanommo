@@ -96,6 +96,7 @@ export class MapService {
     character.currentMapId = null as any;
     character.status = 'town';
     await this.characterRepo.save(character);
+    await this.battleService.cancelPendingBattles(characterId);
 
     this.logger.debug(`Character ${characterId} left their map`);
   }

@@ -1,0 +1,24 @@
+<div class="game-app">
+<header class="game-topbar">
+  <div class="brand-mark">NANOMMO <span>ONLINE</span></div>
+  <nav class="main-tabs" aria-label="Game navigation">
+    <button [class.active]="is('/play/grind')||is('/play')" (click)="go('/play/grind')">Grind</button>
+    <button (click)="go('/play/character')">Character</button>
+    <button (click)="go('/play/gambits')">Gambits</button>
+    <button class="muted">Tournament</button><button class="muted">Trade</button>
+  </nav>
+  <div class="top-character" *ngIf="character.character() as c">
+    <div class="avatar-mini">{{c.name.slice(0,1).toUpperCase()}}</div>
+    <div><strong>{{c.name}}</strong><small>Lv. {{c.level}}</small></div>
+    <div class="xp-mini"><span [style.width.%]="xpWidth()"></span></div>
+    <div class="resource gold"><img src="/assets/ui/coin.svg" alt=""> {{c.gold | number}}</div>
+  </div>
+  <div class="top-actions"><button (click)="chatOpen.set(!chatOpen())">CHAT</button><button aria-label="Settings"><img src="/assets/ui/settings.svg" alt=""></button><button (click)="auth.logout()">EXIT</button></div>
+</header>
+<main class="game-board">
+  <aside class="zone-left"><app-character-summary /></aside>
+  <section class="zone-center"><router-outlet /></section>
+  <aside class="zone-right"><app-grind-info /><app-weapon-proficiency /></aside>
+</main>
+<app-chat-drawer [open]="chatOpen()" (closed)="chatOpen.set(false)" />
+</div>

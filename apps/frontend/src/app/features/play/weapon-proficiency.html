@@ -1,0 +1,1 @@
+<section class="panel prof"><div class="panel-title">WEAPON PROFICIENCY</div><div *ngFor="let p of rows" class="prof-row"><img [src]="p.icon" alt=""><span>{{p.name}}</span><b>Lv {{p.level ?? "—"}}</b><div class="prof-track"><i [style.width.%]="p.progress"></i></div></div></section>

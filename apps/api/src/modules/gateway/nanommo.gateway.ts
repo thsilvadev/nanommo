@@ -18,6 +18,8 @@ import { Character } from '../../database/entities/character.entity';
 import { User } from '../../database/entities/user.entity';
 import { DataService } from '../data/data.service';
 import { GatewayService } from './gateway.service';
+import { MapService } from '../map/map.service';
+import { BattleService } from '../battle/battle.service';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
 
@@ -28,13 +30,13 @@ interface AuthenticatedSocket extends Socket {
   sessionId?: string;
 }
 
-// @WebSocketGateway({
-//   namespace: '/game',
-//   cors: {
-//     origin: process.env.FRONTEND_URL || 'http://localhost:4200',
-//     credentials: true,
-//   },
-// })
+@WebSocketGateway({
+  namespace: '/game',
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:4200',
+    credentials: true,
+  },
+})
 export class NanommoGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -53,6 +55,8 @@ export class NanommoGateway
     private readonly dataService: DataService,
     private readonly jwtService: JwtService,
     private readonly gatewayService: GatewayService,
+    private readonly mapService: MapService,
+    private readonly battleService: BattleService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
@@ -78,9 +82,17 @@ export class NanommoGateway
           return next(new Error('SESSION_INVALIDATED'));
         }
 
+        const character = await this.characterRepo.findOne({
+          where: { userId: payload.userId },
+        });
+        if (!character) {
+          return next(new Error('CHARACTER_NOT_FOUND'));
+        }
+
         socket.userId = payload.userId;
         socket.username = payload.username;
         socket.sessionId = payload.sessionId;
+        socket.characterId = character.id;
         next();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -97,9 +109,9 @@ export class NanommoGateway
   async handleConnection(client: AuthenticatedSocket) {
     try {
       // Get character for this user
-      const character = await this.characterRepo.findOne({
-        where: { userId: client.userId },
-      });
+      const character = client.characterId
+        ? await this.characterRepo.findOne({ where: { id: client.characterId } })
+        : await this.characterRepo.findOne({ where: { userId: client.userId } });
 
       if (!character) {
         client.disconnect(true);
@@ -187,41 +199,24 @@ export class NanommoGateway
     @MessageBody() data: { mapId: string },
   ) {
     try {
-      const character = await this.characterRepo.findOne({
-        where: { id: client.characterId },
-      });
+      if (!data?.mapId) throw new WsException('mapId is required');
+      if (!client.characterId) throw new WsException('Character not found');
 
-      if (!character) {
-        throw new WsException('Character not found');
-      }
-
-      // TODO: Validate map exists and level requirement met
-      // TODO: Build fresh battle queue via BattleService
-      // TODO: Calculate playersOnMap from Redis
-
+      const character = await this.characterRepo.findOne({ where: { id: client.characterId } });
+      if (!character) throw new WsException('Character not found');
       const oldMapId = character.currentMapId;
-      character.currentMapId = data.mapId;
-      character.status = 'grinding';
-      await this.characterRepo.save(character);
 
-      // Update presence and map tracking
-      if (oldMapId) {
-        await this.gatewayService.removePlayerFromMap(
-          character.id,
-          oldMapId,
-        );
+      await this.mapService.enterMap(character.id, data.mapId);
+
+      if (oldMapId && oldMapId !== data.mapId) {
+        await this.gatewayService.removePlayerFromMap(character.id, oldMapId);
         client.leave(`map:${oldMapId}`);
       }
 
       await this.gatewayService.updatePresence(character.id, data.mapId);
       await this.gatewayService.addPlayerToMap(character.id, data.mapId);
-
-      // Join new map room
       client.join(`map:${data.mapId}`);
 
-      this.logger.debug(`Character ${character.name} entered map ${data.mapId}`);
-
-      // TODO: Return battle queue entries
       client.emit('map:entered', { success: true, mapId: data.mapId });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -230,40 +225,21 @@ export class NanommoGateway
     }
   }
 
-  /**
-   * Map:leave event — client returns to town
-   */
   @SubscribeMessage('map:leave')
   async handleMapLeave(@ConnectedSocket() client: AuthenticatedSocket) {
     try {
-      const character = await this.characterRepo.findOne({
-        where: { id: client.characterId },
-      });
-
-      if (!character) {
-        throw new WsException('Character not found');
-      }
+      if (!client.characterId) throw new WsException('Character not found');
+      const character = await this.characterRepo.findOne({ where: { id: client.characterId } });
+      if (!character) throw new WsException('Character not found');
 
       const oldMapId = character.currentMapId;
+      await this.mapService.leaveMap(character.id);
 
-      character.currentMapId = undefined;
-      character.status = 'town';
-      await this.characterRepo.save(character);
-
-      // Update presence and map tracking
       await this.gatewayService.updatePresence(character.id, 'town');
-
       if (oldMapId) {
-        await this.gatewayService.removePlayerFromMap(
-          character.id,
-          oldMapId,
-        );
+        await this.gatewayService.removePlayerFromMap(character.id, oldMapId);
         client.leave(`map:${oldMapId}`);
       }
-
-      this.logger.debug(`Character ${character.name} left map`);
-
-      // TODO: Cancel pending queue entries beyond current
 
       client.emit('map:left', { success: true });
     } catch (error) {

@@ -15,6 +15,7 @@ import { CharacterModule } from '../character/character.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { EquipmentModule } from '../equipment/equipment.module';
 import { RedisModule } from '../../config/redis.module';
+import { GatewayService } from '../gateway/gateway.service';
 
 @Module({
   imports: [
@@ -42,7 +43,7 @@ import { RedisModule } from '../../config/redis.module';
     RedisModule,
   ],
   controllers: [BattleController],
-  providers: [BattleService, BattleQueueProcessor, BattleRecoveryService],
-  exports: [BattleService],
+  providers: [BattleService, BattleQueueProcessor, BattleRecoveryService, GatewayService],
+  exports: [BattleService, GatewayService],
 })
 export class BattleModule {}
