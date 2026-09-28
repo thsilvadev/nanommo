@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -18,6 +18,7 @@ import { MailerModule } from '../mailer/mailer.module';
       inject: [ConfigService],
     }),
     MailerModule,
+    forwardRef(() => require('../character/character.module').CharacterModule),
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],

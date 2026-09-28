@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/database/entities';
 import { RegisterDto, LoginDto, AuthTokenDto, ForgotPasswordDto, ResetPasswordDto } from '@nanommo/shared';
 import { MailerService } from '../mailer/mailer.service';
+import { CharacterService } from '../character/character.service';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +22,8 @@ export class AuthService {
     private userRepository: Repository<User>,
     private jwtService: JwtService,
     private mailerService: MailerService,
+    @Inject(forwardRef(() => CharacterService))
+    private characterService: CharacterService,
   ) {}
 
   private generateVerificationToken(): string {
@@ -88,6 +91,15 @@ export class AuthService {
     const sessionId = uuidv4();
     user.activeSessionId = sessionId;
     await this.userRepository.save(user);
+
+    // Auto-create character with username as default name
+    try {
+      await this.characterService.createCharacter(user.id, user.username);
+      this.logger.log(`Auto-created character for user ${user.username}`);
+    } catch (error) {
+      this.logger.error(`Failed to auto-create character for user ${user.username}: ${(error as Error).message}`);
+      // Don't fail registration if character creation fails, but log it
+    }
 
     // Generate tokens with sessionId
     return this.generateTokens(user.id, user.username, sessionId);
