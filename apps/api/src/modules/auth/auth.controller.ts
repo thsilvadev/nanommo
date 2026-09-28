@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, AuthTokenDto } from '@nanommo/shared';
+import { RegisterDto, LoginDto, AuthTokenDto, ForgotPasswordDto, ResetPasswordDto } from '@nanommo/shared';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
@@ -35,5 +35,15 @@ export class AuthController {
       return { success: false, message: 'User not found' };
     }
     return this.authService.resendVerificationEmail(user.email);
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<{ success: boolean; message: string }> {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() dto: ResetPasswordDto): Promise<{ success: boolean; message: string }> {
+    return this.authService.resetPassword(dto);
   }
 }

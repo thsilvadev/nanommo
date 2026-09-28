@@ -6,7 +6,7 @@ import * as argon2 from 'argon2';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/database/entities';
-import { RegisterDto, LoginDto, AuthTokenDto } from '@nanommo/shared';
+import { RegisterDto, LoginDto, AuthTokenDto, ForgotPasswordDto, ResetPasswordDto } from '@nanommo/shared';
 import { MailerService } from '../mailer/mailer.service';
 
 @Injectable()
@@ -210,5 +210,76 @@ export class AuthService {
     }
 
     return { success: true, message: 'Verification email sent' };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ success: boolean; message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { email: dto.email },
+    });
+
+    // Always return the same generic message for security (prevents email enumeration)
+    const genericMessage = 'If the email exists, we sent a password reset link';
+
+    if (!user) {
+      return { success: true, message: genericMessage };
+    }
+
+    // Generate password reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpiresAt = resetTokenExpiresAt;
+    await this.userRepository.save(user);
+
+    // Send password reset email
+    try {
+      await this.mailerService.sendPasswordResetEmail(user.email, resetToken);
+    } catch (error) {
+      this.logger.error(`Failed to send password reset email to ${user.email}: ${(error as Error).message}`);
+      // Still return generic message to not leak info
+    }
+
+    return { success: true, message: genericMessage };
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<{ success: boolean; message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { passwordResetToken: dto.token },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // Check if token is expired
+    if (user.passwordResetExpiresAt && user.passwordResetExpiresAt < new Date()) {
+      throw new BadRequestException('Reset token has expired');
+    }
+
+    // Validate new password
+    if (!dto.newPassword || dto.newPassword.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters');
+    }
+
+    // Hash new password with argon2id (same as registration)
+    const passwordHash = await argon2.hash(dto.newPassword, {
+      type: argon2.argon2id,
+      memoryCost: 19456,
+      timeCost: 2,
+      parallelism: 1,
+    });
+
+    // Update password and invalidate reset token
+    user.passwordHash = passwordHash;
+    user.passwordResetToken = null;
+    user.passwordResetExpiresAt = null;
+
+    // Invalidate active session (force re-login) - generate new sessionId
+    user.activeSessionId = uuidv4();
+
+    await this.userRepository.save(user);
+
+    return { success: true, message: 'Password has been reset successfully' };
   }
 }

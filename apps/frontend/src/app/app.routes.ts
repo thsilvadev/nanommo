@@ -18,6 +18,10 @@ export const routes: Routes = [
     canActivate: [guestGuard],
   },
   {
+    path: 'verify-email',
+    loadComponent: () => import('./features/auth/verify-email.component').then((m) => m.VerifyEmailComponent),
+  },
+  {
     path: 'play',
     loadComponent: () => import('./features/play/play.component').then((m) => m.PlayComponent),
     canActivate: [authGuard],

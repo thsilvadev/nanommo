@@ -158,4 +158,32 @@ export class AuthStore {
       });
     });
   }
+
+  verifyEmail(token: string): Observable<{ success: boolean; message: string }> {
+    return new Observable<{ success: boolean; message: string }>((observer) => {
+      this.api.get<{ success: boolean; message: string }>(`/auth/verify-email?token=${token}`).subscribe({
+        next: (response) => {
+          observer.next(response);
+          observer.complete();
+        },
+        error: (err) => {
+          observer.error(err);
+        },
+      });
+    });
+  }
+
+  resendVerificationEmail(): Observable<{ success: boolean; message: string }> {
+    return new Observable<{ success: boolean; message: string }>((observer) => {
+      this.api.post<{ success: boolean; message: string }>('/auth/resend-verification', {}).subscribe({
+        next: (response) => {
+          observer.next(response);
+          observer.complete();
+        },
+        error: (err) => {
+          observer.error(err);
+        },
+      });
+    });
+  }
 }

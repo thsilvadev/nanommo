@@ -19,6 +19,15 @@ export class AuthTokenDto {
   expiresIn!: number;
 }
 
+export class ForgotPasswordDto {
+  email!: string;
+}
+
+export class ResetPasswordDto {
+  token!: string;
+  newPassword!: string;
+}
+
 // Character DTOs
 export class CreateCharacterDto {
   username!: string;
