@@ -13,7 +13,10 @@ COPY apps/api ./apps/api
 # Install dependencies
 RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
-# Build - must be in root to access workspace properly
+# Build shared package FIRST (required by api)
+RUN cd packages/shared && pnpm build
+
+# Build API - must be in root to access workspace properly
 RUN cd apps/api && pnpm build
 
 # Runtime stage
