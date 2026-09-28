@@ -1,5 +1,15 @@
 # NanoMMO Backend — Implementation Status
 
+## 0. BUGS RESOLVIDOS (Session 2026-09-28)
+
+| Bug | Status | Mudança |
+|-----|--------|---------|
+| A. Email links apontam localhost:4200 em prod | ✅ RESOLVIDO | MailerService valida FRONTEND_URL obrigatório em prod, rejeita "localhost", normaliza trailing slash |
+| B. Verificação não chega em prod | ✅ RESOLVIDO | Adicionado text/plain alternativo, subject simplificado, logging completo (messageId/accepted/rejected/response) |
+| C. Rate limit vê todos como um IP atrás do Caddy | ✅ RESOLVIDO | `app.getHttpAdapter().getInstance().set('trust proxy', 1)` em main.ts |
+
+---
+
 **Last Updated:** 2026-09-28
 **This session:** Security hardening on auth features (password reset + email verification) per SPEC §15.4. Installed @nestjs/throttler, added rate limiting (5 req/60s per IP) to POST /auth/forgot-password, POST /auth/reset-password, POST /auth/resend-verification. Added per-user cooldown (60s TUNABLE) on resend-verification with clear error showing remaining seconds. Verified tokens use crypto.randomBytes(32) (256-bit entropy). Made reset password token consumption atomic via conditional UPDATE (same pattern as resolveBattle() idempotency fix) — tested with true Promise.all concurrency: exactly one request succeeds, other fails clean with "Invalid or expired reset token". All 4 test scenarios passed with real curl outputs. Build gates pass.
 

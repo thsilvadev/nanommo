@@ -10,8 +10,35 @@ export class MailerService implements OnModuleInit {
   private fromEmail: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:4200';
+    this.frontendUrl = this.normalizeFrontendUrl();
     this.fromEmail = this.configService.get<string>('SMTP_FROM') || 'noreply@nanommo.local';
+  }
+
+  private normalizeFrontendUrl(): string {
+    const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
+    let frontendUrl = this.configService.get<string>('FRONTEND_URL');
+
+    // In production, FRONTEND_URL is mandatory and cannot contain 'localhost'
+    if (nodeEnv === 'production') {
+      if (!frontendUrl) {
+        throw new Error(
+          'FRONTEND_URL is required in production. Please set FRONTEND_URL environment variable.',
+        );
+      }
+      if (frontendUrl.includes('localhost')) {
+        throw new Error(
+          'FRONTEND_URL cannot contain "localhost" in production. Please set a valid domain.',
+        );
+      }
+    }
+
+    // Use default in development if not provided
+    if (!frontendUrl) {
+      frontendUrl = 'http://localhost:4200';
+    }
+
+    // Normalize trailing slash: remove it to ensure consistent URL building
+    return frontendUrl.replace(/\/$/, '');
   }
 
   onModuleInit() {
@@ -49,13 +76,17 @@ export class MailerService implements OnModuleInit {
     }
 
     try {
-      await this.transporter!.sendMail({
+      const info = await this.transporter!.sendMail({
         from: this.fromEmail,
         to,
         subject,
         html,
+        text: this.stripHtml(html), // Add plain text alternative
       });
-      this.logger.log(`Email sent to ${to} — subject: ${subject}`);
+
+      this.logger.log(
+        `Email sent to ${to} — subject: ${subject} | messageId: ${info.messageId} | accepted: ${info.accepted?.join(',') || 'none'} | rejected: ${info.rejected?.length || 0} | response: ${info.response || 'ok'}`,
+      );
       return true;
     } catch (error) {
       this.logger.error(`Failed to send email to ${to}: ${(error as Error).message}`);
@@ -63,9 +94,16 @@ export class MailerService implements OnModuleInit {
     }
   }
 
+  private stripHtml(html: string): string {
+    return html
+      .replace(/<[^>]*>/g, ' ') // Remove HTML tags
+      .replace(/\s+/g, ' ') // Collapse whitespace
+      .trim();
+  }
+
   async sendVerificationEmail(email: string, token: string): Promise<boolean> {
     const verificationLink = `${this.frontendUrl}/verify-email?token=${token}`;
-    const subject = 'Confirme seu e-mail — NanoMMO';
+    const subject = 'Confirme seu email - NanoMMO';
     const html = this.renderVerificationTemplate(verificationLink);
 
     return this.sendMail(email, subject, html);
@@ -73,7 +111,7 @@ export class MailerService implements OnModuleInit {
 
   async sendPasswordResetEmail(email: string, token: string): Promise<boolean> {
     const resetLink = `${this.frontendUrl}/reset-password?token=${token}`;
-    const subject = 'Redefina sua senha — NanoMMO';
+    const subject = 'Redefina sua senha - NanoMMO';
     const html = this.renderPasswordResetTemplate(resetLink);
 
     return this.sendMail(email, subject, html);
