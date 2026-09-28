@@ -186,4 +186,46 @@ export class AuthStore {
       });
     });
   }
+
+  forgotPassword(email: string): Observable<{ success: boolean; message: string }> {
+    this._isLoading.set(true);
+    this._error.set(null);
+
+    return new Observable<{ success: boolean; message: string }>((observer) => {
+      this.api.post<{ success: boolean; message: string }>('/auth/forgot-password', { email }).subscribe({
+        next: (response) => {
+          this._isLoading.set(false);
+          observer.next(response);
+          observer.complete();
+        },
+        error: (err) => {
+          this._isLoading.set(false);
+          const message = err.error?.message || 'Failed to send reset email';
+          this._error.set(message);
+          observer.error(err);
+        },
+      });
+    });
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<{ success: boolean; message: string }> {
+    this._isLoading.set(true);
+    this._error.set(null);
+
+    return new Observable<{ success: boolean; message: string }>((observer) => {
+      this.api.post<{ success: boolean; message: string }>('/auth/reset-password', { token, newPassword }).subscribe({
+        next: (response) => {
+          this._isLoading.set(false);
+          observer.next(response);
+          observer.complete();
+        },
+        error: (err) => {
+          this._isLoading.set(false);
+          const message = err.error?.message || 'Failed to reset password';
+          this._error.set(message);
+          observer.error(err);
+        },
+      });
+    });
+  }
 }
