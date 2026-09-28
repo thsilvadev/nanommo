@@ -43,8 +43,16 @@ export class AuthStore {
   }
 
   private bootstrap(): void {
+    const storedAccessToken = localStorage.getItem('accessToken');
     const storedRefreshToken = localStorage.getItem('refreshToken');
-    if (storedRefreshToken) {
+    if (storedAccessToken && storedRefreshToken) {
+      this._accessToken.set(storedAccessToken);
+      this._refreshToken.set(storedRefreshToken);
+      const payload = this.parseJwt(storedAccessToken);
+      if (payload) {
+        this._userPayload.set(payload);
+      }
+    } else if (storedRefreshToken) {
       this._refreshToken.set(storedRefreshToken);
       this.refreshAccessToken().subscribe({
         next: () => {},
@@ -58,6 +66,7 @@ export class AuthStore {
   setTokens(tokens: AuthTokens): void {
     this._accessToken.set(tokens.accessToken);
     this._refreshToken.set(tokens.refreshToken);
+    localStorage.setItem('accessToken', tokens.accessToken);
     localStorage.setItem('refreshToken', tokens.refreshToken);
 
     const payload = this.parseJwt(tokens.accessToken);
@@ -70,6 +79,7 @@ export class AuthStore {
     this._accessToken.set(null);
     this._refreshToken.set(null);
     this._userPayload.set(null);
+    localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
   }
 

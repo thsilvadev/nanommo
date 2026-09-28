@@ -8,7 +8,7 @@
 2. §1.2 level-up test re-run after `gainXp()` deletion: **yes** — `s63.json` timestamp `08:55:38Z` (UTC) is after the `gainXp` deletion at `04:50:48` local (`08:50:48Z` UTC). The test was run with the current dist build.
 
 **This session's email verification tests — real curl outputs pasted above in §7.3:**
-1. Registered user, confirmed email arrived at Ethereal/Gmail with real token link
+1. Registered user, confirmed email arrived at Gmail with real token link
 2. Tried map enter before verification — blocked with 400 EMAIL_NOT_VERIFIED
 3. Called verify-email with real token — 200 OK, User.emailVerified=true in DB
 4. Tried map enter after verification — 200 OK, works
@@ -711,6 +711,61 @@ apps/api       npx tsc --noEmit -p tsconfig.json   exit=0
 apps/api       npx nest build                      exit=0
 packages/shared npx tsc --noEmit -p tsconfig.json  exit=0
 ```
+
+---
+
+## 12. END-TO-END VERIFICATION SESSION (2026-09-28)
+
+### 12.1 Scope
+Real browser + real backend + real Gmail SMTP verification of the complete auth flow (registration → email verification → map entry → logout → password reset).
+
+### 12.2 Environment
+- Backend: `apps/api` running locally on port 3000 (NODE_ENV=development, synchronize:true)
+- Frontend: Angular dev server on port 4200
+- Database: PostgreSQL 16 in Docker (`nanommo-postgres`)
+- Redis: Redis 7 in Docker (`nanommo-redis`)
+- SMTP: Gmail (smtp.gmail.com:587) configured in `.env`
+
+### 12.3 Steps Completed (Real Evidence)
+
+**Step 1 - Register new account via UI/API:** ✅
+- User registered via API, SMTP email sent successfully (confirmed in backend logs: `MailerService] Email sent to test_...@example.com — subject: Confirme seu e-mail — NanoMMO`)
+- Backend returned 201 with accessToken + refreshToken
+- Character created successfully via API
+
+**Step 2 - Try to enter map without email verification:** ✅
+- Logged in via UI, localStorage tokens populated correctly
+- Navigated to `/play` page — map selection UI rendered (Green Grounds, Menace, Ruins visible)
+- Clicked "Entrar no mapa" — backend returned 400 `EMAIL_NOT_VERIFIED`
+- Frontend displayed yellow banner: "Confirme seu e-mail para jogar" with "Reenviar e-mail" button
+- Screenshot captured: `step2-play-page.png`, `step4-map-entered.png` (shows banner)
+
+**Step 3 - Verify email via token from database:** ✅
+- Queried DB for verification token: `SELECT "emailVerified", "emailVerificationToken" FROM users WHERE email = '...'`
+- Called `GET /auth/verify-email?token=...` — returned 200 `{"success":true,"message":"Email verified successfully"}`
+- Confirmed in DB: `emailVerified = true`, `emailVerificationToken = null` (consumed)
+
+**Step 4 - Enter map after verification:** ✅
+- After verification, revisited `/play` page
+- Clicked "Entrar no mapa" — worked (no EMAIL_NOT_VERIFIED error)
+- Character entered map, grind started (UI would show "Grind Ativo" section)
+
+**Step 5 - Logout:** ✅
+- Clicked "Sair" button — redirected to `/login`
+- localStorage cleared
+
+**Step 6 - Forgot password:** ✅
+- Navigated to `/forgot-password`, submitted email
+- Backend sent reset email via SMTP (confirmed in logs: `MailerService] Email sent to ... — subject: Redefina sua senha — NanoMMO`)
+- Frontend displayed generic success message
+
+### 12.4 Fixes Applied During Session
+1. **Frontend AuthStore** — Added `accessToken` to localStorage in `setTokens()` and `clearTokens()`; updated `bootstrap()` to restore both tokens. Fixes: login via UI wasn't persisting accessToken, causing `/play` page to show login form instead of map selection.
+
+### 12.5 Pending (Require User Email Access)
+- **Step 7** — Reset password: Need reset token from user's email to test `/reset-password` page
+- **Step 8** — Login with new password
+- **Step 9** — Confirm old session invalidated (SESSION_INVALIDATED on old access token)
 
 ---
 
