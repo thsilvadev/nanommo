@@ -1,6 +1,7 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, AuthTokenDto } from '@nanommo/shared';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -14,5 +15,25 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto): Promise<AuthTokenDto> {
     return this.authService.login(dto);
+  }
+
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string): Promise<{ success: boolean; message: string }> {
+    if (!token) {
+      return { success: false, message: 'Token is required' };
+    }
+    return this.authService.verifyEmail(token);
+  }
+
+  @Post('resend-verification')
+  @UseGuards(JwtAuthGuard)
+  async resendVerification(@Request() req: any): Promise<{ success: boolean; message: string }> {
+    const user = await this.authService['userRepository'].findOne({
+      where: { id: req.user.userId },
+    });
+    if (!user) {
+      return { success: false, message: 'User not found' };
+    }
+    return this.authService.resendVerificationEmail(user.email);
   }
 }

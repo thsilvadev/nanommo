@@ -7,6 +7,7 @@ import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/database/entities';
 import { RegisterDto, LoginDto, AuthTokenDto } from '@nanommo/shared';
+import { MailerService } from '../mailer/mailer.service';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +17,12 @@ export class AuthService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private jwtService: JwtService,
+    private mailerService: MailerService,
   ) {}
+
+  private generateVerificationToken(): string {
+    return crypto.randomBytes(32).toString('hex');
+  }
 
   async register(dto: RegisterDto): Promise<AuthTokenDto> {
     // Validate input
@@ -52,15 +58,28 @@ export class AuthService {
     // Hash CPF
     const cpfHash = this.hashCpf(dto.cpf);
 
+    // Generate email verification token
+    const verificationToken = this.generateVerificationToken();
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     // Create user
     const user = this.userRepository.create({
       username: dto.username,
       email: dto.email,
       passwordHash,
       cpfHash,
+      emailVerificationToken: verificationToken,
+      emailVerificationTokenExpiresAt: verificationTokenExpiresAt,
     });
 
     await this.userRepository.save(user);
+
+    // Send verification email (non-blocking - log error but don't fail registration)
+    try {
+      await this.mailerService.sendVerificationEmail(user.email, verificationToken);
+    } catch (error) {
+      this.logger.error(`Failed to send verification email to ${user.email}: ${(error as Error).message}`);
+    }
 
     // Generate sessionId for first login
     const sessionId = uuidv4();
@@ -130,5 +149,66 @@ export class AuthService {
   private hashCpf(cpf: string): string {
     const pepper = process.env.CPF_PEPPER || 'default_pepper_change_in_production';
     return crypto.createHmac('sha256', pepper).update(cpf).digest('hex');
+  }
+
+  async verifyEmail(token: string): Promise<{ success: boolean; message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { emailVerificationToken: token },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid verification token');
+    }
+
+    // Check if token is expired
+    if (user.emailVerificationTokenExpiresAt && user.emailVerificationTokenExpiresAt < new Date()) {
+      throw new BadRequestException('Verification token has expired');
+    }
+
+    // Check if already verified
+    if (user.emailVerified) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    // Verify email
+    user.emailVerified = true;
+    user.emailVerificationToken = null;
+    user.emailVerificationTokenExpiresAt = null;
+    await this.userRepository.save(user);
+
+    return { success: true, message: 'Email verified successfully' };
+  }
+
+  async resendVerificationEmail(email: string): Promise<{ success: boolean; message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { email },
+    });
+
+    if (!user) {
+      // Don't reveal if email exists or not for security
+      return { success: true, message: 'If the email exists, a verification email has been sent' };
+    }
+
+    if (user.emailVerified) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    // Generate new token (invalidates old one)
+    const verificationToken = this.generateVerificationToken();
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    user.emailVerificationToken = verificationToken;
+    user.emailVerificationTokenExpiresAt = verificationTokenExpiresAt;
+    await this.userRepository.save(user);
+
+    // Send verification email
+    try {
+      await this.mailerService.sendVerificationEmail(user.email, verificationToken);
+    } catch (error) {
+      this.logger.error(`Failed to send verification email to ${user.email}: ${(error as Error).message}`);
+      throw new BadRequestException('Failed to send verification email');
+    }
+
+    return { success: true, message: 'Verification email sent' };
   }
 }

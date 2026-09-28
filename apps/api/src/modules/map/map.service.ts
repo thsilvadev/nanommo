@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { MapKillCounter, Character } from '../../database/entities';
+import { MapKillCounter, Character, User } from '../../database/entities';
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
 
@@ -14,6 +14,8 @@ export class MapService {
     private readonly mapKillCounterRepo: Repository<MapKillCounter>,
     @InjectRepository(Character)
     private readonly characterRepo: Repository<Character>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     private readonly dataService: DataService,
     private readonly battleService: BattleService,
   ) {}
@@ -50,8 +52,15 @@ export class MapService {
   async enterMap(characterId: string, mapId: string): Promise<void> {
     const character = await this.characterRepo.findOne({
       where: { id: characterId },
+      relations: ['user'],
     });
     if (!character) throw new NotFoundException('Character not found');
+
+    // Check email verification gate (§15.1)
+    const user = await this.userRepo.findOne({ where: { id: character.userId } });
+    if (!user?.emailVerified) {
+      throw new BadRequestException('EMAIL_NOT_VERIFIED');
+    }
 
     const map = this.dataService.getMapById(mapId);
     if (!map) throw new BadRequestException('Map not found');
