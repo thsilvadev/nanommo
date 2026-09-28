@@ -13,6 +13,7 @@ import { MapModule } from './modules/map/map.module';
 import { TownModule } from './modules/town/town.module';
 import { MarketModule } from './modules/market/market.module';
 import { MailModule } from './modules/mail/mail.module';
+import { MailerModule } from './modules/mailer/mailer.module';
 import { ChatModule } from './modules/chat/chat.module';
 // import { GatewayModule } from './modules/gateway/gateway.module';
 import { DataModule } from './modules/data/data.module';
@@ -53,6 +54,7 @@ import { DataModule } from './modules/data/data.module';
     TownModule,
     MarketModule,
     MailModule,
+    MailerModule,
     ChatModule,
     // GatewayModule,
     DataModule,
