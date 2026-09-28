@@ -263,35 +263,7 @@ Queue replenished: 5 entries
 
 ---
 
-## 10. Next Step: Phase 3 (Edge Cases)
-
-Now that Phases 1-2 (basic loop) are ✅ verified, proceed to test edge cases:
-
-1. **Level-up mid-queue:** Allocate +40 VIT to force level-up, verify:
-   - Queue recalculated after level-up ✓
-   - HP adjusted by ratio (no free heal) ✓
-   - New level displayed ✓
-
-2. **Character death & recovery:** Let character die, verify:
-   - status = 'town' ✓
-   - HP = 1 ✓
-   - lastDeathLog populated ✓
-   - Queue cleared ✓
-   - XP loss applied (5% of level cost) ✓
-
-3. **Determinism check:** Run same battle twice, verify:
-   - Same seed → same damage sequence ✓
-   - Same final HP values ✓
-
-4. **Crash recovery:** Insert stale BattleQueueEntry with `endAt` in past, restart backend, verify:
-   - Battles resolved on boot ✓
-   - No orphaned jobs ✓
-
-5. **WebSocket events:** Monitor socket for `battle:resolved`, `character:leveledUp`, `character:died` — currently **NOT IMPLEMENTED** (stub in gateway, update needed in Phase 4)
-
-6. **Gambit in battle:** Ensure potions used in simulation are actually consumed from inventory after resolution (currently logs but may not delete)
-
----
++
 
 ## Summary Table (Updated)
 

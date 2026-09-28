@@ -18,6 +18,9 @@ importers:
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.43
+      openspec:
+        specifier: ^0.0.0
+        version: 0.0.0
       playwright:
         specifier: ^1.63.0
         version: 1.63.0
@@ -4854,6 +4857,9 @@ packages:
   open@10.1.0:
     resolution: {integrity: sha512-mnkeQ1qP5Ue2wd+aivTD3NHd/lZ96Lu0jgf0pwktLPtx6cTZiH7tyeGRRHs0zX0rbrahXPnXlUnbeXyaBBuIaw==}
     engines: {node: '>=18'}
+
+  openspec@0.0.0:
+    resolution: {integrity: sha512-7+lOPJO4eDtQlC/wfpRuZ+c75hiXIfb+PDm7nmWkj6/ZKf2Utx6ST1Sg35Vjvrz6dGGUQEW9fuVe+thKvVstkA==}
 
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -12012,6 +12018,8 @@ snapshots:
       define-lazy-prop: 3.0.0
       is-inside-container: 1.0.0
       is-wsl: 3.1.1
+
+  openspec@0.0.0: {}
 
   optionator@0.9.4:
     dependencies:
