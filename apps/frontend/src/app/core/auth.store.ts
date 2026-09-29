@@ -147,6 +147,10 @@ export class AuthStore {
     });
   }
 
+  deleteAccount(): Observable<{ success: boolean }> {
+    return this.api.delete<{ success: boolean }>('/auth/account', { body: { confirmation: 'DELETE' } });
+  }
+
   logout(): void {
     this.clearTokens();
     this.router.navigate(['/login']);

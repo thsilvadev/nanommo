@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Query, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, AuthTokenDto, ForgotPasswordDto, ResetPasswordDto } from '@nanommo/shared';
@@ -58,4 +58,12 @@ export class AuthController {
   async resetPassword(@Body() dto: ResetPasswordDto): Promise<{ success: boolean; message: string }> {
     return this.authService.resetPassword(dto);
   }
+  @Delete('account')
+  @UseGuards(JwtAuthGuard)
+  async deleteAccount(@Request() req: any, @Body() body: { confirmation?: string }) {
+    if (body.confirmation !== 'DELETE') throw new BadRequestException('Type DELETE to confirm account deletion');
+    await this.authService.deleteAccount(req.user.userId);
+    return { success: true };
+  }
+
 }

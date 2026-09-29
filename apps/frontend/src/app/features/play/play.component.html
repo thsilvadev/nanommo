@@ -13,7 +13,7 @@
     <div class="xp-mini"><span [style.width.%]="xpWidth()"></span></div>
     <div class="resource gold"><img src="/assets/ui/coin.svg" alt=""> {{c.gold | number}}</div>
   </div>
-  <div class="top-actions"><button (click)="chatOpen.set(!chatOpen())">CHAT</button><button aria-label="Settings"><img src="/assets/ui/settings.svg" alt=""></button><button (click)="auth.logout()">EXIT</button></div>
+  <div class="top-actions"><button (click)="chatOpen.set(!chatOpen())">CHAT</button><div class="settings-wrap"><button aria-label="Settings" (click)="settingsOpen.set(!settingsOpen())"><img src="/assets/ui/settings.svg" alt=""></button><div class="settings-menu" *ngIf="settingsOpen()"><button (click)="openDeleteAccount()">Delete account</button></div></div><button (click)="auth.logout()">EXIT</button></div>
 </header>
 <main class="game-board">
   <aside class="zone-left"><app-character-summary /></aside>
@@ -21,4 +21,15 @@
   <aside class="zone-right"><app-grind-info /><app-weapon-proficiency /></aside>
 </main>
 <app-chat-drawer [open]="chatOpen()" (closed)="chatOpen.set(false)" />
+</div>
+
+<div class="account-modal-backdrop" *ngIf="deleteAccountOpen()" (click)="cancelDeleteAccount()">
+  <section class="account-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title" (click)="$event.stopPropagation()">
+    <h2 id="delete-account-title">Delete account</h2>
+    <p>This permanently deletes your character, inventory, equipment, progression and account data.</p>
+    <p>Type <strong>DELETE</strong> to confirm.</p>
+    <input [value]="deleteConfirm()" (input)="deleteConfirm.set($any($event.target).value)" autocomplete="off" spellcheck="false" aria-label="Type DELETE" />
+    <div class="modal-error" *ngIf="deleteAccountError()">{{deleteAccountError()}}</div>
+    <div class="modal-actions"><button class="cancel" (click)="cancelDeleteAccount()">Cancel</button><button class="danger" [disabled]="deleteConfirm()!=='DELETE'" (click)="confirmDeleteAccount()">Delete account</button></div>
+  </section>
 </div>

@@ -10,7 +10,7 @@ export class MailMessage {
   @Column({ type: 'uuid' })
   recipientCharacterId!: string;
 
-  @ManyToOne(() => Character)
+  @ManyToOne(() => Character, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'recipientCharacterId' })
   recipientCharacter?: Character;
 

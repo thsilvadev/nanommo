@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, UnauthorizedException, Logger, Inject, forwardRef } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -20,6 +21,7 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private dataSource: DataSource,
     private jwtService: JwtService,
     private mailerService: MailerService,
     @Inject(forwardRef(() => CharacterService))
@@ -103,6 +105,66 @@ export class AuthService {
 
     // Generate tokens with sessionId
     return this.generateTokens(user.id, user.username, sessionId);
+  }
+
+  async deleteAccount(userId: string): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const characters = await queryRunner.query(
+        'SELECT id FROM characters WHERE "userId" = $1',
+        [userId],
+      );
+      const characterIds = characters.map((row: { id: string }) => row.id);
+
+      // Explicitly remove account-owned records so deletion works even before
+      // the database cascade migration has been applied.
+      await queryRunner.query(
+        'DELETE FROM chat_reports WHERE "reporterUserId" = $1 OR "reportedUserId" = $1',
+        [userId],
+      );
+
+      if (characterIds.length) {
+        const placeholders = characterIds.map((_: string, i: number) => `$${i + 1}`).join(', ');
+        const tables = [
+          'inventory_items',
+          'equipped_items',
+          'weapon_proficiencies',
+          'gambit_pages',
+          'map_kill_counters',
+          'battle_queue_entries',
+          'market_orders',
+          'mail_messages',
+        ];
+
+        for (const table of tables) {
+          await queryRunner.query(
+            `DELETE FROM "${table}" WHERE "characterId" IN (${placeholders})`,
+            characterIds,
+          );
+        }
+
+        await queryRunner.query(
+          `DELETE FROM market_deals WHERE "buyerCharacterId" IN (${placeholders}) OR "sellerCharacterId" IN (${placeholders})`,
+          [...characterIds, ...characterIds],
+        );
+
+        await queryRunner.query(
+          `DELETE FROM characters WHERE id IN (${placeholders})`,
+          characterIds,
+        );
+      }
+
+      await queryRunner.query('DELETE FROM users WHERE id = $1', [userId]);
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async login(dto: LoginDto): Promise<AuthTokenDto> {
