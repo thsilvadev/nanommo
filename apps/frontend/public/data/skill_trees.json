@@ -1,0 +1,875 @@
+{
+  "weaponBaseAttackTicks": {
+    "sword": 6,
+    "greatsword": 10,
+    "dagger": 4,
+    "bow": 7,
+    "staff": 9,
+    "wand": 7,
+    "shield": 6
+  },
+  "trees": {
+    "sword": [
+      {
+        "id": "sword_power_strike",
+        "name": "Power Strike",
+        "weaponType": "sword",
+        "unlockWeaponLevel": 1,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "A heavier basic strike.",
+        "effect": {
+          "dmgMult": 1.4
+        },
+        "spCost": 10,
+        "baseCastTicks": 5,
+        "cooldownTicks": 5,
+        "requiresWeaponEquipped": "sword"
+      },
+      {
+        "id": "sword_riposte",
+        "name": "Riposte",
+        "weaponType": "sword",
+        "unlockWeaponLevel": 5,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Bonus damage if the wielder was hit recently.",
+        "effect": {
+          "dmgMult": 1.3,
+          "bonusIfRecentlyHit": 1.5
+        },
+        "spCost": 17,
+        "baseCastTicks": 5,
+        "cooldownTicks": 7,
+        "requiresWeaponEquipped": "sword"
+      },
+      {
+        "id": "sword_whirling_slash",
+        "name": "Whirling Slash",
+        "weaponType": "sword",
+        "unlockWeaponLevel": 10,
+        "damageType": "melee",
+        "shape": "cleave",
+        "description": "Hits with reduced but wide force.",
+        "effect": {
+          "dmgMult": 1.1
+        },
+        "spCost": 26,
+        "baseCastTicks": 5,
+        "cooldownTicks": 10,
+        "requiresWeaponEquipped": "sword"
+      },
+      {
+        "id": "sword_execute",
+        "name": "Execute",
+        "weaponType": "sword",
+        "unlockWeaponLevel": 20,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Massive bonus damage against low-HP targets.",
+        "effect": {
+          "dmgMult": 1.2,
+          "bonusVsLowHp": 2.5
+        },
+        "spCost": 44,
+        "baseCastTicks": 5,
+        "cooldownTicks": 16,
+        "requiresWeaponEquipped": "sword"
+      },
+      {
+        "id": "sword_bloodlust",
+        "name": "Bloodlust",
+        "weaponType": "sword",
+        "unlockWeaponLevel": 30,
+        "damageType": "melee",
+        "shape": "buff_self",
+        "description": "Temporarily increases own attack.",
+        "effect": {
+          "buff": "atk+20%",
+          "durationTicks": 20
+        },
+        "spCost": 62,
+        "baseCastTicks": 5,
+        "cooldownTicks": 22,
+        "requiresWeaponEquipped": "sword"
+      },
+      {
+        "id": "sword_onslaught",
+        "name": "Onslaught",
+        "weaponType": "sword",
+        "unlockWeaponLevel": 40,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "A crushing single-target blow.",
+        "effect": {
+          "dmgMult": 2.2
+        },
+        "spCost": 80,
+        "baseCastTicks": 5,
+        "cooldownTicks": 28,
+        "requiresWeaponEquipped": "sword"
+      },
+      {
+        "id": "sword_blade_storm",
+        "name": "Blade Storm",
+        "weaponType": "sword",
+        "unlockWeaponLevel": 50,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Ultimate: several rapid strikes in one action.",
+        "effect": {
+          "dmgMult": 3.5
+        },
+        "spCost": 98,
+        "baseCastTicks": 5,
+        "cooldownTicks": 34,
+        "requiresWeaponEquipped": "sword"
+      }
+    ],
+    "greatsword": [
+      {
+        "id": "gs_heavy_swing",
+        "name": "Heavy Swing",
+        "weaponType": "greatsword",
+        "unlockWeaponLevel": 1,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Slow but powerful.",
+        "effect": {
+          "dmgMult": 1.6
+        },
+        "spCost": 10,
+        "baseCastTicks": 9,
+        "cooldownTicks": 5,
+        "requiresWeaponEquipped": "greatsword"
+      },
+      {
+        "id": "gs_crushing_blow",
+        "name": "Crushing Blow",
+        "weaponType": "greatsword",
+        "unlockWeaponLevel": 5,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Bypasses part of target's defense.",
+        "effect": {
+          "dmgMult": 1.5,
+          "defPierce": 0.2
+        },
+        "spCost": 17,
+        "baseCastTicks": 9,
+        "cooldownTicks": 7,
+        "requiresWeaponEquipped": "greatsword"
+      },
+      {
+        "id": "gs_sunder",
+        "name": "Sunder",
+        "weaponType": "greatsword",
+        "unlockWeaponLevel": 10,
+        "damageType": "melee",
+        "shape": "debuff",
+        "description": "Lowers target's defense for the rest of the fight.",
+        "effect": {
+          "dmgMult": 1.1,
+          "targetDefMult": 0.8
+        },
+        "spCost": 26,
+        "baseCastTicks": 9,
+        "cooldownTicks": 10,
+        "requiresWeaponEquipped": "greatsword"
+      },
+      {
+        "id": "gs_cleave",
+        "name": "Cleave",
+        "weaponType": "greatsword",
+        "unlockWeaponLevel": 20,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Devastating wide-arc strike.",
+        "effect": {
+          "dmgMult": 1.8
+        },
+        "spCost": 44,
+        "baseCastTicks": 9,
+        "cooldownTicks": 16,
+        "requiresWeaponEquipped": "greatsword"
+      },
+      {
+        "id": "gs_earthbreaker",
+        "name": "Earthbreaker",
+        "weaponType": "greatsword",
+        "unlockWeaponLevel": 30,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Slams the ground with tremendous force.",
+        "effect": {
+          "dmgMult": 2.4
+        },
+        "spCost": 62,
+        "baseCastTicks": 9,
+        "cooldownTicks": 22,
+        "requiresWeaponEquipped": "greatsword"
+      },
+      {
+        "id": "gs_executioners_arc",
+        "name": "Executioner's Arc",
+        "weaponType": "greatsword",
+        "unlockWeaponLevel": 40,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Overwhelming bonus vs low-HP targets.",
+        "effect": {
+          "dmgMult": 2.0,
+          "bonusVsLowHp": 2.0
+        },
+        "spCost": 80,
+        "baseCastTicks": 9,
+        "cooldownTicks": 28,
+        "requiresWeaponEquipped": "greatsword"
+      },
+      {
+        "id": "gs_ragnarok_slam",
+        "name": "Ragnarok Slam",
+        "weaponType": "greatsword",
+        "unlockWeaponLevel": 50,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Ultimate: a single, world-ending blow.",
+        "effect": {
+          "dmgMult": 4.2
+        },
+        "spCost": 98,
+        "baseCastTicks": 9,
+        "cooldownTicks": 34,
+        "requiresWeaponEquipped": "greatsword"
+      }
+    ],
+    "dagger": [
+      {
+        "id": "dagger_quick_stab",
+        "name": "Quick Stab",
+        "weaponType": "dagger",
+        "unlockWeaponLevel": 1,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "A fast, light strike.",
+        "effect": {
+          "dmgMult": 1.2
+        },
+        "spCost": 10,
+        "baseCastTicks": 3,
+        "cooldownTicks": 5,
+        "requiresWeaponEquipped": "dagger"
+      },
+      {
+        "id": "dagger_puncture",
+        "name": "Puncture",
+        "weaponType": "dagger",
+        "unlockWeaponLevel": 5,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Inflicts bleed over time.",
+        "effect": {
+          "dmgMult": 1.1,
+          "applyStatus": "bleed"
+        },
+        "spCost": 17,
+        "baseCastTicks": 3,
+        "cooldownTicks": 7,
+        "requiresWeaponEquipped": "dagger"
+      },
+      {
+        "id": "dagger_backstab",
+        "name": "Backstab",
+        "weaponType": "dagger",
+        "unlockWeaponLevel": 10,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Bonus damage vs high-HP (full/near-full) targets.",
+        "effect": {
+          "dmgMult": 1.3,
+          "bonusVsHighHp": 1.8
+        },
+        "spCost": 26,
+        "baseCastTicks": 3,
+        "cooldownTicks": 10,
+        "requiresWeaponEquipped": "dagger"
+      },
+      {
+        "id": "dagger_flurry",
+        "name": "Flurry",
+        "weaponType": "dagger",
+        "unlockWeaponLevel": 20,
+        "damageType": "melee",
+        "shape": "multi_hit",
+        "description": "Several very fast strikes in one action.",
+        "effect": {
+          "dmgMult": 0.6,
+          "hits": 3
+        },
+        "spCost": 44,
+        "baseCastTicks": 3,
+        "cooldownTicks": 16,
+        "requiresWeaponEquipped": "dagger"
+      },
+      {
+        "id": "dagger_venom_edge",
+        "name": "Venom Edge",
+        "weaponType": "dagger",
+        "unlockWeaponLevel": 30,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Coats the blade in poison.",
+        "effect": {
+          "dmgMult": 1.2,
+          "applyStatus": "poison"
+        },
+        "spCost": 62,
+        "baseCastTicks": 3,
+        "cooldownTicks": 22,
+        "requiresWeaponEquipped": "dagger"
+      },
+      {
+        "id": "dagger_shadowstep",
+        "name": "Shadowstep",
+        "weaponType": "dagger",
+        "unlockWeaponLevel": 40,
+        "damageType": "melee",
+        "shape": "buff_self",
+        "description": "Boosts own evasion briefly.",
+        "effect": {
+          "buff": "eva+30%",
+          "durationTicks": 15
+        },
+        "spCost": 80,
+        "baseCastTicks": 3,
+        "cooldownTicks": 28,
+        "requiresWeaponEquipped": "dagger"
+      },
+      {
+        "id": "dagger_thousand_cuts",
+        "name": "Thousand Cuts",
+        "weaponType": "dagger",
+        "unlockWeaponLevel": 50,
+        "damageType": "melee",
+        "shape": "multi_hit",
+        "description": "Ultimate: a blur of strikes.",
+        "effect": {
+          "dmgMult": 0.9,
+          "hits": 6
+        },
+        "spCost": 98,
+        "baseCastTicks": 3,
+        "cooldownTicks": 34,
+        "requiresWeaponEquipped": "dagger"
+      }
+    ],
+    "bow": [
+      {
+        "id": "bow_aimed_shot",
+        "name": "Aimed Shot",
+        "weaponType": "bow",
+        "unlockWeaponLevel": 1,
+        "damageType": "ranged",
+        "shape": "single",
+        "description": "A precise physical shot.",
+        "effect": {
+          "dmgMult": 1.4
+        },
+        "spCost": 10,
+        "baseCastTicks": 6,
+        "cooldownTicks": 5,
+        "requiresWeaponEquipped": "bow"
+      },
+      {
+        "id": "bow_multi_shot",
+        "name": "Multi Shot",
+        "weaponType": "bow",
+        "unlockWeaponLevel": 5,
+        "damageType": "ranged",
+        "shape": "multi_hit",
+        "description": "Looses two arrows at once.",
+        "effect": {
+          "dmgMult": 0.8,
+          "hits": 2
+        },
+        "spCost": 17,
+        "baseCastTicks": 6,
+        "cooldownTicks": 7,
+        "requiresWeaponEquipped": "bow"
+      },
+      {
+        "id": "bow_piercing_arrow",
+        "name": "Piercing Arrow",
+        "weaponType": "bow",
+        "unlockWeaponLevel": 10,
+        "damageType": "ranged",
+        "shape": "single",
+        "description": "Ignores part of target's defense.",
+        "effect": {
+          "dmgMult": 1.3,
+          "defPierce": 0.25
+        },
+        "spCost": 26,
+        "baseCastTicks": 6,
+        "cooldownTicks": 10,
+        "requiresWeaponEquipped": "bow"
+      },
+      {
+        "id": "bow_rain_of_arrows",
+        "name": "Rain of Arrows",
+        "weaponType": "bow",
+        "unlockWeaponLevel": 20,
+        "damageType": "ranged",
+        "shape": "cleave",
+        "description": "A volley covering the whole engagement.",
+        "effect": {
+          "dmgMult": 1.1
+        },
+        "spCost": 44,
+        "baseCastTicks": 6,
+        "cooldownTicks": 16,
+        "requiresWeaponEquipped": "bow"
+      },
+      {
+        "id": "bow_hunters_mark",
+        "name": "Hunter's Mark",
+        "weaponType": "bow",
+        "unlockWeaponLevel": 30,
+        "damageType": "ranged",
+        "shape": "debuff",
+        "description": "Marks the target to take more damage.",
+        "effect": {
+          "dmgMult": 1.0,
+          "targetDmgTakenMult": 1.2
+        },
+        "spCost": 62,
+        "baseCastTicks": 6,
+        "cooldownTicks": 22,
+        "requiresWeaponEquipped": "bow"
+      },
+      {
+        "id": "bow_snipe",
+        "name": "Snipe",
+        "weaponType": "bow",
+        "unlockWeaponLevel": 40,
+        "damageType": "ranged",
+        "shape": "single",
+        "description": "A powerful, carefully aimed shot.",
+        "effect": {
+          "dmgMult": 2.3
+        },
+        "spCost": 80,
+        "baseCastTicks": 6,
+        "cooldownTicks": 28,
+        "requiresWeaponEquipped": "bow"
+      },
+      {
+        "id": "bow_arrow_storm",
+        "name": "Arrow Storm",
+        "weaponType": "bow",
+        "unlockWeaponLevel": 50,
+        "damageType": "ranged",
+        "shape": "multi_hit",
+        "description": "Ultimate: a relentless barrage.",
+        "effect": {
+          "dmgMult": 0.9,
+          "hits": 5
+        },
+        "spCost": 98,
+        "baseCastTicks": 6,
+        "cooldownTicks": 34,
+        "requiresWeaponEquipped": "bow"
+      }
+    ],
+    "staff": [
+      {
+        "id": "staff_fire_bolt",
+        "name": "Fire Bolt",
+        "weaponType": "staff",
+        "unlockWeaponLevel": 1,
+        "damageType": "magic",
+        "shape": "single",
+        "description": "A basic bolt of fire.",
+        "effect": {
+          "dmgMult": 1.4,
+          "element": "fire"
+        },
+        "spCost": 10,
+        "baseCastTicks": 8,
+        "cooldownTicks": 5,
+        "requiresWeaponEquipped": "staff"
+      },
+      {
+        "id": "staff_ice_shard",
+        "name": "Ice Shard",
+        "weaponType": "staff",
+        "unlockWeaponLevel": 5,
+        "damageType": "magic",
+        "shape": "single",
+        "description": "A shard of freezing ice.",
+        "effect": {
+          "dmgMult": 1.4,
+          "element": "water"
+        },
+        "spCost": 17,
+        "baseCastTicks": 8,
+        "cooldownTicks": 7,
+        "requiresWeaponEquipped": "staff"
+      },
+      {
+        "id": "staff_arcane_blast",
+        "name": "Arcane Blast",
+        "weaponType": "staff",
+        "unlockWeaponLevel": 10,
+        "damageType": "magic",
+        "shape": "single",
+        "description": "Pure unaligned magic damage.",
+        "effect": {
+          "dmgMult": 1.6
+        },
+        "spCost": 26,
+        "baseCastTicks": 8,
+        "cooldownTicks": 10,
+        "requiresWeaponEquipped": "staff"
+      },
+      {
+        "id": "staff_chain_lightning",
+        "name": "Chain Lightning",
+        "weaponType": "staff",
+        "unlockWeaponLevel": 20,
+        "damageType": "magic",
+        "shape": "cleave",
+        "description": "Arcs of lightning strike the area.",
+        "effect": {
+          "dmgMult": 1.1,
+          "element": "wind"
+        },
+        "spCost": 44,
+        "baseCastTicks": 8,
+        "cooldownTicks": 16,
+        "requiresWeaponEquipped": "staff"
+      },
+      {
+        "id": "staff_meteor",
+        "name": "Meteor",
+        "weaponType": "staff",
+        "unlockWeaponLevel": 30,
+        "damageType": "magic",
+        "shape": "single",
+        "description": "A devastating single-target spell.",
+        "effect": {
+          "dmgMult": 2.6,
+          "element": "fire"
+        },
+        "spCost": 62,
+        "baseCastTicks": 8,
+        "cooldownTicks": 22,
+        "requiresWeaponEquipped": "staff"
+      },
+      {
+        "id": "staff_mana_burn",
+        "name": "Mana Burn",
+        "weaponType": "staff",
+        "unlockWeaponLevel": 40,
+        "damageType": "magic",
+        "shape": "debuff",
+        "description": "Deals damage and drains target's resources.",
+        "effect": {
+          "dmgMult": 1.5,
+          "drainTargetSp": true
+        },
+        "spCost": 80,
+        "baseCastTicks": 8,
+        "cooldownTicks": 28,
+        "requiresWeaponEquipped": "staff"
+      },
+      {
+        "id": "staff_archmages_wrath",
+        "name": "Archmage's Wrath",
+        "weaponType": "staff",
+        "unlockWeaponLevel": 50,
+        "damageType": "magic",
+        "shape": "single",
+        "description": "Ultimate: overwhelming arcane devastation.",
+        "effect": {
+          "dmgMult": 4.0
+        },
+        "spCost": 98,
+        "baseCastTicks": 8,
+        "cooldownTicks": 34,
+        "requiresWeaponEquipped": "staff"
+      }
+    ],
+    "wand": [
+      {
+        "id": "wand_heal",
+        "name": "Heal",
+        "weaponType": "wand",
+        "unlockWeaponLevel": 1,
+        "damageType": "heal_ranged",
+        "shape": "heal_self",
+        "description": "Restores a modest amount of HP.",
+        "effect": {
+          "healMult": 1.3
+        },
+        "spCost": 10,
+        "baseCastTicks": 6,
+        "cooldownTicks": 5,
+        "requiresWeaponEquipped": "wand"
+      },
+      {
+        "id": "wand_smite",
+        "name": "Smite",
+        "weaponType": "wand",
+        "unlockWeaponLevel": 5,
+        "damageType": "magic",
+        "shape": "single",
+        "description": "A small ranged magic strike.",
+        "effect": {
+          "dmgMult": 1.1
+        },
+        "spCost": 17,
+        "baseCastTicks": 6,
+        "cooldownTicks": 7,
+        "requiresWeaponEquipped": "wand"
+      },
+      {
+        "id": "wand_mend",
+        "name": "Mend",
+        "weaponType": "wand",
+        "unlockWeaponLevel": 10,
+        "damageType": "heal_ranged",
+        "shape": "heal_self",
+        "description": "Restores a larger amount of HP.",
+        "effect": {
+          "healMult": 2.0
+        },
+        "spCost": 26,
+        "baseCastTicks": 6,
+        "cooldownTicks": 10,
+        "requiresWeaponEquipped": "wand"
+      },
+      {
+        "id": "wand_regen",
+        "name": "Regen",
+        "weaponType": "wand",
+        "unlockWeaponLevel": 20,
+        "damageType": "heal_ranged",
+        "shape": "buff_self",
+        "description": "Heals a little every tick for a duration.",
+        "effect": {
+          "healPerTick": true,
+          "durationTicks": 20
+        },
+        "spCost": 44,
+        "baseCastTicks": 6,
+        "cooldownTicks": 16,
+        "requiresWeaponEquipped": "wand"
+      },
+      {
+        "id": "wand_purify",
+        "name": "Purify",
+        "weaponType": "wand",
+        "unlockWeaponLevel": 30,
+        "damageType": "heal_ranged",
+        "shape": "cure_self",
+        "description": "Cures all negative status effects on self.",
+        "effect": {
+          "cureAll": true
+        },
+        "spCost": 62,
+        "baseCastTicks": 6,
+        "cooldownTicks": 22,
+        "requiresWeaponEquipped": "wand"
+      },
+      {
+        "id": "wand_sanctuary",
+        "name": "Sanctuary",
+        "weaponType": "wand",
+        "unlockWeaponLevel": 40,
+        "damageType": "heal_ranged",
+        "shape": "heal_self",
+        "description": "A powerful heal plus status cure.",
+        "effect": {
+          "healMult": 3.2,
+          "cureAll": true
+        },
+        "spCost": 80,
+        "baseCastTicks": 6,
+        "cooldownTicks": 28,
+        "requiresWeaponEquipped": "wand"
+      },
+      {
+        "id": "wand_divine_judgment",
+        "name": "Divine Judgment",
+        "weaponType": "wand",
+        "unlockWeaponLevel": 50,
+        "damageType": "heal_ranged",
+        "shape": "single",
+        "description": "Ultimate: heavy magic damage, small self-heal.",
+        "effect": {
+          "dmgMult": 3.0,
+          "selfHealMult": 0.6
+        },
+        "spCost": 98,
+        "baseCastTicks": 6,
+        "cooldownTicks": 34,
+        "requiresWeaponEquipped": "wand"
+      }
+    ],
+    "shield": [
+      {
+        "id": "shield_bash",
+        "name": "Shield Bash",
+        "weaponType": "shield",
+        "unlockWeaponLevel": 1,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "A low-damage bash with a chance to stun.",
+        "effect": {
+          "dmgMult": 0.7,
+          "stunChance": 0.15
+        },
+        "spCost": 10,
+        "baseCastTicks": 5,
+        "cooldownTicks": 5,
+        "requiresWeaponEquipped": "shield"
+      },
+      {
+        "id": "shield_guard_up",
+        "name": "Guard Up",
+        "weaponType": "shield",
+        "unlockWeaponLevel": 5,
+        "damageType": "buff_self",
+        "shape": "buff_self",
+        "description": "Temporarily boosts own defense.",
+        "effect": {
+          "buff": "def+30%",
+          "durationTicks": 20
+        },
+        "spCost": 17,
+        "baseCastTicks": 5,
+        "cooldownTicks": 7,
+        "requiresWeaponEquipped": "shield"
+      },
+      {
+        "id": "shield_deflect",
+        "name": "Deflect",
+        "weaponType": "shield",
+        "unlockWeaponLevel": 10,
+        "damageType": "buff_self",
+        "shape": "buff_self",
+        "description": "Temporarily boosts own evasion.",
+        "effect": {
+          "buff": "eva+20%",
+          "durationTicks": 20
+        },
+        "spCost": 26,
+        "baseCastTicks": 5,
+        "cooldownTicks": 10,
+        "requiresWeaponEquipped": "shield"
+      },
+      {
+        "id": "shield_bulwark",
+        "name": "Bulwark",
+        "weaponType": "shield",
+        "unlockWeaponLevel": 20,
+        "damageType": "buff_self",
+        "shape": "buff_self",
+        "description": "A strong, longer-lasting defense boost.",
+        "effect": {
+          "buff": "def+50%",
+          "durationTicks": 30
+        },
+        "spCost": 44,
+        "baseCastTicks": 5,
+        "cooldownTicks": 16,
+        "requiresWeaponEquipped": "shield"
+      },
+      {
+        "id": "shield_retaliate",
+        "name": "Retaliate",
+        "weaponType": "shield",
+        "unlockWeaponLevel": 30,
+        "damageType": "melee",
+        "shape": "single",
+        "description": "Strikes back with bonus damage after blocking.",
+        "effect": {
+          "dmgMult": 1.6,
+          "bonusIfRecentlyHit": 1.5
+        },
+        "spCost": 62,
+        "baseCastTicks": 5,
+        "cooldownTicks": 22,
+        "requiresWeaponEquipped": "shield"
+      },
+      {
+        "id": "shield_fortify",
+        "name": "Fortify",
+        "weaponType": "shield",
+        "unlockWeaponLevel": 40,
+        "damageType": "buff_self",
+        "shape": "buff_self",
+        "description": "A major, near-total mitigation window.",
+        "effect": {
+          "buff": "def+80%",
+          "durationTicks": 15
+        },
+        "spCost": 80,
+        "baseCastTicks": 5,
+        "cooldownTicks": 28,
+        "requiresWeaponEquipped": "shield"
+      },
+      {
+        "id": "shield_aegis",
+        "name": "Aegis",
+        "weaponType": "shield",
+        "unlockWeaponLevel": 50,
+        "damageType": "buff_self",
+        "shape": "buff_self",
+        "description": "Ultimate: near-total damage mitigation briefly.",
+        "effect": {
+          "buff": "def+150%",
+          "durationTicks": 10
+        },
+        "spCost": 98,
+        "baseCastTicks": 5,
+        "cooldownTicks": 34,
+        "requiresWeaponEquipped": "shield"
+      }
+    ]
+  },
+  "monsterSkills": [
+    {
+      "id": "monster_skill_massive_damage",
+      "name": "Enraged Strike",
+      "damageType": "melee",
+      "effect": {
+        "dmgMult": 3.0
+      },
+      "baseCastTicks": 4,
+      "cooldownTicks": 999
+    },
+    {
+      "id": "monster_skill_self_heal",
+      "name": "Regenerate",
+      "damageType": "heal_self",
+      "effect": {
+        "healPercentMaxHp": 0.25
+      },
+      "baseCastTicks": 3,
+      "cooldownTicks": 10
+    },
+    {
+      "id": "monster_skill_stun",
+      "name": "Ground Slam",
+      "damageType": "melee",
+      "effect": {
+        "dmgMult": 1.2,
+        "applyStatus": "stun"
+      },
+      "baseCastTicks": 4,
+      "cooldownTicks": 999
+    }
+  ]
+}

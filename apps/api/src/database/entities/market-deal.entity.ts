@@ -11,14 +11,14 @@ export class MarketDeal {
   @Column({ type: 'uuid' })
   buyerCharacterId!: string;
 
-  @ManyToOne(() => Character)
+  @ManyToOne(() => Character, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'buyerCharacterId' })
   buyerCharacter?: Character;
 
   @Column({ type: 'uuid' })
   sellerCharacterId!: string;
 
-  @ManyToOne(() => Character)
+  @ManyToOne(() => Character, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'sellerCharacterId' })
   sellerCharacter?: Character;
 

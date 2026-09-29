@@ -1,0 +1,582 @@
+{
+ "image": "items-64.png",
+ "cell": 64,
+ "frames": {
+  "part_slime_common": {
+   "x": 0,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_slime_rare": {
+   "x": 64,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_fieldbat_common": {
+   "x": 128,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_fieldbat_rare": {
+   "x": 192,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_thornsprout_common": {
+   "x": 256,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_thornsprout_rare": {
+   "x": 320,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_mudcrawler_common": {
+   "x": 384,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_mudcrawler_rare": {
+   "x": 448,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_direwolf_common": {
+   "x": 512,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_direwolf_rare": {
+   "x": 576,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_sandscorpion_common": {
+   "x": 640,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_sandscorpion_rare": {
+   "x": 704,
+   "y": 0,
+   "w": 64,
+   "h": 64
+  },
+  "part_duneraider_common": {
+   "x": 0,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_duneraider_rare": {
+   "x": 64,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_cindergolem_common": {
+   "x": 128,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_cindergolem_rare": {
+   "x": 192,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_venomviper_common": {
+   "x": 256,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_venomviper_rare": {
+   "x": 320,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_mirageStalker_common": {
+   "x": 384,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_mirageStalker_rare": {
+   "x": 448,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_brokensentinel_common": {
+   "x": 512,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_brokensentinel_rare": {
+   "x": 576,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_wraith_common": {
+   "x": 640,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_wraith_rare": {
+   "x": 704,
+   "y": 64,
+   "w": 64,
+   "h": 64
+  },
+  "part_arcanewisp_common": {
+   "x": 0,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "part_arcanewisp_rare": {
+   "x": 64,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "part_boneknight_common": {
+   "x": 128,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "part_boneknight_rare": {
+   "x": 192,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "part_ruinsguardian_common": {
+   "x": 256,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "part_ruinsguardian_rare": {
+   "x": 320,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "pot_hp_small": {
+   "x": 384,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "pot_hp_medium": {
+   "x": 448,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "pot_hp_large": {
+   "x": 512,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "pot_sp_small": {
+   "x": 576,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "pot_sp_medium": {
+   "x": 640,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "pot_sp_large": {
+   "x": 704,
+   "y": 128,
+   "w": 64,
+   "h": 64
+  },
+  "antidote": {
+   "x": 0,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "elixir_greater": {
+   "x": 64,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "food_bread": {
+   "x": 128,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "food_cheese": {
+   "x": 192,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "food_blueberry": {
+   "x": 256,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "food_herbtea": {
+   "x": 320,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "food_stew": {
+   "x": 384,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "food_honey": {
+   "x": 448,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "food_roast": {
+   "x": 512,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "equip_sword_t1": {
+   "x": 576,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "equip_sword_t2": {
+   "x": 640,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "equip_sword_t3": {
+   "x": 704,
+   "y": 192,
+   "w": 64,
+   "h": 64
+  },
+  "equip_greatsword_t1": {
+   "x": 0,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_greatsword_t2": {
+   "x": 64,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_greatsword_t3": {
+   "x": 128,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_dagger_t1": {
+   "x": 192,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_dagger_t2": {
+   "x": 256,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_dagger_t3": {
+   "x": 320,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_bow_t1": {
+   "x": 384,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_bow_t2": {
+   "x": 448,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_bow_t3": {
+   "x": 512,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_staff_t1": {
+   "x": 576,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_staff_t2": {
+   "x": 640,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_staff_t3": {
+   "x": 704,
+   "y": 256,
+   "w": 64,
+   "h": 64
+  },
+  "equip_wand_t1": {
+   "x": 0,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_wand_t2": {
+   "x": 64,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_wand_t3": {
+   "x": 128,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_shield_t1": {
+   "x": 192,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_shield_t2": {
+   "x": 256,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_shield_t3": {
+   "x": 320,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_head_phys_t1": {
+   "x": 384,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_head_magic_t1": {
+   "x": 448,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_head_phys_t2": {
+   "x": 512,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_head_magic_t2": {
+   "x": 576,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_head_phys_t3": {
+   "x": 640,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_head_magic_t3": {
+   "x": 704,
+   "y": 320,
+   "w": 64,
+   "h": 64
+  },
+  "equip_body_phys_t1": {
+   "x": 0,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_body_magic_t1": {
+   "x": 64,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_body_phys_t2": {
+   "x": 128,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_body_magic_t2": {
+   "x": 192,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_body_phys_t3": {
+   "x": 256,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_body_magic_t3": {
+   "x": 320,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_cape_phys_t1": {
+   "x": 384,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_cape_magic_t1": {
+   "x": 448,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_cape_phys_t2": {
+   "x": 512,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_cape_magic_t2": {
+   "x": 576,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_cape_phys_t3": {
+   "x": 640,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_cape_magic_t3": {
+   "x": 704,
+   "y": 384,
+   "w": 64,
+   "h": 64
+  },
+  "equip_accessory_sor_t1": {
+   "x": 0,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  },
+  "equip_accessory_dex_t1": {
+   "x": 64,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  },
+  "equip_accessory_sor_t2": {
+   "x": 128,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  },
+  "equip_accessory_dex_t2": {
+   "x": 192,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  },
+  "equip_accessory_sor_t3": {
+   "x": 256,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  },
+  "equip_accessory_dex_t3": {
+   "x": 320,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  },
+  "equip_shoes_earth_t1": {
+   "x": 384,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  },
+  "equip_shoes_water_t1": {
+   "x": 448,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  },
+  "equip_shoes_fire_t2": {
+   "x": 512,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  },
+  "equip_shoes_shadow_t2": {
+   "x": 576,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  },
+  "equip_shoes_wind_t3": {
+   "x": 640,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  },
+  "equip_shoes_holy_t3": {
+   "x": 704,
+   "y": 448,
+   "w": 64,
+   "h": 64
+  }
+ }
+}

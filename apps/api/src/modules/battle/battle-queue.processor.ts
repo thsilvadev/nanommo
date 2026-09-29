@@ -1,6 +1,6 @@
 import { Processor, Process } from '@nestjs/bull';
 import { Job } from 'bull';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { BattleService } from './battle.service';
 import { CharacterService } from '../character/character.service';
 
@@ -64,6 +64,15 @@ export class BattleQueueProcessor {
       this.logger.debug(`Battle ${battleId} resolved successfully`);
       return { success: true, battleId };
     } catch (error) {
+      // A battle row can legitimately be gone by the time its job fires: SPEC
+      // §7.6 deletes the rest of the chain on death, and the §7.5 boot recovery
+      // pass cleans up after a crash. There is nothing to retry in that case, and
+      // retrying only produces noise plus a delayed `failed` job.
+      if (error instanceof NotFoundException) {
+        this.logger.debug(`Battle ${battleId} no longer exists - discarding job`);
+        return { success: true, battleId, discarded: true };
+      }
+
       this.logger.error(
         `Failed to resolve battle ${battleId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

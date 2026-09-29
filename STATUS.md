@@ -1,290 +1,646 @@
-# NanoMMO Backend - Implementation Status
+# NanoMMO — Implementation Status
 
-**Last Updated:** 2026-09-26 (Frontend Auth Scaffold Session)  
-**Session Focus:** Angular frontend scaffold with auth flow (register, login, protected route, session restore)
+**Last Updated:** 2026-09-28 (follow-up play/Gambit/equipment/auth hardening implemented; builds and OpenSpec validation verified)
+**Session Focus:** Character/Gambit/equipment interaction hardening, Town regeneration, live consumable presentation, XP transparency, and registration/email-verification flow.
 
----
+### Latest follow-up — `play-gambit-equipment-auth-hardening`
 
-## ✅ IMPLEMENTED & TESTED
+Implemented: Character navbar defaults to `?tab=character`; Town HP/SP regeneration is applied server-side and refreshed by the play sidebar; Character equipment slots are real drag targets with compatible-slot focus plus double-click equip/unequip fallbacks; main play Inventory is inventory-only; Gambit condition/action parameters are editable from catalog metadata and `self_hp_below_percent` is now catalogued; XP bar uses `xpToNext`; active-battle consumable counts update from due log events; registration no longer stores browser auth tokens and shows the email-confirmation page; unverified login is rejected.
 
-### Authentication System
-- **User Registration**: Creates user with Argon2id hash (8+ char password, 3-16 char username)
-  - **Test Command:** `curl -X POST http://localhost:3000/auth/register -H "Content-Type: application/json" -d '{"email":"user1@test.com","password":"Password123","username":"testuser","cpf":"11111111116"}'`
-  - **Test Result:** ✅ Returns `{ accessToken, refreshToken, expiresIn: 900 }`
+Verified: `pnpm --filter @nanommo/shared build`, `pnpm --filter @nanommo/api build`, `pnpm --filter @nanommo/frontend build`, `pnpm exec openspec validate play-gambit-equipment-auth-hardening --strict`, `git diff --check`, and a 10-point static integration check all passed.
 
-### Character Management
-- **Character Creation**: Auto-creates 3 empty gambit pages (slots 0-2)
-  - **Test Command:** `curl -X POST http://localhost:3000/characters -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"username":"testuser"}'`
-  - **Test Result:** ✅ Character created + 3 GambitPage rows auto-created
+Not yet browser-verified in this session: physical drag/drop interaction, Town regeneration visual timing, full Gambit save/edit interaction, live inventory decrement in the browser, and the end-to-end registration/email flow. Weapon XP remains deferred.
 
-### Gambit System ✅
-- **GET /gambits**: Retrieve all 3 gambit pages
-  - **Test Command:** `curl -X GET http://localhost:3000/gambits -H "Authorization: Bearer $TOKEN"`
-  - **Test Result:** ✅ Returns array of 3 pages with `{ id, slotIndex (0,1,2), title: "Page 1/2/3", lines: [] }`
-
-- **POST /gambits**: Update gambit page
-  - **Test Command:** `curl -X POST http://localhost:3000/gambits -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"slotIndex":0,"title":"Auto Strategy","lines":[]}'`
-  - **Test Result:** ✅ Page updated with new title
-
-- **PUT /gambits/:pageId/activate**: Activate gambit page
-  - **Test Command:** `curl -X PUT http://localhost:3000/gambits/<id>/activate -H "Authorization: Bearer $TOKEN"`
-  - **Test Result:** ✅ Returns activated page, updates `Character.activeGambitPageId`
-
-### Equipment System ✅
-- **PUT /equipment/equip**: Equip item to slot
-  - **Test Command:** `curl -X PUT http://localhost:3000/equipment/equip -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"slot":"mainHand","itemId":"equip_sword_t1"}'`
-  - **Test Result:** ✅ Returns `{ id, slot: "mainHand", itemId: "equip_sword_t1" }`
-
-- **GET /equipment/stats/total**: Calculate total stats
-  - **Test Command:** `curl -X GET http://localhost:3000/equipment/stats/total -H "Authorization: Bearer $TOKEN"`
-  - **Test Result:** ✅ Returns `{ def: 0, mdefPercent: 0, statBonus: {...}, weaponFixedAtk: 8 }`
+> **Evidence rule adopted in Phase 3 and still in force.** A verification result is only recorded in this
+> document if the script that produced it is committed and re-runnable
+> (SPEC delta `grind-loop-verification`, "Edge-case guarantees are covered by re-runnable
+> verification scripts"). Every claim in §7 below names the script and the assertion that
+> produced it. Claims carried over from earlier sessions that were not re-proven by a
+> script are marked **[re-verified 2026-09-28]** or **[carried forward, not re-proven]**.
 
 ---
 
-## ⚠️ IMPLEMENTED BUT NOT TESTED
+## 0. Executive summary
 
-### Inventory System - ✅ FIXED THIS SESSION
-- **POST /inventory/add**: Add item to inventory
-  - **Status:** ✅ PASSING (HTTP 201)
-  - **Root Cause Identified:** The compiled `apps/api/src/modules/inventory/inventory.controller.js` was **stale** — it contained the old buggy code (`req.user.characterId` which is undefined per the JWT lesson, and no `quantity` default). The TypeScript source (`inventory.controller.ts`) already had the correct fix, but `npm run build` outputs to `dist/`, not `src/`. Runtime was loading the stale `src/*.js` artifact.
-  - **Fix Applied:** Rebuilt the project with `npm run build`. The `dist/apps/api/src/modules/inventory/inventory.controller.js` now correctly uses `req.user.userId` → `characterService.getCharacterByUserId()` → `character.id`, and defaults `quantity = body.quantity || 1`.
-  - **Test Command:** `curl -X POST http://localhost:3000/inventory/add -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"itemId":"pot_hp_small"}'`
-  - **Test Result:** ✅ Returns `{ id, characterId, location, slotIndex, itemId, quantity:1, instanceData }` with HTTP 201
+| Aspect | State | Evidence |
+|--------|-------|----------|
+| **Core loop (Phase 1–2)** | ✅ verified | `test-phase3-all.js` — every stack-dependent scenario bootstraps a real character and drives the real endpoints |
+| **Full suite** | ✅ **163/163 assertions pass**, aggregate exit 0 | `node apps/api/test-phase3-all.js --restart` |
+| **Known divergences from SPEC** | ✅ **0 open** — #3 fixed in code; #1/#2/#4 settled by updating SPEC to match the code | §6.1 |
+| **Blocker issues** | none | No scenario failed |
+| **Proof gaps from last session** | ✅ both closed (drop idempotency, SP never topped up) | §6.4 |
+| **Tech debt** | ⚠️ 4 items, all pre-existing | §6.3 |
 
-- **Other Inventory Methods:** ✅ ALL TESTED THIS SESSION
-  - `GET /inventory` ✅ Returns items array
-  - `GET /inventory/item/:itemId/count` ✅ Returns `{ count }`
-  - `POST /inventory/sell` ✅ Returns `{ goldReceived }`
-  - Stacking (max 20 per slot) ✅ Verified
-  - Equipment (non-stackable, separate slot) ✅ Verified
-  - Invalid item → 404 ✅ Verified
+**Production code changed this session: one fix** — the level-up HP/SP ratio now derives both
+ends from the character's real loadout (`battle.service.ts:453-484`). No new dependency, no new
+endpoint, no WebSocket work.
 
 ---
 
-## 🟡 STUBS / TODO
+## 1. How to reproduce
 
-### Critical Blockers (must fix for MVP)
-- ~~**InventoryService.addItem()**: Still throwing error after controller fix - need to trace `quantity` parameter through entire call stack~~ ✅ **RESOLVED** — root cause was stale compiled JS; fixed by rebuild
-
-### Battle System (Stubs)
-- Battle Queue Generation: ✅ Working
-- Battle Simulation: ✅ Working  
-- XP/Gold/Drops Calculation: ❌ Stub - all return 0/[] 
-
-### Gambit Service (Stubs)
-- `validateGambitLine()`: Not implemented
-- `deleteGambitPage()`: Implemented but not tested
-- Gambit evaluation during battle: Not wired to BattleEngine
-
-### Other Modules
-- Map kill counters: Stub
-- Mail system: Stub
-- Market system: Stub
-- Town vendor/warehouse: Stub
-- Chat system: Stub
-- WebSocket gateway: Stub
-
----
-
-## 🎓 CRITICAL LESSONS & TECHNICAL TRAPS (THIS SESSION)
-
-### 1. JWT Claims Mapping - ABSOLUTE RULE
-**Pattern:** JWT contains ONLY `{ userId, username, sessionId, type, iat, exp }` — NO `characterId`
-```typescript
-// ✅ CORRECT
-const userId = req.user.userId;
-const character = await this.characterService.getCharacterByUserId(userId);
-const result = await this.service.doSomething(character.id);
-
-// ❌ WRONG (will fail)
-const characterId = req.user.characterId;  // undefined!
-```
-**Traps:**
-- Different controller endpoints may have different patterns (some use getCharacterId() helper, others don't)
-- This inconsistency caused the initial InventoryController bug
-- **Solution:** Every controller must follow the same `userId → getCharacterByUserId() → character.id` chain
-
-### 2. Optional DTO Fields Must Have Defaults
-**Problem:** If a DTO field is optional (like `quantity` in addItem), the controller MUST provide a default before passing to service
-```typescript
-// ❌ WRONG (passes undefined if not provided)
-async addItem(@Body() body: { itemId: string; quantity: number }) {
-  return this.service.addItem(..., body.quantity);  // undefined if missing
-}
-
-// ✅ CORRECT (defaults to 1 if missing)
-async addItem(@Body() body: { itemId: string; quantity?: number }) {
-  const quantity = body.quantity || 1;
-  return this.service.addItem(..., quantity);
-}
-```
-**This Session:** Confirmed as part of the root cause — the compiled JS was stale.
-
-### 3. Docker Build in Monorepo Context
-**Problem:** `RUN cd apps/api && pnpm build` fails in Docker because pnpm workspace context is lost
-**Solution:** Either:
-- Use absolute `RUN pnpm -r build --filter=@nanommo/api` from root, OR
-- Copy `pnpm-workspace.yaml` along with `package.json` and `pnpm-lock.yaml`
-**This Session:** Fixed by adding `COPY pnpm-workspace.yaml ./` to Dockerfile
-
-### 4. Database Unique Constraints Manifest as Generic 500 Errors
-**Symptom:** HTTP 500 with message "Internal server error"
-**Real Error (in logs):** `duplicate key value violates unique constraint "UQ_..."`
-**Action:** Always check `/tmp/backend.log` or `docker-compose logs` to see the real TypeORM error
-**This Session:** CPF hash uniqueness caused auth registration to fail silently until logs were checked
-
-### 5. 🚨 CRITICAL: Compiled JS in `src/` vs `dist/` — Stale Artifacts
-**Problem:** `npm run build` outputs to `dist/` (per `tsconfig.json` `outDir: "dist"`), but old compiled `.js` files may still exist in `src/` alongside the `.ts` sources. If the runtime loads from `src/` (e.g. via a different entry point or stale `node_modules`), you get **stale code** — the TS source fix is ignored.
-**Symptom:** Controller code appears fixed in `.ts` but runtime still uses old `.js` logic.
-**Diagnosis:** Compare timestamps of `.ts` vs `.js` in the same directory; check `nest-cli.json` and `tsconfig.json` for the real output path.
-**Fix:** Always rebuild after editing TS, and verify the output path matches what's actually loaded. The authoritative runtime artifact is `dist/apps/api/src/...`.
-**This Session:** This was the actual root cause of the entire `remaining=undefined` bug — the `inventory.controller.ts` was already fixed but the stale `inventory.controller.js` in `src/` was being loaded.
-
-### 6. ⚠️ OPEN: CORS Origin `*` + `credentials: true` Is Rejected By Browsers
-**Problem:** `apps/api/src/main.ts:18-21` sets `app.enableCors({ origin: process.env.CORS_ORIGIN || '*', credentials: true })`. Per the Fetch spec, a wildcard `Access-Control-Allow-Origin: *` cannot be combined with credentialed requests — the browser blocks the actual request even though the preflight returns 204.
-**Reproduction:** `curl -X OPTIONS http://localhost/auth/register -H "Origin: http://localhost:4200" -H "Access-Control-Request-Method: POST"` returns `Access-Control-Allow-Origin: *` together with `Access-Control-Allow-Credentials: true`.
-**Impact:** None today (no browser client exists). **This becomes a hard blocker the moment the Vercel Angular frontend calls the API** — every authenticated request will fail in the browser while working fine in curl, which makes it look like a backend bug.
-**Fix (do before the frontend milestone):** set `CORS_ORIGIN` to the real frontend origin (e.g. `https://nanommo.vercel.app`) instead of relying on the `*` fallback.
-
----
-
-## 📊 FINAL TEST RESULTS TABLE
-
-| Endpoint | Status | Test Command | Notes |
-|----------|--------|-------------|-------|
-| POST /auth/register | ✅ PASS | `curl -X POST http://localhost:3000/auth/register -d '{"email":"test@test.com","password":"Password123","username":"testuser","cpf":"11111111116"}'` | Token issued |
-| POST /characters | ✅ PASS | `curl -X POST http://localhost:3000/characters -H "Authorization: Bearer $TOKEN" -d '{"username":"testuser"}'` | 3 gambits auto-created |
-| GET /gambits | ✅ PASS | `curl -X GET http://localhost:3000/gambits -H "Authorization: Bearer $TOKEN"` | All 3 pages returned |
-| POST /gambits | ✅ PASS | `curl -X POST http://localhost:3000/gambits -d '{"slotIndex":0,"title":"Auto Strategy","lines":[]}'` | Page updated |
-| PUT /gambits/:id/activate | ✅ PASS | `curl -X PUT http://localhost:3000/gambits/<id>/activate -H "Authorization: Bearer $TOKEN"` | Page activated |
-| PUT /equipment/equip | ✅ PASS | `curl -X PUT http://localhost:3000/equipment/equip -d '{"slot":"mainHand","itemId":"equip_sword_t1"}'` | Sword equipped |
-| GET /equipment/stats/total | ✅ PASS | `curl -X GET http://localhost:3000/equipment/stats/total -H "Authorization: Bearer $TOKEN"` | Stats calculated (weaponFixedAtk: 8) |
-| POST /inventory/add | ✅ PASS | `curl -X POST http://localhost:3000/inventory/add -H "Authorization: Bearer $TOKEN" -d '{"itemId":"pot_hp_small"}'` | Item added (quantity defaults to 1) |
-| GET /inventory | ✅ PASS | `curl -X GET http://localhost:3000/inventory -H "Authorization: Bearer $TOKEN"` | Items returned |
-| GET /inventory/item/:itemId/count | ✅ PASS | `curl -X GET http://localhost:3000/inventory/item/pot_hp_small/count -H "Authorization: Bearer $TOKEN"` | Count returned |
-| POST /inventory/sell | ✅ PASS | `curl -X POST http://localhost:3000/inventory/sell -H "Authorization: Bearer $TOKEN" -d '{"itemId":"pot_hp_small","quantity":3}"'` | Gold received |
-
----
-
-## ✅ SINGULAR NEXT STEP (FOR NEXT SESSION)
-
-**Inventory system is fully working.** Move on to the next critical blocker: the **Battle System stubs** (XP/Gold/Drops all return 0/[]), which is the largest remaining gap for MVP. See the "Battle System (Stubs)" section above.
-
-Recommended order:
-1. Implement `BattleEngine.simulateBattle()` in `packages/shared/battle-engine/` (pure functions, deterministic via Mulberry32)
-2. Wire `BattleQueueService` to actually compute XP/gold/drops instead of stubs
-3. Wire Gambit evaluation into the battle engine (currently not connected)
-4. Implement `MapKillCounter` epoch logic
-
----
-
-## Infrastructure Status
-
-- **NestJS Build:** ✅ `npm run build` succeeds
-- **Docker Compose:** ✅ Builds successfully after Dockerfile fix
-- **Database:** ✅ PostgreSQL 16 (must reset with `docker-compose down -v` between test runs)
-- **Cache:** ✅ Redis 7
-
-**Local Backend Start:**
 ```bash
+# 1. Build — required; the API runs packages/shared/dist, not the TypeScript source
+pnpm build
+
+# 2. Start the stack (backend is published on host :3010, not :3000)
+docker compose up --build -d
+#    wait for: curl -s -o /dev/null -w '%{http_code}' http://localhost:3010/maps
+
+# 3. Run the suite
 cd apps/api
-docker-compose up -d db redis
-DATABASE_URL="postgresql://nanommo:nanommo_dev_password@localhost:5432/nanommo" \
-REDIS_URL="redis://localhost:6379" \
-JWT_SECRET="dev_secret" \
-node dist/apps/api/src/main.js
+node test-phase3-all.js             # 5 scenarios; crash recovery self-skips
+node test-phase3-all.js --restart   # all 6, restarts the backend container twice
 ```
+
+Individual scenarios:
+
+```bash
+node test-phase3-determinism.js                 # engine only, no stack needed for most assertions
+node test-phase3-gambits.js
+node test-phase3-levelup.js                     # 4 scenarios: single, multi-level, equipped, SP
+node test-phase3-death.js
+node test-phase3-idempotency.js
+PHASE3_RESTART=1 node test-phase3-recovery.js    # gated: restarts the container
+```
+
+### Environment variables the scripts honour
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `PHASE3_API_URL` | `http://localhost:3010` | Backend base URL. `test-s63.js`'s hardcoded `:3000` is the container-internal port and is wrong from the host. |
+| `PHASE3_API_MIN_INTERVAL_MS` | `13000` | Paces HTTP calls. The API is globally throttled to **5 requests / 60 s** (`app.module.ts:28`, registered as an `APP_GUARD`, so one budget for the whole process). Set to `0` to disable pacing. |
+| `PHASE3_RESTART=1` | unset | Enables crash recovery / the restart-race mode. |
+| `PHASE3_IDEMPOTENCY_DELAY_MS` | `0` | Gap between the two racing job submissions. `2000` forces serial delivery — the run still passes and prints the overlap outcome. |
+| `PGHOST` / `PGPORT` / `PGUSER` / `PGPASSWORD` / `PGDATABASE` | `127.0.0.1` / `5432` / `nanommo` / `nanommo_dev_password` / `nanommo` | Postgres access from the host. `.env` has `DB_HOST=db` / `REDIS_HOST=redis`, which are container-internal names and do not resolve from the host. |
 
 ---
 
-## Frontend
+## 2. What was built
 
-**Last Updated:** 2026-09-26  
-**Session Focus:** Angular 18+ standalone frontend with auth flow
+| File | Role |
+|------|------|
+| `apps/api/test/helpers/phase3.js` | Shared harness: throttled HTTP, `pg`, `ioredis`, `bull`, character bootstrap, seeded preconditions, assertion tally |
+| `apps/api/test-phase3-determinism.js` | SPEC §3.1 / §11.2 — engine purity, stored-battle replay |
+| `apps/api/test-phase3-gambits.js` | SPEC §8.4 save-time + §7.2/§7.3 runtime |
+| `apps/api/test-phase3-levelup.js` | SPEC §6.3 / §3.4 — level-up mid-queue: single, multi-level, **equipped**, **SP not topped up** |
+| `apps/api/test-phase3-death.js` | SPEC §7.6 / §6.4 / §7.7 — death |
+| `apps/api/test-phase3-idempotency.js` | design.md D4 — exactly-once resolution, **with a real drop** |
+| `apps/api/test-phase3-recovery.js` | SPEC §7.5 — crash recovery |
+| `apps/api/test-phase3-all.js` | Aggregate runner (spawns child processes; `--restart` flag) |
 
-### ✅ IMPLEMENTED & TESTED
+**No dependency was added.** `bull`, `pg` and `ioredis` were already direct dependencies of
+`apps/api`. The only production change is the one-line-scope fix in `battle.service.ts` (§6.1 #3).
 
-#### 1. Angular App Scaffold (`apps/frontend`)
-- Angular 18 standalone components, routing, Tailwind CSS v3, Angular CDK
-- pnpm workspace integration (`@nanommo/frontend` + `@nanommo/shared`)
-- Environment configuration (`environment.ts` with `apiBaseUrl: http://localhost:3000`)
+---
 
-#### 2. Core HTTP Service with Interceptor (`core/api.service.ts`)
-- Base URL from environment (not hardcoded)
-- Attaches `accessToken` as `Authorization: Bearer <token>` header on all requests
-- Handles 401 responses:
-  - Checks `error.error?.code || error.error?.message` for `SESSION_INVALIDATED` or `TOKEN_EXPIRED`
-  - Clears tokens and redirects to `/login?reason=session_expired`
+## 3. Scenario results
 
-#### 3. AuthStore (Signal-based) (`core/auth.store.ts`)
-- `accessToken` / `refreshToken` / `userPayload` / `isLoading` / `error` as signals
-- `isAuthenticated` computed signal
-- Refresh token persisted in `localStorage` (survives reload)
-- `bootstrap()` called on app load: restores session by calling `/auth/refresh` with stored refresh token
-- `register(username, email, password, cpf)` → calls `POST /auth/register`, stores tokens, sets user payload
-- `login(username, password)` → calls `POST /auth/login`, stores tokens, sets user payload
-- `logout()` → clears tokens, redirects to `/login`
-- `refreshAccessToken()` → calls `POST /auth/refresh` with refresh token
+All figures from `node apps/api/test-phase3-all.js --restart` on 2026-09-28.
 
-#### 4. Auth Guards (`core/auth.guard.ts`)
-- `authGuard`: protects `/play` — redirects to `/login` if not authenticated
-- `guestGuard`: protects `/login` and `/register` — redirects to `/play` if already authenticated
+| Scenario | Assertions | Wall clock | Exit |
+|----------|-----------|-----------|------|
+| determinism | 6/6 | 52 s | 0 |
+| gambits | 41/41 | 338 s | 0 |
+| levelup | 46/46 (was 28) | 358 s | 0 |
+| death | 32/32 | 515 s | 0 |
+| idempotency | 19/19 (was 17) | 93 s | 0 |
+| recovery | 19/19 | 139 s | 0 |
+| **total** | **163/163** (was 143) | **~25 min** | **0** |
 
-#### 5. Register Page (`features/auth/register.component.ts`)
-- Fields matching backend `RegisterDto`: `username`, `email`, `password`, `cpf`
-- Template-driven form with validation (required, minlength, email format)
-- Backend validation errors displayed directly from `error.error?.message`
-- On success: stores tokens, redirects to `/play`
+`6 ran, 0 skipped, 0 failed` — every scenario of the previous 143 is still green; the 20 new
+assertions are additive.
 
-#### 6. Login Page (`features/auth/login.component.ts`)
-- Fields: `username`, `password` (matching `LoginDto`)
-- Template-driven form with validation
-- Shows "Sua sessão expirou" message when `?reason=session_expired` query param present
-- On success: stores tokens, redirects to `/play`
+Without `--restart`, recovery self-skips with a printed notice and the run reports
+`5 ran, 1 skipped, 0 failed`, exit 0. The runner never folds a skipped
+scenario into the pass count.
 
-#### 7. Protected `/play` Page (`features/play/play.component.ts`)
-- Guarded by `authGuard`
-- Displays "Em manutenção — volte em breve" centered
-- Shows logged-in username from JWT payload
-- Logout button: clears AuthStore, redirects to `/login` (backend logout endpoint not implemented; local-only cleanup)
+**Gambits and death dominate the wall clock** because the global 5-req/60-s throttler forces
+13 s between HTTP calls, and those two scripts make ~35 and ~30 calls respectively. This is
+the API's real behaviour, not harness overhead; running against a stack with a raised
+`THROTTLE_LIMIT` (and `PHASE3_API_MIN_INTERVAL_MS=0`) cuts the suite to roughly 2 minutes.
+The levelup script grew from ~157 s to ~6 min for the same reason: it now performs two extra
+character bootstraps, two extra map entries and (in the equipped scenario) three `PUT
+/equipment/equip` calls, all paced at 13 s each. This is the main reason Phase 4A took ~45 min
+of wall clock end to end; the fix itself is 20 lines and the evidence work is two scenarios.
 
-#### 8. Routing (`app.routes.ts`)
-- `/` → redirects to `/login`
-- `/login` (guestGuard) → lazy-loaded LoginComponent
-- `/register` (guestGuard) → lazy-loaded RegisterComponent
-- `/play` (authGuard) → lazy-loaded PlayComponent
-- `**` → redirects to `/login`
 
-### 🧪 TEST RESULTS (Backend API Verified)
 
-| Test Step | Description | Result |
-|-----------|-------------|--------|
-| 1. Register | `POST /auth/register` with username, email, password, cpf | ✅ Returns tokens, user created in DB |
-| 2. Login | `POST /auth/login` with username, password | ✅ Returns tokens, sessionId updated |
-| 3. Session Restore | Refresh token in localStorage → `POST /auth/refresh` on app load | ✅ Tokens restored, user authenticated |
-| 4. Protected Route Access | Access `/play` with valid token | ✅ Shows "Em manutenção" + username |
-| 5. Session Invalidation | Login again → old token gets `SESSION_INVALIDATED` | ✅ Backend returns 401 with message |
-| 6. Logout | Click logout button | ✅ Clears localStorage, redirects to `/login` |
+---
 
-**Note:** Full browser-based E2E test (steps 1-5 from requirements) requires manual browser testing since the dev server runs on `localhost:4200` and backend on `localhost:3000`. The API integration has been verified via curl; the Angular components compile and serve without errors.
+## 4. Scenario-by-scenario detail
 
-### ⚠️ KNOWN ISSUES / TODO
-- Backend logout endpoint (`POST /auth/logout`) does not exist — frontend `logout()` only clears local state
-- CORS `origin: '*'` with `credentials: true` will break in production — must set `CORS_ORIGIN` to frontend URL before deploying
-- Email verification and password reset UI not implemented (per scope)
-- Tailwind v4 PostCSS plugin issue — using v3 for compatibility with Angular 18
+### 4.1 Determinism — `test-phase3-determinism.js`
 
-### 📁 FILES CREATED/MODIFIED THIS SESSION
-- `apps/frontend/` — entire Angular application
-  - `package.json` — deps: `@angular/cdk`, `@nanommo/shared`, `tailwindcss@3`
-  - `tailwind.config.js`, `postcss.config.js`, `src/styles.css`
-  - `src/environments/environment.ts`, `environment.prod.ts`
-  - `src/app/app.config.ts` — HTTP client + interceptor + animations
-  - `src/app/app.routes.ts` — routes with guards
-  - `src/app/app.component.ts/html` — minimal router outlet
-  - `src/app/core/api.service.ts` — HTTP service + auth interceptor
-  - `src/app/core/auth.store.ts` — Signal-based auth state + bootstrap
-  - `src/app/core/auth.guard.ts` — authGuard / guestGuard
-  - `src/app/features/auth/register.component.ts` — register form
-  - `src/app/features/auth/login.component.ts` — login form
-  - `src/app/features/play/play.component.ts` — protected page
+| Assertion | Result |
+|-----------|--------|
+| §3.1 identical (snapshot, monster, page, seed) → byte-identical results | ✅ 2917 bytes identical, `outcome=win durationTicks=34 hpAfter=158` |
+| The compared fingerprint is non-trivial (log + events included) | ✅ 13 events, header carries `monsterId, seedUsed, characterSnapshot, monsterSnapshot` |
+| A different seed changes the simulation (non-vacuity control) | ✅ `34 ticks` vs `41 ticks` |
+| No `Math.random()` in `packages/shared/src` code | ✅ 12 files scanned with comments stripped, 0 matches |
+| §3.4 re-simulating a stored battle's `seedUsed` + `characterSnapshot` reproduces the persisted log | ✅ 2414 bytes identical for a real API-built entry |
+| §3.4 the stored log header records the seed that reproduces it | ✅ `header.seedUsed` matches the `seedUsed` column |
+
+**The non-vacuity control is verified against a deliberately broken engine.** The
+"a different seed changes the simulation" assertion compares only *produced* output
+(`events`, `outcome`, `durationTicks`, `hpAfter`, `spAfter`, `itemsConsumed`) — not the log
+header, which echoes the seed string back verbatim. With `Mulberry32(seed)` hardcoded to a
+constant in the built bundle, the suite drops to **4/6** and the control fails with
+`both seeds produced identical output (outcome=win ticks=34 hpAfter=158 events=13)`. The
+dist was restored afterwards; `packages/shared/dist` is unmodified.
+
+### 4.2 Gambit validation — `test-phase3-gambits.js`
+
+**Save-time (§8.4), over `PUT /gambits/:pageId`.** All eight rejection cases answer 400 with a
+non-empty `fieldErrors` array naming the offending path, **and leave the stored page
+byte-identical** — the second half is asserted by re-reading with `GET /gambits/:pageId`, since
+a status code alone cannot prove the write never reached the repository.
+
+| Rule | Submitted | Status | `fieldErrors[].path` | Page unchanged |
+|------|-----------|--------|---------------------|----------------|
+| >20 lines | 21 lines | 400 | `lines` | ✅ |
+| condition arity | 3 conditions | 400 | `lines[0].conditions` | ✅ |
+| 2 conditions, null combinator | 2 conditions | 400 | `lines[0].combinator` | ✅ |
+| 1 condition, non-null combinator | 1 condition | 400 | `lines[0].combinator` | ✅ |
+| unknown action | `summon_dragon` | 400 | `lines[0].action.id` | ✅ |
+| out-of-enum band | `band: 'ANGRY'` | 400 | `lines[0].conditions[0].band` | ✅ |
+| unknown item | `use_item pot_imaginary` | 400 | `lines[0].action.itemId` | ✅ |
+| unknown skill | `use_skill sword_katana_slash` | 400 | `lines[0].action.skillId` | ✅ |
+| **control: a valid page is accepted** | 4 legal lines | 200 | — | 4 lines stored and read back |
+
+**Runtime (§7.2/§7.3), through the engine.**
+
+| Assertion | Result |
+|-----------|--------|
+| §7.3 step 4 condition-true-but-illegal `use_item` is skipped and the next line runs | ✅ first event is `attack` at tick 5; 0 `use_item` events; 0 consumed |
+| §7.2 the shared `item:potion` category gates a *different* potion | ✅ distinct `use_item` gaps `[6]` against a 3-tick cast-gauge period — a per-item cooldown would have fired every 3 ticks |
+| §7.2 no two potion uses closer than the 5-tick `POTION_COOLDOWN` | ✅ minimum gap 6 |
+| §7.2 control: with the priority-1 potion out of stock the priority-2 line fires on the first cast fire | ✅ `pot_sp_small` at tick 2 |
+| §7.3 with two legal lines the higher priority executes, the lower never fires | ✅ 25 `defend`, 0 `wait`; max 1 character action per tick |
+| §7.3 an out-of-stock-potion page saved over HTTP produces no `use_item` in the queued battle | ✅ 0 of 30 events |
+
+### 4.3 Level-up mid-queue — `test-phase3-levelup.js`
+
+Four scenarios. The first two are unchanged from Phase 3; the last two are new.
+
+**Scenario 1 — single level-up, default unequipped character.**
+
+| Assertion | Result |
+|-----------|--------|
+| The seeded first entry is a `win` | ✅ `mon_slime`, kill counter pinned to the scanned index |
+| level increments by exactly the thresholds crossed | ✅ 1 → 2 (`xp=16` + `xpGain=18`, `xpToNext(1)=17`) |
+| `unspentAttributePoints` += 5 per level | ✅ 0 → 5 |
+| maxHp / maxSp recomputed upward | ✅ 158 → 176 and 98 → 106 |
+| `hpCurrent` = `round(hpAfter × newMax/oldMax)`, clamped | ✅ 169 (ratio 1.11392) |
+| `spCurrent` = `round(spAfter × newMax/oldMax)`, clamped | ✅ 106 (ratio 1.08163) |
+| `hpCurrent` strictly below the new maxHp — not topped up | ✅ 169/176 = 96.0 % |
+| `xp` is toward-next-level; the loop subtracted `xpToNext` once | ✅ 17 |
+| The 4 surviving entries each had a BullMQ job before the resolve | ✅ 4/4 (captured **pre**-resolve) |
+| Every surviving entry was discarded by the level-up | ✅ all 4 ids gone |
+| The rebuilt chain was simulated against the new stats | ✅ `characterSnapshot.maxHp=176` vs the discarded chain's 158 |
+| No BullMQ job remains for the discarded entries | ✅ 0 of 4 |
+| Each rebuilt entry has a job; `GET /battles/queue` returns 5 | ✅ 5/5 and 5 |
+
+**Scenario 2 — multi-level, two thresholds in one resolve** (level 10, `mon_thornsprout`, +64 XP):
+2 thresholds crossed → level 12, `unspentAttributePoints` 0 → 10, `hpCurrent` 234 matches the
+single-step ratio. This is divergence #4, which stays a recorded footnote (SPEC §6.3) and not a
+code change.
+
+**Scenario 3 — the ratio on an EQUIPPED character (new; proves the §6.1 #3 fix).**
+
+The character equips tier-1 physical armour through the real `PUT /equipment/equip` endpoint
+(head + body + cape = `VIT + 3`, `def 15`, all `levelReq 1`) and each piece carries the SPEC §10.3
+eternal roll (`VIT + 6` stored in `equipped_items.instanceData`, seeded because `equipItem()`
+nulls that column on every write), for a total `VIT 5 → 26`. It then spends its 5 unspent points
+in STR — legal game state, and the reason the fight is short enough (23 ticks) that HP and SP are
+both still below maximum when the level-up runs.
+
+| Assertion | Result |
+|-----------|--------|
+| the loadout really carries the summed VIT bonus and DEF | ✅ `GET /equipment/stats/total` → `statBonus.VIT = 21`, `def = 15` |
+| the equipment actually moves `maxHp`, so the scenario can discriminate | ✅ equipped 410 vs equipment-blind 158 |
+| the entry was simulated against the EQUIPPED stats | ✅ `log.header.characterSnapshot.maxHp = 410` (the blind reading would say 158) |
+| **`hpCurrent` = `round(hpAfter × newMax/oldMax)` on the equipment-aware maxima** | ✅ 364 from `hpAfter=349`, 410 → 428 (ratio 1.04390) |
+| the two readings are far enough apart that a pass is not a rounding accident | ✅ gap **188 HP** (364 vs 176) |
+| `hpCurrent` strictly below the new maxHp | ✅ 364/428 = 85.0 % |
+| `spCurrent` ratio-adjusted on the same pass | ✅ 75 from `spAfter=69` (the loadout moves no INT, so both readings agree here) |
+| the rebuilt chain is simulated against the equipment-aware maxima of the new level | ✅ `characterSnapshot.maxHp = 428` |
+
+**The fix is proven by a failing run, not only by a passing one.** The same scenario was executed
+against the pre-fix backend (the container built before the change) and produced
+`45/46 assertions passed`, with exactly one failure:
+
+```
+[FAIL] §6.3 hpCurrent is ratio-adjusted with the REAL loadout — expected 364, got 176
+       (entry.hpAfter=349; equipped maxHp 410 -> 428 (ratio 1.04390), so 349 x ratio = 364.
+        The equipment-blind reading gives 176.)
+```
+
+176 is exactly the clamped equipment-blind value, so the old code is not "close but off by a
+rounding" — it scaled by `176/158` and then clamped against the wrong maximum, leaving the
+character at 41 % of its real maximum after a level-up.
+
+**Scenario 4 — SP is never topped up (new; closes the §6.4 gap).**
+
+A bare level-1 character with its 5 unspent points in STR and `spCurrent = 0`, fighting a
+`mon_slime` over 23 ticks. `spRegenPerTick` is 3, so 23 ticks return 69 SP against a `maxSp` of
+98: the entry genuinely hands the resolver a partial pool, which is what makes "not topped up"
+distinguishable from "the engine refilled it first".
+
+| Assertion | Result |
+|-----------|--------|
+| the entry really did hand the resolver a partial SP pool | ✅ `spAfter=69 < maxSp 98` over 23 ticks, from a chain that started at `sp=0` |
+| `spCurrent` = `round(spAfter × newMaxSp/oldMaxSp)` | ✅ 75 (98 → 106, ratio 1.08163) |
+| **`spCurrent` is STRICTLY below the new maxSp** | ✅ 75/106 = 70.8 % — a top-up would have set 106 |
+| the SP *percentage* of the maximum is preserved, not raised to 100 % | ✅ 70.41 % → 70.75 % |
+| the same resolve kept HP ratio-adjusted, so the SP result is not a different code path | ✅ `hpAfter=122`, 158 → 176, `hpCurrent=136` |
+
+This retires the Phase 3 claim that "never topped up" was provable on HP but not on SP. The
+character that makes it observable is not exotic: it is a level-1 character that spent its five
+starting points in STR, and the constraint that made the old scenario's fights 39 ticks long was
+simply that nobody had spent them.
+
+
+### 4.4 Death — `test-phase3-death.js`
+
+| Assertion | Result |
+|-----------|--------|
+| The setup is coherent: the killing blow is `sequenceIndex 0` and the only loss | ✅ 1 loss, 5 unresolved (1 killing + 4 survivors) |
+| `status` → `town`; `currentMapId` → `null` | ✅ `null` explicitly (TypeORM skips `undefined` on save, so the explicit `null` matters) |
+| `hpCurrent` → exactly 1 | ✅ |
+| Every remaining unresolved entry deleted with the death | ✅ 0 of 4 remain; the rows are **deleted**, not marked resolved |
+| No BullMQ job survives for the deleted entries | ✅ 0 of 4 (captured pre-resolve) |
+| XP loss = `floor(xpToNextLevel(L) × 0.05)`, applied once | ✅ level 10, seeded 25, `floor(30 × 0.05)=1` → 24 |
+| XP seeded **below** the penalty lands on exactly 0, never negative | ✅ level 20, seeded 1, `floor(73 × 0.05)=3` → 1−3 = −2 → clamped to 0 |
+| The character is never de-leveled by a death | ✅ level 20 stays level 20 |
+| `lastDeathLog` holds the killing battle's full log | ✅ monsterId matches, marker `death-1`, 27 events, `header` present |
+| A second death **overwrites** rather than appends | ✅ second character carries only `death-2` |
+| No new battles queued after the death | ✅ observed for the full duration of the longest discarded battle + 20 s |
+| The character stays in town for the whole window | ✅ the processor's own top-up is gated on `status === 'grinding' && currentMapId` |
+| Nothing pending in BullMQ for this character | ✅ 0 entries, 0 jobs |
+
+### 4.5 Idempotency — `test-phase3-idempotency.js`
+
+Two `resolve-battle` jobs are injected for the same `battleId` with **different** `jobId`s
+(reusing the id would make BullMQ keep only one job and stage no race at all).
+
+| Assertion | Result |
+|-----------|--------|
+| The staged entry is a `win` | ✅ `mon_fieldbat`/`mon_slime` depending on the scanned index |
+| **the entry carries a real drop, and it is the one the preview predicted** | ✅ `perMonsterKillCount[mon_fieldbat] = 2` → `[{itemId: "food_honey", quantity: 1}]`, identical in preview and in the row the API built |
+| xp reflects exactly one `xpGain` after the §4.2 level-up loop | ✅ 0 + 40 → xp 5 at level 3; a double application gives xp 6 at level 5 |
+| `unspentAttributePoints` += 5 per level gained | ✅ 0 → 10; a double application would grant 20 |
+| gold += exactly one `goldGain` | ✅ 0 → 6; a double application would show 12 |
+| **each drop added exactly once** | ✅ `food_honey +1` observed against `+1` expected; a double application would show `+2` |
+| `map_kill_counters.map_kill_count` += exactly 1 | ✅ 1 → 2 |
+| consumed items decremented exactly once, clamped at stock | ✅ 12 → 1 of 11 consumed, with the drop included in the same expectation |
+| total stock moved by exactly (consumption − drops), counted once | ✅ 12 → 2, i.e. 11 − 1; a double application would move 20 |
+| the conditional claim matches 1 row, then 0 rows | ✅ asserted directly: 1 then 0 |
+| a claimed row disappears from the live queue read path | ✅ |
+| **the losing caller logged `already resolved - skipping`** | ✅ 1 skip line; exactly 1 `Resolved battle` line |
+
+**The drop is arranged, not hoped for.** `resolveDrops()` (SPEC §11.2/§11.5) derives its stream
+from `${monsterId}:${perMonsterKillCount}:${entryIndex}` and nothing else — the battle seed is not
+part of it — so for a fixed monster the drop roll is a pure function of the per-monster kill
+count. `findRaceKillIndex()` scans a winnable fight, then scans per-monster kill counts for one
+that rolls a drop (a few tens of attempts at the 5 % + 1 % + 0.1 % + 0.01 % rates) and seeds it
+with `setKillCounter()`. The API then rolls the drop itself, and the scenario asserts the row
+matches the in-process prediction — which is what makes the add-drop branch reachable at all
+rather than a 6 %-per-run coincidence.
+
+**Consumption and drops are asserted against one combined inventory expectation**, not two. A
+drop can be the very item the gambit drank (the §11.5 consumable pool is all 15 consumables,
+potions included), so only the combined state is what a single application is supposed to
+produce. In the run recorded here the drop was `food_honey` and the drink was `pot_hp_small`, so
+the two happened not to collide; the expectation is built to survive that either way.
+
+**The overlap is real, not assumed.** The script greps `docker compose logs backend` for
+`already resolved - skipping` and fails if absent, so an exit 0 cannot come from two
+sequential resolves wearing a concurrency test's clothes. Every run observed the contention.
+
+**Restart-race mode** (`PHASE3_IDEMPOTENCY_WITH_RESTART=1 node test-phase3-idempotency.js`): the container is
+stopped after the jobs are submitted, so on boot the §7.5 recovery pass and the delayed jobs
+contend. **17/17, exit 0, overlap observed** (Phase 3 run; not re-run in Phase 4A — the staged entry
+now also carries a drop, which this mode has not yet been re-verified with).
+
+
+### 4.6 Crash recovery — `test-phase3-recovery.js` (gated on `PHASE3_RESTART=1`)
+
+**Ordered application.** The chain is normalised before the restart so ordering is
+*observable*: all wins, `hpAfter` strictly decreasing `[150, 120, 90, 60, 30]`, `spAfter`
+`[90, 75, 60, 45, 30]`, distinct `goldGain` `[1,2,3,4,5]`, and `xpGain` 0. The reason is
+recorded in the script: the chain the API produces *cannot* answer the ordering question —
+a level-up mid-recovery deletes and rebuilds the rest of the chain (observed as "1 of 6 rows
+resolved"), consecutive wins regen HP to the maximum so every `hpAfter` is identical
+(observed `[156, 156, 156, 0, 0]`), and a loss truncates the chain. Each row's own `log` is
+left untouched, so log-based assertions still see real engine output.
+
+| Assertion | Result |
+|-----------|--------|
+| the `hpAfter` values are distinct enough for order to be observable | ✅ `[150, 120, 90, 60, 30]` — every permutation gives a different final HP |
+| the chain contains no loss | ✅ 5 wins |
+| the chain grants no XP, so no level-up can truncate it | ✅ |
+| entries applied **sequentially**: `hpCurrent` = the last entry's `hpAfter` in `endAt` order | ✅ 30 |
+| `spCurrent` = the last entry's `spAfter` | ✅ 30 |
+| every stale entry marked resolved | ✅ 5/5 |
+| gold advanced by the **sum** — a double application would double it | ✅ 15, not 30 |
+| the kill counter advanced once per entry | ✅ 0 → 5 |
+| backend logged `SPEC §7.5 crash recovery complete` with a non-zero count | ✅ resolved counts `[5, 5, 5]` |
+| each entry paid out exactly once (one `Resolved battle` line each) | ✅ `1, 1, 1, 1, 1` |
+| a still-alive character on a map is topped back up to 5 | ✅ 5 entries, sequenceIndex 0–4 |
+| the topped-up chain used post-recovery stats | ✅ `characterSnapshot.maxHp=158` |
+
+**Death resolved by recovery.**
+
+| Assertion | Result |
+|-----------|--------|
+| routed to town, not topped up | ✅ `status=town`, `currentMapId=null` |
+| `hpCurrent` → 1 | ✅ |
+| left with 0 unresolved entries | ✅ after an 8 s settle window |
+| XP loss applied exactly once | ✅ 12 → 11, not 10 |
+| `lastDeathLog` written by the recovery pass | ✅ correct monsterId and marker |
+
+---
+
+## 5. Phase 1–2 loop (carried forward, re-verified where a script touches it)
+
+| Component | State | Evidence this session |
+|-----------|-------|----------------------|
+| Registration → auto-created character | ✅ | every scenario bootstraps through it |
+| Email verification gate | ✅ | bypassed via `UPDATE users SET "emailVerified" = true` — the column is camelCase, **not** `email_verified` as the task prose assumed |
+| Map entry + `queueBattles(5)` | ✅ | [re-verified 2026-09-28] — gambits, levelup, death, idempotency, recovery all build a real 5-deep chain |
+| XP curve loading | ✅ | [re-verified 2026-09-28] — `xpToNext(1)=17`, `xpToNext(10)=30`, `xpToNext(20)=73` read from `char_xp_curve.json` |
+| Level-up +5 points, ratio HP/SP | ✅ | [re-verified 2026-09-28] — see §4.3, now including an **equipped** character (the ratio uses the real loadout) and the SP "never topped up" case |
+| Queue discard + rebuild on level-up | ✅ | [re-verified 2026-09-28] — see §4.3 |
+| Death → town, HP 1, XP loss, chain discarded | ✅ | [re-verified 2026-09-28] — see §4.4 |
+| Gambit save-time validation (6 rules) | ✅ | [re-verified 2026-09-28] — see §4.2 |
+| Gambit runtime evaluation | ✅ | [re-verified 2026-09-28] — see §4.2 |
+| Recovery pass on boot | ✅ | [re-verified 2026-09-28] — see §4.6 |
+| Idempotent resolution | ✅ | [re-verified 2026-09-28] — see §4.5 |
+| Determinism / no `Math.random()` | ✅ | [re-verified 2026-09-28] — see §4.1 |
+| WebSocket battle events | ✅ integrated | `/game` gateway, authenticated character room, map socket intents, battle/progression events, and REST resync contract implemented; dedicated `test-battle-gateway.js` passes |
+
+---
+
+## 6. Issues
+
+### 6.1 SPEC divergences — all four settled in Phase 4A
+
+| # | Divergence | Resolution | Where |
+|---|-----------|-----------|-------|
+| 1 | Death XP penalty: `floor` vs `round`, and an undefined `cumulativeXp` clamp | **SPEC updated to match the code** (code unchanged) | SPEC §6.4 |
+| 2 | Resolve marks rows resolved instead of deleting them | **SPEC updated to match the code** (code unchanged) | SPEC §4.7, §7.4.3 |
+| 3 | Level-up ratio computed with an empty equipment argument | **Code fixed** (the only production change of this change) | `battle.service.ts:453-484` |
+| 4 | Multi-level scaling is one step, and the question is unobservable | **SPEC footnote added**, no code change — the question is unobservable, so deferring it is safe | SPEC §6.3 |
+
+**#1 — settled in SPEC.** The code was kept: `Math.floor` and a clamp at 0
+(`battle.service.ts:545-546`). SPEC §6.4 now says `floor`, states explicitly that there is **no**
+`cumulativeXp` floor (it is undefined under the §4.2 toward-next-level model that
+`characters.xp` actually holds, which was the spec-internal half of this divergence), and names the
+`test-phase3-death.js` assertions that pin both halves: level 10 → `floor(30 × 0.05) = 1`, and a
+level-20 character seeded at 1 XP with `floor(73 × 0.05) = 3` landing on exactly 0 with its level
+untouched. `design.md`'s open question ("which XP model is canonical?") is answered by §4.2, which
+the schema already follows.
+
+**#2 — settled in SPEC.** The code was kept. SPEC §4.7 and §7.4.3 now describe the row as **marked
+resolved, not deleted**, and name what *is* deleted: the rest of the chain after a death (§7.6) and
+the chain invalidated by a level-up (§3.4/§6.3). The two paths that used to disagree with each
+other are now spelled out as two different rules, so §7.6 is no longer an exception. The recovery
+pass re-reading already-applied rows is a consequence, not a bug: the conditional claim at
+`battle.service.ts:371-383` is what makes re-reading them a no-op, and that claim is asserted
+directly by `test-phase3-idempotency.js`.
+
+**#3 — FIXED, with a failing run as evidence.** `battle.service.ts` derived both ends of the
+level-up ratio from bare attributes and an empty equipment argument, while
+`buildCharacterSnapshot()` (`battle.service.ts:144-160`) folds `statBonus` into the attributes and
+passes the real `def`/`mdefPercent`/weapon ATK. The resolver now calls
+`equipmentService.calculateEquipmentStats()` and derives both ends the same way. The scenario that
+proves it, and the pre-fix run that fails it, are in §4.3 — the pre-fix run is the load-bearing
+part: `expected 364, got 176` on a 188 HP gap, with every other assertion in the scenario
+green, so the failure isolates the bug rather than the setup.
+
+**#4 — settled as a SPEC footnote, no code change.** The code applies one ratio step from the
+pre-first-level stats to the post-last-level stats. The suite measures the alternative: the two
+readings differ by **0–1 HP**, because `maxHp = floor(80 + VIT*12 + level*18)` is *linear* in
+level, so compounding telescopes to the same product and only the `Math.round` at each intermediate
+step can differ. With the current formulas the "one step or compounded" decision is **not
+observable** in `hpCurrent`, and becomes observable only if `maxHp`/`maxSp` ever gains a
+non-linear level term. SPEC §6.3 now records both the rule as implemented and the reason the
+alternative is unobservable, so the next reader does not have to re-derive it. This closes
+`design.md`'s open question empirically: the choice can be deferred safely.
+
+**#5 (testability note, not a divergence) — the shared potion cooldown is invisible at
+default DEX.** `castGaugeThreshold(dex) = max(3, 8 − floor(dex × 0.05))`, so at the default
+`dex=5` the cast gauge fires every 8 ticks while the potion category cooldown is 5 ticks — it
+has always expired before the next fire. The shared-category assertion therefore uses a
+`dex=100` fixture (3-tick cast period). It is a property of the engine, not of any character
+the API currently builds with low DEX and a potion gambit. **Still open, out of scope here** —
+same as the WebSocket gap, it needs a character build the API does not currently produce.
+
+
+### 6.2 Test-evidence defects found and fixed in Phase 3
+
+These were real bugs — in the *evidence*, not the product — and each one had produced a
+misleading green result before. They are listed unchanged from Phase 3; Phase 4A found no new
+one of this class, because the two gaps it closed (§6.4) were gaps in coverage, not defects that
+had been passing for the wrong reason.
+
+| # | Defect | Why the earlier evidence was wrong |
+|---|--------|--------------------------------------|
+| 1 | `bull` v3 stores jobs as a flat `bull:<queue>:<id>` key, with **no** `:id:`/`:data:` suffixes, and **retains** the key after completion (no `removeOnComplete`). | `test-s63.js` scans for those suffixes, so it *always* observed zero jobs. Its `orphaned jobs: 0` output was never evidence of anything. The harness now counts membership of the `wait`/`active`/`delayed`/`paused` lists. |
+| 2 | Pinned a fixed `mapKillCount` in the idempotency scenario. | The monster at index N comes from `rngForIndex(charId:mapId:epoch, N)`, so index 0 is a slime for one character and a direwolf for the next. One run staged a **loss**, routing the resolve into `handleCharacterDeath()` and never touching xp/gold/drops. The scenario now scans for a suitable index. |
+| 3 | Seeded progression, then built the queue from the pre-seed bootstrap chain. | A delayed bootstrap job fired in between and rewrote `hpCurrent` (seeded 80, arrived as 192). Draining afterwards cannot close the window, because an `active` job cannot be removed. Scenarios now seed first and enter the map once. |
+| 4 | Compared inventory maps by exact object equality. | `inventoryService.removeItem()` **deletes** the stack row once the quantity reaches 0, so a battle that drains the last potion leaves no row rather than a row of zeroes. "Absent" and "0" are the same state, and the strict comparison reported it as a double-deduction failure. Now compared per item with absent treated as 0, plus a total-removed cross-check. |
+
+### 6.3 Pre-existing issues carried forward
+
+| # | Issue | Severity | Note |
+|---|-------|----------|------|
+| 1 | `maxHp: null` on the attribute-allocation response | Low (cosmetic) | DTO does not compute derived stats. The suite reads maxHp/maxSP from Postgres instead, since `GET /characters` also omits them. |
+| 2 | Level-1 characters lose most Green Grounds fights organically | Medium (balance) | Not a code defect. A level-1 character with an `always → attack` gambit is genuinely too weak, so every scenario pins the kill counter or seeds progression. |
+| 3 | No gambit page → no legal action on any gauge | Medium (design) | With `activeGambitPageId = null` the engine hits the 200-tick stalemate valve and records a `loss`. Any character auto-created by registration has an active page (slots 0–2 are created empty and slot 0 is activated by `createCharacter`), so this only bites a hand-edited row. Worth a guard. |
+| 4 | `pnpm --filter @nanommo/api lint` cannot run | Low (tooling) | `ESLint couldn't find a configuration file` — no eslint config resolves in `apps/api`. Pre-existing: it fails identically with this change's files removed, and its glob `{src,test}/**/*.ts` does not target the new `.js` scripts either way. Not a regression from this change. |
+
+### 6.4 Limits of what the suite can prove
+
+Recorded so a future green run is not over-read. The two Phase 3 entries that were gaps are now
+closed; the two that remain were never gaps in the suite, they are facts about what the scenario
+can reach.
+
+- ~~**"Never topped up" is demonstrable on HP but not SP.**~~ **CLOSED in Phase 4A.** The claim
+  was true of the Phase 3 character, not of the system: every fight *that character* could win
+  lasted ≥ 33 ticks with `spRegenPerTick = 3`, because its five unspent attribute points were
+  never spent and it fought with base STR 5. A level-1 character that spends them in STR kills a
+  slime in 23 ticks instead of 39, and a chain that starts at `spCurrent = 0` hands the resolver
+  `spAfter = 69 < maxSp 98`. Scenario 4 in `test-phase3-levelup.js` asserts the ratio result
+  (75), the strict inequality (75 < 106) and the preserved percentage (70.4 % → 70.8 %). See §4.3.
+- ~~**The drop branch of idempotency is unexercised.**~~ **CLOSED in Phase 4A.** The drop roll is
+  a pure function of the monster and its per-monster kill count, so
+  `test-phase3-idempotency.js` now seeds a kill count that rolls one and asserts the API rolled
+  the same item the in-process preview did, before racing two resolve jobs over the entry. See §4.5.
+- **`lastDeathLog` overwrite is observed across two characters**, each of which died once. A
+  character cannot die twice without re-entering a map, so a same-character double death is a
+  separate scenario.
+- **The recovery pass is global.** The scenario deletes other characters' unresolved rows first
+  (145 on a dirty database) so the ordering assertion is unambiguous; on a shared database that
+  deletion is worth knowing about before running it.
+- **The level-up ratio is proven on one build shape** — VIT gear, level 1, one threshold
+  crossed. The fix is general (it derives both ends from `calculateEquipmentStats()` exactly as
+  `buildCharacterSnapshot()` does) but the *assertion* is one character. A future build that
+  moves `maxSp` from gear rather than `maxHp` would need its own scenario: the loadout here adds
+  VIT only, so the SP assertion passes identically under both readings and proves the ratio
+  formula, not the equipment's effect on SP.
+
+
+---
+
+## 7. Still stub / TODO (outside loop scope)
+
+| Module | Status | Note |
+|--------|--------|------|
+| **ChatService** | Stub (`throw new Error('Not implemented')`) | Future: server-side message persistence |
+| **MailService** | Stub | Separate from `MailerService` (auth emails) |
+| **TownService** | Stub | Vendor, warehouse, NPC interactions |
+| **MarketService** | Stub (not started) | Buy/sell orders, order matching |
+| **WebSocket gateway** | Integrated | `/game` is enabled with JWT + `activeSessionId` handshake auth, `char:<characterId>` rooms, socket map entry/leave, battle/progression publication through Redis, non-blocking event emission, and frontend REST resync documentation. Dedicated gateway smoke test passes. |
+
+---
+
+## 8. Architecture notes
+
+- **Port mapping:** the backend runs on `:3000` inside the container and is published on host
+  `:3010`. `test-s63.js`'s hardcoded `http://localhost:3000` is wrong from the host.
+- **`.env` names are container-internal:** `DB_HOST=db`, `REDIS_HOST=redis`. Scripts use
+  `127.0.0.1:5432` / `127.0.0.1:6379` (the published ports) and read credentials from
+  `PG*` env vars.
+- **Email table:** `users` (plural); the verification column is `"emailVerified"`.
+- **Queue response:** `GET /battles/queue` returns a bare array, not `{entries: [...]}`.
+- **`GET /characters`** returns a single object (not an array) and omits `maxHp`/`maxSp`.
+- **The resolver's contract is "fired after `endAt`", not "fired exactly at `endAt`."** That is
+  what makes rewriting `endAt` into the past and injecting a job a legitimate way to shorten an
+  in-game battle in a test.
+- **Level-gated maps are checked at enter time**, so a scenario needing one must seed the level
+  before `POST /maps/:mapId/enter`, not after.
+- **Attributes are seeded as ordinary game state.** A level-1 character has 5 in each attribute
+  and 5 unspent points (SPEC §6.3), so `str = 10` with `unspentAttributePoints = 0` is a
+  character that spent its starting points — not a hand-edited row. That allocation is what
+  makes a Green Grounds fight short enough (23 ticks instead of 39) for the SP regen window to
+  stay open, which is how §4.3 scenario 4 is reachable at all.
+- **`equipItem()` nulls `equipped_items.instanceData` on every write** (equipment.service.ts:266),
+  so the SPEC §10.3 eternal roll can only be seeded directly. `PUT /equipment/equip` also does
+  not check the inventory and does not invalidate the queue (the `TODO` at equipment.service.ts:277),
+  so equipping before `POST /maps/:mapId/enter` is safe and race-free.
+
+---
+
+## 9. Change state
+
+| Item | State |
+|------|-------|
+| Previous change | `grind-loop-phase3-edge-cases` — complete, `openspec validate --strict` ✅ |
+| This change | `battle-loop-websocket-gateway` — applied; gateway + frontend synchronization contract integrated |
+| Production code changed | **one fix:** `battle.service.ts:453-484`, the level-up HP/SP ratio now uses `calculateEquipmentStats()` |
+| SPEC changed | §6.3 (equipment-derived ratio + the #4 footnote), §6.4 (`floor`, no `cumulativeXp` floor), §4.7 and §7.4.3 (marked resolved, not deleted). `openspec/specs/SPEC.md` re-synced from it. |
+| Tests changed | `test-phase3-levelup.js` +2 scenarios / 18 assertions, `test-phase3-idempotency.js` +2 assertions, `test/helpers/phase3.js` +4 helpers, `test-phase3-death.js`/`test-phase3-recovery.js` notes re-worded (divergences #1/#2 are no longer divergences against SPEC) |
+| Dependencies added | none |
+| Full-suite result | `163/163`, `6 ran, 0 skipped, 0 failed`, exit 0 |
+| Not done, deliberately | no WebSocket work, no new functionality, no SPEC §19.3 balance pass |
+
+**Status: 163/163 assertions pass across the six scenarios; the suite is re-runnable with
+`node apps/api/test-phase3-all.js --restart`. All four recorded SPEC divergences are settled
+(one code fix, three SPEC corrections). Both Phase 3 proof gaps are closed.**
+
+### 9.1 What this change did NOT do
+
+Left open on purpose, so the next session does not re-derive them:
+
+| Item | State | Why it is still open |
+|------|-------|----------------------|
+| **WebSocket event delivery** (`battleResolved`, `characterDied`) | ❌ unverified, not implemented | Explicit non-goal of this change and of Phase 3. No socket scenario exists in the suite; the gateway is not wired to the resolver. |
+| `maxHp: null` on the attribute-allocation response | ⚠️ open (Low, cosmetic) | Pre-existing §6.3 #1. The suite reads derived stats from Postgres instead. |
+| Idempotency **restart-race mode** with the new drop-bearing entry | ⚠️ not re-run | `PHASE3_IDEMPOTENCY_WITH_RESTART=1 node test-phase3-idempotency.js` was last run in Phase 3 (17/17, no drop). The staged entry now carries a drop, so that mode is worth one re-run (~2 min) before it is quoted as drop-under-restart evidence. |
+| Level-up ratio proven on one build shape | ⚠️ narrow by design | Only VIT gear at level 1 with one threshold. A loadout that moves `maxSp` rather than `maxHp` needs its own scenario (§6.4). |
+| `pnpm --filter @nanommo/api lint` | ⚠️ cannot run (Low, tooling) | Pre-existing §6.3 #4 — no eslint config resolves in `apps/api`. `npx tsc --noEmit -p apps/api/tsconfig.json` passes and was used instead. |
+| SPEC §19.3 balance pass, stub services (`Chat`, `Mail`, `Town`, `Market`) | ⏸️ out of scope | Unchanged from Phase 3. |
+
+### 9.2 How to re-derive the Phase 4A evidence
+
+```bash
+# The fix alone (levelup is the only scenario whose expectations changed)
+docker compose up --build -d backend
+cd apps/api && node test-phase3-levelup.js       # 46/46, exit 0
+
+# The pre-fix run that proves the test is not vacuous: revert battle.service.ts
+# to `calculateDerivedStats(preLevel, attributes, {})` / `(…, {})`, rebuild,
+# re-run test-phase3-levelup.js, and observe 45/46 with
+#   [FAIL] §6.3 hpCurrent is ratio-adjusted with the REAL loadout — expected 364, got 176
+# then restore the fix and rebuild.
+```
+
+Both runs were executed in this order (pre-fix first, on the container built before the change)
+so the failing evidence is not a reconstruction.
+
+
+
+---
+
+## 10. Frontend play/character status — 2026-09-28
+
+The first implementation of 'play-and-character-ui' is **implemented MVP**, not fully
+verified. The visual direction was validated manually by the user: the dark fantasy /
+bronze / gold treatment is working well and slot hover highlights are considered good.
+
+| Area | State | Notes |
+|------|-------|-------|
+| /play, /play/grind, /play/character, /play/gambits | ✅ implemented | Angular routing and shared shell are in place |
+| REST + /game state stores | ✅ implemented | Character, inventory, battle queue and reconnect resync exist |
+| Server-timestamp battle progress | ✅ implemented | Uses startAt / endAt; no client battle resolution |
+| 50-slot inventory | ⚠️ needs polish | Keep 50 cells, remove slot numbering and 50 slots subtitle |
+| 8-slot equipment | ✅ implemented | Hover/highlight behavior is good; grind invariants still need backend enforcement |
+| Derived stats | ❌ incomplete | Character contract currently lacks authoritative values; frontend shows unavailable placeholder |
+| Weapon proficiency | ⚠️ incomplete | Backend exposes levels; current UI integration still needs completion |
+| Map selection | ⚠️ needs correction | Current visual map is too blurred to test; add explicit clickable map tiles |
+| Responsive layout | ❌ incomplete | Desktop works as a composition, but tablet/mobile require a dedicated pass |
+| SVG assets | ❌ broken in browser pass | Existing SVG references did not render; asset path/build handling needs correction |
+| Auth refresh | ❌ broken/incomplete | Frontend calls /auth/refresh, but backend currently has no matching controller endpoint |
+| 401 handling | ⚠️ incomplete | Some 401s are visible only in console; final unauthorized state must navigate to /login |
+| Fresh character starter loadout | ❌ missing | New character should start with sword_t1 equipped |
+| Fresh character starter Gambit | ❌ missing | Default page should contain the two specified starter lines |
+### 10.1 Next change
+
+OpenSpec change: 'play-character-ui-hardening'
+
+The proposal covers the following next-session work:
+
+1. Implement real access-token refresh/retry and final 401 → /login behavior.
+2. Bootstrap sword_t1 equipment and the two-line default Gambit page on character creation.
+3. Make HP/SP and derived stats authoritative and expose them to the frontend.
+4. Apply the new derived-stat source mapping: FOR/VIT/INT/AGI/DEX/SOR as documented in
+   the proposal, with HP/SP regeneration occurring every 10 ticks.
+5. Enforce weapon-required grind entry and forbid required-weapon unequip during grind,
+   while allowing legal weapon replacement.
+6. Replace the blurred map board with explicit clickable map tiles backed by /maps.
+7. Make the play shell responsive across desktop, tablet, and mobile.
+8. Simplify the main inventory header and fix SVG asset resolution.
+
+The existing Gambit parameter gap is explicitly **future work** and is not part of the
+next implementation: the editor needs controls such as 'Self HP is [< 30%] -> Use Skill
+[Heal]', but no new parameter schema should be invented in this change.
+
+### 10.2 Verification limits carried forward
+
+- Angular Karma/browser tests were not completed because the environment lacks a
+  ChromeHeadless binary.
+- Production Angular build passed for the first UI implementation.
+- openspec validate play-and-character-ui --strict passed for the previous change.
+- The next change must add real browser/session verification for the observed 401,
+  responsive layouts, map entry, fresh-character bootstrap, and asset loading.
+### 10.3 Architecture decision for the next pass
+
+The frontend must not reproduce battle formulas locally. Derived stats are an
+authoritative backend/game-engine concern and the Angular character screen consumes
+server values. Any formula change must be reflected in the engine/spec/tests first,
+then surfaced through the API contract.
+
+Likewise, weapon restrictions are gameplay invariants and must be enforced by the
+backend even if Angular disables or hides the corresponding controls.

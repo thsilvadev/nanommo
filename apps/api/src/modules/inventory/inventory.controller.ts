@@ -63,6 +63,13 @@ export class InventoryController {
     return { success: true };
   }
 
+  @Post('use')
+  async useConsumable(@Request() req: any, @Body() body: { itemId: string }) {
+    const userId = req.user.userId;
+    const character = await this.characterService.getCharacterByUserId(userId);
+    return this.inventoryService.useConsumable(character.id, body.itemId);
+  }
+
   /**
    * Transfer item to warehouse
    */

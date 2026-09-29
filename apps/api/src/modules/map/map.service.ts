@@ -1,9 +1,10 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { MapKillCounter, Character } from '../../database/entities';
+import { MapKillCounter, Character, User } from '../../database/entities';
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
+import { EquipmentService } from '../equipment/equipment.service';
 
 @Injectable()
 export class MapService {
@@ -14,34 +15,23 @@ export class MapService {
     private readonly mapKillCounterRepo: Repository<MapKillCounter>,
     @InjectRepository(Character)
     private readonly characterRepo: Repository<Character>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     private readonly dataService: DataService,
     private readonly battleService: BattleService,
+    private readonly equipmentService: EquipmentService,
   ) {}
 
   /**
    * Get all available maps
    */
   async getMaps(): Promise<any[]> {
-    const monsters = this.dataService.getMonsters();
-    if (!monsters) return [];
+    const data = this.dataService.getMonsters();
+    if (!data?.maps || !Array.isArray(data.maps)) return [];
 
-    // Extract unique maps from monsters
-    const mapsSet = new Set<string>();
-    const maps: any[] = [];
-
-    if (Array.isArray(monsters)) {
-      for (const monster of monsters) {
-        if (monster.mapId && !mapsSet.has(monster.mapId)) {
-          mapsSet.add(monster.mapId);
-          const map = this.dataService.getMapById(monster.mapId);
-          if (map) {
-            maps.push(map);
-          }
-        }
-      }
-    }
-
-    return maps;
+    // The canonical map catalog lives in monsters.json.maps.
+    // Return every configured map so the UI can show locked and unlocked maps.
+    return data.maps;
   }
 
   /**
@@ -50,11 +40,32 @@ export class MapService {
   async enterMap(characterId: string, mapId: string): Promise<void> {
     const character = await this.characterRepo.findOne({
       where: { id: characterId },
+      relations: ['user'],
     });
     if (!character) throw new NotFoundException('Character not found');
 
+    // Check email verification gate (§15.1)
+    const user = await this.userRepo.findOne({ where: { id: character.userId } });
+    if (user?.emailVerified !== true) {
+      throw new BadRequestException('EMAIL_NOT_VERIFIED');
+    }
+
     const map = this.dataService.getMapById(mapId);
     if (!map) throw new BadRequestException('Map not found');
+
+    const mainHand = await this.equipmentService.getEquippedInSlot(character.id, 'mainHand');
+    const weapon = mainHand ? this.dataService.getItemById(mainHand.itemId) : null;
+    if (!weapon || weapon.type !== 'equipment' || !weapon.weaponType) {
+      throw new BadRequestException('A valid main-hand weapon is required to enter grind');
+    }
+    const starterPotionCount = await this.battleService.getAvailablePotionCount(character.id);
+    const foodBuff = character.activeFoodBuff;
+    if (starterPotionCount <= 0) {
+      throw new BadRequestException('At least one HP potion is required to enter grind');
+    }
+    if (!foodBuff?.expiresAt || new Date(foodBuff.expiresAt).getTime() <= Date.now()) {
+      throw new BadRequestException('Character is hungry: eat food before entering grind');
+    }
 
     // Validate level requirement
     if (character.level < (map.unlockLevel || 1)) {
@@ -66,6 +77,7 @@ export class MapService {
     // Update character status
     character.currentMapId = mapId;
     character.status = 'grinding';
+    character.lastSeenAt = new Date();
     await this.characterRepo.save(character);
 
     // Queue initial battles
@@ -83,9 +95,12 @@ export class MapService {
     });
     if (!character) throw new NotFoundException('Character not found');
 
-    character.currentMapId = undefined;
+    // null, not undefined: TypeORM skips undefined columns on save
+    character.currentMapId = null as any;
     character.status = 'town';
+    character.lastSeenAt = new Date();
     await this.characterRepo.save(character);
+    await this.battleService.cancelPendingBattles(characterId);
 
     this.logger.debug(`Character ${characterId} left their map`);
   }

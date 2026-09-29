@@ -3,6 +3,8 @@ import { BullModule } from '@nestjs/bull';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
 import { CharacterModule } from './modules/character/character.module';
 import { BattleModule } from './modules/battle/battle.module';
@@ -13,9 +15,10 @@ import { MapModule } from './modules/map/map.module';
 import { TownModule } from './modules/town/town.module';
 import { MarketModule } from './modules/market/market.module';
 import { MailModule } from './modules/mail/mail.module';
+import { MailerModule } from './modules/mailer/mailer.module';
 import { ChatModule } from './modules/chat/chat.module';
-// import { GatewayModule } from './modules/gateway/gateway.module';
 import { DataModule } from './modules/data/data.module';
+import { GatewayModule } from './modules/gateway/gateway.module';
 
 @Module({
   imports: [
@@ -23,6 +26,12 @@ import { DataModule } from './modules/data/data.module';
       isGlobal: true,
       envFilePath: '../../.env',
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: parseInt(process.env.THROTTLE_TTL || '60000', 10),
+        limit: parseInt(process.env.THROTTLE_LIMIT || '60', 10),
+      },
+    ]),
     BullModule.forRoot({
       redis: {
         host: process.env.REDIS_HOST || 'localhost',
@@ -53,9 +62,16 @@ import { DataModule } from './modules/data/data.module';
     TownModule,
     MarketModule,
     MailModule,
+    MailerModule,
     ChatModule,
-    // GatewayModule,
     DataModule,
+    GatewayModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

@@ -199,7 +199,7 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | status | enum('town','grinding','dead_pending_return') | |
 | activeGambitPageId | uuid, FK → GambitPage, nullable | |
 | lastDeathLog | jsonb, nullable | see §7.7, overwritten each death |
-| activeFoodBuff | jsonb, nullable | `{ itemId, hpRegenPerTick, spRegenPerTick, expiresAt }` |
+| activeFoodBuff | jsonb, nullable | `{ itemId, hpRegenPerTenTicks, spRegenPerTenTicks, expiresAt }` |
 | activeTempBuffs | jsonb, default [] | array of `{ source, stat, mult|flat, expiresAt|expiresAtTick }` from skills like Bloodlust |
 | statusEffects | jsonb, default [] | array of `{ type, appliedAtTick, expiresAtTick, sourceSkillId }` |
 | lastSeenAt | timestamptz | for online/offline + presence |
@@ -224,7 +224,7 @@ Unique index on `(characterId, weaponType)`. One row per weapon type is created 
 | location | enum('inventory','warehouse') | inventory = 50 slots, warehouse = 10 slots |
 | slotIndex | int | position, enforced unique per `(characterId, location, slotIndex)` |
 | itemId | varchar | references static `items.json` id |
-| quantity | int, default 1 | stackables up to 20; equipment always 1 |
+| quantity | int, default 1 | stackables up to 50; equipment always 1 |
 | instanceData | jsonb, nullable | for equipment: `{ rolledAttribute, rolledValue }` (see §10.3). Null for stackables. |
 
 ### 4.5 `EquippedItem`
@@ -264,7 +264,7 @@ Unique index on `(characterId, weaponType)`. One row per weapon type is created 
 | resolved | boolean, default false | flips true once the resolver job has applied its effects |
 | seedUsed | varchar | the exact PRNG seed string used, for debugging/replay |
 
-Indexed on `(characterId, sequenceIndex)`. Only unresolved future entries live here; on resolve, the row is deleted (or archived — recommend deleting; the last-death log is copied into `Character.lastDeathLog` separately, so nothing is lost).
+Indexed on `(characterId, sequenceIndex)`. Only unresolved future entries live here. On resolve the row is **marked resolved, not deleted**: the row stays as the audit trail of what was fought, and "unresolved entries" means `resolved = false` (the field above) — every read path filters on it, including `GET /battles/queue` and the §7.5 recovery pass. The only rows ever **deleted** are the ones that never happened: the rest of the chain after a death (§7.6) and the chain invalidated by a level-up (§6.3/§3.4). The last-death log is copied into `Character.lastDeathLog` separately, so nothing is lost by keeping resolved rows.
 
 ### 4.8 `MapKillCounter`
 | field | type | notes |
@@ -355,23 +355,31 @@ These formulas were designed after the shape of Ragnarok Online (soft-cap DEF fo
 
 ### 5.2 Derived stat formulas
 
-Let `L` = character level, and all attribute values include equipment `statBonus` + random rolls.
+The six attributes are always present at character creation with value 5. Each point contributes to one or more derived stats through the following NanoMMO formulas. The design is inspired by Ragnarok Online relationships, but the numeric values are original to NanoMMO.
 
-```
-maxHp        = 80 + VIT*12 + L*18
-maxSp        = 40 + INT*10 + L*8
-atk          = STR*2.2 + DEX*0.5 + weaponFixedAtk            // physical
-matk         = INT*2.5 + DEX*0.3 + weaponFixedMatk           // magic
-def          = sum(equipment.def)                            // flat, no attribute contributes
-mdefPercent  = clamp(sum(equipment.mdefPercent), 0, 100)     // %, caps at 100 = magic immune
-accuracy     = 75 + DEX*1.0 + L*1.0
-evasion      = AGI*0.8
-critChance%  = clamp(1 + SOR*0.3, 1, 50)
-critMultiplier = 1.5                                          // fixed, TUNABLE
-hpRegenPerTick = 1 + floor(VIT*0.5) + floor(maxHp*0.005)
-spRegenPerTick = 1 + floor(INT*0.5) + floor(maxSp*0.01)
-moveSpeed    = reserved for future exploration features — not used by combat in MVP
-```
+attack = floor(STR * 2) + weaponAttack
+defense = equipmentDefense
+maxHp = 50 + floor(VIT * 18) + equipmentMaxHp
+maxSp = 20 + floor(INT * 8) + equipmentMaxSp
+attackSpeed = 100 + floor(AGI * 2)
+castSpeed = 100 + floor(DEX * 2)
+evasion = floor(AGI * 1.5)
+accuracy = 50 + floor(DEX * 2)
+hpRegenPerTenTicks = 1 + floor(VIT / 2)
+spRegenPerTenTicks = 1 + floor(INT / 2)
+critChance% = floor(SOR * 0.3 * 10) / 10
+
+Attack Speed and Cast Speed are displayed as ratings where higher is faster. The battle engine converts them into the existing weapon/skill gauge thresholds. Regeneration is recovered once every 10 ticks because one tick is one second.
+
+At level 1 with all six attributes at 5 and the starter sword's +8 ATK:
+
+ATK 18 | DEF 0 | Max HP 140 | Max SP 60
+Attack Speed 110 | Cast Speed 110
+Evasion 7 | Accuracy 60
+HP Regen 3 / 10 ticks | SP Regen 3 / 10 ticks
+Critical 2.5%
+
+Equipment stat bonuses are added to the corresponding attributes before these formulas. Flat equipment Max HP/Max SP and weapon ATK are added directly.
 
 **Physical damage mitigation (soft cap, avoids DEF ever reaching 100% reduction):**
 ```
@@ -443,9 +451,21 @@ Sanity checkpoints from the generated table (assumptions above): level 60 reache
 - `hpCurrent`/`spCurrent` are **not** auto-topped — a level-up mid-grind keeps current HP/SP ratio-adjusted: `hpCurrent = round(hpCurrent * newMaxHp/oldMaxHp)` (prevents a level-up from either healing for free or leaving HP nonsensically low relative to the new max).
 - Triggers a **battle queue recalculation** (§3.4) since stats changed.
 
+The ratio is taken between two `maxHp`/`maxSp` values, so **both ends must be derived from the same state the battles were simulated against** — the character's attributes *including* equipment `statBonus` (§5.2), with the character's real `def`/`mdefPercent`/weapon ATK as the third argument of `calculateDerivedStats`. Deriving the ratio from bare attributes instead scales an equipped character by the wrong factor (a level-1 character in tier-1 armour, VIT 5 → 26, would be scaled by 176/158 = 1.114 instead of 428/410 = 1.044, and the result would then be clamped against the wrong maximum). Implemented in `battle.service.ts:453-484`; verified by the equipped-character level-up scenario in `apps/api/test-phase3-levelup.js`.
+
+When one resolve crosses several thresholds, the whole batch is applied as a **single** ratio step from the stats before the first level-up to the stats after the last. With the current formulas (`maxHp = floor(80 + VIT*12 + level*18)` and `maxSp = floor(40 + INT*10 + level*8)`, both linear in level) compounding one step per level telescopes to the same product, so the choice is unobservable in `hpCurrent` today and only starts to matter if either formula gains a non-linear level term. Recorded, not fixed, in `design.md` as divergence #4.
+
 ### 6.4 XP loss on death
 
-On loss, before returning to town: `xp = max(0, xp - round(xpToNextLevel(currentLevel) * 0.05))` — i.e. **5% of the XP required for the current level** is lost, never dropping XP negative or below the previous level's cumulative threshold artificially (if the loss would de-level the character, clamp at `cumulativeXp[currentLevel-1]`, i.e. death can shave progress within a level but does not currently support de-leveling below the floor of the level — `TUNABLE` decision, documented here explicitly so it isn't silently changed).
+On loss, before returning to town: `xp = max(0, xp - floor(xpToNextLevel(currentLevel) * 0.05))` — i.e. **5% of the XP required for the current level** is lost, truncated to a whole number of XP and never dropping XP below 0.
+
+Two things this deliberately does *not* do, both settled as of 2026-09-28 (previously listed as divergence #1 in `design.md`; the code was kept and this section was brought in line with it):
+
+- **No `cumulativeXp` floor.** An earlier draft of this section clamped at `cumulativeXp[currentLevel-1]`. That clamp is undefined under the toward-next-level model §4.2 actually uses: `characters.xp` holds XP *toward the next level*, not a cumulative total, so there is no "previous level's threshold" to clamp at. The clamp at **0** is what actually prevents a de-level — a character who would lose more XP than they hold keeps their level and lands on exactly 0, never below.
+- **No rounding up.** `floor`, not `round`: at level 10 that is 1 XP where `round` would give 2.
+
+Implemented as written in `battle.service.ts:545-546`; verified by `apps/api/test-phase3-death.js` (level 10 → `floor(30 × 0.05) = 1`; level 20 seeded at 1 XP with `floor(73 × 0.05) = 3` → clamped to 0, level unchanged at 20).
+
 
 ### 6.5 Weapon proficiency XP formula
 
@@ -499,7 +519,7 @@ To satisfy "minimum requests, seemless experience" (confirmed design), the serve
 
 1. When a character enters a map (or the queue empties), the backend simulates **the next 5 battles in one shot**, chained: battle 2 starts from battle 1's `hpAfter`/`spAfter`/statuses/cooldown states, and so on. Each is written as a `BattleQueueEntry` with real wall-clock `startAt`/`endAt` (back-to-back, `startAt[n] = endAt[n-1]`).
 2. The full queue (5 entries, or fewer if a death cuts the chain short — see below) is sent to the client in one payload. The client renders the current battle's bar from `startAt`/`endAt` and has enough data to *know* what's coming next without asking.
-3. A **BullMQ delayed job** is scheduled for each entry's `endAt`. When it fires, the backend "resolves" that entry: applies `xpGain`, `goldGain`, inventory drops, HP/SP, death log if applicable, checks level-up, and emits a lightweight `battleResolved` socket event (the client already knew the outcome — this is just the authoritative sync + a trigger to fetch the extended queue). The resolved entry is then deleted, and if remaining queue depth `< 5` and the character is still alive and still on the map, **one new battle is appended** to bring it back to 5.
+3. A **BullMQ delayed job** is scheduled for each entry's `endAt`. When it fires, the backend "resolves" that entry: applies `xpGain`, `goldGain`, inventory drops, HP/SP, death log if applicable, checks level-up, and emits a lightweight `battleResolved` socket event (the client already knew the outcome — this is just the authoritative sync + a trigger to fetch the extended queue). The resolved entry is then **marked `resolved = true` and kept** (§4.7 — it is the audit trail, and it disappears from every live read path the moment `resolved` flips), and if remaining queue depth `< 5` and the character is still alive and still on the map, **one new battle is appended** to bring it back to 5.
 4. **If a battle in the pre-simulated chain ends in the character's death**, everything simulated *after* that point in the chain is simply never generated (the chain naturally stops there) — on resolve, the character is routed to town per §7.6, and no new battles are queued until the player returns to a map.
 
 This means, under ideal "automaticozão" conditions (good gambit, enough potions/food), the client can go minutes without a single request, and the server does a small burst of CPU work only every ~5 battles instead of on every single kill.
@@ -654,7 +674,7 @@ Every equipment item **template** in `items.json` defines:
 
 ### 10.5 Foods (buffs) — detail
 
-Per confirmed design: foods are 30-minute (`durationSeconds: 1800`) buffs granting **passive HP/SP regen per tick** on top of the normal `hpRegenPerTick`/`spRegenPerTick` formula, with varying HP:SP ratios (Bread and Roasted Boar Leg lean HP-heavy; Blueberries and Herbal Tea lean SP-heavy; Stew and Honey are balanced). Only **one** food buff is active at a time (`Character.activeFoodBuff`) — eating a new food overwrites the timer and values of the old one, it does not stack. A gambit line `self_hungry → use_item <food>` is the intended idiom for keeping a grind sustained indefinitely, exactly as specified (*"if hungry -> eat blueberry"*).
+Per confirmed design: foods are 60-minute (`durationSeconds: 3600`) buffs granting **passive HP/SP regen per 10 ticks** on top of the normal `hpRegenPerTenTicks`/`spRegenPerTenTicks` formula, with varying HP:SP ratios (Bread and Roasted Boar Leg lean HP-heavy; Blueberries and Herbal Tea lean SP-heavy; Stew and Honey are balanced). Only **one** food buff is active at a time (`Character.activeFoodBuff`) — eating a new food overwrites the timer and values of the old one, it does not stack. A gambit line `self_hungry → use_item <food>` is the intended idiom for keeping a grind sustained indefinitely, exactly as specified (*"if hungry -> eat blueberry"*).
 
 ---
 
@@ -863,41 +883,141 @@ Equipment changes, food consumption, attribute point allocation, inventory/wareh
 ### 17.1 Stack decisions
 
 - **Angular 18+**, standalone components throughout, no NgModules.
-- **State:** Signals for local component/feature state; a small set of injectable Signal-based "stores" in `core/state/` (e.g. `CharacterStore`, `InventoryStore`, `BattleStore`, `ChatStore`, `MarketStore`) exposing `signal()`/`computed()` and plain methods that call HTTP or push socket messages. RxJS is used specifically for the socket event streams (`Socket.IO` client wrapped in an RxJS `Observable` per event type) and for anything inherently stream-like (chat feed, presence ticks); it is bridged into signals via `toSignal()` where a component wants synchronous reads. No NgRx.
-- **Styling:** Tailwind CSS + Angular CDK (`DragDropModule` for the gambit editor and inventory grid, `OverlayModule` for tooltips/modals).
-- **i18n:** `@angular/localize`, `pt-BR` as the source/default locale, `en` scaffolded (extract via `ng extract-i18n`, translate the `en` xlf, build both locale bundles). Backend strings (error messages, item/monster names from the JSON data files) are **English-only** (confirmed) — the frontend is responsible for any translation of dynamic content it displays, via a lookup dictionary keyed by the static `id` fields (e.g. `monsters.json`'s `mon_slime` → i18n key `monster.mon_slime.name`), not by translating the JSON files themselves.
-- **Responsive/mobile-first:** every view must work at ≥360px width. The main grind/battle view and gambit editor are the two screens most likely to be checked from a phone — prioritize their mobile layout.
+- **State:** Signals for local/component state; small injectable Signal-based stores in
+  `core/state/` (`CharacterStore`, `InventoryStore`, `BattleStore`, `ChatStore`,
+  `MarketStore`). RxJS is reserved for Socket.IO event streams and genuinely stream-like
+  sources. No NgRx.
+- **Styling:** Tailwind CSS + Angular CDK (`DragDropModule` for drag/drop,
+  `OverlayModule` for tooltips/modals).
+- **i18n:** `@angular/localize`, pt-BR default + en scaffolded.
+- **Responsive:** every view works at >=360px. `/play` and Character/Gambit screens get
+  the highest responsive attention.
+- **Icons/assets:** dependency-free SVG assets and/or a small local `IconComponent`.
+  Angular Material is not required solely for icons.
 
 ### 17.2 Visual direction
 
-Dark UI, a monospace or pixel-leaning numeric typeface for stats/damage numbers (keeps the "numbers going up" idle-game feel readable), color-coded item rarity (common = white/grey, part-rare = blue, equipment tiers = green/blue/purple by tier 1/2/3, `TUNABLE` exact palette — see `frontend-design` skill for concrete token choices when implementing).
+NanoMMO is a **fantasy MMORPG game client**, not a SaaS dashboard.
+
+Visual language:
+- dark brown/black panel surfaces;
+- bronze/gold frames and highlights;
+- cream text;
+- red HP and blue SP;
+- compact numeric/data typography;
+- dense but readable hierarchy;
+- large framed game navigation tabs;
+- map-first visual center;
+- subtle inner highlights/noise and restrained shadows.
+
+Avoid white cards, glassmorphism, giant rounded SaaS cards, screenshot-as-background
+implementations, and unnecessary animation.
+
+The implementation-level visual contract is `PLAY_WINDOW_SPEC.md`.
+Concept references:
+- `assets/concepts/play-window-concept.png`
+- `assets/concepts/character-window-concept.png`
 
 ### 17.3 Routes
 
-```
+```text
 /login, /register, /verify-email, /reset-password
-/play                          -> shell layout (top bar + side panels), redirects to /play/town or /play/grind based on Character.status
-/play/town                     -> vendor, warehouse, market, mail tabs live here
-/play/grind                    -> map selection + battle bar + live event feed
-/play/character                -> stats, attribute allocation, equipment paper-doll
-/play/gambits                  -> gambit editor (3 pages)
+/play                          -> shell; redirects to town or grind by Character.status
+/play/town                     -> vendor, warehouse, market, mail
+/play/grind                    -> map selection + battle bar + inventory + event feed
+/play/character                -> Character / Gambits / Equipment internal tabs
+/play/gambits                  -> deep-link to /play/character with Gambits selected
 ```
 
-### 17.4 Layout
+There is one Gambit editor implementation. `/play/gambits` is a route-level entry point,
+not a second editor.
 
-Persistent top bar: character name/level, gold, mail badge (numeric), online/map presence counter, chat toggle. Left panel: character portrait/stats/equipment paper-doll. Center: context-dependent — map view with the battle progress bar and a live scrolling event feed while grinding ("You defeated Slime, +18 XP, dropped Slime Gel") or the Town hub (vendor/warehouse/market/mail as sub-tabs) while in town. Right panel: inventory grid (50 slots) + quick access to the gambit editor. Chat is a collapsible panel/drawer, always reachable regardless of current view (confirmed always-available design), with Global/Town tabs.
+### 17.4 Global layout
 
-### 17.5 Gambit editor UX
+At desktop widths, the shell uses:
+- persistent top bar;
+- left character summary;
+- center context;
+- right grind/progression panel;
+- collapsible chat drawer.
 
-- A **reorderable list** (Angular CDK `cdkDropList`/`cdkDrag`) of up to 20 rows per page, each row: condition 1 (select), optional AND/OR (select) + condition 2 (select), action (select), and a small toggle switch to enable/disable that line without deleting it (a disabled line is skipped entirely by the engine — store as an `enabled: boolean` on `GambitLine`, add it to the shape in §8.2).
-- Condition/action selects are populated from `gambit_catalog.json`; `use_skill`/`use_item` sub-selects only list options relevant to the currently equipped weapon/owned items, but — per §8.5 — do **not** hide unavailable ones entirely; instead grey them out with a tooltip, so the player can still pre-configure a page for gear they plan to switch to.
-- Row-level "enabled" toggle icon (e.g. a small power icon) is separate from the greyed-out-due-to-unavailable state — a line can be enabled but currently unusable (grey + tooltip), or explicitly disabled by the player (also visually muted, but with a distinct icon state, e.g. a struck-through toggle vs. a warning-triangle tooltip).
-- A page-level "Title" text input and a tab strip to switch between the 3 pages, with a clear "Active" badge on whichever page is currently live, and the "set active" action disabled (with an explanatory tooltip) while a battle is in flight (§8.1).
-- No dry-run/simulation UI in MVP (explicitly descoped).
+The `/play/grind` center is:
+- `Currently in: {mapName}`;
+- illustrated fantasy map;
+- selectable square grind tiles;
+- battle progress/status;
+- 50-slot inventory.
 
-### 17.6 Feedback & feel
+The left panel answers who the character is, what is equipped, HP/SP, active statuses,
+and derived combat stats.
 
-Toasts for drops/level-ups, a live scrolling combat/event feed during grind, sound effects on key moments (hit, crit, level-up, death — short, non-looping SFX, muteable), and the "Last Death" button opening a modal that renders `Character.lastDeathLog` (§7.7) as a readable timeline with damage-source breakdown. Battle progress bar is driven purely by `startAt`/`endAt` timestamps from the current `BattleQueueEntry` (survives page refresh cleanly — on load, fetch the live queue and compute bar position from `now()` relative to those timestamps, no client-side battle state to rehydrate).
+The right panel answers what is being fought, consumable availability, XP progress,
+current battle time, and weapon proficiency.
+
+Exact component composition, dimensions, responsive behavior, visual tokens and states
+are defined in `PLAY_WINDOW_SPEC.md`.
+
+### 17.5 Character screen
+
+`/play/character` is the extended character-management screen.
+
+Internal tabs:
+1. **Character** — attribute allocation, derived stats, status effects, paper doll,
+   weapon proficiency and build summary.
+2. **Gambits** — the full three-page Gambit editor.
+3. **Equipment** — detailed equipment/paper-doll management.
+
+Attribute allocation:
+- shows all six attributes;
+- shows unspent points;
+- +/- controls;
+- pending preview;
+- Reset Allocation;
+- Apply Changes;
+- remains visible but disabled at 0 points;
+- server rejection restores authoritative state and shows a specific error.
+
+The screen exposes the 8 equipment slots:
+`head, body, mainHand, offHand, shoes, cape, accessoryLeft, accessoryRight`.
+
+### 17.6 Gambit editor UX
+
+- Reorderable list using Angular CDK `cdkDropList`/`cdkDrag`, up to 20 rows per page.
+- Each row: condition 1, optional AND/OR + condition 2, action, enabled toggle.
+- Condition/action selects come from `gambit_catalog.json`.
+- Unavailable actions remain visible but greyed out with an explanatory tooltip.
+- Disabled-by-player and unavailable-by-state are visually distinct.
+- Three pages, one active page, optional title.
+- Switching active page is blocked while a battle is in flight.
+- Server field-level validation highlights the exact failing control.
+- No dry-run/simulation UI in MVP.
+
+### 17.7 Feedback & feel
+
+- Toasts for drops and level-ups.
+- Live event feed during grind.
+- Short, muteable SFX for hit, crit, level-up and death.
+- Last Death modal renders `Character.lastDeathLog`.
+- Battle progress is calculated only from server `startAt`/`endAt` timestamps.
+- Reduced-motion mode disables nonessential movement/scroll animations.
+
+### 17.8 Asset and Angular implementation policy
+
+Use semantic DOM and CSS grid/flex. Do not recreate the reference screenshot through
+absolute pixel positioning.
+
+Preferred icons:
+- SVG assets in `assets/ui/`;
+- local `IconComponent` for dynamic state/color;
+- CSS/Tailwind for panel surfaces, borders, bars and state styling.
+
+Use Angular CDK for drag/drop and overlay behavior. Do not add another UI framework merely
+to obtain icons.
+
+### 17.9 Detailed screen specification
+
+See `FRONTEND_SPEC.md` and `PLAY_WINDOW_SPEC.md` for the route-by-route implementation
+contract, states, component boundaries and responsive behavior.
 
 ---
 
@@ -1085,10 +1205,10 @@ Use these as literal, sequential prompts to your IDE's AI assistant, one at a ti
 9. **Backend: battle module + gateway.** Wire the shared battle engine into the real flow: map:enter → build 5-deep queue → BullMQ scheduled resolution → crash recovery on boot (§7.4–§7.6). This is the most complex phase — budget real time for it, and lean on the §19.1 snapshot tests plus the new §19.4 integration tests to verify correctness.
 10. **Backend: inventory, equipment drops, market, mail, warehouse, vendor.** §10, §12–§14. Pay special attention to the transactional locking rules in §15.5.
 11. **Backend: chat + presence.** Redis-backed rooms, rate limiting, mute/report flow (§12.3).
-12. **Frontend: shell + auth.** Routes, layout, login/register/verify/reset screens, the socket connection service.
-13. **Frontend: character sheet + equipment paper-doll + gambit editor.** §17.5 in full, including the greyed-out/tooltip behavior wired to real catalog + character state.
-14. **Frontend: grind view + battle bar + event feed + town hub (vendor/warehouse/market/mail) + chat drawer.** §17.4/§17.6.
-15. **Polish pass.** Sound effects, toasts, i18n extraction (pt-BR/en), responsive pass on the two priority mobile screens (§17.1).
+12. **Frontend: shell + auth.** Routes, game-client visual shell, login/register/verify/reset screens, socket connection service, and shared SVG icon/panel primitives.
+13. **Frontend: character sheet + equipment paper-doll + Gambit sub-tab/editor.** Implement `/play/character` with Character/Gambits/Equipment tabs and `/play/gambits` as a deep-link to the same Gambit implementation.
+14. **Frontend: grind view + battle bar + 50-slot inventory + map tile selection + event feed + town hub + chat drawer.** Follow `FRONTEND_SPEC.md` and `PLAY_WINDOW_SPEC.md` without changing backend contracts.
+15. **Polish pass.** Sound effects, toasts, i18n extraction (pt-BR/en), reduced-motion, accessibility, responsive pass, and visual consistency against the concept references.
 16. **Balance pass.** Run the §19.3 simulation script, adjust `TUNABLE` constants as needed, regenerate the two XP curve JSONs if `C1`/exponents change.
 
 ---

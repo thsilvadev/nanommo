@@ -1,40 +1,24 @@
-import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { Router, RouterOutlet } from '@angular/router';
 import { AuthStore } from '../../core/auth.store';
-
+import { BattleStore, CharacterStore, InventoryStore } from '../../core/game.store';
+import { CatalogService } from '../../core/catalog.service';
+import { GameSocketService } from '../../core/game.socket.service';
+import { CharacterSummary, GrindInfo, WeaponProficiency, ChatDrawer } from './components';
 @Component({
-  selector: 'app-play',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
-    <div class="min-h-screen bg-gray-900 flex items-center justify-center px-4">
-      <div class="text-center">
-        <h1 class="text-4xl font-bold text-white mb-6">NanoMMO</h1>
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-12 max-w-md mx-auto">
-          <p class="text-xl text-gray-300 mb-8">Em manutenção — volte em breve</p>
-          <div class="flex items-center justify-center gap-4 text-sm text-gray-500 mb-8">
-            <span>Logado como: </span>
-            <strong class="text-white">{{ username() }}</strong>
-          </div>
-          <button
-            (click)="onLogout()"
-            class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-          >
-            Sair
-          </button>
-        </div>
-      </div>
-    </div>
-  `,
+ selector:'app-play', standalone:true, imports:[CommonModule,RouterOutlet,CharacterSummary,GrindInfo,WeaponProficiency,ChatDrawer],
+ templateUrl:'./play.component.html', styleUrl:'./play.component.css'
 })
-export class PlayComponent {
-  private readonly authStore = inject(AuthStore);
-
-  username = computed(() => this.authStore.userPayload()?.username || '');
-
-  onLogout(): void {
-    this.authStore.logout();
-  }
+export class PlayComponent implements OnInit {
+ readonly auth=inject(AuthStore); readonly character=inject(CharacterStore); private readonly battle=inject(BattleStore);
+ private readonly inventory=inject(InventoryStore); private readonly catalog=inject(CatalogService); private readonly socket=inject(GameSocketService);
+ private readonly router=inject(Router); readonly chatOpen=signal(false); readonly settingsOpen=signal(false); readonly deleteAccountOpen=signal(false); readonly deleteConfirm=signal(''); readonly deleteAccountError=signal<string | null>(null);
+ ngOnInit(){this.socket.connect();this.battle.bindEvents(this.character,this.inventory);void Promise.all([this.character.load(),this.inventory.load(),this.battle.load(),this.catalog.load()]);}
+ go(path:string){void this.router.navigateByUrl(path)} goCharacter(){void this.router.navigate(['/play/character'],{queryParams:{tab:'character'}})} is(path:string){return this.router.url.split('?')[0]===path}
+ xpWidth(){const c=this.character.character();return c?.xpToNext?Math.max(0,Math.min(100,c.xp/c.xpToNext*100)):0}
+ xpTitle(){const c=this.character.character();return c?`XP ${c.xp} / ${c.xpToNext}`:'XP'}
+ openDeleteAccount(){this.settingsOpen.set(false);this.deleteConfirm.set('');this.deleteAccountError.set(null);this.deleteAccountOpen.set(true)}
+ cancelDeleteAccount(){this.deleteAccountOpen.set(false);this.deleteConfirm.set('');this.deleteAccountError.set(null)}
+ confirmDeleteAccount(){if(this.deleteConfirm()!=='DELETE') return;this.deleteAccountError.set(null);this.auth.deleteAccount().subscribe({next:()=>{this.cancelDeleteAccount();this.auth.logout()},error:(err)=>this.deleteAccountError.set(err.error?.message||'Unable to delete account')})}
 }
-
-import { inject, computed } from '@angular/core';

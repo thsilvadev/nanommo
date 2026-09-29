@@ -11,7 +11,7 @@ export class MarketOrder {
   @Column({ type: 'uuid' })
   characterId!: string;
 
-  @ManyToOne(() => Character)
+  @ManyToOne(() => Character, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'characterId' })
   character?: Character;
 

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<symbol id="sword" viewBox="0 0 24 24"><path d="M5 19L18 6"/><path d="M14 4l6 6"/><path d="M13 5l6 6"/><path d="M4 20l5-1-4-4-1 5Z"/></symbol>
+<symbol id="shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3.2 8-7 10-3.8-2-7-5-7-10V6l7-3Z"/><path d="M12 7v9M8.5 10.5h7"/></symbol>
+<symbol id="helmet" viewBox="0 0 24 24"><path d="M5 15V11a7 7 0 0 1 14 0v4"/><path d="M4 15h16v3H4z"/><path d="M12 4v7"/></symbol>
+<symbol id="armor" viewBox="0 0 24 24"><path d="M8 4l4 2 4-2 3 4-2 3v9H7v-9L5 8l3-4Z"/><path d="M9 8l3 2 3-2"/></symbol>
+<symbol id="boots" viewBox="0 0 24 24"><path d="M7 4h5v9l4 3 3 4H4v-3l4-2-1-11Z"/><path d="M8 13h4"/></symbol>
+<symbol id="cape" viewBox="0 0 24 24"><path d="M8 4h8l3 16-7-3-7 3 3-16Z"/><path d="M10 7h4"/></symbol>
+<symbol id="ring" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><path d="M12 4V2"/></symbol>
+<symbol id="potion" viewBox="0 0 24 24"><path d="M9 3h6M10 3v3l-3 4v8h10v-8l-3-4V3"/><path d="M7 11h10"/></symbol>
+<symbol id="food" viewBox="0 0 24 24"><path d="M4 14c2-5 6-7 10-6 3 .8 5 3 6 6-4 3-11 4-16 0Z"/><path d="M7 13c2 1 5 1 8 0"/></symbol>
+<symbol id="coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M14 8.5c-1.5-1-4-.5-4 1 0 2 4 1 4 3 0 1.5-2.5 2-4 1"/><path d="M12 7v10"/></symbol>
+<symbol id="mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
+<symbol id="chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4v-4H4z"/><path d="M8 10h8M8 13h5"/></symbol>
+<symbol id="map" viewBox="0 0 24 24"><path d="m4 5 5-2 6 2 5-2v16l-5 2-6-2-5 2V5Z"/><path d="M9 3v16M15 5v16"/></symbol>
+<symbol id="grind" viewBox="0 0 24 24"><path d="M6 18 18 6"/><path d="m7 7 4 4M13 13l4 4"/><path d="M5 5h5v5H5zM14 14h5v5h-5z"/></symbol>
+<symbol id="trade" viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/><path d="M17 5v6M7 13v6"/></symbol>
+<symbol id="settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a8 8 0 0 0-1.7-1L14.5 3h-4l-.4 2a8 8 0 0 0-1.7 1L6 6 4 9.5 6.1 11a7 7 0 0 0 0 2L4 14.5 6 18l2.4-1a8 8 0 0 0 1.7 1l.4 2h4l.4-2a8 8 0 0 0 1.7-1l2.4 1 2-3.5-2-1.5a7 7 0 0 0 0-2Z"/></symbol>
+<symbol id="heart" viewBox="0 0 24 24"><path d="M20 9c0 5-8 10-8 10S4 14 4 9a4 4 0 0 1 7-2 4 4 0 0 1 9 2Z"/></symbol>
+<symbol id="mana" viewBox="0 0 24 24"><path d="M12 3s6 6 6 11a6 6 0 0 1-12 0c0-5 6-11 6-11Z"/></symbol>
+<symbol id="target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+<symbol id="star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></symbol>
+<symbol id="cross" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
+<symbol id="minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+<symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+<symbol id="warning" viewBox="0 0 24 24"><path d="m12 3 9 16H3L12 3Z"/><path d="M12 9v4M12 16h.01"/></symbol>
+<symbol id="inventory" viewBox="0 0 24 24"><path d="M4 7h16v13H4z"/><path d="m4 7 2-4h12l2 4M8 11h8M9 15h6"/></symbol>
+<symbol id="scroll" viewBox="0 0 24 24"><path d="M7 4h11v15H7a3 3 0 1 1 0-6h11"/><path d="M7 13h11"/></symbol>
+<symbol id="weapon" viewBox="0 0 24 24"><path d="M5 19 18 6"/><path d="M15 4l5 5"/><path d="M4 20h5M6 16l3 3"/></symbol>
+<symbol id="magic" viewBox="0 0 24 24"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m18 15 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15Z"/></symbol>
+</svg>

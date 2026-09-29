@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, UseGuards, Request, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, UseGuards, Request, Body, Param, NotFoundException } from '@nestjs/common';
 import { GambitService } from './gambit.service';
 import { CharacterService } from '../character/character.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -12,24 +12,38 @@ export class GambitController {
   ) {}
 
   /**
+   * The JWT carries `userId`, never `characterId` (see STATUS §1).
+   */
+  private async requireCharacter(req: any) {
+    const character = await this.characterService.getCharacterByUserId(req.user.userId);
+    if (!character) {
+      throw new NotFoundException('Character not found');
+    }
+    return character;
+  }
+
+  /**
    * Get all gambit pages for the character
    */
   @Get()
   async getGambitPages(@Request() req: any) {
-    const userId = req.user.userId;
-    const character = await this.characterService.getCharacterByUserId(userId);
-    if (!character) {
-      return [];
-    }
+    const character = await this.requireCharacter(req);
     return this.gambitService.getGambitPages(character.id);
   }
 
   /**
-   * Get a specific gambit page
+   * Get a specific gambit page.
+   * Scoped to the caller's character: without this, any authenticated user
+   * could read another character's gambit page by guessing a pageId.
    */
   @Get(':pageId')
-  async getGambitPage(@Param('pageId') pageId: string) {
-    return this.gambitService.getGambitPage(pageId);
+  async getGambitPage(@Request() req: any, @Param('pageId') pageId: string) {
+    const character = await this.requireCharacter(req);
+    const page = await this.gambitService.getGambitPage(pageId);
+    if (!page || page.characterId !== character.id) {
+      throw new NotFoundException('Gambit page not found');
+    }
+    return page;
   }
 
   /**
@@ -37,11 +51,7 @@ export class GambitController {
    */
   @Post()
   async createGambitPage(@Request() req: any, @Body() pageData: any) {
-    const userId = req.user.userId;
-    const character = await this.characterService.getCharacterByUserId(userId);
-    if (!character) {
-      throw new Error('Character not found');
-    }
+    const character = await this.requireCharacter(req);
     return this.gambitService.createGambitPage(character.id, pageData);
   }
 
@@ -49,16 +59,22 @@ export class GambitController {
    * Update a gambit page
    */
   @Put(':pageId')
-  async updateGambitPage(@Param('pageId') pageId: string, @Body() pageData: any) {
-    return this.gambitService.updateGambitPage(pageId, pageData);
+  async updateGambitPage(
+    @Request() req: any,
+    @Param('pageId') pageId: string,
+    @Body() pageData: any,
+  ) {
+    const character = await this.requireCharacter(req);
+    return this.gambitService.updateGambitPage(character.id, pageId, pageData);
   }
 
   /**
    * Delete a gambit page
    */
   @Delete(':pageId')
-  async deleteGambitPage(@Param('pageId') pageId: string) {
-    await this.gambitService.deleteGambitPage(pageId);
+  async deleteGambitPage(@Request() req: any, @Param('pageId') pageId: string) {
+    const character = await this.requireCharacter(req);
+    await this.gambitService.deleteGambitPage(character.id, pageId);
     return { success: true };
   }
 
@@ -67,11 +83,7 @@ export class GambitController {
    */
   @Put(':pageId/activate')
   async activateGambitPage(@Request() req: any, @Param('pageId') pageId: string) {
-    const userId = req.user.userId;
-    const character = await this.characterService.getCharacterByUserId(userId);
-    if (!character) {
-      throw new Error('Character not found');
-    }
+    const character = await this.requireCharacter(req);
     return this.gambitService.activateGambitPage(character.id, pageId);
   }
 

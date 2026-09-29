@@ -11,14 +11,14 @@ export class ChatReport {
   @Column({ type: 'uuid' })
   reporterUserId!: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'reporterUserId' })
   reporterUser?: User;
 
   @Column({ type: 'uuid' })
   reportedUserId!: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'reportedUserId' })
   reportedUser?: User;
 

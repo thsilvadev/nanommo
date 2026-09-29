@@ -1,0 +1,1026 @@
+{
+  "maps": [
+    {
+      "id": "map_green_grounds",
+      "name": "Green Grounds",
+      "unlockLevel": 1
+    },
+    {
+      "id": "map_menace",
+      "name": "Menace",
+      "unlockLevel": 8
+    },
+    {
+      "id": "map_ruins",
+      "name": "Ruins",
+      "unlockLevel": 15
+    }
+  ],
+  "monsters": [
+    {
+      "id": "mon_slime",
+      "name": "Slime",
+      "map": "map_green_grounds",
+      "level": 1,
+      "hp": 65,
+      "atk": 9,
+      "matk": 6,
+      "def": 1,
+      "mdefPercent": 0,
+      "accuracy": 61,
+      "evasion": 1,
+      "critChance": 3.1,
+      "atkSpeedTicks": 7,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "warrior",
+      "favoredAgainstArchetypeLabel": "Warrior (melee)",
+      "damageTakenMultiplier": {
+        "melee": 1.3,
+        "ranged": 1.0,
+        "magic": 0.7
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 18,
+      "goldReward": {
+        "min": 3,
+        "max": 7
+      },
+      "designNote": "Soft-bodied and slow; folds instantly under raw physical hits but its jelly absorbs some magic.",
+      "drops": [
+        {
+          "itemId": "part_slime_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_slime_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_green_grounds_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_fieldbat",
+      "name": "Field Bat",
+      "map": "map_green_grounds",
+      "level": 2,
+      "hp": 94,
+      "atk": 11,
+      "matk": 8,
+      "def": 3,
+      "mdefPercent": 0,
+      "accuracy": 62,
+      "evasion": 2,
+      "critChance": 3.3,
+      "atkSpeedTicks": 5,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "archer",
+      "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
+      "damageTakenMultiplier": {
+        "melee": 0.7,
+        "ranged": 1.3,
+        "magic": 1.0
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 40,
+      "goldReward": {
+        "min": 6,
+        "max": 12
+      },
+      "designNote": "Erratic flight pattern rewards precise ranged shots; melee users struggle to land hits.",
+      "drops": [
+        {
+          "itemId": "part_fieldbat_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_fieldbat_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_green_grounds_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_thornsprout",
+      "name": "Thorn Sprout",
+      "map": "map_green_grounds",
+      "level": 3,
+      "hp": 128,
+      "atk": 14,
+      "matk": 11,
+      "def": 4,
+      "mdefPercent": 0,
+      "accuracy": 63,
+      "evasion": 2,
+      "critChance": 3.5,
+      "atkSpeedTicks": 6,
+      "element": "earth",
+      "elementalResistances": [
+        "earth"
+      ],
+      "favoredAgainstArchetype": "mage",
+      "favoredAgainstArchetypeLabel": "Mage (ranged magic)",
+      "damageTakenMultiplier": {
+        "melee": 1.0,
+        "ranged": 0.7,
+        "magic": 1.3
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 64,
+      "goldReward": {
+        "min": 10,
+        "max": 18
+      },
+      "designNote": "Bark-like hide shrugs off arrows but burns easily under spellfire.",
+      "drops": [
+        {
+          "itemId": "part_thornsprout_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_thornsprout_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_green_grounds_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_mudcrawler",
+      "name": "Mud Crawler",
+      "map": "map_green_grounds",
+      "level": 4,
+      "hp": 164,
+      "atk": 16,
+      "matk": 13,
+      "def": 6,
+      "mdefPercent": 0,
+      "accuracy": 64,
+      "evasion": 3,
+      "critChance": 3.6,
+      "atkSpeedTicks": 8,
+      "element": "water",
+      "elementalResistances": [
+        "water"
+      ],
+      "favoredAgainstArchetype": "priest",
+      "favoredAgainstArchetypeLabel": "Priest (healer/sustain)",
+      "damageTakenMultiplier": {
+        "melee": 1.1,
+        "ranged": 1.1,
+        "magic": 0.9
+      },
+      "sustainPressure": true,
+      "ability": null,
+      "xpReward": 89,
+      "goldReward": {
+        "min": 13,
+        "max": 23
+      },
+      "designNote": "Regenerates slowly from the wet soil every few ticks; short bursts don't finish it off, but sustained pressure does.",
+      "drops": [
+        {
+          "itemId": "part_mudcrawler_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_mudcrawler_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_green_grounds_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_direwolf",
+      "name": "Dire Wolf Alpha",
+      "map": "map_green_grounds",
+      "level": 6,
+      "hp": 247,
+      "atk": 22,
+      "matk": 17,
+      "def": 8,
+      "mdefPercent": 0,
+      "accuracy": 67,
+      "evasion": 5,
+      "critChance": 3.9,
+      "atkSpeedTicks": 4,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "None (all-rounder)",
+      "damageTakenMultiplier": {
+        "melee": 1.0,
+        "ranged": 1.0,
+        "magic": 1.0
+      },
+      "sustainPressure": false,
+      "ability": "enrage_massive_damage",
+      "xpReward": 141,
+      "goldReward": {
+        "min": 19,
+        "max": 35
+      },
+      "designNote": "Pack leader; below 30% HP it lets out a howl and unleashes a single devastating strike.",
+      "drops": [
+        {
+          "itemId": "part_direwolf_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_direwolf_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_green_grounds_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "self_hp_below_percent",
+            "value": 30
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_massive_damage"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_sandscorpion",
+      "name": "Sand Scorpion",
+      "map": "map_menace",
+      "level": 7,
+      "hp": 294,
+      "atk": 24,
+      "matk": 19,
+      "def": 10,
+      "mdefPercent": 0,
+      "accuracy": 68,
+      "evasion": 6,
+      "critChance": 4.0,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [
+        "earth"
+      ],
+      "favoredAgainstArchetype": "warrior",
+      "favoredAgainstArchetypeLabel": "Warrior (melee)",
+      "damageTakenMultiplier": {
+        "melee": 1.3,
+        "ranged": 1.0,
+        "magic": 0.7
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 169,
+      "goldReward": {
+        "min": 22,
+        "max": 40
+      },
+      "designNote": "Thick carapace resists blades, but its exposed underside is an easy magic target.",
+      "drops": [
+        {
+          "itemId": "part_sandscorpion_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_sandscorpion_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_menace_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_duneraider",
+      "name": "Dune Raider",
+      "map": "map_menace",
+      "level": 9,
+      "hp": 395,
+      "atk": 29,
+      "matk": 24,
+      "def": 13,
+      "mdefPercent": 0,
+      "accuracy": 70,
+      "evasion": 7,
+      "critChance": 4.3,
+      "atkSpeedTicks": 5,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "archer",
+      "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
+      "damageTakenMultiplier": {
+        "melee": 0.7,
+        "ranged": 1.3,
+        "magic": 1.0
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 225,
+      "goldReward": {
+        "min": 29,
+        "max": 51
+      },
+      "designNote": "A nimble desert bandit that dodges arrows on reflex but can't avoid a sword up close... or a fireball.",
+      "drops": [
+        {
+          "itemId": "part_duneraider_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_duneraider_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_menace_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_cindergolem",
+      "name": "Cinder Golem",
+      "map": "map_menace",
+      "level": 10,
+      "hp": 449,
+      "atk": 32,
+      "matk": 26,
+      "def": 14,
+      "mdefPercent": 0,
+      "accuracy": 71,
+      "evasion": 8,
+      "critChance": 4.5,
+      "atkSpeedTicks": 9,
+      "element": "fire",
+      "elementalResistances": [
+        "fire"
+      ],
+      "favoredAgainstArchetype": "mage",
+      "favoredAgainstArchetypeLabel": "Mage (ranged magic)",
+      "damageTakenMultiplier": {
+        "melee": 1.0,
+        "ranged": 0.7,
+        "magic": 1.3
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 254,
+      "goldReward": {
+        "min": 32,
+        "max": 57
+      },
+      "designNote": "Molten rock body is naturally resistant to fire and physical blows alike, but its cracked core is vulnerable to raw spellpower.",
+      "drops": [
+        {
+          "itemId": "part_cindergolem_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_cindergolem_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_menace_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_venomviper",
+      "name": "Venom Viper",
+      "map": "map_menace",
+      "level": 12,
+      "hp": 567,
+      "atk": 37,
+      "matk": 30,
+      "def": 17,
+      "mdefPercent": 0,
+      "accuracy": 73,
+      "evasion": 10,
+      "critChance": 4.8,
+      "atkSpeedTicks": 6,
+      "element": "shadow",
+      "elementalResistances": [
+        "shadow"
+      ],
+      "favoredAgainstArchetype": "priest",
+      "favoredAgainstArchetypeLabel": "Priest (healer/sustain)",
+      "damageTakenMultiplier": {
+        "melee": 1.1,
+        "ranged": 1.1,
+        "magic": 0.9
+      },
+      "sustainPressure": true,
+      "ability": "self_heal",
+      "xpReward": 314,
+      "goldReward": {
+        "min": 38,
+        "max": 68
+      },
+      "designNote": "Coils and regenerates its poison glands mid-fight; only sustained healing keeps pace with its bite.",
+      "drops": [
+        {
+          "itemId": "part_venomviper_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_venomviper_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_menace_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "self_hp_below_percent",
+            "value": 50
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_self_heal"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_mirageStalker",
+      "name": "Mirage Stalker",
+      "map": "map_menace",
+      "level": 13,
+      "hp": 630,
+      "atk": 40,
+      "matk": 33,
+      "def": 18,
+      "mdefPercent": 0,
+      "accuracy": 74,
+      "evasion": 10,
+      "critChance": 5.0,
+      "atkSpeedTicks": 5,
+      "element": "wind",
+      "elementalResistances": [
+        "wind"
+      ],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "None (all-rounder)",
+      "damageTakenMultiplier": {
+        "melee": 1.0,
+        "ranged": 1.0,
+        "magic": 1.0
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 344,
+      "goldReward": {
+        "min": 42,
+        "max": 74
+      },
+      "designNote": "A desert predator with no clear weakness, hitting hard from stealth.",
+      "drops": [
+        {
+          "itemId": "part_mirageStalker_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_mirageStalker_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_menace_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_brokensentinel",
+      "name": "Broken Sentinel",
+      "map": "map_ruins",
+      "level": 14,
+      "hp": 695,
+      "atk": 42,
+      "matk": 35,
+      "def": 20,
+      "mdefPercent": 0,
+      "accuracy": 75,
+      "evasion": 11,
+      "critChance": 5.1,
+      "atkSpeedTicks": 8,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "warrior",
+      "favoredAgainstArchetypeLabel": "Warrior (melee)",
+      "damageTakenMultiplier": {
+        "melee": 1.3,
+        "ranged": 1.0,
+        "magic": 0.7
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 374,
+      "goldReward": {
+        "min": 45,
+        "max": 79
+      },
+      "designNote": "Ancient stone construct, armored against blades but its rune-core is exposed to magic.",
+      "drops": [
+        {
+          "itemId": "part_brokensentinel_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_brokensentinel_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_wraith",
+      "name": "Wailing Wraith",
+      "map": "map_ruins",
+      "level": 16,
+      "hp": 833,
+      "atk": 48,
+      "matk": 39,
+      "def": 22,
+      "mdefPercent": 0,
+      "accuracy": 78,
+      "evasion": 13,
+      "critChance": 5.4,
+      "atkSpeedTicks": 4,
+      "element": "shadow",
+      "elementalResistances": [
+        "shadow"
+      ],
+      "favoredAgainstArchetype": "archer",
+      "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
+      "damageTakenMultiplier": {
+        "melee": 0.7,
+        "ranged": 1.3,
+        "magic": 1.0
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 437,
+      "goldReward": {
+        "min": 51,
+        "max": 91
+      },
+      "designNote": "A fast incorporeal spirit that phases through slow melee swings but can't avoid a well-aimed shot.",
+      "drops": [
+        {
+          "itemId": "part_wraith_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_wraith_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_arcanewisp",
+      "name": "Arcane Wisp",
+      "map": "map_ruins",
+      "level": 17,
+      "hp": 906,
+      "atk": 50,
+      "matk": 41,
+      "def": 24,
+      "mdefPercent": 0,
+      "accuracy": 79,
+      "evasion": 14,
+      "critChance": 5.5,
+      "atkSpeedTicks": 6,
+      "element": "holy",
+      "elementalResistances": [
+        "holy"
+      ],
+      "favoredAgainstArchetype": "mage",
+      "favoredAgainstArchetypeLabel": "Mage (ranged magic)",
+      "damageTakenMultiplier": {
+        "melee": 1.0,
+        "ranged": 0.7,
+        "magic": 1.3
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 468,
+      "goldReward": {
+        "min": 54,
+        "max": 96
+      },
+      "designNote": "Pure magical energy resists spells but is snuffed out easily by physical force.",
+      "drops": [
+        {
+          "itemId": "part_arcanewisp_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_arcanewisp_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_boneknight",
+      "name": "Bone Knight",
+      "map": "map_ruins",
+      "level": 19,
+      "hp": 1059,
+      "atk": 55,
+      "matk": 46,
+      "def": 27,
+      "mdefPercent": 0,
+      "accuracy": 81,
+      "evasion": 15,
+      "critChance": 5.8,
+      "atkSpeedTicks": 7,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "priest",
+      "favoredAgainstArchetypeLabel": "Priest (healer/sustain)",
+      "damageTakenMultiplier": {
+        "melee": 1.1,
+        "ranged": 1.1,
+        "magic": 0.9
+      },
+      "sustainPressure": true,
+      "ability": "self_heal",
+      "xpReward": 532,
+      "goldReward": {
+        "min": 61,
+        "max": 107
+      },
+      "designNote": "Undead guardian bound by old rites; it knits its bones back together unless burned down fast and kept down.",
+      "drops": [
+        {
+          "itemId": "part_boneknight_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_boneknight_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "self_hp_below_percent",
+            "value": 50
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_self_heal"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mon_ruinsguardian",
+      "name": "Ruins Guardian",
+      "map": "map_ruins",
+      "level": 20,
+      "hp": 1139,
+      "atk": 58,
+      "matk": 48,
+      "def": 28,
+      "mdefPercent": 0,
+      "accuracy": 82,
+      "evasion": 16,
+      "critChance": 6.0,
+      "atkSpeedTicks": 6,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "None (all-rounder)",
+      "damageTakenMultiplier": {
+        "melee": 1.0,
+        "ranged": 1.0,
+        "magic": 1.0
+      },
+      "sustainPressure": false,
+      "ability": "stun",
+      "xpReward": 564,
+      "goldReward": {
+        "min": 64,
+        "max": 113
+      },
+      "designNote": "The ruins' final ward; periodically slams the ground, stunning its target for a moment.",
+      "drops": [
+        {
+          "itemId": "part_ruinsguardian_common",
+          "chance": 0.05
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.01,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_ruinsguardian_rare",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.001,
+          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "every_n_ticks",
+            "value": 8
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_stun"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ]
+    }
+  ]
+}

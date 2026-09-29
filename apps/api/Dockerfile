@@ -6,14 +6,17 @@ FROM node:22-bookworm AS builder
 WORKDIR /app
 
 # Copy workspace root and package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 
 # Install dependencies
 RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
-# Build - must be in root to access workspace properly
+# Build shared package FIRST (required by api)
+RUN cd packages/shared && pnpm build
+
+# Build API - must be in root to access workspace properly
 RUN cd apps/api && pnpm build
 
 # Runtime stage

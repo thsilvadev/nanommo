@@ -77,6 +77,10 @@ import { AuthStore } from '../../core/auth.store';
               Entrar
             }
           </button>
+
+          <p class="mt-4 text-center text-sm">
+            <a routerLink="/forgot-password" class="text-blue-400 hover:text-blue-300 font-medium">Esqueci minha senha</a>
+          </p>
         </form>
 
         <p class="mt-6 text-center text-gray-400 text-sm">

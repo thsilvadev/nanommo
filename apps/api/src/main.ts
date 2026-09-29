@@ -5,6 +5,10 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Trust only the first proxy (Caddy) - enables Express to read X-Forwarded-For header for rate limiting
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
+
   // Global pipes
   app.useGlobalPipes(
     new ValidationPipe({

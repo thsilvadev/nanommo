@@ -34,8 +34,11 @@ export class MapController {
    */
   @Post(':mapId/enter')
   async enterMap(@Request() req: any, @Param('mapId') mapId: string) {
+    // Check email verification FIRST (§15.1)
     const character = await this.characterService.getCharacterByUserId(req.user.userId);
     if (!character) throw new BadRequestException('Character not found');
+    
+    // Note: email verification is checked inside mapService.enterMap() before other validations
     await this.mapService.enterMap(character.id, mapId);
     return { success: true, currentMapId: mapId, character: character.id };
   }

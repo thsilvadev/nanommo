@@ -19,6 +19,15 @@ export class AuthTokenDto {
   expiresIn!: number;
 }
 
+export class ForgotPasswordDto {
+  email!: string;
+}
+
+export class ResetPasswordDto {
+  token!: string;
+  newPassword!: string;
+}
+
 // Character DTOs
 export class CreateCharacterDto {
   username!: string;
@@ -34,6 +43,7 @@ export class CharacterDto {
   name!: string;
   level!: number;
   xp!: number;
+  xpToNext!: number;
   unspentAttributePoints!: number;
   str!: number;
   agi!: number;
@@ -44,6 +54,19 @@ export class CharacterDto {
   gold!: number;
   hpCurrent!: number;
   spCurrent!: number;
+  maxHp!: number;
+  maxSp!: number;
+  attack!: number;
+  defense!: number;
+  attackSpeed!: number;
+  castSpeed!: number;
+  evasion!: number;
+  accuracy!: number;
+  hpRegenPerTenTicks!: number;
+  spRegenPerTenTicks!: number;
+  criticalChance!: number;
+  hungry!: boolean;
+  foodBuffExpiresAt?: Date;
   currentMapId?: string;
   status!: string;
   activeGambitPageId?: string;

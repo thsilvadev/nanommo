@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, UseGuards, Request, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { BattleService } from './battle.service';
 import { CharacterService } from '../character/character.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -33,12 +33,10 @@ export class BattleController {
     return this.battleService.queueBattles(character.id, 5);
   }
 
-  /**
-   * Resolve a completed battle (called by scheduler)
-   */
-  @Post(':battleId/resolve')
-  async resolveBattle(@Param('battleId') battleId: string) {
-    await this.battleService.resolveBattle(battleId);
-    return { success: true };
-  }
+  // SPEC §7.4.3: resolving an entry is a BullMQ delayed job's job, not an API
+  // route. This endpoint used to be `POST /battles/:battleId/resolve` with no
+  // ownership check, so any authenticated user could force-resolve another
+  // character's battle (and grant themselves the XP/gold/drops). It is removed:
+  // `BattleService.resolveBattle()` is now reachable only from
+  // `BattleQueueProcessor` and the §7.5 boot recovery pass.
 }

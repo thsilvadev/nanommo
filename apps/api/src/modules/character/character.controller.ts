@@ -17,31 +17,7 @@ export class CharacterController {
   @Get()
   @UseGuards(AuthGuard('jwt'))
   async getMyCharacter(@Request() req: ExpressRequest): Promise<CharacterDto | null> {
-    const character = await this.characterService.getCharacterByUserId((req.user as any).userId);
-    if (!character) return null;
-    return {
-      id: character.id,
-      userId: character.userId,
-      name: character.name,
-      level: character.level,
-      xp: character.xp,
-      unspentAttributePoints: character.unspentAttributePoints,
-      str: character.str,
-      agi: character.agi,
-      dex: character.dex,
-      vit: character.vit,
-      int: character.int,
-      sor: character.sor,
-      gold: Number(character.gold),
-      hpCurrent: character.hpCurrent,
-      spCurrent: character.spCurrent,
-      currentMapId: character.currentMapId || undefined,
-      status: character.status,
-      activeGambitPageId: character.activeGambitPageId || undefined,
-      lastSeenAt: character.lastSeenAt,
-      createdAt: character.createdAt,
-      updatedAt: character.updatedAt,
-    };
+    return this.characterService.getCharacterDtoByUserId((req.user as any).userId);
   }
 
   @Post('attributes/spend')

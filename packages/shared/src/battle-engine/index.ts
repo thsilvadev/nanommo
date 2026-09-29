@@ -1,174 +1,171 @@
+import { Mulberry32 } from './prng';
+
+export {
+  Mulberry32,
+  mulberry32Seed,
+  rngForIndex,
+} from './prng';
+export * from './rewards';
+
 /**
- * Mulberry32 - A fast pseudo-random number generator
- * Seed-based for deterministic battle outcomes
+ * A combatant snapshot as seen by the gambit evaluator.
+ * Kept structural (any) on purpose: the API builds it, the engine only reads it.
  */
-export class Mulberry32 {
-  private seed: number;
-
-  constructor(seed: string | number) {
-    if (typeof seed === 'string') {
-      this.seed = this.hashString(seed);
-    } else {
-      this.seed = seed;
-    }
-  }
-
-  private hashString(str: string): number {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash);
-  }
-
+export interface CombatantSnapshot {
+  level: number;
+  hp: number;
+  sp: number;
+  maxHp: number;
+  maxSp: number;
+  atk: number;
+  matk: number;
+  def: number;
+  mdefPercent: number;
+  accuracy: number;
+  evasion: number;
+  critChance: number;
+  hpRegenPerTenTicks: number;
+  spRegenPerTenTicks: number;
+  /** Current tick index, needed by tick-indexed conditions (e.g. every_n_ticks) */
+  tick?: number;
+  /** Raw attributes, needed for the gauge thresholds in SPEC §7.2 */
+  agi: number;
+  dex: number;
+  /** Skills currently usable (unlocked + weapon equipped) - SPEC §9.1 */
+  skills?: Record<string, any>;
+  /** Skill defs, needed for spCost/baseCastTicks/cooldownTicks - SPEC §9 */
+  skillDefs?: Record<string, any>;
+  statusEffects?: any[];
+  /** Remaining ticks on the active food buff. 0/undefined = hungry. */
+  foodBuffTicksRemaining?: number;
+  foodBuffItemId?: string;
+  foodBuffHpRegenPerTenTicks?: number;
+  foodBuffSpRegenPerTenTicks?: number;
+  /** Ticks left per cooldown key. Keys: `skill:<id>`, `item:potion`, `defend`. */
+  cooldowns?: Record<string, number>;
   /**
-   * Returns next random number between 0 and 1
+   * Ticks left while a previously triggered action of that gauge is still
+   * resolving (SPEC §7.2 baseCastTicks). Locks are per-gauge: a 2-tick melee
+   * swing must not stop the cast gauge from ever firing a potion, otherwise
+   * `use_item` gambits are structurally unreachable in a real fight.
    */
-  next(): number {
-    let t = this.seed += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  }
-
-  /**
-   * Returns random integer between min (inclusive) and max (exclusive)
-   */
-  nextInt(min: number, max: number): number {
-    return Math.floor(this.next() * (max - min)) + min;
-  }
-
-  /**
-   * Returns random number between 0 and 100 (useful for percentages)
-   */
-  nextPercent(): number {
-    return this.next() * 100;
-  }
-
-  /**
-   * Weighted pick from array
-   */
-  weightedPick<T extends { weight?: number }>(items: T[]): T {
-    const totalWeight = items.reduce((sum, item) => sum + (item.weight ?? 1), 0);
-    let pick = this.next() * totalWeight;
-    for (const item of items) {
-      pick -= item.weight ?? 1;
-      if (pick <= 0) return item;
-    }
-    return items[items.length - 1];
-  }
-
-  /**
-   * Create a new PRNG advanced by N positions for subindexing
-   */
-  fork(index: number): Mulberry32 {
-    const forked = new Mulberry32(this.seed);
-    for (let i = 0; i < index; i++) {
-      forked.next();
-    }
-    return forked;
-  }
+  attackLockTicks?: number;
+  castLockTicks?: number;
+  /** Set by the engine when the combatant braced; cleared on the next hit taken. */
+  defending?: boolean;
+  element?: string | null;
 }
+
+export type GambitGaugeType = 'attack' | 'cast';
 
 /**
  * Gambit Evaluator - Evaluates gambit conditions and actions
- * Pure function for deterministic automation
+ * Pure function for deterministic automation (SPEC §7.3, §8)
  */
 export class GambitEvaluator {
   /**
-   * Helper: Check if a value is within an HP band percentage
+   * HP/SP bands per SPEC §8.3: FULL(100%), HIGH(70-99%), MEDIUM(30-69%),
+   * LOW(10-29%), CRITICAL(1-9%). Half-open so a value of exactly 100 is FULL
+   * and 69.5 is MEDIUM (not HIGH).
    */
-  static isInHpBand(
-    currentHp: number,
-    maxHp: number,
-    band: string,
-  ): boolean {
+  private static readonly BANDS: Record<string, [number, number]> = {
+    FULL: [100, Number.POSITIVE_INFINITY],
+    HIGH: [70, 100],
+    MEDIUM: [30, 70],
+    LOW: [10, 30],
+    CRITICAL: [0, 10],
+  };
+
+  static isInHpBand(currentHp: number, maxHp: number, band: string): boolean {
+    if (!maxHp || maxHp <= 0) return false;
+    const bounds = GambitEvaluator.BANDS[band];
+    if (!bounds) return false;
     const percent = (currentHp / maxHp) * 100;
-    const bands: Record<string, [number, number]> = {
-      FULL: [100, 100],
-      HIGH: [70, 99],
-      MEDIUM: [30, 69],
-      LOW: [10, 29],
-      CRITICAL: [1, 9],
-    };
-    const [min, max] = bands[band] || [0, 0];
-    return percent >= min && percent <= max;
+    return percent >= bounds[0] && percent < bounds[1];
   }
 
   /**
-   * Evaluate a single condition
+   * Gambit conditions exist in two shapes in this codebase:
+   *  - SPEC §8.2 nested:      { id: 'self_hp_band', params: { band: 'LOW' } }
+   *  - gambit_catalog.json:   { id: 'self_hp_band', band: 'LOW' }
+   * Both must work, otherwise every catalog-shaped page silently never matches.
+   */
+  private static readParams(node: any): Record<string, any> {
+    if (!node) return {};
+    const { id, params, ...rest } = node;
+    return { ...rest, ...(params ?? {}) };
+  }
+
+  /**
+   * Evaluate a single condition (SPEC §8.3)
    */
   static evaluateCondition(
     condition: any,
-    characterSnapshot: any,
-    monsterSnapshot: any,
+    self: CombatantSnapshot,
+    foe: CombatantSnapshot,
     inventory: Record<string, number> = {},
   ): boolean {
-    const { id, params = {} } = condition;
+    // monsters.json writes { type, value }; gambit_catalog.json writes { id, ... }
+    const id = condition?.id ?? condition?.type;
+    const params = GambitEvaluator.readParams(condition);
 
     switch (id) {
       case 'always':
         return true;
 
+      // monsters.json raw conditions (SPEC §7.3: monsters use the same engine)
+      case 'self_hp_below_percent':
+        return self.maxHp > 0 && (self.hp / self.maxHp) * 100 < Number(params.value);
+      case 'foe_hp_below_percent':
+        return foe.maxHp > 0 && (foe.hp / foe.maxHp) * 100 < Number(params.value);
+      case 'every_n_ticks': {
+        const n = Number(params.value);
+        return n > 0 && (self.tick ?? 0) % n === 0;
+      }
+
       case 'self_hp_band':
-        return this.isInHpBand(
-          characterSnapshot.hp,
-          characterSnapshot.stats.maxHp,
-          params.band,
-        );
+        return GambitEvaluator.isInHpBand(self.hp, self.maxHp, params.band);
 
       case 'self_sp_band':
-        return this.isInHpBand(
-          characterSnapshot.sp,
-          characterSnapshot.stats.maxSp,
-          params.band,
-        );
+        return GambitEvaluator.isInHpBand(self.sp, self.maxSp, params.band);
 
       case 'foe_hp_band':
-        return this.isInHpBand(
-          monsterSnapshot.hp,
-          monsterSnapshot.maxHp || 100, // fallback
-          params.band,
-        );
+        return GambitEvaluator.isInHpBand(foe.hp, foe.maxHp, params.band);
 
       case 'self_has_status':
-        return (characterSnapshot.statusEffects || []).some(
-          (status: any) => status.type === params.status,
+        return (self.statusEffects ?? []).some(
+          (s: any) => (s.type ?? s.id) === params.status,
         );
 
       case 'self_missing_status':
-        return !(characterSnapshot.statusEffects || []).some(
-          (status: any) => status.type === params.status,
+        return !(self.statusEffects ?? []).some(
+          (s: any) => (s.type ?? s.id) === params.status,
         );
 
       case 'foe_has_status':
-        return (monsterSnapshot.statusEffects || []).some(
-          (status: any) => status.type === params.status,
+        return (foe.statusEffects ?? []).some(
+          (s: any) => (s.type ?? s.id) === params.status,
         );
 
       case 'self_hungry':
-        return !characterSnapshot.foodBuff || characterSnapshot.foodBuff.expiresAt < new Date();
+        // Deterministic: tick-indexed, never Date.now() (SPEC §7 preamble)
+        return (self.foodBuffTicksRemaining ?? 0) <= 0;
 
       case 'foe_element_is':
-        return monsterSnapshot.element === params.element;
+        return (foe.element ?? null) === params.element;
 
-      case 'skill_ready':
-        // Skill is ready if not on cooldown
-        const skillCooldown = characterSnapshot.cooldowns?.[params.skillId] ?? 0;
-        return skillCooldown <= 0;
+      case 'skill_ready': {
+        const cooldown = self.cooldowns?.[`skill:${params.skillId}`] ?? 0;
+        return cooldown <= 0;
+      }
 
-      case 'item_in_stock':
+      case 'item_in_stock': {
         const quantity = inventory[params.itemId] ?? 0;
         const comparator = params.comparator ?? 'ANY';
-        if (comparator === 'ANY') {
-          return quantity > 0;
-        }
-        if (comparator === 'NONE') {
-          return quantity === 0;
-        }
+        if (comparator === 'ANY') return quantity > 0;
+        if (comparator === 'NONE') return quantity === 0;
         return false;
+      }
 
       default:
         return false;
@@ -176,73 +173,73 @@ export class GambitEvaluator {
   }
 
   /**
-   * Evaluate a gambit line's conditions (handling AND/OR combinator)
+   * Evaluate a gambit line's conditions (1 or 2, combined with AND/OR per SPEC §8.2)
    */
   static evaluateConditions(
     conditions: any[],
     combinator: string | null | undefined,
-    characterSnapshot: any,
-    monsterSnapshot: any,
+    self: CombatantSnapshot,
+    foe: CombatantSnapshot,
     inventory: Record<string, number> = {},
   ): boolean {
-    if (!conditions || conditions.length === 0) {
-      return true; // No conditions = always true
-    }
+    if (!conditions || conditions.length === 0) return true;
 
     if (conditions.length === 1) {
-      return this.evaluateCondition(conditions[0], characterSnapshot, monsterSnapshot, inventory);
+      return GambitEvaluator.evaluateCondition(conditions[0], self, foe, inventory);
     }
 
-    // Two conditions with combinator
-    const cond1 = this.evaluateCondition(conditions[0], characterSnapshot, monsterSnapshot, inventory);
-    const cond2 = this.evaluateCondition(conditions[1], characterSnapshot, monsterSnapshot, inventory);
+    const first = GambitEvaluator.evaluateCondition(conditions[0], self, foe, inventory);
+    const second = GambitEvaluator.evaluateCondition(conditions[1], self, foe, inventory);
 
-    if (combinator === 'AND') {
-      return cond1 && cond2;
-    }
-    if (combinator === 'OR') {
-      return cond1 || cond2;
-    }
-
-    // Default: AND
-    return cond1 && cond2;
+    if (combinator === 'OR') return first || second;
+    // Single condition or AND (the default) - SPEC §8.2
+    return first && second;
   }
 
   /**
-   * Check if an action is legal to execute
-   * (Simplified: in full impl, check skill unlocked, cooldown, SP, item stock)
+   * Is the action currently legal? (SPEC §7.3 step 3)
+   * A condition-true but illegal line is SKIPPED, not blocking (§7.3 step 4).
    */
   static isActionLegal(
     action: any,
-    characterSnapshot: any,
+    self: CombatantSnapshot,
     inventory: Record<string, number> = {},
   ): boolean {
-    const { id, params = {} } = action;
+    const id = action?.id;
+    const params = GambitEvaluator.readParams(action);
+    const cooldowns = self.cooldowns ?? {};
 
     switch (id) {
       case 'attack':
-        // Always legal if character is alive
-        return characterSnapshot.hp > 0;
+        return self.hp > 0 && self.maxHp > 0;
 
-      case 'use_skill':
-        // TODO: Check if skill is unlocked for equipped weapon
-        // TODO: Check if SP is sufficient for skill
-        // TODO: Check if skill is off cooldown
-        const skillCooldown = characterSnapshot.cooldowns?.[params.skillId] ?? 0;
-        return skillCooldown <= 0 && characterSnapshot.sp > 0;
+      case 'use_skill': {
+        const skillId = params.skillId;
+        // unlocked for the equipped weapon (SPEC §9.1)
+        if (!skillId || !self.skills?.[skillId]) return false;
+        // off cooldown
+        if ((cooldowns[`skill:${skillId}`] ?? 0) > 0) return false;
+        // enough SP
+        const spCost = Number(self.skillDefs?.[skillId]?.spCost ?? 0);
+        if (self.sp < spCost) return false;
+        return true;
+      }
 
-      case 'use_item':
-        // Check if item is in inventory with quantity > 0
-        const itemQty = inventory[params.itemId] ?? 0;
-        const itemCooldown = characterSnapshot.cooldowns?.[`item_${params.itemId}`] ?? 0;
-        return itemQty > 0 && itemCooldown <= 0;
+      case 'use_item': {
+        const itemId = params.itemId;
+        if (!itemId) return false;
+        if ((inventory[itemId] ?? 0) <= 0) return false;
+        // Potions share a single 5-tick cooldown CATEGORY (SPEC §7.2):
+        // using any HP/SP potion puts ALL potions on cooldown for 5 ticks.
+        if (String(itemId).startsWith('pot_') && (cooldowns['item:potion'] ?? 0) > 0) return false;
+        if ((cooldowns[`item:${itemId}`] ?? 0) > 0) return false;
+        return true;
+      }
 
       case 'defend':
-        // Always legal
-        return true;
+        return self.hp > 0;
 
       case 'wait':
-        // Always legal
         return true;
 
       default:
@@ -251,66 +248,93 @@ export class GambitEvaluator {
   }
 
   /**
-   * Evaluate gambit page for a specific gauge type (attack/cast) and return first valid action
+   * Actions reachable from each gauge fire (SPEC §7.3 step 1):
+   * an Attack-gauge fire can only trigger `attack`; a Cast-gauge fire can
+   * trigger `use_skill`, `use_item`, `defend` or `wait`.
+   */
+  private static readonly GAUGE_ACTIONS: Record<GambitGaugeType, string[]> = {
+    attack: ['attack'],
+    cast: ['use_skill', 'use_item', 'defend', 'wait'],
+  };
+
+  /**
+   * Normalize the two gambit shapes present in this codebase into the canonical
+   * one the evaluator understands:
+   *  - character pages:  { lines: [{ priority, conditions: [...], combinator, action: { id, ... } }] }
+   *  - monsters.json:    [{ priority, condition: { type, value }, action: { type, ... } }]
+   */
+  static normalizeGambitPage(raw: any): { lines: any[] } {
+    const lines = Array.isArray(raw) ? raw : Array.isArray(raw?.lines) ? raw.lines : [];
+
+    return {
+      lines: lines.map((line: any, index: number) => {
+        const conditions = Array.isArray(line?.conditions)
+          ? line.conditions
+          : line?.condition
+            ? [line.condition]
+            : [];
+
+        const action = line?.action ?? {};
+        const actionId = action.id ?? action.type;
+
+        return {
+          priority: line?.priority ?? index + 1,
+          conditions: conditions.map((c: any) => ({ ...c, id: c?.id ?? c?.type })),
+          combinator:
+            line?.combinator ?? (conditions.length > 1 ? 'AND' : null),
+          action: { ...action, id: actionId },
+        };
+      }),
+    };
+  }
+
+  /**
+   * Walk the active page top to bottom and return the first line that is both
+   * condition-true AND legal for this gauge (SPEC §7.3). Returns null when the
+   * combatant has nothing legal to do on this fire (it then idles).
    */
   static evaluateGambitPage(
     gambitPage: any,
-    gaugeType: 'attack' | 'cast',
-    characterSnapshot: any,
-    monsterSnapshot: any,
+    gaugeType: GambitGaugeType,
+    self: CombatantSnapshot,
+    foe: CombatantSnapshot,
     inventory: Record<string, number> = {},
-  ): any {
-    if (!gambitPage || !gambitPage.lines) {
-      return null;
-    }
+  ): { action: any; line: any } | null {
+    const lines = Array.isArray(gambitPage?.lines) ? gambitPage.lines : [];
+    if (lines.length === 0) return null;
 
-    // Map gauge types to action types
-    const validActionTypes: Record<string, string[]> = {
-      attack: ['attack'],
-      cast: ['use_skill', 'use_item', 'defend', 'wait'],
-    };
+    const allowedActions = GambitEvaluator.GAUGE_ACTIONS[gaugeType] ?? [];
 
-    const allowedActions = validActionTypes[gaugeType] || [];
+    // "top to bottom" == ascending priority
+    const ordered = [...lines].sort(
+      (a: any, b: any) => (a?.priority ?? 999) - (b?.priority ?? 999),
+    );
 
-    // Walk lines top to bottom
-    for (const line of gambitPage.lines) {
-      // Filter by action type
-      const action = line.action;
-      if (!allowedActions.includes(action.id)) {
-        continue;
-      }
+    for (const line of ordered) {
+      const action = line?.action;
+      if (!action?.id || !allowedActions.includes(action.id)) continue;
 
-      // Evaluate conditions
-      const conditionsMet = this.evaluateConditions(
+      const conditionsMet = GambitEvaluator.evaluateConditions(
         line.conditions,
         line.combinator,
-        characterSnapshot,
-        monsterSnapshot,
+        self,
+        foe,
         inventory,
       );
+      if (!conditionsMet) continue;
 
-      if (!conditionsMet) {
-        continue;
-      }
+      // condition-true but illegal -> skip entirely, does not block (§7.3 step 4)
+      if (!GambitEvaluator.isActionLegal(action, self, inventory)) continue;
 
-      // Check if action is legal
-      const isLegal = this.isActionLegal(action, characterSnapshot, inventory);
-      if (!isLegal) {
-        // Condition is true but action is illegal - skip to next line
-        continue;
-      }
-
-      // First line that is condition-true AND legal
-      return action;
+      return { action, line };
     }
 
-    // No valid action found
     return null;
   }
 }
 
 /**
- * Battle Engine - Pure deterministic combat simulator
+ * Battle Engine - Pure deterministic combat simulator (SPEC §7)
  */
 export class BattleEngine {
   static readonly BASE_CAST_TICKS = 8;
@@ -320,53 +344,69 @@ export class BattleEngine {
   static readonly CRIT_MULTIPLIER = 1.5;
   static readonly MIN_ATTACK_GAUGE = 2;
   static readonly MIN_CAST_GAUGE = 3;
+  static readonly MONSTER_CAST_GAUGE = 6;
   static readonly DEFEND_DAMAGE_REDUCTION = 0.3;
+  /** Safety valve so a stalemate can't hang the queue (SPEC §7.1 is tick-indexed). */
+  static readonly MAX_TICKS = 200;
 
   /**
-   * Calculate derived stats from base attributes and equipment
+   * Calculate derived stats from base attributes and equipment (SPEC §5)
    */
-  static calculateDerivedStats(
-    level: number,
-    attributes: Record<string, number>,
-    equipment: any,
-  ) {
-    const str = attributes['str'] ?? 5;
-    const agi = attributes['agi'] ?? 5;
-    const dex = attributes['dex'] ?? 5;
-    const vit = attributes['vit'] ?? 5;
-    const int = attributes['int'] ?? 5;
-    const sor = attributes['sor'] ?? 5;
+  static calculateDerivedStats(level: number, attributes: Record<string, number>, equipment: any) {
+    const str = Number(attributes['str'] ?? 5);
+    const agi = Number(attributes['agi'] ?? 5);
+    const dex = Number(attributes['dex'] ?? 5);
+    const vit = Number(attributes['vit'] ?? 5);
+    const int = Number(attributes['int'] ?? 5);
+    const sor = Number(attributes['sor'] ?? 5);
+    const maxHp = Math.floor(50 + vit * 18 + Number(equipment?.maxHp ?? 0));
+    const maxSp = Math.floor(20 + int * 8 + Number(equipment?.maxSp ?? 0));
+    const atk = Math.floor(str * 2 + Number(equipment?.weaponFixedAtk ?? 0));
+    const matk = Math.floor(int * 2 + Number(equipment?.weaponFixedMatk ?? 0));
+    const def = Math.floor(Number(equipment?.def ?? 0));
+    const mdefPercent = Math.min(100, Math.max(0, Number(equipment?.mdefPercent ?? 0)));
+    const attackSpeed = 100 + Math.floor(agi * 2);
+    const castSpeed = 100 + Math.floor(dex * 2);
+    const evasion = Math.floor(agi * 1.5);
+    const accuracy = 50 + Math.floor(dex * 2);
+    const hpRegenPerTenTicks = 1 + Math.floor(vit / 2);
+    const spRegenPerTenTicks = 1 + Math.floor(int / 2);
+    const critChance = 1 + Math.floor(sor * 0.3 * 10) / 10;
+    return { maxHp, maxSp, atk, matk, def, mdefPercent, accuracy, evasion, critChance,
+      attackSpeed, castSpeed, hpRegenPerTenTicks, spRegenPerTenTicks, agi, dex, level };
+  }
 
-    const maxHp = 80 + vit * 12 + level * 18;
-    const maxSp = 40 + int * 10 + level * 8;
-    // Include weapon fixed attack values from equipment
-    const atk = str * 2.2 + dex * 0.5 + (equipment?.weaponFixedAtk ?? 0);
-    const matk = int * 2.5 + dex * 0.3 + (equipment?.weaponFixedMatk ?? 0);
-    const def = equipment?.def ?? 0;
-    const mdefPercent = Math.min(equipment?.mdefPercent ?? 0, 100);
-    const accuracy = 75 + dex * 1.0 + level * 1.0;
-    const evasion = agi * 0.8;
-    const critChance = Math.max(1, Math.min(1 + sor * 0.3, 50));
-    const hpRegenPerTick = 1 + Math.floor(vit * 0.5) + Math.floor(maxHp * 0.005);
-    const spRegenPerTick = 1 + Math.floor(int * 0.5) + Math.floor(maxSp * 0.01);
-
+  /**
+   * Build the snapshot of a monster straight from monsters.json.
+   * The monster's own hp/atk/def/accuracy/evasion/critChance/atkSpeedTicks are
+   * the source of truth - they are NOT re-derived from generic attributes.
+   */
+  static buildMonsterSnapshot(monsterDefinition: any): CombatantSnapshot {
+    const level = Number(monsterDefinition?.level ?? 1);
     return {
-      maxHp,
-      maxSp,
-      atk,
-      matk,
-      def,
-      mdefPercent,
-      accuracy,
-      evasion,
-      critChance,
-      hpRegenPerTick,
-      spRegenPerTick,
+      level,
+      hp: Number(monsterDefinition?.hp ?? 1),
+      sp: 0,
+      maxHp: Number(monsterDefinition?.hp ?? 1),
+      maxSp: 0,
+      atk: Number(monsterDefinition?.atk ?? 1),
+      matk: Number(monsterDefinition?.matk ?? 1),
+      def: Number(monsterDefinition?.def ?? 0),
+      mdefPercent: Number(monsterDefinition?.mdefPercent ?? 0),
+      accuracy: Number(monsterDefinition?.accuracy ?? 50),
+      evasion: Number(monsterDefinition?.evasion ?? 0),
+      critChance: Number(monsterDefinition?.critChance ?? 1),
+      hpRegenPerTenTicks: 0,
+      spRegenPerTenTicks: 0,
+      agi: Number(monsterDefinition?.agi ?? 0),
+      dex: Number(monsterDefinition?.dex ?? 0),
+      statusEffects: [],
+      element: monsterDefinition?.element ?? null,
     };
   }
 
   /**
-   * Calculate physical damage after mitigation
+   * Calculate physical damage after mitigation (soft-capped DEF, SPEC §7.8)
    */
   static calculatePhysicalDamage(rawDamage: number, def: number): number {
     return rawDamage * (1 - def / (def + BattleEngine.DEF_SOFT_CAP));
@@ -387,260 +427,488 @@ export class BattleEngine {
   }
 
   /**
-   * Simulate a single battle (pure function, deterministic)
+   * SPEC §7.2: attackGaugeThreshold = weaponBaseAttackTicks - floor(AGI * 0.04), min 2
+   */
+  static attackGaugeThreshold(weaponBaseAttackTicks: number, agi: number): number {
+    return Math.max(
+      BattleEngine.MIN_ATTACK_GAUGE,
+      Math.floor(weaponBaseAttackTicks) - Math.floor(agi * 0.04),
+    );
+  }
+
+  /**
+   * SPEC §7.2: castGaugeThreshold = 8 - floor(DEX * 0.05), min 3
+   */
+  static castGaugeThreshold(dex: number): number {
+    return Math.max(
+      BattleEngine.MIN_CAST_GAUGE,
+      BattleEngine.BASE_CAST_TICKS - Math.floor(dex * 0.05),
+    );
+  }
+
+  /**
+   * Cooldown bookkeeping - all decrements happen once per tick (SPEC §7.2)
+   */
+  private static tickCooldowns(cooldowns: Record<string, number>): void {
+    for (const key of Object.keys(cooldowns)) {
+      cooldowns[key] -= 1;
+      if (cooldowns[key] <= 0) delete cooldowns[key];
+    }
+  }
+
+  /**
+   * Simulate a single battle - pure, deterministic, no Date.now()/Math.random()
+   * (SPEC §7). Every gauge fire for BOTH combatants goes through
+   * GambitEvaluator.evaluateGambitPage(); nothing is hardcoded.
+   *
+   * @param characterSnapshot combatant state carried in from the previous battle
+   * @param monsterDefinition raw monster row from monsters.json
+   * @param gambitPage the character's ACTIVE GambitPage row
+   * @param seed deterministic seed
+   * @param options.inventory live item counts, mutated to reflect consumption
+   * @param options.weaponBaseAttackTicks from skill_trees.json for the equipped weapon
    */
   static simulateBattle(
-    characterSnapshot: any,
+    characterSnapshot: CombatantSnapshot,
     monsterDefinition: any,
     gambitPage: any,
     seed: string,
-  ): any {
+    options: {
+      inventory?: Record<string, number>;
+      weaponBaseAttackTicks?: number;
+      itemDefinitions?: Record<string, any>;
+      monsterSkillDefs?: Record<string, any>;
+      maxTicks?: number;
+    } = {},
+  ): {
+    outcome: 'win' | 'loss';
+    durationTicks: number;
+    log: any;
+    hpAfter: number;
+    spAfter: number;
+    inventoryAfter: Record<string, number>;
+    itemsConsumed: Array<{ itemId: string; quantity: number }>;
+    foodBuffAfter?: { itemId: string; hpRegenPerTenTicks: number; spRegenPerTenTicks: number; remainingTicks: number };
+  } {
     const rng = new Mulberry32(seed);
+    const inventory: Record<string, number> = { ...(options.inventory ?? {}) };
+    const itemDefinitions: Record<string, any> = options.itemDefinitions ?? {};
+    const maxTicks = options.maxTicks ?? BattleEngine.MAX_TICKS;
+
+    // Monsters follow the exact same engine using their own gambit array (§7.3)
+    const normalizedGambitPage = GambitEvaluator.normalizeGambitPage(gambitPage);
+    const monsterGambitPage = GambitEvaluator.normalizeGambitPage(monsterDefinition?.gambit);
+    const monsterSkillDefs: Record<string, any> = options.monsterSkillDefs ?? {};
+
+    const cooldowns: Record<string, number> = {};
+
+    const self: CombatantSnapshot = {
+      ...characterSnapshot,
+      hp: Math.min(
+        characterSnapshot.hp,
+        characterSnapshot.maxHp,
+      ),
+      sp: Math.min(characterSnapshot.sp, characterSnapshot.maxSp),
+      statusEffects: [...(characterSnapshot.statusEffects ?? [])],
+      cooldowns,
+      attackLockTicks: 0,
+      castLockTicks: 0,
+      defending: false,
+      foodBuffTicksRemaining: Math.max(0, Number(characterSnapshot.foodBuffTicksRemaining ?? 0)),
+      foodBuffItemId: characterSnapshot.foodBuffItemId,
+      foodBuffHpRegenPerTenTicks: characterSnapshot.foodBuffHpRegenPerTenTicks,
+      foodBuffSpRegenPerTenTicks: characterSnapshot.foodBuffSpRegenPerTenTicks,
+    };
+
+    const foeCooldowns: Record<string, number> = {};
+
+    const foe: CombatantSnapshot = {
+      ...BattleEngine.buildMonsterSnapshot(monsterDefinition),
+      cooldowns: foeCooldowns,
+      statusEffects: [],
+      // Monster skills are all available to the monster; its own gambit decides
+      // when to use one. Character skill *unlocking* (§9.1) does not apply here.
+      skills: monsterSkillDefs,
+      skillDefs: monsterSkillDefs,
+    };
+
     const events: any[] = [];
-    let characterHp = characterSnapshot.hpCurrent || characterSnapshot.hp;
-    let monsterHp = monsterDefinition.hp;
-    let characterSp = characterSnapshot.spCurrent || characterSnapshot.sp;
-    let tick = 0;
-    let characterAttackGauge = 0;
-    let characterCastGauge = 0;
+    const itemsConsumed: Array<{ itemId: string; quantity: number }> = [];
+
+    let attackGauge = 0;
+    let castGauge = 0;
     let monsterAttackGauge = 0;
+    let monsterCastGauge = 0;
+    let tick = 0;
 
-    // Mock inventory - in real impl, would be passed from CharacterService
-    const inventory: Record<string, number> = {};
+    const weaponBaseAttackTicks = options.weaponBaseAttackTicks ?? 6;
+    // SPEC §7.2 thresholds are driven by AGI / DEX, which the API folds into
+    // the snapshot alongside the already-derived combat stats.
+    const selfAttackThreshold = BattleEngine.attackGaugeThreshold(
+      weaponBaseAttackTicks,
+      self.agi,
+    );
+    const selfCastThreshold = BattleEngine.castGaugeThreshold(self.dex);
+    const monsterAttackThreshold = Math.max(
+      BattleEngine.MIN_ATTACK_GAUGE,
+      Number(monsterDefinition?.atkSpeedTicks ?? 6),
+    );
 
-    // Cooldowns tracking (in ticks)
-    const characterCooldowns: Record<string, number> = {};
+    const damageTakenMultiplier = monsterDefinition?.damageTakenMultiplier ?? {};
+    const meleeMult = Number(damageTakenMultiplier.melee ?? 1);
+    const rangedMult = Number(damageTakenMultiplier.ranged ?? 1);
+    const magicMult = Number(damageTakenMultiplier.magic ?? 1);
 
-    const maxTicks = 60; // Safety limit per spec
+    const record = (event: any) => {
+      events.push({
+        ...event,
+        hpRemaining: { character: self.hp, monster: foe.hp },
+      });
+    };
 
-    while (tick < maxTicks && characterHp > 0 && monsterHp > 0) {
-      // ===== CHARACTER ACTIONS =====
+    while (
+      tick < maxTicks &&
+      self.hp > 0 &&
+      foe.hp > 0
+    ) {
+      // Conditions like `every_n_ticks` are tick-indexed (SPEC §7.1)
+      self.tick = tick;
+      foe.tick = tick;
+      BattleEngine.tickCooldowns(cooldowns);
+      BattleEngine.tickCooldowns(foeCooldowns);
 
-      // Character attack gauge fires
-      const weaponBaseAttackTicks = 6; // TODO: from equipped weapon
-      const attackGaugeThreshold = Math.max(
-        BattleEngine.MIN_ATTACK_GAUGE,
-        weaponBaseAttackTicks - Math.floor(characterSnapshot.agi * 0.04),
-      );
-
-      characterAttackGauge++;
-      if (characterAttackGauge >= attackGaugeThreshold) {
-        // Evaluate gambit for attack gauge
-        const action = GambitEvaluator.evaluateGambitPage(
-          gambitPage,
-          'attack',
-          {
-            ...characterSnapshot,
-            hp: characterHp,
-            sp: characterSp,
-            cooldowns: characterCooldowns,
-          },
-          {
-            ...monsterDefinition,
-            hp: monsterHp,
-          },
-          inventory,
-        );
-
-        // Execute action
-        if (action && action.id === 'attack') {
-          const hitChance = BattleEngine.calculateHitChance(
-            characterSnapshot.stats.accuracy,
-            monsterDefinition.evasion,
+      // ===== CHARACTER: ATTACK GAUGE =====
+      // SPEC §7.2: while that gauge's action is resolving, the gauge is locked
+      // at zero and refilling restarts once the action resolves.
+      if ((self.attackLockTicks ?? 0) <= 0) {
+        attackGauge += 1;
+        if (attackGauge >= selfAttackThreshold) {
+          attackGauge = 0;
+          const choice = GambitEvaluator.evaluateGambitPage(
+            normalizedGambitPage,
+            'attack',
+            self,
+            foe,
+            inventory,
           );
 
-          if (rng.nextPercent() < hitChance) {
-            const isCrit = rng.nextPercent() < characterSnapshot.stats.critChance;
-            const baseDamage = characterSnapshot.stats.atk +
-              (isCrit ? characterSnapshot.stats.atk * (BattleEngine.CRIT_MULTIPLIER - 1) : 0);
-            const finalDamage = Math.floor(
-              BattleEngine.calculatePhysicalDamage(baseDamage, monsterDefinition.def),
-            );
+          if (choice && choice.action.id === 'attack') {
+            const hitChance = BattleEngine.calculateHitChance(self.accuracy, foe.evasion);
+            const landed = rng.chance(hitChance / 100);
+            const crit = landed && rng.chance(self.critChance / 100);
+            const baseDamage = self.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
+            const mitigation = BattleEngine.calculatePhysicalDamage(baseDamage, foe.def);
+            const damage = landed
+              ? Math.max(1, Math.floor(mitigation * meleeMult))
+              : 0;
+            foe.hp = Math.max(0, foe.hp - damage);
 
-            monsterHp = Math.max(0, monsterHp - finalDamage);
-
-            events.push({
+            record({
               tick,
               actor: 'character',
               action: 'attack',
               target: 'monster',
-              damage: finalDamage,
+              damage,
               damageType: 'melee',
-              crit: isCrit,
-              hpRemaining: { character: characterHp, monster: monsterHp },
+              crit,
+              hit: landed,
+            });
+            self.attackLockTicks = BattleEngine.BASIC_ATTACK_CAST_TICKS;
+          }
+          // SPEC §7.3 step 5: no line qualifies -> wasted fire, gauge still resets
+        }
+      }
+
+      // ===== CHARACTER: CAST GAUGE =====
+      if ((self.castLockTicks ?? 0) <= 0) {
+        castGauge += 1;
+        if (castGauge >= selfCastThreshold) {
+          castGauge = 0;
+          const choice = GambitEvaluator.evaluateGambitPage(
+            normalizedGambitPage,
+            'cast',
+            self,
+            foe,
+            inventory,
+          );
+
+          if (choice) {
+            const action = choice.action;
+            const params = (action as any);
+
+            if (action.id === 'use_item') {
+              const itemId = params.itemId ?? params.params?.itemId;
+              inventory[itemId] = Math.max(0, (inventory[itemId] ?? 0) - 1);
+              const existing = itemsConsumed.find((c) => c.itemId === itemId);
+              if (existing) existing.quantity += 1;
+              else itemsConsumed.push({ itemId, quantity: 1 });
+
+              // Potions share one 5-tick cooldown CATEGORY (SPEC §7.2)
+              const def = itemDefinitions[itemId] ?? {};
+              const effectType = String(def.effect?.type ?? '');
+              const isPotion = def.type === 'consumable' && ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType);
+              if (isPotion) {
+                cooldowns['item:potion'] = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? BattleEngine.POTION_COOLDOWN);
+              } else {
+                const cooldownTicks = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 0);
+                if (cooldownTicks > 0) cooldowns[`item:${itemId}`] = cooldownTicks;
+              }
+
+              const amount = Number(def.effect?.amount ?? 0);
+              if (effectType === 'heal_hp') {
+                const before = self.hp;
+                self.hp = Math.min(self.maxHp, self.hp + amount);
+                record({
+                  tick,
+                  actor: 'character',
+                  action: 'use_item',
+                  itemId,
+                  target: 'character',
+                  healAmount: self.hp - before,
+                });
+              } else if (effectType === 'heal_sp') {
+                const before = self.sp;
+                self.sp = Math.min(self.maxSp, self.sp + amount);
+                record({
+                  tick,
+                  actor: 'character',
+                  action: 'use_item',
+                  itemId,
+                  target: 'character',
+                  spGain: self.sp - before,
+                });
+              } else if (effectType === 'food_buff') {
+                self.foodBuffTicksRemaining = Number(def.effect?.durationSeconds ?? 0);
+                self.foodBuffItemId = itemId;
+                self.foodBuffHpRegenPerTenTicks = Number(def.effect?.hpRegenPerTenTicks ?? 0);
+                self.foodBuffSpRegenPerTenTicks = Number(def.effect?.spRegenPerTenTicks ?? 0);
+                record({
+                  tick,
+                  actor: 'character',
+                  action: 'use_item',
+                  itemId,
+                  target: 'character',
+                  foodBuffApplied: true,
+                  foodBuffTicksRemaining: self.foodBuffTicksRemaining,
+                });
+              } else if (effectType === 'cure_status' && def.effect?.status) {
+                self.statusEffects = (self.statusEffects ?? []).filter(
+                  (s: any) => (s.type ?? s.id) !== def.effect.status,
+                );
+                record({
+                  tick,
+                  actor: 'character',
+                  action: 'use_item',
+                  itemId,
+                  target: 'character',
+                  curedStatus: def.effect.status,
+                });
+              } else {
+                record({
+                  tick,
+                  actor: 'character',
+                  action: 'use_item',
+                  itemId,
+                  target: 'character',
+                });
+              }
+
+              self.castLockTicks = 1;
+            } else if (action.id === 'use_skill') {
+              const skillId = params.skillId ?? params.params?.skillId;
+              const def = self.skillDefs?.[skillId] ?? {};
+              const spCost = Number(def.spCost ?? 0);
+              self.sp = Math.max(0, self.sp - spCost);
+              cooldowns[`skill:${skillId}`] = Number(def.cooldownTicks ?? 0);
+              self.castLockTicks = Number(def.baseCastTicks ?? 2);
+
+              const effect = def.effect ?? {};
+              const mult = Number(effect.dmgMult ?? 1);
+              const isMagic = String(def.damageType ?? 'melee') === 'magic';
+              const archetypeMult = isMagic
+                ? magicMult
+                : rangedMult;
+              const landed = rng.chance(
+                BattleEngine.calculateHitChance(self.accuracy, foe.evasion) / 100,
+              );
+              const crit = landed && rng.chance(self.critChance / 100);
+              const raw = (isMagic ? self.matk : self.atk) * mult * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
+              const damage = landed
+                ? Math.max(
+                    1,
+                    Math.floor(
+                      (isMagic
+                        ? BattleEngine.calculateMagicDamage(raw, foe.mdefPercent)
+                        : BattleEngine.calculatePhysicalDamage(raw, foe.def)) * archetypeMult,
+                    ),
+                  )
+                : 0;
+              foe.hp = Math.max(0, foe.hp - damage);
+
+              record({
+                tick,
+                actor: 'character',
+                action: 'use_skill',
+                skillId,
+                target: 'monster',
+                damage,
+                damageType: String(def.damageType ?? 'melee'),
+                crit,
+                hit: landed,
+                spSpent: spCost,
+              });
+            } else if (action.id === 'defend') {
+              self.defending = true;
+              self.castLockTicks = 1;
+              record({ tick, actor: 'character', action: 'defend', target: 'character' });
+            } else if (action.id === 'wait') {
+              self.castLockTicks = 1;
+              record({ tick, actor: 'character', action: 'wait', target: 'self' });
+            }
+          }
+          // no legal cast line -> wasted fire (§7.3 step 5)
+        }
+      }
+
+      // ===== MONSTER: ATTACK GAUGE (its own gambit, §7.3) =====
+      monsterAttackGauge += 1;
+      if (monsterAttackGauge >= monsterAttackThreshold) {
+        monsterAttackGauge = 0;
+        const choice = GambitEvaluator.evaluateGambitPage(
+          monsterGambitPage,
+          'attack',
+          foe,
+          self,
+          {},
+        );
+
+        if (choice && choice.action.id === 'attack') {
+          const landed = rng.chance(
+            BattleEngine.calculateHitChance(foe.accuracy, self.evasion) / 100,
+          );
+          const crit = landed && rng.chance(foe.critChance / 100);
+          const raw = foe.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
+          let damage = landed
+            ? Math.max(1, Math.floor(BattleEngine.calculatePhysicalDamage(raw, self.def)))
+            : 0;
+          // SPEC §8.3: defend reduces the next incoming hit by a flat 30%
+          if (self.defending) {
+            damage = Math.floor(damage * (1 - BattleEngine.DEFEND_DAMAGE_REDUCTION));
+            self.defending = false;
+          }
+          self.hp = Math.max(0, self.hp - damage);
+          record({
+            tick,
+            actor: 'monster',
+            action: 'attack',
+            target: 'character',
+            damage,
+            damageType: 'melee',
+            crit,
+            hit: landed,
+          });
+        }
+      }
+
+      // ===== MONSTER: CAST GAUGE (flat threshold 6, §7.2) =====
+      monsterCastGauge += 1;
+      if (monsterCastGauge >= BattleEngine.MONSTER_CAST_GAUGE) {
+        monsterCastGauge = 0;
+        const choice = GambitEvaluator.evaluateGambitPage(
+          monsterGambitPage,
+          'cast',
+          foe,
+          self,
+          {},
+        );
+        if (choice && choice.action.id === 'use_skill') {
+          const skillId = choice.action.skillId ?? choice.action.params?.skillId;
+          const def: any = monsterSkillDefs[skillId] ?? {};
+          foeCooldowns[`skill:${skillId}`] = Number(def.cooldownTicks ?? 0);
+          const effect = def.effect ?? {};
+          const healAmount = Number(
+            effect.healAmount ?? (effect.healPercentMaxHp ? foe.maxHp * Number(effect.healPercentMaxHp) : 0),
+          );
+          if (healAmount > 0) {
+            const before = foe.hp;
+            foe.hp = Math.min(foe.maxHp, foe.hp + healAmount);
+            record({
+              tick,
+              actor: 'monster',
+              action: 'use_skill',
+              skillId,
+              target: 'monster',
+              healAmount: foe.hp - before,
             });
           } else {
-            events.push({
+            const landed = rng.chance(
+              BattleEngine.calculateHitChance(foe.accuracy, self.evasion) / 100,
+            );
+            const raw =
+              (String(def.damageType ?? 'melee') === 'magic' ? foe.matk : foe.atk) *
+              Number(effect.dmgMult ?? 1);
+            const damage = landed
+              ? Math.max(1, Math.floor(BattleEngine.calculatePhysicalDamage(raw, self.def)))
+              : 0;
+            self.hp = Math.max(0, self.hp - damage);
+            record({
               tick,
-              actor: 'character',
-              action: 'attack',
-              target: 'monster',
-              damage: 0,
-              damageType: 'melee',
-              crit: false,
-              hit: false,
-              hpRemaining: { character: characterHp, monster: monsterHp },
+              actor: 'monster',
+              action: 'use_skill',
+              skillId,
+              target: 'character',
+              damage,
+              damageType: String(def.damageType ?? 'melee'),
+              hit: landed,
             });
           }
         }
-
-        // Reset gauge
-        characterAttackGauge = 0;
-      }
-
-      // Character cast gauge fires (for skills/items)
-      const castGaugeThreshold = Math.max(
-        BattleEngine.MIN_CAST_GAUGE,
-        BattleEngine.BASE_CAST_TICKS - Math.floor(characterSnapshot.dex * 0.05),
-      );
-
-      characterCastGauge++;
-      if (characterCastGauge >= castGaugeThreshold) {
-        // Evaluate gambit for cast gauge
-        const castAction = GambitEvaluator.evaluateGambitPage(
-          gambitPage,
-          'cast',
-          {
-            ...characterSnapshot,
-            hp: characterHp,
-            sp: characterSp,
-            cooldowns: characterCooldowns,
-          },
-          {
-            ...monsterDefinition,
-            hp: monsterHp,
-          },
-          inventory,
-        );
-
-        // Execute cast action
-        if (castAction) {
-          if (castAction.id === 'use_item' && inventory[castAction.params.itemId]) {
-            // Use item
-            inventory[castAction.params.itemId]--;
-            characterCooldowns[`item_${castAction.params.itemId}`] = BattleEngine.POTION_COOLDOWN;
-
-            // Placeholder: assume HP potion
-            characterHp = Math.min(characterSnapshot.stats.maxHp, characterHp + 100);
-
-            events.push({
-              tick,
-              actor: 'character',
-              action: 'use_item',
-              itemId: castAction.params.itemId,
-              target: 'character',
-              healAmount: 100,
-              hpRemaining: { character: characterHp, monster: monsterHp },
-            });
-          } else if (castAction.id === 'defend') {
-            // Defend reduces next incoming hit by 30%
-            events.push({
-              tick,
-              actor: 'character',
-              action: 'defend',
-              target: 'character',
-              hpRemaining: { character: characterHp, monster: monsterHp },
-            });
-          } else if (castAction.id === 'wait') {
-            // Do nothing - just idle
-            events.push({
-              tick,
-              actor: 'character',
-              action: 'wait',
-              target: 'self',
-              hpRemaining: { character: characterHp, monster: monsterHp },
-            });
-          }
-        }
-
-        characterCastGauge = 0;
-      }
-
-      // ===== MONSTER ACTIONS =====
-
-      monsterAttackGauge++;
-      if (monsterAttackGauge >= monsterDefinition.atkSpeedTicks) {
-        const monsterHitChance = BattleEngine.calculateHitChance(
-          monsterDefinition.accuracy,
-          characterSnapshot.stats.evasion,
-        );
-
-        if (rng.nextPercent() < monsterHitChance) {
-          const isCrit = rng.nextPercent() < monsterDefinition.critChance;
-          const baseDamage = monsterDefinition.atk +
-            (isCrit ? monsterDefinition.atk * (BattleEngine.CRIT_MULTIPLIER - 1) : 0);
-          const finalDamage = Math.floor(
-            BattleEngine.calculatePhysicalDamage(baseDamage, characterSnapshot.stats.def),
-          );
-
-          characterHp = Math.max(0, characterHp - finalDamage);
-
-          events.push({
-            tick,
-            actor: 'monster',
-            action: 'attack',
-            target: 'character',
-            damage: finalDamage,
-            damageType: 'melee',
-            crit: isCrit,
-            hpRemaining: { character: characterHp, monster: monsterHp },
-          });
-        } else {
-          events.push({
-            tick,
-            actor: 'monster',
-            action: 'attack',
-            target: 'character',
-            damage: 0,
-            damageType: 'melee',
-            crit: false,
-            hit: false,
-            hpRemaining: { character: characterHp, monster: monsterHp },
-          });
-        }
-
-        monsterAttackGauge = 0;
       }
 
       // ===== TICK HOUSEKEEPING =====
-
-      // Decrement cooldowns
-      for (const key in characterCooldowns) {
-        characterCooldowns[key]--;
-        if (characterCooldowns[key] < 0) {
-          delete characterCooldowns[key];
-        }
+      if ((self.attackLockTicks ?? 0) > 0) self.attackLockTicks = (self.attackLockTicks as number) - 1;
+      if ((self.castLockTicks ?? 0) > 0) self.castLockTicks = (self.castLockTicks as number) - 1;
+      if ((self.foodBuffTicksRemaining ?? 0) > 0) self.foodBuffTicksRemaining = Math.max(0, (self.foodBuffTicksRemaining as number) - 1);
+      // A combatant at 0 HP is out of the fight: regen must not resurrect it
+      // (otherwise a lethal hit is undone by the same tick's housekeeping).
+      if (self.hp > 0 && (tick + 1) % 10 === 0) {
+        const foodHpRegen = (self.foodBuffTicksRemaining ?? 0) > 0 ? Number(self.foodBuffHpRegenPerTenTicks ?? 0) : 0;
+        const foodSpRegen = (self.foodBuffTicksRemaining ?? 0) > 0 ? Number(self.foodBuffSpRegenPerTenTicks ?? 0) : 0;
+        self.hp = Math.min(self.maxHp, self.hp + self.hpRegenPerTenTicks + foodHpRegen);
+        self.sp = Math.min(self.maxSp, self.sp + self.spRegenPerTenTicks + foodSpRegen);
       }
 
-      // Increment tick
-      tick++;
+      tick += 1;
     }
 
-    const xpGain = (monsterDefinition.xpReward || 10) * (characterSnapshot.level || 1);
-    const goldMin = monsterDefinition.goldReward?.min || 5;
-    const goldMax = monsterDefinition.goldReward?.max || 15;
-    const goldGain = Math.floor(goldMin + rng.next() * (goldMax - goldMin));
+    const outcome: 'win' | 'loss' = foe.hp <= 0 && self.hp > 0 ? 'win' : 'loss';
 
     return {
-      outcome: characterHp > 0 ? 'win' : 'loss',
+      outcome,
       durationTicks: tick,
       log: {
         header: {
-          mapId: 'map_green_grounds',
-          monsterId: monsterDefinition.id,
+          monsterId: monsterDefinition?.id ?? null,
           seedUsed: seed,
-          characterSnapshot,
-          monsterSnapshot: monsterDefinition,
+          characterSnapshot: characterSnapshot,
+          monsterSnapshot: BattleEngine.buildMonsterSnapshot(monsterDefinition),
         },
         events,
-        outcome: characterHp > 0 ? 'win' : 'loss',
+        outcome,
         durationTicks: tick,
       },
-      xpGain,
-      goldGain,
-      drops: [],
-      hpAfter: characterHp,
-      spAfter: characterSp,
+      hpAfter: self.hp,
+      spAfter: self.sp,
+      inventoryAfter: inventory,
+      itemsConsumed,
+      foodBuffAfter: (self.foodBuffTicksRemaining ?? 0) > 0 && self.foodBuffItemId
+        ? {
+            itemId: self.foodBuffItemId,
+            hpRegenPerTenTicks: Number(self.foodBuffHpRegenPerTenTicks ?? 0),
+            spRegenPerTenTicks: Number(self.foodBuffSpRegenPerTenTicks ?? 0),
+            remainingTicks: self.foodBuffTicksRemaining ?? 0,
+          }
+        : undefined,
     };
   }
 }

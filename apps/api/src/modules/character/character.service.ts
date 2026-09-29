@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Character, WeaponProficiency, GambitPage } from '@/database/entities';
+import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem } from '@/database/entities';
 import { CharacterDto, Attribute, WeaponType, BattleEngine } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 
@@ -16,6 +16,10 @@ export class CharacterService {
     private weaponProficiencyRepository: Repository<WeaponProficiency>,
     @InjectRepository(GambitPage)
     private gambitPageRepository: Repository<GambitPage>,
+    @InjectRepository(EquippedItem)
+    private equippedItemRepository: Repository<EquippedItem>,
+    @InjectRepository(InventoryItem)
+    private inventoryItemRepository: Repository<InventoryItem>,
     private dataService: DataService,
   ) {}
 
@@ -31,13 +35,8 @@ export class CharacterService {
 
     // Calculate base stats
     const baseStats = BattleEngine.calculateDerivedStats(1, {
-      str: 5,
-      agi: 5,
-      dex: 5,
-      vit: 5,
-      int: 5,
-      sor: 5,
-    }, {});
+      str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5,
+    }, { weaponFixedAtk: 8 });
 
     // Create character
     const character = this.characterRepository.create({
@@ -61,6 +60,30 @@ export class CharacterService {
 
     const savedCharacter = await this.characterRepository.save(character);
 
+    // Starter equipment is authoritative, not a frontend-only assumption.
+    await this.equippedItemRepository.save(this.equippedItemRepository.create({
+      characterId: savedCharacter.id,
+      slot: 'mainHand',
+      itemId: 'equip_sword_t1',
+    }));
+    // One-time starter pack: 10 HP potions + 5 Bread.
+    await this.inventoryItemRepository.save([
+      this.inventoryItemRepository.create({
+        characterId: savedCharacter.id,
+        location: 'inventory',
+        slotIndex: 0,
+        itemId: 'pot_hp_small',
+        quantity: 10,
+      }),
+      this.inventoryItemRepository.create({
+        characterId: savedCharacter.id,
+        location: 'inventory',
+        slotIndex: 1,
+        itemId: 'food_bread',
+        quantity: 5,
+      }),
+    ]);
+
     // Create weapon proficiencies for all 7 weapon types
     const weaponTypes: WeaponType[] = [
       WeaponType.SWORD,
@@ -83,17 +106,25 @@ export class CharacterService {
     }
 
     // Create 3 empty gambit pages (slots 0, 1, 2) as per SPEC
+    let firstGambitPageId: string | undefined;
     for (let slotIndex = 0; slotIndex < 3; slotIndex++) {
       const gambitPage = this.gambitPageRepository.create({
         characterId: savedCharacter.id,
         slotIndex,
         title: `Page ${slotIndex + 1}`,
-        lines: [],
+        lines: slotIndex === 0 ? [
+          { priority: 1, conditions: [{ id: 'self_hp_below_percent', params: { value: 30 } }], combinator: null, action: { id: 'use_item', params: { itemId: 'pot_hp_small' } }, enabled: true },
+          { priority: 2, conditions: [{ id: 'always' }], combinator: null, action: { id: 'attack' }, enabled: true },
+        ] : [],
       });
-      await this.gambitPageRepository.save(gambitPage);
+      const savedGambitPage = await this.gambitPageRepository.save(gambitPage);
+      if (slotIndex === 0) firstGambitPageId = savedGambitPage.id;
     }
 
-    return this.toDto(savedCharacter);
+    savedCharacter.activeGambitPageId = firstGambitPageId;
+    await this.characterRepository.save(savedCharacter);
+
+    return await this.toDto(savedCharacter);
   }
 
   async getCharacterByUserId(userId: string): Promise<Character | null> {
@@ -114,6 +145,13 @@ export class CharacterService {
       throw new NotFoundException('Character not found');
     }
 
+    // The DTO carries no class-validator metadata, so a malformed body reaches
+    // here as `undefined`. Reject it as a 400 instead of letting
+    // `Object.values(undefined)` surface as a 500.
+    if (attributes === null || typeof attributes !== 'object' || Array.isArray(attributes)) {
+      throw new BadRequestException('attributes must be an object');
+    }
+
     const totalToSpend = Object.values(attributes).reduce((sum, val) => sum + (val ?? 0), 0);
     if (totalToSpend > character.unspentAttributePoints) {
       throw new BadRequestException('Not enough unspent attribute points');
@@ -130,59 +168,83 @@ export class CharacterService {
     character.unspentAttributePoints -= totalToSpend;
 
     const saved = await this.characterRepository.save(character);
-    return this.toDto(saved);
+    return await this.toDto(saved);
   }
 
-  async gainXp(characterId: string, xpAmount: number): Promise<void> {
-    const character = await this.getCharacterById(characterId);
-    if (!character) return;
+  async getCharacterDtoByUserId(userId: string): Promise<CharacterDto | null> {
+    const character = await this.getCharacterByUserId(userId);
+    if (!character) return null;
+    await this.applyTownRegeneration(character);
+    return this.toDto(character);
+  }
 
-    character.xp += xpAmount;
+  private async applyTownRegeneration(character: Character): Promise<void> {
+    if (character.status !== 'town') return;
 
-    // Check for level-ups
-    while (character.level < 99) {
-      const xpToNext = this.dataService.getXpToNextLevel(character.level);
-      if (character.xp >= xpToNext) {
-        character.level++;
-        character.xp -= xpToNext;
-        character.unspentAttributePoints += 5;
+    const now = Date.now();
+    const last = character.lastSeenAt?.getTime?.() ?? now;
+    const elapsedTicks = Math.max(0, Math.floor((now - last) / 1000));
+    const tenTickPeriods = Math.floor(elapsedTicks / 10);
 
-        // Recalculate HP/SP (ratio-adjusted)
-        const oldStats = BattleEngine.calculateDerivedStats(character.level - 1, {
-          str: character.str,
-          agi: character.agi,
-          dex: character.dex,
-          vit: character.vit,
-          int: character.int,
-          sor: character.sor,
-        }, {});
+    if (tenTickPeriods <= 0) return;
 
-        const newStats = BattleEngine.calculateDerivedStats(character.level, {
-          str: character.str,
-          agi: character.agi,
-          dex: character.dex,
-          vit: character.vit,
-          int: character.int,
-          sor: character.sor,
-        }, {});
-
-        character.hpCurrent = Math.round(character.hpCurrent * (newStats.maxHp / oldStats.maxHp));
-        character.spCurrent = Math.round(character.spCurrent * (newStats.maxSp / oldStats.maxSp));
-      } else {
-        break;
+    const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
+    const equipment = { def: 0, maxHp: 0, maxSp: 0, weaponFixedAtk: 0, statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 } };
+    for (const row of equipped) {
+      const item = this.dataService.getItemById(row.itemId);
+      equipment.def += Number(item?.fixedStats?.def ?? 0);
+      equipment.maxHp += Number(item?.fixedStats?.maxHp ?? 0);
+      equipment.maxSp += Number(item?.fixedStats?.maxSp ?? 0);
+      if (row.slot === 'mainHand') equipment.weaponFixedAtk += Number(item?.fixedStats?.atk ?? 0);
+      for (const [key, value] of Object.entries(item?.fixedStats?.statBonus ?? {})) {
+        if (key in equipment.statBonus && typeof value === 'number') (equipment.statBonus as any)[key] += value;
       }
     }
 
+    const attrs = {
+      str: character.str + equipment.statBonus.STR,
+      agi: character.agi + equipment.statBonus.AGI,
+      dex: character.dex + equipment.statBonus.DEX,
+      vit: character.vit + equipment.statBonus.VIT,
+      int: character.int + equipment.statBonus.INT,
+      sor: character.sor + equipment.statBonus.SOR,
+    };
+    const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
+    const foodActive = character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() > now;
+    const foodHpRegen = foodActive ? Number(character.activeFoodBuff?.hpRegenPerTenTicks ?? 0) : 0;
+    const foodSpRegen = foodActive ? Number(character.activeFoodBuff?.spRegenPerTenTicks ?? 0) : 0;
+
+    character.hpCurrent = Math.min(derived.maxHp, character.hpCurrent + tenTickPeriods * (derived.hpRegenPerTenTicks + foodHpRegen));
+    character.spCurrent = Math.min(derived.maxSp, character.spCurrent + tenTickPeriods * (derived.spRegenPerTenTicks + foodSpRegen));
+    if (!foodActive && character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() <= now) {
+      character.activeFoodBuff = null;
+    }
+    character.lastSeenAt = new Date(last + tenTickPeriods * 10_000);
     await this.characterRepository.save(character);
   }
 
-  private toDto(character: Character): CharacterDto {
+  private async toDto(character: Character): Promise<CharacterDto> {
+    const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
+    const equipment = { def: 0, maxHp: 0, maxSp: 0, weaponFixedAtk: 0, statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 } };
+    for (const row of equipped) {
+      const item = this.dataService.getItemById(row.itemId);
+      equipment.def += Number(item?.fixedStats?.def ?? 0);
+      equipment.maxHp += Number(item?.fixedStats?.maxHp ?? 0);
+      equipment.maxSp += Number(item?.fixedStats?.maxSp ?? 0);
+      if (row.slot === 'mainHand') equipment.weaponFixedAtk += Number(item?.fixedStats?.atk ?? 0);
+      for (const [key, value] of Object.entries(item?.fixedStats?.statBonus ?? {})) {
+        if (key in equipment.statBonus && typeof value === 'number') (equipment.statBonus as any)[key] += value;
+      }
+    }
+    const attrs = { str: character.str + equipment.statBonus.STR, agi: character.agi + equipment.statBonus.AGI, dex: character.dex + equipment.statBonus.DEX, vit: character.vit + equipment.statBonus.VIT, int: character.int + equipment.statBonus.INT, sor: character.sor + equipment.statBonus.SOR };
+    const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
     return {
       id: character.id,
       userId: character.userId,
       name: character.name,
       level: character.level,
       xp: character.xp,
+      xpToNext: this.dataService.getXpToNextLevel(character.level),
       unspentAttributePoints: character.unspentAttributePoints,
       str: character.str,
       agi: character.agi,
@@ -193,6 +255,19 @@ export class CharacterService {
       gold: Number(character.gold),
       hpCurrent: character.hpCurrent,
       spCurrent: character.spCurrent,
+      maxHp: derived.maxHp,
+      maxSp: derived.maxSp,
+      attack: derived.atk,
+      defense: derived.def,
+      attackSpeed: derived.attackSpeed,
+      castSpeed: derived.castSpeed,
+      evasion: derived.evasion,
+      accuracy: derived.accuracy,
+      hpRegenPerTenTicks: derived.hpRegenPerTenTicks,
+      spRegenPerTenTicks: derived.spRegenPerTenTicks,
+      criticalChance: derived.critChance,
+      hungry: !character.activeFoodBuff?.expiresAt || new Date(character.activeFoodBuff.expiresAt).getTime() <= Date.now(),
+      foodBuffExpiresAt: character.activeFoodBuff?.expiresAt ? new Date(character.activeFoodBuff.expiresAt) : undefined,
       currentMapId: character.currentMapId || undefined,
       status: character.status,
       activeGambitPageId: character.activeGambitPageId || undefined,

@@ -1,6 +1,8 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, defer, shareReplay, tap, catchError, finalize, throwError } from 'rxjs';
 import { ApiService } from './api.service';
+import { SKIP_AUTH_REFRESH } from './api.service';
+import { HttpContext } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
 
@@ -29,6 +31,7 @@ export class AuthStore {
   private readonly _userPayload = signal<UserPayload | null>(null);
   private readonly _isLoading = signal<boolean>(false);
   private readonly _error = signal<string | null>(null);
+  private refreshInFlight$: Observable<AuthTokens> | null = null;
 
   readonly accessToken = this._accessToken.asReadonly();
   readonly refreshToken = this._refreshToken.asReadonly();
@@ -43,8 +46,16 @@ export class AuthStore {
   }
 
   private bootstrap(): void {
+    const storedAccessToken = localStorage.getItem('accessToken');
     const storedRefreshToken = localStorage.getItem('refreshToken');
-    if (storedRefreshToken) {
+    if (storedAccessToken && storedRefreshToken) {
+      this._accessToken.set(storedAccessToken);
+      this._refreshToken.set(storedRefreshToken);
+      const payload = this.parseJwt(storedAccessToken);
+      if (payload) {
+        this._userPayload.set(payload);
+      }
+    } else if (storedRefreshToken) {
       this._refreshToken.set(storedRefreshToken);
       this.refreshAccessToken().subscribe({
         next: () => {},
@@ -58,18 +69,21 @@ export class AuthStore {
   setTokens(tokens: AuthTokens): void {
     this._accessToken.set(tokens.accessToken);
     this._refreshToken.set(tokens.refreshToken);
+    localStorage.setItem('accessToken', tokens.accessToken);
     localStorage.setItem('refreshToken', tokens.refreshToken);
 
     const payload = this.parseJwt(tokens.accessToken);
     if (payload) {
       this._userPayload.set(payload);
     }
+    window.dispatchEvent(new CustomEvent('nanommo:auth-refreshed'));
   }
 
   clearTokens(): void {
     this._accessToken.set(null);
     this._refreshToken.set(null);
     this._userPayload.set(null);
+    localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
   }
 
@@ -96,7 +110,6 @@ export class AuthStore {
     return new Observable<AuthTokens>((observer) => {
       this.api.post<AuthTokens>('/auth/register', { username, email, password, cpf }).subscribe({
         next: (tokens) => {
-          this.setTokens(tokens);
           this._isLoading.set(false);
           observer.next(tokens);
           observer.complete();
@@ -133,26 +146,92 @@ export class AuthStore {
     });
   }
 
+  deleteAccount(): Observable<{ success: boolean }> {
+    return this.api.delete<{ success: boolean }>('/auth/account', { body: { confirmation: 'DELETE' } });
+  }
+
   logout(): void {
     this.clearTokens();
     this.router.navigate(['/login']);
   }
 
   refreshAccessToken(): Observable<AuthTokens> {
+    if (this.refreshInFlight$) return this.refreshInFlight$;
     const refreshToken = this._refreshToken();
-    if (!refreshToken) {
-      return new Observable<AuthTokens>((observer) => observer.error(new Error('No refresh token')));
-    }
+    if (!refreshToken) return throwError(() => new Error('No refresh token'));
+    this.refreshInFlight$ = defer(() => this.api.post<AuthTokens>('/auth/refresh', { refreshToken }, { context: new HttpContext().set(SKIP_AUTH_REFRESH, true) })).pipe(
+      tap(tokens => this.setTokens(tokens)),
+      catchError(err => { this.clearTokens(); return throwError(() => err); }),
+      finalize(() => { this.refreshInFlight$ = null; }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    return this.refreshInFlight$;
+  }
 
-    return new Observable<AuthTokens>((observer) => {
-      this.api.post<AuthTokens>('/auth/refresh', { refreshToken }).subscribe({
-        next: (tokens) => {
-          this.setTokens(tokens);
-          observer.next(tokens);
+  verifyEmail(token: string): Observable<{ success: boolean; message: string }> {
+    return new Observable<{ success: boolean; message: string }>((observer) => {
+      this.api.get<{ success: boolean; message: string }>(`/auth/verify-email?token=${token}`).subscribe({
+        next: (response) => {
+          observer.next(response);
           observer.complete();
         },
         error: (err) => {
-          this.clearTokens();
+          observer.error(err);
+        },
+      });
+    });
+  }
+
+  resendVerificationEmail(): Observable<{ success: boolean; message: string }> {
+    return new Observable<{ success: boolean; message: string }>((observer) => {
+      this.api.post<{ success: boolean; message: string }>('/auth/resend-verification', {}).subscribe({
+        next: (response) => {
+          observer.next(response);
+          observer.complete();
+        },
+        error: (err) => {
+          observer.error(err);
+        },
+      });
+    });
+  }
+
+  forgotPassword(email: string): Observable<{ success: boolean; message: string }> {
+    this._isLoading.set(true);
+    this._error.set(null);
+
+    return new Observable<{ success: boolean; message: string }>((observer) => {
+      this.api.post<{ success: boolean; message: string }>('/auth/forgot-password', { email }).subscribe({
+        next: (response) => {
+          this._isLoading.set(false);
+          observer.next(response);
+          observer.complete();
+        },
+        error: (err) => {
+          this._isLoading.set(false);
+          const message = err.error?.message || 'Failed to send reset email';
+          this._error.set(message);
+          observer.error(err);
+        },
+      });
+    });
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<{ success: boolean; message: string }> {
+    this._isLoading.set(true);
+    this._error.set(null);
+
+    return new Observable<{ success: boolean; message: string }>((observer) => {
+      this.api.post<{ success: boolean; message: string }>('/auth/reset-password', { token, newPassword }).subscribe({
+        next: (response) => {
+          this._isLoading.set(false);
+          observer.next(response);
+          observer.complete();
+        },
+        error: (err) => {
+          this._isLoading.set(false);
+          const message = err.error?.message || 'Failed to reset password';
+          this._error.set(message);
           observer.error(err);
         },
       });

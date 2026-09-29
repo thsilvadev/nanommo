@@ -1,0 +1,352 @@
+[
+  {
+    "weaponLevel": 1,
+    "xpToNext": 5886,
+    "cumulativeXp": 5886,
+    "estHoursAtThisLevel": 0.98,
+    "cumulativeDays": 0.05
+  },
+  {
+    "weaponLevel": 2,
+    "xpToNext": 6774,
+    "cumulativeXp": 12661,
+    "estHoursAtThisLevel": 1.13,
+    "cumulativeDays": 0.11
+  },
+  {
+    "weaponLevel": 3,
+    "xpToNext": 7796,
+    "cumulativeXp": 20457,
+    "estHoursAtThisLevel": 1.3,
+    "cumulativeDays": 0.17
+  },
+  {
+    "weaponLevel": 4,
+    "xpToNext": 8972,
+    "cumulativeXp": 29429,
+    "estHoursAtThisLevel": 1.5,
+    "cumulativeDays": 0.25
+  },
+  {
+    "weaponLevel": 5,
+    "xpToNext": 10325,
+    "cumulativeXp": 39754,
+    "estHoursAtThisLevel": 1.72,
+    "cumulativeDays": 0.33
+  },
+  {
+    "weaponLevel": 6,
+    "xpToNext": 11882,
+    "cumulativeXp": 51636,
+    "estHoursAtThisLevel": 1.98,
+    "cumulativeDays": 0.43
+  },
+  {
+    "weaponLevel": 7,
+    "xpToNext": 13674,
+    "cumulativeXp": 65310,
+    "estHoursAtThisLevel": 2.28,
+    "cumulativeDays": 0.54
+  },
+  {
+    "weaponLevel": 8,
+    "xpToNext": 15737,
+    "cumulativeXp": 81047,
+    "estHoursAtThisLevel": 2.62,
+    "cumulativeDays": 0.68
+  },
+  {
+    "weaponLevel": 9,
+    "xpToNext": 18111,
+    "cumulativeXp": 99158,
+    "estHoursAtThisLevel": 3.02,
+    "cumulativeDays": 0.83
+  },
+  {
+    "weaponLevel": 10,
+    "xpToNext": 20842,
+    "cumulativeXp": 120000,
+    "estHoursAtThisLevel": 3.47,
+    "cumulativeDays": 1.0
+  },
+  {
+    "weaponLevel": 11,
+    "xpToNext": 23986,
+    "cumulativeXp": 143986,
+    "estHoursAtThisLevel": 4.0,
+    "cumulativeDays": 1.2
+  },
+  {
+    "weaponLevel": 12,
+    "xpToNext": 27603,
+    "cumulativeXp": 171589,
+    "estHoursAtThisLevel": 4.6,
+    "cumulativeDays": 1.43
+  },
+  {
+    "weaponLevel": 13,
+    "xpToNext": 31767,
+    "cumulativeXp": 203355,
+    "estHoursAtThisLevel": 5.29,
+    "cumulativeDays": 1.69
+  },
+  {
+    "weaponLevel": 14,
+    "xpToNext": 36558,
+    "cumulativeXp": 239913,
+    "estHoursAtThisLevel": 6.09,
+    "cumulativeDays": 2.0
+  },
+  {
+    "weaponLevel": 15,
+    "xpToNext": 42072,
+    "cumulativeXp": 281985,
+    "estHoursAtThisLevel": 7.01,
+    "cumulativeDays": 2.35
+  },
+  {
+    "weaponLevel": 16,
+    "xpToNext": 48417,
+    "cumulativeXp": 330402,
+    "estHoursAtThisLevel": 8.07,
+    "cumulativeDays": 2.75
+  },
+  {
+    "weaponLevel": 17,
+    "xpToNext": 55720,
+    "cumulativeXp": 386121,
+    "estHoursAtThisLevel": 9.29,
+    "cumulativeDays": 3.22
+  },
+  {
+    "weaponLevel": 18,
+    "xpToNext": 64124,
+    "cumulativeXp": 450245,
+    "estHoursAtThisLevel": 10.69,
+    "cumulativeDays": 3.75
+  },
+  {
+    "weaponLevel": 19,
+    "xpToNext": 73795,
+    "cumulativeXp": 524040,
+    "estHoursAtThisLevel": 12.3,
+    "cumulativeDays": 4.37
+  },
+  {
+    "weaponLevel": 20,
+    "xpToNext": 84925,
+    "cumulativeXp": 608965,
+    "estHoursAtThisLevel": 14.15,
+    "cumulativeDays": 5.07
+  },
+  {
+    "weaponLevel": 21,
+    "xpToNext": 97734,
+    "cumulativeXp": 706700,
+    "estHoursAtThisLevel": 16.29,
+    "cumulativeDays": 5.89
+  },
+  {
+    "weaponLevel": 22,
+    "xpToNext": 112475,
+    "cumulativeXp": 819175,
+    "estHoursAtThisLevel": 18.75,
+    "cumulativeDays": 6.83
+  },
+  {
+    "weaponLevel": 23,
+    "xpToNext": 129439,
+    "cumulativeXp": 948614,
+    "estHoursAtThisLevel": 21.57,
+    "cumulativeDays": 7.91
+  },
+  {
+    "weaponLevel": 24,
+    "xpToNext": 148962,
+    "cumulativeXp": 1097576,
+    "estHoursAtThisLevel": 24.83,
+    "cumulativeDays": 9.15
+  },
+  {
+    "weaponLevel": 25,
+    "xpToNext": 171430,
+    "cumulativeXp": 1269006,
+    "estHoursAtThisLevel": 28.57,
+    "cumulativeDays": 10.58
+  },
+  {
+    "weaponLevel": 26,
+    "xpToNext": 197286,
+    "cumulativeXp": 1466291,
+    "estHoursAtThisLevel": 32.88,
+    "cumulativeDays": 12.22
+  },
+  {
+    "weaponLevel": 27,
+    "xpToNext": 227041,
+    "cumulativeXp": 1693333,
+    "estHoursAtThisLevel": 37.84,
+    "cumulativeDays": 14.11
+  },
+  {
+    "weaponLevel": 28,
+    "xpToNext": 261285,
+    "cumulativeXp": 1954618,
+    "estHoursAtThisLevel": 43.55,
+    "cumulativeDays": 16.29
+  },
+  {
+    "weaponLevel": 29,
+    "xpToNext": 300694,
+    "cumulativeXp": 2255311,
+    "estHoursAtThisLevel": 50.12,
+    "cumulativeDays": 18.79
+  },
+  {
+    "weaponLevel": 30,
+    "xpToNext": 346046,
+    "cumulativeXp": 2601357,
+    "estHoursAtThisLevel": 57.67,
+    "cumulativeDays": 21.68
+  },
+  {
+    "weaponLevel": 31,
+    "xpToNext": 398239,
+    "cumulativeXp": 2999596,
+    "estHoursAtThisLevel": 66.37,
+    "cumulativeDays": 25.0
+  },
+  {
+    "weaponLevel": 32,
+    "xpToNext": 458304,
+    "cumulativeXp": 3457900,
+    "estHoursAtThisLevel": 76.38,
+    "cumulativeDays": 28.82
+  },
+  {
+    "weaponLevel": 33,
+    "xpToNext": 527428,
+    "cumulativeXp": 3985328,
+    "estHoursAtThisLevel": 87.9,
+    "cumulativeDays": 33.21
+  },
+  {
+    "weaponLevel": 34,
+    "xpToNext": 606978,
+    "cumulativeXp": 4592305,
+    "estHoursAtThisLevel": 101.16,
+    "cumulativeDays": 38.27
+  },
+  {
+    "weaponLevel": 35,
+    "xpToNext": 698526,
+    "cumulativeXp": 5290831,
+    "estHoursAtThisLevel": 116.42,
+    "cumulativeDays": 44.09
+  },
+  {
+    "weaponLevel": 36,
+    "xpToNext": 803882,
+    "cumulativeXp": 6094713,
+    "estHoursAtThisLevel": 133.98,
+    "cumulativeDays": 50.79
+  },
+  {
+    "weaponLevel": 37,
+    "xpToNext": 925128,
+    "cumulativeXp": 7019840,
+    "estHoursAtThisLevel": 154.19,
+    "cumulativeDays": 58.5
+  },
+  {
+    "weaponLevel": 38,
+    "xpToNext": 1064661,
+    "cumulativeXp": 8084502,
+    "estHoursAtThisLevel": 177.44,
+    "cumulativeDays": 67.37
+  },
+  {
+    "weaponLevel": 39,
+    "xpToNext": 1225240,
+    "cumulativeXp": 9309741,
+    "estHoursAtThisLevel": 204.21,
+    "cumulativeDays": 77.58
+  },
+  {
+    "weaponLevel": 40,
+    "xpToNext": 1410038,
+    "cumulativeXp": 10719779,
+    "estHoursAtThisLevel": 235.01,
+    "cumulativeDays": 89.33
+  },
+  {
+    "weaponLevel": 41,
+    "xpToNext": 1622708,
+    "cumulativeXp": 12342487,
+    "estHoursAtThisLevel": 270.45,
+    "cumulativeDays": 102.85
+  },
+  {
+    "weaponLevel": 42,
+    "xpToNext": 1867455,
+    "cumulativeXp": 14209942,
+    "estHoursAtThisLevel": 311.24,
+    "cumulativeDays": 118.42
+  },
+  {
+    "weaponLevel": 43,
+    "xpToNext": 2149116,
+    "cumulativeXp": 16359058,
+    "estHoursAtThisLevel": 358.19,
+    "cumulativeDays": 136.33
+  },
+  {
+    "weaponLevel": 44,
+    "xpToNext": 2473258,
+    "cumulativeXp": 18832316,
+    "estHoursAtThisLevel": 412.21,
+    "cumulativeDays": 156.94
+  },
+  {
+    "weaponLevel": 45,
+    "xpToNext": 2846290,
+    "cumulativeXp": 21678607,
+    "estHoursAtThisLevel": 474.38,
+    "cumulativeDays": 180.66
+  },
+  {
+    "weaponLevel": 46,
+    "xpToNext": 3275585,
+    "cumulativeXp": 24954191,
+    "estHoursAtThisLevel": 545.93,
+    "cumulativeDays": 207.95
+  },
+  {
+    "weaponLevel": 47,
+    "xpToNext": 3769628,
+    "cumulativeXp": 28723820,
+    "estHoursAtThisLevel": 628.27,
+    "cumulativeDays": 239.37
+  },
+  {
+    "weaponLevel": 48,
+    "xpToNext": 4338186,
+    "cumulativeXp": 33062006,
+    "estHoursAtThisLevel": 723.03,
+    "cumulativeDays": 275.52
+  },
+  {
+    "weaponLevel": 49,
+    "xpToNext": 4992498,
+    "cumulativeXp": 38054504,
+    "estHoursAtThisLevel": 832.08,
+    "cumulativeDays": 317.12
+  },
+  {
+    "weaponLevel": 50,
+    "xpToNext": 5745496,
+    "cumulativeXp": 43800000,
+    "estHoursAtThisLevel": 957.58,
+    "cumulativeDays": 365.0
+  }
+]

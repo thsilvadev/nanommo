@@ -2,9 +2,12 @@ import { Injectable, BadRequestException, Logger, NotFoundException } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EquippedItem } from '../../database/entities/equipped-item.entity';
+import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { Character } from '../../database/entities/character.entity';
 import { WeaponProficiency } from '../../database/entities/weapon-proficiency.entity';
+import { BattleQueueEntry } from '../../database/entities/battle-queue-entry.entity';
 import { DataService } from '../data/data.service';
+import { BattleEngine } from '@nanommo/shared';
 
 export interface EquipmentStats {
   def: number;
@@ -31,8 +34,8 @@ export interface DerivedStats {
   accuracy: number;
   evasion: number;
   critChance: number;
-  hpRegenPerTick: number;
-  spRegenPerTick: number;
+  hpRegenPerTenTicks: number;
+  spRegenPerTenTicks: number;
 }
 
 @Injectable()
@@ -46,17 +49,35 @@ export class EquipmentService {
     private readonly characterRepo: Repository<Character>,
     @InjectRepository(WeaponProficiency)
     private readonly weaponProfRepo: Repository<WeaponProficiency>,
+    @InjectRepository(InventoryItem)
+    private readonly inventoryItemRepo: Repository<InventoryItem>,
+    @InjectRepository(BattleQueueEntry)
+    private readonly battleQueueRepo: Repository<BattleQueueEntry>,
     private readonly dataService: DataService,
   ) {}
 
   /**
-   * Get all equipped items for a character
+   * All equipped items for a character
    */
   async getEquipment(characterId: string): Promise<EquippedItem[]> {
     return this.equippedItemRepo.find({
       where: { characterId },
     });
   }
+
+  /**
+   * Weapon proficiency level per weapon type (SPEC §9.1).
+   * A weapon type the character has never trained defaults to level 1.
+   */
+  async getWeaponProficiencyLevels(characterId: string): Promise<Record<string, number>> {
+    const rows = await this.weaponProfRepo.find({ where: { characterId } });
+    const levels: Record<string, number> = {};
+    for (const row of rows) {
+      levels[row.weaponType] = Number(row.level ?? 1);
+    }
+    return levels;
+  }
+
 
   /**
    * Get item equipped in a specific slot
@@ -141,144 +162,142 @@ export class EquipmentService {
    * Calculate derived stats for a character with current equipment
    */
   async calculateDerivedStats(character: Character): Promise<DerivedStats> {
-    const equipStats = await this.calculateEquipmentStats(character.id);
-
-    // Add equipment bonuses to base attributes
-    const effectiveStr = character.str + (equipStats.statBonus.STR || 0);
-    const effectiveAgi = character.agi + (equipStats.statBonus.AGI || 0);
-    const effectiveDex = character.dex + (equipStats.statBonus.DEX || 0);
-    const effectiveVit = character.vit + (equipStats.statBonus.VIT || 0);
-    const effectiveInt = character.int + (equipStats.statBonus.INT || 0);
-    const effectiveSor = character.sor + (equipStats.statBonus.SOR || 0);
-
-    // Calculate derived stats per SPEC §5.2
-    const maxHp = Math.floor(
-      80 + effectiveVit * 12 + character.level * 18,
-    );
-    const maxSp = Math.floor(
-      40 + effectiveInt * 10 + character.level * 8,
-    );
-    const atk = Math.floor(
-      effectiveStr * 2.2 +
-        effectiveDex * 0.5 +
-        (equipStats.weaponFixedAtk || 0),
-    );
-    const matk = Math.floor(
-      effectiveInt * 2.5 +
-        effectiveDex * 0.3 +
-        (equipStats.weaponFixedMatk || 0),
-    );
-    const def = equipStats.def;
-    const mdefPercent = equipStats.mdefPercent;
-    const accuracy = Math.floor(
-      75 + effectiveDex * 1.0 + character.level * 1.0,
-    );
-    const evasion = Math.floor(effectiveAgi * 0.8);
-    const critChance = Math.max(
-      1,
-      Math.min(50, Math.floor(1 + effectiveSor * 0.3)),
-    );
-    const hpRegenPerTick = Math.floor(
-      1 + Math.floor(effectiveVit * 0.5) + Math.floor(maxHp * 0.005),
-    );
-    const spRegenPerTick = Math.floor(
-      1 + Math.floor(effectiveInt * 0.5) + Math.floor(maxSp * 0.01),
-    );
-
-    return {
-      maxHp,
-      maxSp,
-      atk,
-      matk,
-      def,
-      mdefPercent,
-      accuracy,
-      evasion,
-      critChance,
-      hpRegenPerTick,
-      spRegenPerTick,
-    };
+    const equipStats=await this.calculateEquipmentStats(character.id);
+    const equipped=await this.getEquipment(character.id);
+    let maxHp=0,maxSp=0;
+    for(const equip of equipped){const item=this.dataService.getItemById(equip.itemId);maxHp+=Number(item?.fixedStats?.maxHp??0);maxSp+=Number(item?.fixedStats?.maxSp??0);}
+    const attrs={str:character.str+(equipStats.statBonus.STR||0),agi:character.agi+(equipStats.statBonus.AGI||0),dex:character.dex+(equipStats.statBonus.DEX||0),vit:character.vit+(equipStats.statBonus.VIT||0),int:character.int+(equipStats.statBonus.INT||0),sor:character.sor+(equipStats.statBonus.SOR||0)};
+    const stats=BattleEngine.calculateDerivedStats(character.level,attrs,{def:equipStats.def,maxHp,maxSp,weaponFixedAtk:equipStats.weaponFixedAtk});
+    return {...stats,matk:0,mdefPercent:equipStats.mdefPercent};
   }
 
   /**
    * Equip an item in a slot
    * Validates compatibility and triggers battle queue invalidation
    */
-  async equipItem(
-    characterId: string,
-    slot: string,
-    itemId: string,
-  ): Promise<EquippedItem> {
-    const character = await this.characterRepo.findOne({
-      where: { id: characterId },
-    });
+  async equipItem(characterId: string, slot: string, itemId: string): Promise<EquippedItem> {
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
 
     const itemDef = this.dataService.getItemById(itemId);
-    if (!itemDef || itemDef.type !== 'equipment') {
-      throw new BadRequestException('Item is not equipment');
-    }
-
-    if (itemDef.slot !== slot) {
-      throw new BadRequestException(
-        `Item ${itemId} cannot be equipped in slot ${slot}`,
-      );
-    }
-
+    if (!itemDef || itemDef.type !== 'equipment') throw new BadRequestException('Item is not equipment');
+    if (itemDef.slot !== slot) throw new BadRequestException(`Item ${itemId} cannot be equipped in slot ${slot}`);
     if (character.level < (itemDef.levelReq || 1)) {
-      throw new BadRequestException(
-        `Character level ${character.level} is below requirement ${itemDef.levelReq}`,
-      );
+      throw new BadRequestException(`Character level ${character.level} is below requirement ${itemDef.levelReq}`);
     }
 
-    // Validate weapon combinations if equipping a weapon
+    const current = await this.getEquippedInSlot(characterId, slot);
+    if (current?.itemId === itemId && !character.pendingEquipmentChanges?.[slot]) return current;
+
     if (slot === 'mainHand' || slot === 'offHand') {
       const validation = await this.validateWeaponCombination(
         characterId,
         slot === 'mainHand' ? itemId : undefined,
         slot === 'offHand' ? itemId : undefined,
       );
-      if (!validation.valid) {
-        throw new BadRequestException(
-          `Weapon combination invalid: ${validation.errors?.join(', ')}`,
-        );
-      }
+      if (!validation.valid) throw new BadRequestException(`Weapon combination invalid: ${validation.errors?.join(', ')}`);
     }
 
-    // Upsert equipped item
-    let equipped = await this.getEquippedInSlot(characterId, slot);
-    if (equipped) {
-      equipped.itemId = itemId;
-      equipped.instanceData = null;
-    } else {
-      equipped = this.equippedItemRepo.create({
-        characterId,
-        slot,
-        itemId,
-      });
+    const source = await this.inventoryItemRepo.findOne({
+      where: { characterId, location: 'inventory', itemId },
+      order: { slotIndex: 'ASC' },
+    });
+    if (!source) throw new BadRequestException('Equipment item must be in inventory');
+
+    const first = await this.battleQueueRepo.findOne({
+      where: { characterId, resolved: false },
+      order: { sequenceIndex: 'ASC' },
+    });
+    const grindHasScheduledBattle = character.status === 'grinding' && !!first;
+
+    if (grindHasScheduledBattle) {
+      const pending = { ...(character.pendingEquipmentChanges ?? {}) };
+      const previous = pending[slot];
+      if (previous) await this.addEquipmentToInventory(characterId, previous.itemId, previous.instanceData);
+      await this.inventoryItemRepo.delete(source.id);
+      pending[slot] = { itemId, instanceData: source.instanceData ?? null };
+      character.pendingEquipmentChanges = pending;
+      await this.characterRepo.save(character);
+      this.logger.debug(`Character ${characterId} staged ${itemId} for ${slot}`);
+      return current ?? this.equippedItemRepo.create({ characterId, slot, itemId: itemId, instanceData: source.instanceData ?? null });
     }
 
-    await this.equippedItemRepo.save(equipped);
-
-    // TODO: Invalidate battle queue (call BattleService.invalidateQueue)
-    this.logger.debug(
-      `Character ${characterId} equipped ${itemId} in slot ${slot}`,
-    );
-
-    return equipped;
+    if (current && current.itemId !== itemId) await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData);
+    await this.inventoryItemRepo.delete(source.id);
+    if (current) {
+      current.itemId = itemId;
+      current.instanceData = source.instanceData ?? null;
+      return this.equippedItemRepo.save(current);
+    }
+    return this.equippedItemRepo.save(this.equippedItemRepo.create({
+      characterId, slot, itemId, instanceData: source.instanceData ?? null,
+    }));
   }
 
   /**
    * Unequip an item from a slot
    */
   async unequipItem(characterId: string, slot: string): Promise<void> {
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character) throw new NotFoundException('Character not found');
+    if (character.status === 'grinding') {
+      throw new BadRequestException('Equipment can only be unequipped in town');
+    }
     const equipped = await this.getEquippedInSlot(characterId, slot);
     if (equipped) {
+      await this.addEquipmentToInventory(characterId, equipped.itemId, equipped.instanceData);
       await this.equippedItemRepo.delete(equipped.id);
-
-      // TODO: Invalidate battle queue
       this.logger.debug(`Character ${characterId} unequipped from slot ${slot}`);
     }
+  }
+
+  private async addEquipmentToInventory(characterId: string, itemId: string, instanceData: any): Promise<void> {
+    const rows = await this.inventoryItemRepo.find({
+      where: { characterId, location: 'inventory' },
+      order: { slotIndex: 'ASC' },
+    });
+    const used = new Set(rows.map((row) => row.slotIndex));
+    for (let slotIndex = 0; slotIndex < 50; slotIndex += 1) {
+      if (used.has(slotIndex)) continue;
+      await this.inventoryItemRepo.save(this.inventoryItemRepo.create({
+        characterId,
+        location: 'inventory',
+        slotIndex,
+        itemId,
+        quantity: 1,
+        instanceData: instanceData ?? null,
+      }));
+      return;
+    }
+    throw new BadRequestException('Inventory is full');
+  }
+
+  async applyPendingEquipmentChanges(characterId: string): Promise<boolean> {
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character?.pendingEquipmentChanges) return false;
+
+    const pending = character.pendingEquipmentChanges;
+    for (const [slot, change] of Object.entries(pending)) {
+      if (!change) continue;
+      const current = await this.getEquippedInSlot(characterId, slot);
+      if (current && current.itemId !== change.itemId) {
+        await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData);
+      }
+      if (current) {
+        current.itemId = change.itemId;
+        current.instanceData = change.instanceData ?? null;
+        await this.equippedItemRepo.save(current);
+      } else {
+        await this.equippedItemRepo.save(this.equippedItemRepo.create({
+          characterId, slot, itemId: change.itemId, instanceData: change.instanceData ?? null,
+        }));
+      }
+    }
+
+    character.pendingEquipmentChanges = null as any;
+    await this.characterRepo.save(character);
+    this.logger.log(`Applied pending equipment changes for ${characterId}`);
+    return true;
   }
 
   /**

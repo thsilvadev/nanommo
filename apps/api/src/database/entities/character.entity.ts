@@ -11,7 +11,7 @@ export class Character {
   @Column({ type: 'uuid' })
   userId!: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user?: User;
 
@@ -68,6 +68,9 @@ export class Character {
 
   @Column({ type: 'jsonb', nullable: true })
   activeFoodBuff?: any;
+
+  @Column({ type: 'jsonb', nullable: true })
+  pendingEquipmentChanges?: Record<string, { itemId: string; instanceData?: any } | null>;
 
   @Column({ type: 'jsonb', default: '[]' })
   activeTempBuffs!: any[];

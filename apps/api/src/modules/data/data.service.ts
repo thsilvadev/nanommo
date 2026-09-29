@@ -113,6 +113,28 @@ export class DataService implements OnModuleInit {
     return null;
   }
 
+  /**
+   * All skills of a weapon tree (SPEC §9.1) - the caller applies the
+   * WeaponProficiency unlock gate.
+   */
+  getSkillsForWeapon(weaponType: string): any[] {
+    return this.skillTrees?.trees?.[weaponType] ?? [];
+  }
+
+  /**
+   * Monster-only skills (SPEC §9)
+   */
+  getMonsterSkills(): any[] {
+    return this.skillTrees?.monsterSkills ?? [];
+  }
+
+  /**
+   * SPEC §7.2: per-weapon base attack gauge ticks
+   */
+  getWeaponBaseAttackTicks(): Record<string, number> {
+    return this.skillTrees?.weaponBaseAttackTicks ?? {};
+  }
+
   getXpToNextLevel(level: number): number {
     if (!this.charXpCurve || level < 1 || level > 99) return 0;
     const entry = this.charXpCurve[level - 1];
