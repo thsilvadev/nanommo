@@ -110,7 +110,6 @@ export class AuthStore {
     return new Observable<AuthTokens>((observer) => {
       this.api.post<AuthTokens>('/auth/register', { username, email, password, cpf }).subscribe({
         next: (tokens) => {
-          this.setTokens(tokens);
           this._isLoading.set(false);
           observer.next(tokens);
           observer.complete();

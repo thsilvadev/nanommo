@@ -664,6 +664,7 @@ export class BattleService {
     // null, not undefined: TypeORM silently skips undefined columns on save,
     // which would leave the character on a map it is no longer standing on.
     character.currentMapId = null as any;
+    character.lastSeenAt = new Date();
     character.hpCurrent = 1;
 
     // SPEC §6.4 XP loss: 5% of the next level requirement

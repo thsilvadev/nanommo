@@ -137,7 +137,7 @@ export class RegisterComponent {
     const { username, email, password, cpf } = this.form;
     this.authStore.register(username, email, password, cpf).subscribe({
       next: () => {
-        this.router.navigate(['/play']);
+        this.router.navigate(['/verify-email-pending'], { queryParams: { email } });
       },
       error: () => {},
     });

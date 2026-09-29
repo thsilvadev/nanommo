@@ -1,7 +1,15 @@
 # NanoMMO — Implementation Status
 
-**Last Updated:** 2026-09-28 (Phase 4A backend verified; play/character UI MVP applied; follow-up hardening proposal created)
-**Session Focus:** Backend Phase 4A verified; first play/character UI MVP applied; next focus is auth/session hardening, fresh-character bootstrap, derived stats, grind invariants, responsive UI, and map usability.
+**Last Updated:** 2026-09-28 (follow-up play/Gambit/equipment/auth hardening implemented; builds and OpenSpec validation verified)
+**Session Focus:** Character/Gambit/equipment interaction hardening, Town regeneration, live consumable presentation, XP transparency, and registration/email-verification flow.
+
+### Latest follow-up — `play-gambit-equipment-auth-hardening`
+
+Implemented: Character navbar defaults to `?tab=character`; Town HP/SP regeneration is applied server-side and refreshed by the play sidebar; Character equipment slots are real drag targets with compatible-slot focus plus double-click equip/unequip fallbacks; main play Inventory is inventory-only; Gambit condition/action parameters are editable from catalog metadata and `self_hp_below_percent` is now catalogued; XP bar uses `xpToNext`; active-battle consumable counts update from due log events; registration no longer stores browser auth tokens and shows the email-confirmation page; unverified login is rejected.
+
+Verified: `pnpm --filter @nanommo/shared build`, `pnpm --filter @nanommo/api build`, `pnpm --filter @nanommo/frontend build`, `pnpm exec openspec validate play-gambit-equipment-auth-hardening --strict`, `git diff --check`, and a 10-point static integration check all passed.
+
+Not yet browser-verified in this session: physical drag/drop interaction, Town regeneration visual timing, full Gambit save/edit interaction, live inventory decrement in the browser, and the end-to-end registration/email flow. Weapon XP remains deferred.
 
 > **Evidence rule adopted in Phase 3 and still in force.** A verification result is only recorded in this
 > document if the script that produced it is committed and re-runnable

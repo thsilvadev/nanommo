@@ -21,6 +21,17 @@
       "category": "generic"
     },
     {
+      "id": "self_hp_below_percent",
+      "label": "Self HP is below...",
+      "params": [
+        {
+          "name": "value",
+          "type": "number"
+        }
+      ],
+      "category": "self"
+    },
+    {
       "id": "self_hp_band",
       "label": "Self HP is...",
       "params": [

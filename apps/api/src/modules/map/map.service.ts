@@ -77,6 +77,7 @@ export class MapService {
     // Update character status
     character.currentMapId = mapId;
     character.status = 'grinding';
+    character.lastSeenAt = new Date();
     await this.characterRepo.save(character);
 
     // Queue initial battles
@@ -97,6 +98,7 @@ export class MapService {
     // null, not undefined: TypeORM skips undefined columns on save
     character.currentMapId = null as any;
     character.status = 'town';
+    character.lastSeenAt = new Date();
     await this.characterRepo.save(character);
     await this.battleService.cancelPendingBattles(characterId);
 

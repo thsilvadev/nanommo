@@ -230,6 +230,9 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid username or password');
     }
+    if (user.emailVerified !== true) {
+      throw new UnauthorizedException('Please verify your email before logging in');
+    }
 
     // Generate new sessionId and save to user
     const sessionId = uuidv4();

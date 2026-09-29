@@ -173,7 +173,54 @@ export class CharacterService {
 
   async getCharacterDtoByUserId(userId: string): Promise<CharacterDto | null> {
     const character = await this.getCharacterByUserId(userId);
-    return character ? this.toDto(character) : null;
+    if (!character) return null;
+    await this.applyTownRegeneration(character);
+    return this.toDto(character);
+  }
+
+  private async applyTownRegeneration(character: Character): Promise<void> {
+    if (character.status !== 'town') return;
+
+    const now = Date.now();
+    const last = character.lastSeenAt?.getTime?.() ?? now;
+    const elapsedTicks = Math.max(0, Math.floor((now - last) / 1000));
+    const tenTickPeriods = Math.floor(elapsedTicks / 10);
+
+    if (tenTickPeriods <= 0) return;
+
+    const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
+    const equipment = { def: 0, maxHp: 0, maxSp: 0, weaponFixedAtk: 0, statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 } };
+    for (const row of equipped) {
+      const item = this.dataService.getItemById(row.itemId);
+      equipment.def += Number(item?.fixedStats?.def ?? 0);
+      equipment.maxHp += Number(item?.fixedStats?.maxHp ?? 0);
+      equipment.maxSp += Number(item?.fixedStats?.maxSp ?? 0);
+      if (row.slot === 'mainHand') equipment.weaponFixedAtk += Number(item?.fixedStats?.atk ?? 0);
+      for (const [key, value] of Object.entries(item?.fixedStats?.statBonus ?? {})) {
+        if (key in equipment.statBonus && typeof value === 'number') (equipment.statBonus as any)[key] += value;
+      }
+    }
+
+    const attrs = {
+      str: character.str + equipment.statBonus.STR,
+      agi: character.agi + equipment.statBonus.AGI,
+      dex: character.dex + equipment.statBonus.DEX,
+      vit: character.vit + equipment.statBonus.VIT,
+      int: character.int + equipment.statBonus.INT,
+      sor: character.sor + equipment.statBonus.SOR,
+    };
+    const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
+    const foodActive = character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() > now;
+    const foodHpRegen = foodActive ? Number(character.activeFoodBuff?.hpRegenPerTenTicks ?? 0) : 0;
+    const foodSpRegen = foodActive ? Number(character.activeFoodBuff?.spRegenPerTenTicks ?? 0) : 0;
+
+    character.hpCurrent = Math.min(derived.maxHp, character.hpCurrent + tenTickPeriods * (derived.hpRegenPerTenTicks + foodHpRegen));
+    character.spCurrent = Math.min(derived.maxSp, character.spCurrent + tenTickPeriods * (derived.spRegenPerTenTicks + foodSpRegen));
+    if (!foodActive && character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() <= now) {
+      character.activeFoodBuff = null;
+    }
+    character.lastSeenAt = new Date(last + tenTickPeriods * 10_000);
+    await this.characterRepository.save(character);
   }
 
   private async toDto(character: Character): Promise<CharacterDto> {
@@ -197,6 +244,7 @@ export class CharacterService {
       name: character.name,
       level: character.level,
       xp: character.xp,
+      xpToNext: this.dataService.getXpToNextLevel(character.level),
       unspentAttributePoints: character.unspentAttributePoints,
       str: character.str,
       agi: character.agi,

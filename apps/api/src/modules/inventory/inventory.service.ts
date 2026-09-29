@@ -290,6 +290,7 @@ export class InventoryService {
     if (count <= 0) throw new BadRequestException('Insufficient item quantity');
 
     const effect = item.effect ?? {};
+    character.lastSeenAt = new Date();
     if (effect.type === 'food_buff') {
       character.activeFoodBuff = {
         itemId,

@@ -43,6 +43,7 @@ export class CharacterDto {
   name!: string;
   level!: number;
   xp!: number;
+  xpToNext!: number;
   unspentAttributePoints!: number;
   str!: number;
   agi!: number;

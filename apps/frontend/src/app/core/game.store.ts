@@ -14,11 +14,13 @@ export class CharacterStore {
 }
 @Injectable({providedIn:'root'})
 export class InventoryStore {
- private readonly api=inject(ApiService);private readonly _items=signal<InventoryItem[]>([]);private readonly _equipment=signal<EquippedItem[]>([]);private readonly _state=signal<LoadState>('idle');
- readonly items=this._items.asReadonly();readonly equipment=this._equipment.asReadonly();readonly state=this._state.asReadonly();
+ private readonly api=inject(ApiService);private readonly _items=signal<InventoryItem[]>([]);private readonly _equipment=signal<EquippedItem[]>([]);private readonly _state=signal<LoadState>('idle');private readonly _draggedItemId=signal<string|null>(null);
+ readonly items=this._items.asReadonly();readonly equipment=this._equipment.asReadonly();readonly state=this._state.asReadonly();readonly draggedItemId=this._draggedItemId.asReadonly();
  async load(){this._state.set('loading');try{const [i,e]=await Promise.all([this.api.get<InventoryItem[]>('/inventory').toPromise(),this.api.get<EquippedItem[]>('/equipment').toPromise()]);this._items.set(i??[]);this._equipment.set(e??[]);this._state.set('loaded')}catch{this._state.set('error')}}
  async equip(slot:string,itemId:string){await this.api.put('/equipment/equip',{slot,itemId}).toPromise();await this.load();}
  async unequip(slot:string){await this.api.delete('/equipment/slot/'+slot).toPromise();await this.load();}
+ beginDrag(itemId:string){this._draggedItemId.set(itemId)}
+ endDrag(){this._draggedItemId.set(null)}
  async useConsumable(itemId:string){await this.api.post('/inventory/use',{itemId}).toPromise();await this.load();}
 }
 @Injectable({providedIn:'root'})

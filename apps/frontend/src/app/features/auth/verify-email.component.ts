@@ -33,13 +33,13 @@ import { AuthStore } from '../../core/auth.store';
             </div>
             <div>
               <h1 class="text-2xl font-bold text-white mb-2">E-mail confirmado!</h1>
-              <p class="text-gray-400 mb-6">Seu e-mail foi verificado com sucesso. Redirecionando para o jogo...</p>
+              <p class="text-gray-400 mb-6">Seu e-mail foi verificado com sucesso. Agora volte para o login para entrar no jogo.</p>
             </div>
             <a
-              routerLink="/play"
+              routerLink="/login"
               class="inline-block py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
             >
-              Ir para o jogo
+              Voltar ao login
             </a>
           </div>
         }
@@ -127,9 +127,6 @@ export class VerifyEmailComponent implements OnInit {
       next: (response) => {
         if (response.success) {
           this.state.set('success');
-          setTimeout(() => {
-            this.router.navigate(['/play']);
-          }, 2000);
         } else {
           this.state.set('error');
           this.errorMessage.set(response.message || 'Falha na verificação.');

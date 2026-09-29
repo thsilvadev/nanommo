@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { CdkDrag, CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDropList, CdkDragDrop, CdkDragStart } from '@angular/cdk/drag-drop';
 import { Router } from '@angular/router';
 import { CharacterStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
@@ -10,7 +10,7 @@ import { GambitEditorComponent } from '../gambit/gambit-editor.component';
 
 @Component({selector:'app-character-page',standalone:true,imports:[CommonModule,GambitEditorComponent,CdkDrag,CdkDropList],templateUrl:'./character-page.component.html',styleUrl:'./character-page.component.css'})
 export class CharacterPageComponent implements OnInit {
- readonly character=inject(CharacterStore);readonly inventory=inject(InventoryStore);readonly catalog=inject(CatalogService);readonly api=inject(ApiService);private readonly router=inject(Router);private readonly route=inject(ActivatedRoute);
+ readonly character=inject(CharacterStore);readonly inventory=inject(InventoryStore);readonly catalog=inject(CatalogService);readonly api=inject(ApiService);private readonly router=inject(Router);private readonly route=inject(ActivatedRoute);readonly equipmentTargetIds=['character-page-slot-head','character-page-slot-body','character-page-slot-mainHand','character-page-slot-offHand','character-page-slot-shoes','character-page-slot-cape','character-page-slot-accessoryLeft','character-page-slot-accessoryRight'];
  @Input() tab='character';pending=signal<Record<string,number>>({});saving=signal(false);error=signal<string|null>(null);selectedItem=signal<any|null>(null);
  attrs=[['str','STR'],['agi','AGI'],['dex','DEX'],['vit','VIT'],['int','INT'],['sor','SOR']];
  slots=[['head','Head','helmet'],['body','Body','armor'],['mainHand','Main Hand','sword'],['offHand','Off Hand','shield'],['shoes','Shoes','boots'],['cape','Cape','cape'],['accessoryLeft','Accessory L','ring'],['accessoryRight','Accessory R','ring']];
@@ -25,6 +25,13 @@ export class CharacterPageComponent implements OnInit {
  pendingPoints(){return Object.values(this.pending()).reduce((a,b)=>a+b,0)}
  hasPending(){return Object.keys(this.pending()).length>0}
  item(slot:string){return this.inventory.equipment().find(e=>e.slot===slot)} icon(kind:string){return '/assets/ui/'+kind+'.svg'}
- async drop(slot:string,e:CdkDragDrop<any>){const it=e.item.data;if(!it)return;try{await this.inventory.equip(slot,it.itemId);this.selectedItem.set(it)}catch(err:any){this.error.set(err?.error?.message??'Equipment change rejected by server')}}
- async unequip(slot:string){try{await this.inventory.unequip(slot)}catch(err:any){this.error.set(err?.error?.message??'Unequip rejected by server')}}
+ onDragStart(e:CdkDragStart<any>){const it=e.source.data;if(it?.itemId)this.inventory.beginDrag(it.itemId)}
+ onDragEnd(){this.inventory.endDrag()}
+ equipmentDragData(slot:string,it:any){return {source:'equipment',slot,id:it.id,characterId:it.characterId,itemId:it.itemId,instanceData:it.instanceData}}
+ inventoryDragData(it:any){return {source:'inventory',id:it.id,characterId:it.characterId,itemId:it.itemId,quantity:it.quantity,instanceData:it.instanceData}}
+ async drop(slot:string,e:CdkDragDrop<any>){const it=e.item.data;if(!it)return;try{if(it.source!=='equipment')await this.inventory.equip(slot,it.itemId);this.selectedItem.set(it)}catch(err:any){this.error.set(err?.error?.message??'Equipment change rejected by server')}finally{this.inventory.endDrag()}}
+ async doubleClickInventory(it:any){const def=this.catalog.item(it.itemId);if(def?.type==='equipment'&&def.slot){try{await this.inventory.equip(def.slot,it.itemId)}catch(err:any){this.error.set(err?.error?.message??'Equipment change rejected by server')}}}
+ async doubleClickEquipped(slot:string){try{await this.inventory.unequip(slot)}catch(err:any){this.error.set(err?.error?.message??'Unequip rejected by server')}}
+ async dropToInventory(e:CdkDragDrop<any>){const it=e.item.data;if(it?.source==='equipment')await this.doubleClickEquipped(it.slot);}
+
 }

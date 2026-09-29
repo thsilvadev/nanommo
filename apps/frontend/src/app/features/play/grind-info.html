@@ -11,5 +11,5 @@
   <div class="queue-note">{{battle.queue().length}} battle{{battle.queue().length===1?'':'s'}} queued</div>
 </ng-container>
 <div *ngIf="!battle.active()" class="idle-state"><strong>{{character.character()?.status==='town'?'IN TOWN':foodLabel()==='HUNGRY'?'HUNGRY':'NO BATTLE QUEUED'}}</strong><small *ngIf="character.character()?.status==='town'">Eat food and choose a map to resume grinding.</small></div>
-<div class="consumables"><div *ngFor="let it of consumableItems()" class="consumable"><img [src]="catalog.itemIcon(it.itemId)" [alt]="catalog.item(it.itemId)?.name||it.itemId"><b>{{it.quantity}}</b><small>{{catalog.item(it.itemId)?.name||it.itemId}}</small></div></div>
+<div class="consumables"><div *ngFor="let it of consumableItems()" class="consumable"><img [src]="catalog.itemIcon(it.itemId)" [alt]="catalog.item(it.itemId)?.name||it.itemId"><b>{{displayQuantity(it)}}</b><small>{{catalog.item(it.itemId)?.name||it.itemId}}</small></div></div>
 </section>
