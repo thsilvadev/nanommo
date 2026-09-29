@@ -190,10 +190,14 @@ export class AuthService {
           throw new Error('Could not find buyer/seller character foreign keys in market_deals');
         }
 
+        const offsetPlaceholders = characterIds
+          .map((_: string, i: number) => '$' + (characterIds.length + i + 1))
+          .join(', ');
+
         await queryRunner.query(
           'DELETE FROM market_deals WHERE ' +
           this.quoteIdentifier(dealCharacterColumns[0]) + ' IN (' + placeholders + ') OR ' +
-          this.quoteIdentifier(dealCharacterColumns[1]) + ' IN (' + placeholders + ')',
+          this.quoteIdentifier(dealCharacterColumns[1]) + ' IN (' + offsetPlaceholders + ')',
           [...characterIds, ...characterIds],
         );
 
