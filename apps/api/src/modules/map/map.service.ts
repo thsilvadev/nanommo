@@ -26,26 +26,12 @@ export class MapService {
    * Get all available maps
    */
   async getMaps(): Promise<any[]> {
-    const monsters = this.dataService.getMonsters();
-    if (!monsters) return [];
+    const data = this.dataService.getMonsters();
+    if (!data?.maps || !Array.isArray(data.maps)) return [];
 
-    // Extract unique maps from monsters
-    const mapsSet = new Set<string>();
-    const maps: any[] = [];
-
-    if (Array.isArray(monsters)) {
-      for (const monster of monsters) {
-        if (monster.mapId && !mapsSet.has(monster.mapId)) {
-          mapsSet.add(monster.mapId);
-          const map = this.dataService.getMapById(monster.mapId);
-          if (map) {
-            maps.push(map);
-          }
-        }
-      }
-    }
-
-    return maps;
+    // The canonical map catalog lives in monsters.json.maps.
+    // Return every configured map so the UI can show locked and unlocked maps.
+    return data.maps;
   }
 
   /**
