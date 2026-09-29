@@ -29,7 +29,7 @@ import { GatewayModule } from './modules/gateway/gateway.module';
     ThrottlerModule.forRoot([
       {
         ttl: parseInt(process.env.THROTTLE_TTL || '60000', 10),
-        limit: parseInt(process.env.THROTTLE_LIMIT || '5', 10),
+        limit: parseInt(process.env.THROTTLE_LIMIT || '60', 10),
       },
     ]),
     BullModule.forRoot({
