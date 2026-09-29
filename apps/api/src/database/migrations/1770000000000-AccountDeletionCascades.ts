@@ -4,39 +4,42 @@ export class AccountDeletionCascades1770000000000 implements MigrationInterface 
   name = 'AccountDeletionCascades1770000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const constraints = [
-      ['characters', 'userId'],
-      ['inventory_items', 'characterId'],
-      ['equipped_items', 'characterId'],
-      ['weapon_proficiencies', 'characterId'],
-      ['gambit_pages', 'characterId'],
-      ['map_kill_counters', 'characterId'],
-      ['battle_queue_entries', 'characterId'],
-      ['market_orders', 'characterId'],
-      ['market_deals', 'buyerCharacterId'],
-      ['market_deals', 'sellerCharacterId'],
-      ['mail_messages', 'recipientCharacterId'],
-      ['chat_reports', 'reporterUserId'],
-      ['chat_reports', 'reportedUserId'],
+    const tables = [
+      'characters',
+      'inventory_items',
+      'equipped_items',
+      'weapon_proficiencies',
+      'gambit_pages',
+      'map_kill_counters',
+      'battle_queue_entries',
+      'market_orders',
+      'market_deals',
+      'mail_messages',
+      'chat_reports',
     ];
 
-    for (const [tableName, columnName] of constraints) {
-      const rows: Array<{ constraint_name: string }> = await queryRunner.query(
-        `SELECT tc.constraint_name
-           FROM information_schema.table_constraints tc
-           JOIN information_schema.key_column_usage kcu
-             ON tc.constraint_name = kcu.constraint_name
-            AND tc.table_schema = kcu.table_schema
-          WHERE tc.constraint_type = 'FOREIGN KEY'
-            AND tc.table_name = $1
-            AND kcu.column_name = $2`,
-        [tableName, columnName],
+    for (const tableName of tables) {
+      const table = await queryRunner.getTable(tableName);
+      if (!table) continue;
+
+      const foreignKeys = table.foreignKeys.filter(
+        (fk) => fk.referencedTableName === 'users' || fk.referencedTableName === 'characters',
       );
 
-      for (const row of rows) {
-        await queryRunner.query(`ALTER TABLE "${tableName}" DROP CONSTRAINT "${row.constraint_name}"`);
+      for (const foreignKey of foreignKeys) {
         await queryRunner.query(
-          `ALTER TABLE "${tableName}" ADD CONSTRAINT "${row.constraint_name}" FOREIGN KEY ("${columnName}") REFERENCES "${tableName === 'characters' || tableName === 'chat_reports' ? (tableName === 'characters' ? 'users' : 'users') : 'characters'}"("id") ON DELETE CASCADE`,
+          'ALTER TABLE "' + tableName + '" DROP CONSTRAINT "' + foreignKey.name + '"',
+        );
+
+        const columns = foreignKey.columnNames.map((column) => '"' + column.replaceAll('"', '""') + '"').join(', ');
+        const referencedColumns = foreignKey.referencedColumnNames
+          .map((column) => '"' + column.replaceAll('"', '""') + '"')
+          .join(', ');
+
+        await queryRunner.query(
+          'ALTER TABLE "' + tableName + '" ADD CONSTRAINT "' + foreignKey.name +
+          '" FOREIGN KEY (' + columns + ') REFERENCES "' + foreignKey.referencedTableName +
+          '" (' + referencedColumns + ') ON DELETE CASCADE',
         );
       }
     }

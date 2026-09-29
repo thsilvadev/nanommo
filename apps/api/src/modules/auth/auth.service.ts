@@ -107,27 +107,60 @@ export class AuthService {
     return this.generateTokens(user.id, user.username, sessionId);
   }
 
+  private async getForeignKeyColumn(
+    queryRunner: ReturnType<DataSource['createQueryRunner']>,
+    tableName: string,
+    referencedTableName: string,
+  ): Promise<string> {
+    const table = await queryRunner.getTable(tableName);
+    const foreignKey = table?.foreignKeys.find(
+      (fk) => fk.referencedTableName === referencedTableName && fk.columnNames.length === 1,
+    );
+
+    if (!foreignKey) {
+      throw new Error('Could not find foreign key from ' + tableName + ' to ' + referencedTableName);
+    }
+
+    return foreignKey.columnNames[0];
+  }
+
+  private quoteIdentifier(identifier: string): string {
+    return '"' + identifier.replaceAll('"', '""') + '"';
+  }
+
   async deleteAccount(userId: string): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
+      // Resolve FK column names from the live schema instead of assuming the
+      // database uses TypeORM property names (e.g. characterId vs character_id).
+      const characterUserColumn = await this.getForeignKeyColumn(queryRunner, 'characters', 'users');
       const characters = await queryRunner.query(
-        'SELECT id FROM characters WHERE "userId" = $1',
+        'SELECT id FROM characters WHERE ' + this.quoteIdentifier(characterUserColumn) + ' = $1',
         [userId],
       );
       const characterIds = characters.map((row: { id: string }) => row.id);
 
-      // Explicitly remove account-owned records so deletion works even before
-      // the database cascade migration has been applied.
+      const chatReportTable = await queryRunner.getTable('chat_reports');
+      const chatUserColumns = chatReportTable?.foreignKeys
+        .filter((fk) => fk.referencedTableName === 'users' && fk.columnNames.length === 1)
+        .map((fk) => fk.columnNames[0]) ?? [];
+
+      if (chatUserColumns.length < 2) {
+        throw new Error('Could not find reporter/reported user foreign keys in chat_reports');
+      }
+
       await queryRunner.query(
-        'DELETE FROM chat_reports WHERE "reporterUserId" = $1 OR "reportedUserId" = $1',
+        'DELETE FROM chat_reports WHERE ' +
+        this.quoteIdentifier(chatUserColumns[0]) + ' = $1 OR ' +
+        this.quoteIdentifier(chatUserColumns[1]) + ' = $1',
         [userId],
       );
 
       if (characterIds.length) {
-        const placeholders = characterIds.map((_: string, i: number) => `$${i + 1}`).join(', ');
+        const placeholders = characterIds.map((_: string, i: number) => '$' + (i + 1)).join(', ');
         const tables = [
           'inventory_items',
           'equipped_items',
@@ -140,19 +173,32 @@ export class AuthService {
         ];
 
         for (const table of tables) {
+          const characterColumn = await this.getForeignKeyColumn(queryRunner, table, 'characters');
           await queryRunner.query(
-            `DELETE FROM "${table}" WHERE "characterId" IN (${placeholders})`,
+            'DELETE FROM "' + table + '" WHERE ' + this.quoteIdentifier(characterColumn) +
+            ' IN (' + placeholders + ')',
             characterIds,
           );
         }
 
+        const marketDealTable = await queryRunner.getTable('market_deals');
+        const dealCharacterColumns = marketDealTable?.foreignKeys
+          .filter((fk) => fk.referencedTableName === 'characters' && fk.columnNames.length === 1)
+          .map((fk) => fk.columnNames[0]) ?? [];
+
+        if (dealCharacterColumns.length < 2) {
+          throw new Error('Could not find buyer/seller character foreign keys in market_deals');
+        }
+
         await queryRunner.query(
-          `DELETE FROM market_deals WHERE "buyerCharacterId" IN (${placeholders}) OR "sellerCharacterId" IN (${placeholders})`,
+          'DELETE FROM market_deals WHERE ' +
+          this.quoteIdentifier(dealCharacterColumns[0]) + ' IN (' + placeholders + ') OR ' +
+          this.quoteIdentifier(dealCharacterColumns[1]) + ' IN (' + placeholders + ')',
           [...characterIds, ...characterIds],
         );
 
         await queryRunner.query(
-          `DELETE FROM characters WHERE id IN (${placeholders})`,
+          'DELETE FROM characters WHERE id IN (' + placeholders + ')',
           characterIds,
         );
       }
