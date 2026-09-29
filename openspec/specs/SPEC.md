@@ -199,7 +199,7 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | status | enum('town','grinding','dead_pending_return') | |
 | activeGambitPageId | uuid, FK → GambitPage, nullable | |
 | lastDeathLog | jsonb, nullable | see §7.7, overwritten each death |
-| activeFoodBuff | jsonb, nullable | `{ itemId, hpRegenPerTick, spRegenPerTick, expiresAt }` |
+| activeFoodBuff | jsonb, nullable | `{ itemId, hpRegenPerTenTicks, spRegenPerTenTicks, expiresAt }` |
 | activeTempBuffs | jsonb, default [] | array of `{ source, stat, mult|flat, expiresAt|expiresAtTick }` from skills like Bloodlust |
 | statusEffects | jsonb, default [] | array of `{ type, appliedAtTick, expiresAtTick, sourceSkillId }` |
 | lastSeenAt | timestamptz | for online/offline + presence |
@@ -355,29 +355,31 @@ These formulas were designed after the shape of Ragnarok Online (soft-cap DEF fo
 
 ### 5.2 Derived stat formulas
 
-Let `L` = character level, and all attribute values include equipment `statBonus` + random rolls.
+The six attributes are always present at character creation with value 5. Each point contributes to one or more derived stats through the following NanoMMO formulas. The design is inspired by Ragnarok Online relationships, but the numeric values are original to NanoMMO.
 
-```
-maxHp          = VIT*20 + sum(equipment.maxHp)
-maxSp          = INT*10 + sum(equipment.maxSp)
-atk            = STR + weaponFixedAtk
-def            = sum(equipment.def)
-attackSpeed    = AGI
-castSpeed      = DEX
-evasion        = AGI
-accuracy       = DEX
-hpRegenPerTick = VIT       // applied once every 10 ticks
-spRegenPerTick = INT       // applied once every 10 ticks
-critChance%    = SOR
+attack = floor(STR * 2) + weaponAttack
+defense = equipmentDefense
+maxHp = 50 + floor(VIT * 18) + equipmentMaxHp
+maxSp = 20 + floor(INT * 8) + equipmentMaxSp
+attackSpeed = 100 + floor(AGI * 2)
+castSpeed = 100 + floor(DEX * 2)
+evasion = floor(AGI * 1.5)
+accuracy = 50 + floor(DEX * 2)
+hpRegenPerTenTicks = 1 + floor(VIT / 2)
+spRegenPerTenTicks = 1 + floor(INT / 2)
+critChance% = floor(SOR * 0.3 * 10) / 10
 
-Equipment `statBonus`/random rolls are added to the corresponding base attribute
-before these formulas. `maxHp` and `maxSp` equipment contributions are optional
-flat bonuses from item definitions. The exposed speed values are the raw AGI/DEX
-inputs used by the combat gauges; the engine continues to convert them into tick
-thresholds. HP/SP regeneration is intentionally interval-based: no regeneration
-is applied on ticks 1-9, then the derived amount is recovered on every 10th tick.
-moveSpeed    = reserved for future exploration features — not used by combat in MVP
-```
+Attack Speed and Cast Speed are displayed as ratings where higher is faster. The battle engine converts them into the existing weapon/skill gauge thresholds. Regeneration is recovered once every 10 ticks because one tick is one second.
+
+At level 1 with all six attributes at 5 and the starter sword's +8 ATK:
+
+ATK 18 | DEF 0 | Max HP 140 | Max SP 60
+Attack Speed 110 | Cast Speed 110
+Evasion 7 | Accuracy 60
+HP Regen 3 / 10 ticks | SP Regen 3 / 10 ticks
+Critical 2.5%
+
+Equipment stat bonuses are added to the corresponding attributes before these formulas. Flat equipment Max HP/Max SP and weapon ATK are added directly.
 
 **Physical damage mitigation (soft cap, avoids DEF ever reaching 100% reduction):**
 ```
@@ -672,7 +674,7 @@ Every equipment item **template** in `items.json` defines:
 
 ### 10.5 Foods (buffs) — detail
 
-Per confirmed design: foods are 30-minute (`durationSeconds: 1800`) buffs granting **passive HP/SP regen per tick** on top of the normal `hpRegenPerTick`/`spRegenPerTick` formula, with varying HP:SP ratios (Bread and Roasted Boar Leg lean HP-heavy; Blueberries and Herbal Tea lean SP-heavy; Stew and Honey are balanced). Only **one** food buff is active at a time (`Character.activeFoodBuff`) — eating a new food overwrites the timer and values of the old one, it does not stack. A gambit line `self_hungry → use_item <food>` is the intended idiom for keeping a grind sustained indefinitely, exactly as specified (*"if hungry -> eat blueberry"*).
+Per confirmed design: foods are 30-minute (`durationSeconds: 3600`) buffs granting **passive HP/SP regen per 10 ticks** on top of the normal `hpRegenPerTenTicks`/`spRegenPerTenTicks` formula, with varying HP:SP ratios (Bread and Roasted Boar Leg lean HP-heavy; Blueberries and Herbal Tea lean SP-heavy; Stew and Honey are balanced). Only **one** food buff is active at a time (`Character.activeFoodBuff`) — eating a new food overwrites the timer and values of the old one, it does not stack. A gambit line `self_hungry → use_item <food>` is the intended idiom for keeping a grind sustained indefinitely, exactly as specified (*"if hungry -> eat blueberry"*).
 
 ---
 

@@ -58,6 +58,14 @@ export class MapService {
     if (!weapon || weapon.type !== 'equipment' || !weapon.weaponType) {
       throw new BadRequestException('A valid main-hand weapon is required to enter grind');
     }
+    const starterPotionCount = await this.battleService.getAvailablePotionCount(character.id);
+    const foodBuff = character.activeFoodBuff;
+    if (starterPotionCount <= 0) {
+      throw new BadRequestException('At least one HP potion is required to enter grind');
+    }
+    if (!foodBuff?.expiresAt || new Date(foodBuff.expiresAt).getTime() <= Date.now()) {
+      throw new BadRequestException('Character is hungry: eat food before entering grind');
+    }
 
     // Validate level requirement
     if (character.level < (map.unlockLevel || 1)) {

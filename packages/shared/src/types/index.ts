@@ -13,8 +13,8 @@ export interface DerivedStats {
   accuracy: number;
   evasion: number;
   critChance: number;
-  hpRegenPerTick: number;
-  spRegenPerTick: number;
+  hpRegenPerTenTicks: number;
+  spRegenPerTenTicks: number;
 }
 
 // Character snapshot for battle
@@ -128,8 +128,8 @@ export interface BattleResult {
 // Food buff
 export interface FoodBuff {
   itemId: string;
-  hpRegenPerTick: number;
-  spRegenPerTick: number;
+  hpRegenPerTenTicks: number;
+  spRegenPerTenTicks: number;
   expiresAt: Date;
 }
 

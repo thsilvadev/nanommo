@@ -131,6 +131,17 @@ export class BattleService {
     return { skills, skillDefs, weaponTypes };
   }
 
+  async getAvailablePotionCount(characterId: string): Promise<number> {
+    return this.inventoryItemRepo
+      .createQueryBuilder('item')
+      .select('COALESCE(SUM(item.quantity), 0)', 'count')
+      .where('item.characterId = :characterId', { characterId })
+      .andWhere('item.location = :location', { location: 'inventory' })
+      .andWhere('item.itemId IN (:...itemIds)', { itemIds: ['pot_hp_small', 'pot_hp_medium', 'pot_hp_large'] })
+      .getRawOne()
+      .then((row) => Number(row?.count ?? 0));
+  }
+
   /**
    * Build the real combatant snapshot handed to BattleEngine.simulateBattle().
    * Equipment bonuses, weapon proficiency and live inventory are all included.
@@ -139,6 +150,8 @@ export class BattleService {
     character: Character,
     hp: number,
     sp: number,
+    atTime: number = Date.now(),
+    foodOverride: any = character.activeFoodBuff,
   ): Promise<CombatantSnapshot> {
     const equipmentStats = await this.equipmentService.calculateEquipmentStats(character.id);
     const { skills, skillDefs, weaponTypes } = await this.buildSkillAvailability(character.id);
@@ -161,15 +174,24 @@ export class BattleService {
       },
     );
 
+    const food = foodOverride;
+    const foodExpiry = food?.expiresAt ? new Date(food.expiresAt).getTime() : 0;
+    const foodActive = foodExpiry > atTime;
+    const foodTicks = foodActive ? Math.max(0, Math.ceil((foodExpiry - atTime) / MS_PER_TICK)) : 0;
     return {
       level: character.level,
       hp: Math.max(1, Math.min(hp, derived.maxHp)),
       sp: Math.max(0, Math.min(sp, derived.maxSp)),
       ...derived,
+      hpRegenPerTenTicks: derived.hpRegenPerTenTicks + (foodActive ? Number(food.hpRegenPerTenTicks ?? 0) : 0),
+      spRegenPerTenTicks: derived.spRegenPerTenTicks + (foodActive ? Number(food.spRegenPerTenTicks ?? 0) : 0),
+      foodBuffTicksRemaining: foodTicks,
+      foodBuffItemId: foodActive ? food.itemId : undefined,
+      foodBuffHpRegenPerTenTicks: foodActive ? Number(food.hpRegenPerTenTicks ?? 0) : undefined,
+      foodBuffSpRegenPerTenTicks: foodActive ? Number(food.spRegenPerTenTicks ?? 0) : undefined,
       skills,
       skillDefs,
       statusEffects: character.statusEffects ?? [],
-      foodBuffTicksRemaining: 0,
       equippedWeaponTypes: weaponTypes,
     } as CombatantSnapshot;
   }
@@ -215,6 +237,10 @@ export class BattleService {
       return currentQueue; // Already at target depth
     }
 
+    const inventoryBeforeQueue = await this.buildInventoryMap(characterId);
+    let projectedFoodBuff = character.activeFoodBuff;
+    let projectedFoodExpiresAt = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
+
     const mapId = character.currentMapId;
     const battlesToAdd = targetDepth - currentQueue.length;
     const newBattles: BattleQueueEntry[] = [];
@@ -236,6 +262,36 @@ export class BattleService {
           (workingInventory[consumed.itemId] ?? 0) - consumed.quantity,
         );
       }
+    }
+
+    const projectFoodFromQueue = (entries: BattleQueueEntry[]) => {
+      for (const pending of entries.sort((a, b) => a.sequenceIndex - b.sequenceIndex)) {
+        for (const event of Array.isArray(pending.log?.events) ? pending.log.events : []) {
+          if (event?.action !== 'use_item') continue;
+          const def = this.dataService.getItemById(event.itemId);
+          if (def?.effect?.type !== 'food_buff') continue;
+          const usedAt = new Date(pending.startAt).getTime() + Number(event.tick ?? 0) * MS_PER_TICK;
+          projectedFoodBuff = {
+            itemId: event.itemId,
+            hpRegenPerTenTicks: Number(def.effect?.hpRegenPerTenTicks ?? 0),
+            spRegenPerTenTicks: Number(def.effect?.spRegenPerTenTicks ?? 0),
+            expiresAt: new Date(usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_TICK).toISOString(),
+          };
+        }
+        if (projectedFoodBuff?.expiresAt && new Date(projectedFoodBuff.expiresAt).getTime() <= new Date(pending.endAt).getTime()) {
+          projectedFoodBuff = null;
+        }
+      }
+    };
+    projectFoodFromQueue(currentQueue);
+    projectedFoodExpiresAt = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
+    if ((await this.getAvailablePotionCount(characterId)) <= 0 || !projectedFoodExpiresAt || projectedFoodExpiresAt <= Date.now()) {
+      if (currentQueue.length === 0) {
+        character.currentMapId = null as any;
+        character.status = 'town';
+        await this.characterRepo.save(character);
+      }
+      return currentQueue;
     }
 
     const gambitPage = character.activeGambitPageId
@@ -269,6 +325,9 @@ export class BattleService {
         : new Date();
 
     for (let i = 0; i < battlesToAdd; i++) {
+      if ((workingInventory['pot_hp_small'] ?? 0) + (workingInventory['pot_hp_medium'] ?? 0) + (workingInventory['pot_hp_large'] ?? 0) <= 0 || !projectedFoodExpiresAt || projectedFoodExpiresAt <= nextStartTime.getTime()) {
+        break;
+      }
       const sequenceIndex = maxSequenceIndex + 1 + i;
       const killIndex = projectedMapKillCount;
 
@@ -276,7 +335,7 @@ export class BattleService {
       const monster = rngForIndex(encounterSeed, killIndex).weightedPick(monsters);
       const monsterId = monster.id;
 
-      const snapshot = await this.buildCharacterSnapshot(character, chainHp, chainSp);
+      const snapshot = await this.buildCharacterSnapshot(character, chainHp, chainSp, nextStartTime.getTime(), projectedFoodBuff);
       const seed = `${characterId}:${mapId}:${monsterId}:${sequenceIndex}:${counter.epoch}:${killIndex}`;
 
       // ---- Gambit is evaluated INSIDE the engine, per gauge fire (SPEC §7.3)
@@ -292,6 +351,19 @@ export class BattleService {
       chainHp = simulation.hpAfter;
       chainSp = simulation.spAfter;
       Object.assign(workingInventory, simulation.inventoryAfter);
+
+      const battleEndTime = nextStartTime.getTime() + Math.max(1000, simulation.durationTicks * MS_PER_TICK);
+      if (simulation.foodBuffAfter) {
+        projectedFoodBuff = {
+          itemId: simulation.foodBuffAfter.itemId,
+          hpRegenPerTenTicks: simulation.foodBuffAfter.hpRegenPerTenTicks,
+          spRegenPerTenTicks: simulation.foodBuffAfter.spRegenPerTenTicks,
+          expiresAt: new Date(battleEndTime + simulation.foodBuffAfter.remainingTicks * MS_PER_TICK).toISOString(),
+        };
+      } else if ((snapshot.foodBuffTicksRemaining ?? 0) <= simulation.durationTicks) {
+        projectedFoodBuff = null;
+      }
+      projectedFoodExpiresAt = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
 
       // ---- Rewards: xp from xpReward, gold rolled from goldReward.min/max,
       //      drops from monsters.json chances (SPEC §11.5) - only on a win.
@@ -331,6 +403,7 @@ export class BattleService {
       const saved = await this.battleQueueRepo.save(entry);
       newBattles.push(saved);
 
+
       const delayMs = saved.endAt.getTime() - Date.now();
       await this.bullQueue.add(
         'resolve-battle',
@@ -351,6 +424,7 @@ export class BattleService {
           `resolvesIn=${Math.max(0, delayMs)}ms`,
       );
 
+      if (simulation.outcome === 'loss') break;
       nextStartTime = new Date(nextStartTime.getTime() + battleDurationMs);
     }
 
@@ -422,6 +496,7 @@ export class BattleService {
     }
 
     if (battle.outcome === 'loss') {
+      this.applyResolvedFoodState(character, battle);
       const deathLog = await this.handleCharacterDeath(character, battle);
       await this.safePublishBattleResolved(character.id, battle, character);
       await this.safePublishCharacterDied(character.id, deathLog);
@@ -491,6 +566,8 @@ export class BattleService {
       );
     }
 
+    this.applyResolvedFoodState(character, battle);
+    const equipmentChanged = await this.equipmentService.applyPendingEquipmentChanges(character.id);
     await this.characterRepo.save(character);
 
     // --- drops (SPEC §11.5)
@@ -525,13 +602,12 @@ export class BattleService {
     // against the OLD stats. Discard them and rebuild the queue from scratch with
     // the new character state. Must run AFTER the kill counter is bumped so the
     // rebuilt chain does not re-encounter the same monster index it just killed.
-    if (leveledUp) {
-      await this.requeueBattlesAfterLevelUp(character.id);
+    if (leveledUp || equipmentChanged) {
+      await this.discardUnresolvedBattles(character.id);
+      await this.queueBattles(character.id, this.QUEUE_DEPTH_TARGET, false);
     } else if (character.currentMapId && character.status === 'grinding') {
       await this.queueBattles(character.id, this.QUEUE_DEPTH_TARGET, false);
     }
-
-    await this.safePublishBattleResolved(character.id, battle, character);
     if (leveledUp) {
       await this.safePublishCharacterLeveledUp(character.id, {
         newLevel: character.level,
@@ -547,6 +623,36 @@ export class BattleService {
         `level=${character.level} xp=${character.xp} gold=${character.gold} ` +
         `mapKillCount=${killCounter.mapKillCount} perMonster=${battle.monsterId}:${killCounter.perMonsterCount}`,
     );
+  }
+
+  private applyResolvedFoodState(character: Character, battle: BattleQueueEntry): void {
+    const events = Array.isArray(battle.log?.events) ? battle.log.events : [];
+    let foodUse: any = null;
+    for (const event of events) {
+      if (event?.action !== 'use_item') continue;
+      const def = this.dataService.getItemById(event.itemId);
+      if (def?.effect?.type === 'food_buff') foodUse = { event, def };
+    }
+    if (foodUse) {
+      const usedAt = new Date(battle.startAt).getTime() + Number(foodUse.event.tick ?? 0) * MS_PER_TICK;
+      character.activeFoodBuff = {
+        itemId: foodUse.def.id,
+        hpRegenPerTenTicks: Number(foodUse.def.effect?.hpRegenPerTenTicks ?? 0),
+        spRegenPerTenTicks: Number(foodUse.def.effect?.spRegenPerTenTicks ?? 0),
+        expiresAt: new Date(usedAt + Number(foodUse.def.effect?.durationSeconds ?? 0) * MS_PER_TICK).toISOString(),
+      };
+    } else if (character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() <= Date.now()) {
+      character.activeFoodBuff = null;
+    }
+  }
+
+  private async discardUnresolvedBattles(characterId: string): Promise<void> {
+    const remaining = await this.battleQueueRepo.find({ where: { characterId, resolved: false } });
+    if (!remaining.length) return;
+    for (const entry of remaining) {
+      await this.bullQueue.getJob(entry.id).then((job) => job?.remove()).catch(() => undefined);
+    }
+    await this.battleQueueRepo.delete({ id: In(remaining.map((entry) => entry.id)) });
   }
 
   /**

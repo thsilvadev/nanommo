@@ -519,12 +519,12 @@
         "type": "heal_hp",
         "amount": 60
       },
-      "cooldownSeconds": 5,
       "vendorSells": true,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 5
     },
     {
       "id": "pot_hp_medium",
@@ -533,12 +533,12 @@
         "type": "heal_hp",
         "amount": 180
       },
-      "cooldownSeconds": 5,
       "vendorSells": true,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 5
     },
     {
       "id": "pot_hp_large",
@@ -547,12 +547,12 @@
         "type": "heal_hp",
         "amount": 450
       },
-      "cooldownSeconds": 5,
       "vendorSells": true,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 5
     },
     {
       "id": "pot_sp_small",
@@ -561,12 +561,12 @@
         "type": "heal_sp",
         "amount": 50
       },
-      "cooldownSeconds": 5,
       "vendorSells": true,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 5
     },
     {
       "id": "pot_sp_medium",
@@ -575,12 +575,12 @@
         "type": "heal_sp",
         "amount": 150
       },
-      "cooldownSeconds": 5,
       "vendorSells": true,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 5
     },
     {
       "id": "pot_sp_large",
@@ -589,12 +589,12 @@
         "type": "heal_sp",
         "amount": 380
       },
-      "cooldownSeconds": 5,
       "vendorSells": true,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 5
     },
     {
       "id": "antidote",
@@ -603,12 +603,12 @@
         "type": "cure_status",
         "status": "poison"
       },
-      "cooldownSeconds": 5,
       "vendorSells": true,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 5
     },
     {
       "id": "elixir_greater",
@@ -618,28 +618,28 @@
         "hpAmount": 300,
         "spAmount": 200
       },
-      "cooldownSeconds": 5,
       "vendorSells": false,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 5
     },
     {
       "id": "food_bread",
       "name": "Bread",
       "effect": {
         "type": "food_buff",
-        "durationSeconds": 1800,
-        "hpRegenPerTick": 4,
-        "spRegenPerTick": 1
+        "durationSeconds": 3600,
+        "hpRegenPerTenTicks": 4,
+        "spRegenPerTenTicks": 1
       },
-      "cooldownSeconds": 0,
       "vendorSells": false,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 0
     },
     {
       "id": "food_cheese",
@@ -647,15 +647,15 @@
       "effect": {
         "type": "food_buff",
         "durationSeconds": 1800,
-        "hpRegenPerTick": 8,
-        "spRegenPerTick": 1
+        "hpRegenPerTenTicks": 8,
+        "spRegenPerTenTicks": 1
       },
-      "cooldownSeconds": 0,
       "vendorSells": false,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 0
     },
     {
       "id": "food_blueberry",
@@ -663,15 +663,15 @@
       "effect": {
         "type": "food_buff",
         "durationSeconds": 1800,
-        "hpRegenPerTick": 1,
-        "spRegenPerTick": 4
+        "hpRegenPerTenTicks": 1,
+        "spRegenPerTenTicks": 4
       },
-      "cooldownSeconds": 0,
       "vendorSells": false,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 0
     },
     {
       "id": "food_herbtea",
@@ -679,15 +679,15 @@
       "effect": {
         "type": "food_buff",
         "durationSeconds": 1800,
-        "hpRegenPerTick": 1,
-        "spRegenPerTick": 8
+        "hpRegenPerTenTicks": 1,
+        "spRegenPerTenTicks": 8
       },
-      "cooldownSeconds": 0,
       "vendorSells": false,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 0
     },
     {
       "id": "food_stew",
@@ -695,15 +695,15 @@
       "effect": {
         "type": "food_buff",
         "durationSeconds": 1800,
-        "hpRegenPerTick": 5,
-        "spRegenPerTick": 5
+        "hpRegenPerTenTicks": 5,
+        "spRegenPerTenTicks": 5
       },
-      "cooldownSeconds": 0,
       "vendorSells": false,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 0
     },
     {
       "id": "food_honey",
@@ -711,15 +711,15 @@
       "effect": {
         "type": "food_buff",
         "durationSeconds": 1800,
-        "hpRegenPerTick": 6,
-        "spRegenPerTick": 6
+        "hpRegenPerTenTicks": 6,
+        "spRegenPerTenTicks": 6
       },
-      "cooldownSeconds": 0,
       "vendorSells": false,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 0
     },
     {
       "id": "food_roast",
@@ -727,15 +727,15 @@
       "effect": {
         "type": "food_buff",
         "durationSeconds": 1800,
-        "hpRegenPerTick": 10,
-        "spRegenPerTick": 2
+        "hpRegenPerTenTicks": 10,
+        "spRegenPerTenTicks": 2
       },
-      "cooldownSeconds": 0,
       "vendorSells": false,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7
+      "sellPriceToVendor": 7,
+      "cooldownInSeconds": 0
     }
   ],
   "equipment": [

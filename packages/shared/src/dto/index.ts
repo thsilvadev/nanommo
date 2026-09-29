@@ -61,9 +61,11 @@ export class CharacterDto {
   castSpeed!: number;
   evasion!: number;
   accuracy!: number;
-  hpRegen!: number;
-  spRegen!: number;
+  hpRegenPerTenTicks!: number;
+  spRegenPerTenTicks!: number;
   criticalChance!: number;
+  hungry!: boolean;
+  foodBuffExpiresAt?: Date;
   currentMapId?: string;
   status!: string;
   activeGambitPageId?: string;

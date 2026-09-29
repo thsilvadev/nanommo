@@ -1,12 +1,12 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Character, WeaponProficiency, GambitPage, EquippedItem } from '@/database/entities';
+import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem } from '@/database/entities';
 import { CharacterService } from './character.service';
 import { CharacterController } from './character.controller';
 import { DataModule } from '../data/data.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Character, WeaponProficiency, GambitPage, EquippedItem]), DataModule, forwardRef(() => require('../auth/auth.module').AuthModule)],
+  imports: [TypeOrmModule.forFeature([Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem]), DataModule, forwardRef(() => require('../auth/auth.module').AuthModule)],
   providers: [CharacterService],
   controllers: [CharacterController],
   exports: [CharacterService],

@@ -69,6 +69,9 @@ export class Character {
   @Column({ type: 'jsonb', nullable: true })
   activeFoodBuff?: any;
 
+  @Column({ type: 'jsonb', nullable: true })
+  pendingEquipmentChanges?: Record<string, { itemId: string; instanceData?: any } | null>;
+
   @Column({ type: 'jsonb', default: '[]' })
   activeTempBuffs!: any[];
 

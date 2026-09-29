@@ -275,6 +275,63 @@ export class InventoryService {
     return this.transferItem(characterId, itemId, quantity, 'warehouse', 'inventory');
   }
 
+  async useConsumable(characterId: string, itemId: string): Promise<{ character: Character; itemId: string }> {
+    const item = this.dataService.getItemById(itemId);
+    if (!item || item.type !== 'consumable') {
+      throw new BadRequestException('Item is not a usable consumable');
+    }
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character) throw new NotFoundException('Character not found');
+    if (character.status === 'grinding') {
+      throw new BadRequestException('Consumables can only be used manually outside battle');
+    }
+
+    const count = await this.getItemCount(characterId, itemId);
+    if (count <= 0) throw new BadRequestException('Insufficient item quantity');
+
+    const effect = item.effect ?? {};
+    if (effect.type === 'food_buff') {
+      character.activeFoodBuff = {
+        itemId,
+        hpRegenPerTenTicks: Number(effect.hpRegenPerTenTicks ?? 0),
+        spRegenPerTenTicks: Number(effect.spRegenPerTenTicks ?? 0),
+        expiresAt: new Date(Date.now() + Number(effect.durationSeconds ?? 0) * 1000).toISOString(),
+      };
+    } else if (effect.type === 'heal_hp') {
+      const derived = await this.getDerivedStatsForCharacter(character);
+      character.hpCurrent = Math.min(derived.maxHp, Number(character.hpCurrent) + Number(effect.amount ?? 0));
+    } else if (effect.type === 'heal_sp') {
+      const derived = await this.getDerivedStatsForCharacter(character);
+      character.spCurrent = Math.min(derived.maxSp, Number(character.spCurrent) + Number(effect.amount ?? 0));
+    } else if (effect.type === 'heal_hp_sp') {
+      const derived = await this.getDerivedStatsForCharacter(character);
+      character.hpCurrent = Math.min(derived.maxHp, Number(character.hpCurrent) + Number(effect.hpAmount ?? 0));
+      character.spCurrent = Math.min(derived.maxSp, Number(character.spCurrent) + Number(effect.spAmount ?? 0));
+    } else if (effect.type === 'cure_status' && effect.status) {
+      character.statusEffects = (character.statusEffects ?? []).filter((s: any) => (s.type ?? s.id) !== effect.status);
+    }
+
+    await this.removeItem(characterId, itemId, 1);
+    await this.characterRepo.save(character);
+    return { character, itemId };
+  }
+
+  private async getDerivedStatsForCharacter(character: Character): Promise<{ maxHp: number; maxSp: number }> {
+    const { BattleEngine } = await import('@nanommo/shared');
+    const equipped = await this.dataService.getItems() && await this.characterRepo.manager.getRepository('equipped_items').find({ where: { characterId: character.id } });
+    let maxHp = 0;
+    let maxSp = 0;
+    for (const row of equipped as any[]) {
+      const item = this.dataService.getItemById(row.itemId);
+      maxHp += Number(item?.fixedStats?.maxHp ?? 0);
+      maxSp += Number(item?.fixedStats?.maxSp ?? 0);
+    }
+    const stats = BattleEngine.calculateDerivedStats(character.level, {
+      str: character.str, agi: character.agi, dex: character.dex, vit: character.vit, int: character.int, sor: character.sor,
+    }, { maxHp, maxSp });
+    return { maxHp: stats.maxHp, maxSp: stats.maxSp };
+  }
+
   /**
    * Sell item to vendor (removes from inventory, adds gold to character)
    */

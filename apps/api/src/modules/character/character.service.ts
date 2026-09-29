@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Character, WeaponProficiency, GambitPage, EquippedItem } from '@/database/entities';
+import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem } from '@/database/entities';
 import { CharacterDto, Attribute, WeaponType, BattleEngine } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 
@@ -18,6 +18,8 @@ export class CharacterService {
     private gambitPageRepository: Repository<GambitPage>,
     @InjectRepository(EquippedItem)
     private equippedItemRepository: Repository<EquippedItem>,
+    @InjectRepository(InventoryItem)
+    private inventoryItemRepository: Repository<InventoryItem>,
     private dataService: DataService,
   ) {}
 
@@ -64,6 +66,23 @@ export class CharacterService {
       slot: 'mainHand',
       itemId: 'equip_sword_t1',
     }));
+    // One-time starter pack: 10 HP potions + 5 Bread.
+    await this.inventoryItemRepository.save([
+      this.inventoryItemRepository.create({
+        characterId: savedCharacter.id,
+        location: 'inventory',
+        slotIndex: 0,
+        itemId: 'pot_hp_small',
+        quantity: 10,
+      }),
+      this.inventoryItemRepository.create({
+        characterId: savedCharacter.id,
+        location: 'inventory',
+        slotIndex: 1,
+        itemId: 'food_bread',
+        quantity: 5,
+      }),
+    ]);
 
     // Create weapon proficiencies for all 7 weapon types
     const weaponTypes: WeaponType[] = [
@@ -87,6 +106,7 @@ export class CharacterService {
     }
 
     // Create 3 empty gambit pages (slots 0, 1, 2) as per SPEC
+    let firstGambitPageId: string | undefined;
     for (let slotIndex = 0; slotIndex < 3; slotIndex++) {
       const gambitPage = this.gambitPageRepository.create({
         characterId: savedCharacter.id,
@@ -97,8 +117,12 @@ export class CharacterService {
           { priority: 2, conditions: [{ id: 'always' }], combinator: null, action: { id: 'attack' }, enabled: true },
         ] : [],
       });
-      await this.gambitPageRepository.save(gambitPage);
+      const savedGambitPage = await this.gambitPageRepository.save(gambitPage);
+      if (slotIndex === 0) firstGambitPageId = savedGambitPage.id;
     }
+
+    savedCharacter.activeGambitPageId = firstGambitPageId;
+    await this.characterRepository.save(savedCharacter);
 
     return await this.toDto(savedCharacter);
   }
@@ -191,9 +215,11 @@ export class CharacterService {
       castSpeed: derived.castSpeed,
       evasion: derived.evasion,
       accuracy: derived.accuracy,
-      hpRegen: derived.hpRegenPerTick,
-      spRegen: derived.spRegenPerTick,
+      hpRegenPerTenTicks: derived.hpRegenPerTenTicks,
+      spRegenPerTenTicks: derived.spRegenPerTenTicks,
       criticalChance: derived.critChance,
+      hungry: !character.activeFoodBuff?.expiresAt || new Date(character.activeFoodBuff.expiresAt).getTime() <= Date.now(),
+      foodBuffExpiresAt: character.activeFoodBuff?.expiresAt ? new Date(character.activeFoodBuff.expiresAt) : undefined,
       currentMapId: character.currentMapId || undefined,
       status: character.status,
       activeGambitPageId: character.activeGambitPageId || undefined,

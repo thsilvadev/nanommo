@@ -2,8 +2,10 @@ import { Injectable, BadRequestException, Logger, NotFoundException } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EquippedItem } from '../../database/entities/equipped-item.entity';
+import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { Character } from '../../database/entities/character.entity';
 import { WeaponProficiency } from '../../database/entities/weapon-proficiency.entity';
+import { BattleQueueEntry } from '../../database/entities/battle-queue-entry.entity';
 import { DataService } from '../data/data.service';
 import { BattleEngine } from '@nanommo/shared';
 
@@ -32,8 +34,8 @@ export interface DerivedStats {
   accuracy: number;
   evasion: number;
   critChance: number;
-  hpRegenPerTick: number;
-  spRegenPerTick: number;
+  hpRegenPerTenTicks: number;
+  spRegenPerTenTicks: number;
 }
 
 @Injectable()
@@ -47,6 +49,10 @@ export class EquipmentService {
     private readonly characterRepo: Repository<Character>,
     @InjectRepository(WeaponProficiency)
     private readonly weaponProfRepo: Repository<WeaponProficiency>,
+    @InjectRepository(InventoryItem)
+    private readonly inventoryItemRepo: Repository<InventoryItem>,
+    @InjectRepository(BattleQueueEntry)
+    private readonly battleQueueRepo: Repository<BattleQueueEntry>,
     private readonly dataService: DataService,
   ) {}
 
@@ -169,73 +175,63 @@ export class EquipmentService {
    * Equip an item in a slot
    * Validates compatibility and triggers battle queue invalidation
    */
-  async equipItem(
-    characterId: string,
-    slot: string,
-    itemId: string,
-  ): Promise<EquippedItem> {
-    const character = await this.characterRepo.findOne({
-      where: { id: characterId },
-    });
+  async equipItem(characterId: string, slot: string, itemId: string): Promise<EquippedItem> {
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
 
-    if (character.status === 'grinding' && slot === 'mainHand') {
-      const current = await this.getEquippedInSlot(characterId, 'mainHand');
-      if (current && current.itemId === itemId) return current;
-    }
-
     const itemDef = this.dataService.getItemById(itemId);
-    if (!itemDef || itemDef.type !== 'equipment') {
-      throw new BadRequestException('Item is not equipment');
-    }
-
-    if (itemDef.slot !== slot) {
-      throw new BadRequestException(
-        `Item ${itemId} cannot be equipped in slot ${slot}`,
-      );
-    }
-
+    if (!itemDef || itemDef.type !== 'equipment') throw new BadRequestException('Item is not equipment');
+    if (itemDef.slot !== slot) throw new BadRequestException(`Item ${itemId} cannot be equipped in slot ${slot}`);
     if (character.level < (itemDef.levelReq || 1)) {
-      throw new BadRequestException(
-        `Character level ${character.level} is below requirement ${itemDef.levelReq}`,
-      );
+      throw new BadRequestException(`Character level ${character.level} is below requirement ${itemDef.levelReq}`);
     }
 
-    // Validate weapon combinations if equipping a weapon
+    const current = await this.getEquippedInSlot(characterId, slot);
+    if (current?.itemId === itemId && !character.pendingEquipmentChanges?.[slot]) return current;
+
     if (slot === 'mainHand' || slot === 'offHand') {
       const validation = await this.validateWeaponCombination(
         characterId,
         slot === 'mainHand' ? itemId : undefined,
         slot === 'offHand' ? itemId : undefined,
       );
-      if (!validation.valid) {
-        throw new BadRequestException(
-          `Weapon combination invalid: ${validation.errors?.join(', ')}`,
-        );
-      }
+      if (!validation.valid) throw new BadRequestException(`Weapon combination invalid: ${validation.errors?.join(', ')}`);
     }
 
-    // Upsert equipped item
-    let equipped = await this.getEquippedInSlot(characterId, slot);
-    if (equipped) {
-      equipped.itemId = itemId;
-      equipped.instanceData = null;
-    } else {
-      equipped = this.equippedItemRepo.create({
-        characterId,
-        slot,
-        itemId,
-      });
+    const source = await this.inventoryItemRepo.findOne({
+      where: { characterId, location: 'inventory', itemId },
+      order: { slotIndex: 'ASC' },
+    });
+    if (!source) throw new BadRequestException('Equipment item must be in inventory');
+
+    const first = await this.battleQueueRepo.findOne({
+      where: { characterId, resolved: false },
+      order: { sequenceIndex: 'ASC' },
+    });
+    const grindHasScheduledBattle = character.status === 'grinding' && !!first;
+
+    if (grindHasScheduledBattle) {
+      const pending = { ...(character.pendingEquipmentChanges ?? {}) };
+      const previous = pending[slot];
+      if (previous) await this.addEquipmentToInventory(characterId, previous.itemId, previous.instanceData);
+      await this.inventoryItemRepo.delete(source.id);
+      pending[slot] = { itemId, instanceData: source.instanceData ?? null };
+      character.pendingEquipmentChanges = pending;
+      await this.characterRepo.save(character);
+      this.logger.debug(`Character ${characterId} staged ${itemId} for ${slot}`);
+      return current ?? this.equippedItemRepo.create({ characterId, slot, itemId: itemId, instanceData: source.instanceData ?? null });
     }
 
-    await this.equippedItemRepo.save(equipped);
-
-    // TODO: Invalidate battle queue (call BattleService.invalidateQueue)
-    this.logger.debug(
-      `Character ${characterId} equipped ${itemId} in slot ${slot}`,
-    );
-
-    return equipped;
+    if (current && current.itemId !== itemId) await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData);
+    await this.inventoryItemRepo.delete(source.id);
+    if (current) {
+      current.itemId = itemId;
+      current.instanceData = source.instanceData ?? null;
+      return this.equippedItemRepo.save(current);
+    }
+    return this.equippedItemRepo.save(this.equippedItemRepo.create({
+      characterId, slot, itemId, instanceData: source.instanceData ?? null,
+    }));
   }
 
   /**
@@ -244,16 +240,64 @@ export class EquipmentService {
   async unequipItem(characterId: string, slot: string): Promise<void> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
-    if (character.status === 'grinding' && slot === 'mainHand') {
-      throw new BadRequestException('Cannot unequip the required main-hand weapon while grinding');
+    if (character.status === 'grinding') {
+      throw new BadRequestException('Equipment can only be unequipped in town');
     }
     const equipped = await this.getEquippedInSlot(characterId, slot);
     if (equipped) {
+      await this.addEquipmentToInventory(characterId, equipped.itemId, equipped.instanceData);
       await this.equippedItemRepo.delete(equipped.id);
-
-      // TODO: Invalidate battle queue
       this.logger.debug(`Character ${characterId} unequipped from slot ${slot}`);
     }
+  }
+
+  private async addEquipmentToInventory(characterId: string, itemId: string, instanceData: any): Promise<void> {
+    const rows = await this.inventoryItemRepo.find({
+      where: { characterId, location: 'inventory' },
+      order: { slotIndex: 'ASC' },
+    });
+    const used = new Set(rows.map((row) => row.slotIndex));
+    for (let slotIndex = 0; slotIndex < 50; slotIndex += 1) {
+      if (used.has(slotIndex)) continue;
+      await this.inventoryItemRepo.save(this.inventoryItemRepo.create({
+        characterId,
+        location: 'inventory',
+        slotIndex,
+        itemId,
+        quantity: 1,
+        instanceData: instanceData ?? null,
+      }));
+      return;
+    }
+    throw new BadRequestException('Inventory is full');
+  }
+
+  async applyPendingEquipmentChanges(characterId: string): Promise<boolean> {
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character?.pendingEquipmentChanges) return false;
+
+    const pending = character.pendingEquipmentChanges;
+    for (const [slot, change] of Object.entries(pending)) {
+      if (!change) continue;
+      const current = await this.getEquippedInSlot(characterId, slot);
+      if (current && current.itemId !== change.itemId) {
+        await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData);
+      }
+      if (current) {
+        current.itemId = change.itemId;
+        current.instanceData = change.instanceData ?? null;
+        await this.equippedItemRepo.save(current);
+      } else {
+        await this.equippedItemRepo.save(this.equippedItemRepo.create({
+          characterId, slot, itemId: change.itemId, instanceData: change.instanceData ?? null,
+        }));
+      }
+    }
+
+    character.pendingEquipmentChanges = null as any;
+    await this.characterRepo.save(character);
+    this.logger.log(`Applied pending equipment changes for ${characterId}`);
+    return true;
   }
 
   /**

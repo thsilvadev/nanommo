@@ -24,8 +24,8 @@ export interface CombatantSnapshot {
   accuracy: number;
   evasion: number;
   critChance: number;
-  hpRegenPerTick: number;
-  spRegenPerTick: number;
+  hpRegenPerTenTicks: number;
+  spRegenPerTenTicks: number;
   /** Current tick index, needed by tick-indexed conditions (e.g. every_n_ticks) */
   tick?: number;
   /** Raw attributes, needed for the gauge thresholds in SPEC §7.2 */
@@ -38,6 +38,9 @@ export interface CombatantSnapshot {
   statusEffects?: any[];
   /** Remaining ticks on the active food buff. 0/undefined = hungry. */
   foodBuffTicksRemaining?: number;
+  foodBuffItemId?: string;
+  foodBuffHpRegenPerTenTicks?: number;
+  foodBuffSpRegenPerTenTicks?: number;
   /** Ticks left per cooldown key. Keys: `skill:<id>`, `item:potion`, `defend`. */
   cooldowns?: Record<string, number>;
   /**
@@ -228,7 +231,8 @@ export class GambitEvaluator {
         if ((inventory[itemId] ?? 0) <= 0) return false;
         // Potions share a single 5-tick cooldown CATEGORY (SPEC §7.2):
         // using any HP/SP potion puts ALL potions on cooldown for 5 ticks.
-        if ((cooldowns['item:potion'] ?? 0) > 0) return false;
+        if (String(itemId).startsWith('pot_') && (cooldowns['item:potion'] ?? 0) > 0) return false;
+        if ((cooldowns[`item:${itemId}`] ?? 0) > 0) return false;
         return true;
       }
 
@@ -349,14 +353,27 @@ export class BattleEngine {
    * Calculate derived stats from base attributes and equipment (SPEC §5)
    */
   static calculateDerivedStats(level: number, attributes: Record<string, number>, equipment: any) {
-    const str=attributes['str'] ?? 5, agi=attributes['agi'] ?? 5, dex=attributes['dex'] ?? 5, vit=attributes['vit'] ?? 5, int=attributes['int'] ?? 5, sor=attributes['sor'] ?? 5;
-    const maxHp=Math.floor(vit*20+(equipment?.maxHp ?? 0));
-    const maxSp=Math.floor(int*10+(equipment?.maxSp ?? 0));
-    const atk=Math.floor(str+(equipment?.weaponFixedAtk ?? 0));
-    const def=Math.floor(equipment?.def ?? 0);
-    const accuracy=Math.floor(dex), evasion=Math.floor(agi), critChance=Math.max(0,Math.min(100,sor));
-    const hpRegenPerTick=Math.floor(vit), spRegenPerTick=Math.floor(int);
-    return {maxHp,maxSp,atk,matk:Math.floor(int+(equipment?.weaponFixedMatk ?? 0)),def,mdefPercent:Math.min(100,equipment?.mdefPercent ?? 0),accuracy,evasion,critChance,attackSpeed:agi,castSpeed:dex,hpRegenPerTick,spRegenPerTick,agi,dex,level};
+    const str = Number(attributes['str'] ?? 5);
+    const agi = Number(attributes['agi'] ?? 5);
+    const dex = Number(attributes['dex'] ?? 5);
+    const vit = Number(attributes['vit'] ?? 5);
+    const int = Number(attributes['int'] ?? 5);
+    const sor = Number(attributes['sor'] ?? 5);
+    const maxHp = Math.floor(50 + vit * 18 + Number(equipment?.maxHp ?? 0));
+    const maxSp = Math.floor(20 + int * 8 + Number(equipment?.maxSp ?? 0));
+    const atk = Math.floor(str * 2 + Number(equipment?.weaponFixedAtk ?? 0));
+    const matk = Math.floor(int * 2 + Number(equipment?.weaponFixedMatk ?? 0));
+    const def = Math.floor(Number(equipment?.def ?? 0));
+    const mdefPercent = Math.min(100, Math.max(0, Number(equipment?.mdefPercent ?? 0)));
+    const attackSpeed = 100 + Math.floor(agi * 2);
+    const castSpeed = 100 + Math.floor(dex * 2);
+    const evasion = Math.floor(agi * 1.5);
+    const accuracy = 50 + Math.floor(dex * 2);
+    const hpRegenPerTenTicks = 1 + Math.floor(vit / 2);
+    const spRegenPerTenTicks = 1 + Math.floor(int / 2);
+    const critChance = 1 + Math.floor(sor * 0.3 * 10) / 10;
+    return { maxHp, maxSp, atk, matk, def, mdefPercent, accuracy, evasion, critChance,
+      attackSpeed, castSpeed, hpRegenPerTenTicks, spRegenPerTenTicks, agi, dex, level };
   }
 
   /**
@@ -379,8 +396,8 @@ export class BattleEngine {
       accuracy: Number(monsterDefinition?.accuracy ?? 50),
       evasion: Number(monsterDefinition?.evasion ?? 0),
       critChance: Number(monsterDefinition?.critChance ?? 1),
-      hpRegenPerTick: 0,
-      spRegenPerTick: 0,
+      hpRegenPerTenTicks: 0,
+      spRegenPerTenTicks: 0,
       agi: Number(monsterDefinition?.agi ?? 0),
       dex: Number(monsterDefinition?.dex ?? 0),
       statusEffects: [],
@@ -471,6 +488,7 @@ export class BattleEngine {
     spAfter: number;
     inventoryAfter: Record<string, number>;
     itemsConsumed: Array<{ itemId: string; quantity: number }>;
+    foodBuffAfter?: { itemId: string; hpRegenPerTenTicks: number; spRegenPerTenTicks: number; remainingTicks: number };
   } {
     const rng = new Mulberry32(seed);
     const inventory: Record<string, number> = { ...(options.inventory ?? {}) };
@@ -496,6 +514,10 @@ export class BattleEngine {
       attackLockTicks: 0,
       castLockTicks: 0,
       defending: false,
+      foodBuffTicksRemaining: Math.max(0, Number(characterSnapshot.foodBuffTicksRemaining ?? 0)),
+      foodBuffItemId: characterSnapshot.foodBuffItemId,
+      foodBuffHpRegenPerTenTicks: characterSnapshot.foodBuffHpRegenPerTenTicks,
+      foodBuffSpRegenPerTenTicks: characterSnapshot.foodBuffSpRegenPerTenTicks,
     };
 
     const foeCooldowns: Record<string, number> = {};
@@ -552,6 +574,8 @@ export class BattleEngine {
       // Conditions like `every_n_ticks` are tick-indexed (SPEC §7.1)
       self.tick = tick;
       foe.tick = tick;
+      BattleEngine.tickCooldowns(cooldowns);
+      BattleEngine.tickCooldowns(foeCooldowns);
 
       // ===== CHARACTER: ATTACK GAUGE =====
       // SPEC §7.2: while that gauge's action is resolving, the gauge is locked
@@ -621,15 +645,16 @@ export class BattleEngine {
 
               // Potions share one 5-tick cooldown CATEGORY (SPEC §7.2)
               const def = itemDefinitions[itemId] ?? {};
-              const isPotion = def.type === 'consumable' && String(def.effect?.type ?? '').startsWith('heal_') && params.itemId?.startsWith('pot_');
+              const effectType = String(def.effect?.type ?? '');
+              const isPotion = def.type === 'consumable' && ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType);
               if (isPotion) {
-                cooldowns['item:potion'] = BattleEngine.POTION_COOLDOWN;
+                cooldowns['item:potion'] = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? BattleEngine.POTION_COOLDOWN);
               } else {
-                cooldowns[`item:${itemId}`] = def.cooldownSeconds ?? 0;
+                const cooldownTicks = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 0);
+                if (cooldownTicks > 0) cooldowns[`item:${itemId}`] = cooldownTicks;
               }
 
               const amount = Number(def.effect?.amount ?? 0);
-              const effectType = String(def.effect?.type ?? '');
               if (effectType === 'heal_hp') {
                 const before = self.hp;
                 self.hp = Math.min(self.maxHp, self.hp + amount);
@@ -651,6 +676,20 @@ export class BattleEngine {
                   itemId,
                   target: 'character',
                   spGain: self.sp - before,
+                });
+              } else if (effectType === 'food_buff') {
+                self.foodBuffTicksRemaining = Number(def.effect?.durationSeconds ?? 0);
+                self.foodBuffItemId = itemId;
+                self.foodBuffHpRegenPerTenTicks = Number(def.effect?.hpRegenPerTenTicks ?? 0);
+                self.foodBuffSpRegenPerTenTicks = Number(def.effect?.spRegenPerTenTicks ?? 0);
+                record({
+                  tick,
+                  actor: 'character',
+                  action: 'use_item',
+                  itemId,
+                  target: 'character',
+                  foodBuffApplied: true,
+                  foodBuffTicksRemaining: self.foodBuffTicksRemaining,
                 });
               } else if (effectType === 'cure_status' && def.effect?.status) {
                 self.statusEffects = (self.statusEffects ?? []).filter(
@@ -829,13 +868,14 @@ export class BattleEngine {
       // ===== TICK HOUSEKEEPING =====
       if ((self.attackLockTicks ?? 0) > 0) self.attackLockTicks = (self.attackLockTicks as number) - 1;
       if ((self.castLockTicks ?? 0) > 0) self.castLockTicks = (self.castLockTicks as number) - 1;
-      BattleEngine.tickCooldowns(cooldowns);
-      BattleEngine.tickCooldowns(foeCooldowns);
+      if ((self.foodBuffTicksRemaining ?? 0) > 0) self.foodBuffTicksRemaining = Math.max(0, (self.foodBuffTicksRemaining as number) - 1);
       // A combatant at 0 HP is out of the fight: regen must not resurrect it
       // (otherwise a lethal hit is undone by the same tick's housekeeping).
       if (self.hp > 0 && (tick + 1) % 10 === 0) {
-        self.hp = Math.min(self.maxHp, self.hp + self.hpRegenPerTick);
-        self.sp = Math.min(self.maxSp, self.sp + self.spRegenPerTick);
+        const foodHpRegen = (self.foodBuffTicksRemaining ?? 0) > 0 ? Number(self.foodBuffHpRegenPerTenTicks ?? 0) : 0;
+        const foodSpRegen = (self.foodBuffTicksRemaining ?? 0) > 0 ? Number(self.foodBuffSpRegenPerTenTicks ?? 0) : 0;
+        self.hp = Math.min(self.maxHp, self.hp + self.hpRegenPerTenTicks + foodHpRegen);
+        self.sp = Math.min(self.maxSp, self.sp + self.spRegenPerTenTicks + foodSpRegen);
       }
 
       tick += 1;
@@ -861,6 +901,14 @@ export class BattleEngine {
       spAfter: self.sp,
       inventoryAfter: inventory,
       itemsConsumed,
+      foodBuffAfter: (self.foodBuffTicksRemaining ?? 0) > 0 && self.foodBuffItemId
+        ? {
+            itemId: self.foodBuffItemId,
+            hpRegenPerTenTicks: Number(self.foodBuffHpRegenPerTenTicks ?? 0),
+            spRegenPerTenTicks: Number(self.foodBuffSpRegenPerTenTicks ?? 0),
+            remainingTicks: self.foodBuffTicksRemaining ?? 0,
+          }
+        : undefined,
     };
   }
 }
