@@ -20,6 +20,12 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Post('refresh')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  async refresh(@Body() body: { refreshToken: string }): Promise<AuthTokenDto> {
+    return this.authService.refresh(body.refreshToken);
+  }
+
   @Get('verify-email')
   async verifyEmail(@Query('token') token: string): Promise<{ success: boolean; message: string }> {
     if (!token) {

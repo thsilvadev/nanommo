@@ -7,6 +7,8 @@ import { Observable } from 'rxjs';
 @Injectable({providedIn:'root'})
 export class GameSocketService {
   private readonly auth=inject(AuthStore); private socket:Socket|null=null;
+  constructor(){ window.addEventListener('nanommo:auth-refreshed', () => this.reconnectWithCurrentToken()); }
+  private reconnectWithCurrentToken():void{ if(!this.socket)return; this.socket.auth={token:this.auth.accessToken()}; this.socket.disconnect(); this.socket.connect(); }
   connect():void{if(this.socket?.connected||!this.auth.accessToken())return;this.socket=io(`${environment.apiBaseUrl}/game`,{transports:['websocket'],auth:{token:this.auth.accessToken()},reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:1000});}
   disconnect():void{this.socket?.disconnect();this.socket=null;}
   get connected(){return !!this.socket?.connected;}

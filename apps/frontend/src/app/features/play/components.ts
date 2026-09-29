@@ -18,11 +18,13 @@ export class CharacterSummary {
 
 @Component({selector:'app-map-board',standalone:true,imports:[CommonModule],templateUrl:'./map-board.html',styleUrl:'./map-board.css'})
 export class MapBoard {
- readonly character=inject(CharacterStore);private readonly socket=inject(GameSocketService);private readonly api=inject(ApiService);
- maps:any[]=[];selected=signal<string|null>(null);
- constructor(){this.api.get<any[]>('/maps').subscribe({next:m=>this.maps=m});}
- mapName(){return this.maps.find(m=>m.id===this.character.character()?.currentMapId)?.name||'Town'}level(){return this.character.character()?.level??1}
- select(t:any){if(t.unlockLevel<=this.level())this.selected.set(t.id)}enter(id:string){this.socket.emitFire('map:enter',{mapId:id});setTimeout(()=>void this.character.load(),250)}
+ readonly character=inject(CharacterStore);private readonly api=inject(ApiService);
+ maps:any[]=[];selected=signal<string|null>(null);error=signal<string|null>(null);
+ constructor(){this.api.get<any[]>('/maps').subscribe({next:m=>this.maps=m,error:e=>this.error.set(e?.error?.message??'Unable to load maps')});}
+ mapName(){return this.maps.find(m=>m.id===this.character.character()?.currentMapId)?.name||'Town'}
+ level(){return this.character.character()?.level??1}
+ select(t:any){if(t.unlockLevel<=this.level())this.selected.set(t.id)}
+ enter(id:string){const map=this.maps.find(m=>m.id===id);if(!map||map.unlockLevel>this.level())return;this.error.set(null);this.api.post(`/maps/${id}/enter`,{}).subscribe({next:()=>void this.character.load(),error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
 }
 
 @Component({selector:'app-inventory-grid',standalone:true,imports:[CommonModule,CdkDropList,CdkDrag,CdkDropListGroup],templateUrl:'./inventory-grid.html',styleUrl:'./inventory-grid.css'})

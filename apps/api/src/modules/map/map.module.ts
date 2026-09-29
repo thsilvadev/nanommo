@@ -6,6 +6,7 @@ import { MapService } from './map.service';
 import { DataModule } from '../data/data.module';
 import { BattleModule } from '../battle/battle.module';
 import { CharacterModule } from '../character/character.module';
+import { EquipmentModule } from '../equipment/equipment.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { CharacterModule } from '../character/character.module';
     DataModule,
     BattleModule,
     CharacterModule,
+    EquipmentModule,
   ],
   controllers: [MapController],
   providers: [MapService],

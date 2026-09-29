@@ -5,6 +5,7 @@ import { EquippedItem } from '../../database/entities/equipped-item.entity';
 import { Character } from '../../database/entities/character.entity';
 import { WeaponProficiency } from '../../database/entities/weapon-proficiency.entity';
 import { DataService } from '../data/data.service';
+import { BattleEngine } from '@nanommo/shared';
 
 export interface EquipmentStats {
   def: number;
@@ -155,63 +156,13 @@ export class EquipmentService {
    * Calculate derived stats for a character with current equipment
    */
   async calculateDerivedStats(character: Character): Promise<DerivedStats> {
-    const equipStats = await this.calculateEquipmentStats(character.id);
-
-    // Add equipment bonuses to base attributes
-    const effectiveStr = character.str + (equipStats.statBonus.STR || 0);
-    const effectiveAgi = character.agi + (equipStats.statBonus.AGI || 0);
-    const effectiveDex = character.dex + (equipStats.statBonus.DEX || 0);
-    const effectiveVit = character.vit + (equipStats.statBonus.VIT || 0);
-    const effectiveInt = character.int + (equipStats.statBonus.INT || 0);
-    const effectiveSor = character.sor + (equipStats.statBonus.SOR || 0);
-
-    // Calculate derived stats per SPEC §5.2
-    const maxHp = Math.floor(
-      80 + effectiveVit * 12 + character.level * 18,
-    );
-    const maxSp = Math.floor(
-      40 + effectiveInt * 10 + character.level * 8,
-    );
-    const atk = Math.floor(
-      effectiveStr * 2.2 +
-        effectiveDex * 0.5 +
-        (equipStats.weaponFixedAtk || 0),
-    );
-    const matk = Math.floor(
-      effectiveInt * 2.5 +
-        effectiveDex * 0.3 +
-        (equipStats.weaponFixedMatk || 0),
-    );
-    const def = equipStats.def;
-    const mdefPercent = equipStats.mdefPercent;
-    const accuracy = Math.floor(
-      75 + effectiveDex * 1.0 + character.level * 1.0,
-    );
-    const evasion = Math.floor(effectiveAgi * 0.8);
-    const critChance = Math.max(
-      1,
-      Math.min(50, Math.floor(1 + effectiveSor * 0.3)),
-    );
-    const hpRegenPerTick = Math.floor(
-      1 + Math.floor(effectiveVit * 0.5) + Math.floor(maxHp * 0.005),
-    );
-    const spRegenPerTick = Math.floor(
-      1 + Math.floor(effectiveInt * 0.5) + Math.floor(maxSp * 0.01),
-    );
-
-    return {
-      maxHp,
-      maxSp,
-      atk,
-      matk,
-      def,
-      mdefPercent,
-      accuracy,
-      evasion,
-      critChance,
-      hpRegenPerTick,
-      spRegenPerTick,
-    };
+    const equipStats=await this.calculateEquipmentStats(character.id);
+    const equipped=await this.getEquipment(character.id);
+    let maxHp=0,maxSp=0;
+    for(const equip of equipped){const item=this.dataService.getItemById(equip.itemId);maxHp+=Number(item?.fixedStats?.maxHp??0);maxSp+=Number(item?.fixedStats?.maxSp??0);}
+    const attrs={str:character.str+(equipStats.statBonus.STR||0),agi:character.agi+(equipStats.statBonus.AGI||0),dex:character.dex+(equipStats.statBonus.DEX||0),vit:character.vit+(equipStats.statBonus.VIT||0),int:character.int+(equipStats.statBonus.INT||0),sor:character.sor+(equipStats.statBonus.SOR||0)};
+    const stats=BattleEngine.calculateDerivedStats(character.level,attrs,{def:equipStats.def,maxHp,maxSp,weaponFixedAtk:equipStats.weaponFixedAtk});
+    return {...stats,matk:0,mdefPercent:equipStats.mdefPercent};
   }
 
   /**
@@ -227,6 +178,11 @@ export class EquipmentService {
       where: { id: characterId },
     });
     if (!character) throw new NotFoundException('Character not found');
+
+    if (character.status === 'grinding' && slot === 'mainHand') {
+      const current = await this.getEquippedInSlot(characterId, 'mainHand');
+      if (current && current.itemId === itemId) return current;
+    }
 
     const itemDef = this.dataService.getItemById(itemId);
     if (!itemDef || itemDef.type !== 'equipment') {
@@ -286,6 +242,11 @@ export class EquipmentService {
    * Unequip an item from a slot
    */
   async unequipItem(characterId: string, slot: string): Promise<void> {
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character) throw new NotFoundException('Character not found');
+    if (character.status === 'grinding' && slot === 'mainHand') {
+      throw new BadRequestException('Cannot unequip the required main-hand weapon while grinding');
+    }
     const equipped = await this.getEquippedInSlot(characterId, slot);
     if (equipped) {
       await this.equippedItemRepo.delete(equipped.id);

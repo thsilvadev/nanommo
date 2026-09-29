@@ -1,6 +1,8 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, defer, shareReplay, tap, catchError, finalize, throwError } from 'rxjs';
 import { ApiService } from './api.service';
+import { SKIP_AUTH_REFRESH } from './api.service';
+import { HttpContext } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
 
@@ -29,6 +31,7 @@ export class AuthStore {
   private readonly _userPayload = signal<UserPayload | null>(null);
   private readonly _isLoading = signal<boolean>(false);
   private readonly _error = signal<string | null>(null);
+  private refreshInFlight$: Observable<AuthTokens> | null = null;
 
   readonly accessToken = this._accessToken.asReadonly();
   readonly refreshToken = this._refreshToken.asReadonly();
@@ -73,6 +76,7 @@ export class AuthStore {
     if (payload) {
       this._userPayload.set(payload);
     }
+    window.dispatchEvent(new CustomEvent('nanommo:auth-refreshed'));
   }
 
   clearTokens(): void {
@@ -149,24 +153,16 @@ export class AuthStore {
   }
 
   refreshAccessToken(): Observable<AuthTokens> {
+    if (this.refreshInFlight$) return this.refreshInFlight$;
     const refreshToken = this._refreshToken();
-    if (!refreshToken) {
-      return new Observable<AuthTokens>((observer) => observer.error(new Error('No refresh token')));
-    }
-
-    return new Observable<AuthTokens>((observer) => {
-      this.api.post<AuthTokens>('/auth/refresh', { refreshToken }).subscribe({
-        next: (tokens) => {
-          this.setTokens(tokens);
-          observer.next(tokens);
-          observer.complete();
-        },
-        error: (err) => {
-          this.clearTokens();
-          observer.error(err);
-        },
-      });
-    });
+    if (!refreshToken) return throwError(() => new Error('No refresh token'));
+    this.refreshInFlight$ = defer(() => this.api.post<AuthTokens>('/auth/refresh', { refreshToken }, { context: new HttpContext().set(SKIP_AUTH_REFRESH, true) })).pipe(
+      tap(tokens => this.setTokens(tokens)),
+      catchError(err => { this.clearTokens(); return throwError(() => err); }),
+      finalize(() => { this.refreshInFlight$ = null; }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    return this.refreshInFlight$;
   }
 
   verifyEmail(token: string): Observable<{ success: boolean; message: string }> {

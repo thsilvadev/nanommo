@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Character, WeaponProficiency, GambitPage } from '@/database/entities';
+import { Character, WeaponProficiency, GambitPage, EquippedItem } from '@/database/entities';
 import { CharacterDto, Attribute, WeaponType, BattleEngine } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 
@@ -16,6 +16,8 @@ export class CharacterService {
     private weaponProficiencyRepository: Repository<WeaponProficiency>,
     @InjectRepository(GambitPage)
     private gambitPageRepository: Repository<GambitPage>,
+    @InjectRepository(EquippedItem)
+    private equippedItemRepository: Repository<EquippedItem>,
     private dataService: DataService,
   ) {}
 
@@ -31,13 +33,8 @@ export class CharacterService {
 
     // Calculate base stats
     const baseStats = BattleEngine.calculateDerivedStats(1, {
-      str: 5,
-      agi: 5,
-      dex: 5,
-      vit: 5,
-      int: 5,
-      sor: 5,
-    }, {});
+      str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5,
+    }, { weaponFixedAtk: 8 });
 
     // Create character
     const character = this.characterRepository.create({
@@ -60,6 +57,13 @@ export class CharacterService {
     });
 
     const savedCharacter = await this.characterRepository.save(character);
+
+    // Starter equipment is authoritative, not a frontend-only assumption.
+    await this.equippedItemRepository.save(this.equippedItemRepository.create({
+      characterId: savedCharacter.id,
+      slot: 'mainHand',
+      itemId: 'equip_sword_t1',
+    }));
 
     // Create weapon proficiencies for all 7 weapon types
     const weaponTypes: WeaponType[] = [
@@ -88,12 +92,15 @@ export class CharacterService {
         characterId: savedCharacter.id,
         slotIndex,
         title: `Page ${slotIndex + 1}`,
-        lines: [],
+        lines: slotIndex === 0 ? [
+          { priority: 1, conditions: [{ id: 'self_hp_below_percent', params: { value: 30 } }], combinator: null, action: { id: 'use_item', params: { itemId: 'pot_hp_small' } }, enabled: true },
+          { priority: 2, conditions: [{ id: 'always' }], combinator: null, action: { id: 'attack' }, enabled: true },
+        ] : [],
       });
       await this.gambitPageRepository.save(gambitPage);
     }
 
-    return this.toDto(savedCharacter);
+    return await this.toDto(savedCharacter);
   }
 
   async getCharacterByUserId(userId: string): Promise<Character | null> {
@@ -137,10 +144,29 @@ export class CharacterService {
     character.unspentAttributePoints -= totalToSpend;
 
     const saved = await this.characterRepository.save(character);
-    return this.toDto(saved);
+    return await this.toDto(saved);
   }
 
-  private toDto(character: Character): CharacterDto {
+  async getCharacterDtoByUserId(userId: string): Promise<CharacterDto | null> {
+    const character = await this.getCharacterByUserId(userId);
+    return character ? this.toDto(character) : null;
+  }
+
+  private async toDto(character: Character): Promise<CharacterDto> {
+    const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
+    const equipment = { def: 0, maxHp: 0, maxSp: 0, weaponFixedAtk: 0, statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 } };
+    for (const row of equipped) {
+      const item = this.dataService.getItemById(row.itemId);
+      equipment.def += Number(item?.fixedStats?.def ?? 0);
+      equipment.maxHp += Number(item?.fixedStats?.maxHp ?? 0);
+      equipment.maxSp += Number(item?.fixedStats?.maxSp ?? 0);
+      if (row.slot === 'mainHand') equipment.weaponFixedAtk += Number(item?.fixedStats?.atk ?? 0);
+      for (const [key, value] of Object.entries(item?.fixedStats?.statBonus ?? {})) {
+        if (key in equipment.statBonus && typeof value === 'number') (equipment.statBonus as any)[key] += value;
+      }
+    }
+    const attrs = { str: character.str + equipment.statBonus.STR, agi: character.agi + equipment.statBonus.AGI, dex: character.dex + equipment.statBonus.DEX, vit: character.vit + equipment.statBonus.VIT, int: character.int + equipment.statBonus.INT, sor: character.sor + equipment.statBonus.SOR };
+    const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
     return {
       id: character.id,
       userId: character.userId,
@@ -157,6 +183,17 @@ export class CharacterService {
       gold: Number(character.gold),
       hpCurrent: character.hpCurrent,
       spCurrent: character.spCurrent,
+      maxHp: derived.maxHp,
+      maxSp: derived.maxSp,
+      attack: derived.atk,
+      defense: derived.def,
+      attackSpeed: derived.attackSpeed,
+      castSpeed: derived.castSpeed,
+      evasion: derived.evasion,
+      accuracy: derived.accuracy,
+      hpRegen: derived.hpRegenPerTick,
+      spRegen: derived.spRegenPerTick,
+      criticalChance: derived.critChance,
       currentMapId: character.currentMapId || undefined,
       status: character.status,
       activeGambitPageId: character.activeGambitPageId || undefined,

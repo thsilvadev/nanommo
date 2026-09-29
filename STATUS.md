@@ -1,7 +1,7 @@
-# NanoMMO Backend — Battle Loop Implementation Status
+# NanoMMO — Implementation Status
 
-**Last Updated:** 2026-09-28 (Phase 4A — divergence #3 fixed, divergences #1/#2/#4 settled in SPEC, two proof gaps closed)
-**Session Focus:** Fix the level-up HP/SP ratio on an equipped character; close the two "limits of what the suite can prove" gaps from §6.4
+**Last Updated:** 2026-09-28 (Phase 4A backend verified; play/character UI MVP applied; follow-up hardening proposal created)
+**Session Focus:** Backend Phase 4A verified; first play/character UI MVP applied; next focus is auth/session hardening, fresh-character bootstrap, derived stats, grind invariants, responsive UI, and map usability.
 
 > **Evidence rule adopted in Phase 3 and still in force.** A verification result is only recorded in this
 > document if the script that produced it is committed and re-runnable
@@ -573,3 +573,66 @@ Both runs were executed in this order (pre-fix first, on the container built bef
 so the failing evidence is not a reconstruction.
 
 
+
+---
+
+## 10. Frontend play/character status — 2026-09-28
+
+The first implementation of 'play-and-character-ui' is **implemented MVP**, not fully
+verified. The visual direction was validated manually by the user: the dark fantasy /
+bronze / gold treatment is working well and slot hover highlights are considered good.
+
+| Area | State | Notes |
+|------|-------|-------|
+| /play, /play/grind, /play/character, /play/gambits | ✅ implemented | Angular routing and shared shell are in place |
+| REST + /game state stores | ✅ implemented | Character, inventory, battle queue and reconnect resync exist |
+| Server-timestamp battle progress | ✅ implemented | Uses startAt / endAt; no client battle resolution |
+| 50-slot inventory | ⚠️ needs polish | Keep 50 cells, remove slot numbering and 50 slots subtitle |
+| 8-slot equipment | ✅ implemented | Hover/highlight behavior is good; grind invariants still need backend enforcement |
+| Derived stats | ❌ incomplete | Character contract currently lacks authoritative values; frontend shows unavailable placeholder |
+| Weapon proficiency | ⚠️ incomplete | Backend exposes levels; current UI integration still needs completion |
+| Map selection | ⚠️ needs correction | Current visual map is too blurred to test; add explicit clickable map tiles |
+| Responsive layout | ❌ incomplete | Desktop works as a composition, but tablet/mobile require a dedicated pass |
+| SVG assets | ❌ broken in browser pass | Existing SVG references did not render; asset path/build handling needs correction |
+| Auth refresh | ❌ broken/incomplete | Frontend calls /auth/refresh, but backend currently has no matching controller endpoint |
+| 401 handling | ⚠️ incomplete | Some 401s are visible only in console; final unauthorized state must navigate to /login |
+| Fresh character starter loadout | ❌ missing | New character should start with sword_t1 equipped |
+| Fresh character starter Gambit | ❌ missing | Default page should contain the two specified starter lines |
+### 10.1 Next change
+
+OpenSpec change: 'play-character-ui-hardening'
+
+The proposal covers the following next-session work:
+
+1. Implement real access-token refresh/retry and final 401 → /login behavior.
+2. Bootstrap sword_t1 equipment and the two-line default Gambit page on character creation.
+3. Make HP/SP and derived stats authoritative and expose them to the frontend.
+4. Apply the new derived-stat source mapping: FOR/VIT/INT/AGI/DEX/SOR as documented in
+   the proposal, with HP/SP regeneration occurring every 10 ticks.
+5. Enforce weapon-required grind entry and forbid required-weapon unequip during grind,
+   while allowing legal weapon replacement.
+6. Replace the blurred map board with explicit clickable map tiles backed by /maps.
+7. Make the play shell responsive across desktop, tablet, and mobile.
+8. Simplify the main inventory header and fix SVG asset resolution.
+
+The existing Gambit parameter gap is explicitly **future work** and is not part of the
+next implementation: the editor needs controls such as 'Self HP is [< 30%] -> Use Skill
+[Heal]', but no new parameter schema should be invented in this change.
+
+### 10.2 Verification limits carried forward
+
+- Angular Karma/browser tests were not completed because the environment lacks a
+  ChromeHeadless binary.
+- Production Angular build passed for the first UI implementation.
+- openspec validate play-and-character-ui --strict passed for the previous change.
+- The next change must add real browser/session verification for the observed 401,
+  responsive layouts, map entry, fresh-character bootstrap, and asset loading.
+### 10.3 Architecture decision for the next pass
+
+The frontend must not reproduce battle formulas locally. Derived stats are an
+authoritative backend/game-engine concern and the Angular character screen consumes
+server values. Any formula change must be reflected in the engine/spec/tests first,
+then surfaced through the API contract.
+
+Likewise, weapon restrictions are gameplay invariants and must be enforced by the
+backend even if Angular disables or hides the corresponding controls.

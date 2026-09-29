@@ -358,18 +358,24 @@ These formulas were designed after the shape of Ragnarok Online (soft-cap DEF fo
 Let `L` = character level, and all attribute values include equipment `statBonus` + random rolls.
 
 ```
-maxHp        = 80 + VIT*12 + L*18
-maxSp        = 40 + INT*10 + L*8
-atk          = STR*2.2 + DEX*0.5 + weaponFixedAtk            // physical
-matk         = INT*2.5 + DEX*0.3 + weaponFixedMatk           // magic
-def          = sum(equipment.def)                            // flat, no attribute contributes
-mdefPercent  = clamp(sum(equipment.mdefPercent), 0, 100)     // %, caps at 100 = magic immune
-accuracy     = 75 + DEX*1.0 + L*1.0
-evasion      = AGI*0.8
-critChance%  = clamp(1 + SOR*0.3, 1, 50)
-critMultiplier = 1.5                                          // fixed, TUNABLE
-hpRegenPerTick = 1 + floor(VIT*0.5) + floor(maxHp*0.005)
-spRegenPerTick = 1 + floor(INT*0.5) + floor(maxSp*0.01)
+maxHp          = VIT*20 + sum(equipment.maxHp)
+maxSp          = INT*10 + sum(equipment.maxSp)
+atk            = STR + weaponFixedAtk
+def            = sum(equipment.def)
+attackSpeed    = AGI
+castSpeed      = DEX
+evasion        = AGI
+accuracy       = DEX
+hpRegenPerTick = VIT       // applied once every 10 ticks
+spRegenPerTick = INT       // applied once every 10 ticks
+critChance%    = SOR
+
+Equipment `statBonus`/random rolls are added to the corresponding base attribute
+before these formulas. `maxHp` and `maxSp` equipment contributions are optional
+flat bonuses from item definitions. The exposed speed values are the raw AGI/DEX
+inputs used by the combat gauges; the engine continues to convert them into tick
+thresholds. HP/SP regeneration is intentionally interval-based: no regeneration
+is applied on ticks 1-9, then the derived amount is recovered on every 10th tick.
 moveSpeed    = reserved for future exploration features — not used by combat in MVP
 ```
 

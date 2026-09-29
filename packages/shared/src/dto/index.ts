@@ -53,6 +53,17 @@ export class CharacterDto {
   gold!: number;
   hpCurrent!: number;
   spCurrent!: number;
+  maxHp!: number;
+  maxSp!: number;
+  attack!: number;
+  defense!: number;
+  attackSpeed!: number;
+  castSpeed!: number;
+  evasion!: number;
+  accuracy!: number;
+  hpRegen!: number;
+  spRegen!: number;
+  criticalChance!: number;
   currentMapId?: string;
   status!: string;
   activeGambitPageId?: string;

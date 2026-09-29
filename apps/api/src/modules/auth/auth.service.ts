@@ -131,6 +131,26 @@ export class AuthService {
     return this.generateTokens(user.id, user.username, sessionId);
   }
 
+  async refresh(refreshToken: string): Promise<AuthTokenDto> {
+    if (!refreshToken) throw new UnauthorizedException('Invalid refresh token');
+    try {
+      const payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: process.env.JWT_SECRET || 'dev_secret_key',
+      });
+      if (payload.type !== 'refresh' || !payload.userId || !payload.sessionId) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+      const user = await this.userRepository.findOne({ where: { id: payload.userId } });
+      if (!user || user.activeSessionId !== payload.sessionId) {
+        throw new UnauthorizedException('SESSION_INVALIDATED');
+      }
+      return this.generateTokens(user.id, user.username, user.activeSessionId);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
   async validateToken(token: string): Promise<{ userId: string; username: string } | null> {
     try {
       const payload = this.jwtService.verify(token);

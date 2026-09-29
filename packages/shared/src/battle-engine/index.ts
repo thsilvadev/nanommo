@@ -348,45 +348,15 @@ export class BattleEngine {
   /**
    * Calculate derived stats from base attributes and equipment (SPEC §5)
    */
-  static calculateDerivedStats(
-    level: number,
-    attributes: Record<string, number>,
-    equipment: any,
-  ) {
-    const str = attributes['str'] ?? 5;
-    const agi = attributes['agi'] ?? 5;
-    const dex = attributes['dex'] ?? 5;
-    const vit = attributes['vit'] ?? 5;
-    const int = attributes['int'] ?? 5;
-    const sor = attributes['sor'] ?? 5;
-
-    const maxHp = Math.floor(80 + vit * 12 + level * 18);
-    const maxSp = Math.floor(40 + int * 10 + level * 8);
-    const atk = str * 2.2 + dex * 0.5 + (equipment?.weaponFixedAtk ?? 0);
-    const matk = int * 2.5 + dex * 0.3 + (equipment?.weaponFixedMatk ?? 0);
-    const def = equipment?.def ?? 0;
-    const mdefPercent = Math.min(equipment?.mdefPercent ?? 0, 100);
-    const accuracy = 75 + dex * 1.0 + level * 1.0;
-    const evasion = agi * 0.8;
-    const critChance = Math.max(1, Math.min(1 + sor * 0.3, 50));
-    const hpRegenPerTick = 1 + Math.floor(vit * 0.5) + Math.floor(maxHp * 0.005);
-    const spRegenPerTick = 1 + Math.floor(int * 0.5) + Math.floor(maxSp * 0.01);
-
-    return {
-      maxHp,
-      maxSp,
-      atk: Math.floor(atk),
-      matk: Math.floor(matk),
-      def,
-      mdefPercent,
-      accuracy,
-      evasion,
-      critChance,
-      hpRegenPerTick,
-      spRegenPerTick,
-      agi,
-      dex,
-    };
+  static calculateDerivedStats(level: number, attributes: Record<string, number>, equipment: any) {
+    const str=attributes['str'] ?? 5, agi=attributes['agi'] ?? 5, dex=attributes['dex'] ?? 5, vit=attributes['vit'] ?? 5, int=attributes['int'] ?? 5, sor=attributes['sor'] ?? 5;
+    const maxHp=Math.floor(vit*20+(equipment?.maxHp ?? 0));
+    const maxSp=Math.floor(int*10+(equipment?.maxSp ?? 0));
+    const atk=Math.floor(str+(equipment?.weaponFixedAtk ?? 0));
+    const def=Math.floor(equipment?.def ?? 0);
+    const accuracy=Math.floor(dex), evasion=Math.floor(agi), critChance=Math.max(0,Math.min(100,sor));
+    const hpRegenPerTick=Math.floor(vit), spRegenPerTick=Math.floor(int);
+    return {maxHp,maxSp,atk,matk:Math.floor(int+(equipment?.weaponFixedMatk ?? 0)),def,mdefPercent:Math.min(100,equipment?.mdefPercent ?? 0),accuracy,evasion,critChance,attackSpeed:agi,castSpeed:dex,hpRegenPerTick,spRegenPerTick,agi,dex,level};
   }
 
   /**
@@ -863,7 +833,7 @@ export class BattleEngine {
       BattleEngine.tickCooldowns(foeCooldowns);
       // A combatant at 0 HP is out of the fight: regen must not resurrect it
       // (otherwise a lethal hit is undone by the same tick's housekeeping).
-      if (self.hp > 0) {
+      if (self.hp > 0 && (tick + 1) % 10 === 0) {
         self.hp = Math.min(self.maxHp, self.hp + self.hpRegenPerTick);
         self.sp = Math.min(self.maxSp, self.sp + self.spRegenPerTick);
       }

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { MapKillCounter, Character, User } from '../../database/entities';
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
+import { EquipmentService } from '../equipment/equipment.service';
 
 @Injectable()
 export class MapService {
@@ -18,6 +19,7 @@ export class MapService {
     private readonly userRepo: Repository<User>,
     private readonly dataService: DataService,
     private readonly battleService: BattleService,
+    private readonly equipmentService: EquipmentService,
   ) {}
 
   /**
@@ -64,6 +66,12 @@ export class MapService {
 
     const map = this.dataService.getMapById(mapId);
     if (!map) throw new BadRequestException('Map not found');
+
+    const mainHand = await this.equipmentService.getEquippedInSlot(character.id, 'mainHand');
+    const weapon = mainHand ? this.dataService.getItemById(mainHand.itemId) : null;
+    if (!weapon || weapon.type !== 'equipment' || !weapon.weaponType) {
+      throw new BadRequestException('A valid main-hand weapon is required to enter grind');
+    }
 
     // Validate level requirement
     if (character.level < (map.unlockLevel || 1)) {
