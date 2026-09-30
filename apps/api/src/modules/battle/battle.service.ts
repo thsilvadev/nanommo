@@ -135,17 +135,6 @@ export class BattleService {
     return { skills, skillDefs, weaponTypes };
   }
 
-  async getAvailablePotionCount(characterId: string): Promise<number> {
-    return this.inventoryItemRepo
-      .createQueryBuilder('item')
-      .select('COALESCE(SUM(item.quantity), 0)', 'count')
-      .where('item.characterId = :characterId', { characterId })
-      .andWhere('item.location = :location', { location: 'inventory' })
-      .andWhere('item.itemId IN (:...itemIds)', { itemIds: ['pot_hp_small', 'pot_hp_medium', 'pot_hp_large'] })
-      .getRawOne()
-      .then((row) => Number(row?.count ?? 0));
-  }
-
   /**
    * Build the real combatant snapshot handed to BattleEngine.simulateBattle().
    * Equipment bonuses, weapon proficiency and live inventory are all included.
@@ -241,7 +230,6 @@ export class BattleService {
       return currentQueue; // Already at target depth
     }
 
-    const inventoryBeforeQueue = await this.buildInventoryMap(characterId);
     let projectedFoodBuff = character.activeFoodBuff;
     let projectedFoodExpiresAt = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
 
@@ -289,7 +277,7 @@ export class BattleService {
     };
     projectFoodFromQueue(currentQueue);
     projectedFoodExpiresAt = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
-    if ((await this.getAvailablePotionCount(characterId)) <= 0 || !projectedFoodExpiresAt || projectedFoodExpiresAt <= Date.now()) {
+    if (!projectedFoodExpiresAt || projectedFoodExpiresAt <= Date.now()) {
       if (currentQueue.length === 0) {
         character.currentMapId = null as any;
         character.status = 'town';
@@ -337,7 +325,7 @@ export class BattleService {
     const encounterSearchMs = calculateEncounterSearchDelayMs(otherPlayers);
 
     for (let i = 0; i < battlesToAdd; i++) {
-      if ((workingInventory['pot_hp_small'] ?? 0) + (workingInventory['pot_hp_medium'] ?? 0) + (workingInventory['pot_hp_large'] ?? 0) <= 0 || !projectedFoodExpiresAt || projectedFoodExpiresAt <= nextStartTime.getTime()) {
+      if (!projectedFoodExpiresAt || projectedFoodExpiresAt <= nextStartTime.getTime()) {
         break;
       }
       const sequenceIndex = maxSequenceIndex + 1 + i;

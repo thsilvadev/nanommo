@@ -6,8 +6,6 @@
   <ng-container *ngIf="isSearching(b);else activeBattle">
     <div class="search-state">
       <img src="/project/swords_clash(loading).gif" alt="Searching for monster" class="search-gif">
-      <strong>SEARCHING FOR MONSTER</strong>
-      <small>Looking for an encounter on this map...</small>
       <app-battle-progress [entry]="searchEntry(b)" />
     </div>
   </ng-container>
