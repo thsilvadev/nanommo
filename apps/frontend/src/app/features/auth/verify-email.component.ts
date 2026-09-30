@@ -2,14 +2,15 @@ import { Component, inject, signal, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthStore } from '../../core/auth.store';
+import { LoginMusicControlComponent } from '../../shared/login-music-control.component';
 
 @Component({
   selector: 'app-verify-email',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, LoginMusicControlComponent],
   template: `
-    <div class="min-h-screen flex items-center justify-center bg-gray-900 px-4">
-      <div class="w-full max-w-md bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700 text-center">
+    <div class="auth-screen"><app-login-music-control />
+      <div class="auth-panel auth-center">
         
         @if (state() === 'loading') {
           <div class="space-y-6">
@@ -37,7 +38,7 @@ import { AuthStore } from '../../core/auth.store';
             </div>
             <a
               routerLink="/login"
-              class="inline-block py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              class="auth-button auth-button-inline"
             >
               Voltar ao login
             </a>
@@ -59,7 +60,7 @@ import { AuthStore } from '../../core/auth.store';
               <button
                 (click)="resendVerification()"
                 [disabled]="isResending()"
-                class="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900/50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                class="auth-button"
               >
                 @if (isResending()) {
                   <span class="flex items-center justify-center gap-2">
@@ -75,7 +76,7 @@ import { AuthStore } from '../../core/auth.store';
               </button>
               <a
                 routerLink="/login"
-                class="block text-sm text-blue-400 hover:text-blue-300"
+                class="auth-link auth-link-block"
               >
                 Voltar ao login
               </a>

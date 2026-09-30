@@ -3,14 +3,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/auth.store';
+import { LoginMusicControlComponent } from '../../shared/login-music-control.component';
 
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, LoginMusicControlComponent],
   template: `
-    <div class="min-h-screen flex items-center justify-center bg-gray-900 px-4">
-      <div class="w-full max-w-md bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700">
+    <div class="auth-screen"><app-login-music-control />
+      <div class="auth-panel">
         <h1 class="text-3xl font-bold text-white text-center mb-8">Esqueci minha senha</h1>
 
         @if (success()) {
@@ -26,7 +27,7 @@ import { AuthStore } from '../../core/auth.store';
             </div>
             <a
               routerLink="/login"
-              class="inline-block py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              class="auth-button auth-button-inline"
             >
               Voltar ao login
             </a>
@@ -49,7 +50,7 @@ import { AuthStore } from '../../core/auth.store';
                 required
                 email
                 #emailInput="ngModel"
-                class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="auth-input"
                 placeholder="seu@email.com"
               />
               @if (emailInput.invalid && (emailInput.dirty || emailInput.touched)) {
@@ -60,7 +61,7 @@ import { AuthStore } from '../../core/auth.store';
             <button
               type="submit"
               [disabled]="isLoading() || forgotForm.invalid"
-              class="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900/50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+              class="auth-button"
             >
               @if (isLoading()) {
                 <span class="flex items-center justify-center gap-2">
@@ -77,7 +78,7 @@ import { AuthStore } from '../../core/auth.store';
           </form>
 
           <p class="mt-6 text-center text-gray-400 text-sm">
-            Lembrou a senha? <a routerLink="/login" class="text-blue-400 hover:text-blue-300 font-medium">Entrar</a>
+            Lembrou a senha? <a routerLink="/login" class="auth-link">Entrar</a>
           </p>
         }
       </div>

@@ -5,10 +5,11 @@ import { AuthStore } from '../../core/auth.store';
 import { BattleStore, CharacterStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
 import { ApiService } from '../../core/api.service';
+import { LoginMusicControlComponent } from '../../shared/login-music-control.component';
 import { GameSocketService } from '../../core/game.socket.service';
 import { CharacterSummary, GrindInfo, ChatDrawer } from './components';
 @Component({
- selector:'app-play', standalone:true, imports:[CommonModule,RouterOutlet,CharacterSummary,GrindInfo,ChatDrawer],
+ selector:'app-play', standalone:true, imports:[CommonModule,RouterOutlet,CharacterSummary,GrindInfo,ChatDrawer,LoginMusicControlComponent],
  templateUrl:'./play.component.html', styleUrl:'./play.component.css'
 })
 export class PlayComponent implements OnInit {

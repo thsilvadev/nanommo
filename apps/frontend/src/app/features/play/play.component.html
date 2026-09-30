@@ -13,7 +13,7 @@
     <div class="xp-stack"><small>{{activeGambitTitle()}}</small><div class="xp-mini" [title]="xpTitle()"><span [style.width.%]="xpWidth()"></span></div></div>
     <div class="resource gold"><img src="/assets/ui/coin.svg" alt=""> {{c.gold | number}}</div>
   </div>
-  <div class="top-actions"><button (click)="chatOpen.set(!chatOpen())">CHAT</button><div class="settings-wrap"><button aria-label="Settings" (click)="settingsOpen.set(!settingsOpen())"><img src="/assets/ui/settings.svg" alt=""></button><div class="settings-menu" *ngIf="settingsOpen()"><button (click)="openDeleteAccount()">Delete account</button></div></div><button (click)="auth.logout()">EXIT</button></div>
+  <div class="top-actions"><app-login-music-control variant="header" /><button (click)="chatOpen.set(!chatOpen())">CHAT</button><div class="settings-wrap"><button aria-label="Settings" (click)="settingsOpen.set(!settingsOpen())"><img src="/assets/ui/settings.svg" alt=""></button><div class="settings-menu" *ngIf="settingsOpen()"><button (click)="openDeleteAccount()">Delete account</button></div></div><button (click)="auth.logout()">EXIT</button></div>
 </header>
 <main class="game-board">
   <aside class="zone-left"><app-character-summary /></aside>

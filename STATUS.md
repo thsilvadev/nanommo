@@ -3,6 +3,18 @@
 **Last Updated:** 2026-09-29 (play shell/mastery/Gambit polish implemented; builds, browser smoke, and OpenSpec validation verified)
 **Session Focus:** Play shell map/inventory/info-panel polish, Mastery tab, Gambit row controls, active Gambit HUD title, and navbar branding.
 
+### Latest follow-up — Login/Auth visual shell + persistent login music (2026-09-29)
+
+Implemented the shared login/auth presentation on `/login`, `/forgot-password`, `/verify-email`, `/verify-email-pending`, `/reset-password`, and `/register`: `login-background.png` is now the full-screen artwork, with the main content panel transparent and borderless and positioned in the open area below the Idle Lords artwork. Inputs, buttons, focus/hover/disabled states, and links use the existing dark-fantasy/gold visual language instead of browser/default blue UI.
+
+Implemented a singleton `LoginMusicService` using `ragnarok-login.mp3`. The track loops continuously through SPA navigation across the auth flow without restarting when moving to Forgot Password. Volume is persisted locally and exposed through a compact music icon + draggable range control on auth screens and in the logged-in shell header. Successful login fades the track out over 2 seconds, stops it, resets playback, then navigates into `/play`. The header control does not auto-start the login track after authentication.
+
+Verification: frontend production build passed; `git diff --check` passed. Browser smoke on the development server verified the wallpaper shell, transparent panel, controls across all auth routes, audio source/playback, persistence across Forgot Password, login transition fade/stop, and logged-in header volume control: **17/17 assertions passed across the shell/audio checks** (12 shell assertions plus 5 audio assertions).
+
+The browser audio smoke used Chromium autoplay permission and a captured native Audio instance so playback continuity/fade could be verified deterministically. No backend contract or server-authoritative game logic was changed.
+
+---
+
 ### Latest follow-up — `play-shell-mastery-gambit-polish`
 
 Implemented: Grind now has only the central map selector; the main Inventory remains exactly 50 slots and is compact enough for the intended desktop layout; stack counts remain visible; Character equipment icons are rendered light with the existing icon pack; the right shell is a single contextual Info Panel for Town/Grind; the old standalone Weapon Proficiency component was removed. Character tabs are now Character/Gambits/Mastery, with Character limited to Attributes + Derived Stats and Mastery exposing the existing seven weapon proficiency levels through a read-only API path plus a left skill-tree workspace. No weapon XP/progression logic was added.
