@@ -20,6 +20,12 @@ export class CharacterController {
     return this.characterService.getCharacterDtoByUserId((req.user as any).userId);
   }
 
+  @Get('weapon-proficiency')
+  @UseGuards(AuthGuard('jwt'))
+  async getWeaponProficiency(@Request() req: ExpressRequest) {
+    return this.characterService.getWeaponProficiencyByUserId((req.user as any).userId);
+  }
+
   @Post('attributes/spend')
   @UseGuards(AuthGuard('jwt'))
   async spendAttributes(@Request() req: ExpressRequest, @Body() dto: SpendAttributePointsDto): Promise<CharacterDto> {

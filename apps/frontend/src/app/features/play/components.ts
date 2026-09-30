@@ -57,6 +57,9 @@ export class GrindInfo implements OnDestroy {
  private readonly timer=setInterval(()=>this.now.set(Date.now()),250);
 
  stateLabel(){return this.battle.state()==='reconnecting'?'RECONNECTING':this.battle.active()?'ACTIVE':'IDLE'}
+ isTown(){return this.character.character()?.status==='town'}
+ activeGambitTitle(){return this.character.character()?.activeGambitPageId?'Configured':'Not configured'}
+ xpText(){const c=this.character.character();return c?`${c.xp} / ${c.xpToNext}`:'—'}
  monster(id:string){return this.catalog.monster(id)}
  consumableItems(){return this.inventory.items().filter(x=>this.catalog.item(x.itemId)?.type==='consumable').slice(0,3)} displayQuantity(it:any){const base=Number(it.quantity??0);const b=this.battle.active();if(!b||base<=0)return base;const tick=this.elapsedTicks(b);const events=this.events(b);return Math.max(0,base-events.filter((e:any)=>e?.action==='use_item'&&e?.actor==='character'&&e?.itemId===it.itemId&&Number(e.tick??0)<=tick).length)}
  elapsedTicks(entry:any){const start=Date.parse(entry.startAt);const duration=Number(entry.log?.durationTicks??Math.max(1,(Date.parse(entry.endAt)-start)/1000));return Math.max(0,Math.min(duration,Math.floor((this.now()-start)/1000)))}
@@ -72,9 +75,6 @@ export class GrindInfo implements OnDestroy {
  foodLabel(){const c=this.character.character();const expiry=c?.foodBuffExpiresAt?Date.parse(c.foodBuffExpiresAt):0;const active=expiry>this.now();return active?'FED · '+Math.max(0,Math.ceil((expiry-this.now())/60000))+'m':'HUNGRY'}
  ngOnDestroy(){clearInterval(this.timer)}
 }
-
-@Component({selector:'app-weapon-proficiency',standalone:true,imports:[CommonModule],templateUrl:'./weapon-proficiency.html',styleUrl:'./weapon-proficiency.css'})
-export class WeaponProficiency {rows=[['Sword','sword'],['Greatsword','greatsword'],['Dagger','dagger'],['Bow','bow'],['Staff','staff'],['Wand','wand'],['Shield','shield']].map(([name,key])=>({name,key,level:null,progress:0,icon:key==='shield'?'/assets/ui/shield.svg':'/assets/ui/weapon.svg'}));}
 
 @Component({selector:'app-chat-drawer',standalone:true,imports:[CommonModule],templateUrl:'./chat-drawer.html',styleUrl:'./chat-drawer.css'})
 export class ChatDrawer{@Input()open=false;@Output()closed=new EventEmitter<void>();}

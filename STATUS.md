@@ -1,7 +1,21 @@
 # NanoMMO — Implementation Status
 
-**Last Updated:** 2026-09-28 (follow-up play/Gambit/equipment/auth hardening implemented; builds and OpenSpec validation verified)
-**Session Focus:** Character/Gambit/equipment interaction hardening, Town regeneration, live consumable presentation, XP transparency, and registration/email-verification flow.
+**Last Updated:** 2026-09-29 (play shell/mastery/Gambit polish implemented; builds, browser smoke, and OpenSpec validation verified)
+**Session Focus:** Play shell map/inventory/info-panel polish, Mastery tab, Gambit row controls, active Gambit HUD title, and navbar branding.
+
+### Latest follow-up — `play-shell-mastery-gambit-polish`
+
+Implemented: Grind now has only the central map selector; the main Inventory remains exactly 50 slots and is compact enough for the intended desktop layout; stack counts remain visible; Character equipment icons are rendered light with the existing icon pack; the right shell is a single contextual Info Panel for Town/Grind; the old standalone Weapon Proficiency component was removed. Character tabs are now Character/Gambits/Mastery, with Character limited to Attributes + Derived Stats and Mastery exposing the existing seven weapon proficiency levels through a read-only API path plus a left skill-tree workspace. No weapon XP/progression logic was added.
+
+Implemented: the active Gambit page title is shown immediately above the XP bar; Gambit value controls use the game UI styling; Gambit rows use the two-level condition/action layout with inline params and a minimal switch; the navbar uses the existing `lords-transparent.png` equivalent asset instead of the old wordmark.
+
+Browser-tested: temporary Playwright smoke covered 18/18 UI assertions, including central-only maps, 50 inventory cells/no vertical scroll, readable stack count, light equipment icons, Town/Grind Info Panel states, Mastery weapon selection, Character tab cleanup, active Gambit title, Gambit layout/value/switch, and navbar logo. A separate 390px responsive smoke passed for Grind and Gambits with no horizontal overflow and all 50 inventory slots present.
+
+Build/validation: `pnpm --filter @nanommo/shared build`, `pnpm --filter @nanommo/api build`, `pnpm --filter @nanommo/frontend build`, `pnpm exec openspec validate play-shell-mastery-gambit-polish --strict`, and `git diff --check` all passed. Frontend build completes with existing/expected component-style budget warnings, but no build errors. Docker was unavailable on this workstation during the session, so the browser smoke used mocked REST responses rather than a live backend. No production deploy was performed.
+
+Evidence note: the browser smoke harness was temporary and was not added as a committed verification script, so it is recorded as an executed browser check rather than as a formal re-runnable evidence artifact under the repository's evidence rule. Weapon XP remains deferred.
+
+---
 
 ### Latest follow-up — `play-gambit-equipment-auth-hardening`
 
@@ -644,3 +658,33 @@ then surfaced through the API contract.
 
 Likewise, weapon restrictions are gameplay invariants and must be enforced by the
 backend even if Angular disables or hides the corresponding controls.
+
+### Latest session close — `play-shell-mastery-gambit-polish` (2026-09-29)
+
+The product SPEC was reconciled with the finalized design decisions where it had drifted. Important corrections include: one-time starter bootstrap (`sword_t1` + 10 Small HP Potions + 5 Bread), Hungry blocks grind, Town HP/SP regeneration, item-defined consumable cooldowns, starter Gambit activation/default behavior, target-aware Gambit params, and the Character/Grind UI contract.
+
+New OpenSpec change created: `openspec/changes/play-shell-mastery-gambit-polish/`.
+
+Next-session scope:
+- remove the redundant lower map selector/list;
+- compact the 50-slot inventory so it fits without vertical scrolling;
+- make Character equipment icons white;
+- replace right-side Weapon Proficiency with one contextual Info Panel;
+- replace Character Equipment tab with Mastery + Weapons;
+- show active Gambit page title above XP;
+- leave only Attributes + Derived Stats in Character tab;
+- polish Gambit value inputs and rebuild rows as conditions-above/action-below with a minimal switch;
+- replace navbar `NANOMMO online` with `assets/lords.png`.
+
+Reference: `project/image.png` for the Gambit row composition. Weapon XP/proficiency progression remains deferred; this session only exposes existing weapon levels in the UI.
+
+No implementation from the new OpenSpec change was performed in this closing session. The SPEC reconciliation was documentation-only; the new UI work is intentionally left for the next OpenSpec session.
+
+### Verification at session close
+
+- `SPEC.md` reconciled: yes.
+- New OpenSpec files created: yes.
+- `openspec validate play-shell-mastery-gambit-polish --strict`: passed.
+- `git diff --check`: passed.
+- Browser verification of the new UI scope: not performed.
+- Production deployment: not performed.

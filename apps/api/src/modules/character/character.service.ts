@@ -139,6 +139,13 @@ export class CharacterService {
     });
   }
 
+  async getWeaponProficiencyByUserId(userId: string): Promise<Array<{ weaponType: WeaponType; level: number }>> {
+    const character = await this.getCharacterByUserId(userId);
+    if (!character) throw new NotFoundException('Character not found');
+    const rows = await this.weaponProficiencyRepository.find({ where: { characterId: character.id } });
+    return rows.map((row) => ({ weaponType: row.weaponType, level: row.level }));
+  }
+
   async spendAttributePoints(characterId: string, attributes: Partial<Record<Attribute, number>>): Promise<CharacterDto> {
     const character = await this.getCharacterById(characterId);
     if (!character) {

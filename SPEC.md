@@ -205,6 +205,8 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | lastSeenAt | timestamptz | for online/offline + presence |
 | createdAt / updatedAt | timestamptz | |
 
+Character creation bootstrap (one time only): equip `equip_sword_t1` and seed the starter pack with 10 `pot_hp_small` and 5 `food_bread`. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
+
 ### 4.3 `WeaponProficiency`
 | field | type | notes |
 |---|---|---|
@@ -500,7 +502,7 @@ Monsters use their own fixed `atkSpeedTicks` from `monsters.json` as their `atta
 
 When a gauge fires, the corresponding action is **not instant** — it has its own `baseCastTicks` (how long the swing/spell takes to land, defined per skill in `skill_trees.json`; the basic Attack action's `baseCastTicks` is always `2`, `TUNABLE`) during which the gauge is locked at zero and refilling again only starts once the action resolves. This is the "cast time" — see §29 of the design conversation: attack/cast speed is "how many ticks until the gauge fires", and the action's own duration is separately how long it takes to actually land once triggered.
 
-Every action, without exception, also has a **cooldown** in ticks after it resolves (`cooldownTicks` in `skill_trees.json`; the basic Attack's cooldown is `0`, i.e. none beyond its own gauge refill — but every **Skill** and every **consumable item usage** has cooldown > 0). Potions specifically share a single **5-second (5-tick) cooldown category**: using any HP or SP potion puts *all* potions on cooldown for 5 ticks (prevents potion-spam trivializing difficulty), per the confirmed design.
+Every action, without exception, also has a **cooldown** in ticks after it resolves (`cooldownTicks` for skills; consumable items use `cooldownInSeconds` from `items.json`, converted at runtime to 1-second ticks). The basic Attack's cooldown is `0` beyond its gauge refill. Consumable cooldowns are item-defined; do not hardcode a universal potion cooldown. Outside battle, manual consumable use has no cooldown. During battle, the item's configured cooldown applies.
 
 ### 7.3 Gambit evaluation per tick
 
@@ -575,10 +577,11 @@ Modeled directly on Final Fantasy XII's Gambit system, adapted for a single cont
 
 ### 8.1 Structure
 
-- Each character has exactly **3 `GambitPage` rows**, seeded empty (or with the catalog's `exampleGambitPage` as page 0) at character creation.
-- Exactly **one page is active** at a time (`Character.activeGambitPageId`).
+- Each character has exactly **3 `GambitPage` rows**, seeded at character creation.
+- Exactly **one page is active** at a time (`Character.activeGambitPageId`); the first page is active by default.
+- The starter page contains the confirmed default behavior: `self_hp_below_percent` at `< 30%` → use `pot_hp_small`, followed by `always` → attack nearest foe.
 - Each page has an optional `title` (≤30 chars) and up to **20 lines**.
-- Switching the active page is only allowed while `Character.status !== 'grinding_mid_battle'` — practically, allow it any time the character is in town or on a map **between** battles; reject (with a clear error) if a `BattleQueueEntry` is currently "in flight" (i.e., `now()` is between some entry's `startAt` and `endAt`). Simplest server-side check: reject if `now() < queue[0].endAt` — the current battle hasn't resolved yet, so let it finish before applying the swap, then requeue with the new page.
+- Switching the active page is only allowed while the character is not in the middle of a battle. Reject while an unresolved `BattleQueueEntry` is currently in flight; allow the change between battles and rebuild the future queue.
 
 ### 8.2 Gambit line shape (stored in `GambitPage.lines`)
 
@@ -595,13 +598,13 @@ type GambitAction    = { id: string; params?: Record<string, string|number> } //
 
 ### 8.3 Conditions & actions catalog (summary — full list with params in `gambit_catalog.json`)
 
-**Conditions** (band-based, not raw %, per confirmed design): `always`, `self_hp_band`, `self_sp_band`, `foe_hp_band`, `self_has_status`, `self_missing_status`, `foe_has_status`, `self_hungry` (no active food buff), `foe_element_is`, `skill_ready`, `item_in_stock`.
+**Conditions** (full catalog is authoritative): `always`, `self_hp_below_percent`, `self_sp_below_percent`, `self_hp_band`, `self_sp_band`, `foe_hp_band`, `self_has_status`, `self_missing_status`, `foe_has_status`, `self_hungry`, `foe_element_is`, `skill_ready`, `item_in_stock`, and other entries present in `gambit_catalog.json`.
 
-HP/SP bands: `FULL (100%)`, `HIGH (70-99%)`, `MEDIUM (30-69%)`, `LOW (10-29%)`, `CRITICAL (1-9%)`.
+Percentage conditions expose their threshold through `params` (for example `self_hp_below_percent` with `params.value = 30`). HP/SP bands remain available for coarse thresholds: `FULL (100%)`, `HIGH (70-99%)`, `MEDIUM (30-69%)`, `LOW (10-29%)`, `CRITICAL (1-9%)`.
 
 **Actions:** `attack` (basic attack with equipped weapon), `use_skill` (references a `skillId` — see §9), `use_item` (references an `itemId`), `defend` (reduces next incoming hit by a flat %, `TUNABLE` 30%), `wait` (explicit no-op, useful as a page's last fallback line instead of leaving a gap).
 
-Things like "ticks elapsed", "cooldown ready", "mana sufficient", "potions in stock" are **not player-facing conditions** — they are legality checks the engine performs automatically when deciding if an action can fire (§7.3), exactly as confirmed. The player only ever picks from the curated list above.
+Gambit actions are target-aware: the action's catalog params define the valid target selector where applicable (`self`, `foe`, or another legal target). The frontend must expose those params rather than hiding them, and the engine must execute the selected target deterministically. Things like "ticks elapsed", "cooldown ready", "mana sufficient", "potions in stock" are not player-facing conditions — they are legality checks the engine performs automatically.
 
 ### 8.4 Validation (server-side, mandatory — client is not trusted)
 
@@ -690,7 +693,7 @@ Per confirmed design: foods are 60-minute (`durationSeconds: 3600`) buffs granti
 
 Each map is **one single global room** (confirmed design — no instancing, no multiple parallel rooms per map). All players grinding the same map share the same "how many players are here" pressure on encounter search time (§11.4).
 
-Town sits at the center; the four cardinal exits (**North/South/East/West**) lead to the three maps (one exit currently unused/reserved for future expansion — wire it in the UI as a disabled/"coming soon" direction rather than omitting it, since the world is designed to grow outward from town).
+Town sits at the center; the four cardinal exits (**North/South/East/West**) lead to the three maps (one exit currently unused/reserved for future expansion — wire it in the UI as a disabled/"coming soon" direction rather than omitting it, since the world is designed to grow outward from town). A character in Town regenerates HP/SP every 10 ticks using the authoritative derived regeneration rates, capped at max HP/SP. A Hungry character (no active food buff) cannot enter or continue grind.
 
 ### 11.2 Deterministic monster & drop selection (no giant arrays)
 
@@ -925,8 +928,9 @@ Concept references:
 /play                          -> shell; redirects to town or grind by Character.status
 /play/town                     -> vendor, warehouse, market, mail
 /play/grind                    -> map selection + battle bar + inventory + event feed
-/play/character                -> Character / Gambits / Equipment internal tabs
+/play/character                -> Character / Gambits / Mastery internal tabs
 /play/gambits                  -> deep-link to /play/character with Gambits selected
+/play/character?tab=mastery     -> weapon mastery/workbench view
 ```
 
 There is one Gambit editor implementation. `/play/gambits` is a route-level entry point,
@@ -935,24 +939,28 @@ not a second editor.
 ### 17.4 Global layout
 
 At desktop widths, the shell uses:
-- persistent top bar;
+- persistent top bar with the `assets/lords.png` logo instead of the `NANOMMO online` wordmark;
 - left character summary;
 - center context;
-- right grind/progression panel;
+- right single Info Panel;
 - collapsible chat drawer.
+
+The compact XP bar in the top bar shows the active Gambit page title immediately above it.
 
 The `/play/grind` center is:
 - `Currently in: {mapName}`;
-- illustrated fantasy map;
-- selectable square grind tiles;
+- one illustrated fantasy map with the selectable grind tiles;
 - battle progress/status;
-- 50-slot inventory.
+- the 50-slot inventory directly below the map.
+
+There is **no duplicate map selector/list below the map**. Map tiles are represented only in the central map; removing the redundant lower map strip is intentional.
+
+The 50 inventory cells must fit without vertical scrolling at the intended desktop layout. Use compact square slots sized only slightly larger than the item icon (roughly half the previous slot footprint, subject to responsive constraints), while preserving readable stack counts and hover/focus states.
 
 The left panel answers who the character is, what is equipped, HP/SP, active statuses,
 and derived combat stats.
 
-The right panel answers what is being fought, consumable availability, XP progress,
-current battle time, and weapon proficiency.
+The right panel is a single large **Info Panel**. In Town it shows information about the currently selected object/item/map/character context. During Grind it shows the current grind state, monster information, consumable availability, XP progress and battle timing. Weapon proficiency is not a separate panel.
 
 Exact component composition, dimensions, responsive behavior, visual tokens and states
 are defined in `PLAY_WINDOW_SPEC.md`.
@@ -962,10 +970,11 @@ are defined in `PLAY_WINDOW_SPEC.md`.
 `/play/character` is the extended character-management screen.
 
 Internal tabs:
-1. **Character** — attribute allocation, derived stats, status effects, paper doll,
-   weapon proficiency and build summary.
+1. **Character** — only `Attributes` and `Derived Stats`. Do not render Paper Doll, Build Summary, Equipment, or Inventory in this tab.
 2. **Gambits** — the full three-page Gambit editor.
-3. **Equipment** — detailed equipment/paper-doll management.
+3. **Mastery** — weapon mastery workspace. The left side shows the selected weapon type and its mastery tree; the right side shows the weapon list/levels. The skill-tree container is intentionally present even before skills are implemented.
+
+On the Mastery tab, **Weapons** is the right-side list of weapon types (Sword, Greatsword, Dagger, Bow, Staff, Wand, Shield) with each type's level. The selected weapon type is highlighted and its Mastery is shown on the left. Do not show the old Equipment or Inventory panels on this tab.
 
 Attribute allocation:
 - shows all six attributes;
@@ -977,13 +986,18 @@ Attribute allocation:
 - remains visible but disabled at 0 points;
 - server rejection restores authoritative state and shows a specific error.
 
-The screen exposes the 8 equipment slots:
-`head, body, mainHand, offHand, shoes, cape, accessoryLeft, accessoryRight`.
+Equipment remains visible and interactive in the persistent left Character panel of the main play shell; it is not duplicated into the Character sub-tab.
+
+Equipment item icons in Character UI must render white/light rather than black, preserving their silhouette against the dark fantasy panels.
 
 ### 17.6 Gambit editor UX
 
 - Reorderable list using Angular CDK `cdkDropList`/`cdkDrag`, up to 20 rows per page.
-- Each row: condition 1, optional AND/OR + condition 2, action, enabled toggle.
+- Each row is a compact two-level composition: **conditions on top, action below**, matching the visual structure in `project/image.png`. Condition labels/controls align consistently with one another; action controls align on the same grid below.
+- Each node exposes its catalog-defined params inline, so a line reads visually like `[Self HP is...] [< 30%] [Use item...] [Small Potion]` rather than hiding params in a secondary editor.
+- Numeric/value controls use the same compact input styling as the other Gambit controls; no raw browser-default number-input appearance.
+- The enabled control is a minimal switch/toggle, not a full text button.
+- Condition/action params remain editable without expanding a secondary panel.
 - Condition/action selects come from `gambit_catalog.json`.
 - Unavailable actions remain visible but greyed out with an explanatory tooltip.
 - Disabled-by-player and unavailable-by-state are visually distinct.
@@ -1002,6 +1016,9 @@ The screen exposes the 8 equipment slots:
 - Reduced-motion mode disables nonessential movement/scroll animations.
 
 ### 17.8 Asset and Angular implementation policy
+
+- Navbar branding uses `assets/lords.png` in place of the old `NANOMMO online` text.
+- Equipment icons in Character panels use the existing item/equipment icon assets with a white/light presentation.
 
 Use semantic DOM and CSS grid/flex. Do not recreate the reference screenshot through
 absolute pixel positioning.
