@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, OnDestroy, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnDestroy, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
@@ -21,13 +21,32 @@ export class CharacterSummary implements OnDestroy {
 
 @Component({selector:'app-map-board',standalone:true,imports:[CommonModule],templateUrl:'./map-board.html',styleUrl:'./map-board.css'})
 export class MapBoard {
- readonly character=inject(CharacterStore);private readonly api=inject(ApiService);
- maps:any[]=[];selected=signal<string|null>(null);error=signal<string|null>(null);
- constructor(){this.api.get<any[]>('/maps').subscribe({next:m=>this.maps=m,error:e=>this.error.set(e?.error?.message??'Unable to load maps')});}
+ readonly character=inject(CharacterStore);readonly battle=inject(BattleStore);private readonly api=inject(ApiService);
+ maps:any[]=[];selected=signal<string|null>(null);error=signal<string|null>(null);private readonly returnToTownBattleId=signal<string|null>(null);
+ constructor(){
+  effect(()=>{
+   const targetId=this.returnToTownBattleId();
+   if(!targetId||this.battle.lastResolved()?.entryId!==targetId)return;
+   this.returnToTownBattleId.set(null);
+   void this.leaveTown();
+  });
+  this.api.get<any[]>('/maps').subscribe({next:m=>this.maps=m,error:e=>this.error.set(e?.error?.message??'Unable to load maps')});
+ }
  mapName(){return this.maps.find(m=>m.id===this.character.character()?.currentMapId)?.name||'Town'}
  level(){return this.character.character()?.level??1}
  select(t:any){if(t.unlockLevel<=this.level())this.selected.set(t.id)}
  enter(id:string){const map=this.maps.find(m=>m.id===id);if(!map||map.unlockLevel>this.level())return;this.error.set(null);this.api.post(`/maps/${id}/enter`,{}).subscribe({next:()=>void this.character.load(),error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
+ enterTown(){
+  if(this.character.character()?.status==='town')return;
+  const active=this.battle.active();const now=Date.now();
+  if(active&&now>=Date.parse(active.startAt)&&now<Date.parse(active.endAt)){this.returnToTownBattleId.set(active.id);return;}
+  void this.leaveTown();
+ }
+ private async leaveTown(){
+  this.error.set(null);
+  try{await this.api.post('/maps/leave',{}).toPromise();await Promise.all([this.character.load(),this.battle.load()]);}
+  catch(e:any){this.error.set(e?.error?.message??'Unable to return to Town');}
+ }
 }
 
 @Component({selector:'app-inventory-grid',standalone:true,imports:[CommonModule,CdkDropList,CdkDrag],templateUrl:'./inventory-grid.html',styleUrl:'./inventory-grid.css'})

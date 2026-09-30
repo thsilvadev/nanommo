@@ -930,7 +930,7 @@ Concept references:
 
 ```text
 /login, /register, /verify-email, /reset-password
-/play                          -> shell; redirects to town or grind by Character.status
+/play                          -> shell; central play content remains the Grind view; Town state is reflected in the persistent right Info Panel
 /play/town                     -> vendor, warehouse, market, mail
 /play/grind                    -> map selection + battle bar + inventory + event feed
 /play/character                -> Character / Gambits / Mastery internal tabs
@@ -954,9 +954,11 @@ The compact XP bar in the top bar shows the active Gambit page title immediately
 
 The `/play/grind` center is:
 - `Currently in: {mapName}`;
-- one illustrated fantasy map with the selectable grind tiles;
+- one illustrated fantasy map with the selectable grind tiles, including a clickable Town destination;
 - battle progress/status;
 - the 50-slot inventory directly below the map.
+
+For the current Town iteration, the central region stays on this same Grind view even while the character is in Town. Clicking Town while idle returns immediately; clicking Town during an active battle requests the return and the client returns only after that battle resolves. The persistent right Info Panel switches to the Town context and contains the Town state plus the NPC/vendor interaction in the same panel.
 
 There is **no duplicate map selector/list below the map**. Map tiles are represented only in the central map; removing the redundant lower map strip is intentional.
 

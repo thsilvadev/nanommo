@@ -25,9 +25,11 @@ const assert = require('node:assert/strict');
   });
 
   await page.goto('http://127.0.0.1:4400/play/grind');
-  await page.locator('app-town-center').waitFor();
-  assert.equal(await page.locator('app-town-center').count(),1);
-  assert.equal(await page.locator('.panel-title').filter({hasText:'GRIND / BATTLE'}).count(),0);
+  await page.locator('.map-panel').waitFor();
+  assert.equal(await page.locator('app-town-center').count(),0);
+  assert.equal(await page.locator('.map-panel').count(),1);
+  assert.equal(await page.locator('.town-center').count(),1);
+  assert.equal(await page.locator('.panel-title').filter({hasText:'TOWN'}).count(),1);
   assert.equal(await page.locator('.npc-select label').innerText(),'Choose NPC');
   assert.equal(await page.locator('.vendor-slot').count(),10);
 
@@ -53,7 +55,8 @@ const assert = require('node:assert/strict');
 
   await page.setViewportSize({width:390,height:844});
   await page.reload();
-  await page.locator('app-town-center').waitFor();
+  await page.locator('.map-panel').waitFor();
+  assert.equal(await page.locator('.town-center').count(),1);
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
   assert.equal(overflow,false,'390px viewport must not overflow horizontally');
 
