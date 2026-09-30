@@ -820,3 +820,38 @@ Implemented a generic Town NPC capability framework and the first quest NPC, Fat
 - `git diff --check`: passed.
 - No production deployment performed.
 - Live authenticated HTTP/E2E against Docker was not run because Docker services were unavailable on this workstation; the focused service test exercises the compiled TownService behavior with authoritative state mocks.
+
+### Latest session — encounter-search-time-and-map-presence (2026-09-30)
+
+Implemented server-authoritative monster encounter search time, realtime map population, and the requested Grind/Battle right-panel hierarchy.
+
+#### Encounter search
+- Every queued monster encounter now has a search gap before its battle start.
+- Formula: 2 seconds + 0.1 seconds for every other character whose status is `grinding` on the same `currentMapId`.
+- The current character is excluded from the count.
+- The delay applies before the first encounter and between subsequent encounters.
+- Search time is not stored as a separate battle row; `BattleQueueEntry.log.searchStartAt` records the client-facing search interval while `startAt` remains the actual battle start.
+- Existing 1-second combat ticks and battle-duration formulas are unchanged.
+#### Realtime map population
+- Added `map:presence` over the existing `/game` Socket.IO connection.
+- Redis map membership is updated on gateway connect, enter, leave, disconnect and explicit REST-to-socket presence synchronization.
+- Connected players on a map receive the current `playersOnMap` count when membership changes.
+- Central LOCATION header now shows `Players in map: X` aligned on the right.
+- Encounter timing uses authoritative Character status/map rows rather than relying on potentially stale socket presence.
+#### Grind/Battle right panel
+- While waiting for `startAt`, the right panel shows `/project/swords_clash(loading).gif` and the existing BattleProgress component for the search interval.
+- During battle, monster HP remains first.
+- Removed character HP bar and battle-time progress bar from the active battle panel.
+- Added monster STATUS EFFECTS section using the authoritative monster snapshot status effects; empty state does not invent effects.
+- Added monster DERIVED STATS using the existing monster snapshot values (ATK, MATK, DEF, MDEF, ACC, EVA, CRIT).
+- Existing battle reward and event logs remain below the monster information.
+- Town/Vendor/Quest NPC UI and the central map remain unchanged.
+#### Verification
+- `pnpm --filter @nanommo/shared build`: passed.
+- `pnpm --filter @nanommo/api build`: passed.
+- `pnpm --filter @nanommo/frontend build`: passed; pre-existing Angular style-budget warnings remain non-blocking.
+- `node apps/api/test/encounter-search.test.js`: 5 assertions passed.
+- `node apps/api/test/map-presence.test.js`: 4 assertions passed.
+- `pnpm exec openspec validate encounter-search-time-and-map-presence --strict`: passed.
+- `git diff --check`: passed.
+- No production deployment performed.

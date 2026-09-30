@@ -138,6 +138,14 @@ export class GatewayService {
     return this.redis.hlen(`map:players:${mapId}`);
   }
 
+  async publishMapPresence(mapId: string): Promise<void> {
+    const playersOnMap = await this.getPlayersOnMap(mapId);
+    await this.redis.publish(
+      'gateway:map:presence',
+      JSON.stringify({ mapId, playersOnMap }),
+    );
+  }
+
   /**
    * Add player to map
    */

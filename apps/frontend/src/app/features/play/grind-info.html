@@ -2,10 +2,26 @@
 <div class="panel-title"><span>{{isTown()?'TOWN':'GRIND / BATTLE'}}</span><span *ngIf="!isTown()" [class.warn]="battle.state()==='reconnecting'">{{stateLabel()}}</span></div>
 <div class="food-state" [class.hungry]="foodLabel()=='HUNGRY'">{{foodLabel()}}</div>
 <ng-container *ngIf="isTown();else grindContext"><app-vendor-panel></app-vendor-panel></ng-container>
-<ng-template #grindContext><ng-container *ngIf="battle.active() as b"><div class="foe"><div class="foe-icon"><img src="/assets/ui/target.svg" alt=""></div><div><strong>{{monster(b.monsterId)?.name||b.monsterId}}</strong><small>Battle #{{b.sequenceIndex+1}} · {{elapsedTicks(b)}}s</small></div></div>
-<div class="hp-block"><div class="hp-label"><span>MONSTER</span><b>{{monsterHp(b)}} / {{monsterMaxHp(b)}}</b></div><div class="foe-hp"><i [style.width.%]="percent(monsterHp(b),monsterMaxHp(b))"></i></div></div>
-<div class="hp-block"><div class="hp-label"><span>CHARACTER</span><b>{{characterHp(b)}} / {{characterMaxHp(b)}}</b></div><div class="char-hp"><i [style.width.%]="percent(characterHp(b),characterMaxHp(b))"></i></div></div>
-<app-battle-progress [entry]="b" /><div class="reward"><span>XP +{{b.xpGain}}</span><span>Gold +{{b.goldGain}}</span></div><div class="event-feed"><div *ngFor="let e of recentEvents(b)" class="event"><small>T{{e.tick}}</small><span>{{eventText(e)}}</span></div></div><div class="queue-note">{{battle.queue().length}} battle{{battle.queue().length===1?'':'s'}} queued</div></ng-container>
+<ng-template #grindContext><ng-container *ngIf="battle.active() as b">
+  <ng-container *ngIf="isSearching(b);else activeBattle">
+    <div class="search-state">
+      <img src="/project/swords_clash(loading).gif" alt="Searching for monster" class="search-gif">
+      <strong>SEARCHING FOR MONSTER</strong>
+      <small>Looking for an encounter on this map...</small>
+      <app-battle-progress [entry]="searchEntry(b)" />
+    </div>
+  </ng-container>
+  <ng-template #activeBattle>
+    <div class="foe"><div class="foe-icon"><img src="/assets/ui/target.svg" alt=""></div><div><strong>{{monster(b.monsterId)?.name||b.monsterId}}</strong><small>Battle #{{b.sequenceIndex+1}} · {{elapsedTicks(b)}}s</small></div></div>
+    <div class="hp-block"><div class="hp-label"><span>MONSTER</span><b>{{monsterHp(b)}} / {{monsterMaxHp(b)}}</b></div><div class="foe-hp"><i [style.width.%]="percent(monsterHp(b),monsterMaxHp(b))"></i></div></div>
+
+    <div class="monster-status"><div class="section-label">STATUS EFFECTS</div><div *ngIf="!monsterStatusEffects(b).length" class="no-status">No active buffs or debuffs</div><div *ngFor="let effect of monsterStatusEffects(b)" class="status-effect"><span>{{effect.type || effect.id}}</span><small *ngIf="effect.expiresAtTick !== undefined">until T{{effect.expiresAtTick}}</small></div></div>
+
+    <div class="monster-stats"><div class="section-label">DERIVED STATS</div><div class="stats-grid"><span *ngFor="let stat of monsterStats(b)"><b>{{stat.label}}</b><small>{{stat.value}}</small></span></div></div>
+
+    <div class="reward"><span>XP +{{b.xpGain}}</span><span>Gold +{{b.goldGain}}</span></div><div class="event-feed"><div *ngFor="let e of recentEvents(b)" class="event"><small>T{{e.tick}}</small><span>{{eventText(e)}}</span></div></div><div class="queue-note">{{battle.queue().length}} battle{{battle.queue().length===1?'':'s'}} queued</div>
+  </ng-template>
+</ng-container>
 <div *ngIf="!battle.active()" class="idle-state"><strong>{{foodLabel()==='HUNGRY'?'HUNGRY':'NO BATTLE QUEUED'}}</strong><small>Choose a map or wait for the authoritative battle queue.</small></div>
 <div class="consumables"><div *ngFor="let it of consumableItems()" class="consumable"><img [src]="catalog.itemIcon(it.itemId)" [alt]="catalog.item(it.itemId)?.name||it.itemId"><b>{{displayQuantity(it)}}</b><small>{{catalog.item(it.itemId)?.name||it.itemId}}</small></div></div>
 </ng-template>

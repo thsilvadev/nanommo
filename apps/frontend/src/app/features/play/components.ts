@@ -21,7 +21,7 @@ export class CharacterSummary implements OnDestroy {
 
 @Component({selector:'app-map-board',standalone:true,imports:[CommonModule],templateUrl:'./map-board.html',styleUrl:'./map-board.css'})
 export class MapBoard {
- readonly character=inject(CharacterStore);readonly battle=inject(BattleStore);private readonly api=inject(ApiService);
+ readonly character=inject(CharacterStore);readonly battle=inject(BattleStore);private readonly api=inject(ApiService);private readonly socket=inject(GameSocketService);
  maps:any[]=[];selected=signal<string|null>(null);error=signal<string|null>(null);private readonly returnToTownBattleId=signal<string|null>(null);
  constructor(){
   effect(()=>{
@@ -33,9 +33,10 @@ export class MapBoard {
   this.api.get<any[]>('/maps').subscribe({next:m=>this.maps=m,error:e=>this.error.set(e?.error?.message??'Unable to load maps')});
  }
  mapName(){return this.maps.find(m=>m.id===this.character.character()?.currentMapId)?.name||'Town'}
+ playersInMap(){const current=this.character.character()?.currentMapId;return current&&this.battle.mapPresence()?.mapId===current?this.battle.mapPresence()?.playersOnMap??0:0}
  level(){return this.character.character()?.level??1}
  select(t:any){if(t.unlockLevel<=this.level())this.selected.set(t.id)}
- enter(id:string){const map=this.maps.find(m=>m.id===id);if(!map||map.unlockLevel>this.level())return;this.error.set(null);this.api.post(`/maps/${id}/enter`,{}).subscribe({next:()=>void this.character.load(),error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
+ enter(id:string){const map=this.maps.find(m=>m.id===id);if(!map||map.unlockLevel>this.level())return;this.error.set(null);this.api.post(`/maps/${id}/enter`,{}).subscribe({next:async()=>{await this.character.load();try{await this.socket.emit('map:syncPresence',{mapId:id})}catch{}},error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
  enterTown(){
   if(this.character.character()?.status==='town')return;
   const active=this.battle.active();const now=Date.now();
@@ -89,7 +90,13 @@ export class GrindInfo implements OnDestroy {
  readonly now=signal(Date.now());
  private readonly timer=setInterval(()=>this.now.set(Date.now()),250);
 
- stateLabel(){return this.battle.state()==='reconnecting'?'RECONNECTING':this.battle.active()?'ACTIVE':'IDLE'}
+ stateLabel(){const b=this.battle.active();if(this.battle.state()==='reconnecting')return 'RECONNECTING';if(b&&this.isSearching(b))return 'SEARCHING';return b?'ACTIVE':'IDLE'}
+ isSearching(entry:any){return Date.now()<Date.parse(entry.startAt)}
+ searchEntry(entry:any){return {startAt:entry.log?.searchStartAt??new Date(Date.parse(entry.startAt)-2000).toISOString(),endAt:entry.startAt}}
+ monsterSnapshot(entry:any){return (entry.log as any)?.header?.monsterSnapshot??{}}
+ monsterStatusEffects(entry:any){return this.monsterSnapshot(entry).statusEffects??[]}
+ monsterStats(entry:any){const m=this.monsterSnapshot(entry);return [{label:'ATK',value:m.atk},{label:'MATK',value:m.matk},{label:'DEF',value:m.def},{label:'MDEF',value:m.mdefPercent+'%'},{label:'ACC',value:m.accuracy},{label:'EVA',value:m.evasion},{label:'CRIT',value:m.critChance+'%'}]}
+
  isTown(){return this.character.character()?.status==='town'}
  activeGambitTitle(){return this.character.character()?.activeGambitPageId?'Configured':'Not configured'}
  xpText(){const c=this.character.character();return c?`${c.xp} / ${c.xpToNext}`:'—'}

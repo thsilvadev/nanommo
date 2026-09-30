@@ -519,7 +519,7 @@ Monsters follow the exact same engine using their own (much shorter, max 2-line)
 
 To satisfy "minimum requests, seemless experience" (confirmed design), the server never simulates one battle at a time reactively. Instead:
 
-1. When a character enters a map (or the queue empties), the backend simulates **the next 5 battles in one shot**, chained: battle 2 starts from battle 1's `hpAfter`/`spAfter`/statuses/cooldown states, and so on. Each is written as a `BattleQueueEntry` with real wall-clock `startAt`/`endAt` (back-to-back, `startAt[n] = endAt[n-1]`).
+1. When a character enters a map (or the queue empties), the backend simulates **the next 5 battles in one shot**, chained: battle 2 starts from battle 1's `hpAfter`/`spAfter`/statuses/cooldown states, and so on. Each is written as a `BattleQueueEntry` with real wall-clock `startAt`/`endAt`. Every encounter also has an authoritative search gap before `startAt`: 2 seconds + 0.1 seconds per other character grinding on the same map.
 2. The full queue (5 entries, or fewer if a death cuts the chain short — see below) is sent to the client in one payload. The client renders the current battle's bar from `startAt`/`endAt` and has enough data to *know* what's coming next without asking.
 3. A **BullMQ delayed job** is scheduled for each entry's `endAt`. When it fires, the backend "resolves" that entry: applies `xpGain`, `goldGain`, inventory drops, HP/SP, death log if applicable, checks level-up, and emits a lightweight `battleResolved` socket event (the client already knew the outcome — this is just the authoritative sync + a trigger to fetch the extended queue). The resolved entry is then **marked `resolved = true` and kept** (§4.7 — it is the audit trail, and it disappears from every live read path the moment `resolved` flips), and if remaining queue depth `< 5` and the character is still alive and still on the map, **one new battle is appended** to bring it back to 5.
 4. **If a battle in the pre-simulated chain ends in the character's death**, everything simulated *after* that point in the chain is simply never generated (the chain naturally stops there) — on resolve, the character is routed to town per §7.6, and no new battles are queued until the player returns to a map.
@@ -724,16 +724,15 @@ Each monster in `monsters.json` carries a `damageTakenMultiplier: { melee, range
 
 ### 11.4 Encounter search time
 
-```
-searchTimeSeconds = clamp(baseSearchSeconds * (1 + playersOnMap / mapCapacity), minSeconds, maxSeconds)
+Every real monster encounter has a server-authoritative search phase before the battle begins:
 
-baseSearchSeconds = 4      // TUNABLE
-mapCapacity = 50           // TUNABLE, informal soft-scaling reference, not a hard player cap
-minSeconds = 2
-maxSeconds = 20
+```
+searchTimeSeconds = 2 + (otherPlayersGrindingOnMap * 0.1)
 ```
 
-`playersOnMap` is tracked in Redis (a simple counter/set per `mapId`, incremented on map-enter socket event, decremented on map-leave/disconnect) so it works correctly across multiple backend instances. This search time is added as a synthetic "encounter" pseudo-battle-entry at the start of the chain whenever a character (re)enters a map (i.e., the first `BattleQueueEntry`-like gap before the first real fight includes this delay) — implement as an extra `startAt` offset before the first battle in a freshly-built queue, not as its own DB row.
+The character being queued is excluded from `otherPlayersGrindingOnMap`. The same delay is applied before the first encounter and between every subsequent queued encounter. It is not a separate `BattleQueueEntry`; it is represented by the gap between the previous `endAt` and the next battle's `startAt`. Existing 1-second battle ticks and battle duration formulas are unchanged.
+
+The authoritative grinder count for encounter timing is based on Character rows with `status = grinding` and the same `currentMapId`. Realtime UI presence is additionally tracked in Redis and broadcast through the `/game` Socket.IO gateway whenever map membership changes.
 
 ### 11.5 Drop rates (confirmed, apply per kill — multiple can trigger)
 
@@ -891,7 +890,7 @@ Namespace: `/game`. Auth via handshake (§15.2). Suggested rooms: `char:<charact
 | `character:died` | `{ deathLog }` | triggers town routing + "last death" affordance client-side |
 | `character:leveledUp` | `{ newLevel, unspentAttributePoints }` | |
 | `chat:message` | `{ channel, username, message, sentAt }` | fanned out to the relevant room |
-| `presence:update` | `{ mapId, playersOnMap, playersOnline }` | periodic (e.g. every 5s) or on join/leave |
+| `map:presence` | `{ mapId, playersOnMap }` | realtime on map enter/leave/disconnect |
 | `mail:newItem` | `{ unreadCount }` | badge update |
 | `market:orderFilled` | `{ orderId }` | so the Market UI can refresh without polling |
 

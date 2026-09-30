@@ -4,6 +4,7 @@ export interface InventoryItem { id:string; characterId:string; location:'invent
 export interface EquippedItem { id:string; characterId:string; slot:string; itemId:string; instanceData?:any; }
 export interface BattleQueueEntry { id:string; characterId:string; sequenceIndex:number; mapId:string; monsterId:string; startAt:string; endAt:string; outcome:'win'|'loss'; log?:unknown; xpGain:number; goldGain:number; drops:unknown[]; itemsConsumed:Array<{itemId:string;quantity:number}>; hpAfter:number; spAfter:number; resolved:false; seedUsed:string; }
 export interface BattleResolved { entryId:string; outcome:'win'|'loss'; xpGain:number; goldGain:number; drops:unknown[]; characterAfter:{id:string;level:number;xp:number;hpCurrent:number;spCurrent:number;gold:number;status:string}; }
+export interface MapPresence { mapId:string; playersOnMap:number; }
 export interface CharacterLeveledUp { newLevel:number; unspentAttributePoints:number; }
 export interface CharacterDied { deathLog:{monsterId:string;mapId:string;timestamp:string;log:unknown}; }
 export interface GambitCondition { id:string; params?:Record<string,string|number>; [key:string]:any; }

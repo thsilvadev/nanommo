@@ -27,6 +27,10 @@ const EPOCH_ROLLOVER_AT = 10_000;
 /** SPEC §7.1: 1 tick = 1 second of in-game time. */
 const MS_PER_TICK = 1000;
 
+export function calculateEncounterSearchDelayMs(otherPlayers: number): number {
+  return 2000 + Math.max(0, Math.floor(otherPlayers)) * 100;
+}
+
 @Injectable()
 export class BattleService {
   private readonly logger = new Logger(BattleService.name);
@@ -324,12 +328,24 @@ export class BattleService {
         ? new Date(currentQueue[currentQueue.length - 1].endAt)
         : new Date();
 
+    // Encounter search: 2s base + 0.1s for every OTHER grinder currently on this map.
+    // Character status/map membership is authoritative and the current character is excluded.
+    const mapPlayers = await this.characterRepo.count({
+      where: { currentMapId: mapId, status: 'grinding' as any },
+    });
+    const otherPlayers = Math.max(0, mapPlayers - 1);
+    const encounterSearchMs = calculateEncounterSearchDelayMs(otherPlayers);
+
     for (let i = 0; i < battlesToAdd; i++) {
       if ((workingInventory['pot_hp_small'] ?? 0) + (workingInventory['pot_hp_medium'] ?? 0) + (workingInventory['pot_hp_large'] ?? 0) <= 0 || !projectedFoodExpiresAt || projectedFoodExpiresAt <= nextStartTime.getTime()) {
         break;
       }
       const sequenceIndex = maxSequenceIndex + 1 + i;
       const killIndex = projectedMapKillCount;
+
+      // Every encounter has its own search phase, including the first one.
+      const searchStartTime = new Date(nextStartTime);
+      nextStartTime = new Date(nextStartTime.getTime() + encounterSearchMs);
 
       // SPEC §11.2: nextMonsterId(mapId, mapKillCount) = weightedPick(rngForIndex(mapKillCount))
       const monster = rngForIndex(encounterSeed, killIndex).weightedPick(monsters);
@@ -389,7 +405,7 @@ export class BattleService {
         startAt: new Date(nextStartTime),
         endAt: new Date(nextStartTime.getTime() + battleDurationMs),
         outcome: simulation.outcome,
-        log: { ...simulation.log, mapId },
+        log: { ...simulation.log, mapId, searchStartAt: searchStartTime.toISOString(), searchEndAt: nextStartTime.toISOString() },
         itemsConsumed: simulation.itemsConsumed,
         xpGain: rewards.xpGain,
         goldGain: rewards.goldGain,
