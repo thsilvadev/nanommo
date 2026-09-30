@@ -61,7 +61,7 @@ export class MapService {
     const starterPotionCount = await this.battleService.getAvailablePotionCount(character.id);
     const foodBuff = character.activeFoodBuff;
     if (starterPotionCount <= 0) {
-      throw new BadRequestException('At least one HP potion is required to enter grind');
+      throw new BadRequestException('Town Guard: Your hungry! Eat something or go cleanse your sins for a change.');
     }
     if (!foodBuff?.expiresAt || new Date(foodBuff.expiresAt).getTime() <= Date.now()) {
       throw new BadRequestException('Character is hungry: eat food before entering grind');
