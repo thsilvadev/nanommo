@@ -111,10 +111,10 @@ export class CharacterService {
       const gambitPage = this.gambitPageRepository.create({
         characterId: savedCharacter.id,
         slotIndex,
-        title: `Page ${slotIndex + 1}`,
+        title: slotIndex === 0 ? 'Default Gambit' : `Page ${slotIndex + 1}`,
         lines: slotIndex === 0 ? [
-          { priority: 1, conditions: [{ id: 'self_hp_below_percent', params: { value: 30 } }], combinator: null, action: { id: 'use_item', params: { itemId: 'pot_hp_small' } }, enabled: true },
-          { priority: 2, conditions: [{ id: 'always' }], combinator: null, action: { id: 'attack' }, enabled: true },
+          { priority: 1, conditions: [{ id: 'self_hp_below_percent', params: { value: 30 } }], action: { id: 'use_item', params: { itemId: 'pot_hp_small' } }, enabled: true },
+          { priority: 2, conditions: [{ id: 'always' }], action: { id: 'attack' }, enabled: true },
         ] : [],
       });
       const savedGambitPage = await this.gambitPageRepository.save(gambitPage);

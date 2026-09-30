@@ -134,26 +134,12 @@ class GambitEvaluator {
         }
     }
     /**
-     * Evaluate a gambit line's conditions (handling AND/OR combinator)
+     * Evaluate the single condition configured on a gambit line.
      */
-    static evaluateConditions(conditions, combinator, characterSnapshot, monsterSnapshot, inventory = {}) {
-        if (!conditions || conditions.length === 0) {
-            return true; // No conditions = always true
-        }
-        if (conditions.length === 1) {
-            return this.evaluateCondition(conditions[0], characterSnapshot, monsterSnapshot, inventory);
-        }
-        // Two conditions with combinator
-        const cond1 = this.evaluateCondition(conditions[0], characterSnapshot, monsterSnapshot, inventory);
-        const cond2 = this.evaluateCondition(conditions[1], characterSnapshot, monsterSnapshot, inventory);
-        if (combinator === 'AND') {
-            return cond1 && cond2;
-        }
-        if (combinator === 'OR') {
-            return cond1 || cond2;
-        }
-        // Default: AND
-        return cond1 && cond2;
+    static evaluateConditions(conditions, characterSnapshot, monsterSnapshot, inventory = {}) {
+        if (!conditions || conditions.length === 0)
+            return true;
+        return this.evaluateCondition(conditions[0], characterSnapshot, monsterSnapshot, inventory);
     }
     /**
      * Check if an action is legal to execute
@@ -207,7 +193,7 @@ class GambitEvaluator {
                 continue;
             }
             // Evaluate conditions
-            const conditionsMet = this.evaluateConditions(line.conditions, line.combinator, characterSnapshot, monsterSnapshot, inventory);
+            const conditionsMet = this.evaluateConditions(line.conditions, characterSnapshot, monsterSnapshot, inventory);
             if (!conditionsMet) {
                 continue;
             }

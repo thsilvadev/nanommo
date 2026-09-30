@@ -29,7 +29,6 @@ const IN_MAP = monsters.monsters.filter((m) => m.map === h.MAP_ID);
 const MONSTER = IN_MAP.find((m) => m.id === 'mon_slime') ?? IN_MAP[0];
 const ITEM_DEFS = Object.fromEntries((items.consumables ?? []).map((c) => [c.id, c]));
 const ATTRIBUTES = { str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5 };
-const COMBINATORS = ['AND', 'OR'];
 
 /** SPEC §8.4: at most 20 lines per page — 21 is the first rejected count. */
 const MAX_LINES_PER_PAGE = 20;
@@ -69,47 +68,32 @@ const RULES = [
     lines: Array.from({ length: MAX_LINES_PER_PAGE + 1 }, () => validLine()),
   },
   {
-    name: '§8.4 rule 2 — 1 or 2 conditions per line (3 rejected)',
+    name: '§8.4 rule 2 — exactly 1 condition per line (2 rejected)',
     expectPath: 'lines[0].conditions',
-    lines: [
-      validLine({
-        conditions: [{ id: 'always' }, { id: 'always' }, { id: 'always' }],
-        combinator: 'AND',
-      }),
-    ],
+    lines: [validLine({ conditions: [{ id: 'always' }, { id: 'always' }] })],
   },
   {
-    name: '§8.4 rule 3 — 2 conditions require a non-null combinator (null rejected)',
+    name: '§8.4 rule 3 — legacy combinator field is rejected when non-null',
     expectPath: 'lines[0].combinator',
-    lines: [
-      validLine({
-        conditions: [{ id: 'always' }, { id: 'self_hp_band', band: 'LOW' }],
-        combinator: null,
-      }),
-    ],
+    lines: [validLine({ combinator: 'AND' })],
   },
   {
-    name: '§8.4 rule 4 — 1 condition requires a null combinator (non-null rejected)',
-    expectPath: 'lines[0].combinator',
-    lines: [validLine({ conditions: [{ id: 'always' }], combinator: 'AND' })],
-  },
-  {
-    name: '§8.4 rule 5 — unknown action.id is rejected',
+    name: '§8.4 rule 4 — unknown action.id is rejected',
     expectPath: 'lines[0].action.id',
     lines: [validLine({ action: { id: 'summon_dragon' } })],
   },
   {
-    name: '§8.4 rule 5b — out-of-enum band value is rejected',
+    name: '§8.4 rule 4b — out-of-enum band value is rejected',
     expectPath: 'lines[0].conditions[0].band',
     lines: [validLine({ conditions: [{ id: 'self_hp_band', band: 'ANGRY' }] })],
   },
   {
-    name: '§8.4 rule 6a — use_item with a non-existent itemId is rejected',
+    name: '§8.4 rule 5a — use_item with a non-existent itemId is rejected',
     expectPath: 'lines[0].action.itemId',
     lines: [validLine({ action: { id: 'use_item', itemId: 'pot_imaginary' } })],
   },
   {
-    name: '§8.4 rule 6b — use_skill with a non-existent skillId is rejected',
+    name: '§8.4 rule 5b — use_skill with a non-existent skillId is rejected',
     expectPath: 'lines[0].action.skillId',
     lines: [validLine({ action: { id: 'use_skill', skillId: 'sword_katana_slash' } })],
   },
@@ -120,14 +104,12 @@ const VALID_PAGE_LINES = [
   validLine({ priority: 1 }),
   validLine({
     priority: 2,
-    conditions: [{ id: 'self_hp_band', band: 'LOW' }, { id: 'always' }],
-    combinator: 'OR',
+    conditions: [{ id: 'self_hp_band', band: 'LOW' }],
     action: { id: 'use_item', itemId: 'pot_hp_small' },
   }),
   validLine({
     priority: 3,
-    conditions: [{ id: 'self_hp_band', band: 'CRITICAL' }, { id: 'self_hp_band', band: 'LOW' }],
-    combinator: 'AND',
+    conditions: [{ id: 'self_hp_band', band: 'CRITICAL' }],
     action: { id: 'use_skill', skillId: 'sword_power_strike' },
   }),
   validLine({ priority: 4, conditions: [{ id: 'self_hungry' }], action: { id: 'defend' } }),
@@ -213,8 +195,8 @@ async function readStoredLines(ctx) {
 function assertIllegalLineSkipped() {
   const page = {
     lines: [
-      { priority: 1, conditions: [{ id: 'always' }], combinator: null, action: { id: 'use_item', itemId: 'pot_hp_small' } },
-      { priority: 2, conditions: [{ id: 'always' }], combinator: null, action: { id: 'attack' } },
+      { priority: 1, conditions: [{ id: 'always' }], action: { id: 'use_item', itemId: 'pot_hp_small' } },
+      { priority: 2, conditions: [{ id: 'always' }], action: { id: 'attack' } },
     ],
   };
 
@@ -283,13 +265,13 @@ function assertPotionCooldownCategory() {
     ?? monsters.monsters.slice().sort((a, b) => b.hp - a.hp)[0];
 
   const page = (first, second) => [
-    { priority: 1, conditions: [{ id: 'always' }], combinator: null, action: { id: 'use_item', itemId: first } },
-    { priority: 2, conditions: [{ id: 'always' }], combinator: null, action: { id: 'use_item', itemId: second } },
+    { priority: 1, conditions: [{ id: 'always' }], action: { id: 'use_item', itemId: first } },
+    { priority: 2, conditions: [{ id: 'always' }], action: { id: 'use_item', itemId: second } },
     // Priority 3 is unreachable on the cast gauge, so it does not perturb the
     // cooldown measurement — but without it the character has no `attack` line,
     // never damages the monster, and the fight runs to the 200-tick stalemate
     // valve instead of ending.
-    { priority: 3, conditions: [{ id: 'always' }], combinator: null, action: { id: 'attack' } },
+    { priority: 3, conditions: [{ id: 'always' }], action: { id: 'attack' } },
   ];
 
   const simulate = (seed, lines, inventory) =>
@@ -368,8 +350,8 @@ function assertPotionCooldownCategory() {
 function assertHigherPriorityExecutesAlone() {
   const page = {
     lines: [
-      { priority: 1, conditions: [{ id: 'always' }], combinator: null, action: { id: 'defend' } },
-      { priority: 2, conditions: [{ id: 'always' }], combinator: null, action: { id: 'wait' } },
+      { priority: 1, conditions: [{ id: 'always' }], action: { id: 'defend' } },
+      { priority: 2, conditions: [{ id: 'always' }], action: { id: 'wait' } },
     ],
   };
 
@@ -418,8 +400,8 @@ function assertHigherPriorityExecutesAlone() {
  */
 async function assertHttpRoundTrip(ctx) {
   const lines = [
-    { priority: 1, conditions: [{ id: 'always' }], combinator: null, action: { id: 'use_item', itemId: 'pot_hp_large' } },
-    { priority: 2, conditions: [{ id: 'always' }], combinator: null, action: { id: 'attack' } },
+    { priority: 1, conditions: [{ id: 'always' }], action: { id: 'use_item', itemId: 'pot_hp_large' } },
+    { priority: 2, conditions: [{ id: 'always' }], action: { id: 'attack' } },
   ];
 
   const saved = await h.request('PUT', `/gambits/${ctx.gambitPageId}`, { lines }, ctx.token);

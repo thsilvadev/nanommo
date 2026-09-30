@@ -7,9 +7,8 @@ import { DataService } from '../data/data.service';
 
 /** SPEC §8.4: at most 20 gambit lines per page. */
 const MAX_LINES_PER_PAGE = 20;
-/** SPEC §8.4: 1 or 2 conditions per line. */
+/** SPEC §8.4: exactly 1 condition per line. */
 const MIN_CONDITIONS_PER_LINE = 1;
-const MAX_CONDITIONS_PER_LINE = 2;
 
 export interface GambitValidationError {
   /** Dotted path into the request body, e.g. `lines[2].conditions[0].id`. */
@@ -55,11 +54,6 @@ export class GambitService {
     return this.dataService.getGambitCatalog()?.actions ?? [];
   }
 
-  private combinators(): string[] {
-    return (
-      this.dataService.getGambitCatalog()?.meta?.conditionCombinators ?? ['AND', 'OR']
-    );
-  }
 
   /** Only the 7 player weapon trees — `monsterSkills` are not character-usable. */
   private characterSkillExists(skillId: string): boolean {
@@ -174,62 +168,22 @@ export class GambitService {
       }
     }
 
-    // --- conditions: 1 or 2 entries, and `combinator` is null iff length is 1
+    // --- exactly one condition per line; combinators are no longer part of the contract
     const conditions = line.conditions;
-    if (!Array.isArray(conditions)) {
+    if (!Array.isArray(conditions) || conditions.length !== 1) {
       errors.push({
         path: `${path}.conditions`,
-        message: 'conditions must be an array',
-      });
-    } else if (
-      conditions.length < MIN_CONDITIONS_PER_LINE ||
-      conditions.length > MAX_CONDITIONS_PER_LINE
-    ) {
-      errors.push({
-        path: `${path}.conditions`,
-        message: `a gambit line needs ${MIN_CONDITIONS_PER_LINE} or ${MAX_CONDITIONS_PER_LINE} conditions (got ${conditions.length})`,
+        message: `a gambit line must have exactly 1 condition (got ${Array.isArray(conditions) ? conditions.length : 'non-array'})`,
       });
     } else {
-      conditions.forEach((condition: any, i: number) => {
-        this.validateNode(
-          condition,
-          'condition',
-          `${path}.conditions[${i}]`,
-          errors,
-        );
+      this.validateNode(conditions[0], 'condition', `${path}.conditions[0]`, errors);
+    }
+
+    if (line.combinator !== undefined && line.combinator !== null) {
+      errors.push({
+        path: `${path}.combinator`,
+        message: 'combinator is no longer supported; each gambit line has exactly 1 condition',
       });
-
-      if (conditions.length === 1 && line.combinator !== null && line.combinator !== undefined) {
-        errors.push({
-          path: `${path}.combinator`,
-          message: 'combinator must be null when the line has exactly 1 condition',
-        });
-      }
-
-      if (
-        conditions.length > 1 &&
-        (line.combinator === null || line.combinator === undefined)
-      ) {
-        errors.push({
-          path: `${path}.combinator`,
-          message: `combinator is required for 2 conditions and must be one of ${this
-            .combinators()
-            .join(', ')}`,
-        });
-      }
-
-      if (
-        line.combinator !== null &&
-        line.combinator !== undefined &&
-        !this.combinators().includes(line.combinator)
-      ) {
-        errors.push({
-          path: `${path}.combinator`,
-          message: `combinator must be one of ${this.combinators().join(', ')} (got ${JSON.stringify(
-            line.combinator,
-          )})`,
-        });
-      }
     }
 
     // --- action: must exist, and its skill/item refs must be real
@@ -293,9 +247,19 @@ export class GambitService {
    * Get all gambit pages for a character
    */
   async getGambitPages(characterId: string): Promise<GambitPage[]> {
-    return this.gambitPageRepo.find({
+    const pages = await this.gambitPageRepo.find({
       where: { character: { id: characterId } },
     });
+
+    // Keep the starter page name consistent for characters created before
+    // the Default Gambit naming was introduced.
+    const defaultPage = pages.find((page) => page.slotIndex === 0);
+    if (defaultPage && (!defaultPage.title || defaultPage.title.trim() === 'Page 1')) {
+      defaultPage.title = 'Default Gambit';
+      await this.gambitPageRepo.save(defaultPage);
+    }
+
+    return pages;
   }
 
   /**
@@ -303,6 +267,14 @@ export class GambitService {
    */
   async getGambitPage(pageId: string): Promise<GambitPage | null> {
     return this.gambitPageRepo.findOneBy({ id: pageId });
+  }
+
+  /** Persist the canonical one-condition line shape and discard legacy null combinators. */
+  private canonicalizeLines(lines: any[]): any[] {
+    return lines.map((line: any) => {
+      const { combinator: _legacyCombinator, ...rest } = line;
+      return { ...rest, conditions: [line.conditions[0]] };
+    });
   }
 
   /**
@@ -335,6 +307,7 @@ export class GambitService {
 
     const lines = pageData.lines ?? [];
     await this.assertValidGambitPage(lines);
+    const canonicalLines = this.canonicalizeLines(lines);
 
     // If slotIndex is provided, upsert (update or create)
     if (pageData.slotIndex !== undefined) {
@@ -347,7 +320,7 @@ export class GambitService {
 
       if (existingPage) {
         existingPage.title = pageData.title ?? existingPage.title;
-        existingPage.lines = lines;
+        existingPage.lines = canonicalLines;
         return this.gambitPageRepo.save(existingPage);
       }
     }
@@ -355,8 +328,8 @@ export class GambitService {
     const gambitPage = this.gambitPageRepo.create({
       characterId,
       slotIndex: pageData.slotIndex ?? 0,
-      title: pageData.title ?? 'Default Page',
-      lines,
+      title: pageData.title ?? 'Default Gambit',
+      lines: canonicalLines,
     });
 
     return this.gambitPageRepo.save(gambitPage);
@@ -430,7 +403,7 @@ export class GambitService {
 
     if (pageData.lines !== undefined) {
       await this.assertValidGambitPage(pageData.lines);
-      page.lines = pageData.lines;
+      page.lines = this.canonicalizeLines(pageData.lines);
     }
 
     return this.gambitPageRepo.save(page);

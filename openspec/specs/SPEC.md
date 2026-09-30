@@ -48,7 +48,7 @@ NanoMMO is a **browser-based idle MMORPG**. There is no manual combat input. The
 - **Server-authoritative, client-light.** The client never computes outcomes; it only animates timers derived from server-provided timestamps.
 - **Minimal network chatter.** The server pre-computes and pushes a short queue of upcoming battle results so the client can run "seemlessly" for minutes without a single extra request (see §7.4).
 - **True idle.** Progress continues while the browser is closed, as long as the character stays on a map (town = paused when offline). No punishing offline penalties beyond running out of consumables.
-- **Meaningful automation depth without code.** The Gambit system is the player's entire skill expression. It must be deep (up to 2 chained conditions, 20 lines, 3 pages) but never require the player to write logic — only compose from curated lists.
+- **Meaningful automation depth without code.** The Gambit system is the player's entire skill expression. It must be deep through 20 prioritized lines across 3 pages, while each line remains a simple single-condition rule composed from curated lists.
 
 ---
 
@@ -588,8 +588,7 @@ Modeled directly on Final Fantasy XII's Gambit system, adapted for a single cont
 ```ts
 type GambitLine = {
   priority: number;                 // 1-20, execution order
-  conditions: GambitCondition[];    // length 1 or 2
-  combinator: 'AND' | 'OR' | null;  // null if only 1 condition
+  conditions: [GambitCondition];   // exactly 1 condition
   action: GambitAction;
 }
 type GambitCondition = { id: string; params?: Record<string, string|number> } // id from gambit_catalog.json "conditions"
@@ -610,7 +609,7 @@ Gambit actions are target-aware: the action's catalog params define the valid ta
 
 On every `GambitPage` write:
 - `lines.length <= 20`
-- each line's `conditions.length` is 1 or 2; `combinator` is `null` iff length is 1
+- each line's `conditions.length` is exactly 1; `combinator` is not part of the stored line shape
 - every `condition.id` and `action.id` exist in `gambit_catalog.json`
 - every `condition.params`/`action.params` match the expected shape/enum from the catalog entry (e.g. `band` must be one of the 5 valid values)
 - `use_skill` actions reference a real `skillId` from `skill_trees.json` (existence only — legality re: weapon-equipped is a runtime concern, not a save-time rejection, since the player might configure a page for a weapon they plan to equip later)
@@ -1186,7 +1185,7 @@ For a fixed matrix of `(characterSnapshot, monsterId, seed)` inputs covering: ea
 
 - Stat formulas (§5.2): pure input→output tests for `maxHp`, `atk`, `def` mitigation curve at several DEF values (verify the 50%-at-300 soft-cap claim), hit chance clamping at its 5%/95% bounds.
 - PRNG (§11.2): same `(seed, index)` always yields the same value; distribution sanity check (chi-square-ish spot check, not required to be rigorous) over a large sample.
-- Gambit evaluation (§7.3/§8): a line that's condition-true-but-illegal is correctly skipped in favor of the next; AND/OR combinators evaluate correctly; disabled lines are skipped.
+- Gambit evaluation (§7.3/§8): a line that's condition-true-but-illegal is correctly skipped in favor of the next; the single condition evaluates correctly; disabled lines are skipped.
 - XP curve tables (§6): loaded table values match the documented formula for a sample of levels (guards against the JSON and the formula silently drifting apart after a manual edit).
 
 ### 19.3 Balance/simulation tests

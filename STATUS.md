@@ -700,3 +700,45 @@ No implementation from the new OpenSpec change was performed in this closing ses
 - `git diff --check`: passed.
 - Browser verification of the new UI scope: not performed.
 - Production deployment: not performed.
+
+### Latest follow-up — Equipment slot icons vs. equipped item colors (2026-09-30)
+
+Corrected the equipment-icon implementation without changing the approved visual style:
+
+- generated/replaced the **30 root UI SVG icons** in `apps/frontend/assets/ui/*.svg` as explicit white SVGs (`#ffffff`);
+- deliberately **did not touch `apps/frontend/assets/ui/items/**`**, so the item artwork/catalog remains unchanged;
+- removed the white-color filter from the **equipped-item renderer** in Character Summary, leaving only the drop shadow;
+- kept the white styling for the empty equipment-slot icons, now provided by the SVG assets themselves;
+- this separates **slot chrome/icon assets** from **actual item artwork**, so equipped items retain their original colors.
+
+### Verification
+
+- `pnpm --filter @nanommo/frontend build`: passed (existing Angular style-budget warnings only).
+- `git diff --check`: passed.
+- No backend/gameplay changes.
+- No production deployment.
+
+### Latest follow-up — Login startup volume + login-only visual fade (2026-09-30)
+
+Adjusted the auth music default volume from 0.38 to 0.85 for a fresh browser/local-storage state; the user's persisted volume remains respected once they have changed it. Added a login-only 2-second visual fade-in from black/near-black on the full login artwork, without applying that entrance animation to Forgot Password, Register, Verify Email, Pending Verification, or Reset Password.
+
+Verification: `pnpm --filter @nanommo/frontend build` passed (existing Angular style-budget warnings only) and `git diff --check` passed. No backend/gameplay changes and no production deployment.
+
+### Latest follow-up — Gambit naming and editor alignment (2026-09-30)
+
+- Styled the Gambit page-name input to match the bronze/dark UI and added a compact page metadata shell.
+- Gambit page tabs now display the actual page title instead of forced `Page N` labels.
+- The default slot is now named `Default Gambit` for newly created characters; existing slot-0 pages still named `Page 1` are canonicalized to `Default Gambit` when Gambits are loaded.
+- Condition/action selectors are now fixed to equal 50% width and aligned to the right edge of each node block, so `ACTION` no longer receives more width than `CONDITION` based on label length.
+- Condition/action parameter controls are right-aligned at the end of their row.
+- Existing selector arrows/cursor affordances and themed number spinners remain intact.
+- Verification: `git diff --check`, `pnpm --filter @nanommo/api build`, and `pnpm --filter @nanommo/frontend build` passed. Angular still reports the existing non-blocking style-budget warnings on several feature styles.
+- No production deployment.
+
+### Previous follow-up — Equipment drag/drop stability + single-condition Gambits (2026-09-30)
+
+Fixed equipment drag/drop behavior in the Character Summary: equipment slots no longer sort/reflow while an item is dragged over them, only the matching equipment slot accepts the item, and drag previews are icon-only so an equipped item name cannot bleed into an Inventory slot or resize its layout. Inventory/equipment drag placeholders are kept visually inert and do not alter slot dimensions.
+
+Updated Gambits so every line has exactly one condition. Removed the frontend + condition/second-condition/combinator UI, added themed selector arrows and pointer cursors, and kept numeric value inputs at a contained compact height with themed spinner treatment. The backend now validates exactly one condition, rejects non-null legacy combinators, and canonicalizes accepted writes without the legacy combinator field. The shared evaluator now evaluates only the single configured condition. Catalog, shared types, starter Gambits, SPEC, OpenSpec delta, and the Phase 3 Gambit verification script were synchronized.
+
+Verification: shared build passed, API build passed, frontend production build passed (existing Angular style-budget warnings only), OpenSpec strict validation passed, and git diff --check passed. No production deployment.

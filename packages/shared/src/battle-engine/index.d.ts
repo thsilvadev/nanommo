@@ -43,9 +43,9 @@ export declare class GambitEvaluator {
      */
     static evaluateCondition(condition: any, characterSnapshot: any, monsterSnapshot: any, inventory?: Record<string, number>): boolean;
     /**
-     * Evaluate a gambit line's conditions (handling AND/OR combinator)
+     * Evaluate the single condition configured on a gambit line.
      */
-    static evaluateConditions(conditions: any[], combinator: string | null | undefined, characterSnapshot: any, monsterSnapshot: any, inventory?: Record<string, number>): boolean;
+    static evaluateConditions(conditions: any[], characterSnapshot: any, monsterSnapshot: any, inventory?: Record<string, number>): boolean;
     /**
      * Check if an action is legal to execute
      * (Simplified: in full impl, check skill unlocked, cooldown, SP, item stock)

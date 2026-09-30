@@ -101,3 +101,14 @@ This change SHALL remain presentation-only except where needed to expose existin
 #### Scenario: No gameplay regression
 - **WHEN** the UI is changed
 - **THEN** battle resolution, queue authority, inventory authority, equipment rules and derived-stat formulas remain server-authoritative.
+## Requirement: Single Gambit condition
+Each Gambit line SHALL contain exactly one condition; the editor SHALL NOT expose a "+ condition" control or a second condition/combinator UI. The server SHALL reject saved lines that contain anything other than exactly one condition, and the canonical line shape SHALL omit `combinator`.
+
+#### Scenario: One condition per Gambit
+- **WHEN** a Gambit line is rendered or saved
+- **THEN** exactly one condition selector is available
+- **AND** no "+ condition", second condition, AND/OR combinator, or combinator field is exposed
+- **AND** server validation rejects a line whose `conditions` array does not contain exactly one condition.
+
+## Requirement: Gambit selector affordance
+All Gambit selector controls SHALL use the themed selector arrow and `cursor: pointer`. Numeric value inputs SHALL keep their native increment/decrement controls but style and contain them within the compact game input height.

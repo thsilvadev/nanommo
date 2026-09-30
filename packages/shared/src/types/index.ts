@@ -72,8 +72,7 @@ export interface GambitPage {
 
 export interface GambitLine {
   priority: number;
-  conditions: GambitCondition[];
-  combinator?: 'AND' | 'OR';
+  conditions: [GambitCondition];
   action: GambitAction;
 }
 

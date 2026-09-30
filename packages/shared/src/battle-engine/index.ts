@@ -172,28 +172,15 @@ export class GambitEvaluator {
     }
   }
 
-  /**
-   * Evaluate a gambit line's conditions (1 or 2, combined with AND/OR per SPEC §8.2)
-   */
+  /** Evaluate the single condition configured on a gambit line. */
   static evaluateConditions(
     conditions: any[],
-    combinator: string | null | undefined,
     self: CombatantSnapshot,
     foe: CombatantSnapshot,
     inventory: Record<string, number> = {},
   ): boolean {
     if (!conditions || conditions.length === 0) return true;
-
-    if (conditions.length === 1) {
-      return GambitEvaluator.evaluateCondition(conditions[0], self, foe, inventory);
-    }
-
-    const first = GambitEvaluator.evaluateCondition(conditions[0], self, foe, inventory);
-    const second = GambitEvaluator.evaluateCondition(conditions[1], self, foe, inventory);
-
-    if (combinator === 'OR') return first || second;
-    // Single condition or AND (the default) - SPEC §8.2
-    return first && second;
+    return GambitEvaluator.evaluateCondition(conditions[0], self, foe, inventory);
   }
 
   /**
@@ -260,7 +247,7 @@ export class GambitEvaluator {
   /**
    * Normalize the two gambit shapes present in this codebase into the canonical
    * one the evaluator understands:
-   *  - character pages:  { lines: [{ priority, conditions: [...], combinator, action: { id, ... } }] }
+   *  - character pages:  { lines: [{ priority, conditions: [condition], action: { id, ... } }] }
    *  - monsters.json:    [{ priority, condition: { type, value }, action: { type, ... } }]
    */
   static normalizeGambitPage(raw: any): { lines: any[] } {
@@ -280,8 +267,6 @@ export class GambitEvaluator {
         return {
           priority: line?.priority ?? index + 1,
           conditions: conditions.map((c: any) => ({ ...c, id: c?.id ?? c?.type })),
-          combinator:
-            line?.combinator ?? (conditions.length > 1 ? 'AND' : null),
           action: { ...action, id: actionId },
         };
       }),
@@ -316,7 +301,6 @@ export class GambitEvaluator {
 
       const conditionsMet = GambitEvaluator.evaluateConditions(
         line.conditions,
-        line.combinator,
         self,
         foe,
         inventory,
