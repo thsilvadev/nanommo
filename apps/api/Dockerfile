@@ -9,6 +9,9 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
+# pnpm-lock.yaml also declares the frontend workspace importer.
+# Its manifest must exist in the builder context for --frozen-lockfile validation.
+COPY apps/frontend/package.json ./apps/frontend/package.json
 
 # Install dependencies
 RUN npm install -g pnpm && pnpm install --frozen-lockfile
