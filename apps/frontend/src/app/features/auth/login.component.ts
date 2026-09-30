@@ -13,7 +13,7 @@ import { LoginMusicService } from '../../shared/login-music.service';
   template: `
     <div class="auth-screen"><app-login-music-control />
       <div class="auth-panel">
-        <h1 class="text-3xl font-bold text-white text-center mb-8">Entrar</h1>
+        
 
         @if (error()) {
           <div class="mb-6 p-4 bg-red-900/50 border border-red-700 text-red-200 rounded-lg text-sm">

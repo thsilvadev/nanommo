@@ -12,7 +12,6 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
   template: `
     <div class="auth-screen"><app-login-music-control />
       <div class="auth-panel">
-        <h1 class="text-3xl font-bold text-white text-center mb-8">Criar Conta</h1>
 
         @if (error()) {
           <div class="mb-6 p-4 bg-red-900/50 border border-red-700 text-red-200 rounded-lg text-sm">
@@ -20,9 +19,9 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
           </div>
         }
 
-        <form (ngSubmit)="onSubmit()" #registerForm="ngForm" class="space-y-5">
+        <form (ngSubmit)="onSubmit()" #registerForm="ngForm" class="space-y-1">
           <div>
-            <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Nome de Usuário</label>
+            <label for="username" class="block text-sm font-medium text-gray-300">Nome de Usuário</label>
             <input
               type="text"
               id="username"
@@ -41,7 +40,7 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
           </div>
 
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-300 mb-1">E-mail</label>
+            <label for="email" class="block text-sm font-medium text-gray-300">E-mail</label>
             <input
               type="email"
               id="email"
@@ -59,7 +58,7 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
           </div>
 
           <div>
-            <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Senha</label>
+            <label for="password" class="block text-sm font-medium text-gray-300">Senha</label>
             <input
               type="password"
               id="password"
@@ -77,7 +76,7 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
           </div>
 
           <div>
-            <label for="cpf" class="block text-sm font-medium text-gray-300 mb-1">CPF</label>
+            <label for="cpf" class="block text-sm font-medium text-gray-300">CPF</label>
             <input
               type="text"
               id="cpf"
