@@ -1,11 +1,21 @@
-import { Controller, Get, Post, UseGuards, Request, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, Request, Body, Param, NotFoundException } from '@nestjs/common';
 import { TownService } from './town.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CharacterService } from '../character/character.service';
 
 @Controller('town')
 @UseGuards(JwtAuthGuard)
 export class TownController {
-  constructor(private readonly townService: TownService) {}
+  constructor(
+    private readonly townService: TownService,
+    private readonly characterService: CharacterService,
+  ) {}
+
+  private async characterId(req: any): Promise<string> {
+    const character = await this.characterService.getCharacterByUserId(req.user.userId);
+    if (!character) throw new NotFoundException('Character not found');
+    return character.id;
+  }
 
   @Get('vendor/catalog')
   getVendorCatalog() { return this.townService.getVendorCatalog(); }
@@ -17,23 +27,23 @@ export class TownController {
   getVendorQuote(@Param('vendorId') vendorId: string, @Param('itemId') itemId: string) { return this.townService.getVendorQuote(vendorId, itemId); }
 
   @Post('vendor/:vendorId/buy')
-  buyFromVendor(@Request() req: any, @Param('vendorId') vendorId: string, @Body() body: { itemId: string; quantity: number }) {
-    return this.townService.buyFromVendor(req.user.characterId, vendorId, body.itemId, body.quantity);
+  async buyFromVendor(@Request() req: any, @Param('vendorId') vendorId: string, @Body() body: { itemId: string; quantity: number }) {
+    return this.townService.buyFromVendor(await this.characterId(req), vendorId, body.itemId, body.quantity);
   }
 
   @Post('vendor/:vendorId/sell')
-  sellToVendor(@Request() req: any, @Param('vendorId') vendorId: string, @Body() body: { itemId: string; quantity: number }) {
-    return this.townService.sellToVendor(req.user.characterId, vendorId, body.itemId, body.quantity);
+  async sellToVendor(@Request() req: any, @Param('vendorId') vendorId: string, @Body() body: { itemId: string; quantity: number }) {
+    return this.townService.sellToVendor(await this.characterId(req), vendorId, body.itemId, body.quantity);
   }
 
   @Get('warehouse/contents')
-  getWarehouse(@Request() req: any) { return this.townService.getWarehouse(req.user.characterId); }
+  async getWarehouse(@Request() req: any) { return this.townService.getWarehouse(await this.characterId(req)); }
   @Get('warehouse/capacity')
-  getWarehouseCapacity(@Request() req: any) { return this.townService.getWarehouseCapacity(req.user.characterId); }
+  async getWarehouseCapacity(@Request() req: any) { return this.townService.getWarehouseCapacity(await this.characterId(req)); }
   @Post('warehouse/deposit')
-  depositToWarehouse(@Request() req: any, @Body() body: { itemId: string; quantity: number }) { return this.townService.depositToWarehouse(req.user.characterId, body.itemId, body.quantity); }
+  async depositToWarehouse(@Request() req: any, @Body() body: { itemId: string; quantity: number }) { return this.townService.depositToWarehouse(await this.characterId(req), body.itemId, body.quantity); }
   @Post('warehouse/withdraw')
-  withdrawFromWarehouse(@Request() req: any, @Body() body: { itemId: string; quantity: number }) { return this.townService.withdrawFromWarehouse(req.user.characterId, body.itemId, body.quantity); }
+  async withdrawFromWarehouse(@Request() req: any, @Body() body: { itemId: string; quantity: number }) { return this.townService.withdrawFromWarehouse(await this.characterId(req), body.itemId, body.quantity); }
 
   @Get('npcs')
   getTownNPCs() { return this.townService.getTownNPCs(); }
