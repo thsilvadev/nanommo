@@ -11,7 +11,7 @@ import { LoginMusicService } from '../../shared/login-music.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, LoginMusicControlComponent],
   template: `
-    <div class="auth-screen"><app-login-music-control />
+    <div class="auth-screen auth-login-screen"><app-login-music-control /><div class="auth-login-fade" aria-hidden="true"></div>
       <div class="auth-panel ml-5">
         
 

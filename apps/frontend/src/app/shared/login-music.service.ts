@@ -12,7 +12,7 @@ export class LoginMusicService {
 
   private readVolume(): number {
     const stored = Number(localStorage.getItem(this.storageKey));
-    return Number.isFinite(stored) ? Math.min(1, Math.max(0, stored)) : 0.38;
+    return Number.isFinite(stored) ? Math.min(1, Math.max(0, stored)) : 0.85;
   }
 
   private ensureAudio(): HTMLAudioElement {
