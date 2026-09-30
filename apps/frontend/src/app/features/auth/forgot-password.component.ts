@@ -11,7 +11,7 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
   imports: [CommonModule, FormsModule, RouterLink, LoginMusicControlComponent],
   template: `
     <div class="auth-screen"><app-login-music-control />
-      <div class="auth-panel">
+      <div class="auth-panel ml-5">
         <h1 class="text-3xl font-bold text-white text-center mb-8">Esqueci minha senha</h1>
 
         @if (success()) {

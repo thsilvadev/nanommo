@@ -12,7 +12,7 @@ import { LoginMusicService } from '../../shared/login-music.service';
   imports: [CommonModule, FormsModule, RouterLink, LoginMusicControlComponent],
   template: `
     <div class="auth-screen"><app-login-music-control />
-      <div class="auth-panel">
+      <div class="auth-panel ml-5">
         
 
         @if (error()) {

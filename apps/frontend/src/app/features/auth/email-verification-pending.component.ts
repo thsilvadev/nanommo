@@ -9,7 +9,7 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
   imports: [CommonModule, RouterLink, LoginMusicControlComponent],
   template: `
     <div class="auth-screen"><app-login-music-control />
-      <div class="auth-panel auth-center">
+      <div class="auth-panel auth-center ml-5">
         <div class="mx-auto h-16 w-16 bg-blue-900/50 rounded-full flex items-center justify-center text-3xl">✉</div>
         <h1 class="text-2xl font-bold text-white mt-5 mb-3">Confirme seu e-mail</h1>
         <p class="text-gray-300">Sua conta foi criada, mas você precisa confirmar o endereço de e-mail antes de entrar no jogo.</p>

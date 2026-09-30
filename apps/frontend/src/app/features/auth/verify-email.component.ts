@@ -10,7 +10,7 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
   imports: [CommonModule, RouterLink, LoginMusicControlComponent],
   template: `
     <div class="auth-screen"><app-login-music-control />
-      <div class="auth-panel auth-center">
+      <div class="auth-panel auth-center ml-5">
         
         @if (state() === 'loading') {
           <div class="space-y-6">
