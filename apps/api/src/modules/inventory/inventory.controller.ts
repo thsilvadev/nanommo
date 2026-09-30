@@ -92,13 +92,5 @@ export class InventoryController {
     return { success: true };
   }
 
-  /**
-   * Sell item(s) to vendor
-   */
-  @Post('sell')
-  async sellToVendor(@Request() req: any, @Body() body: { itemId: string; quantity: number }) {
-    const characterId = req.user.characterId;
-    const goldReceived = await this.inventoryService.sellToVendor(characterId, body.itemId, body.quantity);
-    return { goldReceived };
-  }
+
 }

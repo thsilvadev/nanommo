@@ -1,26 +1,21 @@
-<section class="panel grind">
-<div class="panel-title"><span>{{isTown()?'INFO':'GRIND / BATTLE'}}</span><span [class.warn]="battle.state()==='reconnecting'">{{isTown()?'TOWN':stateLabel()}}</span></div>
-<ng-container *ngIf="isTown();else grindContext">
-  <div class="context-heading"><img src="/assets/ui/map.svg" alt=""><div><strong>Town</strong><small>Current character context</small></div></div>
-  <div class="context-grid">
-    <span><b>LEVEL</b><em>{{character.character()?.level ?? '—'}}</em></span><span><b>XP</b><em>{{xpText()}}</em></span>
-    <span><b>HP</b><em>{{character.character()?.hpCurrent}} / {{character.character()?.maxHp}}</em></span><span><b>SP</b><em>{{character.character()?.spCurrent}} / {{character.character()?.maxSp}}</em></span>
-    <span><b>GAMBIT</b><em>{{activeGambitTitle()}}</em></span><span><b>FOOD</b><em>{{foodLabel()}}</em></span>
-  </div>
-  <div class="context-note">Select a map in the central board to resume the grind. Character equipment remains available in the persistent left panel.</div>
-</ng-container>
-<ng-template #grindContext>
-  <div class="food-state" [class.hungry]="foodLabel()=='HUNGRY'">{{foodLabel()}}</div>
-  <ng-container *ngIf="battle.active() as b">
-    <div class="foe"><div class="foe-icon"><img src="/assets/ui/target.svg" alt=""></div><div><strong>{{monster(b.monsterId)?.name||b.monsterId}}</strong><small>Battle #{{b.sequenceIndex+1}} · {{elapsedTicks(b)}}s</small></div></div>
-    <div class="hp-block"><div class="hp-label"><span>MONSTER</span><b>{{monsterHp(b)}} / {{monsterMaxHp(b)}}</b></div><div class="foe-hp"><i [style.width.%]="percent(monsterHp(b),monsterMaxHp(b))"></i></div></div>
-    <div class="hp-block"><div class="hp-label"><span>CHARACTER</span><b>{{characterHp(b)}} / {{characterMaxHp(b)}}</b></div><div class="char-hp"><i [style.width.%]="percent(characterHp(b),characterMaxHp(b))"></i></div></div>
-    <app-battle-progress [entry]="b" />
-    <div class="reward"><span>XP +{{b.xpGain}}</span><span>Gold +{{b.goldGain}}</span></div>
-    <div class="event-feed"><div *ngFor="let e of recentEvents(b)" class="event"><small>T{{e.tick}}</small><span>{{eventText(e)}}</span></div></div>
-    <div class="queue-note">{{battle.queue().length}} battle{{battle.queue().length===1?'':'s'}} queued</div>
-  </ng-container>
-  <div *ngIf="!battle.active()" class="idle-state"><strong>{{foodLabel()==='HUNGRY'?'HUNGRY':'NO BATTLE QUEUED'}}</strong><small>Choose a map or wait for the authoritative battle queue.</small></div>
-  <div class="consumables"><div *ngFor="let it of consumableItems()" class="consumable"><img [src]="catalog.itemIcon(it.itemId)" [alt]="catalog.item(it.itemId)?.name||it.itemId"><b>{{displayQuantity(it)}}</b><small>{{catalog.item(it.itemId)?.name||it.itemId}}</small></div></div>
-</ng-template>
-</section>
+<ng-container *ngIf="isTown();else grindContext"><app-vendor-panel></app-vendor-panel>
+<div class="trade-modal-backdrop" *ngIf="vendor.modal() as modal" (click)="vendor.cancel()">
+  <section class="trade-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <div class="trade-modal-title"><span>{{modal.mode==='buy'?'BUY':'SELL'}}</span><strong>{{vendor.itemName(modal.itemId)}}</strong></div>
+    <div class="trade-summary"><span>UNIT PRICE <b>{{modal.unitPrice}} G</b></span><span>QUANTITY <b>{{modal.quantity}}</b></span><span>TOTAL <b>{{vendor.total()}} G</b></span></div>
+    <div class="quantity-row" *ngIf="modal.maxQuantity>1"><button (click)="vendor.setQuantity(modal.quantity-1)">−</button><input type="number" min="1" [max]="modal.maxQuantity" [value]="modal.quantity" (input)="vendor.setQuantity($any($event.target).value)"><button (click)="vendor.setQuantity(modal.quantity+1)">+</button><button class="all" (click)="vendor.all()">All</button></div>
+    <div class="trade-modal-note">{{modal.mode==='buy'?'Confirm purchase?':'Confirm sale?'}} Current server state will be revalidated.</div>
+    <div class="trade-modal-error" *ngIf="vendor.error()">{{vendor.error()}}</div>
+    <div class="trade-actions"><button class="cancel" [disabled]="vendor.busy()" (click)="vendor.cancel()">Cancel</button><button class="confirm" [disabled]="vendor.busy()" (click)="vendor.confirm()">{{vendor.busy()?'Processing…':'Confirm'}}</button></div>
+  </section>
+</div></ng-container>
+<ng-template #grindContext><section class="panel grind">
+<div class="panel-title"><span>GRIND / BATTLE</span><span [class.warn]="battle.state()==='reconnecting'">{{stateLabel()}}</span></div>
+<div class="food-state" [class.hungry]="foodLabel()=='HUNGRY'">{{foodLabel()}}</div>
+<ng-container *ngIf="battle.active() as b"><div class="foe"><div class="foe-icon"><img src="/assets/ui/target.svg" alt=""></div><div><strong>{{monster(b.monsterId)?.name||b.monsterId}}</strong><small>Battle #{{b.sequenceIndex+1}} · {{elapsedTicks(b)}}s</small></div></div>
+<div class="hp-block"><div class="hp-label"><span>MONSTER</span><b>{{monsterHp(b)}} / {{monsterMaxHp(b)}}</b></div><div class="foe-hp"><i [style.width.%]="percent(monsterHp(b),monsterMaxHp(b))"></i></div></div>
+<div class="hp-block"><div class="hp-label"><span>CHARACTER</span><b>{{characterHp(b)}} / {{characterMaxHp(b)}}</b></div><div class="char-hp"><i [style.width.%]="percent(characterHp(b),characterMaxHp(b))"></i></div></div>
+<app-battle-progress [entry]="b" /><div class="reward"><span>XP +{{b.xpGain}}</span><span>Gold +{{b.goldGain}}</span></div><div class="event-feed"><div *ngFor="let e of recentEvents(b)" class="event"><small>T{{e.tick}}</small><span>{{eventText(e)}}</span></div></div><div class="queue-note">{{battle.queue().length}} battle{{battle.queue().length===1?'':'s'}} queued</div></ng-container>
+<div *ngIf="!battle.active()" class="idle-state"><strong>{{foodLabel()==='HUNGRY'?'HUNGRY':'NO BATTLE QUEUED'}}</strong><small>Choose a map or wait for the authoritative battle queue.</small></div>
+<div class="consumables"><div *ngFor="let it of consumableItems()" class="consumable"><img [src]="catalog.itemIcon(it.itemId)" [alt]="catalog.item(it.itemId)?.name||it.itemId"><b>{{displayQuantity(it)}}</b><small>{{catalog.item(it.itemId)?.name||it.itemId}}</small></div></div>
+</section></ng-template>

@@ -7,95 +7,38 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class TownController {
   constructor(private readonly townService: TownService) {}
 
-  /**
-   * Get vendor NPC catalog
-   */
   @Get('vendor/catalog')
-  async getVendorCatalog() {
-    return this.townService.getVendorCatalog();
-  }
+  getVendorCatalog() { return this.townService.getVendorCatalog(); }
 
-  /**
-   * Get stock for a specific vendor
-   */
   @Get('vendor/:vendorId/stock')
-  async getVendorStock(@Param('vendorId') vendorId: string) {
-    return this.townService.getVendorStock(vendorId);
-  }
+  getVendorStock(@Param('vendorId') vendorId: string) { return this.townService.getVendorStock(vendorId); }
 
-  /**
-   * Buy item from vendor
-   */
+  @Get('vendor/:vendorId/quote/:itemId')
+  getVendorQuote(@Param('vendorId') vendorId: string, @Param('itemId') itemId: string) { return this.townService.getVendorQuote(vendorId, itemId); }
+
   @Post('vendor/:vendorId/buy')
-  async buyFromVendor(
-    @Request() req: any,
-    @Param('vendorId') vendorId: string,
-    @Body() body: { itemId: string; quantity: number },
-  ) {
-    const characterId = req.user.characterId;
-    await this.townService.buyFromVendor(characterId, vendorId, body.itemId, body.quantity);
-    return { success: true };
+  buyFromVendor(@Request() req: any, @Param('vendorId') vendorId: string, @Body() body: { itemId: string; quantity: number }) {
+    return this.townService.buyFromVendor(req.user.characterId, vendorId, body.itemId, body.quantity);
   }
 
-  /**
-   * Get warehouse contents
-   */
+  @Post('vendor/:vendorId/sell')
+  sellToVendor(@Request() req: any, @Param('vendorId') vendorId: string, @Body() body: { itemId: string; quantity: number }) {
+    return this.townService.sellToVendor(req.user.characterId, vendorId, body.itemId, body.quantity);
+  }
+
   @Get('warehouse/contents')
-  async getWarehouse(@Request() req: any) {
-    const characterId = req.user.characterId;
-    return this.townService.getWarehouse(characterId);
-  }
-
-  /**
-   * Get warehouse capacity info
-   */
+  getWarehouse(@Request() req: any) { return this.townService.getWarehouse(req.user.characterId); }
   @Get('warehouse/capacity')
-  async getWarehouseCapacity(@Request() req: any) {
-    const characterId = req.user.characterId;
-    return this.townService.getWarehouseCapacity(characterId);
-  }
-
-  /**
-   * Deposit item to warehouse
-   */
+  getWarehouseCapacity(@Request() req: any) { return this.townService.getWarehouseCapacity(req.user.characterId); }
   @Post('warehouse/deposit')
-  async depositToWarehouse(@Request() req: any, @Body() body: { itemId: string; quantity: number }) {
-    const characterId = req.user.characterId;
-    await this.townService.depositToWarehouse(characterId, body.itemId, body.quantity);
-    return { success: true };
-  }
-
-  /**
-   * Withdraw item from warehouse
-   */
+  depositToWarehouse(@Request() req: any, @Body() body: { itemId: string; quantity: number }) { return this.townService.depositToWarehouse(req.user.characterId, body.itemId, body.quantity); }
   @Post('warehouse/withdraw')
-  async withdrawFromWarehouse(@Request() req: any, @Body() body: { itemId: string; quantity: number }) {
-    const characterId = req.user.characterId;
-    await this.townService.withdrawFromWarehouse(characterId, body.itemId, body.quantity);
-    return { success: true };
-  }
+  withdrawFromWarehouse(@Request() req: any, @Body() body: { itemId: string; quantity: number }) { return this.townService.withdrawFromWarehouse(req.user.characterId, body.itemId, body.quantity); }
 
-  /**
-   * Get list of town NPCs
-   */
   @Get('npcs')
-  async getTownNPCs() {
-    return this.townService.getTownNPCs();
-  }
-
-  /**
-   * Interact with NPC
-   */
+  getTownNPCs() { return this.townService.getTownNPCs(); }
   @Post('npcs/:npcId/interact')
-  async interactWithNPC(@Param('npcId') npcId: string, @Body() body: { action: string }) {
-    return this.townService.interactWithNPC(npcId, body.action);
-  }
-
-  /**
-   * Get town news/announcements
-   */
+  interactWithNPC(@Param('npcId') npcId: string, @Body() body: { action: string }) { return this.townService.interactWithNPC(npcId, body.action); }
   @Get('news')
-  async getTownNews() {
-    return this.townService.getTownNews();
-  }
+  getTownNews() { return this.townService.getTownNews(); }
 }

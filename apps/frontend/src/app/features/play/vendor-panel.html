@@ -1,0 +1,18 @@
+<section class="vendor-panel">
+  <div class="npc-select"><label>Choose NPC</label><select [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)"><option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{npc.name}}</option></select></div>
+  <ng-container *ngIf="vendor.selectedNpc() as npc">
+    <div class="vendor-title"><strong>{{npc.name}}</strong><span>VENDOR</span></div>
+    <p class="vendor-greeting">Hello, adventurer! How can I help you? Wanna buy goods or sell me your loot? Just drag’n’drop items</p>
+    <div id="vendor-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid">
+      <div *ngFor="let slot of slots" class="vendor-slot" [class.filled]="stockAt(slot)">
+        <div *ngIf="stockAt(slot) as item" cdkDrag [cdkDragData]="dragData(item)" class="vendor-item">
+          <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon">
+          <b>∞</b><small>{{item.buyPrice}} G</small>
+          <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)"></ng-template>
+          <ng-template cdkDragPlaceholder><span class="vendor-placeholder"></span></ng-template>
+        </div>
+      </div>
+    </div>
+    <div class="vendor-error" *ngIf="vendor.error()">{{vendor.error()}}</div>
+  </ng-container>
+</section>

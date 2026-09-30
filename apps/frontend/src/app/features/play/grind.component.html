@@ -1,1 +1,2 @@
-<div class="grind-page"><app-map-board /><app-inventory-grid /></div>
+<ng-container *ngIf="character.character()?.status==='town';else grindView"><app-town-center></app-town-center></ng-container>
+<ng-template #grindView><div class="grind-page"><app-map-board /><app-inventory-grid /></div></ng-template>

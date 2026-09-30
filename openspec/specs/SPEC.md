@@ -751,7 +751,13 @@ Consumable/equipment drops are resolved to a **specific item id** at roll time b
 
 ### 12.1 Vendor NPC
 
-Full data in `npc_vendor.json` (§21). One vendor, infinite fixed stock, sells: 3 HP potions, 3 SP potions, Antidote (fixed prices in the JSON). **Buys any item** at a flat **40%** of that item's `marketBasePrice`/`sellPriceToVendor` field (already precomputed per item in `items.json`). Selling to the vendor **destroys the item immediately** — the vendor's own sell stock is completely independent and infinite; nothing a player sells is ever resold (confirmed).
+Full data in `npc_vendor.json` (§21). The first Town vendor is **William** (`id: william`, `type: vendor`). His UI exposes **10 slots**; the seven configured sell-stock entries occupy the first seven and the remaining three are empty. His configured stock is infinite and sells: 3 HP potions, 3 SP potions, Antidote (fixed prices in the JSON).
+
+NPC data defines `id`, `name`, `type`, `location`, `greeting`, `slotCount`, `buysAnyItem`, `buyRatePercent` and sell-stock entries. The frontend renders by NPC type and does not hardcode vendor item names/prices.
+
+A vendor **buy price** (player buys from NPC) is the stock entry's fixed `price`. A vendor **sell price** (NPC buys from player) is calculated server-side as `floor(basePrice * buyRatePercent / 100)`, where `basePrice` is `marketBasePrice` when present and otherwise `sellPriceToVendor`. The client may display quotes but is never authoritative. Selling to the vendor **destroys the item immediately** — the vendor's own sell stock is completely independent and infinite; nothing a player sells is ever resold.
+
+BUY and SELL are atomic database transactions. The server locks the character row and relevant inventory rows, revalidates Town status, NPC membership, item membership, quantity, ownership, gold and inventory capacity, then commits all gold/inventory changes together. Frontend double-submit protection is UX only; backend transaction validation remains mandatory.
 
 ### 12.2 Warehouse
 

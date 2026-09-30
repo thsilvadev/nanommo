@@ -742,3 +742,44 @@ Fixed equipment drag/drop behavior in the Character Summary: equipment slots no 
 Updated Gambits so every line has exactly one condition. Removed the frontend + condition/second-condition/combinator UI, added themed selector arrows and pointer cursors, and kept numeric value inputs at a contained compact height with themed spinner treatment. The backend now validates exactly one condition, rejects non-null legacy combinators, and canonicalizes accepted writes without the legacy combinator field. The shared evaluator now evaluates only the single configured condition. Catalog, shared types, starter Gambits, SPEC, OpenSpec delta, and the Phase 3 Gambit verification script were synchronized.
 
 Verification: shared build passed, API build passed, frontend production build passed (existing Angular style-budget warnings only), OpenSpec strict validation passed, and git diff --check passed. No production deployment.
+
+### Latest session — `town-vendor-william` (2026-09-30)
+
+Implemented the first Town Vendor NPC, William, under OpenSpec. Town now replaces the central Grind/Battle surface while the character is in Town; outside Town the existing Grind surface remains. The persistent right panel now has `Choose NPC` and renders William as a `vendor` type.
+
+#### Backend
+- Implemented authoritative William catalog/stock from `npc_vendor.json` with 10 UI slots, 7 configured stock entries and infinite stock.
+- Added `GET /town/npcs`, `GET /town/vendor/:vendorId/stock`, `GET /town/vendor/:vendorId/quote/:itemId`.
+- Added `POST /town/vendor/:vendorId/buy` and `POST /town/vendor/:vendorId/sell`.
+- BUY and SELL run inside database transactions with pessimistic character/inventory locking.
+- Reuses existing Character gold and InventoryItem persistence; no second currency or inventory system.
+- Backend revalidates Town status, vendor/item membership, quantity, ownership, gold, stock and inventory capacity.
+- Vendor sell value uses the existing official 40% rule server-side; buy prices come from vendor stock data.
+
+#### Frontend
+- Added extensible NPC selector and `VendorStore` using shared vendor contracts.
+- Added William vendor panel, 10 stable slots, catalog icons, drag previews and responsive styling.
+- Reused Inventory CDK drag/drop; drops only open confirmation flows and do not mutate state immediately.
+- Added blocking BUY/SELL modal with quantity, All, unit price, total, confirm/cancel and insufficient-gold/inventory feedback.
+- After successful transactions, Character, Inventory and Vendor state are reloaded from the backend.
+
+#### Contracts / docs
+- Added shared `VendorNpc`, `VendorStockItem`, `VendorQuote` and `VendorTransactionResponse` types.
+- Updated `npc_vendor.json`, `openspec/specs/SPEC.md`, and the OpenSpec change `openspec/changes/town-vendor-william/`.
+- Added `apps/api/test/town-vendor.service.test.js` and `apps/frontend/smoke-vendor-ui.js`.
+
+#### Validation
+- `pnpm --filter @nanommo/shared build`: passed.
+- `pnpm --filter @nanommo/api build`: passed.
+- `pnpm --filter @nanommo/frontend build`: passed; existing Angular style-budget warnings remain non-blocking, including `grind-info.css`.
+- `node apps/api/test/town-vendor.service.test.js`: passed, 10 assertions.
+- `node apps/frontend/smoke-vendor-ui.js`: passed: Town → William → SELL → BUY → gold/inventory refresh → 390px no-overflow.
+- `pnpm exec openspec validate town-vendor-william --strict`: passed.
+- `git diff --check`: passed.
+- Existing `apps/api/test-phase3-gambits.js` was attempted; it stopped at preflight because no backend was reachable at `http://localhost:3010`. Docker was unavailable on this machine, so no HTTP integration result is claimed.
+
+#### Warnings / pending
+- The full authenticated HTTP/E2E Vendor transaction path against a live local API/database was not executable in this session because the Docker daemon/services required by the repository were unavailable. The atomic transaction logic was exercised with a real service test harness, and the UI flow was exercised with Playwright API mocks.
+- No production deployment was performed.
+
+**Production deployment: NOT performed.**

@@ -3,6 +3,8 @@ import { Component, EventEmitter, Input, Output, OnDestroy, inject, signal } fro
 import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
+import { VendorStore } from '../../core/vendor.store';
+import { VendorStockItem } from '@nanommo/shared';
 import { GameSocketService } from '../../core/game.socket.service';
 import { ApiService } from '../../core/api.service';
 import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkDragPreview, CdkDragPlaceholder } from '@angular/cdk/drag-drop';
@@ -30,7 +32,7 @@ export class MapBoard {
 
 @Component({selector:'app-inventory-grid',standalone:true,imports:[CommonModule,CdkDropList,CdkDrag],templateUrl:'./inventory-grid.html',styleUrl:'./inventory-grid.css'})
 export class InventoryGrid implements OnDestroy {
- readonly inventory=inject(InventoryStore);readonly catalog=inject(CatalogService);readonly battle=inject(BattleStore);slots=Array.from({length:50},(_,i)=>i);readonly characterSlotIds=['character-slot-head','character-slot-body','character-slot-mainHand','character-slot-offHand','character-slot-shoes','character-slot-cape','character-slot-accessoryLeft','character-slot-accessoryRight'];readonly now=signal(Date.now());private readonly timer=setInterval(()=>this.now.set(Date.now()),250);
+ readonly inventory=inject(InventoryStore);readonly catalog=inject(CatalogService);readonly battle=inject(BattleStore);readonly vendor=inject(VendorStore);slots=Array.from({length:50},(_,i)=>i);readonly characterSlotIds=['character-slot-head','character-slot-body','character-slot-mainHand','character-slot-offHand','character-slot-shoes','character-slot-cape','character-slot-accessoryLeft','character-slot-accessoryRight'];readonly vendorDropListIds=['vendor-drop-list'];readonly now=signal(Date.now());private readonly timer=setInterval(()=>this.now.set(Date.now()),250);
  item(i:number){return this.inventory.items().find(x=>x.slotIndex===i)}
  itemTitle(i:any){return this.catalog.item(i.itemId)?.name??i.itemId}
  glyph(i:any){return this.catalog.itemIcon(i.itemId)}
@@ -38,21 +40,33 @@ export class InventoryGrid implements OnDestroy {
  displayQuantity(it:any){const base=Number(it.quantity??0);const b=this.battle.active();if(!b||base<=0)return base;const tick=this.elapsedTick();const events=Array.isArray((b.log as any)?.events)?(b.log as any).events:[];const consumed=events.filter((e:any)=>e?.action==='use_item'&&e?.actor==='character'&&e?.itemId===it.itemId&&Number(e.tick??0)<=tick).length;return Math.max(0,base-consumed)}
  onDragStart(ev:CdkDragStart<any>){this.inventory.beginDrag(ev.source.data.itemId)}
  onDragEnd(){this.inventory.endDrag()}
- dropInventory(ev:CdkDragDrop<any>){const data=ev.item.data;if(data?.source==='equipment')void this.inventory.unequip(data.slot)}
+ dropInventory(ev:CdkDragDrop<any>){const data=ev.item.data;if(data?.source==='equipment')void this.inventory.unequip(data.slot);else if(data?.source==='vendor')void this.vendor.openBuy(data.stock)}
  async doubleClick(it:any){const d=this.catalog.item(it.itemId);if(d?.type==='consumable'){try{await this.inventory.useConsumable(it.itemId)}catch{}}else if(d?.type==='equipment'&&d.slot){try{await this.inventory.equip(d.slot,it.itemId)}catch{}}}
  dragData(it:any){return {source:'inventory',...it}}
  ngOnDestroy(){clearInterval(this.timer)}
 }
 
+@Component({selector:'app-town-center',standalone:true,imports:[CommonModule,InventoryGrid],templateUrl:'./town-center.html',styleUrl:'./town-center.css'})
+export class TownCenter {}
+
+@Component({selector:'app-vendor-panel',standalone:true,imports:[CommonModule,CdkDropList,CdkDrag,CdkDragPreview,CdkDragPlaceholder],templateUrl:'./vendor-panel.html',styleUrl:'./vendor-panel.css'})
+export class VendorPanel {
+  readonly vendor=inject(VendorStore);readonly inventory=inject(InventoryStore);readonly slots=Array.from({length:10},(_,i)=>i);
+  constructor(){void this.vendor.load();}
+  stockAt(slot:number){return this.vendor.stock().find(x=>x.slotIndex===slot);}
+  dragData(item:VendorStockItem){return {source:'vendor',vendorId:this.vendor.selectedNpcId(),itemId:item.itemId,stock:item};}
+  drop(ev:CdkDragDrop<any>){const data=ev.item.data;if(data?.source==='inventory')void this.vendor.openSell(data.itemId);}
+}
+
 @Component({selector:'app-battle-progress',standalone:true,imports:[CommonModule],templateUrl:'./battle-progress.html',styleUrl:'./battle-progress.css'})
 export class BattleProgress implements OnDestroy{@Input()entry!:any;readonly now=signal(Date.now());private readonly timer=setInterval(()=>this.now.set(Date.now()),250);progress(){const s=Date.parse(this.entry.startAt),e=Date.parse(this.entry.endAt);return Math.max(0,Math.min(100,(this.now()-s)/Math.max(1,e-s)*100))}remaining(){const sec=Math.max(0,Math.ceil((Date.parse(this.entry.endAt)-this.now())/1000));return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}ngOnDestroy(){clearInterval(this.timer)}}
 
-@Component({selector:'app-grind-info',standalone:true,imports:[CommonModule,BattleProgress],templateUrl:'./grind-info.html',styleUrl:'./grind-info.css'})
+@Component({selector:'app-grind-info',standalone:true,imports:[CommonModule,BattleProgress,VendorPanel],templateUrl:'./grind-info.html',styleUrl:'./grind-info.css'})
 export class GrindInfo implements OnDestroy {
  readonly battle=inject(BattleStore);
  readonly character=inject(CharacterStore);
  readonly inventory=inject(InventoryStore);
- readonly catalog=inject(CatalogService);
+ readonly catalog=inject(CatalogService);readonly vendor=inject(VendorStore);
  readonly now=signal(Date.now());
  private readonly timer=setInterval(()=>this.now.set(Date.now()),250);
 

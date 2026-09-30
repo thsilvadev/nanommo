@@ -1,6 +1,6 @@
 {
-  "id": "npc_vendor_town",
-  "name": "General Vendor",
+  "id": "william",
+  "name": "William",
   "location": "town",
   "buysAnyItem": true,
   "buyRatePercent": 40,
@@ -41,5 +41,8 @@
       "price": 20,
       "infiniteStock": true
     }
-  ]
+  ],
+  "type": "vendor",
+  "slotCount": 10,
+  "greeting": "Hello, adventurer! How can I help you? Wanna buy goods or sell me your loot? Just drag’n’drop items"
 }
