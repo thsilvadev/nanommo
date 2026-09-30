@@ -12,7 +12,7 @@ export class VendorStore {
   readonly character=inject(CharacterStore);
   readonly inventory=inject(InventoryStore);
   readonly catalog=inject(CatalogService);
-  readonly npcs=signal<VendorNpc[]>([]);
+  readonly npcs=signal<VendorNpc[]>([{id:'william',name:'William',type:'vendor',location:'town'}]);
   readonly selectedNpcId=signal('william');
   readonly stock=signal<VendorStockItem[]>([]);
   readonly modal=signal<VendorModal|null>(null);
@@ -23,7 +23,7 @@ export class VendorStore {
   async load(){
     try{
       const npcs=await this.api.get<VendorNpc[]>('/town/npcs').toPromise();
-      this.npcs.set(npcs??[]);
+      if(Array.isArray(npcs) && npcs.length) this.npcs.set(npcs);
       if(!this.npcs().some(n=>n.id===this.selectedNpcId())) this.selectedNpcId.set(this.npcs()[0]?.id??'');
       await this.loadStock();
     }catch(e:any){this.error.set(e?.error?.message??'Unable to load Town NPCs');}
