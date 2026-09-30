@@ -201,12 +201,143 @@ export class TownService {
     });
   }
 
-  async getTownNPCs() { return this.getVendorCatalog(); }
-  async interactWithNPC(npcId: string, action: string) {
-    const v = this.vendor();
-    if (npcId !== v.id) throw new NotFoundException('NPC not found');
+  private npcCatalog() {
+    const raw = this.dataService.getNpcCatalog();
+    if (!raw || !Array.isArray(raw.npcs)) throw new NotFoundException('NPC catalog unavailable');
+    return raw.npcs;
+  }
+
+  private npc(npcId: string): any {
+    const npc = this.npcCatalog().find((x: any) => x.id === npcId && x.location === 'town');
+    if (!npc) throw new NotFoundException('NPC not found');
+    return npc;
+  }
+
+  private async assertTown(characterId: string): Promise<Character> {
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character) throw new NotFoundException('Character not found');
+    if (character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
+    return character;
+  }
+
+  private npcPublic(npc: any) {
+    const types = Array.isArray(npc.types) ? npc.types : [];
+    return { id: npc.id, name: npc.name, location: npc.location, types };
+  }
+
+  async getTownNPCs() {
+    const william = this.vendor();
+    return [
+      { id: william.id, name: william.name, location: william.location, types: ['vendor'] },
+      ...this.npcCatalog().map((npc: any) => this.npcPublic(npc)),
+    ].filter((npc, index, all) => all.findIndex(x => x.id === npc.id) === index);
+  }
+
+  private questNode(npc: any, nodeId?: string) {
+    const quest = npc.quest;
+    if (!quest?.nodes) throw new BadRequestException('NPC does not provide quest dialogue');
+    const id = nodeId ?? quest.entryNodeId;
+    const node = quest.nodes[id];
+    if (!node) throw new NotFoundException('Dialogue node not found');
+    return { id, ...node };
+  }
+
+  private characterHungry(character: Character) {
+    const expiry = character.activeFoodBuff?.expiresAt ? Date.parse(String(character.activeFoodBuff.expiresAt)) : 0;
+    return !expiry || expiry <= Date.now();
+  }
+
+  private choiceAvailable(choice: any, character: Character) {
+    if (!choice.condition) return true;
+    if (choice.condition.type === 'hungry') return this.characterHungry(character);
+    if (choice.condition.type === 'not_hungry') return !this.characterHungry(character);
+    return false;
+  }
+
+  private async dialogueState(character: Character, npcId: string, nodeId?: string) {
+    const npc = this.npc(npcId);
+    if (!Array.isArray(npc.types) || !npc.types.includes('quest')) throw new BadRequestException('NPC does not provide quest dialogue');
+    const node = this.questNode(npc, nodeId);
+    return {
+      npcId,
+      nodeId: node.id,
+      npcText: node.npcText,
+      choices: (node.choices ?? []).filter((choice: any) => this.choiceAvailable(choice, character))
+        .map((choice: any) => ({ id: choice.id, text: choice.text, nextNodeId: choice.nextNodeId })),
+    };
+  }
+
+  async getNpcDialogue(characterId: string, npcId: string) {
+    const character = await this.assertTown(characterId);
+    return this.dialogueState(character, npcId);
+  }
+
+  private async consumeFoodForNpc(manager: EntityManager, character: Character) {
+    const repo = manager.getRepository(InventoryItem);
+    const rows = await repo.find({ where: { characterId: character.id, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
+    const food = rows.find(row => {
+      const def = this.item(row.itemId);
+      return def?.type === 'consumable' && def?.effect?.type === 'food_buff';
+    });
+
+    let itemId = food?.itemId ?? 'food_bread';
+    if (!food) {
+      const bread = this.item('food_bread');
+      if (!bread?.effect || bread.effect.type !== 'food_buff') throw new NotFoundException('Bread definition unavailable');
+    } else {
+      itemId = food.itemId;
+    }
+
+    const definition = this.item(itemId);
+    character.activeFoodBuff = {
+      itemId,
+      hpRegenPerTenTicks: Number(definition.effect.hpRegenPerTenTicks ?? 0),
+      spRegenPerTenTicks: Number(definition.effect.spRegenPerTenTicks ?? 0),
+      expiresAt: new Date(Date.now() + Number(definition.effect.durationSeconds ?? 0) * 1000).toISOString(),
+    };
+    character.lastSeenAt = new Date();
+
+    if (food) {
+      food.quantity -= 1;
+      if (food.quantity <= 0) await repo.remove(food); else await repo.save(food);
+    }
+    await manager.getRepository(Character).save(character);
+    return itemId;
+  }
+
+  async chooseNpcDialogue(characterId: string, npcId: string, choiceId: string, nodeId = 'greeting') {
+    const npc = this.npc(npcId);
+    if (!Array.isArray(npc.types) || !npc.types.includes('quest')) throw new BadRequestException('NPC does not provide quest dialogue');
+
+    return this.characterRepo.manager.transaction(async manager => {
+      const character = await manager.getRepository(Character).findOne({
+        where: { id: characterId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!character) throw new NotFoundException('Character not found');
+      if (character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
+
+      const node = this.questNode(npc, nodeId);
+      const choice = (node.choices ?? []).find((x: any) => x.id === choiceId);
+      if (!choice || !this.choiceAvailable(choice, character)) throw new BadRequestException('Dialogue choice is not available');
+
+      if (choice.nextNodeId) return this.dialogueState(character, npcId, choice.nextNodeId);
+
+      if (choice.effect?.type === 'eat_bread') {
+        if (!this.characterHungry(character)) throw new BadRequestException('Character is not hungry');
+        const consumedItemId = await this.consumeFoodForNpc(manager, character);
+        return { ...(await this.dialogueState(character, npcId, 'hungry_done')), consumedItemId };
+      }
+
+      return this.dialogueState(character, npcId, node.id);
+    });
+  }
+
+  async interactWithNPC(characterId: string, npcId: string, action: string) {
+    await this.assertTown(characterId);
+    const npc = this.npc(npcId);
     if (action !== 'open') throw new BadRequestException('Unsupported NPC action');
-    return { npcId: v.id, type: v.type, name: v.name };
+    return { npcId: npc.id, types: npc.types, name: npc.name };
   }
 
   async getWarehouse(characterId: string): Promise<InventoryItem[]> { return this.inventoryRepo.find({ where: { characterId, location: 'warehouse' }, order: { slotIndex: 'ASC' } }); }

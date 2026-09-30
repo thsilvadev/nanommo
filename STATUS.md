@@ -783,3 +783,40 @@ Implemented the first Town Vendor NPC, William, under OpenSpec. Town now replace
 - No production deployment was performed.
 
 **Production deployment: NOT performed.**
+
+### Latest session — `npc-framework-father-marcelus` (2026-09-30)
+
+Implemented a generic Town NPC capability framework and the first quest NPC, Father Marcelus, without replacing the existing Vendor architecture.
+
+#### NPC framework
+- Added `npc_catalog.json` as the data-driven catalog for non-vendor NPC capabilities.
+- Shared NPC contracts now support `vendor` and `quest` capability types and reusable dialogue state/choice types.
+- NPC capabilities are composable. The Town right panel renders vendor/inventory first and quest/dialogue below it when an NPC has both.
+- Quest dialogue is server-authoritative: the backend re-evaluates conditions and applies effects inside a database transaction.
+- Quest NPCs do not have an NPC inventory unless they also expose the vendor capability.
+
+#### Father Marcelus
+- Added `father_marcelus` as a `quest` NPC.
+- Opening text and hungry/non-hungry dialogue branches match the requested copy.
+- Hungry + no food: Bread is granted only transiently and immediately consumed; no Bread inventory row is created.
+- Hungry + existing food: one food item is consumed and its existing food-buff definition becomes active.
+- Non-hungry branch does not mutate character or inventory state.
+- Invalid/repeated state transitions are rejected server-side.
+
+#### Town / frontend
+- `GET /town/npcs` now returns the generic Town NPC contract while preserving William's vendor endpoints.
+- Added `GET /town/npcs/:npcId/dialogue` and `POST /town/npcs/:npcId/dialogue`.
+- Town NPC selector is now generic; Father Marcelus appears alongside William.
+- Quest dialogue renders in the same persistent right-side Town panel and uses clickable choices.
+- The central Grind/map surface was not replaced or altered by this change.
+#### Verification
+
+- `pnpm --filter @nanommo/shared build`: passed.
+- `pnpm --filter @nanommo/api build`: passed.
+- `pnpm --filter @nanommo/frontend build`: passed; existing Angular style-budget warnings remain non-blocking.
+- `node apps/api/test/npc-framework.test.js`: passed, 12 assertions.
+- Focused test covers hungry branch, hungry/no-food transient Bread, preservation of unrelated inventory, non-hungry branch, and rejection after the character is no longer hungry.
+- `pnpm exec openspec validate npc-framework-father-marcelus --strict`: passed.
+- `git diff --check`: passed.
+- No production deployment performed.
+- Live authenticated HTTP/E2E against Docker was not run because Docker services were unavailable on this workstation; the focused service test exercises the compiled TownService behavior with authoritative state mocks.

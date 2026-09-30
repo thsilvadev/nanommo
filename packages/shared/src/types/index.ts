@@ -157,7 +157,14 @@ export interface XpCurveEntry {
   estDaysAtThisLevel: number;
 }
 
-export interface VendorNpc { id: string; name: string; type: 'vendor'; location: 'town'; }
+export type NpcCapabilityType = 'vendor' | 'quest';
+export interface TownNpc { id: string; name: string; location: 'town'; types: NpcCapabilityType[]; }
+export interface VendorNpc extends TownNpc { types: ['vendor']; }
+export interface QuestNpc extends TownNpc { types: ['quest']; }
+export interface NpcDialogueChoice { id: string; text: string; nextNodeId?: string; }
+export interface NpcDialogueNode { id: string; npcText: string; choices: NpcDialogueChoice[]; }
+export interface NpcDialogueState { npcId: string; nodeId: string; npcText: string; choices: NpcDialogueChoice[]; }
+
 export interface VendorStockItem { slotIndex: number; itemId: string; quantity: number | null; infiniteStock: boolean; buyPrice: number; item: Record<string, unknown>; }
 export interface VendorQuote { vendorId: string; itemId: string; buyPrice: number | null; sellPrice: number | null; stackable: boolean; maxStack: number; }
 export interface VendorTransactionResponse { itemId: string; quantity: number; unitPrice: number; goldSpent?: number; goldReceived?: number; }

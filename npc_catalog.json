@@ -1,0 +1,36 @@
+{
+  "npcs": [
+    {
+      "id": "father_marcelus",
+      "name": "Father Marcelus",
+      "location": "town",
+      "types": ["quest"],
+      "quest": {
+        "entryNodeId": "greeting",
+        "nodes": {
+          "greeting": {
+            "npcText": "May the light be with us, friend. How are you, fellow adventurer?",
+            "choices": [
+              {"id":"hungry_response","text":"I'm hungry...","condition":{"type":"hungry"},"nextNodeId":"hungry"},
+              {"id":"fine_response","text":"I'm fine, prayer. Came to get blessed for battle.","condition":{"type":"not_hungry"},"nextNodeId":"fine"}
+            ]
+          },
+          "hungry": {
+            "npcText": "Eat and rest, for the love of god is forever, but you are not.",
+            "choices": [
+              {"id":"eat_bread","text":"Eat the bread.","effect":{"type":"eat_bread"}}
+            ]
+          },
+          "hungry_done": {
+            "npcText": "Eat and rest, for the love of god is forever, but you are not.",
+            "choices": []
+          },
+          "fine": {
+            "npcText": "The Lord doesn't want blood to be spilled. But I pray you'll return in peace 🙏.",
+            "choices": []
+          }
+        }
+      }
+    }
+  ]
+}

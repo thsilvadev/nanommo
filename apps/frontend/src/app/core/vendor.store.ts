@@ -2,7 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { ApiService } from './api.service';
 import { CharacterStore, InventoryStore } from './game.store';
 import { CatalogService } from './catalog.service';
-import { VendorNpc, VendorStockItem, VendorQuote } from '@nanommo/shared';
+import { TownNpc, VendorStockItem, VendorQuote, NpcDialogueState } from '@nanommo/shared';
 
 export interface VendorModal { mode:'buy'|'sell'; itemId:string; quantity:number; maxQuantity:number; unitPrice:number; }
 
@@ -12,7 +12,8 @@ export class VendorStore {
   readonly character=inject(CharacterStore);
   readonly inventory=inject(InventoryStore);
   readonly catalog=inject(CatalogService);
-  readonly npcs=signal<VendorNpc[]>([{id:'william',name:'William',type:'vendor',location:'town'}]);
+  readonly npcs=signal<TownNpc[]>([{id:'william',name:'William',types:['vendor'],location:'town'}]);
+  readonly dialogue=signal<NpcDialogueState|null>(null);
   readonly selectedNpcId=signal('william');
   readonly stock=signal<VendorStockItem[]>([]);
   readonly modal=signal<VendorModal|null>(null);
@@ -22,11 +23,19 @@ export class VendorStore {
 
   async load(){
     try{
-      const npcs=await this.api.get<VendorNpc[]>('/town/npcs').toPromise();
+      const npcs=await this.api.get<TownNpc[]>('/town/npcs').toPromise();
       if(Array.isArray(npcs) && npcs.length) this.npcs.set(npcs);
       if(!this.npcs().some(n=>n.id===this.selectedNpcId())) this.selectedNpcId.set(this.npcs()[0]?.id??'');
-      await this.loadStock();
+      await this.loadSelectedNpc();
     }catch(e:any){this.error.set(e?.error?.message??'Unable to load Town NPCs');}
+  }
+  async loadSelectedNpc(){
+    const npc=this.selectedNpc();
+    this.stock.set([]);
+    this.dialogue.set(null);
+    if(!npc)return;
+    if(npc.types.includes('vendor')) await this.loadStock();
+    if(npc.types.includes('quest')) await this.loadDialogue();
   }
   async loadStock(){
     const id=this.selectedNpcId();
@@ -34,7 +43,24 @@ export class VendorStore {
     try{this.stock.set(await this.api.get<VendorStockItem[]>('/town/vendor/'+id+'/stock').toPromise()??[]);}
     catch(e:any){this.error.set(e?.error?.message??'Unable to load vendor stock');}
   }
-  selectNpc(id:string){this.selectedNpcId.set(id);this.error.set(null);void this.loadStock();}
+  async loadDialogue(){
+    const id=this.selectedNpcId();
+    if(!id)return;
+    try{this.dialogue.set(await this.api.get<NpcDialogueState>('/town/npcs/'+id+'/dialogue').toPromise()??null);}
+    catch(e:any){this.error.set(e?.error?.message??'Unable to load NPC dialogue');}
+  }
+  selectNpc(id:string){this.selectedNpcId.set(id);this.error.set(null);void this.loadSelectedNpc();}
+  async chooseDialogue(choiceId:string){
+    const d=this.dialogue();
+    if(!d||this.busy())return;
+    this.busy.set(true);this.error.set(null);
+    try{
+      const next=await this.api.post<NpcDialogueState & {consumedItemId?:string}>('/town/npcs/'+d.npcId+'/dialogue',{nodeId:d.nodeId,choiceId}).toPromise();
+      this.dialogue.set(next??null);
+      await Promise.all([this.character.load(),this.inventory.load()]);
+    }catch(e:any){this.error.set(e?.error?.message??'NPC interaction rejected');}
+    finally{this.busy.set(false);}
+  }
   item(id:string){return this.catalog.item(id);}
   itemName(id:string){return this.item(id)?.name??id;}
   totalOwned(itemId:string){return this.inventory.items().filter(x=>x.itemId===itemId).reduce((n,x)=>n+Number(x.quantity??0),0);}

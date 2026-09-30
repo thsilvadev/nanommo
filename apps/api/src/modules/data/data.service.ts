@@ -14,6 +14,7 @@ export class DataService implements OnModuleInit {
   private charXpCurve: any = null;
   private weaponXpCurve: any = null;
   private npcVendor: any = null;
+  private npcCatalog: any = null;
 
   onModuleInit() {
     this.loadAllData();
@@ -30,6 +31,7 @@ export class DataService implements OnModuleInit {
       this.charXpCurve = this.loadJsonFile(path.join(dataDir, 'char_xp_curve.json'));
       this.weaponXpCurve = this.loadJsonFile(path.join(dataDir, 'weapon_xp_curve.json'));
       this.npcVendor = this.loadJsonFile(path.join(dataDir, 'npc_vendor.json'));
+      this.npcCatalog = this.loadJsonFile(path.join(dataDir, 'npc_catalog.json'));
 
       this.logger.log('All data files loaded successfully');
     } catch (error) {
@@ -75,6 +77,10 @@ export class DataService implements OnModuleInit {
 
   getNpcVendor() {
     return this.npcVendor;
+  }
+
+  getNpcCatalog() {
+    return this.npcCatalog;
   }
 
   // Specific getters

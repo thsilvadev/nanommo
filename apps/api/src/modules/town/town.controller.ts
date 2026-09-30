@@ -47,8 +47,18 @@ export class TownController {
 
   @Get('npcs')
   getTownNPCs() { return this.townService.getTownNPCs(); }
+  @Get('npcs/:npcId/dialogue')
+  async getNpcDialogue(@Request() req: any, @Param('npcId') npcId: string) {
+    return this.townService.getNpcDialogue(await this.characterId(req), npcId);
+  }
+  @Post('npcs/:npcId/dialogue')
+  async chooseNpcDialogue(@Request() req: any, @Param('npcId') npcId: string, @Body() body: { choiceId: string; nodeId?: string }) {
+    return this.townService.chooseNpcDialogue(await this.characterId(req), npcId, body.choiceId, body.nodeId);
+  }
   @Post('npcs/:npcId/interact')
-  interactWithNPC(@Param('npcId') npcId: string, @Body() body: { action: string }) { return this.townService.interactWithNPC(npcId, body.action); }
+  async interactWithNPC(@Request() req: any, @Param('npcId') npcId: string, @Body() body: { action: string }) {
+    return this.townService.interactWithNPC(await this.characterId(req), npcId, body.action);
+  }
   @Get('news')
   getTownNews() { return this.townService.getTownNews(); }
 }

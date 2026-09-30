@@ -759,6 +759,24 @@ A vendor **buy price** (player buys from NPC) is the stock entry's fixed `price`
 
 BUY and SELL are atomic database transactions. The server locks the character row and relevant inventory rows, revalidates Town status, NPC membership, item membership, quantity, ownership, gold and inventory capacity, then commits all gold/inventory changes together. Frontend double-submit protection is UX only; backend transaction validation remains mandatory.
 
+### 12.1.1 NPC framework
+
+Town NPCs are data-driven actors composed from reusable capabilities. The shared NPC contract uses `id`, `name`, `location` and one or more capability types. The supported MVP capabilities are `vendor` and `quest`; capabilities are composable on the same NPC.
+
+A `vendor` capability owns the existing vendor inventory and BUY/SELL behavior. A `quest` capability owns a server-authoritative dialogue graph with NPC text, player choices, conditions and effects. Quest NPCs do not have an NPC inventory unless they also expose `vendor`.
+
+Quest dialogue choices are client intents only. The backend re-evaluates character/inventory conditions and applies inventory/character effects atomically in Town. Effects may add/remove inventory items or apply a transient consumable effect immediately without persisting a temporary item.
+
+The Town right Info Panel uses one generic NPC selector. Capability renderers are stacked in deterministic order: vendor/inventory first, quest/dialogue below it. This allows a future NPC to expose multiple capabilities without creating another UI or service architecture.
+
+### 12.1.2 Father Marcelus
+
+`father_marcelus` is a quest NPC. Opening dialogue: "May the light be with us, friend. How are you, fellow adventurer?"
+
+Hungry branch: "I'm hungry..." → "Eat and rest, for the love of god is forever, but you are not." The second choice consumes food immediately. If the character is hungry and has no food item in inventory, the server grants Bread only transiently and consumes it in the same transaction, so Bread never remains in inventory.
+
+Not-hungry branch: "I'm fine, prayer. Came to get blessed for battle." → "The Lord doesn't want blood to be spilled. But I pray you'll return in peace 🙏." This branch has no character or inventory mutation.
+
 ### 12.2 Warehouse
 
 10-slot personal storage, town-only, instant/free transfers, same stacking rules as inventory (§10.1). Simple REST endpoints (`moveToWarehouse`, `moveToInventory`) — no socket events needed, it's not time-sensitive.
