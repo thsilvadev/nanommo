@@ -43,28 +43,24 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 18,
-      "goldReward": {
-        "min": 3,
-        "max": 7
-      },
       "designNote": "Soft-bodied and slow; folds instantly under raw physical hits but its jelly absorbs some magic.",
       "drops": [
         {
           "itemId": "part_slime_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_slime_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_green_grounds_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -106,28 +102,24 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 40,
-      "goldReward": {
-        "min": 6,
-        "max": 12
-      },
       "designNote": "Erratic flight pattern rewards precise ranged shots; melee users struggle to land hits.",
       "drops": [
         {
           "itemId": "part_fieldbat_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_fieldbat_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_green_grounds_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -171,28 +163,24 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 64,
-      "goldReward": {
-        "min": 10,
-        "max": 18
-      },
       "designNote": "Bark-like hide shrugs off arrows but burns easily under spellfire.",
       "drops": [
         {
           "itemId": "part_thornsprout_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_thornsprout_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_green_grounds_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -236,28 +224,24 @@
       "sustainPressure": true,
       "ability": null,
       "xpReward": 89,
-      "goldReward": {
-        "min": 13,
-        "max": 23
-      },
       "designNote": "Regenerates slowly from the wet soil every few ticks; short bursts don't finish it off, but sustained pressure does.",
       "drops": [
         {
           "itemId": "part_mudcrawler_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_mudcrawler_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_green_grounds_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -299,28 +283,24 @@
       "sustainPressure": false,
       "ability": "enrage_massive_damage",
       "xpReward": 141,
-      "goldReward": {
-        "min": 19,
-        "max": 35
-      },
       "designNote": "Pack leader; below 30% HP it lets out a howl and unleashes a single devastating strike.",
       "drops": [
         {
           "itemId": "part_direwolf_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_direwolf_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_green_grounds_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -375,28 +355,24 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 169,
-      "goldReward": {
-        "min": 22,
-        "max": 40
-      },
       "designNote": "Thick carapace resists blades, but its exposed underside is an easy magic target.",
       "drops": [
         {
           "itemId": "part_sandscorpion_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_sandscorpion_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_menace_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -438,28 +414,24 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 225,
-      "goldReward": {
-        "min": 29,
-        "max": 51
-      },
       "designNote": "A nimble desert bandit that dodges arrows on reflex but can't avoid a sword up close... or a fireball.",
       "drops": [
         {
           "itemId": "part_duneraider_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_duneraider_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_menace_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -503,28 +475,24 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 254,
-      "goldReward": {
-        "min": 32,
-        "max": 57
-      },
       "designNote": "Molten rock body is naturally resistant to fire and physical blows alike, but its cracked core is vulnerable to raw spellpower.",
       "drops": [
         {
           "itemId": "part_cindergolem_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_cindergolem_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_menace_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -568,28 +536,24 @@
       "sustainPressure": true,
       "ability": "self_heal",
       "xpReward": 314,
-      "goldReward": {
-        "min": 38,
-        "max": 68
-      },
       "designNote": "Coils and regenerates its poison glands mid-fight; only sustained healing keeps pace with its bite.",
       "drops": [
         {
           "itemId": "part_venomviper_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_venomviper_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_menace_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -644,28 +608,24 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 344,
-      "goldReward": {
-        "min": 42,
-        "max": 74
-      },
       "designNote": "A desert predator with no clear weakness, hitting hard from stealth.",
       "drops": [
         {
           "itemId": "part_mirageStalker_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_mirageStalker_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_menace_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -707,28 +667,24 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 374,
-      "goldReward": {
-        "min": 45,
-        "max": 79
-      },
       "designNote": "Ancient stone construct, armored against blades but its rune-core is exposed to magic.",
       "drops": [
         {
           "itemId": "part_brokensentinel_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_brokensentinel_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_ruins_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -772,28 +728,24 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 437,
-      "goldReward": {
-        "min": 51,
-        "max": 91
-      },
       "designNote": "A fast incorporeal spirit that phases through slow melee swings but can't avoid a well-aimed shot.",
       "drops": [
         {
           "itemId": "part_wraith_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_wraith_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_ruins_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -837,28 +789,24 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 468,
-      "goldReward": {
-        "min": 54,
-        "max": 96
-      },
       "designNote": "Pure magical energy resists spells but is snuffed out easily by physical force.",
       "drops": [
         {
           "itemId": "part_arcanewisp_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_arcanewisp_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_ruins_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -900,28 +848,24 @@
       "sustainPressure": true,
       "ability": "self_heal",
       "xpReward": 532,
-      "goldReward": {
-        "min": 61,
-        "max": 107
-      },
       "designNote": "Undead guardian bound by old rites; it knits its bones back together unless burned down fast and kept down.",
       "drops": [
         {
           "itemId": "part_boneknight_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_boneknight_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_ruins_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],
@@ -974,28 +918,24 @@
       "sustainPressure": false,
       "ability": "stun",
       "xpReward": 564,
-      "goldReward": {
-        "min": 64,
-        "max": 113
-      },
       "designNote": "The ruins' final ward; periodically slams the ground, stunning its target for a moment.",
       "drops": [
         {
           "itemId": "part_ruinsguardian_common",
-          "chance": 0.05
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.01,
+          "chance": 0.02,
           "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
           "itemId": "part_ruinsguardian_rare",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_ruins_roll",
-          "chance": 0.001,
+          "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
         }
       ],

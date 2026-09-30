@@ -81,6 +81,10 @@ export class Character {
   @Column({ type: 'timestamptz' })
   lastSeenAt!: Date;
 
+  /** Stable origin for the character's continuous 10-tick regeneration timeline. */
+  @Column({ type: 'timestamptz', nullable: true })
+  regenAnchorAt?: Date;
+
   @CreateDateColumn()
   createdAt!: Date;
 

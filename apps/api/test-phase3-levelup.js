@@ -361,13 +361,13 @@ async function assertLevelUpEffects({ ctx, entries, first, found }, expectedLeve
     `GET /characters -> level=${viaApiAfter.level} hp=${viaApiAfter.hpCurrent} sp=${viaApiAfter.spCurrent}; DB -> level=${after.level} hp=${after.hpCurrent} sp=${after.spCurrent}`,
   );
 
-  // Remaining XP: the level-up loop subtracts xpToNext once per threshold.
-  const expectedRemainingXp = xpToNextLevel(Number(before.level)) - 1 + Number(first.xpGain) - levelsGained * xpToNextLevel(Number(before.level) + levelsGained - 1);
+  // Remaining XP: a single resolution subtracts only the current threshold; excess XP stays stored.
+  const expectedRemainingXp = xpToNextLevel(Number(before.level)) - 1 + Number(first.xpGain) - xpToNextLevel(Number(before.level));
   h.assertEqual(
-    '§4.2 xp is XP toward the next level: the loop subtracted xpToNext once per threshold',
+    'XP resolution preserves excess XP after the single allowed level-up',
     Number(after.xp),
     expectedRemainingXp,
-    `seeded ${xpToNextLevel(Number(before.level)) - 1} + xpGain ${first.xpGain} - ${levelsGained} × xpToNext`,
+    `seeded ${xpToNextLevel(Number(before.level)) - 1} + xpGain ${first.xpGain} - current-level xpToNext`,
   );
 
   h.note(
@@ -571,14 +571,14 @@ async function assertMultiLevelScaling() {
   })();
 
   h.assert(
-    '[multi-level] one resolve crossed two level thresholds',
-    levelsGained === 2,
+    '[xp-resolution] one resolve can increase level by at most one',
+    levelsGained === 1,
     `seeded xp = xpToNext(${START_LEVEL}) - 1 = ${xpToNextLevel(START_LEVEL) - 1} + entry xpGain ${first.xpGain} = ${xpToNextLevel(START_LEVEL) - 1 + Number(first.xpGain)}; ` +
-      `two-threshold window was [${twoThresholdFloor}, ${threeThresholdCeiling}) → ${levelsGained} threshold(s) crossed → level ${before.level} -> ${after.level}`,
+      `the entry was selected from the historical multi-threshold window [${twoThresholdFloor}, ${threeThresholdCeiling}), but the authoritative resolver now caps the resolution at +1 level → ${before.level} -> ${after.level}`,
   );
   h.assert(
-    '[multi-level] unspentAttributePoints increased by exactly 10 (5 per level)',
-    Number(after.unspentAttributePoints) - Number(before.unspentAttributePoints) === 10,
+    '[xp-resolution] unspentAttributePoints increased by exactly 5 for the single level gained',
+    Number(after.unspentAttributePoints) - Number(before.unspentAttributePoints) === 5,
     `${before.unspentAttributePoints} -> ${after.unspentAttributePoints}`,
   );
   h.assertEqual(

@@ -31,6 +31,23 @@ export function calculateEncounterSearchDelayMs(otherPlayers: number): number {
   return 2000 + Math.max(0, Math.floor(otherPlayers)) * 100;
 }
 
+export function applySingleLevelXpResolution(
+  currentXp: number,
+  currentLevel: number,
+  xpGain: number,
+  xpToNextLevel: number,
+): { xp: number; level: number; levelsGained: number } {
+  let xp = Math.max(0, Number(currentXp) || 0) + Math.max(0, Number(xpGain) || 0);
+  let level = Math.max(1, Number(currentLevel) || 1);
+  const threshold = Math.max(0, Number(xpToNextLevel) || 0);
+  if (threshold > 0 && xp >= threshold) {
+    xp -= threshold;
+    level += 1;
+    return { xp, level, levelsGained: 1 };
+  }
+  return { xp, level, levelsGained: 0 };
+}
+
 @Injectable()
 export class BattleService {
   private readonly logger = new Logger(BattleService.name);
@@ -243,10 +260,12 @@ export class BattleService {
     // SPEC §7.4: battle N+1 starts from battle N's end state.
     let chainHp = character.hpCurrent;
     let chainSp = character.spCurrent;
+    let chainTimelineMs = Date.now();
     const workingInventory = await this.buildInventoryMap(characterId);
     for (const pending of currentQueue) {
       chainHp = pending.hpAfter;
       chainSp = pending.spAfter;
+      chainTimelineMs = Math.max(chainTimelineMs, pending.endAt.getTime());
       // pending potion consumption is not in the DB until each one resolves
       for (const consumed of pending.itemsConsumed ?? []) {
         workingInventory[consumed.itemId] = Math.max(
@@ -340,13 +359,43 @@ export class BattleService {
       const monsterId = monster.id;
 
       const snapshot = await this.buildCharacterSnapshot(character, chainHp, chainSp, nextStartTime.getTime(), projectedFoodBuff);
+      const regenAnchor = character.regenAnchorAt?.getTime?.() ?? Date.now();
+      const fromTick = Math.max(0, Math.floor((chainTimelineMs - regenAnchor) / MS_PER_TICK));
+      const toTick = Math.max(0, Math.floor((nextStartTime.getTime() - regenAnchor) / MS_PER_TICK));
+      const elapsedRegenPeriods = Math.max(0, Math.floor(toTick / 10) - Math.floor(fromTick / 10));
+      if (elapsedRegenPeriods > 0 && chainHp > 0) {
+        const hpPerPeriod = Number(snapshot.hpRegenPerTenTicks ?? 0);
+        const spPerPeriod = Number(snapshot.spRegenPerTenTicks ?? 0);
+        const foodExpiry = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
+        const foodHpPerPeriod = Number(projectedFoodBuff?.hpRegenPerTenTicks ?? 0);
+        const foodSpPerPeriod = Number(projectedFoodBuff?.spRegenPerTenTicks ?? 0);
+        let hpGain = 0;
+        let spGain = 0;
+        const firstBoundary = Math.floor(fromTick / 10) + 1;
+        for (let period = 0; period < elapsedRegenPeriods; period++) {
+          const boundaryTick = (firstBoundary + period) * 10;
+          const boundaryAt = regenAnchor + boundaryTick * MS_PER_TICK;
+          hpGain += hpPerPeriod;
+          spGain += spPerPeriod;
+          if (foodExpiry > boundaryAt) {
+            hpGain += foodHpPerPeriod;
+            spGain += foodSpPerPeriod;
+          }
+        }
+        chainHp = Math.min(snapshot.maxHp, chainHp + hpGain);
+        chainSp = Math.min(snapshot.maxSp, chainSp + spGain);
+        snapshot.hp = chainHp;
+        snapshot.sp = chainSp;
+      }
       const seed = `${characterId}:${mapId}:${monsterId}:${sequenceIndex}:${counter.epoch}:${killIndex}`;
 
       // ---- Gambit is evaluated INSIDE the engine, per gauge fire (SPEC §7.3)
+      const regenTickOffset = Math.max(0, Math.floor((nextStartTime.getTime() - regenAnchor) / MS_PER_TICK));
       const simulation = BattleEngine.simulateBattle(snapshot, monster, gambitPage, seed, {
         inventory: workingInventory,
         itemDefinitions,
         monsterSkillDefs,
+        regenTickOffset,
         weaponBaseAttackTicks: this.getWeaponBaseAttackTicks(
           (snapshot as any).equippedWeaponTypes ?? [],
         ),
@@ -406,7 +455,7 @@ export class BattleService {
 
       const saved = await this.battleQueueRepo.save(entry);
       newBattles.push(saved);
-
+      chainTimelineMs = battleEndTime;
 
       const delayMs = saved.endAt.getTime() - Date.now();
       await this.bullQueue.add(
@@ -510,25 +559,27 @@ export class BattleService {
     // --- XP: the monster's xpReward, already rolled at simulation time
     character.xp = Number(character.xp) + Number(battle.xpGain ?? 0);
 
-    // --- Gold: goldReward.min/max was already rolled with Mulberry32
-    character.gold = Math.min(
-      1_000_000_000_000,
-      Number(character.gold) + Number(battle.goldGain ?? 0),
-    );
+    // Monsters do not award gold. Keep this explicit at the authoritative apply boundary
+    // so legacy queued entries cannot grant monster gold even if they were created earlier.
+    const monsterGoldGain = 0;
+    if (monsterGoldGain > 0) {
+      character.gold = Math.min(1_000_000_000_000, Number(character.gold) + monsterGoldGain);
+    }
 
     character.hpCurrent = Math.max(1, battle.hpAfter);
     character.spCurrent = Math.max(0, battle.spAfter);
 
-    // --- level ups
-    let levelsGained = 0;
-    for (;;) {
-      const xpNeeded = this.dataService.getXpToNextLevel(character.level);
-      if (xpNeeded <= 0 || Number(character.xp) < xpNeeded) break;
-      character.xp = Number(character.xp) - xpNeeded;
-      character.level += 1;
-      character.unspentAttributePoints += 5;
-      levelsGained += 1;
-    }
+    // --- level ups: one XP resolution can advance at most one level.
+    const xpResolution = applySingleLevelXpResolution(
+      0,
+      character.level,
+      character.xp,
+      this.dataService.getXpToNextLevel(character.level),
+    );
+    character.xp = xpResolution.xp;
+    character.level = xpResolution.level;
+    const levelsGained = xpResolution.levelsGained;
+    if (levelsGained > 0) character.unspentAttributePoints += 5;
     const leveledUp = levelsGained > 0;
     if (leveledUp) {
       // SPEC §6.3: maxHp/maxSp recompute immediately, but hpCurrent/spCurrent are

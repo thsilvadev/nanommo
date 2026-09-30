@@ -11,23 +11,32 @@ import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkD
 
 @Component({selector:'app-character-summary',standalone:true,imports:[CommonModule,CdkDrag,CdkDropList,CdkDragPreview,CdkDragPlaceholder],templateUrl:'./character-summary.html',styleUrl:'./character-summary.css'})
 export class CharacterSummary implements OnDestroy {
- readonly character=inject(CharacterStore);readonly inventory=inject(InventoryStore);readonly catalog=inject(CatalogService);readonly router=inject(Router);
+ readonly character=inject(CharacterStore);readonly inventory=inject(InventoryStore);readonly battle=inject(BattleStore);readonly catalog=inject(CatalogService);readonly router=inject(Router);
+ private readonly now=signal(Date.now());
+ private readonly timer=setInterval(()=>this.now.set(Date.now()),250);
  private readonly townTimer=setInterval(()=>{const c=this.character.character();if(c?.status==='town'&&Date.parse(c.lastSeenAt)+10000<=Date.now())void this.character.load()},1000);
  slots=[{key:'head',label:'Head',icon:'/assets/ui/helmet.svg'},{key:'body',label:'Body',icon:'/assets/ui/armor.svg'},{key:'mainHand',label:'Weapon',icon:'/assets/ui/sword.svg'},{key:'offHand',label:'Shield',icon:'/assets/ui/shield.svg'},{key:'shoes',label:'Shoes',icon:'/assets/ui/boots.svg'},{key:'cape',label:'Cape',icon:'/assets/ui/cape.svg'},{key:'accessoryLeft',label:'Ring',icon:'/assets/ui/ring.svg'},{key:'accessoryRight',label:'Ring',icon:'/assets/ui/ring.svg'}];equipmentPredicates=Object.fromEntries(this.slots.map(s=>[s.key,(drag:CdkDrag)=>this.canEnterEquipmentSlot(s.key,drag)]));
- initial(){return (this.character.character()?.name||'?').slice(0,1).toUpperCase()} hpPct(){const c=this.character.character();return c?.maxHp?Math.max(0,Math.min(100,c.hpCurrent/c.maxHp*100)):0} spPct(){const c=this.character.character();return c?.maxSp?Math.max(0,Math.min(100,c.spCurrent/c.maxSp*100)):0}
+ initial(){return (this.character.character()?.name||'?').slice(0,1).toUpperCase()}
+ displayHp(){return this.battle.currentBattleCharacterHp(this.now())?.hp??this.character.character()?.hpCurrent??null}
+ displaySp(){return this.battle.currentBattleCharacterHp(this.now())?.sp??this.character.character()?.spCurrent??null}
+ hpPct(){const c=this.character.character();const hp=this.displayHp();return c?.maxHp&&hp!==null?Math.max(0,Math.min(100,hp/c.maxHp*100)):0}
+ spPct(){const c=this.character.character();const sp=this.displaySp();return c?.maxSp&&sp!==null?Math.max(0,Math.min(100,sp/c.maxSp*100)):0}
  statusLabel(){const s=this.character.character()?.status;return s==='grinding'?'Grinding':s==='dead_pending_return'?'Dead — return pending':'In Town'}
- itemName(slot:string){const e=this.equipped(slot);return e?e.itemId.replaceAll('_',' '):''} go(p:string){void this.router.navigateByUrl(p)} equipped(slot:string){return this.inventory.equipment().find(x=>x.slot===slot)} canEnterEquipmentSlot(slot:string,drag:CdkDrag){const data:any=drag?.data; if(data?.source!=='inventory') return false; const item=this.catalog.item(data.itemId); return item?.type==='equipment' && item.slot===slot} itemIcon(slot:string,fallback:string){const e=this.equipped(slot);return e?this.catalog.itemIcon(e.itemId):fallback} slotDropId(slot:string){return `character-slot-${slot}`} isSlotFocused(slot:string){const id=this.inventory.draggedItemId();const item=id?this.catalog.item(id):null;return item?.type==='equipment'&&item.slot===slot} onEquipmentDragStart(itemId:string){this.inventory.beginDrag(itemId)} onEquipmentDragEnd(){this.inventory.endDrag()} equipDragData(slot:string,it:any){return {source:'equipment',slot,...it}} async dropEquipment(slot:string,ev:CdkDragDrop<any>){const data=ev.item.data;try{if(data?.source==='inventory'){await this.inventory.equip(slot,data.itemId)}}catch{}finally{this.inventory.endDrag()}} async unequip(slot:string){try{await this.inventory.unequip(slot)}catch{}} ngOnDestroy(){clearInterval(this.townTimer)}
+ itemName(slot:string){const e=this.equipped(slot);return e?(this.catalog.item(e.itemId)?.name??e.itemId):''}
+ itemTooltip(slot:string){const e=this.equipped(slot);const d:any=e?this.catalog.item(e.itemId):null;if(!d)return '';const lines=Object.entries(d).filter(([k,v])=>v!==undefined&&v!==null&&v!==''&&k!=='id').map(([k,v])=>`${k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase())}: ${typeof v==='object'?JSON.stringify(v):String(v)}`);return [d.name,...lines].join('\n')}
+ go(p:string){void this.router.navigateByUrl(p)} equipped(slot:string){return this.inventory.equipment().find(x=>x.slot===slot)} canEnterEquipmentSlot(slot:string,drag:CdkDrag){const data:any=drag?.data; if(data?.source!=='inventory') return false; const item=this.catalog.item(data.itemId); return item?.type==='equipment' && item.slot===slot} itemIcon(slot:string,fallback:string){const e=this.equipped(slot);return e?this.catalog.itemIcon(e.itemId):fallback} slotDropId(slot:string){return `character-slot-${slot}`} isSlotFocused(slot:string){const id=this.inventory.draggedItemId();const item=id?this.catalog.item(id):null;return item?.type==='equipment'&&item.slot===slot} onEquipmentDragStart(itemId:string){this.inventory.beginDrag(itemId)} onEquipmentDragEnd(){this.inventory.endDrag()} equipDragData(slot:string,it:any){return {source:'equipment',slot,...it}} async dropEquipment(slot:string,ev:CdkDragDrop<any>){const data=ev.item.data;try{if(data?.source==='inventory'){await this.inventory.equip(slot,data.itemId)}}catch{}finally{this.inventory.endDrag()}} async unequip(slot:string){try{await this.inventory.unequip(slot)}catch{}} ngOnDestroy(){clearInterval(this.timer);clearInterval(this.townTimer)}
 }
 
 @Component({selector:'app-map-board',standalone:true,imports:[CommonModule],templateUrl:'./map-board.html',styleUrl:'./map-board.css'})
 export class MapBoard {
  readonly character=inject(CharacterStore);readonly battle=inject(BattleStore);private readonly api=inject(ApiService);private readonly socket=inject(GameSocketService);
- maps:any[]=[];selected=signal<string|null>(null);error=signal<string|null>(null);private readonly returnToTownBattleId=signal<string|null>(null);
+ maps:any[]=[];selected=signal<string|null>(null);error=signal<string|null>(null);readonly townReturnPending=signal(false);private readonly returnToTownBattleId=signal<string|null>(null);
  constructor(){
   effect(()=>{
    const targetId=this.returnToTownBattleId();
    if(!targetId||this.battle.lastResolved()?.entryId!==targetId)return;
    this.returnToTownBattleId.set(null);
+   this.townReturnPending.set(false);
    void this.leaveTown();
   });
   this.api.get<any[]>('/maps').subscribe({next:m=>this.maps=m,error:e=>this.error.set(e?.error?.message??'Unable to load maps')});
@@ -36,17 +45,21 @@ export class MapBoard {
  playersInMap(){const current=this.character.character()?.currentMapId;return current&&this.battle.mapPresence()?.mapId===current?this.battle.mapPresence()?.playersOnMap??0:0}
  level(){return this.character.character()?.level??1}
  select(t:any){if(t.unlockLevel<=this.level())this.selected.set(t.id)}
- enter(id:string){const map=this.maps.find(m=>m.id===id);if(!map||map.unlockLevel>this.level())return;this.error.set(null);this.api.post(`/maps/${id}/enter`,{}).subscribe({next:async()=>{await this.character.load();try{await this.socket.emit('map:syncPresence',{mapId:id})}catch{}},error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
+ enter(id:string){const map=this.maps.find(m=>m.id===id);if(!map||map.unlockLevel>this.level())return;this.error.set(null);this.api.post(`/maps/${id}/enter`,{}).subscribe({next:async()=>{this.battle.beginGrindSession();this.townReturnPending.set(false);await this.character.load();try{await this.socket.emit('map:syncPresence',{mapId:id})}catch{}},error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
  enterTown(){
   if(this.character.character()?.status==='town')return;
   const active=this.battle.active();const now=Date.now();
-  if(active&&now>=Date.parse(active.startAt)&&now<Date.parse(active.endAt)){this.returnToTownBattleId.set(active.id);return;}
+  if(active&&now>=Date.parse(active.startAt)&&now<Date.parse(active.endAt)){
+   this.townReturnPending.set(true);
+   this.returnToTownBattleId.set(active.id);
+   return;
+  }
   void this.leaveTown();
  }
  private async leaveTown(){
   this.error.set(null);
-  try{await this.api.post('/maps/leave',{}).toPromise();await Promise.all([this.character.load(),this.battle.load()]);}
-  catch(e:any){this.error.set(e?.error?.message??'Unable to return to Town');}
+  try{await this.api.post('/maps/leave',{}).toPromise();this.townReturnPending.set(false);this.returnToTownBattleId.set(null);await Promise.all([this.character.load(),this.battle.load()]);}
+  catch(e:any){this.townReturnPending.set(false);this.error.set(e?.error?.message??'Unable to return to Town');}
  }
 }
 
@@ -55,6 +68,7 @@ export class InventoryGrid implements OnDestroy {
  readonly inventory=inject(InventoryStore);readonly catalog=inject(CatalogService);readonly battle=inject(BattleStore);readonly vendor=inject(VendorStore);slots=Array.from({length:50},(_,i)=>i);readonly characterSlotIds=['character-slot-head','character-slot-body','character-slot-mainHand','character-slot-offHand','character-slot-shoes','character-slot-cape','character-slot-accessoryLeft','character-slot-accessoryRight'];readonly vendorDropListIds=['vendor-drop-list'];readonly now=signal(Date.now());private readonly timer=setInterval(()=>this.now.set(Date.now()),250);
  item(i:number){return this.inventory.items().find(x=>x.slotIndex===i)}
  itemTitle(i:any){return this.catalog.item(i.itemId)?.name??i.itemId}
+ itemTooltip(i:any){const d:any=this.catalog.item(i.itemId);if(!d)return i.itemId;const lines=Object.entries(d).filter(([k,v])=>v!==undefined&&v!==null&&v!==''&&k!=='id').map(([k,v])=>{const label=k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase());return `${label}: ${typeof v==='object'?JSON.stringify(v):String(v)}`});return [d.name,...lines].join('\n')}
  glyph(i:any){return this.catalog.itemIcon(i.itemId)}
  elapsedTick(){const b=this.battle.active();if(!b)return -1;return Math.max(0,Math.floor((this.now()-Date.parse(b.startAt))/1000))}
  displayQuantity(it:any){const base=Number(it.quantity??0);const b=this.battle.active();if(!b||base<=0)return base;const tick=this.elapsedTick();const events=Array.isArray((b.log as any)?.events)?(b.log as any).events:[];const consumed=events.filter((e:any)=>e?.action==='use_item'&&e?.actor==='character'&&e?.itemId===it.itemId&&Number(e.tick??0)<=tick).length;return Math.max(0,base-consumed)}
@@ -111,7 +125,10 @@ export class GrindInfo implements OnDestroy {
  monsterMaxHp(entry:any){return Number(entry.log?.header?.monsterSnapshot?.maxHp??entry.log?.header?.monsterSnapshot?.hp??0)}
  percent(v:number,max:number){return max>0?Math.max(0,Math.min(100,v/max*100)):0}
  recentEvents(entry:any){const tick=this.elapsedTicks(entry);return this.events(entry).filter((e:any)=>Number(e.tick??0)<=tick).slice(-4).reverse()}
- eventText(e:any){if(e.action==='attack')return e.actor==='monster'?'Monster attacks for '+Number(e.damage??0):'Character attacks for '+Number(e.damage??0);if(e.action==='use_item')return (e.actor==='character'?'Character uses ':'Monster uses ')+String(e.itemId??'item').replaceAll('_',' ');if(e.action==='use_skill')return (e.actor==='character'?'Character casts ':'Monster casts ')+String(e.skillId??'skill').replaceAll('_',' ');return String(e.action??'event')}
+ eventText(e:any){if(e.action==='attack'){const critical=e.crit?' CRITICAL!':'';return e.actor==='monster'?'Monster attacks for '+Number(e.damage??0)+critical:'Character attacks for '+Number(e.damage??0)+critical}if(e.action==='regen')return 'You regenerated '+Number(e.amount??0)+' '+String(e.resource??'HP')+'.';if(e.action==='use_item')return (e.actor==='character'?'Character uses ':'Monster uses ')+String(e.itemId??'item').replaceAll('_',' ');if(e.action==='use_skill')return (e.actor==='character'?'Character casts ':'Monster casts ')+String(e.skillId??'skill').replaceAll('_',' ');return String(e.action??'event')}
+ sessionDrops(){return this.battle.sessionDrops()}
+ sessionDropName(it:any){return this.catalog.item(it.itemId)?.name??it.itemId}
+ sessionDropIcon(it:any){return this.catalog.itemIcon(it.itemId)}
  foodLabel(){const c=this.character.character();const expiry=c?.foodBuffExpiresAt?Date.parse(c.foodBuffExpiresAt):0;const active=expiry>this.now();return active?'FED · '+Math.max(0,Math.ceil((expiry-this.now())/60000))+'m':'HUNGRY'}
  ngOnDestroy(){clearInterval(this.timer)}
 }

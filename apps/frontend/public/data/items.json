@@ -634,7 +634,7 @@
         "hpRegenPerTenTicks": 4,
         "spRegenPerTenTicks": 1
       },
-      "vendorSells": false,
+      "vendorSells": true,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
@@ -1210,7 +1210,7 @@
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "wand",
-      "twoHanded": true,
+      "twoHanded": false,
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
@@ -1241,7 +1241,7 @@
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "wand",
-      "twoHanded": true,
+      "twoHanded": false,
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
@@ -1272,7 +1272,7 @@
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "wand",
-      "twoHanded": true,
+      "twoHanded": false,
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {

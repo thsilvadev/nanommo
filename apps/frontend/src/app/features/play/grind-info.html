@@ -17,11 +17,11 @@
 
     <div class="monster-stats"><div class="section-label">DERIVED STATS</div><div class="stats-grid"><span *ngFor="let stat of monsterStats(b)"><b>{{stat.label}}</b><small>{{stat.value}}</small></span></div></div>
 
-    <div class="reward"><span>XP +{{b.xpGain}}</span><span>Gold +{{b.goldGain}}</span></div><div class="event-feed"><div *ngFor="let e of recentEvents(b)" class="event"><small>T{{e.tick}}</small><span>{{eventText(e)}}</span></div></div><div class="queue-note">{{battle.queue().length}} battle{{battle.queue().length===1?'':'s'}} queued</div>
+    <div class="reward"><span>XP +{{b.xpGain}}</span></div><div class="event-feed"><div *ngFor="let e of recentEvents(b)" class="event"><small>T{{e.tick}}</small><span>{{eventText(e)}}</span></div></div><div class="queue-note">{{battle.queue().length}} battle{{battle.queue().length===1?'':'s'}} queued</div>
   </ng-template>
 </ng-container>
 <div *ngIf="!battle.active()" class="idle-state"><strong>{{foodLabel()==='HUNGRY'?'HUNGRY':'NO BATTLE QUEUED'}}</strong><small>Choose a map or wait for the authoritative battle queue.</small></div>
-<div class="consumables"><div *ngFor="let it of consumableItems()" class="consumable"><img [src]="catalog.itemIcon(it.itemId)" [alt]="catalog.item(it.itemId)?.name||it.itemId"><b>{{displayQuantity(it)}}</b><small>{{catalog.item(it.itemId)?.name||it.itemId}}</small></div></div>
+<div class="session-drops"><div class="section-label">DROPS THIS SESSION</div><div *ngIf="!sessionDrops().length" class="no-status">No drops yet</div><div *ngFor="let it of sessionDrops()" class="consumable"><img [src]="sessionDropIcon(it)" [alt]="sessionDropName(it)"><b>{{it.quantity}}</b><small>{{sessionDropName(it)}}</small></div></div>
 </ng-template>
 </section>
 <div class="trade-modal-backdrop" *ngIf="vendor.modal() as modal" (click)="vendor.cancel()">

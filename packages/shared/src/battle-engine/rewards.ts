@@ -25,6 +25,9 @@ export interface ResolvedDrop {
   instanceData?: Record<string, unknown>;
 }
 
+/** Global Grind XP pacing multiplier. The monster catalog keeps the canonical base rewards. */
+export const GRIND_XP_RATE = 0.25;
+
 export interface BattleRewards {
   xpGain: number;
   goldGain: number;
@@ -45,19 +48,12 @@ export function resolveXpGain(monster: any, outcome: 'win' | 'loss'): number {
   if (outcome !== 'win') return 0;
   const xpReward = Number(monster?.xpReward);
   if (!Number.isFinite(xpReward) || xpReward <= 0) return 0;
-  return Math.floor(xpReward);
+  return Math.max(0, Math.floor(xpReward * GRIND_XP_RATE));
 }
 
-/**
- * Gold: rolled from `monster.goldReward.{min,max}` with Mulberry32.
- * Never Math.random() (SPEC §11.2).
- */
-export function resolveGoldGain(monster: any, rng: Mulberry32): number {
-  const reward = monster?.goldReward;
-  if (!reward || typeof reward !== 'object') return 0;
-  const min = Math.max(0, Math.floor(Number(reward.min) || 0));
-  const max = Math.max(min, Math.floor(Number(reward.max) || 0));
-  return rng.nextIntInclusive(min, max);
+/** Monster kills do not award gold. Gold remains available through non-monster sources such as vendors. */
+export function resolveGoldGain(_monster: any, _rng: Mulberry32): number {
+  return 0;
 }
 
 /**
@@ -174,7 +170,7 @@ export function resolveRewards(params: {
   }
   return {
     xpGain: resolveXpGain(monster, outcome),
-    goldGain: resolveGoldGain(monster, new Mulberry32(`${seed}:gold`)),
+    goldGain: 0,
     drops: resolveDrops(monster, mapId, items, killIndex),
   };
 }

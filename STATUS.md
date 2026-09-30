@@ -855,3 +855,34 @@ Implemented server-authoritative monster encounter search time, realtime map pop
 - `pnpm exec openspec validate encounter-search-time-and-map-presence --strict`: passed.
 - `git diff --check`: passed.
 - No production deployment performed.
+
+## 2026-09-30 — Grind Corrections / Realtime Progression
+
+Implemented the OpenSpec change `grind-corrections-realtime-progression` (no production deployment).
+
+### Implemented
+- Item hover now uses a single catalog-backed tooltip string for inventory and equipped items, including all non-empty fields available in the current item definition.
+- Town click during an active battle now records the battle id, shows `Waiting for battle to end to return to Town...`, and leaves automatically after that authoritative `battle:resolved` event. During encounter search, the existing leave flow remains immediate and cancels the pending queue safely.
+- Grind right panel no longer mirrors inventory consumables; it shows transient `Drops this session`, reset on map entry and stacked by item id from authoritative battle-resolution drops.
+- Character HP/SP panel uses the authoritative queued battle log projection during an active battle and the authoritative Character state outside it; resolved battles resync Character and Inventory through the existing Socket.IO flow.
+- Regen and critical events are represented in the existing battle event log; critical hits now render as `CRITICAL!` and regen renders HP/MP regeneration amounts.
+- Monster gold rewards are disabled in the shared resolver and removed from `monsters.json`; Vendor gold remains unaffected.
+- New characters now receive 50 `pot_hp_small` and 5 Bread.
+- Bread is now configured as sellable through William's existing Vendor sell path (`sellPriceToVendor: 7`).
+- Monster XP uses the canonical catalog values with a global Grind payout multiplier of `0.25`; one XP resolution can increase level by at most +1 and excess XP remains stored.
+- Monster drop rates were deliberately doubled from 5%/1%/0.1%/0.01% to 10%/2%/0.2%/0.02%, preserving relative rarity. The deterministic chance implementation was reviewed; no probability multiplication/guarantee bug was found.
+- Added `Character.regenAnchorAt` and a migration. Battle simulation now uses the absolute character regen timeline, and queued encounter gaps preserve 10-tick boundaries instead of resetting regen per battle.
+
+### Verification
+- `pnpm --filter @nanommo/shared build`: passed after the final engine/reward changes.
+- `pnpm --filter @nanommo/api build`: passed.
+- `pnpm --filter frontend build`: passed; existing Angular style-budget warnings remain non-blocking.
+- `node apps/api/test-grind-corrections.js`: passed (XP rate, max +1 level, no monster gold, continuous regen boundary, critical log).
+- `node apps/api/test-phase3-levelup.js`: attempted but local backend `http://localhost:3010` was not running, so the integration suite could not execute.
+- `openspec validate grind-corrections-realtime-progression --strict`: passed in final verification.
+- `git diff --check`: passed in final verification.
+- No production deployment performed.
+
+### Pending verification
+- Full live Grind smoke test against a running local stack: encounter search → Town click, active battle → Town click, potion consumption, drops, Character HP/regen, critical logs, and William Bread sale.
+- Dedicated frontend automated tests/smoke coverage for tooltip, Town-return feedback, session drops, and Character/Inventory realtime presentation.

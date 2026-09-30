@@ -56,6 +56,7 @@ export class CharacterService {
       spCurrent: baseStats.maxSp,
       status: 'town',
       lastSeenAt: new Date(),
+      regenAnchorAt: new Date(),
     });
 
     const savedCharacter = await this.characterRepository.save(character);
@@ -66,14 +67,13 @@ export class CharacterService {
       slot: 'mainHand',
       itemId: 'equip_sword_t1',
     }));
-    // One-time starter pack: 10 HP potions + 5 Bread.
     await this.inventoryItemRepository.save([
       this.inventoryItemRepository.create({
         characterId: savedCharacter.id,
         location: 'inventory',
         slotIndex: 0,
         itemId: 'pot_hp_small',
-        quantity: 10,
+        quantity: 50,
       }),
       this.inventoryItemRepository.create({
         characterId: savedCharacter.id,

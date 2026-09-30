@@ -203,9 +203,10 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | activeTempBuffs | jsonb, default [] | array of `{ source, stat, mult|flat, expiresAt|expiresAtTick }` from skills like Bloodlust |
 | statusEffects | jsonb, default [] | array of `{ type, appliedAtTick, expiresAtTick, sourceSkillId }` |
 | lastSeenAt | timestamptz | for online/offline + presence |
+| regenAnchorAt | timestamptz, nullable | stable origin for the character's continuous 10-tick regeneration timeline |
 | createdAt / updatedAt | timestamptz | |
 
-Character creation bootstrap (one time only): equip `equip_sword_t1` and seed the starter pack with 10 `pot_hp_small` and 5 `food_bread`. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
+Character creation bootstrap (one time only): equip `equip_sword_t1` and seed the starter pack with 50 `pot_hp_small` and 5 `food_bread`. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
 
 ### 4.3 `WeaponProficiency`
 | field | type | notes |
@@ -455,7 +456,7 @@ Sanity checkpoints from the generated table (assumptions above): level 60 reache
 
 The ratio is taken between two `maxHp`/`maxSp` values, so **both ends must be derived from the same state the battles were simulated against** — the character's attributes *including* equipment `statBonus` (§5.2), with the character's real `def`/`mdefPercent`/weapon ATK as the third argument of `calculateDerivedStats`. Deriving the ratio from bare attributes instead scales an equipped character by the wrong factor (a level-1 character in tier-1 armour, VIT 5 → 26, would be scaled by 176/158 = 1.114 instead of 428/410 = 1.044, and the result would then be clamped against the wrong maximum). Implemented in `battle.service.ts:453-484`; verified by the equipped-character level-up scenario in `apps/api/test-phase3-levelup.js`.
 
-When one resolve crosses several thresholds, the whole batch is applied as a **single** ratio step from the stats before the first level-up to the stats after the last. With the current formulas (`maxHp = floor(80 + VIT*12 + level*18)` and `maxSp = floor(40 + INT*10 + level*8)`, both linear in level) compounding one step per level telescopes to the same product, so the choice is unobservable in `hpCurrent` today and only starts to matter if either formula gains a non-linear level term. Recorded, not fixed, in `design.md` as divergence #4.
+A single XP resolution SHALL increase the character by **at most one level**. If the awarded XP crosses additional thresholds, only the current level's threshold is consumed; excess XP remains stored toward the next level. This is enforced server-side in the authoritative resolver.
 
 ### 6.4 XP loss on death
 
@@ -692,7 +693,7 @@ Per confirmed design: foods are 60-minute (`durationSeconds: 3600`) buffs granti
 
 Each map is **one single global room** (confirmed design — no instancing, no multiple parallel rooms per map). All players grinding the same map share the same "how many players are here" pressure on encounter search time (§11.4).
 
-Town sits at the center; the four cardinal exits (**North/South/East/West**) lead to the three maps (one exit currently unused/reserved for future expansion — wire it in the UI as a disabled/"coming soon" direction rather than omitting it, since the world is designed to grow outward from town). A character in Town regenerates HP/SP every 10 ticks using the authoritative derived regeneration rates, capped at max HP/SP. A Hungry character (no active food buff) cannot enter or continue grind.
+Town sits at the center; the four cardinal exits (**North/South/East/West**) lead to the three maps (one exit currently unused/reserved for future expansion — wire it in the UI as a disabled/"coming soon" direction rather than omitting it, since the world is designed to grow outward from town). A living character's regeneration timeline is continuous and authoritative: HP/SP regeneration is evaluated every 10 ticks across battle, encounter search, and non-battle Grind time, and Battle start/end never resets the interval. Town also applies the same derived regeneration rates while the character is alive, capped at max HP/SP. A Hungry character (no active food buff) cannot enter or continue grind.
 
 ### 11.2 Deterministic monster & drop selection (no giant arrays)
 
@@ -737,12 +738,12 @@ The authoritative grinder count for encounter timing is based on Character rows 
 
 | Drop category | Chance per kill |
 |---|---|
-| Monster part (common) | 5% |
-| Consumable (tier-appropriate) | 1% |
-| Equipment (tier-appropriate, from that map's pool) | 0.1% |
-| Monster part (rare) | 0.01% |
+| Monster part (common) | 10% |
+| Consumable (tier-appropriate) | 2% |
+| Equipment (tier-appropriate, from that map's pool) | 0.2% |
+| Monster part (rare) | 0.02% |
 
-Consumable/equipment drops are resolved to a **specific item id** at roll time by picking uniformly (same seeded PRNG) from the appropriate pool: for consumables, any of the 15 (foods included — yes, foods can drop, not just be bought); for equipment, `items.equipment` entries whose `dropPool` includes the current `mapId`.
+Consumable/equipment drops are resolved to a **specific item id** at roll time by picking uniformly (same seeded PRNG) from the appropriate pool: for consumables, any of the 15 (foods included — yes, foods can drop, not just be bought); for equipment, `items.equipment` entries whose `dropPool` includes the current `mapId`. The reviewed Grind configuration doubles the four canonical rates above while preserving their relative rarity; the resolver performs exactly one deterministic roll per drop entry. Monsters provide **no gold reward** directly.
 
 ---
 

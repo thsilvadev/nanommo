@@ -463,6 +463,8 @@ export class BattleEngine {
       itemDefinitions?: Record<string, any>;
       monsterSkillDefs?: Record<string, any>;
       maxTicks?: number;
+      /** Absolute character timeline tick at which this battle starts. */
+      regenTickOffset?: number;
     } = {},
   ): {
     outcome: 'win' | 'loss';
@@ -478,6 +480,7 @@ export class BattleEngine {
     const inventory: Record<string, number> = { ...(options.inventory ?? {}) };
     const itemDefinitions: Record<string, any> = options.itemDefinitions ?? {};
     const maxTicks = options.maxTicks ?? BattleEngine.MAX_TICKS;
+    const regenTickOffset = Math.max(0, Math.floor(options.regenTickOffset ?? 0));
 
     // Monsters follow the exact same engine using their own gambit array (§7.3)
     const normalizedGambitPage = GambitEvaluator.normalizeGambitPage(gambitPage);
@@ -547,6 +550,7 @@ export class BattleEngine {
       events.push({
         ...event,
         hpRemaining: { character: self.hp, monster: foe.hp },
+        spRemaining: { character: self.sp },
       });
     };
 
@@ -855,11 +859,17 @@ export class BattleEngine {
       if ((self.foodBuffTicksRemaining ?? 0) > 0) self.foodBuffTicksRemaining = Math.max(0, (self.foodBuffTicksRemaining as number) - 1);
       // A combatant at 0 HP is out of the fight: regen must not resurrect it
       // (otherwise a lethal hit is undone by the same tick's housekeeping).
-      if (self.hp > 0 && (tick + 1) % 10 === 0) {
+      if (self.hp > 0 && (regenTickOffset + tick + 1) % 10 === 0) {
         const foodHpRegen = (self.foodBuffTicksRemaining ?? 0) > 0 ? Number(self.foodBuffHpRegenPerTenTicks ?? 0) : 0;
         const foodSpRegen = (self.foodBuffTicksRemaining ?? 0) > 0 ? Number(self.foodBuffSpRegenPerTenTicks ?? 0) : 0;
+        const hpBefore = self.hp;
+        const spBefore = self.sp;
         self.hp = Math.min(self.maxHp, self.hp + self.hpRegenPerTenTicks + foodHpRegen);
         self.sp = Math.min(self.maxSp, self.sp + self.spRegenPerTenTicks + foodSpRegen);
+        const hpRegenerated = self.hp - hpBefore;
+        const spRegenerated = self.sp - spBefore;
+        if (hpRegenerated > 0) record({ tick, actor: 'character', action: 'regen', resource: 'HP', amount: hpRegenerated });
+        if (spRegenerated > 0) record({ tick, actor: 'character', action: 'regen', resource: 'MP', amount: spRegenerated });
       }
 
       tick += 1;
