@@ -8,7 +8,7 @@ export interface CharacterLeveledUp { newLevel:number; unspentAttributePoints:nu
 export interface CharacterDied { deathLog:{monsterId:string;mapId:string;timestamp:string;log:unknown}; }
 export interface GambitCondition { id:string; params?:Record<string,string|number>; [key:string]:any; }
 export interface GambitAction { id:string; params?:Record<string,string|number>; [key:string]:any; }
-export interface GambitLine { priority:number; conditions:GambitCondition[]; combinator?:'AND'|'OR'|null; action:GambitAction; enabled?:boolean; }
+export interface GambitLine { priority:number; conditions:GambitCondition[]; action:GambitAction; enabled?:boolean; }
 export interface GambitPage { id:string; characterId:string; slotIndex:number; title?:string; lines:GambitLine[]; }
 export interface MapInfo { id:string; name:string; unlockLevel:number; }
 export interface GambitCatalog { meta:any; conditions:any[]; actions:any[]; }
