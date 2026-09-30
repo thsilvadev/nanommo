@@ -58,13 +58,9 @@ export class MapService {
     if (!weapon || weapon.type !== 'equipment' || !weapon.weaponType) {
       throw new BadRequestException('A valid main-hand weapon is required to enter grind');
     }
-    const starterPotionCount = await this.battleService.getAvailablePotionCount(character.id);
     const foodBuff = character.activeFoodBuff;
-    if (starterPotionCount <= 0) {
-      throw new BadRequestException('Town Guard: Your hungry! Eat something or go cleanse your sins for a change.');
-    }
     if (!foodBuff?.expiresAt || new Date(foodBuff.expiresAt).getTime() <= Date.now()) {
-      throw new BadRequestException('Character is hungry: eat food before entering grind');
+      throw new BadRequestException('Town Guard: Your hungry! Eat something or go cleanse your sins for a change.');
     }
 
     // Validate level requirement
