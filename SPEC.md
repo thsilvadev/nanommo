@@ -887,7 +887,7 @@ Namespace: `/game`. Auth via handshake (§15.2). Suggested rooms: `char:<charact
 
 | Event | Payload | Notes |
 |---|---|---|
-| `battle:queueUpdated` | `{ entries: BattleQueueEntry[] }` | sent on map:enter and whenever the queue is topped up |
+| `battle:queueUpdated` | `{ entries: BattleQueueEntry[], stateRevision?, characterAfter?, inventoryAfter? }` | sent on map:enter and whenever the queue is topped up; after battle resolution, carries the same authoritative Character + Inventory snapshot as `battle:resolved` |
 | `battle:resolved` | `{ entryId, outcome, xpGain, goldGain, drops, stateRevision, characterAfter: CharacterDto, inventoryAfter: InventoryItem[] }` | authoritative Character + Inventory snapshot after each battle resolves server-side; `stateRevision` is the Character VersionColumn value |
 | `character:died` | `{ deathLog }` | triggers town routing + "last death" affordance client-side |
 | `character:leveledUp` | `{ newLevel, unspentAttributePoints }` | |

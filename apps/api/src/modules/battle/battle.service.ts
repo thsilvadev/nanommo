@@ -741,7 +741,8 @@ export class BattleService {
       });
     }
     const liveQueue = await this.getBattleQueue(character.id, 5);
-    await this.safePublishQueueUpdated(character.id, liveQueue);
+    const authoritativeSnapshot = await this.buildAuthoritativeBattleSnapshot(character.id);
+    await this.safePublishQueueUpdated(character.id, liveQueue, authoritativeSnapshot);
 
     this.logger.log(
       `Resolved battle ${battle.id} char=${character.id} ${battle.monsterId} ` +
@@ -860,12 +861,34 @@ export class BattleService {
     }
   }
 
-  private async safePublishQueueUpdated(characterId: string, entries: BattleQueueEntry[]): Promise<void> {
+  private async safePublishQueueUpdated(
+    characterId: string,
+    entries: BattleQueueEntry[],
+    state?: { stateRevision: number; characterAfter: any; inventoryAfter: any[] },
+  ): Promise<void> {
     try {
-      await this.gatewayService.publishBattleQueueUpdated(characterId, entries);
+      await this.gatewayService.publishBattleQueueUpdated(characterId, entries, state);
     } catch (error) {
       this.logger.warn(`battle:queueUpdated publication failed for ${characterId}: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  private async buildAuthoritativeBattleSnapshot(characterId: string): Promise<{
+    stateRevision: number;
+    characterAfter: any;
+    inventoryAfter: any[];
+  } | undefined> {
+    const characterRow = await this.characterRepo.findOne({ where: { id: characterId } });
+    const characterAfter = await this.characterService.getCharacterDtoById(characterId);
+    if (!characterRow || !characterAfter) {
+      this.logger.warn('authoritative battle snapshot unavailable for ' + characterId);
+      return undefined;
+    }
+    return {
+      stateRevision: characterRow.stateVersion,
+      characterAfter,
+      inventoryAfter: await this.inventoryService.getInventory(characterId),
+    };
   }
 
   private async safePublishBattleResolved(characterId: string, battle: BattleQueueEntry, _character: Character): Promise<void> {

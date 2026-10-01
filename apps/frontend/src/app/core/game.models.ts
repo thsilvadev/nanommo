@@ -3,6 +3,7 @@ export interface Character { id:string; userId:string; name:string; level:number
 export interface InventoryItem { id:string; characterId:string; location:'inventory'|'warehouse'; slotIndex:number; itemId:string; quantity:number; instanceData?:any; }
 export interface EquippedItem { id:string; characterId:string; slot:string; itemId:string; instanceData?:any; }
 export interface BattleQueueEntry { id:string; characterId:string; sequenceIndex:number; mapId:string; monsterId:string; startAt:string; endAt:string; outcome:'win'|'loss'; log?:unknown; xpGain:number; goldGain:number; drops:unknown[]; itemsConsumed:Array<{itemId:string;quantity:number}>; hpAfter:number; spAfter:number; resolved:false; seedUsed:string; }
+export interface BattleQueueUpdated { entries:BattleQueueEntry[]; stateRevision?:number; characterAfter?:Character; inventoryAfter?:InventoryItem[]; }
 export interface BattleResolved { entryId:string; outcome:'win'|'loss'; xpGain:number; goldGain:number; drops:unknown[]; stateRevision:number; characterAfter:Character; inventoryAfter:InventoryItem[]; }
 export interface MapPresence { mapId:string; playersOnMap:number; }
 export interface CharacterLeveledUp { newLevel:number; unspentAttributePoints:number; }

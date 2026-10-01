@@ -22,6 +22,13 @@ export interface CharacterDiedPayload {
   deathLog: any;
 }
 
+export interface BattleQueueUpdatedPayload {
+  entries: any[];
+  stateRevision?: number;
+  characterAfter?: any;
+  inventoryAfter?: any[];
+}
+
 /**
  * GatewayService — handles event emission and presence tracking
  * Injected into NanommoGateway for WebSocket emission
@@ -81,9 +88,11 @@ export class GatewayService {
   async publishBattleQueueUpdated(
     characterId: string,
     entries: any[],
+    state?: Pick<BattleQueueUpdatedPayload, 'stateRevision' | 'characterAfter' | 'inventoryAfter'>,
   ): Promise<void> {
     const channel = `gateway:battle:queueUpdated:${characterId}`;
-    await this.redis.publish(channel, JSON.stringify({ entries }));
+    const payload: BattleQueueUpdatedPayload = { entries, ...state };
+    await this.redis.publish(channel, JSON.stringify(payload));
     this.logger.debug(
       `Published battle:queueUpdated for ${characterId}: ${entries.length} entries`,
     );

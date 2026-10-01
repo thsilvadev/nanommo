@@ -7,7 +7,7 @@ Provides a single authoritative realtime synchronization contract for Character 
 ## ADDED Requirements
 
 ### Requirement: Authoritative resource snapshot
-After an authoritative battle resolution, the server SHALL publish the current Character HP/SP and complete inventory state together with a monotonic revision. The client SHALL render those values independently of battle/search/Town presentation state.
+After an authoritative battle resolution, the server SHALL publish the current Character HP/SP and complete inventory state together with a monotonic revision. Both `battle:resolved` and the subsequent `battle:queueUpdated` event SHALL carry that same authoritative snapshot so transport ordering across their separate Redis channels cannot expose a previous state. The client SHALL render those values independently of battle/search/Town presentation state.
 
 #### Scenario: Battle resolves into search
 - **WHEN** a battle resolves and the next encounter has not started

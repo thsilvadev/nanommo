@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import { ApiService } from './api.service';
 import { Character, InventoryItem } from './game.models';
-import { CharacterStore, InventoryStore } from './game.store';
+import { BattleStore, CharacterStore, InventoryStore } from './game.store';
+import { GameSocketService } from './game.socket.service';
 
 const character = (hp: number, sp: number): Character => ({
   id: 'char-1', userId: 'user-1', name: 'Tester', level: 1, xp: 0, xpToNext: 10,
@@ -23,11 +24,24 @@ const item = (quantity: number): InventoryItem => ({
 describe('realtime resource synchronization', () => {
   let api: jasmine.SpyObj<ApiService>;
 
+  let gameSocketEvents: Map<string, Subject<any>>;
+
   beforeEach(() => {
     api = jasmine.createSpyObj<ApiService>('ApiService', ['get', 'post', 'put', 'delete']);
+    gameSocketEvents = new Map<string, Subject<any>>();
+    const socket = {
+      on: (event: string) => {
+        let subject = gameSocketEvents.get(event);
+        if (!subject) { subject = new Subject<any>(); gameSocketEvents.set(event, subject); }
+        return subject.asObservable();
+      },
+      onConnectionState: () => new Subject<any>().asObservable(),
+    };
     TestBed.configureTestingModule({providers: [
       CharacterStore,
       InventoryStore,
+      BattleStore,
+      {provide: GameSocketService, useValue: socket},
       {provide: ApiService, useValue: api},
     ]});
   });
@@ -88,5 +102,31 @@ describe('realtime resource synchronization', () => {
 
     store.applyRealtimeSnapshot([item(16)], 301);
     expect(store.items()[0].quantity).toBe(16);
+  });
+
+  it('applies the authoritative Character and Inventory snapshot from queueUpdated before searching', () => {
+    const characterStore = TestBed.inject(CharacterStore);
+    const inventoryStore = TestBed.inject(InventoryStore);
+    const battleStore = TestBed.inject(BattleStore);
+    characterStore.applyRealtimeSnapshot(character(40, 20), 10);
+    inventoryStore.applyRealtimeSnapshot([item(9)], 10);
+    battleStore.bindEvents(characterStore, inventoryStore);
+
+    gameSocketEvents.get('battle:queueUpdated')!.next({
+      entries: [{
+        id: 'battle-next', characterId: 'char-1', sequenceIndex: 2,
+        mapId: 'map_green_grounds', monsterId: 'mon_slime',
+        startAt: new Date(Date.now() + 2000).toISOString(), endAt: new Date(Date.now() + 10000).toISOString(),
+        outcome: 'win', log: {}, xpGain: 10, goldGain: 0, drops: [], itemsConsumed: [],
+        hpAfter: 30, spAfter: 15, resolved: false, seedUsed: 'seed',
+      }],
+      stateRevision: 11,
+      characterAfter: character(70, 35),
+      inventoryAfter: [item(18)],
+    });
+
+    expect(characterStore.character()?.hpCurrent).toBe(70);
+    expect(characterStore.character()?.spCurrent).toBe(35);
+    expect(inventoryStore.items()[0].quantity).toBe(18);
   });
 });

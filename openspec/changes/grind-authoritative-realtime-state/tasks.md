@@ -10,6 +10,7 @@
 
 - [x] 2.1 Add realtime revision/generation guards to CharacterStore and InventoryStore so in-flight HTTP responses cannot overwrite a newer websocket snapshot, and verify with out-of-order unit tests.
 - [x] 2.2 Apply the battle-resolution snapshot atomically to CharacterStore and InventoryStore, rejecting older realtime revisions, and verify newer updates still apply.
+- [x] 2.4 Carry the same authoritative snapshot on the post-resolution `battle:queueUpdated` event so cross-channel delivery order cannot expose a stale search-state snapshot.
 - [x] 2.3 Remove battle.active()-based HP/SP and inventory quantity projections from CharacterSummary and InventoryGrid, and verify the components render store authority during search and battle transitions.
 
 ## 3. Regression coverage and documentation

@@ -23,6 +23,7 @@ The previous loadSeq change only orders concurrent HTTP responses within each st
 3. Frontend stores use a causal barrier. Every HTTP load captures the store realtime generation. If a realtime snapshot is accepted while that request is in flight, its response is discarded. Existing request sequencing remains as a second guard for same-generation HTTP races.
 4. Resource rendering reads stores only. Character Summary reads CharacterStore hpCurrent/spCurrent; Inventory Grid reads InventoryStore quantity. Battle logs remain presentation data for battle visuals and event feed, not resource authority.
 5. Older realtime revisions are ignored. The store keeps the last accepted server revision and refuses a snapshot with an equal or older revision.
+6. Cross-channel ordering is closed at the producer boundary. After a battle resolves, the following `battle:queueUpdated` carries the same Character + Inventory snapshot and revision as `battle:resolved`; the frontend accepts either event as an authoritative state update. This prevents Redis subscriber/channel scheduling from exposing the previous state during the encounter-search gap.
 
 ## Risks / Trade-offs
 
