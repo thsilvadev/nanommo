@@ -11,11 +11,11 @@
 - [x] 2.1 Add realtime revision/generation guards to CharacterStore and InventoryStore so in-flight HTTP responses cannot overwrite a newer websocket snapshot, and verify with out-of-order unit tests.
 - [x] 2.2 Apply the battle-resolution snapshot atomically to CharacterStore and InventoryStore, rejecting older realtime revisions, and verify newer updates still apply.
 - [x] 2.4 Carry the same authoritative snapshot on the post-resolution `battle:queueUpdated` event so cross-channel delivery order cannot expose a stale search-state snapshot.
-- [x] 2.3 Remove battle.active()-based HP/SP and inventory quantity projections from CharacterSummary and InventoryGrid, and verify the components render store authority during search and battle transitions.
+- [x] 2.3 Keep the active-battle HP/SP projection strictly presentation-only, while CharacterSummary and InventoryGrid render authoritative store state during search/Town and after resolution; verify the transition explicitly.
 
 ## 3. Regression coverage and documentation
 
 - [x] 3.1 Add/extend tests for old HTTP after new websocket and old websocket after new websocket for both Character and Inventory.
 - [x] 3.2 Update STATUS.md with the root cause, failed prior strategy, authoritative source, and verification evidence.
 - [x] 3.3 Update SPEC.md and openspec/specs/SPEC.md where the authoritative realtime contract was not explicit, without changing unrelated gameplay rules.
-- [x] 3.4 Run shared/API/frontend builds, the focused frontend synchronization suite, OpenSpec strict validation, and git diff --check; live gateway smoke is documented separately because the local API was not running. No deploy.
+- [x] 3.4 Run shared/API/frontend builds, the focused frontend synchronization suite, OpenSpec strict validation, and git diff --check; the final focused suite covers queueUpdated arriving before the authoritative snapshot event. Live gateway smoke remains environment-limited because the local API was not running. No deploy.

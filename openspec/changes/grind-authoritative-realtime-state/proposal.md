@@ -7,7 +7,7 @@ Character HP/SP and Inventory can regress visually during the encounter-search g
 ## What Changes
 
 - Publish one authoritative post-resolution Character + Inventory snapshot with a monotonic server revision.
-- Treat that snapshot as the frontend source of truth after battle resolution; do not derive Character HP/SP or item quantities from the visual battle queue.
+- Treat that snapshot as the frontend source of truth outside an active battle; during an active battle, retain the existing read-only HP/SP display projection from the immutable queued battle log without writing it back into resource stores.
 - Make HTTP refreshes causal: a response that was in flight when a newer realtime snapshot arrived cannot replace that snapshot.
 - Ignore realtime snapshots whose revision is older than the currently accepted snapshot.
 - Add deterministic regression tests for battle-resolved → searching → next battle and out-of-order HTTP/realtime delivery.

@@ -599,7 +599,7 @@ export class BattleService {
     if (battle.outcome === 'loss') {
       this.applyResolvedFoodState(character, battle);
       const deathLog = await this.handleCharacterDeath(character, battle);
-      await this.safePublishBattleResolved(character.id, battle, character);
+      await this.safePublishBattleResolved(character.id, battle);
       await this.safePublishCharacterDied(character.id, deathLog);
       return;
     }
@@ -891,23 +891,16 @@ export class BattleService {
     };
   }
 
-  private async safePublishBattleResolved(characterId: string, battle: BattleQueueEntry, _character: Character): Promise<void> {
-    const characterRow = await this.characterRepo.findOne({ where: { id: characterId } });
-    const characterAfter = await this.characterService.getCharacterDtoById(characterId);
-    if (!characterRow || !characterAfter) {
-      this.logger.warn(`battle:resolved snapshot unavailable for ${characterId}`);
-      return;
-    }
-    const inventoryAfter = await this.inventoryService.getInventory(characterId);
+  private async safePublishBattleResolved(characterId: string, battle: BattleQueueEntry): Promise<void> {
+    const state = await this.buildAuthoritativeBattleSnapshot(characterId);
+    if (!state) return;
     const payload: BattleResolvedPayload = {
       entryId: battle.id,
       outcome: battle.outcome,
       xpGain: Number(battle.xpGain ?? 0),
       goldGain: Number(battle.goldGain ?? 0),
       drops: battle.drops ?? [],
-      stateRevision: characterRow.stateVersion,
-      characterAfter,
-      inventoryAfter,
+      ...state,
     };
     try {
       await this.gatewayService.publishBattleResolved(characterId, payload);

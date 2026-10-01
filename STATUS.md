@@ -1,6 +1,6 @@
 # NanoMMO — Implementation Status
 
-**Last Updated:** 2026-09-29 (play shell/mastery/Gambit polish implemented; builds, browser smoke, and OpenSpec validation verified)
+**Last Updated:** 2026-10-01 (finalized authoritative Character/Inventory realtime synchronization and documented failure modes)
 **Session Focus:** Play shell map/inventory/info-panel polish, Mastery tab, Gambit row controls, active Gambit HUD title, and navbar branding.
 
 ### Latest follow-up — Login/Auth visual shell + persistent login music (2026-09-29)
@@ -942,8 +942,50 @@ Verification: final API/frontend builds and OpenSpec validation passed; no produ
 - Root cause: the previous loadSeq/request-ordering strategy only ordered HTTP responses within a store. It did not establish causal ordering between an HTTP snapshot that began before a newer Socket.IO snapshot and the realtime snapshot itself. In parallel, the Character Panel and Inventory presentation still projected HP/SP and item quantities from battle-log timing/events, so entering the next battle.active() state could temporarily select an older snapshot.
 - The authoritative source is now the persisted Character state plus the complete Inventory snapshot emitted by battle:resolved. Character has a TypeORM VersionColumn (stateVersion) used as a monotonic server revision; the resolver saves Character after inventory/drop mutations and publishes Character + Inventory from that completed state.
 - Frontend CharacterStore and InventoryStore now maintain both a realtime revision and a realtime generation. HTTP loads capture the generation and are discarded if a newer realtime update arrives while they are in flight; snapshots with an older/equal server revision are ignored. Inventory REST reads also carry the Character state revision for stale-snapshot rejection.
-- Character Summary HP/SP and inventory quantity presentation no longer derive current values from battle.active(), battle logs, start/end timing, or search presentation. Battle logs remain presentation-only for combat visuals/event feed.
+- Persisted Character HP/SP and Inventory quantities remain authoritative outside an active battle. During an ACTIVE battle, Character Summary uses only a transient read-only projection of the immutable queued battle log/timestamps for visual combat progress; it never writes that projection into authoritative stores.
 - Added deterministic frontend regressions covering old Character HTTP after realtime, old Inventory HTTP after realtime, older realtime snapshots, newer realtime snapshots, and the battle-resolved -> searching -> next-update inventory progression. The focused suite passes 4/4.
 - Extended apps/api/test-battle-gateway.js to assert the new authoritative battle:resolved snapshot and the post-resolution queue advance. This live smoke could not run in this session because no local API was listening at http://localhost:3010.
 - Verification: shared build passed; API build passed; frontend build passed with existing non-blocking CSS budget warnings; focused realtime frontend tests passed 4/4; full frontend suite had 6/7 passing with only the pre-existing AppComponent should render title assertion failing; OpenSpec strict validation passed; git diff --check passed.
 - No production deployment performed.
+
+
+### Latest follow-up — Final grind synchronization cleanup / failure-mode documentation (2026-10-01)
+
+The Character/Inventory synchronization fix is now finalized. The important implementation detail is that there are **two different responsibilities** in the frontend and they must not be conflated:
+
+- `CharacterStore` / `InventoryStore` are the authoritative persisted-resource state. `Character.stateVersion` is the server revision. Stores reject stale HTTP responses using request sequence + realtime generation, and reject realtime snapshots at an equal/older revision.
+- During an actually ACTIVE battle, `CharacterSummary` still needs a visual HP/SP projection so the bars/totals follow the precomputed battle log tick-by-tick. `BattleStore.currentBattleCharacterResources()` provides that read-only projection. It does not mutate CharacterStore and is immediately abandoned once the battle is no longer ACTIVE.
+- Inventory quantities never use a battle-log projection. They come from `InventoryStore` only.
+
+#### Traps found during the investigation
+
+1. **`loadSeq` is not causal synchronization.** It only orders HTTP responses within a store. An HTTP request that started before a realtime update can still arrive after it; without a realtime generation/revision barrier, the old payload can overwrite the new state.
+2. **Removing the active-battle projection completely freezes the Character Panel.** The server persists HP/SP at battle resolution; it does not stream every combat tick as Character state. Therefore active-battle visual HP/SP must remain a presentation projection, while the persisted store stays authoritative for transitions/search/Town.
+3. **`battle:resolved` and `battle:queueUpdated` do not have a guaranteed delivery order.** They are published through separate Redis pub/sub channels and forwarded independently by the gateway. `queueUpdated` can therefore put the client into SEARCHING before `battle:resolved` arrives. The final fix attaches the same Character + Inventory snapshot and `stateRevision` to the post-resolution `battle:queueUpdated`, so either event safely converges the client.
+4. **The revision must represent the complete post-resolution resource state.** Inventory drops/consumption are applied separately from Character persistence. The resolver therefore saves Character again after inventory mutations before publishing the final snapshot, advancing `stateVersion` only after the combined Character + Inventory state is ready to expose.
+5. **TypeORM `VersionColumn` + schema synchronization needs an explicit default on an existing table.** Adding a non-null version column without `DEFAULT 1` caused API startup to fail because existing `characters` rows contained NULL. The entity and migration now both initialize `stateVersion` to `1`.
+6. **`GET /inventory` needed its revision metadata.** Returning only the item array left the client unable to determine whether an HTTP inventory response belonged to an older Character state. It now returns `{ items, stateVersion }`.
+
+#### Final realtime contract
+
+`battle:resolved` carries `entryId`, reward data, `stateRevision`, full `characterAfter`, and complete `inventoryAfter`. The **post-resolution** `battle:queueUpdated` carries the same snapshot and revision plus the new queue. Ordinary queue updates (for example initial map entry) may still contain only `entries`.
+
+This intentionally duplicates a small amount of realtime payload data. The duplication is a correctness boundary: Redis pub/sub channel order is not treated as an application-level causal guarantee.
+
+#### Cleanup performed
+
+- Kept the causal revision/generation guards because they solve the HTTP-vs-realtime race and future stale realtime payloads.
+- Kept the active-battle HP/SP projection because removing it caused the verified frozen-panel regression.
+- Removed an unused `Character` parameter from the battle-resolved publisher and consolidated the authoritative snapshot construction into one backend helper instead of maintaining two nearly identical readers.
+- Renamed the BattleStore helper from `currentBattleCharacterHp` to `currentBattleCharacterResources` because it supplies both HP and SP.
+- Updated SPEC.md, openspec/specs/SPEC.md, ARCHITECTURE.md, and the active OpenSpec change to describe the final contract instead of the failed intermediate model.
+
+#### Final verification
+
+- Focused frontend realtime suite: **5/5 passed** in Chrome Headless, including the regression where `battle:queueUpdated` arrives before the authoritative resolution snapshot.
+- Frontend production build: passed; existing component CSS budget warnings remain non-blocking.
+- API production build: passed.
+- OpenSpec strict validation: passed.
+- `git diff --check`: passed.
+- No production deployment performed.
+- Live API gateway smoke remained unavailable because no local API was listening on `http://localhost:3010`.

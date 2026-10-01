@@ -9,7 +9,7 @@ The previous loadSeq change only orders concurrent HTTP responses within each st
 **Goals:**
 - Make post-resolution Character and Inventory one coherent server snapshot.
 - Establish causal ordering between HTTP refreshes and realtime snapshots.
-- Remove battle-state projections from resource presentation.
+- Prevent battle-state projections from becoming authoritative resource state; retain the existing active-battle display projection as presentation-only UI.
 - Preserve the existing server-authoritative battle engine and Socket.IO transport.
 
 **Non-Goals:**

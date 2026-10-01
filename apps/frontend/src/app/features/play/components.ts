@@ -15,8 +15,8 @@ export class CharacterSummary implements OnDestroy {
  private readonly townTimer=setInterval(()=>{const c=this.character.character();if(c?.status==='town'&&Date.parse(c.lastSeenAt)+10000<=Date.now())void this.character.load()},1000);
  slots=[{key:'head',label:'Head',icon:'/assets/ui/helmet.svg'},{key:'body',label:'Body',icon:'/assets/ui/armor.svg'},{key:'mainHand',label:'Weapon',icon:'/assets/ui/sword.svg'},{key:'offHand',label:'Shield',icon:'/assets/ui/shield.svg'},{key:'shoes',label:'Shoes',icon:'/assets/ui/boots.svg'},{key:'cape',label:'Cape',icon:'/assets/ui/cape.svg'},{key:'accessoryLeft',label:'Ring',icon:'/assets/ui/ring.svg'},{key:'accessoryRight',label:'Ring',icon:'/assets/ui/ring.svg'}];equipmentPredicates=Object.fromEntries(this.slots.map(s=>[s.key,(drag:CdkDrag)=>this.canEnterEquipmentSlot(s.key,drag)]));
  initial(){return (this.character.character()?.name||'?').slice(0,1).toUpperCase()}
- displayHp(){const now=this.battleDisplayNow();const projected=this.battle.currentBattleCharacterHp(now);return projected?.hp??this.character.character()?.hpCurrent??null}
- displaySp(){const now=this.battleDisplayNow();const projected=this.battle.currentBattleCharacterHp(now);return projected?.sp??this.character.character()?.spCurrent??null}
+ displayHp(){const now=this.battleDisplayNow();const projected=this.battle.currentBattleCharacterResources(now);return projected?.hp??this.character.character()?.hpCurrent??null}
+ displaySp(){const now=this.battleDisplayNow();const projected=this.battle.currentBattleCharacterResources(now);return projected?.sp??this.character.character()?.spCurrent??null}
  hpPct(){const c=this.character.character();const hp=this.displayHp();return c?.maxHp&&hp!==null?Math.max(0,Math.min(100,hp/c.maxHp*100)):0}
  spPct(){const c=this.character.character();const sp=this.displaySp();return c?.maxSp&&sp!==null?Math.max(0,Math.min(100,sp/c.maxSp*100)):0}
  statusLabel(){const s=this.character.character()?.status;return s==='grinding'?'Grinding':s==='dead_pending_return'?'Dead — return pending':'In Town'}

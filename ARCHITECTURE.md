@@ -75,7 +75,7 @@ outcome = simulateBattle(character, monster, gambit, rng)
 | **Validation** | class-validator | Decorators, recursive validation, DTO synergy |
 | **Job Queue** | BullMQ | Redis-backed, reliable, great for timed events |
 
-### Frontend: Angular 18+ (Planned)
+### Frontend: Angular 18+
 
 | Component | Choice | Rationale |
 |-----------|--------|-----------|
@@ -188,8 +188,20 @@ entry.resolved = true
 if queue.length < 5:
   queueBattles(character)
 
-// Broadcast
-emit 'battleResolved' to user's socket
+// Broadcast authoritative resource state
+emit 'battle:resolved' {
+  entryId,
+  outcome,
+  xpGain,
+  goldGain,
+  drops,
+  stateRevision,
+  characterAfter,
+  inventoryAfter,
+}
+// After queue advance/rebuild, publish the same Character + Inventory snapshot
+// and stateRevision on battle:queueUpdated. The two Redis channels may arrive
+// in either order at the browser, so delivery order is never treated as causal.
 ```
 
 ### 4. **Gambit Evaluation** (During simulateBattle)
@@ -205,6 +217,28 @@ for each tick:
   if defender.attackGauge >= 100:
     // Same as above
 ```
+
+---
+
+## Authoritative Resource Synchronization
+
+Character HP/SP and Inventory quantities have two distinct frontend concerns:
+
+- **Authoritative state:** `CharacterStore` and `InventoryStore` hold the latest persisted server state. Battle resolution publishes a complete Character + Inventory snapshot with the Character `stateVersion` as the monotonic revision.
+- **Active-battle presentation:** while an encounter is actually ACTIVE, `CharacterSummary` may derive a temporary display value from the queued battle's immutable log events and its `startAt`/`endAt` timestamps. This is animation/presentation only; it never mutates either store or the server. As soon as the battle is no longer ACTIVE, the display falls back to the authoritative store state.
+
+### Causal ordering
+
+The HTTP and realtime paths are intentionally guarded independently:
+
+1. `CharacterStore` and `InventoryStore` retain a request sequence and a realtime generation. An HTTP response that belongs to an obsolete request or was in flight when a newer realtime snapshot was accepted is discarded.
+2. Both stores retain the latest accepted `stateVersion` and ignore realtime snapshots with an equal or older revision.
+3. `GET /inventory` returns `{ items, stateVersion }`, so InventoryStore can compare an HTTP snapshot against the same Character revision used by battle realtime updates.
+4. After battle resolution, **both** `battle:resolved` and the immediately following `battle:queueUpdated` carry the same authoritative Character + Inventory snapshot and revision. They use independent Redis pub/sub channels, so the duplicate snapshot is deliberate: Socket/Redis delivery order is not treated as a causal guarantee.
+
+### Important boundary
+
+`battle:queueUpdated` emitted during normal queue generation (for example on map entry) may contain only the queue. The authoritative snapshot fields are attached specifically to the post-resolution queue update. This keeps the queue contract backward-compatible for other producers while closing the resolution → encounter-search race.
 
 ---
 
@@ -349,6 +383,6 @@ for each tick:
 
 ---
 
-**Last Updated:** September 25, 2026
-**Architecture Version:** 1.0
-**Status:** Stable (MVP ready for backend completion)
+**Last Updated:** October 1, 2026
+**Architecture Version:** 1.1
+**Status:** Active MVP implementation
