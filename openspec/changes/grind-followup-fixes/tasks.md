@@ -21,3 +21,4 @@
 
 - [x] Return authoritative Character state from `/maps/leave` and apply it immediately in the frontend.
 - [x] Poll authoritative Character state for deferred Town return so Town does not depend solely on `battle:resolved`.
+- [x] End Grind and transition to Town authoritatively when food expires during a resolved battle.

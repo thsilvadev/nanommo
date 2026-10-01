@@ -325,10 +325,19 @@ export class BattleService {
     projectFoodFromQueue(currentQueue);
     projectedFoodExpiresAt = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
     if (!projectedFoodExpiresAt || projectedFoodExpiresAt <= Date.now()) {
-      if (currentQueue.length === 0) {
+      const activeBattle = currentQueue.find(
+        (entry) => Date.parse(entry.startAt.toString()) <= Date.now() &&
+          Date.now() < Date.parse(entry.endAt.toString()),
+      );
+      if (!activeBattle) {
         character.currentMapId = null as any;
         character.status = 'town';
+        character.returnToTownAfterBattle = false;
+        character.lastSeenAt = new Date();
         await this.characterRepo.save(character);
+        await this.discardUnresolvedBattles(characterId);
+        if (publishQueueEvent) await this.safePublishQueueUpdated(characterId, []);
+        return [];
       }
       return currentQueue;
     }
@@ -693,10 +702,13 @@ export class BattleService {
     await this.battleQueueRepo.save(battle);
 
     const returningToTown = character.returnToTownAfterBattle;
-    if (returningToTown) {
-      // The player requested Town while this battle was running. Finish this
-      // battle, apply its rewards, then transition to Town before publishing
-      // battle:resolved so the realtime character patch is authoritative too.
+    const foodExpiresAt = character.activeFoodBuff?.expiresAt
+      ? new Date(character.activeFoodBuff.expiresAt).getTime()
+      : 0;
+    const hungryAfterBattle = !foodExpiresAt || foodExpiresAt <= Date.now();
+    if (returningToTown || hungryAfterBattle) {
+      // Town return and food exhaustion both end the current grind cleanly.
+      // The current battle is already resolved, so no unresolved encounter may remain.
       character.returnToTownAfterBattle = false;
       character.currentMapId = null as any;
       character.status = 'town';

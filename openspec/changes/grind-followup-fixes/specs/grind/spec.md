@@ -73,3 +73,15 @@ The map-leave response SHALL include the authoritative character status and map 
 #### Scenario: Deferred Town response without socket delivery
 - **WHEN** a Town request is deferred because a battle is active and the resolution websocket event is delayed or missed
 - **THEN** the client observes authoritative Character state until `town` and then renders the Town panel
+
+
+### Requirement: Food exhaustion exits Grind
+When the character's active food buff expires or is absent at the end of a resolved Grind battle, the server SHALL transition the character to Town and SHALL discard unresolved Grind battles before publishing the next queue state.
+
+#### Scenario: Food expires during battle
+- **WHEN** the active battle resolves after the food buff has expired
+- **THEN** the character is moved to Town, unresolved Grind encounters are discarded, and no limbo queue state is published
+
+#### Scenario: Food already expired while queue is being rebuilt
+- **WHEN** queue creation finds no active battle and no valid food buff
+- **THEN** the character is moved to Town and the queue is empty

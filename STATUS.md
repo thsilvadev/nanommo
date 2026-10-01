@@ -928,3 +928,11 @@ Verification: API build passed; frontend build passed with existing non-blocking
 - The Town control is idempotent for an already mapless character and locally converges to Town before refreshing battle state.
 
 Verification pending final API/frontend builds and OpenSpec validation. No production deployment.
+
+
+### Latest follow-up — Food exhaustion / Town invariant (2026-10-01)
+
+- Restored the original Grind invariant for hunger: when a battle resolves without a valid active food buff, the authoritative server moves the character to Town, discards unresolved Grind encounters, and publishes an empty Town queue state.
+- Queue reconstruction now also repairs a no-food/non-active-battle state by moving the character to Town instead of leaving `status=grinding` with no meaningful encounter.
+
+Verification: final API/frontend builds and OpenSpec validation passed; no production deployment.
