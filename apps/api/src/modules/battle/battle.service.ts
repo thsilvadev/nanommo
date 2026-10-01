@@ -31,21 +31,23 @@ export function calculateEncounterSearchDelayMs(otherPlayers: number): number {
   return 2000 + Math.max(0, Math.floor(otherPlayers)) * 100;
 }
 
-export function applySingleLevelXpResolution(
+export function applyLevelXpResolution(
   currentXp: number,
   currentLevel: number,
   xpGain: number,
-  xpToNextLevel: number,
+  getXpToNextLevel: (level: number) => number,
 ): { xp: number; level: number; levelsGained: number } {
   let xp = Math.max(0, Number(currentXp) || 0) + Math.max(0, Number(xpGain) || 0);
   let level = Math.max(1, Number(currentLevel) || 1);
-  const threshold = Math.max(0, Number(xpToNextLevel) || 0);
-  if (threshold > 0 && xp >= threshold) {
+  let levelsGained = 0;
+  while (level < 99) {
+    const threshold = Math.max(0, Number(getXpToNextLevel(level)) || 0);
+    if (threshold <= 0 || xp < threshold) break;
     xp -= threshold;
     level += 1;
-    return { xp, level, levelsGained: 1 };
+    levelsGained += 1;
   }
-  return { xp, level, levelsGained: 0 };
+  return { xp, level, levelsGained };
 }
 
 @Injectable()
@@ -153,8 +155,32 @@ export class BattleService {
   }
 
   /**
+   * The DB-backed half of a combatant snapshot: equipment stats, weapon
+   * proficiency and the resulting skill set.
+   *
+   * Split out from `buildCharacterSnapshot()` because it is the only part that
+   * touches the database, and it does not change across a simulated chain - the
+   * whole batch fights with one loadout. `queueBattles()` therefore loads it once
+   * and reuses it for every battle, instead of re-querying equipment and
+   * proficiency per battle (SPEC §9.1).
+   */
+  private async loadCombatantLoadout(characterId: string): Promise<{
+    equipmentStats: Awaited<ReturnType<EquipmentService['calculateEquipmentStats']>>;
+    skills: Record<string, any>;
+    skillDefs: Record<string, any>;
+    weaponTypes: string[];
+  }> {
+    const equipmentStats = await this.equipmentService.calculateEquipmentStats(characterId);
+    const { skills, skillDefs, weaponTypes } = await this.buildSkillAvailability(characterId);
+    return { equipmentStats, skills, skillDefs, weaponTypes };
+  }
+
+  /**
    * Build the real combatant snapshot handed to BattleEngine.simulateBattle().
    * Equipment bonuses, weapon proficiency and live inventory are all included.
+   *
+   * `loadout` is the pre-loaded result of `loadCombatantLoadout()`. Omit it only
+   * for a one-off snapshot (it is then loaded here); pass it when building a chain.
    */
   async buildCharacterSnapshot(
     character: Character,
@@ -162,9 +188,10 @@ export class BattleService {
     sp: number,
     atTime: number = Date.now(),
     foodOverride: any = character.activeFoodBuff,
+    loadout?: Awaited<ReturnType<BattleService['loadCombatantLoadout']>>,
   ): Promise<CombatantSnapshot> {
-    const equipmentStats = await this.equipmentService.calculateEquipmentStats(character.id);
-    const { skills, skillDefs, weaponTypes } = await this.buildSkillAvailability(character.id);
+    const { equipmentStats, skills, skillDefs, weaponTypes } =
+      loadout ?? (await this.loadCombatantLoadout(character.id));
 
     const derived = BattleEngine.calculateDerivedStats(
       character.level,
@@ -343,6 +370,12 @@ export class BattleService {
     const otherPlayers = Math.max(0, mapPlayers - 1);
     const encounterSearchMs = calculateEncounterSearchDelayMs(otherPlayers);
 
+    // One loadout read for the whole batch: equipment and proficiency cannot
+    // change between the chained battles, so re-reading them per battle would
+    // multiply identical queries without changing any simulated result.
+    const loadout = await this.loadCombatantLoadout(characterId);
+    const weaponBaseAttackTicks = this.getWeaponBaseAttackTicks(loadout.weaponTypes);
+
     for (let i = 0; i < battlesToAdd; i++) {
       if (!projectedFoodExpiresAt || projectedFoodExpiresAt <= nextStartTime.getTime()) {
         break;
@@ -358,7 +391,14 @@ export class BattleService {
       const monster = rngForIndex(encounterSeed, killIndex).weightedPick(monsters);
       const monsterId = monster.id;
 
-      const snapshot = await this.buildCharacterSnapshot(character, chainHp, chainSp, nextStartTime.getTime(), projectedFoodBuff);
+      const snapshot = await this.buildCharacterSnapshot(
+        character,
+        chainHp,
+        chainSp,
+        nextStartTime.getTime(),
+        projectedFoodBuff,
+        loadout,
+      );
       const regenAnchor = character.regenAnchorAt?.getTime?.() ?? Date.now();
       const fromTick = Math.max(0, Math.floor((chainTimelineMs - regenAnchor) / MS_PER_TICK));
       const toTick = Math.max(0, Math.floor((nextStartTime.getTime() - regenAnchor) / MS_PER_TICK));
@@ -396,9 +436,7 @@ export class BattleService {
         itemDefinitions,
         monsterSkillDefs,
         regenTickOffset,
-        weaponBaseAttackTicks: this.getWeaponBaseAttackTicks(
-          (snapshot as any).equippedWeaponTypes ?? [],
-        ),
+        weaponBaseAttackTicks,
       });
 
       chainHp = simulation.hpAfter;
@@ -569,12 +607,13 @@ export class BattleService {
     character.hpCurrent = Math.max(1, battle.hpAfter);
     character.spCurrent = Math.max(0, battle.spAfter);
 
-    // --- level ups: one XP resolution can advance at most one level.
-    const xpResolution = applySingleLevelXpResolution(
+    // --- level ups: consume every crossed threshold; the reduced Grind XP rate
+    // is the pacing control, so a single resolution is allowed to advance multiple levels.
+    const xpResolution = applyLevelXpResolution(
       0,
       character.level,
       character.xp,
-      this.dataService.getXpToNextLevel(character.level),
+      (level) => this.dataService.getXpToNextLevel(level),
     );
     character.xp = xpResolution.xp;
     character.level = xpResolution.level;
@@ -750,7 +789,7 @@ export class BattleService {
       }
     }
 
-    await this.resetEncounterSequenceAfterDeath(character.id, battle.mapId);
+    await this.resetEncounterSequence(character.id, battle.mapId, 'death');
 
     this.logger.log(
       `Character ${character.id} died to ${battle.monsterId}; ` +
@@ -763,6 +802,18 @@ export class BattleService {
   async publishQueueUpdated(characterId: string): Promise<void> {
     const entries = await this.getBattleQueue(characterId, 5);
     await this.safePublishQueueUpdated(characterId, entries);
+  }
+
+  async cancelPendingBattlesAfter(characterId: string, activeBattleId: string): Promise<void> {
+    const pending = await this.battleQueueRepo.find({
+      where: { characterId, resolved: false },
+    });
+    const future = pending.filter((entry) => entry.id !== activeBattleId);
+    if (!future.length) return;
+    await this.battleQueueRepo.delete({ id: In(future.map((entry) => entry.id)) });
+    for (const entry of future) {
+      await this.bullQueue.getJob(entry.id).then((job) => job?.remove()).catch(() => undefined);
+    }
   }
 
   async cancelPendingBattles(characterId: string): Promise<void> {
@@ -883,19 +934,22 @@ export class BattleService {
   }
 
   /**
-   * A death restarts the encounter sequence for that map (SPEC §11.2).
+   * Leaving the map restarts its encounter sequence (SPEC §11.2) - the same
+   * effect a death has, so walking back in never replays the run that just ended.
    *
-   * A loss never advances `mapKillCount` (that only happens on a resolved kill),
-   * so without this the character re-entering the map would be handed the exact
-   * same stream from the exact same index - the killer included - for as long as
-   * it keeps dying there. Rolling `epoch` re-derives a fresh sequence through
-   * the same deterministic mechanism the 10,000-kill rollover already uses, so
-   * §11.2 keeps its shape: same (seed, index) -> same monster, new seed now.
+   * A death is the motivating case: a loss never advances `mapKillCount` (that
+   * only happens on a resolved kill), so without a reset the character re-entering
+   * the map would be handed the exact same stream from the exact same index - the
+   * killer included - for as long as it keeps dying there. Rolling `epoch`
+   * re-derives a fresh sequence through the same deterministic mechanism the
+   * 10,000-kill rollover already uses, so §11.2 keeps its shape: same (seed, index)
+   * -> same monster, new seed now.
    *
-   * The monster is redrawn by the map's weights, so the killer can still come up
-   * again - just not pinned, and never as the forced first encounter of a re-entry.
+   * The monster is redrawn by the map's weights, so any previous opponent can
+   * still come up again - just not pinned, and never as the forced first
+   * encounter of a re-entry.
    */
-  private async resetEncounterSequenceAfterDeath(characterId: string, mapId: string): Promise<void> {
+  async resetEncounterSequence(characterId: string, mapId: string, reason: string): Promise<void> {
     const counter = await this.getOrCreateKillCounter(characterId, mapId);
 
     counter.epoch = Number(counter.epoch ?? 0) + 1;
@@ -905,7 +959,7 @@ export class BattleService {
     await this.mapKillCounterRepo.save(counter);
 
     this.logger.log(
-      `MapKillCounter reset after death for ${characterId}/${mapId} -> epoch ${counter.epoch}`,
+      `MapKillCounter reset (${reason}) for ${characterId}/${mapId} -> epoch ${counter.epoch}`,
     );
   }
 
@@ -914,48 +968,5 @@ export class BattleService {
    */
   async getKillCounter(characterId: string, mapId: string): Promise<MapKillCounter | null> {
     return this.mapKillCounterRepo.findOne({ where: { characterId, mapId } });
-  }
-
-  /**
-   * SPEC §3.4 + §6.3: a level-up invalidates the battle queue.
-   *
-   * Every remaining unresolved entry in the chain was simulated against the
-   * character's pre-level-up stats (old maxHp/maxSp/atk/def...), so they are
-   * garbage. Delete them and rebuild the queue from the current character state
-   * back up to the target depth.
-   *
-   * This is the ONLY level-up code path that requeues — the §7.5 boot recovery
-   * pass and the BullMQ processor both call `resolveBattle()` and then rely on
-   * this single hook instead of each caller duplicating the requeue logic.
-   */
-  private async requeueBattlesAfterLevelUp(characterId: string): Promise<void> {
-    const remaining = await this.battleQueueRepo.find({
-      where: { characterId, resolved: false },
-    });
-
-    if (remaining.length === 0) return;
-
-    this.logger.log(
-      `Level-up invalidated ${remaining.length} queued battle(s) for ${characterId} ` +
-        `— discarding and rebuilding from new stats`,
-    );
-
-    for (const entry of remaining) {
-      try {
-        await this.bullQueue
-          .getJob(entry.id)
-          .then((job) => job?.remove())
-          .catch(() => undefined);
-      } catch {
-        // BullMQ job removal is best-effort: a pending job whose row is deleted
-        // is a clean discard (see battle-queue.processor.ts), not a retry.
-      }
-    }
-
-    await this.battleQueueRepo.delete({ id: In(remaining.map((b) => b.id)) });
-
-    // Rebuild with the character's CURRENT (post-level-up) stats. queueBattles()
-    // loads the live character row, so it picks up the new level/maxHp/maxSp.
-    await this.queueBattles(characterId, this.QUEUE_DEPTH_TARGET, false);
   }
 }

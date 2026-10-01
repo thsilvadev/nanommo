@@ -456,7 +456,7 @@ Sanity checkpoints from the generated table (assumptions above): level 60 reache
 
 The ratio is taken between two `maxHp`/`maxSp` values, so **both ends must be derived from the same state the battles were simulated against** — the character's attributes *including* equipment `statBonus` (§5.2), with the character's real `def`/`mdefPercent`/weapon ATK as the third argument of `calculateDerivedStats`. Deriving the ratio from bare attributes instead scales an equipped character by the wrong factor (a level-1 character in tier-1 armour, VIT 5 → 26, would be scaled by 176/158 = 1.114 instead of 428/410 = 1.044, and the result would then be clamped against the wrong maximum). Implemented in `battle.service.ts:453-484`; verified by the equipped-character level-up scenario in `apps/api/test-phase3-levelup.js`.
 
-A single XP resolution SHALL increase the character by **at most one level**. If the awarded XP crosses additional thresholds, only the current level's threshold is consumed; excess XP remains stored toward the next level. This is enforced server-side in the authoritative resolver.
+A single XP resolution SHALL consume every XP threshold crossed by the awarded XP, allowing multiple level gains when enough XP is awarded. Each crossed threshold is consumed in order and excess XP remains stored toward the next level. The reduced Grind XP rate is the pacing control. This is enforced server-side in the authoritative resolver.
 
 ### 6.4 XP loss on death
 
@@ -539,7 +539,7 @@ On the `BattleQueueEntry` whose `outcome = 'loss'`:
 - XP loss per §6.4 applied
 - `Character.lastDeathLog` is **overwritten** with this battle's full log (§7.7) — only the single most recent death is ever kept, per spec
 - Any remaining not-yet-resolved queue entries after this one are deleted (they were never valid — they assumed the character survived)
-- The map's `MapKillCounter` rolls its `epoch` forward and resets `mapKillCount`/`perMonsterKillCount` (§11.2), so re-entering the map draws a **fresh** encounter sequence. A loss never advances `mapKillCount`, so without this the character would be replayed the same stream from the same index — the killer included — on every single re-entry.
+- Leaving the map — by death or by walking back to Town — rolls that map's `MapKillCounter` `epoch` forward and resets `mapKillCount`/`perMonsterKillCount` (§11.2), so every re-entry draws a **fresh** encounter sequence instead of replaying the run that just ended. A loss never advances `mapKillCount`, so without this a character that keeps dying on the same map would be handed the same stream from the same index — the killer included — on every single re-entry.
 - Frontend is notified via `characterDied` socket event so it can route the player to the Town view and surface the "last death" button/modal
 
 ### 7.7 Battle log format
@@ -718,7 +718,7 @@ nextDrops(monsterId, perMonsterKillCount[monsterId]) =
 
 This is **mathematically identical** in outcome and reproducibility to a pre-generated 10,000-length array (same determinism, same "pre-calculated luck" feel, fully replayable for debugging), but costs two integers per `(character, map)` row in Postgres instead of megabytes of JSON per character. `mulberry32` (or `xoshiro128**`) must be implemented once in `packages/shared/battle-engine/prng.ts` and used **everywhere** randomness is needed in this game (drops, monster selection, hit/crit rolls, equipment attribute rolls) — never `Math.random()` anywhere in deterministic code paths.
 
-- **Epoch rollover:** when `mapKillCount` (or a given monster's `perMonsterKillCount`) reaches **10,000**, increment `epoch` and reset the relevant counter(s) to 0. Because the seed incorporates `epoch`, this "feels" like a fresh 10,000-length sequence without ever materializing one, and — as originally intended — it happens for free, with zero precomputation lag, since nothing was ever stored to begin with. A death is the second trigger: it rolls `epoch` forward and resets both counters (§7.6), so a character walking back into a map that killed it is never replayed the same encounter stream.
+- **Epoch rollover:** when `mapKillCount` (or a given monster's `perMonsterKillCount`) reaches **10,000**, increment `epoch` and reset the relevant counter(s) to 0. Because the seed incorporates `epoch`, this "feels" like a fresh 10,000-length sequence without ever materializing one, and — as originally intended — it happens for free, with zero precomputation lag, since nothing was ever stored to begin with. Leaving the map is the second trigger — a death and a plain walk back to Town both roll `epoch` forward and reset both counters (§7.6) — so re-entering a map never replays the encounter stream that just ended.
 
 ### 11.3 Monster archetype matchups
 

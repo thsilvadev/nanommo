@@ -2,6 +2,17 @@ node_modules/
 dist/
 build/
 *.log
+
+# TypeScript emit that landed next to the sources. The api/shared tsconfigs
+# build to dist/; these were stale committed copies of an older emit and were
+# shadowing the real .ts files for anyone reading the tree.
+apps/api/src/**/*.d.ts
+apps/api/src/**/*.d.ts.map
+apps/api/src/**/*.js.map
+packages/shared/src/**/*.d.ts
+packages/shared/src/**/*.d.ts.map
+packages/shared/src/**/*.js.map
+packages/shared/src/**/*.js
 .env
 .env.local
 .DS_Store

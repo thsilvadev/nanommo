@@ -1,12 +1,12 @@
 const assert = require('node:assert/strict');
-const { applySingleLevelXpResolution } = require('./dist/apps/api/src/modules/battle/battle.service');
+const { applyLevelXpResolution } = require('./dist/apps/api/src/modules/battle/battle.service');
 const shared = require('../../packages/shared/dist/battle-engine/index.js');
 const rewards = require('../../packages/shared/dist/battle-engine/rewards.js');
 
-const xp = applySingleLevelXpResolution(16, 1, 40, 17);
-assert.equal(xp.level, 2);
-assert.equal(xp.levelsGained, 1);
-assert.equal(xp.xp, 39);
+const xp = applyLevelXpResolution(16, 1, 40, (level) => ({ 1: 17, 2: 30, 3: 45 }[level] ?? 999));
+assert.equal(xp.level, 3);
+assert.equal(xp.levelsGained, 2);
+assert.equal(xp.xp, 9);
 
 assert.equal(rewards.resolveXpGain({ xpReward: 18 }, 'win'), 4);
 assert.equal(rewards.resolveGoldGain({ goldReward: { min: 100, max: 100 } }, new shared.Mulberry32('gold-test')), 0);

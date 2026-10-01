@@ -76,11 +76,11 @@ When the existing combat engine produces a critical hit, the authoritative battl
 - **THEN** the persisted battle log retains the critical fact and the UI displays it in the existing log format.
 
 ### Requirement: Progression and rewards
-Monster rewards SHALL follow the corrected Grind progression contract: XP rate/configuration is deliberately reduced, a single XP resolution can increase level by at most one, and monsters provide no gold reward.
+Monster rewards SHALL follow the corrected Grind progression contract: XP rate/configuration is deliberately reduced, a single XP resolution can cross multiple level thresholds when enough XP is awarded, and monsters provide no gold reward.
 
 #### Scenario: Large XP resolution
 - **WHEN** one battle resolution grants enough XP to cross multiple thresholds
-- **THEN** that resolution increases the character by at most one level and preserves the remaining XP according to the existing representation.
+- **THEN** that resolution consumes every crossed level threshold in order, allowing multiple level gains and preserving any remaining XP according to the existing representation.
 
 #### Scenario: Monster gold
 - **WHEN** a monster battle resolves successfully

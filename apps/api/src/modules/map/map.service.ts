@@ -90,13 +90,31 @@ export class MapService {
       where: { id: characterId },
     });
     if (!character) throw new NotFoundException('Character not found');
+    const mapId = character.currentMapId;
+    const activeBattle = (await this.battleService.getBattleQueue(characterId, 100))
+      .find((entry) => Date.parse(entry.startAt.toString()) <= Date.now() &&
+        Date.now() < Date.parse(entry.endAt.toString()));
+
+    // If a battle is already running, keep that battle authoritative but mark the
+    // character as Town immediately and discard only future queued battles. This
+    // prevents the queue from starting another encounter before the requested Town
+    // return is finalized.
+    if (activeBattle) {
+      await this.battleService.cancelPendingBattlesAfter(characterId, activeBattle.id);
+    }
 
     // null, not undefined: TypeORM skips undefined columns on save
     character.currentMapId = null as any;
     character.status = 'town';
     character.lastSeenAt = new Date();
     await this.characterRepo.save(character);
-    await this.battleService.cancelPendingBattles(characterId);
+    if (!activeBattle) await this.battleService.cancelPendingBattles(characterId);
+
+    // Coming back must not replay the run that just ended: the map's encounter
+    // sequence is rolled over here exactly as it is on a death (SPEC §11.2).
+    if (mapId) {
+      await this.battleService.resetEncounterSequence(characterId, mapId, 'left map');
+    }
 
     this.logger.debug(`Character ${characterId} left their map`);
   }

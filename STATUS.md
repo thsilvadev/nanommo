@@ -869,7 +869,7 @@ Implemented the OpenSpec change `grind-corrections-realtime-progression` (no pro
 - Monster gold rewards are disabled in the shared resolver and removed from `monsters.json`; Vendor gold remains unaffected.
 - New characters now receive 50 `pot_hp_small` and 5 Bread.
 - Bread is now configured as sellable through William's existing Vendor sell path (`sellPriceToVendor: 7`).
-- Monster XP uses the canonical catalog values with a global Grind payout multiplier of `0.25`; one XP resolution can increase level by at most +1 and excess XP remains stored.
+- Monster XP uses the canonical catalog values with a global Grind payout multiplier of `0.25`; one XP resolution consumes every crossed level threshold and excess XP remains stored.
 - Monster drop rates were deliberately doubled from 5%/1%/0.1%/0.01% to 10%/2%/0.2%/0.02%, preserving relative rarity. The deterministic chance implementation was reviewed; no probability multiplication/guarantee bug was found.
 - Added `Character.regenAnchorAt` and a migration. Battle simulation now uses the absolute character regen timeline, and queued encounter gaps preserve 10-tick boundaries instead of resetting regen per battle.
 
@@ -877,8 +877,16 @@ Implemented the OpenSpec change `grind-corrections-realtime-progression` (no pro
 - `pnpm --filter @nanommo/shared build`: passed after the final engine/reward changes.
 - `pnpm --filter @nanommo/api build`: passed.
 - `pnpm --filter frontend build`: passed; existing Angular style-budget warnings remain non-blocking.
-- `node apps/api/test-grind-corrections.js`: passed (XP rate, max +1 level, no monster gold, continuous regen boundary, critical log).
+- `node apps/api/test-grind-corrections.js`: passed (reduced XP rate, multi-level threshold resolution, no monster gold, continuous regen boundary, critical log).
 - `node apps/api/test-phase3-levelup.js`: attempted but local backend `http://localhost:3010` was not running, so the integration suite could not execute.
+
+### Latest follow-up — `grind-followup-fixes` (2026-10-01)
+
+Implemented the requested Grind corrections: item tooltips are now custom and instant, omit Tier and every field after it, and color Tier 2/3/4/5 names green/blue/purple/gold. Town return during an active battle is now authoritative on the server: future queued battles are cancelled, the active battle is allowed to finish, and the character is already in Town so no new battle can start. Inventory is refreshed on every authoritative queue-resolution websocket update, in addition to the existing `battle:resolved` refresh. XP resolution once again consumes every crossed threshold; the Grind `0.25` multiplier remains unchanged.
+
+OpenSpec change: `openspec/changes/grind-followup-fixes/`.
+
+Verification: frontend build passed; API build passed; `node apps/api/test-grind-corrections.js` passed; `openspec validate grind-followup-fixes --strict` passed; `git diff --check` passed. Live browser smoke and full local-stack integration remain pending because the backend stack was not running during this session.
 - `openspec validate grind-corrections-realtime-progression --strict`: passed in final verification.
 - `git diff --check`: passed in final verification.
 - No production deployment performed.
