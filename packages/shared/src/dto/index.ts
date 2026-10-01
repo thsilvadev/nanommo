@@ -73,6 +73,7 @@ export class CharacterDto {
   lastSeenAt!: Date;
   createdAt!: Date;
   updatedAt!: Date;
+  stateVersion!: number;
 }
 
 // Gambit DTOs

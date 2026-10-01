@@ -18,7 +18,10 @@ export class InventoryController {
   async getInventory(@Request() req: any) {
     const userId = req.user.userId;
     const character = await this.characterService.getCharacterByUserId(userId);
-    return this.inventoryService.getInventory(character.id);
+    return {
+      items: await this.inventoryService.getInventory(character.id),
+      stateVersion: character.stateVersion,
+    };
   }
 
   /**

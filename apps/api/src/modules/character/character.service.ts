@@ -185,6 +185,12 @@ export class CharacterService {
     return this.toDto(character);
   }
 
+  async getCharacterDtoById(characterId: string): Promise<CharacterDto | null> {
+    const character = await this.getCharacterById(characterId);
+    if (!character) return null;
+    return this.toDto(character);
+  }
+
   private async applyTownRegeneration(character: Character): Promise<void> {
     if (character.status !== 'town') return;
 
@@ -281,6 +287,7 @@ export class CharacterService {
       lastSeenAt: character.lastSeenAt,
       createdAt: character.createdAt,
       updatedAt: character.updatedAt,
+      stateVersion: character.stateVersion,
     };
   }
 }

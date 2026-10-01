@@ -8,15 +8,9 @@ export interface BattleResolvedPayload {
   xpGain: number;
   goldGain: number;
   drops: Array<{ itemId: string; quantity: number }>;
-  characterAfter: {
-    id: string;
-    level: number;
-    xp: number;
-    hpCurrent: number;
-    spCurrent: number;
-    gold: number;
-    status: string;
-  };
+  stateRevision: number;
+  characterAfter: any;
+  inventoryAfter: any[];
 }
 
 export interface CharacterLeveledUpPayload {

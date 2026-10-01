@@ -888,7 +888,7 @@ Namespace: `/game`. Auth via handshake (§15.2). Suggested rooms: `char:<charact
 | Event | Payload | Notes |
 |---|---|---|
 | `battle:queueUpdated` | `{ entries: BattleQueueEntry[] }` | sent on map:enter and whenever the queue is topped up |
-| `battle:resolved` | `{ entryId, outcome, xpGain, goldGain, drops, characterAfter: {...} }` | lightweight sync after each battle resolves server-side |
+| `battle:resolved` | `{ entryId, outcome, xpGain, goldGain, drops, stateRevision, characterAfter: CharacterDto, inventoryAfter: InventoryItem[] }` | authoritative Character + Inventory snapshot after each battle resolves server-side; `stateRevision` is the Character VersionColumn value |
 | `character:died` | `{ deathLog }` | triggers town routing + "last death" affordance client-side |
 | `character:leveledUp` | `{ newLevel, unspentAttributePoints }` | |
 | `chat:message` | `{ channel, username, message, sentAt }` | fanned out to the relevant room |
@@ -1268,3 +1268,5 @@ Load all seven at boot, validate their shape, and fail fast on mismatch (§18.2 
 ### Grind synchronization follow-up
 - A Town request made during an active battle is deferred server-side through Character.returnToTownAfterBattle; future queued battles are cancelled, the active battle resolves normally, then the character transitions to Town before any replacement battle is queued.
 - Frontend Character, Inventory, and Battle state loads must not allow an older HTTP response to overwrite newer authoritative state received through the realtime game channel.
+- Character HP/SP and Inventory quantities are rendered from their authoritative stores, never projected from battle logs or encounter-search presentation state.
+- `battle:resolved` carries Character and complete Inventory from the same server state revision. Realtime snapshots with an older or equal revision are ignored, and HTTP responses that were in flight across a newer realtime update are discarded.

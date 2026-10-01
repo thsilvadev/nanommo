@@ -91,6 +91,37 @@ async function main() {
   assert(queue.entries.every((entry) => entry.resolved === false), 'queueUpdated contains only unresolved entries');
   assert(queue.entries.every((entry) => entry.startAt && entry.endAt), 'queue entries contain server timing');
 
+  const resolvedPromise = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('battle:resolved not received within 90s')), 90000);
+    const handler = (payload) => {
+      clearTimeout(timer);
+      socket.off('battle:resolved', handler);
+      resolve(payload);
+    };
+    socket.on('battle:resolved', handler);
+  });
+
+  const nextQueuePromise = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('post-resolution battle:queueUpdated not received')), 90000);
+    const handler = (payload) => {
+      if (!Array.isArray(payload.entries) || payload.entries[0]?.id === queue.entries[0]?.id) return;
+      clearTimeout(timer);
+      socket.off('battle:queueUpdated', handler);
+      resolve(payload);
+    };
+    socket.on('battle:queueUpdated', handler);
+  });
+
+  const resolved = await resolvedPromise;
+  assert(Number.isInteger(resolved.stateRevision) && resolved.stateRevision > 0, 'battle:resolved contains a monotonic state revision');
+  assert(resolved.characterAfter?.stateVersion === resolved.stateRevision, 'Character snapshot and revision belong to the same authoritative state');
+  assert(Array.isArray(resolved.inventoryAfter), 'battle:resolved contains the complete authoritative inventory snapshot');
+  assert(resolved.characterAfter.hpCurrent !== undefined && resolved.characterAfter.spCurrent !== undefined, 'Character snapshot contains authoritative HP/SP');
+
+  const nextQueue = await nextQueuePromise;
+  assert(nextQueue.entries.length === 5, 'the queue is topped back to five after resolution');
+  assert(nextQueue.entries[0].id !== queue.entries[0].id, 'post-resolution queue advances instead of replaying the resolved entry');
+
   const leavePromise = new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('map:left not received')), 5000);
     socket.once('map:left', (payload) => {

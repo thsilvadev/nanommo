@@ -936,3 +936,14 @@ Verification pending final API/frontend builds and OpenSpec validation. No produ
 - Queue reconstruction now also repairs a no-food/non-active-battle state by moving the character to Town instead of leaving `status=grinding` with no meaningful encounter.
 
 Verification: final API/frontend builds and OpenSpec validation passed; no production deployment.
+
+### Latest follow-up — Authoritative Character/Inventory realtime synchronization (2026-10-01)
+
+- Root cause: the previous loadSeq/request-ordering strategy only ordered HTTP responses within a store. It did not establish causal ordering between an HTTP snapshot that began before a newer Socket.IO snapshot and the realtime snapshot itself. In parallel, the Character Panel and Inventory presentation still projected HP/SP and item quantities from battle-log timing/events, so entering the next battle.active() state could temporarily select an older snapshot.
+- The authoritative source is now the persisted Character state plus the complete Inventory snapshot emitted by battle:resolved. Character has a TypeORM VersionColumn (stateVersion) used as a monotonic server revision; the resolver saves Character after inventory/drop mutations and publishes Character + Inventory from that completed state.
+- Frontend CharacterStore and InventoryStore now maintain both a realtime revision and a realtime generation. HTTP loads capture the generation and are discarded if a newer realtime update arrives while they are in flight; snapshots with an older/equal server revision are ignored. Inventory REST reads also carry the Character state revision for stale-snapshot rejection.
+- Character Summary HP/SP and inventory quantity presentation no longer derive current values from battle.active(), battle logs, start/end timing, or search presentation. Battle logs remain presentation-only for combat visuals/event feed.
+- Added deterministic frontend regressions covering old Character HTTP after realtime, old Inventory HTTP after realtime, older realtime snapshots, newer realtime snapshots, and the battle-resolved -> searching -> next-update inventory progression. The focused suite passes 4/4.
+- Extended apps/api/test-battle-gateway.js to assert the new authoritative battle:resolved snapshot and the post-resolution queue advance. This live smoke could not run in this session because no local API was listening at http://localhost:3010.
+- Verification: shared build passed; API build passed; frontend build passed with existing non-blocking CSS budget warnings; focused realtime frontend tests passed 4/4; full frontend suite had 6/7 passing with only the pre-existing AppComponent should render title assertion failing; OpenSpec strict validation passed; git diff --check passed.
+- No production deployment performed.

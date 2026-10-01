@@ -695,6 +695,11 @@ export class BattleService {
       }
     }
 
+    // Inventory drops are part of the same authoritative post-resolution snapshot.
+    // Touch Character after all inventory mutations so its updatedAt can serve as the
+    // revision for the complete Character + Inventory state.
+    await this.characterRepo.save(character);
+
     // --- the kill actually happened: bump the counter (SPEC §11.2)
     const killCounter = await this.incrementKillCounter(character.id, battle.mapId, battle.monsterId);
 
@@ -863,22 +868,23 @@ export class BattleService {
     }
   }
 
-  private async safePublishBattleResolved(characterId: string, battle: BattleQueueEntry, character: Character): Promise<void> {
+  private async safePublishBattleResolved(characterId: string, battle: BattleQueueEntry, _character: Character): Promise<void> {
+    const characterRow = await this.characterRepo.findOne({ where: { id: characterId } });
+    const characterAfter = await this.characterService.getCharacterDtoById(characterId);
+    if (!characterRow || !characterAfter) {
+      this.logger.warn(`battle:resolved snapshot unavailable for ${characterId}`);
+      return;
+    }
+    const inventoryAfter = await this.inventoryService.getInventory(characterId);
     const payload: BattleResolvedPayload = {
       entryId: battle.id,
       outcome: battle.outcome,
       xpGain: Number(battle.xpGain ?? 0),
       goldGain: Number(battle.goldGain ?? 0),
       drops: battle.drops ?? [],
-      characterAfter: {
-        id: character.id,
-        level: character.level,
-        xp: Number(character.xp),
-        hpCurrent: character.hpCurrent,
-        spCurrent: character.spCurrent,
-        gold: Number(character.gold),
-        status: character.status,
-      },
+      stateRevision: characterRow.stateVersion,
+      characterAfter,
+      inventoryAfter,
     };
     try {
       await this.gatewayService.publishBattleResolved(characterId, payload);

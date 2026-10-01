@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Unique, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, VersionColumn, ManyToOne, JoinColumn, Unique, Index } from 'typeorm';
 import { User } from './user.entity';
 
 @Entity('characters')
@@ -94,4 +94,7 @@ export class Character {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @VersionColumn()
+  stateVersion!: number;
 }
