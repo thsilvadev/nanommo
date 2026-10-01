@@ -46,3 +46,18 @@ Character, Inventory, and Battle HTTP loads SHALL be ordered so an older respons
 #### Scenario: Battle-to-search HP state
 - **WHEN** a battle resolves and the next encounter is still in search
 - **THEN** the Character panel shows the resolved authoritative HP/SP rather than a stale pre-battle value
+
+
+### Requirement: No map limbo state
+A character with a current map and `grinding` status SHALL have an authoritative battle queue or an active transition that moves the character out of the map. A transient empty queue SHALL be self-healed by the queue read path.
+
+#### Scenario: Empty queue while grinding
+- **WHEN** the character is `grinding`, has a current map, and the authoritative queue is empty
+- **THEN** the server rebuilds the normal encounter queue instead of leaving the character in an idle grind state
+
+### Requirement: Idempotent Town request
+A valid Town request SHALL NOT fail because future battle cleanup races with the active battle. When an active battle exists, the server SHALL persist the Town-after-battle request before attempting queue cleanup; cleanup failure SHALL NOT reject the Town request.
+
+#### Scenario: Town request during cleanup race
+- **WHEN** the player requests Town during an active battle and future queue cleanup encounters a transient failure
+- **THEN** the request remains persisted, the active battle finishes, and the resolving battle transitions the character to Town

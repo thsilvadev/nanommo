@@ -15,3 +15,6 @@
 
 - [x] Remove equipment names and empty-slot labels from the Character quick equipment panel; keep item names only in tooltips with tier colors.
 - [x] Publish the authoritative Town status in `battle:resolved` after the deferred Town transition, preventing the right panel from entering a nonexistent no-queue state.
+
+- [x] Make Town requests idempotent even if future-queue cleanup races with battle resolution.
+- [x] Self-heal a transient empty battle queue while a character remains on a grinding map.

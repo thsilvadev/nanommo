@@ -86,7 +86,7 @@ export class MapService {
   /**
    * Leave current map
    */
-  async leaveMap(characterId: string): Promise<void> {
+  async leaveMap(characterId: string): Promise<{ deferred: boolean; battleId?: string }> {
     const character = await this.characterRepo.findOne({
       where: { id: characterId },
     });
@@ -101,12 +101,25 @@ export class MapService {
     // prevents the queue from starting another encounter before the requested Town
     // return is finalized.
     if (activeBattle) {
-      // Register the return request, but do not move the character to Town yet.
-      // The current battle remains authoritative and must resolve before Town is entered.
+      // Register the return request first. The active battle remains authoritative
+      // and must resolve before Town is entered.
       character.returnToTownAfterBattle = true;
-      await this.battleService.cancelPendingBattlesAfter(characterId, activeBattle.id);
       await this.characterRepo.save(character);
-      return;
+
+      // Cancelling future entries is an optimization/safety cleanup. The persistent
+      // flag is the authoritative guard, so a cleanup failure must never turn a
+      // valid Town request into a 500 response. The resolving battle will discard
+      // any entries that remain after it moves the character to Town.
+      try {
+        await this.battleService.cancelPendingBattlesAfter(characterId, activeBattle.id);
+      } catch (error) {
+        this.logger.warn(
+          `Could not cancel future battles for Town return ${characterId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+      return { deferred: true, battleId: activeBattle.id };
     }
 
     character.returnToTownAfterBattle = false;
@@ -115,7 +128,15 @@ export class MapService {
     character.status = 'town';
     character.lastSeenAt = new Date();
     await this.characterRepo.save(character);
-    await this.battleService.cancelPendingBattles(characterId);
+    try {
+      await this.battleService.cancelPendingBattles(characterId);
+    } catch (error) {
+      this.logger.warn(
+        `Could not cancel queued battles after immediate Town return ${characterId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
 
     // Coming back must not replay the run that just ended: the map's encounter
     // sequence is rolled over here exactly as it is on a death (SPEC §11.2).
@@ -124,6 +145,7 @@ export class MapService {
     }
 
     this.logger.debug(`Character ${characterId} left their map`);
+    return { deferred: false };
   }
 
   /**

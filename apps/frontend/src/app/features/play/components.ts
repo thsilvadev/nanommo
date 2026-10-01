@@ -51,14 +51,29 @@ export class MapBoard {
  enter(id:string){const map=this.maps.find(m=>m.id===id);if(!map||map.unlockLevel>this.level())return;this.error.set(null);this.api.post(`/maps/${id}/enter`,{}).subscribe({next:async()=>{this.battle.beginGrindSession();this.townReturnPending.set(false);await this.character.load();try{await this.socket.emit('map:syncPresence',{mapId:id})}catch{}},error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
  enterTown(){
   if(this.character.character()?.status==='town')return;
-  const active=this.battle.active();const now=Date.now();
-  if(active&&now>=Date.parse(active.startAt)&&now<Date.parse(active.endAt)){
-   this.townReturnPending.set(true);
-   this.returnToTownBattleId.set(active.id);
-   this.api.post('/maps/leave',{}).subscribe({error:e=>{this.townReturnPending.set(false);this.returnToTownBattleId.set(null);this.error.set(e?.error?.message??'Unable to request Town return');}});
-   return;
-  }
-  void this.leaveTown();
+  this.error.set(null);
+  const active=this.battle.active();
+  const isActive=!!active&&Date.now()>=Date.parse(active.startAt)&&Date.now()<Date.parse(active.endAt);
+  if(isActive)this.townReturnPending.set(true);
+  this.api.post<any>('/maps/leave',{}).subscribe({
+   next:async result=>{
+    if(result?.deferred){
+     this.returnToTownBattleId.set(result.battleId??active?.id??null);
+     this.townReturnPending.set(true);
+     return;
+    }
+    this.returnToTownBattleId.set(null);
+    this.townReturnPending.set(false);
+    await Promise.all([this.character.load(),this.battle.load()]);
+   },
+   error:e=>{
+    this.townReturnPending.set(false);
+    this.returnToTownBattleId.set(null);
+    this.error.set(e?.error?.message??'Unable to return to Town');
+    void this.character.load();
+    void this.battle.load();
+   },
+  });
  }
  private async leaveTown(){
   this.error.set(null);

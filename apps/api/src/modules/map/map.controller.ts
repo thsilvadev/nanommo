@@ -50,8 +50,8 @@ export class MapController {
   async leaveMap(@Request() req: any) {
     const character = await this.characterService.getCharacterByUserId(req.user.userId);
     if (!character) throw new BadRequestException('Character not found');
-    await this.mapService.leaveMap(character.id);
-    return { success: true };
+    const result = await this.mapService.leaveMap(character.id);
+    return { success: true, ...result };
   }
 
   /**

@@ -19,7 +19,20 @@ export class BattleController {
     const character = await this.characterService.getCharacterByUserId(req.user.userId);
     if (!character) throw new BadRequestException('Character not found');
 
-    return this.battleService.getBattleQueue(character.id);
+    let queue = await this.battleService.getBattleQueue(character.id);
+    // A grinding character must never remain on a map with an empty authoritative
+    // queue. Heal a transient queue gap by rebuilding the normal queue on read.
+    if (
+      queue.length === 0 &&
+      character.status === 'grinding' &&
+      character.currentMapId &&
+      !character.returnToTownAfterBattle
+    ) {
+      await this.battleService.queueBattles(character.id, 5, false);
+      queue = await this.battleService.getBattleQueue(character.id);
+    }
+
+    return queue;
   }
 
   /**

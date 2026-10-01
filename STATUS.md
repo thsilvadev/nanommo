@@ -910,3 +910,12 @@ Verification: frontend build passed; API build passed; `node apps/api/test-grind
 - Grind right-panel fallback was changed to `SEARCHING FOR MONSTER`; Town remains the Town/Vendor panel whenever the character has no current map.
 
 Verification: API build passed; frontend build passed with existing non-blocking CSS budget warnings; Grind correction checks passed; OpenSpec strict validation passed; `git diff --check` passed. No live browser smoke was run and no production deployment was performed.
+
+
+### Latest follow-up — Town hardening / no-limbo invariant (2026-10-01)
+
+- Town return is now driven by the server response (`deferred` plus authoritative battle id) rather than frontend timing inference.
+- A failed cleanup of future queue entries no longer rejects an otherwise valid Town request; the persistent `returnToTownAfterBattle` flag is saved first and the resolving battle performs the final Town transition.
+- A `grinding` character with a map and an empty queue is now repaired by the authoritative `/battles/queue` read path, preventing the UI from remaining in a fake `SEARCHING FOR MONSTER` idle state.
+
+Verification: API build passed; frontend build passed with existing non-blocking CSS budget warnings; Grind correction checks passed; OpenSpec strict validation passed. Live browser smoke remains pending. No production deployment.
