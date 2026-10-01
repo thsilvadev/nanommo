@@ -894,3 +894,10 @@ Verification: frontend build passed; API build passed; `node apps/api/test-grind
 ### Pending verification
 - Full live Grind smoke test against a running local stack: encounter search → Town click, active battle → Town click, potion consumption, drops, Character HP/regen, critical logs, and William Bread sale.
 - Dedicated frontend automated tests/smoke coverage for tooltip, Town-return feedback, session drops, and Character/Inventory realtime presentation.
+
+### Latest follow-up — Grind sync/tooltips/Town (2026-10-01)
+
+- Item hintboxes now filter metadata by item type: consumables omit vendor/stack metadata and render effects as human-readable text; monster parts omit crafting/vendor/stack/drop-source metadata; equipped Character tooltip layout was corrected so each field is readable on its own line.
+- Town return is now a server-authoritative deferred request: clicking Town during an active battle records returnToTownAfterBattle, cancels future queued battles, lets the current battle finish, then transitions to Town before publishing the next queue state. Entering a map clears the pending request.
+- Character, Inventory, and Battle frontend loads now use request sequencing so stale HTTP responses cannot overwrite newer authoritative websocket state. This addresses HP/SP reverting during encounter search and inventory quantities briefly showing stale values during battle transitions.
+- Added migration 1770300000000-ReturnToTownAfterBattle.

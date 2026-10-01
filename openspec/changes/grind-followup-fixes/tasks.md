@@ -8,3 +8,7 @@
 - [x] Restore multi-level XP threshold consumption using the existing reduced Grind XP rate.
 - [ ] Add/execute live browser smoke for Town return, session drops, inventory timing, and tooltips.
 - [ ] Run the complete backend integration suite against the local stack if available.
+- [x] Make deferred Town return server-authoritative with a persistent character flag and migration.
+- [x] Prevent stale Character/Inventory/Battle HTTP loads from overwriting newer realtime state.
+- [x] Humanize consumable effects and filter tooltip metadata by item type.
+- [x] Fix equipped Character tooltip line layout.

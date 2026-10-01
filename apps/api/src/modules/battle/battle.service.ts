@@ -265,6 +265,7 @@ export class BattleService {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
 
+    if (character.returnToTownAfterBattle) return this.getBattleQueue(characterId, 100);
     if (!character.currentMapId) {
       throw new BadRequestException('Character is not on a map');
     }
@@ -691,12 +692,24 @@ export class BattleService {
     // `resolved` was already claimed atomically at the top of this method.
     await this.battleQueueRepo.save(battle);
 
+    if (character.returnToTownAfterBattle) {
+      // The player requested Town while this battle was running. Finish this
+      // battle, apply its rewards, then transition to Town before any next queue.
+      character.returnToTownAfterBattle = false;
+      character.currentMapId = null as any;
+      character.status = 'town';
+      character.lastSeenAt = new Date();
+      await this.characterRepo.save(character);
+    }
+
     // SPEC §3.4 / §6.3: a level-up changes derived stats (maxHp/maxSp/atk...),
     // which invalidates every remaining entry in the chain — they were simulated
     // against the OLD stats. Discard them and rebuild the queue from scratch with
     // the new character state. Must run AFTER the kill counter is bumped so the
     // rebuilt chain does not re-encounter the same monster index it just killed.
-    if (leveledUp || equipmentChanged) {
+    if (character.status === 'town') {
+      await this.discardUnresolvedBattles(character.id);
+    } else if (leveledUp || equipmentChanged) {
       await this.discardUnresolvedBattles(character.id);
       await this.queueBattles(character.id, this.QUEUE_DEPTH_TARGET, false);
     } else if (character.currentMapId && character.status === 'grinding') {

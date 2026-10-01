@@ -73,6 +73,7 @@ export class MapService {
     // Update character status
     character.currentMapId = mapId;
     character.status = 'grinding';
+    character.returnToTownAfterBattle = false;
     character.lastSeenAt = new Date();
     await this.characterRepo.save(character);
 
@@ -100,15 +101,21 @@ export class MapService {
     // prevents the queue from starting another encounter before the requested Town
     // return is finalized.
     if (activeBattle) {
+      // Register the return request, but do not move the character to Town yet.
+      // The current battle remains authoritative and must resolve before Town is entered.
+      character.returnToTownAfterBattle = true;
       await this.battleService.cancelPendingBattlesAfter(characterId, activeBattle.id);
+      await this.characterRepo.save(character);
+      return;
     }
 
+    character.returnToTownAfterBattle = false;
     // null, not undefined: TypeORM skips undefined columns on save
     character.currentMapId = null as any;
     character.status = 'town';
     character.lastSeenAt = new Date();
     await this.characterRepo.save(character);
-    if (!activeBattle) await this.battleService.cancelPendingBattles(characterId);
+    await this.battleService.cancelPendingBattles(characterId);
 
     // Coming back must not replay the run that just ended: the map's encounter
     // sequence is rolled over here exactly as it is on a death (SPEC §11.2).

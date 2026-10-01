@@ -24,7 +24,8 @@ export class CharacterSummary implements OnDestroy {
  statusLabel(){const s=this.character.character()?.status;return s==='grinding'?'Grinding':s==='dead_pending_return'?'Dead — return pending':'In Town'}
  itemName(slot:string){const e=this.equipped(slot);return e?(this.catalog.item(e.itemId)?.name??e.itemId):''}
  itemDefinition(slot:string){const e=this.equipped(slot);return e?this.catalog.item(e.itemId):null}
- itemTooltipLines(slot:string){const d:any=this.itemDefinition(slot);if(!d)return [];const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;return visible.filter(k=>k!=='id'&&k!=='name'&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}))}
+ itemTooltipLines(slot:string){const d:any=this.itemDefinition(slot);if(!d)return [];const hidden=d.type==='consumable'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor']):d.type==='monster_part'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;return visible.filter(k=>k!=='id'&&k!=='name'&&!hidden.has(k)&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k==='effect'?'Effect':k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:k==='effect'?this.formatItemEffect(d[k]):typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}))}
+ formatItemEffect(effect:any){if(!effect)return '';if(effect.status){const status=String(effect.status).replace(/_/g,' ');return `Cures ${status}.`}if(effect.type==='heal_hp')return `Restores ${Number(effect.amount)||0} HP.`;if(effect.type==='heal_sp')return `Restores ${Number(effect.amount)||0} SP.`;if(effect.type==='food_buff')return `Regenerates HP/SP for ${Math.round((Number(effect.durationSeconds)||0)/60)} minutes.`;return String(effect.type??'').replace(/_/g,' ').replace(/^./,x=>x.toUpperCase())+'.'}
  itemTierClass(slot:string){const tier=Number((this.itemDefinition(slot) as any)?.tier??0);return tier>=2&&tier<=5?'tier-'+tier:''}
  go(p:string){void this.router.navigateByUrl(p)} equipped(slot:string){return this.inventory.equipment().find(x=>x.slot===slot)} canEnterEquipmentSlot(slot:string,drag:CdkDrag){const data:any=drag?.data; if(data?.source!=='inventory') return false; const item=this.catalog.item(data.itemId); return item?.type==='equipment' && item.slot===slot} itemIcon(slot:string,fallback:string){const e=this.equipped(slot);return e?this.catalog.itemIcon(e.itemId):fallback} slotDropId(slot:string){return `character-slot-${slot}`} isSlotFocused(slot:string){const id=this.inventory.draggedItemId();const item=id?this.catalog.item(id):null;return item?.type==='equipment'&&item.slot===slot} onEquipmentDragStart(itemId:string){this.inventory.beginDrag(itemId)} onEquipmentDragEnd(){this.inventory.endDrag()} equipDragData(slot:string,it:any){return {source:'equipment',slot,...it}} async dropEquipment(slot:string,ev:CdkDragDrop<any>){const data=ev.item.data;try{if(data?.source==='inventory'){await this.inventory.equip(slot,data.itemId)}}catch{}finally{this.inventory.endDrag()}} async unequip(slot:string){try{await this.inventory.unequip(slot)}catch{}} ngOnDestroy(){clearInterval(this.timer);clearInterval(this.townTimer)}
 }
@@ -39,7 +40,7 @@ export class MapBoard {
    if(!targetId||this.battle.lastResolved()?.entryId!==targetId)return;
    this.returnToTownBattleId.set(null);
    this.townReturnPending.set(false);
-   void this.leaveTown();
+   void Promise.all([this.character.load(), this.battle.load()]);
   });
   this.api.get<any[]>('/maps').subscribe({next:m=>this.maps=m,error:e=>this.error.set(e?.error?.message??'Unable to load maps')});
  }
@@ -54,6 +55,7 @@ export class MapBoard {
   if(active&&now>=Date.parse(active.startAt)&&now<Date.parse(active.endAt)){
    this.townReturnPending.set(true);
    this.returnToTownBattleId.set(active.id);
+   this.api.post('/maps/leave',{}).subscribe({error:e=>{this.townReturnPending.set(false);this.returnToTownBattleId.set(null);this.error.set(e?.error?.message??'Unable to request Town return');}});
    return;
   }
   void this.leaveTown();
@@ -71,7 +73,8 @@ export class InventoryGrid implements OnDestroy {
  item(i:number){return this.inventory.items().find(x=>x.slotIndex===i)}
  itemTitle(i:any){return this.catalog.item(i.itemId)?.name??i.itemId}
  itemDefinition(i:any){return this.catalog.item(i.itemId)}
- itemTooltipLines(i:any){const d:any=this.itemDefinition(i);if(!d)return [];const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;return visible.filter(k=>k!=='id'&&k!=='name'&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}))}
+ itemTooltipLines(i:any){const d:any=this.itemDefinition(i);if(!d)return [];const hidden=d.type==='consumable'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor']):d.type==='monster_part'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;return visible.filter(k=>k!=='id'&&k!=='name'&&!hidden.has(k)&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k==='effect'?'Effect':k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:k==='effect'?this.formatItemEffect(d[k]):typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}))}
+ formatItemEffect(effect:any){if(!effect)return '';if(effect.status){const status=String(effect.status).replace(/_/g,' ');return `Cures ${status}.`}if(effect.type==='heal_hp')return `Restores ${Number(effect.amount)||0} HP.`;if(effect.type==='heal_sp')return `Restores ${Number(effect.amount)||0} SP.`;if(effect.type==='food_buff')return `Regenerates HP/SP for ${Math.round((Number(effect.durationSeconds)||0)/60)} minutes.`;return String(effect.type??'').replace(/_/g,' ').replace(/^./,x=>x.toUpperCase())+'.'}
  itemTierClass(i:any){const tier=Number((this.itemDefinition(i) as any)?.tier??0);return tier>=2&&tier<=5?'tier-'+tier:''}
  glyph(i:any){return this.catalog.itemIcon(i.itemId)}
  elapsedTick(){const b=this.battle.active();if(!b)return -1;return Math.max(0,Math.floor((this.now()-Date.parse(b.startAt))/1000))}

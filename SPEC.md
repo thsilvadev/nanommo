@@ -1264,3 +1264,7 @@ These 7 files are the complete static game data and ship in `apps/api/src/data/`
 | `weapon_xp_curve.json` | Precomputed weapon proficiency level 1–50 XP table (§6.5) |
 
 Load all seven at boot, validate their shape, and fail fast on mismatch (§18.2 philosophy applies here too — a malformed data file should crash the boot, not silently degrade).
+
+### Grind synchronization follow-up
+- A Town request made during an active battle is deferred server-side through Character.returnToTownAfterBattle; future queued battles are cancelled, the active battle resolves normally, then the character transitions to Town before any replacement battle is queued.
+- Frontend Character, Inventory, and Battle state loads must not allow an older HTTP response to overwrite newer authoritative state received through the realtime game channel.

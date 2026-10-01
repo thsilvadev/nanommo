@@ -81,6 +81,10 @@ export class Character {
   @Column({ type: 'timestamptz' })
   lastSeenAt!: Date;
 
+  /** A requested Town return waits for the current battle to resolve. */
+  @Column({ type: 'boolean', default: false })
+  returnToTownAfterBattle!: boolean;
+
   /** Stable origin for the character's continuous 10-tick regeneration timeline. */
   @Column({ type: 'timestamptz', nullable: true })
   regenAnchorAt?: Date;

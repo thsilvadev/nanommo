@@ -36,3 +36,13 @@ A single authoritative XP resolution MAY cross multiple level thresholds. Each c
 #### Scenario: Large XP resolution
 - **WHEN** one battle resolution grants enough XP to cross multiple thresholds
 - **THEN** all crossed thresholds are consumed in order and the character gains all corresponding levels
+### Requirement: Synchronized realtime state
+Character, Inventory, and Battle HTTP loads SHALL be ordered so an older response cannot overwrite a newer authoritative realtime update.
+
+#### Scenario: Overlapping inventory refreshes
+- **WHEN** multiple inventory refreshes overlap during battle resolution
+- **THEN** only the newest refresh may update the visible inventory state
+
+#### Scenario: Battle-to-search HP state
+- **WHEN** a battle resolves and the next encounter is still in search
+- **THEN** the Character panel shows the resolved authoritative HP/SP rather than a stale pre-battle value
