@@ -539,6 +539,7 @@ On the `BattleQueueEntry` whose `outcome = 'loss'`:
 - XP loss per §6.4 applied
 - `Character.lastDeathLog` is **overwritten** with this battle's full log (§7.7) — only the single most recent death is ever kept, per spec
 - Any remaining not-yet-resolved queue entries after this one are deleted (they were never valid — they assumed the character survived)
+- The map's `MapKillCounter` rolls its `epoch` forward and resets `mapKillCount`/`perMonsterKillCount` (§11.2), so re-entering the map draws a **fresh** encounter sequence. A loss never advances `mapKillCount`, so without this the character would be replayed the same stream from the same index — the killer included — on every single re-entry.
 - Frontend is notified via `characterDied` socket event so it can route the player to the Town view and surface the "last death" button/modal
 
 ### 7.7 Battle log format
@@ -716,7 +717,7 @@ nextDrops(monsterId, perMonsterKillCount[monsterId]) =
 
 This is **mathematically identical** in outcome and reproducibility to a pre-generated 10,000-length array (same determinism, same "pre-calculated luck" feel, fully replayable for debugging), but costs two integers per `(character, map)` row in Postgres instead of megabytes of JSON per character. `mulberry32` (or `xoshiro128**`) must be implemented once in `packages/shared/battle-engine/prng.ts` and used **everywhere** randomness is needed in this game (drops, monster selection, hit/crit rolls, equipment attribute rolls) — never `Math.random()` anywhere in deterministic code paths.
 
-- **Epoch rollover:** when `mapKillCount` (or a given monster's `perMonsterKillCount`) reaches **10,000**, increment `epoch` and reset the relevant counter(s) to 0. Because the seed incorporates `epoch`, this "feels" like a fresh 10,000-length sequence without ever materializing one, and — as originally intended — it happens for free, with zero precomputation lag, since nothing was ever stored to begin with.
+- **Epoch rollover:** when `mapKillCount` (or a given monster's `perMonsterKillCount`) reaches **10,000**, increment `epoch` and reset the relevant counter(s) to 0. Because the seed incorporates `epoch`, this "feels" like a fresh 10,000-length sequence without ever materializing one, and — as originally intended — it happens for free, with zero precomputation lag, since nothing was ever stored to begin with. A death is the second trigger: it rolls `epoch` forward and resets both counters (§7.6), so a character walking back into a map that killed it is never replayed the same encounter stream.
 
 ### 11.3 Monster archetype matchups
 

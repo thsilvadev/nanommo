@@ -750,6 +750,8 @@ export class BattleService {
       }
     }
 
+    await this.resetEncounterSequenceAfterDeath(character.id, battle.mapId);
+
     this.logger.log(
       `Character ${character.id} died to ${battle.monsterId}; ` +
         `${doomed.length} queued battle(s) discarded`,
@@ -878,6 +880,33 @@ export class BattleService {
       perMonsterCount: Number(perMonster[monsterId] ?? 0),
       epoch: Number(counter.epoch ?? 0),
     };
+  }
+
+  /**
+   * A death restarts the encounter sequence for that map (SPEC §11.2).
+   *
+   * A loss never advances `mapKillCount` (that only happens on a resolved kill),
+   * so without this the character re-entering the map would be handed the exact
+   * same stream from the exact same index - the killer included - for as long as
+   * it keeps dying there. Rolling `epoch` re-derives a fresh sequence through
+   * the same deterministic mechanism the 10,000-kill rollover already uses, so
+   * §11.2 keeps its shape: same (seed, index) -> same monster, new seed now.
+   *
+   * The monster is redrawn by the map's weights, so the killer can still come up
+   * again - just not pinned, and never as the forced first encounter of a re-entry.
+   */
+  private async resetEncounterSequenceAfterDeath(characterId: string, mapId: string): Promise<void> {
+    const counter = await this.getOrCreateKillCounter(characterId, mapId);
+
+    counter.epoch = Number(counter.epoch ?? 0) + 1;
+    counter.mapKillCount = 0;
+    counter.perMonsterKillCount = {};
+
+    await this.mapKillCounterRepo.save(counter);
+
+    this.logger.log(
+      `MapKillCounter reset after death for ${characterId}/${mapId} -> epoch ${counter.epoch}`,
+    );
   }
 
   /**
