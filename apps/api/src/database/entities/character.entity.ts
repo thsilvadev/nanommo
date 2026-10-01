@@ -95,6 +95,6 @@ export class Character {
   @UpdateDateColumn()
   updatedAt!: Date;
 
-  @VersionColumn()
+  @VersionColumn({ default: 1 })
   stateVersion!: number;
 }
