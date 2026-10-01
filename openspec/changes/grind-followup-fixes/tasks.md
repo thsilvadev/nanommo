@@ -18,3 +18,6 @@
 
 - [x] Make Town requests idempotent even if future-queue cleanup races with battle resolution.
 - [x] Self-heal a transient empty battle queue while a character remains on a grinding map.
+
+- [x] Return authoritative Character state from `/maps/leave` and apply it immediately in the frontend.
+- [x] Poll authoritative Character state for deferred Town return so Town does not depend solely on `battle:resolved`.

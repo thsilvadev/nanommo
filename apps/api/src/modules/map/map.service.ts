@@ -86,7 +86,7 @@ export class MapService {
   /**
    * Leave current map
    */
-  async leaveMap(characterId: string): Promise<{ deferred: boolean; battleId?: string }> {
+  async leaveMap(characterId: string): Promise<{ deferred: boolean; battleId?: string; character: Pick<Character, 'id' | 'status' | 'currentMapId' | 'lastSeenAt'> }> {
     const character = await this.characterRepo.findOne({
       where: { id: characterId },
     });
@@ -119,7 +119,16 @@ export class MapService {
           }`,
         );
       }
-      return { deferred: true, battleId: activeBattle.id };
+      return {
+        deferred: true,
+        battleId: activeBattle.id,
+        character: {
+          id: character.id,
+          status: character.status,
+          currentMapId: character.currentMapId,
+          lastSeenAt: character.lastSeenAt,
+        },
+      };
     }
 
     character.returnToTownAfterBattle = false;
@@ -145,7 +154,15 @@ export class MapService {
     }
 
     this.logger.debug(`Character ${characterId} left their map`);
-    return { deferred: false };
+    return {
+      deferred: false,
+      character: {
+        id: character.id,
+        status: character.status,
+        currentMapId: character.currentMapId,
+        lastSeenAt: character.lastSeenAt,
+      },
+    };
   }
 
   /**

@@ -919,3 +919,12 @@ Verification: API build passed; frontend build passed with existing non-blocking
 - A `grinding` character with a map and an empty queue is now repaired by the authoritative `/battles/queue` read path, preventing the UI from remaining in a fake `SEARCHING FOR MONSTER` idle state.
 
 Verification: API build passed; frontend build passed with existing non-blocking CSS budget warnings; Grind correction checks passed; OpenSpec strict validation passed. Live browser smoke remains pending. No production deployment.
+
+
+### Latest follow-up — Town response/state convergence (2026-10-01)
+
+- `/maps/leave` now returns the authoritative Character status/map state along with whether the return is deferred. The frontend applies that response immediately instead of waiting for a later `/characters` race.
+- Deferred Town returns now poll authoritative Character state until `town` (or no current map), so a delayed/missed Socket.IO `battle:resolved` event cannot leave the client on a map with an empty queue.
+- The Town control is idempotent for an already mapless character and locally converges to Town before refreshing battle state.
+
+Verification pending final API/frontend builds and OpenSpec validation. No production deployment.

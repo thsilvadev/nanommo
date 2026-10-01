@@ -61,3 +61,15 @@ A valid Town request SHALL NOT fail because future battle cleanup races with the
 #### Scenario: Town request during cleanup race
 - **WHEN** the player requests Town during an active battle and future queue cleanup encounters a transient failure
 - **THEN** the request remains persisted, the active battle finishes, and the resolving battle transitions the character to Town
+
+
+### Requirement: Town response state convergence
+The map-leave response SHALL include the authoritative character status and map state. The client SHALL apply that state immediately; deferred Town requests SHALL continue checking authoritative character state until Town is reached instead of relying only on a socket event.
+
+#### Scenario: Immediate Town response
+- **WHEN** the server completes the map leave immediately
+- **THEN** the client immediately renders Town from the response state and refreshes the battle queue
+
+#### Scenario: Deferred Town response without socket delivery
+- **WHEN** a Town request is deferred because a battle is active and the resolution websocket event is delayed or missed
+- **THEN** the client observes authoritative Character state until `town` and then renders the Town panel

@@ -31,9 +31,9 @@ export class CharacterSummary implements OnDestroy {
 }
 
 @Component({selector:'app-map-board',standalone:true,imports:[CommonModule],templateUrl:'./map-board.html',styleUrl:'./map-board.css'})
-export class MapBoard {
+export class MapBoard implements OnDestroy {
  readonly character=inject(CharacterStore);readonly battle=inject(BattleStore);private readonly api=inject(ApiService);private readonly socket=inject(GameSocketService);
- maps:any[]=[];selected=signal<string|null>(null);error=signal<string|null>(null);readonly townReturnPending=signal(false);private readonly returnToTownBattleId=signal<string|null>(null);
+ maps:any[]=[];selected=signal<string|null>(null);error=signal<string|null>(null);readonly townReturnPending=signal(false);private readonly returnToTownBattleId=signal<string|null>(null);private townPoll:ReturnType<typeof setInterval>|null=null;private townPollBusy=false;
  constructor(){
   effect(()=>{
    const targetId=this.returnToTownBattleId();
@@ -50,20 +50,30 @@ export class MapBoard {
  select(t:any){if(t.unlockLevel<=this.level())this.selected.set(t.id)}
  enter(id:string){const map=this.maps.find(m=>m.id===id);if(!map||map.unlockLevel>this.level())return;this.error.set(null);this.api.post(`/maps/${id}/enter`,{}).subscribe({next:async()=>{this.battle.beginGrindSession();this.townReturnPending.set(false);await this.character.load();try{await this.socket.emit('map:syncPresence',{mapId:id})}catch{}},error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
  enterTown(){
-  if(this.character.character()?.status==='town')return;
+  const current=this.character.character();
+  if(current?.status==='town' || !current?.currentMapId){
+   this.character.applyPatch({status:'town',currentMapId:undefined});
+   this.townReturnPending.set(false);
+   this.returnToTownBattleId.set(null);
+   this.stopTownPoll();
+   return;
+  }
   this.error.set(null);
   const active=this.battle.active();
   const isActive=!!active&&Date.now()>=Date.parse(active.startAt)&&Date.now()<Date.parse(active.endAt);
   if(isActive)this.townReturnPending.set(true);
   this.api.post<any>('/maps/leave',{}).subscribe({
    next:async result=>{
+    this.character.applyPatch(result?.character??{});
     if(result?.deferred){
      this.returnToTownBattleId.set(result.battleId??active?.id??null);
      this.townReturnPending.set(true);
+     this.startTownPoll();
      return;
     }
     this.returnToTownBattleId.set(null);
     this.townReturnPending.set(false);
+    this.stopTownPoll();
     await Promise.all([this.character.load(),this.battle.load()]);
    },
    error:e=>{
@@ -75,11 +85,26 @@ export class MapBoard {
    },
   });
  }
- private async leaveTown(){
-  this.error.set(null);
-  try{await this.api.post('/maps/leave',{}).toPromise();this.townReturnPending.set(false);this.returnToTownBattleId.set(null);await Promise.all([this.character.load(),this.battle.load()]);}
-  catch(e:any){this.townReturnPending.set(false);this.error.set(e?.error?.message??'Unable to return to Town');}
+ private startTownPoll(){
+  this.stopTownPoll();
+  this.townPoll=setInterval(()=>{
+   if(this.townPollBusy)return;
+   this.townPollBusy=true;
+   void this.character.load().finally(()=>{
+    this.townPollBusy=false;
+    const c=this.character.character();
+    if(c?.status==='town' || !c?.currentMapId){
+     this.townReturnPending.set(false);
+     this.returnToTownBattleId.set(null);
+     this.stopTownPoll();
+     void this.battle.load();
+    }
+   });
+  },1000);
  }
+ private stopTownPoll(){if(this.townPoll!==null){clearInterval(this.townPoll);this.townPoll=null;}}
+ ngOnDestroy(){this.stopTownPoll();}
+
 }
 
 @Component({selector:'app-inventory-grid',standalone:true,imports:[CommonModule,CdkDropList,CdkDrag],templateUrl:'./inventory-grid.html',styleUrl:'./inventory-grid.css'})
