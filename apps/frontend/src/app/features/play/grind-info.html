@@ -5,7 +5,7 @@
 <ng-template #grindContext><ng-container *ngIf="battle.active() as b">
   <ng-container *ngIf="isSearching(b);else activeBattle">
     <div class="search-state">
-      <img src="/project/swords_clash(loading).gif" alt="Searching for monster" class="search-gif">
+      <img src="/project/swords_clash(loading).gif" alt="Searching for battle" class="search-gif">
       <app-battle-progress [entry]="searchEntry(b)" />
     </div>
   </ng-container>
