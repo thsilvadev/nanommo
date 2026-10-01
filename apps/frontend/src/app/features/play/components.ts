@@ -118,7 +118,7 @@ export class GrindInfo implements OnDestroy {
  monsterStatusEffects(entry:any){return this.monsterSnapshot(entry).statusEffects??[]}
  monsterStats(entry:any){const m=this.monsterSnapshot(entry);return [{label:'ATK',value:m.atk},{label:'MATK',value:m.matk},{label:'DEF',value:m.def},{label:'MDEF',value:m.mdefPercent+'%'},{label:'ACC',value:m.accuracy},{label:'EVA',value:m.evasion},{label:'CRIT',value:m.critChance+'%'}]}
 
- isTown(){return this.character.character()?.status==='town'}
+ isTown(){const c=this.character.character();return !!c && (c.status==='town'||!c.currentMapId)}
  activeGambitTitle(){return this.character.character()?.activeGambitPageId?'Configured':'Not configured'}
  xpText(){const c=this.character.character();return c?`${c.xp} / ${c.xpToNext}`:'—'}
  monster(id:string){return this.catalog.monster(id)}

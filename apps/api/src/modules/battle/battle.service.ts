@@ -692,9 +692,11 @@ export class BattleService {
     // `resolved` was already claimed atomically at the top of this method.
     await this.battleQueueRepo.save(battle);
 
-    if (character.returnToTownAfterBattle) {
+    const returningToTown = character.returnToTownAfterBattle;
+    if (returningToTown) {
       // The player requested Town while this battle was running. Finish this
-      // battle, apply its rewards, then transition to Town before any next queue.
+      // battle, apply its rewards, then transition to Town before publishing
+      // battle:resolved so the realtime character patch is authoritative too.
       character.returnToTownAfterBattle = false;
       character.currentMapId = null as any;
       character.status = 'town';

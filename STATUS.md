@@ -901,3 +901,12 @@ Verification: frontend build passed; API build passed; `node apps/api/test-grind
 - Town return is now a server-authoritative deferred request: clicking Town during an active battle records returnToTownAfterBattle, cancels future queued battles, lets the current battle finish, then transitions to Town before publishing the next queue state. Entering a map clears the pending request.
 - Character, Inventory, and Battle frontend loads now use request sequencing so stale HTTP responses cannot overwrite newer authoritative websocket state. This addresses HP/SP reverting during encounter search and inventory quantities briefly showing stale values during battle transitions.
 - Added migration 1770300000000-ReturnToTownAfterBattle.
+
+
+### Latest follow-up — Character equipment presentation and Town transition (2026-10-01)
+
+- Character quick equipment slots now show icons only: empty slots use the default white slot icons, while equipped items keep their original item icon colors. Equipment names remain available in the instant tooltip only, with Tier 2/3/4/5 title colors matching the inventory tooltip.
+- Fixed deferred Town return publication ordering: the server now transitions the character to Town before emitting `battle:resolved`, so the realtime `characterAfter.status` is `town`. This prevents the right panel from briefly showing the nonexistent `NO BATTLE QUEUED` state after the final battle.
+- Grind right-panel fallback was changed to `SEARCHING FOR MONSTER`; Town remains the Town/Vendor panel whenever the character has no current map.
+
+Verification: API build passed; frontend build passed with existing non-blocking CSS budget warnings; Grind correction checks passed; OpenSpec strict validation passed; `git diff --check` passed. No live browser smoke was run and no production deployment was performed.

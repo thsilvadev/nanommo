@@ -12,3 +12,6 @@
 - [x] Prevent stale Character/Inventory/Battle HTTP loads from overwriting newer realtime state.
 - [x] Humanize consumable effects and filter tooltip metadata by item type.
 - [x] Fix equipped Character tooltip line layout.
+
+- [x] Remove equipment names and empty-slot labels from the Character quick equipment panel; keep item names only in tooltips with tier colors.
+- [x] Publish the authoritative Town status in `battle:resolved` after the deferred Town transition, preventing the right panel from entering a nonexistent no-queue state.

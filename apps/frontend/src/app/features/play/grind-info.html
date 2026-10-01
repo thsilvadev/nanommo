@@ -20,7 +20,7 @@
     <div class="reward"><span>XP +{{b.xpGain}}</span></div><div class="event-feed"><div *ngFor="let e of recentEvents(b)" class="event"><small>T{{e.tick}}</small><span>{{eventText(e)}}</span></div></div><div class="queue-note">{{battle.queue().length}} battle{{battle.queue().length===1?'':'s'}} queued</div>
   </ng-template>
 </ng-container>
-<div *ngIf="!battle.active()" class="idle-state"><strong>{{foodLabel()==='HUNGRY'?'HUNGRY':'NO BATTLE QUEUED'}}</strong><small>Choose a map or wait for the authoritative battle queue.</small></div>
+<div *ngIf="!battle.active()" class="idle-state"><strong>{{foodLabel()==='HUNGRY'?'HUNGRY':'SEARCHING FOR MONSTER'}}</strong><small>Waiting for the authoritative encounter queue.</small></div>
 <div class="session-drops"><div class="section-label">DROPS THIS SESSION</div><div *ngIf="!sessionDrops().length" class="no-status">No drops yet</div><div *ngFor="let it of sessionDrops()" class="consumable"><img [src]="sessionDropIcon(it)" [alt]="sessionDropName(it)"><b>{{it.quantity}}</b><small>{{sessionDropName(it)}}</small></div></div>
 </ng-template>
 </section>
