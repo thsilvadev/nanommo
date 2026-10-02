@@ -425,6 +425,35 @@ export class InventoryService {
     return { characterId: character.id, quantity, foods: granted };
   }
 
+  /**
+   * Strip baked food `use_item` events out of a character's unresolved battles.
+   *
+   * The events live inside `battle_queue_entries.log`, frozen when the battle was
+   * queued. `BattleService.applyResolvedFoodState` replays them on every resolve,
+   * so a diet cheat would be undone by the next resolve. Reached through
+   * `manager.getRepository(<table>)` to avoid depending on BattleService, which
+   * already imports this module.
+   *
+   * TEMP DEV CHEAT — remove after Diet/food QA is complete.
+   */
+  private async stripQueuedFoodEvents(manager: EntityManager, characterId: string): Promise<number> {
+    const queueRepo = manager.getRepository('battle_queue_entries');
+    const pending = await queueRepo.find({ where: { characterId, resolved: false } });
+    let stripped = 0;
+    for (const entry of pending) {
+      const events = Array.isArray(entry.log?.events) ? entry.log.events : [];
+      const kept = events.filter((event: any) => {
+        if (event?.action !== 'use_item') return true;
+        return this.dataService.getItemById(event.itemId)?.effect?.type !== 'food_buff';
+      });
+      if (kept.length === events.length) continue;
+      stripped += events.length - kept.length;
+      entry.log = { ...(entry.log ?? {}), events: kept };
+      await queueRepo.save(entry);
+    }
+    return stripped;
+  }
+
   /** TEMP DEV CHEAT — remove after Diet/food QA is complete. */
   async resetDietCheat() {
     const character = await this.characterRepo.manager.transaction(async (manager) => {
@@ -449,15 +478,18 @@ export class InventoryService {
       character.dietLevels = {};
       character.activeFoodBuff = null;
       character.lastSeenAt = new Date();
-      return repo.save(character);
+      const strippedFoodEvents = await this.stripQueuedFoodEvents(manager, character.id);
+      const saved = await repo.save(character);
+      return { saved, strippedFoodEvents };
     });
 
     return {
-      characterId: character.id,
+      characterId: character.saved.id,
       hungry: true,
-      diet: character.diet,
-      dietLevels: character.dietLevels,
-      activeFoodBuff: character.activeFoodBuff,
+      diet: character.saved.diet,
+      dietLevels: character.saved.dietLevels,
+      activeFoodBuff: character.saved.activeFoodBuff,
+      strippedFoodEvents: character.strippedFoodEvents,
     };
   }
 
@@ -499,14 +531,17 @@ export class InventoryService {
       character.diet = diet;
       character.dietLevels = dietLevels;
       character.lastSeenAt = new Date();
-      return repo.save(character);
+      const strippedFoodEvents = await this.stripQueuedFoodEvents(manager, character.id);
+      const saved = await repo.save(character);
+      return { saved, strippedFoodEvents };
     });
 
     return {
-      characterId: character.id,
-      diet: character.diet,
-      dietLevels: character.dietLevels,
-      activeFoodBuff: character.activeFoodBuff,
+      characterId: character.saved.id,
+      diet: character.saved.diet,
+      dietLevels: character.saved.dietLevels,
+      activeFoodBuff: character.saved.activeFoodBuff,
+      strippedFoodEvents: character.strippedFoodEvents,
     };
   }
 
