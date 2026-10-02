@@ -12,7 +12,12 @@ import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkD
 @Component({selector:'app-character-summary',standalone:true,imports:[CommonModule,CdkDrag,CdkDropList,CdkDragPreview,CdkDragPlaceholder],templateUrl:'./character-summary.html',styleUrl:'./character-summary.css'})
 export class CharacterSummary implements OnDestroy {
  readonly character=inject(CharacterStore);readonly inventory=inject(InventoryStore);readonly battle=inject(BattleStore);readonly catalog=inject(CatalogService);readonly router=inject(Router);readonly battleDisplayNow=signal(Date.now());private readonly battleDisplayTimer=setInterval(()=>this.battleDisplayNow.set(Date.now()),250);
- private readonly townTimer=setInterval(()=>{const c=this.character.character();if(c?.status==='town'&&Date.parse(c.lastSeenAt)+10000<=Date.now())void this.character.load()},1000);
+ private lastDietBoundary=0;
+ private readonly townTimer=setInterval(()=>{const c=this.character.character();if(c?.status==='town'&&Date.parse(c.lastSeenAt)+10000<=Date.now())void this.character.load();this.checkDietBoundary()},1000);
+ // Fires once per digestUntil the server reported, so a slot empties at the boundary
+ // instead of waiting for the next poll, snapshot or battle resolve. Nothing is decided
+ // locally; this only schedules a re-read of authoritative state.
+ private checkDietBoundary(){const entries=this.character.character()?.diet??[];const now=Date.now();for(const e of entries){const t=Date.parse(e.digestUntil);if(!Number.isFinite(t)||t>now||t<=this.lastDietBoundary)continue;this.lastDietBoundary=t;void this.character.refreshDiet();return}}
  slots=[{key:'head',label:'Head',icon:'/assets/ui/helmet.svg'},{key:'body',label:'Body',icon:'/assets/ui/armor.svg'},{key:'mainHand',label:'Weapon',icon:'/assets/ui/sword.svg'},{key:'offHand',label:'Shield',icon:'/assets/ui/shield.svg'},{key:'shoes',label:'Shoes',icon:'/assets/ui/boots.svg'},{key:'cape',label:'Cape',icon:'/assets/ui/cape.svg'},{key:'accessoryLeft',label:'Ring',icon:'/assets/ui/ring.svg'},{key:'accessoryRight',label:'Ring',icon:'/assets/ui/ring.svg'}];
  dietSlots=[0,1,2];dietRainDrops=[0,1,2,3,4,5];equipmentPredicates=Object.fromEntries(this.slots.map(s=>[s.key,(drag:CdkDrag)=>this.canEnterEquipmentSlot(s.key,drag)]));
  initial(){return (this.character.character()?.name||'?').slice(0,1).toUpperCase()}
@@ -186,7 +191,10 @@ export class GrindInfo implements OnDestroy {
  sessionDrops(){return this.battle.sessionDrops()}
  sessionDropName(it:any){return this.catalog.item(it.itemId)?.name??it.itemId}
  sessionDropIcon(it:any){return this.catalog.itemIcon(it.itemId)}
- foodLabel(){const c=this.character.character();if(!c||c.hungry)return 'HUNGRY';const count=c.diet?.length??0;return count<=0?'HUNGRY':count===1?'FED':count===2?'SATISFIED':'FULL'}
+ // Every food digests for the same duration, so the most recent entry always carries the
+// latest digestUntil. That makes the pruned diet length and the authoritative hungry flag
+// the same fact, and the label stays identical to what the slots render.
+foodLabel(){const count=this.character.character()?.diet?.length??0;return count<=0?'HUNGRY':count===1?'FED':count===2?'SATISFIED':'FULL'}
  ngOnDestroy(){clearInterval(this.timer)}
 }
 

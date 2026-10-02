@@ -646,7 +646,7 @@
       "name": "Aged Cheese",
       "effect": {
         "type": "food_buff",
-        "durationSeconds": 1800,
+        "durationSeconds": 3600,
         "hpRegenPerTenTicks": 8,
         "spRegenPerTenTicks": 1
       },
@@ -662,7 +662,7 @@
       "name": "Wild Blueberries",
       "effect": {
         "type": "food_buff",
-        "durationSeconds": 1800,
+        "durationSeconds": 3600,
         "hpRegenPerTenTicks": 1,
         "spRegenPerTenTicks": 4
       },
@@ -678,7 +678,7 @@
       "name": "Herbal Tea",
       "effect": {
         "type": "food_buff",
-        "durationSeconds": 1800,
+        "durationSeconds": 3600,
         "hpRegenPerTenTicks": 1,
         "spRegenPerTenTicks": 8
       },
@@ -694,7 +694,7 @@
       "name": "Hunter's Stew",
       "effect": {
         "type": "food_buff",
-        "durationSeconds": 1800,
+        "durationSeconds": 3600,
         "hpRegenPerTenTicks": 5,
         "spRegenPerTenTicks": 5
       },
@@ -710,7 +710,7 @@
       "name": "Wild Honey",
       "effect": {
         "type": "food_buff",
-        "durationSeconds": 1800,
+        "durationSeconds": 3600,
         "hpRegenPerTenTicks": 6,
         "spRegenPerTenTicks": 6
       },
@@ -726,7 +726,7 @@
       "name": "Roasted Boar Leg",
       "effect": {
         "type": "food_buff",
-        "durationSeconds": 1800,
+        "durationSeconds": 3600,
         "hpRegenPerTenTicks": 10,
         "spRegenPerTenTicks": 2
       },

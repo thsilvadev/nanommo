@@ -10,6 +10,13 @@ export class CharacterStore {
  readonly character=this._character.asReadonly();readonly state=this._state.asReadonly();readonly error=this._error.asReadonly();readonly isGrinding=computed(()=>this._character()?.status==='grinding');
  async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const value=await this.api.get<Character|null>('/characters').toPromise()??null;if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if(value&&value.stateVersion<=this.realtimeRevision)return;if(value)this.realtimeRevision=value.stateVersion;this._character.set(value);this._state.set('loaded')}catch(e:any){if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;this._state.set('error');this._error.set(e?.error?.message??'Unable to load character')}}
  applyPatch(p:Partial<Character>){const c=this._character();if(c){this.realtimeGeneration++;this._character.set({...c,...p});}}
+ // Digestion expiry changes the authoritative diet without any server write, so the
+ // response carries the same stateVersion as the one we hold. load() discards equal
+ // revisions, which is why polling never surfaced the change; this accepts equal but
+ // still refuses anything genuinely older. The client does not decide that digestion
+ // ended — the server prunes the diet — it only asks the server again at the boundary
+ // the server itself reported.
+ async refreshDiet(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;try{const value=await this.api.get<Character|null>('/characters').toPromise()??null;if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if(!value)return;if(value.stateVersion<this.realtimeRevision)return;this.realtimeRevision=value.stateVersion;this._character.set(value);this._state.set('loaded')}catch{}}
  applyRealtimeSnapshot(value:Character,revision:number){if(revision<=this.realtimeRevision)return;this.realtimeRevision=revision;this.realtimeGeneration++;this._character.set(value);this._state.set('loaded');}
  async setAutoFeed(enabled:boolean):Promise<Character>{const value=await this.api.post<Character>('/characters/auto-feed',{enabled}).toPromise();if(value&&value.stateVersion>this.realtimeRevision)this.applyRealtimeSnapshot(value,value.stateVersion);return value as Character;}
  spend(attributes:Record<string,number>):Promise<Character>{const generation=this.realtimeGeneration;return new Promise((resolve,reject)=>this.api.post<Character>('/characters/attributes/spend',{attributes}).subscribe({next:c=>{if(generation!==this.realtimeGeneration){reject(new Error('Character changed while attribute update was in flight'));return;}this._character.set(c);resolve(c)},error:e=>reject(e)}));}

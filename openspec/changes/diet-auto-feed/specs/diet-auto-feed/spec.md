@@ -211,3 +211,35 @@ This change SHALL NOT add weapon XP/progression or unrelated game systems.
 #### Scenario: Scope boundary
 - WHEN the change is reviewed
 - THEN weapon XP/progression remains outside its implementation and acceptance.
+
+### Requirement: Uniform digestion duration
+Every food SHALL share one digestion duration. Because a food consumed later always receives a later digestion boundary under a uniform duration, the most recent entry SHALL always carry the latest boundary, and no state may be observable in which the character is Hungry while an earlier entry is still digesting.
+
+#### Scenario: One duration for every food
+- WHEN two different foods are consumed at different times
+- THEN the later consumption carries the later digestion boundary.
+
+#### Scenario: Hunger implies no digestion remains
+- WHEN the active food buff has expired
+- THEN every Diet entry has also finished digesting
+- AND the character is not shown as both Hungry and still digesting a food.
+
+### Requirement: Food state mirrors the Diet slots
+The grind panel food state SHALL be derived from the count of currently digesting Diet entries, so it always matches what the Character Panel slots render: zero entries SHALL read HUNGRY, one FED, two SATISFIED and three FULL. Diet entries past their digestion boundary SHALL be treated as unoccupied everywhere the client renders them, including the slots.
+
+#### Scenario: State matches slot count
+- GIVEN the character has two foods still digesting
+- WHEN the grind panel renders
+- THEN the food state reads SATISFIED
+- AND exactly two Diet slots are occupied.
+
+#### Scenario: Expired entries read as empty
+- GIVEN the character's only remaining Diet entry has finished digesting
+- WHEN the grind panel renders
+- THEN the food state reads HUNGRY
+- AND every Diet slot shows the empty-slot placeholder.
+
+#### Scenario: Boundary refresh is server-derived
+- WHEN a digestion boundary the server reported passes
+- THEN the client re-reads authoritative state rather than deciding locally that the entry expired
+- AND no local state is mutated by that boundary passing.
