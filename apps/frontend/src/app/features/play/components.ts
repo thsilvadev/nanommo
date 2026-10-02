@@ -33,6 +33,7 @@ export class CharacterSummary implements OnDestroy {
  dietLevel(index:number){const e=this.dietEntry(index);return Math.max(0,Math.min(3,Number(e?.dietLevel??0)))}
   dietRainAlpha(index:number){return Math.min(1,0.555+0.15*this.dietLevel(index)).toFixed(3)}
  dietRemainingSeconds(index:number){const e=this.dietEntry(index);if(!e)return 0;return Math.max(0,Math.ceil((Date.parse(e.digestUntil)-this.battleDisplayNow())/1000))}
+ dietTimerLabel(index:number){return Math.ceil(this.dietRemainingSeconds(index)/60)+'m'}
  formatDuration(seconds:number){const s=Math.max(0,seconds);const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);const sec=s%60;return h>0?`${h}h ${String(m).padStart(2,'0')}m`:`${m}m ${String(sec).padStart(2,'0')}s`}
  dietTooltipLines(index:number){const e=this.dietEntry(index);if(!e)return [];const d:any=this.catalog.item(e.itemId);const effect=d?.effect;if(!effect)return [];const lines:any[]=[];if(effect.type==='food_buff'){lines.push({label:'HP Regen',value:`+${Number(effect.hpRegenPerTenTicks??0)} / 10 ticks`});lines.push({label:'SP Regen',value:`+${Number(effect.spRegenPerTenTicks??0)} / 10 ticks`});}lines.push({label:'Diet',value:e.dietLevel>0?'★'.repeat(Math.min(3,e.dietLevel)):'—'});lines.push({label:'Remaining',value:this.formatDuration(this.dietRemainingSeconds(index))});return lines}
  async toggleAutoFeed(){const c=this.character.character();if(!c)return;try{await this.character.setAutoFeed(!c.autoFeed)}catch{}}
@@ -185,9 +186,7 @@ export class GrindInfo implements OnDestroy {
  sessionDrops(){return this.battle.sessionDrops()}
  sessionDropName(it:any){return this.catalog.item(it.itemId)?.name??it.itemId}
  sessionDropIcon(it:any){return this.catalog.itemIcon(it.itemId)}
- foodLabel(){const count=this.character.character()?.diet?.length??0;const state=count<=0?'HUNGRY':count===1?'FED':count===2?'SATISFIED':'FULL';const remaining=this.oldestDietRemainingSeconds();return remaining>0?state+' · '+this.formatFoodRemaining(remaining):state}
- formatFoodRemaining(seconds:number){const s=Math.max(0,seconds);const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);return h>0?h+'h '+String(m).padStart(2,'0')+'m':m+'m '+String(s%60).padStart(2,'0')+'s'}
- oldestDietRemainingSeconds(){const entries=this.character.character()?.diet??[];const remaining=entries.map(e=>Math.max(0,Math.ceil((Date.parse(e.digestUntil)-this.now())/1000))).filter(s=>s>0);return remaining.length?Math.min(...remaining):0}
+ foodLabel(){const count=this.character.character()?.diet?.length??0;return count<=0?'HUNGRY':count===1?'FED':count===2?'SATISFIED':'FULL'}
  ngOnDestroy(){clearInterval(this.timer)}
 }
 
