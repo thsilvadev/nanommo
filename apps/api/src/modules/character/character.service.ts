@@ -250,6 +250,13 @@ export class CharacterService {
   private async toDto(character: Character): Promise<CharacterDto> {
     if (!Array.isArray(character.diet)) character.diet = [];
     if (!character.dietLevels) character.dietLevels = {};
+    // Entries past their digestion boundary are history, not active slots, so they are
+    // filtered out of the DTO instead of being persisted away. This is display-only:
+    // nothing that validates or resolves food reads the DTO. consumeFood and
+    // applyResolvedFoodState read the entity's own diet, and the repeat-food digestion
+    // gate keys off dietLevels[itemId].lastDigestUntil, which this leaves untouched, so
+    // permanent mastery survives an entry leaving the window.
+    const activeDiet = character.diet.filter((entry) => Date.parse(entry.digestUntil) > Date.now());
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
     const equipment = { def: 0, maxHp: 0, maxSp: 0, weaponFixedAtk: 0, statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 } };
     for (const row of equipped) {
@@ -294,7 +301,7 @@ export class CharacterService {
       criticalChance: derived.critChance,
       hungry: !character.activeFoodBuff?.expiresAt || new Date(character.activeFoodBuff.expiresAt).getTime() <= Date.now(),
       foodBuffExpiresAt: character.activeFoodBuff?.expiresAt ? new Date(character.activeFoodBuff.expiresAt) : undefined,
-      diet: Array.isArray(character.diet) ? character.diet : [],
+      diet: activeDiet,
       dietLevels: character.dietLevels ?? {},
       autoFeed: character.autoFeed === true,
       currentMapId: character.currentMapId || undefined,

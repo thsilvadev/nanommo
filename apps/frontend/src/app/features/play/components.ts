@@ -186,7 +186,7 @@ export class GrindInfo implements OnDestroy {
  sessionDrops(){return this.battle.sessionDrops()}
  sessionDropName(it:any){return this.catalog.item(it.itemId)?.name??it.itemId}
  sessionDropIcon(it:any){return this.catalog.itemIcon(it.itemId)}
- foodLabel(){const count=this.character.character()?.diet?.length??0;return count<=0?'HUNGRY':count===1?'FED':count===2?'SATISFIED':'FULL'}
+ foodLabel(){const c=this.character.character();if(!c||c.hungry)return 'HUNGRY';const count=c.diet?.length??0;return count<=0?'HUNGRY':count===1?'FED':count===2?'SATISFIED':'FULL'}
  ngOnDestroy(){clearInterval(this.timer)}
 }
 
