@@ -14,7 +14,7 @@ export class CharacterSummary implements OnDestroy {
  readonly character=inject(CharacterStore);readonly inventory=inject(InventoryStore);readonly battle=inject(BattleStore);readonly catalog=inject(CatalogService);readonly router=inject(Router);readonly battleDisplayNow=signal(Date.now());private readonly battleDisplayTimer=setInterval(()=>this.battleDisplayNow.set(Date.now()),250);
  private readonly townTimer=setInterval(()=>{const c=this.character.character();if(c?.status==='town'&&Date.parse(c.lastSeenAt)+10000<=Date.now())void this.character.load()},1000);
  slots=[{key:'head',label:'Head',icon:'/assets/ui/helmet.svg'},{key:'body',label:'Body',icon:'/assets/ui/armor.svg'},{key:'mainHand',label:'Weapon',icon:'/assets/ui/sword.svg'},{key:'offHand',label:'Shield',icon:'/assets/ui/shield.svg'},{key:'shoes',label:'Shoes',icon:'/assets/ui/boots.svg'},{key:'cape',label:'Cape',icon:'/assets/ui/cape.svg'},{key:'accessoryLeft',label:'Ring',icon:'/assets/ui/ring.svg'},{key:'accessoryRight',label:'Ring',icon:'/assets/ui/ring.svg'}];
- dietSlots=[0,1,2];equipmentPredicates=Object.fromEntries(this.slots.map(s=>[s.key,(drag:CdkDrag)=>this.canEnterEquipmentSlot(s.key,drag)]));
+ dietSlots=[0,1,2];dietRainDrops=[0,1,2,3,4,5];equipmentPredicates=Object.fromEntries(this.slots.map(s=>[s.key,(drag:CdkDrag)=>this.canEnterEquipmentSlot(s.key,drag)]));
  initial(){return (this.character.character()?.name||'?').slice(0,1).toUpperCase()}
  displayHp(){const now=this.battleDisplayNow();const projected=this.battle.currentBattleCharacterResources(now);return projected?.hp??this.character.character()?.hpCurrent??null}
  displaySp(){const now=this.battleDisplayNow();const projected=this.battle.currentBattleCharacterResources(now);return projected?.sp??this.character.character()?.spCurrent??null}
@@ -30,6 +30,10 @@ export class CharacterSummary implements OnDestroy {
  dietIcon(index:number){const e=this.dietEntry(index);return e?this.catalog.itemIcon(e.itemId):'/assets/ui/food.svg'}
  dietName(index:number){const e=this.dietEntry(index);return e?(this.catalog.item(e.itemId)?.name??e.itemId):'Empty food slot'}
  dietStars(index:number){const e=this.dietEntry(index);return e?'★'.repeat(Math.max(0,Math.min(3,e.dietLevel))):''}
+ dietLevel(index:number){const e=this.dietEntry(index);return Math.max(0,Math.min(3,Number(e?.dietLevel??0)))}
+ dietRemainingSeconds(index:number){const e=this.dietEntry(index);if(!e)return 0;return Math.max(0,Math.ceil((Date.parse(e.digestUntil)-this.battleDisplayNow())/1000))}
+ formatDuration(seconds:number){const s=Math.max(0,seconds);const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);const sec=s%60;return h>0?`${h}h ${String(m).padStart(2,'0')}m`:`${m}m ${String(sec).padStart(2,'0')}s`}
+ dietTooltipLines(index:number){const e=this.dietEntry(index);if(!e)return [];const d:any=this.catalog.item(e.itemId);const effect=d?.effect;if(!effect)return [];const lines:any[]=[];if(effect.type==='food_buff'){lines.push({label:'HP Regen',value:`+${Number(effect.hpRegenPerTenTicks??0)} / 10 ticks`});lines.push({label:'SP Regen',value:`+${Number(effect.spRegenPerTenTicks??0)} / 10 ticks`});}lines.push({label:'Diet',value:e.dietLevel>0?'★'.repeat(Math.min(3,e.dietLevel)):'—'});lines.push({label:'Remaining',value:this.formatDuration(this.dietRemainingSeconds(index))});return lines}
  async toggleAutoFeed(){const c=this.character.character();if(!c)return;try{await this.character.setAutoFeed(!c.autoFeed)}catch{}}
  go(p:string){void this.router.navigateByUrl(p)} equipped(slot:string){return this.inventory.equipment().find(x=>x.slot===slot)} canEnterEquipmentSlot(slot:string,drag:CdkDrag){const data:any=drag?.data; if(data?.source!=='inventory') return false; const item=this.catalog.item(data.itemId); return item?.type==='equipment' && item.slot===slot} itemIcon(slot:string,fallback:string){const e=this.equipped(slot);return e?this.catalog.itemIcon(e.itemId):fallback} slotDropId(slot:string){return `character-slot-${slot}`} isSlotFocused(slot:string){const id=this.inventory.draggedItemId();const item=id?this.catalog.item(id):null;return item?.type==='equipment'&&item.slot===slot} onEquipmentDragStart(itemId:string){this.inventory.beginDrag(itemId)} onEquipmentDragEnd(){this.inventory.endDrag()} equipDragData(slot:string,it:any){return {source:'equipment',slot,...it}} async dropEquipment(slot:string,ev:CdkDragDrop<any>){const data=ev.item.data;try{if(data?.source==='inventory'){await this.inventory.equip(slot,data.itemId)}}catch{}finally{this.inventory.endDrag()}} async unequip(slot:string){try{await this.inventory.unequip(slot)}catch{}} ngOnDestroy(){clearInterval(this.townTimer);clearInterval(this.battleDisplayTimer)}
 }
@@ -180,7 +184,9 @@ export class GrindInfo implements OnDestroy {
  sessionDrops(){return this.battle.sessionDrops()}
  sessionDropName(it:any){return this.catalog.item(it.itemId)?.name??it.itemId}
  sessionDropIcon(it:any){return this.catalog.itemIcon(it.itemId)}
- foodLabel(){const c=this.character.character();const expiry=c?.foodBuffExpiresAt?Date.parse(c.foodBuffExpiresAt):0;const active=expiry>this.now();return active?'FED · '+Math.max(0,Math.ceil((expiry-this.now())/60000))+'m':'HUNGRY'}
+ foodLabel(){const count=this.character.character()?.diet?.length??0;const state=count<=0?'HUNGRY':count===1?'FED':count===2?'SATISFIED':'FULL';const remaining=this.oldestDietRemainingSeconds();return remaining>0?state+' · '+this.formatFoodRemaining(remaining):state}
+ formatFoodRemaining(seconds:number){const s=Math.max(0,seconds);const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);return h>0?h+'h '+String(m).padStart(2,'0')+'m':m+'m '+String(s%60).padStart(2,'0')+'s'}
+ oldestDietRemainingSeconds(){const entries=this.character.character()?.diet??[];const remaining=entries.map(e=>Math.max(0,Math.ceil((Date.parse(e.digestUntil)-this.now())/1000))).filter(s=>s>0);return remaining.length?Math.min(...remaining):0}
  ngOnDestroy(){clearInterval(this.timer)}
 }
 

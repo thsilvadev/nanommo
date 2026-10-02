@@ -406,8 +406,13 @@ export class InventoryService {
 
   /** TEMP DEV CHEAT — remove after Diet/food QA is complete. */
   async grantAllFoodsCheat(quantity = 10) {
-    if (process.env.NODE_ENV === 'production') throw new NotFoundException();
-    const character = await this.characterRepo.findOne({ order: { updatedAt: 'DESC' } });
+    const [candidate] = await this.characterRepo.find({
+      order: { updatedAt: 'DESC' },
+      take: 1,
+    });
+    if (!candidate) throw new NotFoundException('Character not found');
+
+    const character = await this.characterRepo.findOne({ where: { id: candidate.id } });
     if (!character) throw new NotFoundException('Character not found');
     const foods = this.dataService.getItems().filter((item: any) => item?.type === 'consumable' && item?.effect?.type === 'food_buff');
     const granted = [];
@@ -416,6 +421,42 @@ export class InventoryService {
       granted.push({ itemId: food.id, quantity, slotIndex: result.slotIndex });
     }
     return { characterId: character.id, quantity, foods: granted };
+  }
+
+  /** TEMP DEV CHEAT — remove after Diet/food QA is complete. */
+  async resetDietCheat() {
+    const character = await this.characterRepo.manager.transaction(async (manager) => {
+      const repo = manager.getRepository(Character);
+      const [candidate] = await repo.find({
+        order: { updatedAt: 'DESC' },
+        take: 1,
+      });
+      if (!candidate) throw new NotFoundException('Character not found');
+
+      const character = await repo.findOne({
+        where: { id: candidate.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!character) throw new NotFoundException('Character not found');
+
+      this.logger.warn(
+        `RESET DIET cheat target: characterId=${character.id} name=${character.name} status=${character.status} currentMapId=${character.currentMapId ?? 'null'} dietCount=${Array.isArray(character.diet) ? character.diet.length : 0} activeFoodBuff=${character.activeFoodBuff ? 'present' : 'null'}`,
+      );
+
+      character.diet = [];
+      character.dietLevels = {};
+      character.activeFoodBuff = null;
+      character.lastSeenAt = new Date();
+      return repo.save(character);
+    });
+
+    return {
+      characterId: character.id,
+      hungry: true,
+      diet: character.diet,
+      dietLevels: character.dietLevels,
+      activeFoodBuff: character.activeFoodBuff,
+    };
   }
 
   /**
