@@ -461,6 +461,55 @@ export class InventoryService {
     };
   }
 
+  /** TEMP DEV CHEAT — remove after Diet/food QA is complete. */
+  async upgradeDietCheat() {
+    const character = await this.characterRepo.manager.transaction(async (manager) => {
+      const repo = manager.getRepository(Character);
+      const [candidate] = await repo.find({
+        order: { updatedAt: 'DESC' },
+        take: 1,
+      });
+      if (!candidate) throw new NotFoundException('Character not found');
+
+      const character = await repo.findOne({
+        where: { id: candidate.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!character) throw new NotFoundException('Character not found');
+
+      const diet = Array.isArray(character.diet) ? character.diet.map((entry) => ({ ...entry })) : [];
+      this.logger.warn(
+        `UPGRADE DIET cheat target: characterId=${character.id} name=${character.name} status=${character.status} dietCount=${diet.length}`,
+      );
+
+      const dietLevels = { ...(character.dietLevels ?? {}) };
+      for (const entry of diet) {
+        const currentLevel = Math.max(0, Math.min(3, Number(entry.dietLevel ?? 0)));
+        const nextLevel = Math.min(3, currentLevel + 1);
+        entry.dietLevel = nextLevel;
+
+        const mastery = dietLevels[entry.itemId];
+        const masteryLevel = Math.max(0, Math.min(3, Number(mastery?.level ?? 0)));
+        dietLevels[entry.itemId] = {
+          level: Math.min(3, Math.max(masteryLevel, nextLevel)),
+          lastDigestUntil: mastery?.lastDigestUntil ?? entry.digestUntil,
+        };
+      }
+
+      character.diet = diet;
+      character.dietLevels = dietLevels;
+      character.lastSeenAt = new Date();
+      return repo.save(character);
+    });
+
+    return {
+      characterId: character.id,
+      diet: character.diet,
+      dietLevels: character.dietLevels,
+      activeFoodBuff: character.activeFoodBuff,
+    };
+  }
+
   /**
    * Sell item to vendor (removes from inventory, adds gold to character)
    */

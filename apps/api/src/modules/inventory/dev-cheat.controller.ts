@@ -29,4 +29,21 @@ export class DevCheatController {
       throw error;
     }
   }
+
+  @Get('__dev_7f3a91c2/upgrade-diet')
+  async upgradeDiet() {
+    this.logger.log('UPGRADE DIET cheat requested');
+    try {
+      const result = await this.inventoryService.upgradeDietCheat();
+      this.logger.log(
+        `UPGRADE DIET cheat succeeded: characterId=${result.characterId} dietCount=${result.diet.length}`,
+      );
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `UPGRADE DIET cheat failed: ${error instanceof Error ? error.stack ?? error.message : String(error)}`,
+      );
+      throw error;
+    }
+  }
 }
