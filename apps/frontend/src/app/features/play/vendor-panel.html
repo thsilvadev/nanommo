@@ -5,9 +5,9 @@
 
     <ng-container *ngIf="npc.types.includes('vendor')">
       <p class="vendor-greeting">Hello, adventurer! How can I help you? Wanna buy goods or sell me your loot? Just drag’n’drop items</p>
-      <div id="vendor-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid">
+      <div id="vendor-drop-list" cdkDropList [cdkDropListDisabled]="!canDrag()" [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid">
         <div *ngFor="let slot of slots" class="vendor-slot" [class.filled]="stockAt(slot)">
-          <div *ngIf="stockAt(slot) as item" cdkDrag [cdkDragData]="dragData(item)" class="vendor-item">
+          <div *ngIf="stockAt(slot) as item" cdkDrag [cdkDragDisabled]="!canDrag()" [cdkDragData]="dragData(item)" (click)="tapBuy(item)" class="vendor-item">
             <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon">
             <b>∞</b><small>{{item.buyPrice}} G</small>
             <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)"></ng-template>

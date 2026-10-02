@@ -1,0 +1,6 @@
+<div class="battle-log-wrap">
+  <div #log class="battle-log" (scroll)="onScroll()" aria-label="Battle log">
+    <div *ngFor="let e of events"><small>T{{e.tick}}</small><span>{{e.text}}</span></div>
+  </div>
+  <button *ngIf="newLines()" class="new-lines" type="button" (click)="follow()">↓ {{newLines()}} novas linhas</button>
+</div>

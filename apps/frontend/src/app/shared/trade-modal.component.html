@@ -1,0 +1,15 @@
+<div class="trade-modal-backdrop" *ngIf="vendor.modal() as modal" (click)="vendor.cancel()">
+  <section class="trade-modal" role="dialog" aria-modal="true" aria-labelledby="trade-modal-title" (click)="$event.stopPropagation()">
+    <div class="trade-modal-title"><span>{{modal.mode==='buy'?'BUY':'SELL'}}</span><strong id="trade-modal-title">{{vendor.itemName(modal.itemId)}}</strong></div>
+    <div class="trade-summary"><span>UNIT PRICE <b>{{modal.unitPrice}} G</b></span><span>QUANTITY <b>{{modal.quantity}}</b></span><span>TOTAL <b>{{vendor.total()}} G</b></span></div>
+    <div class="quantity-row" *ngIf="modal.maxQuantity>1">
+      <button (click)="vendor.setQuantity(modal.quantity-1)" aria-label="Decrease quantity">−</button>
+      <input type="number" min="1" [max]="modal.maxQuantity" [value]="modal.quantity" inputmode="numeric" (input)="vendor.setQuantity($any($event.target).value)" aria-label="Quantity">
+      <button (click)="vendor.setQuantity(modal.quantity+1)" aria-label="Increase quantity">+</button>
+      <button class="all" (click)="vendor.all()">All</button>
+    </div>
+    <div class="trade-modal-note">{{modal.mode==='buy'?'Confirm purchase?':'Confirm sale?'}} Current server state will be revalidated.</div>
+    <div class="trade-modal-error" *ngIf="vendor.error()">{{vendor.error()}}</div>
+    <div class="trade-actions"><button class="cancel" [disabled]="vendor.busy()" (click)="vendor.cancel()">Cancel</button><button class="confirm" [disabled]="vendor.busy()" (click)="vendor.confirm()">{{vendor.busy()?'Processing…':'Confirm'}}</button></div>
+  </section>
+</div>

@@ -1,0 +1,12 @@
+<div class="action-backdrop" (click)="closed.emit()">
+  <section class="action-sheet" role="dialog" aria-modal="true" [attr.aria-label]="itemName + ' actions'" (click)="$event.stopPropagation()">
+    <h2 [class]="itemClass">{{itemName}}</h2>
+    <div class="action-details" *ngIf="details.length">
+      <div *ngFor="let line of details"><span>{{line.label}}</span><b>{{line.value}}</b></div>
+    </div>
+    <div class="action-list">
+      <button *ngFor="let option of actions" type="button" (click)="action.emit(option.id)">{{option.label}}</button>
+      <button type="button" class="close" (click)="closed.emit()">Fechar</button>
+    </div>
+  </section>
+</div>

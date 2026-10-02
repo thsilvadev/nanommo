@@ -1,0 +1,10 @@
+<div class="account-modal-backdrop" *ngIf="open" (click)="reset()">
+  <section class="account-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title" (click)="$event.stopPropagation()">
+    <h2 id="delete-account-title">Delete account</h2>
+    <p>This permanently deletes your character, inventory, equipment, progression and account data.</p>
+    <p>Type <strong>DELETE</strong> to confirm.</p>
+    <input [value]="confirmText()" (input)="confirmText.set($any($event.target).value)" autocomplete="off" spellcheck="false" inputmode="text" aria-label="Type DELETE" />
+    <div class="modal-error" *ngIf="error">{{error}}</div>
+    <div class="modal-actions"><button class="cancel" (click)="reset()">Cancel</button><button class="danger" [disabled]="confirmText()!=='DELETE'" (click)="confirm()">Delete account</button></div>
+  </section>
+</div>

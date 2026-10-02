@@ -1,0 +1,12 @@
+<div class="nm-app">
+<header class="nm-header">
+ <div class="micro-row"><div class="identity"><span class="avatar">{{(character.character()?.name||'?').slice(0,1).toUpperCase()}}</span><strong>{{character.character()?.name||'Character'}}</strong><small>Lv {{character.character()?.level||'—'}}</small><span class="gold">{{character.character()?.gold||0}} G</span></div><button class="menu-btn" aria-label="Menu" (click)="openMenu()">☰</button></div>
+ <div class="resource-row" *ngIf="character.character() as c"><div class="bar hp"><i [style.width.%]="c.maxHp?c.hpCurrent/c.maxHp*100:0"></i><span>HP {{c.hpCurrent}}/{{c.maxHp}}</span></div><div class="bar sp"><i [style.width.%]="c.maxSp?c.spCurrent/c.maxSp*100:0"></i><span>SP {{c.spCurrent}}/{{c.maxSp}}</span></div><div class="bar xp"><i [style.width.%]="c.xpToNext?c.xp/c.xpToNext*100:0"></i></div></div>
+ <div class="reconnect" *ngIf="battle.state()==='reconnecting'">Reconectando…</div>
+</header>
+<main class="nm-body"><app-mobile-char-panel *ngIf="showCockpit()" /><router-outlet /><app-sheet-panel *ngIf="showCockpit()" /></main>
+<nav class="nm-nav" aria-label="Mobile navigation"><button *ngFor="let t of tabs" [class.active]="active(t[0])" [attr.aria-current]="active(t[0])?'page':null" (click)="go(t[0])"><img [src]="t[2]" alt=""><span>{{t[1]}}</span></button></nav>
+<app-chat-drawer [open]="chatOpen()" (closed)="chatOpen.set(false)" />
+<div class="menu-sheet" *ngIf="menuOpen()"><button (click)="chatOpen.set(true);menuOpen.set(false)">Chat</button><button (click)="settingsOpen.set(true);menuOpen.set(false)">Configurações</button><button class="danger" (click)="logout()">Sair da conta</button><button (click)="menuOpen.set(false)">Fechar</button></div>
+<div class="settings-modal" *ngIf="settingsOpen()"><section><h2>Configurações</h2><app-login-music-control variant="header" /><button (click)="deleteAccount.emit();settingsOpen.set(false)">Excluir conta</button><button (click)="settingsOpen.set(false)">Fechar</button></section></div>
+</div>

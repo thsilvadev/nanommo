@@ -9,8 +9,10 @@
 *{box-sizing:border-box}html,body{overflow-x:hidden;}html,body{margin:0;min-height:100%;background:var(--nm-bg);color:var(--nm-text)}
 body{font-family:Georgia,'Times New Roman',serif}
 button,input,select{font:inherit}
+@media(max-width:899px){button,input,select{touch-action:manipulation;-webkit-tap-highlight-color:transparent}button{min-height:44px}.nm-nav button{min-height:48px}}
 button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--nm-gold);outline-offset:2px}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}}@keyframes auth-login-fade-in{from{opacity:1}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}}
+@media(max-width:600px){.gambit-editor.mobile-mode .line-list{gap:7px}.gambit-editor.mobile-mode .gambit-line{grid-template-columns:24px minmax(0,1fr) 44px 20px;padding:7px;cursor:pointer}.gambit-editor.mobile-mode .gambit-line.disabled{opacity:.48;filter:grayscale(.75)}.gambit-editor.mobile-mode .mobile-priority-actions{display:grid;gap:3px;align-self:center}.gambit-editor.mobile-mode .mobile-priority-actions button{width:44px;height:30px;padding:0;background:#21160e;border:1px solid #5a4026;color:#d2b474;font:14px Arial;cursor:pointer}.gambit-editor.mobile-mode .mobile-priority-actions button:disabled{opacity:.3}.gambit-editor.mobile-mode .switch{width:44px;height:24px}.gambit-editor.mobile-mode .switch span:after{width:16px;height:16px;left:3px;top:3px}.gambit-editor.mobile-mode .switch input:checked + span:after{transform:translateX(20px)}.gambit-editor.mobile-mode .param-row input[type=number]{font-size:16px;min-height:44px}.gambit-editor.mobile-mode .param-row input,.gambit-editor.mobile-mode .param-row select{min-height:44px;font-size:12px}.gambit-editor.mobile-mode .param-row label{font-size:9px}}@keyframes auth-login-fade-in{from{opacity:1}to{opacity:0}}
 
 /* Shared login/auth shell — the artwork is the surface, not a card. */
 .auth-screen{position:relative;height:100vh;width:100%;overflow:hidden;background:#17100c;color:#ead9b8;display:block}

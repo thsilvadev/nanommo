@@ -15,13 +15,14 @@ export class CharacterPageComponent implements OnInit {
  attrs=[['str','STR'],['agi','AGI'],['dex','DEX'],['vit','VIT'],['int','INT'],['sor','SOR']];
  slots=[['head','Head','helmet'],['body','Body','armor'],['mainHand','Main Hand','sword'],['offHand','Off Hand','shield'],['shoes','Shoes','boots'],['cape','Cape','cape'],['accessoryLeft','Accessory L','ring'],['accessoryRight','Accessory R','ring']];
  constructor(){void this.catalog.load();void this.inventory.load();}
- ngOnInit(){this.route.queryParamMap.subscribe(q=>{const t=q.get('tab') || this.route.snapshot.data['defaultTab'];if(t==='gambits'||t==='mastery'||t==='character')this.tab=t;});void this.loadWeaponLevels();}
+ ngOnInit(){this.route.queryParamMap.subscribe(q=>{let t=q.get('tab') || this.route.snapshot.data['defaultTab'];if(this.mobileMode()&&t==='gambits')t='character';if(t==='gambits'||t==='mastery'||t==='character')this.tab=t;});void this.loadWeaponLevels();}
  async loadWeaponLevels(){try{const rows=await this.api.get<Array<{weaponType:string;level:number}>>('/characters/weapon-proficiency').toPromise();this.weaponLevels.set(Object.fromEntries((rows??[]).map(r=>[r.weaponType,r.level])))}catch{this.weaponLevels.set({})}}
  weaponRows(){return [['sword','Sword'],['greatsword','Greatsword'],['dagger','Dagger'],['bow','Bow'],['staff','Staff'],['wand','Wand'],['shield','Shield']]}
  masterySkills(){return this.catalog.skills().filter((s:any)=>s.weaponType===this.selectedWeapon()).slice(0,5)}
  selectWeapon(type:string){this.selectedWeapon.set(type)}
  selectedWeaponIndex(){const i=this.weaponRows().findIndex(r=>r[0]===this.selectedWeapon());return i<0?0:i}
- setTab(t:string){this.tab=t;if(t==='gambits')this.router.navigate(['/play/character'],{queryParams:{tab:'gambits'}});else this.router.navigate(['/play/character'],{queryParams:{tab:t}})}
+ mobileMode(){return this.router.url.split('?')[0]==='/play/m/character'}
+ setTab(t:string){if(this.mobileMode()&&t==='gambits')t='character';this.tab=t;const base=this.mobileMode()?'/play/m/character':'/play/character';void this.router.navigateByUrl(base+'?tab='+t)}
  value(k:string){const c=this.character.character() as any;return (c?.[k]??0)+(this.pending()[k]??0)}
  delta(k:string){return this.pending()[k]??0}
  change(k:string,n:number){const points=Object.values(this.pending()).reduce((a,b)=>a+b,0);if(n>0&&(this.character.character()?.unspentAttributePoints??0)-points<=0)return;const next={...this.pending(),[k]:(this.pending()[k]??0)+n};if(next[k]===0)delete next[k];this.pending.set(next)}
