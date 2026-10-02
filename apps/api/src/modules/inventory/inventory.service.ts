@@ -477,6 +477,10 @@ export class InventoryService {
       character.diet = [];
       character.dietLevels = {};
       character.activeFoodBuff = null;
+      // tryAutoFeed feeds strictly from diet + dietLevels, i.e. exactly what this
+      // wipe clears. Leaving it armed only re-populates the diet on the next
+      // battle resolve, so a diet reset disarms it.
+      character.autoFeed = false;
       character.lastSeenAt = new Date();
       const strippedFoodEvents = await this.stripQueuedFoodEvents(manager, character.id);
       const saved = await repo.save(character);
@@ -486,6 +490,7 @@ export class InventoryService {
     return {
       characterId: character.saved.id,
       hungry: true,
+      autoFeed: character.saved.autoFeed,
       diet: character.saved.diet,
       dietLevels: character.saved.dietLevels,
       activeFoodBuff: character.saved.activeFoodBuff,
