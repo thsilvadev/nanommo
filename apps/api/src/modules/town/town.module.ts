@@ -6,9 +6,10 @@ import { Character } from '../../database/entities/character.entity';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { DataModule } from '../data/data.module';
 import { CharacterModule } from '../character/character.module';
+import { InventoryModule } from '../inventory/inventory.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Character, InventoryItem]), DataModule, CharacterModule],
+  imports: [TypeOrmModule.forFeature([Character, InventoryItem]), DataModule, CharacterModule, InventoryModule],
   controllers: [TownController],
   providers: [TownService],
   exports: [TownService],
