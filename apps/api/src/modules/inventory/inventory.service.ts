@@ -414,7 +414,9 @@ export class InventoryService {
 
     const character = await this.characterRepo.findOne({ where: { id: candidate.id } });
     if (!character) throw new NotFoundException('Character not found');
-    const foods = this.dataService.getItems().filter((item: any) => item?.type === 'consumable' && item?.effect?.type === 'food_buff');
+    const itemCatalog = this.dataService.getItems();
+    const consumables = Array.isArray(itemCatalog) ? itemCatalog : itemCatalog?.consumables ?? [];
+    const foods = consumables.filter((item: any) => item?.type === 'consumable' && item?.effect?.type === 'food_buff');
     const granted = [];
     for (const food of foods) {
       const result = await this.addItem(character.id, food.id, quantity, 'inventory');
