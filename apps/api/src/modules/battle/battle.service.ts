@@ -189,6 +189,7 @@ export class BattleService {
     atTime: number = Date.now(),
     foodOverride: any = character.activeFoodBuff,
     loadout?: Awaited<ReturnType<BattleService['loadCombatantLoadout']>>,
+    foodDigestOverride?: Record<string, number>,
   ): Promise<CombatantSnapshot> {
     const { equipmentStats, skills, skillDefs, weaponTypes } =
       loadout ?? (await this.loadCombatantLoadout(character.id));
@@ -226,6 +227,12 @@ export class BattleService {
       foodBuffItemId: foodActive ? food.itemId : undefined,
       foodBuffHpRegenPerTenTicks: foodActive ? Number(food.hpRegenPerTenTicks ?? 0) : undefined,
       foodBuffSpRegenPerTenTicks: foodActive ? Number(food.spRegenPerTenTicks ?? 0) : undefined,
+      foodDigestRemainingTicksByItem: foodDigestOverride ?? Object.fromEntries(
+        Object.entries(character.dietLevels ?? {}).map(([itemId, value]) => {
+          const until = Date.parse(value.lastDigestUntil);
+          return [itemId, until > atTime ? Math.ceil((until - atTime) / MS_PER_TICK) : 0];
+        }),
+      ),
       skills,
       skillDefs,
       statusEffects: character.statusEffects ?? [],
@@ -277,6 +284,9 @@ export class BattleService {
 
     let projectedFoodBuff = character.activeFoodBuff;
     let projectedFoodExpiresAt = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
+    let projectedFoodDigestUntil: Record<string, number> = Object.fromEntries(
+      Object.entries(character.dietLevels ?? {}).map(([itemId, value]) => [itemId, Date.parse(value.lastDigestUntil)]),
+    );
 
     const mapId = character.currentMapId;
     const battlesToAdd = targetDepth - currentQueue.length;
@@ -408,6 +418,12 @@ export class BattleService {
         nextStartTime.getTime(),
         projectedFoodBuff,
         loadout,
+        Object.fromEntries(
+          Object.entries(projectedFoodDigestUntil).map(([itemId, expiresAt]) => [
+            itemId,
+            expiresAt > nextStartTime.getTime() ? Math.ceil((expiresAt - nextStartTime.getTime()) / MS_PER_TICK) : 0,
+          ]),
+        ),
       );
       const regenAnchor = character.regenAnchorAt?.getTime?.() ?? Date.now();
       const fromTick = Math.max(0, Math.floor((chainTimelineMs - regenAnchor) / MS_PER_TICK));
@@ -454,6 +470,13 @@ export class BattleService {
       Object.assign(workingInventory, simulation.inventoryAfter);
 
       const battleEndTime = nextStartTime.getTime() + Math.max(1000, simulation.durationTicks * MS_PER_TICK);
+      for (const event of Array.isArray(simulation.log?.events) ? simulation.log.events : []) {
+        if (event?.action !== 'use_item') continue;
+        const def = itemDefinitions[event.itemId];
+        if (def?.effect?.type !== 'food_buff') continue;
+        const usedAt = nextStartTime.getTime() + Number(event.tick ?? 0) * MS_PER_TICK;
+        projectedFoodDigestUntil[event.itemId] = usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_TICK;
+      }
       if (simulation.foodBuffAfter) {
         projectedFoodBuff = {
           itemId: simulation.foodBuffAfter.itemId,
@@ -700,6 +723,19 @@ export class BattleService {
     // revision for the complete Character + Inventory state.
     await this.characterRepo.save(character);
 
+    const futureQueue = await this.getBattleQueue(character.id, 100);
+    const nextBattleStart = futureQueue[0]?.startAt
+      ? futureQueue[0].startAt.getTime()
+      : Date.now();
+    const autoFed = await this.tryAutoFeed(character, nextBattleStart);
+    if (autoFed) {
+      await this.discardUnresolvedBattles(character.id);
+      await this.characterRepo.save(character);
+      if (character.currentMapId && character.status === 'grinding') {
+        await this.queueBattles(character.id, this.QUEUE_DEPTH_TARGET, false);
+      }
+    }
+
     // --- the kill actually happened: bump the counter (SPEC §11.2)
     const killCounter = await this.incrementKillCounter(character.id, battle.mapId, battle.monsterId);
 
@@ -740,6 +776,10 @@ export class BattleService {
         unspentAttributePoints: character.unspentAttributePoints,
       });
     }
+    // battle:resolved and the subsequent queueUpdated must expose the same final
+    // Character + Inventory + Diet revision; neither event is allowed to carry a
+    // pre-Auto-Feed snapshot.
+    await this.safePublishBattleResolved(character.id, battle);
     const liveQueue = await this.getBattleQueue(character.id, 5);
     const authoritativeSnapshot = await this.buildAuthoritativeBattleSnapshot(character.id);
     await this.safePublishQueueUpdated(character.id, liveQueue, authoritativeSnapshot);
@@ -752,21 +792,80 @@ export class BattleService {
     );
   }
 
+  private async tryAutoFeed(character: Character, boundaryAt: number): Promise<boolean> {
+    if (!character.autoFeed || character.returnToTownAfterBattle) return false;
+
+    const activeExpiresAt = character.activeFoodBuff?.expiresAt
+      ? Date.parse(character.activeFoodBuff.expiresAt)
+      : 0;
+    if (activeExpiresAt > boundaryAt) return false;
+
+    const now = Date.now();
+    const configuredIds = [
+      ...(Array.isArray(character.diet) ? character.diet.map((entry) => entry.itemId) : []),
+      ...Object.keys(character.dietLevels ?? {}),
+    ];
+    const candidates = [...new Set(configuredIds)];
+
+    for (const itemId of candidates) {
+      const definition = this.dataService.getItemById(itemId);
+      if (definition?.type !== 'consumable' || definition.effect?.type !== 'food_buff') continue;
+
+      const lastDigestUntil = character.dietLevels?.[itemId]?.lastDigestUntil
+        ? Date.parse(character.dietLevels[itemId].lastDigestUntil)
+        : 0;
+      if (lastDigestUntil > now) continue;
+
+      if ((await this.inventoryService.getItemCount(character.id, itemId)) <= 0) continue;
+
+      const updated = await this.inventoryService.consumeFood(character.id, itemId);
+      Object.assign(character, updated);
+      return true;
+    }
+
+    return false;
+  }
+
   private applyResolvedFoodState(character: Character, battle: BattleQueueEntry): void {
     const events = Array.isArray(battle.log?.events) ? battle.log.events : [];
-    let foodUse: any = null;
+    let diet = Array.isArray(character.diet) ? character.diet.slice() : [];
+    const dietLevels = character.dietLevels ?? {};
+    let lastFoodUse: { event: any; def: any } | null = null;
+
     for (const event of events) {
       if (event?.action !== 'use_item') continue;
       const def = this.dataService.getItemById(event.itemId);
-      if (def?.effect?.type === 'food_buff') foodUse = { event, def };
+      if (def?.effect?.type !== 'food_buff') continue;
+
+      const usedAt = new Date(battle.startAt).getTime() + Number(event.tick ?? 0) * MS_PER_TICK;
+      const digestUntil = new Date(usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_TICK).toISOString();
+      const previous = dietLevels[event.itemId];
+      const previousDigestUntil = previous?.lastDigestUntil ? Date.parse(previous.lastDigestUntil) : 0;
+      const currentLevel = Math.max(0, Math.min(3, Number(previous?.level ?? 0)));
+      const nextLevel = previousDigestUntil > 0 && previousDigestUntil <= usedAt
+        ? Math.min(3, currentLevel + 1)
+        : currentLevel;
+
+      diet = [...diet.slice(-2), {
+        itemId: event.itemId,
+        consumedAt: new Date(usedAt).toISOString(),
+        digestUntil,
+        dietLevel: nextLevel,
+      }];
+      dietLevels[event.itemId] = { level: nextLevel, lastDigestUntil: digestUntil };
+      lastFoodUse = { event, def };
     }
-    if (foodUse) {
-      const usedAt = new Date(battle.startAt).getTime() + Number(foodUse.event.tick ?? 0) * MS_PER_TICK;
+
+    character.diet = diet;
+    character.dietLevels = dietLevels;
+
+    if (lastFoodUse) {
+      const usedAt = new Date(battle.startAt).getTime() + Number(lastFoodUse.event.tick ?? 0) * MS_PER_TICK;
       character.activeFoodBuff = {
-        itemId: foodUse.def.id,
-        hpRegenPerTenTicks: Number(foodUse.def.effect?.hpRegenPerTenTicks ?? 0),
-        spRegenPerTenTicks: Number(foodUse.def.effect?.spRegenPerTenTicks ?? 0),
-        expiresAt: new Date(usedAt + Number(foodUse.def.effect?.durationSeconds ?? 0) * MS_PER_TICK).toISOString(),
+        itemId: lastFoodUse.def.id,
+        hpRegenPerTenTicks: Number(lastFoodUse.def.effect?.hpRegenPerTenTicks ?? 0),
+        spRegenPerTenTicks: Number(lastFoodUse.def.effect?.spRegenPerTenTicks ?? 0),
+        expiresAt: new Date(usedAt + Number(lastFoodUse.def.effect?.durationSeconds ?? 0) * MS_PER_TICK).toISOString(),
       };
     } else if (character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() <= Date.now()) {
       character.activeFoodBuff = null;

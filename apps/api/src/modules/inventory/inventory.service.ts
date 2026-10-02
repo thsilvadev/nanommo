@@ -275,6 +275,75 @@ export class InventoryService {
     return this.transferItem(characterId, itemId, quantity, 'warehouse', 'inventory');
   }
 
+  async consumeFood(characterId: string, itemId: string): Promise<Character> {
+    const item = this.dataService.getItemById(itemId);
+    if (!item || item.type !== 'consumable' || item.effect?.type !== 'food_buff') {
+      throw new BadRequestException('Item is not a food');
+    }
+
+    const queryRunner = this.characterRepo.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const characterRepo = queryRunner.manager.getRepository(Character);
+      const inventoryRepo = queryRunner.manager.getRepository(InventoryItem);
+      const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character) throw new NotFoundException('Character not found');
+      if (character.status === 'grinding') {
+        // Auto Feed uses this path from the authoritative battle resolver.
+        // Manual callers are still blocked by useConsumable() below.
+      }
+
+      const stacks = await inventoryRepo.find({
+        where: { characterId, itemId, location: 'inventory' },
+        order: { slotIndex: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const stack = stacks.find((row) => row.quantity > 0);
+      if (!stack) throw new BadRequestException('Insufficient item quantity');
+
+      const now = Date.now();
+      const dietLevels = character.dietLevels ?? {};
+      const previous = dietLevels[itemId];
+      const previousDigestUntil = previous?.lastDigestUntil ? Date.parse(previous.lastDigestUntil) : 0;
+      if (previousDigestUntil > now) {
+        throw new BadRequestException('Food is still digesting');
+      }
+
+      const currentLevel = Math.max(0, Math.min(3, Number(previous?.level ?? 0)));
+      const nextLevel = previousDigestUntil > 0 ? Math.min(3, currentLevel + 1) : currentLevel;
+      const consumedAt = new Date(now).toISOString();
+      const digestUntil = new Date(now + Number(item.effect?.durationSeconds ?? 0) * 1000).toISOString();
+      const diet = Array.isArray(character.diet) ? character.diet.slice(-2) : [];
+      diet.push({ itemId, consumedAt, digestUntil, dietLevel: nextLevel });
+
+      stack.quantity -= 1;
+      if (stack.quantity <= 0) await inventoryRepo.remove(stack);
+      else await inventoryRepo.save(stack);
+
+      character.diet = diet;
+      character.dietLevels = {
+        ...dietLevels,
+        [itemId]: { level: nextLevel, lastDigestUntil: digestUntil },
+      };
+      character.activeFoodBuff = {
+        itemId,
+        hpRegenPerTenTicks: Number(item.effect?.hpRegenPerTenTicks ?? 0),
+        spRegenPerTenTicks: Number(item.effect?.spRegenPerTenTicks ?? 0),
+        expiresAt: digestUntil,
+      };
+      character.lastSeenAt = new Date();
+      const saved = await characterRepo.save(character);
+      await queryRunner.commitTransaction();
+      return saved;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async useConsumable(characterId: string, itemId: string): Promise<{ character: Character; itemId: string }> {
     const item = this.dataService.getItemById(itemId);
     if (!item || item.type !== 'consumable') {
@@ -290,15 +359,12 @@ export class InventoryService {
     if (count <= 0) throw new BadRequestException('Insufficient item quantity');
 
     const effect = item.effect ?? {};
-    character.lastSeenAt = new Date();
     if (effect.type === 'food_buff') {
-      character.activeFoodBuff = {
-        itemId,
-        hpRegenPerTenTicks: Number(effect.hpRegenPerTenTicks ?? 0),
-        spRegenPerTenTicks: Number(effect.spRegenPerTenTicks ?? 0),
-        expiresAt: new Date(Date.now() + Number(effect.durationSeconds ?? 0) * 1000).toISOString(),
-      };
-    } else if (effect.type === 'heal_hp') {
+      const updated = await this.consumeFood(characterId, itemId);
+      return { character: updated, itemId };
+    }
+    character.lastSeenAt = new Date();
+    if (effect.type === 'heal_hp') {
       const derived = await this.getDerivedStatsForCharacter(character);
       character.hpCurrent = Math.min(derived.maxHp, Number(character.hpCurrent) + Number(effect.amount ?? 0));
     } else if (effect.type === 'heal_sp') {

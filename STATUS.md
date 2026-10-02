@@ -989,3 +989,28 @@ This intentionally duplicates a small amount of realtime payload data. The dupli
 - `git diff --check`: passed.
 - No production deployment performed.
 - Live API gateway smoke remained unavailable because no local API was listening on `http://localhost:3010`.
+
+
+### Latest feature — Diet & Auto Feed (2026-10-01)
+
+- Created OpenSpec change `diet-auto-feed` with proposal, design, spec and implementation tasks. Strict OpenSpec validation passes.
+- Character now persists `diet` (up to three ordered food entries), `dietLevels` (per-food level + last digestion boundary) and authoritative `autoFeed`.
+- Food consumption is centralized on a transactional backend path with Character/Inventory row locks. It shifts the three Diet slots, prevents repeating a food while its prior digestion is active, and increases permanent Diet stars only after completed digestion, capped at ★★★.
+- The shared battle engine now carries tick-based per-food digestion state, so generic `use_item` food actions cannot consume the same food twice while it is still digesting inside the pre-simulated queue.
+- Auto Feed is evaluated server-side during battle resolution before a future encounter would cross the food-expiry boundary. When an eligible Diet food exists in Inventory, it is consumed and the unresolved queue is rebuilt from the new authoritative state. No frontend timer/polling decides gameplay continuity.
+- Manual food use remains the existing generic consumable action; frontend refreshes authoritative Character + Inventory after manual use.
+- Removed `self_hungry` from shared enum/catalogs and runtime references. Food remains available through generic `use_item`; Auto Feed is not a Gambit substitute.
+- Character Panel now renders Diet below equipment with three food slots, food placeholder icons, authoritative Diet stars and an Auto Feed switch. Existing tooltip infrastructure is reused.
+- Realtime success-path resolution now emits `battle:resolved` and the post-resolution `battle:queueUpdated` from the same final Character + Inventory + Diet revision.
+- Added backend/shared regression coverage for digestion legality and generic food-use behavior. Frontend realtime coverage now includes Diet/Auto Feed stale-event ordering.
+
+Verification for this feature:
+- Shared build: passed.
+- API build: passed.
+- Frontend production build: passed; existing component CSS budget warnings remain non-blocking.
+- Focused Diet backend test: 2/2 passed.
+- Frontend suite: 7/8 passed; the only failure is the pre-existing `AppComponent should render title` assertion expecting `Hello, frontend`.
+- Focused frontend realtime suite: 5/5 passed in Chrome Headless, including Diet/Auto Feed out-of-order convergence.
+- Strict OpenSpec validation: passed; all 15 existing changes validate.
+- git diff --check: passed.
+- Live browser smoke for the Diet UI was not completed because the local API is not currently running; no production deployment performed.

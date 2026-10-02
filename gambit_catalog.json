@@ -133,12 +133,6 @@
       "category": "foe"
     },
     {
-      "id": "self_hungry",
-      "label": "Self has no active food buff",
-      "params": [],
-      "category": "self"
-    },
-    {
       "id": "foe_element_is",
       "label": "Target element is...",
       "params": [
@@ -291,19 +285,6 @@
         "action": {
           "id": "use_skill",
           "skillId": "sword_execute"
-        }
-      },
-      {
-        "priority": 5,
-        "conditions": [
-          {
-            "id": "self_hungry",
-            "band": null
-          }
-        ],
-        "action": {
-          "id": "use_item",
-          "itemId": "food_stew"
         }
       },
       {

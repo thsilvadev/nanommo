@@ -55,6 +55,9 @@ export class CharacterService {
       hpCurrent: baseStats.maxHp,
       spCurrent: baseStats.maxSp,
       status: 'town',
+      diet: [],
+      dietLevels: {},
+      autoFeed: false,
       lastSeenAt: new Date(),
       regenAnchorAt: new Date(),
     });
@@ -144,6 +147,14 @@ export class CharacterService {
     if (!character) throw new NotFoundException('Character not found');
     const rows = await this.weaponProficiencyRepository.find({ where: { characterId: character.id } });
     return rows.map((row) => ({ weaponType: row.weaponType, level: row.level }));
+  }
+
+  async setAutoFeed(characterId: string, enabled: boolean): Promise<CharacterDto> {
+    const character = await this.getCharacterById(characterId);
+    if (!character) throw new NotFoundException('Character not found');
+    character.autoFeed = enabled === true;
+    await this.characterRepository.save(character);
+    return this.toDto(character);
   }
 
   async spendAttributePoints(characterId: string, attributes: Partial<Record<Attribute, number>>): Promise<CharacterDto> {
@@ -237,6 +248,8 @@ export class CharacterService {
   }
 
   private async toDto(character: Character): Promise<CharacterDto> {
+    if (!Array.isArray(character.diet)) character.diet = [];
+    if (!character.dietLevels) character.dietLevels = {};
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
     const equipment = { def: 0, maxHp: 0, maxSp: 0, weaponFixedAtk: 0, statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 } };
     for (const row of equipped) {
@@ -281,6 +294,9 @@ export class CharacterService {
       criticalChance: derived.critChance,
       hungry: !character.activeFoodBuff?.expiresAt || new Date(character.activeFoodBuff.expiresAt).getTime() <= Date.now(),
       foodBuffExpiresAt: character.activeFoodBuff?.expiresAt ? new Date(character.activeFoodBuff.expiresAt) : undefined,
+      diet: Array.isArray(character.diet) ? character.diet : [],
+      dietLevels: character.dietLevels ?? {},
+      autoFeed: character.autoFeed === true,
       currentMapId: character.currentMapId || undefined,
       status: character.status,
       activeGambitPageId: character.activeGambitPageId || undefined,

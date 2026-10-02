@@ -11,11 +11,12 @@ export class CharacterStore {
  async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const value=await this.api.get<Character|null>('/characters').toPromise()??null;if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if(value&&value.stateVersion<=this.realtimeRevision)return;if(value)this.realtimeRevision=value.stateVersion;this._character.set(value);this._state.set('loaded')}catch(e:any){if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;this._state.set('error');this._error.set(e?.error?.message??'Unable to load character')}}
  applyPatch(p:Partial<Character>){const c=this._character();if(c){this.realtimeGeneration++;this._character.set({...c,...p});}}
  applyRealtimeSnapshot(value:Character,revision:number){if(revision<=this.realtimeRevision)return;this.realtimeRevision=revision;this.realtimeGeneration++;this._character.set(value);this._state.set('loaded');}
+ async setAutoFeed(enabled:boolean):Promise<Character>{const value=await this.api.post<Character>('/characters/auto-feed',{enabled}).toPromise();if(value&&value.stateVersion>this.realtimeRevision)this.applyRealtimeSnapshot(value,value.stateVersion);return value as Character;}
  spend(attributes:Record<string,number>):Promise<Character>{const generation=this.realtimeGeneration;return new Promise((resolve,reject)=>this.api.post<Character>('/characters/attributes/spend',{attributes}).subscribe({next:c=>{if(generation!==this.realtimeGeneration){reject(new Error('Character changed while attribute update was in flight'));return;}this._character.set(c);resolve(c)},error:e=>reject(e)}));}
 }
 @Injectable({providedIn:'root'})
 export class InventoryStore {
- private readonly api=inject(ApiService);private readonly _items=signal<InventoryItem[]>([]);private readonly _equipment=signal<EquippedItem[]>([]);private readonly _state=signal<LoadState>('idle');private readonly _draggedItemId=signal<string|null>(null);
+ private readonly api=inject(ApiService); private readonly character=inject(CharacterStore);private readonly _items=signal<InventoryItem[]>([]);private readonly _equipment=signal<EquippedItem[]>([]);private readonly _state=signal<LoadState>('idle');private readonly _draggedItemId=signal<string|null>(null);
  readonly items=this._items.asReadonly();readonly equipment=this._equipment.asReadonly();readonly state=this._state.asReadonly();readonly draggedItemId=this._draggedItemId.asReadonly();private loadSeq=0;private realtimeGeneration=0;private realtimeRevision=0;
  async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const [inventory,equipment]=await Promise.all([this.api.get<{items:InventoryItem[];stateVersion:number}>('/inventory').toPromise(),this.api.get<EquippedItem[]>('/equipment').toPromise()]);if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if((inventory?.stateVersion??0)<this.realtimeRevision)return;this._items.set(inventory?.items??[]);this._equipment.set(equipment??[]);this._state.set('loaded')}catch{if(seq===this.loadSeq&&generation===this.realtimeGeneration)this._state.set('error')}}
  applyRealtimeSnapshot(items:InventoryItem[],revision:number){if(revision<=this.realtimeRevision)return;this.realtimeRevision=revision;this.realtimeGeneration++;this._items.set(items);this._state.set('loaded');}
@@ -23,7 +24,7 @@ export class InventoryStore {
  async unequip(slot:string){await this.api.delete('/equipment/slot/'+slot).toPromise();await this.load();}
  beginDrag(itemId:string){this._draggedItemId.set(itemId)}
  endDrag(){this._draggedItemId.set(null)}
- async useConsumable(itemId:string){await this.api.post('/inventory/use',{itemId}).toPromise();await this.load();}
+ async useConsumable(itemId:string){await this.api.post('/inventory/use',{itemId}).toPromise();await Promise.all([this.load(),this.character.load()]);}
 }
 @Injectable({providedIn:'root'})
 export class BattleStore {

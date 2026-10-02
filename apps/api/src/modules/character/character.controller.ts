@@ -2,7 +2,7 @@ import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport';
 import { Request as ExpressRequest } from 'express';
 import { CharacterService } from './character.service';
-import { CreateCharacterDto, CharacterDto, SpendAttributePointsDto } from '@nanommo/shared';
+import { CreateCharacterDto, CharacterDto, SpendAttributePointsDto, SetAutoFeedDto } from '@nanommo/shared';
 
 @Controller('characters')
 export class CharacterController {
@@ -24,6 +24,14 @@ export class CharacterController {
   @UseGuards(AuthGuard('jwt'))
   async getWeaponProficiency(@Request() req: ExpressRequest) {
     return this.characterService.getWeaponProficiencyByUserId((req.user as any).userId);
+  }
+
+  @Post('auto-feed')
+  @UseGuards(AuthGuard('jwt'))
+  async setAutoFeed(@Request() req: ExpressRequest, @Body() dto: SetAutoFeedDto): Promise<CharacterDto> {
+    const character = await this.characterService.getCharacterByUserId((req.user as any).userId);
+    if (!character) throw new Error('Character not found');
+    return this.characterService.setAutoFeed(character.id, dto.enabled === true);
   }
 
   @Post('attributes/spend')

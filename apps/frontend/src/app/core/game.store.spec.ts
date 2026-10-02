@@ -11,7 +11,7 @@ const character = (hp: number, sp: number): Character => ({
   gold: 0, hpCurrent: hp, spCurrent: sp, maxHp: 100, maxSp: 50, attack: 10,
   defense: 0, attackSpeed: 1, castSpeed: 1, evasion: 5, accuracy: 5,
   hpRegenPerTenTicks: 3, spRegenPerTenTicks: 3, criticalChance: 1,
-  hungry: false, status: 'grinding', currentMapId: 'map_green_grounds',
+  hungry: false, foodBuffExpiresAt: new Date(Date.now()+3600000).toISOString(), diet: [], dietLevels: {}, autoFeed: false, status: 'grinding', currentMapId: 'map_green_grounds',
   lastSeenAt: new Date().toISOString(), createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(), stateVersion: 1,
 });

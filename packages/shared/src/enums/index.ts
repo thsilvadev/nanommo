@@ -86,7 +86,6 @@ export enum GambitConditionId {
   SELF_HAS_STATUS = 'self_has_status',
   SELF_MISSING_STATUS = 'self_missing_status',
   FOE_HAS_STATUS = 'foe_has_status',
-  SELF_HUNGRY = 'self_hungry',
   FOE_ELEMENT_IS = 'foe_element_is',
   SKILL_READY = 'skill_ready',
   ITEM_IN_STOCK = 'item_in_stock',

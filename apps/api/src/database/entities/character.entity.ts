@@ -69,6 +69,15 @@ export class Character {
   @Column({ type: 'jsonb', nullable: true })
   activeFoodBuff?: any;
 
+  @Column({ type: 'jsonb', default: '[]' })
+  diet!: Array<{ itemId: string; consumedAt: string; digestUntil: string; dietLevel: number }>;
+
+  @Column({ type: 'jsonb', default: '{}' })
+  dietLevels!: Record<string, { level: number; lastDigestUntil: string }>;
+
+  @Column({ type: 'boolean', default: false })
+  autoFeed!: boolean;
+
   @Column({ type: 'jsonb', nullable: true })
   pendingEquipmentChanges?: Record<string, { itemId: string; instanceData?: any } | null>;
 

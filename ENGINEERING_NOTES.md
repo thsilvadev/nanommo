@@ -95,12 +95,9 @@ must set and activate an `always → attack` page first, or it will look like an
 would reintroduce the exact silent-failure class of the `drop.dropRate` vs `drop.chance` bug.
 **Any new data-file consumer must be tested against the real file contents.**
 
-## 4.11 A validator must not reject the shipped example
+## 4.11 Food automation is outside Gambits
 
-`gambit_catalog.json`'s own `exampleGambitPage` contains
-`{"id":"self_hungry","band":null}` — a param the `self_hungry` entry does not declare. The
-validator checks **declared** params only and ignores extras, otherwise the canonical example
-would 400. Do not tighten this to "reject unknown params" without also fixing the catalog.
+The obsolete `self_hungry` condition was removed from the shipped Gambit catalog. Food remains a generic `use_item` action, while automatic feeding is handled by the server-authoritative Diet/Auto Feed system. Do not reintroduce a Gambit condition as an Auto Feed substitute.
 
 ## 4.12 DTOs without class-validator decorators pass through the ValidationPipe
 

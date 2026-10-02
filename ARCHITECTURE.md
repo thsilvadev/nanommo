@@ -109,6 +109,7 @@ Character (level, xp, gold, status, currentMapId)
   ├→ GambitPage × 3 (slots 0-2)
   ├→ BattleQueueEntry × N (0-5 unresolved)
   ├→ MapKillCounter × M (one per (character, map) pair)
+  ├→ Diet × up to 3 ordered food entries (JSONB on Character)
   └→ MailMessage × N (inbox)
 ```
 
@@ -164,6 +165,9 @@ entry = fetch BattleQueueEntry
 character = fetch Character
 
 // Apply results
+// Auto Feed is evaluated here at authoritative digestion/grind boundaries.
+// If the current food expires before the next encounter and an eligible Diet food exists,
+// consume it server-side and rebuild the unresolved future queue from the new state.
 character.xp += entry.xpGain
 character.gold += entry.goldGain
 character.inventory += entry.drops

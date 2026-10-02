@@ -41,6 +41,8 @@ export interface CombatantSnapshot {
   foodBuffItemId?: string;
   foodBuffHpRegenPerTenTicks?: number;
   foodBuffSpRegenPerTenTicks?: number;
+  /** Remaining digestion ticks per food item; prevents repeat consumption while digesting. */
+  foodDigestRemainingTicksByItem?: Record<string, number>;
   /** Ticks left per cooldown key. Keys: `skill:<id>`, `item:potion`, `defend`. */
   cooldowns?: Record<string, number>;
   /**
@@ -147,10 +149,6 @@ export class GambitEvaluator {
           (s: any) => (s.type ?? s.id) === params.status,
         );
 
-      case 'self_hungry':
-        // Deterministic: tick-indexed, never Date.now() (SPEC §7 preamble)
-        return (self.foodBuffTicksRemaining ?? 0) <= 0;
-
       case 'foe_element_is':
         return (foe.element ?? null) === params.element;
 
@@ -216,6 +214,7 @@ export class GambitEvaluator {
         const itemId = params.itemId;
         if (!itemId) return false;
         if ((inventory[itemId] ?? 0) <= 0) return false;
+        if ((self.foodDigestRemainingTicksByItem?.[itemId] ?? 0) > 0) return false;
         // Potions share a single 5-tick cooldown CATEGORY (SPEC §7.2):
         // using any HP/SP potion puts ALL potions on cooldown for 5 ticks.
         if (String(itemId).startsWith('pot_') && (cooldowns['item:potion'] ?? 0) > 0) return false;
@@ -505,6 +504,7 @@ export class BattleEngine {
       foodBuffItemId: characterSnapshot.foodBuffItemId,
       foodBuffHpRegenPerTenTicks: characterSnapshot.foodBuffHpRegenPerTenTicks,
       foodBuffSpRegenPerTenTicks: characterSnapshot.foodBuffSpRegenPerTenTicks,
+      foodDigestRemainingTicksByItem: { ...(characterSnapshot.foodDigestRemainingTicksByItem ?? {}) },
     };
 
     const foeCooldowns: Record<string, number> = {};
@@ -667,6 +667,10 @@ export class BattleEngine {
                 });
               } else if (effectType === 'food_buff') {
                 self.foodBuffTicksRemaining = Number(def.effect?.durationSeconds ?? 0);
+                self.foodDigestRemainingTicksByItem = {
+                  ...(self.foodDigestRemainingTicksByItem ?? {}),
+                  [itemId]: self.foodBuffTicksRemaining,
+                };
                 self.foodBuffItemId = itemId;
                 self.foodBuffHpRegenPerTenTicks = Number(def.effect?.hpRegenPerTenTicks ?? 0);
                 self.foodBuffSpRegenPerTenTicks = Number(def.effect?.spRegenPerTenTicks ?? 0);
@@ -857,6 +861,10 @@ export class BattleEngine {
       if ((self.attackLockTicks ?? 0) > 0) self.attackLockTicks = (self.attackLockTicks as number) - 1;
       if ((self.castLockTicks ?? 0) > 0) self.castLockTicks = (self.castLockTicks as number) - 1;
       if ((self.foodBuffTicksRemaining ?? 0) > 0) self.foodBuffTicksRemaining = Math.max(0, (self.foodBuffTicksRemaining as number) - 1);
+      for (const itemId of Object.keys(self.foodDigestRemainingTicksByItem ?? {})) {
+        const remaining = self.foodDigestRemainingTicksByItem?.[itemId] ?? 0;
+        if (remaining > 0) self.foodDigestRemainingTicksByItem![itemId] = Math.max(0, remaining - 1);
+      }
       // A combatant at 0 HP is out of the fight: regen must not resurrect it
       // (otherwise a lethal hit is undone by the same tick's housekeeping).
       if (self.hp > 0 && (regenTickOffset + tick + 1) % 10 === 0) {

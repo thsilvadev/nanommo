@@ -37,6 +37,10 @@ export class SpendAttributePointsDto {
   attributes!: Partial<Record<Attribute, number>>;
 }
 
+export class SetAutoFeedDto {
+  enabled!: boolean;
+}
+
 export class CharacterDto {
   id!: string;
   userId!: string;
@@ -67,6 +71,9 @@ export class CharacterDto {
   criticalChance!: number;
   hungry!: boolean;
   foodBuffExpiresAt?: Date;
+  diet!: Array<{ itemId: string; consumedAt: string; digestUntil: string; dietLevel: number }>;
+  dietLevels!: Record<string, { level: number; lastDigestUntil: string }>;
+  autoFeed!: boolean;
   currentMapId?: string;
   status!: string;
   activeGambitPageId?: string;

@@ -525,7 +525,7 @@ To satisfy "minimum requests, seemless experience" (confirmed design), the serve
 3. A **BullMQ delayed job** is scheduled for each entry's `endAt`. When it fires, the backend "resolves" that entry: applies `xpGain`, `goldGain`, inventory drops, HP/SP, death log if applicable, checks level-up, and publishes an authoritative `battle:resolved` snapshot containing the completed Character + Inventory state and its `stateRevision`. After the queue is advanced/rebuilt, the subsequent `battle:queueUpdated` also carries that same snapshot and revision so Redis channel ordering cannot expose a stale search-state snapshot. The resolved entry is then **marked `resolved = true` and kept** (§4.7 — it is the audit trail, and it disappears from every live read path the moment `resolved` flips), and if remaining queue depth `< 5` and the character is still alive and still on the map, **one new battle is appended** to bring it back to 5.
 4. **If a battle in the pre-simulated chain ends in the character's death**, everything simulated *after* that point in the chain is simply never generated (the chain naturally stops there) — on resolve, the character is routed to town per §7.6, and no new battles are queued until the player returns to a map.
 
-This means, under ideal "automaticozão" conditions (good gambit, enough potions/food), the client can go minutes without a single request, and the server does a small burst of CPU work only every ~5 battles instead of on every single kill.
+This means, under ideal "automaticozão" conditions (good gambit, enough potions/food), the client can go minutes without a single request, and the server does a small burst of CPU work only every ~5 battles instead of on every single kill. Auto Feed is evaluated at authoritative digestion/grind boundaries: when the active food would expire before the next encounter can safely begin, the server consumes an eligible Diet food before allowing Hungry to terminate the grind; the future queue is then rebuilt from the new Character + Inventory state.
 
 ### 7.5 Crash / restart recovery
 
@@ -600,7 +600,7 @@ type GambitAction    = { id: string; params?: Record<string, string|number> } //
 
 ### 8.3 Conditions & actions catalog (summary — full list with params in `gambit_catalog.json`)
 
-**Conditions** (full catalog is authoritative): `always`, `self_hp_below_percent`, `self_sp_below_percent`, `self_hp_band`, `self_sp_band`, `foe_hp_band`, `self_has_status`, `self_missing_status`, `foe_has_status`, `self_hungry`, `foe_element_is`, `skill_ready`, `item_in_stock`, and other entries present in `gambit_catalog.json`.
+**Conditions** (full catalog is authoritative): `always`, `self_hp_below_percent`, `self_sp_below_percent`, `self_hp_band`, `self_sp_band`, `foe_hp_band`, `self_has_status`, `self_missing_status`, `foe_has_status`, `foe_element_is`, `skill_ready`, `item_in_stock`, and other entries present in `gambit_catalog.json`.
 
 Percentage conditions expose their threshold through `params` (for example `self_hp_below_percent` with `params.value = 30`). HP/SP bands remain available for coarse thresholds: `FULL (100%)`, `HIGH (70-99%)`, `MEDIUM (30-69%)`, `LOW (10-29%)`, `CRITICAL (1-9%)`.
 
@@ -679,7 +679,7 @@ Every equipment item **template** in `items.json` defines:
 
 ### 10.5 Foods (buffs) — detail
 
-Per confirmed design: foods are 60-minute (`durationSeconds: 3600`) buffs granting **passive HP/SP regen per 10 ticks** on top of the normal `hpRegenPerTenTicks`/`spRegenPerTenTicks` formula, with varying HP:SP ratios (Bread and Roasted Boar Leg lean HP-heavy; Blueberries and Herbal Tea lean SP-heavy; Stew and Honey are balanced). Only **one** food buff is active at a time (`Character.activeFoodBuff`) — eating a new food overwrites the timer and values of the old one, it does not stack. A gambit line `self_hungry → use_item <food>` is the intended idiom for keeping a grind sustained indefinitely, exactly as specified (*"if hungry -> eat blueberry"*).
+Foods are 60-minute (`durationSeconds: 3600`) buffs granting passive HP/SP regen per 10 ticks on top of the normal regeneration formula, with varying HP:SP ratios. Only one food buff is active at a time (`Character.activeFoodBuff`). The Diet system additionally persists three ordered food entries, permanent per-food Diet levels from 0 to 3, and digestion boundaries. A food cannot be consumed again while its previous digestion is active; after it finishes, the next successful repeat increases that food's Diet level up to 3. Auto Feed is the official automatic food mechanism and consumes only food identified by the character's Diet state and present in Inventory; it is evaluated server-side at authoritative digestion/grind boundaries.
 
 ---
 
