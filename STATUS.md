@@ -1017,3 +1017,11 @@ Verification for this feature:
 - Strict OpenSpec validation: passed; all 15 existing changes validate.
 - git diff --check: passed.
 - Live browser smoke for the Diet UI was not completed because the local API is not currently running; no production deployment performed.
+
+### Latest feature — Diet level stat bonus (2026-10-02)
+
+- Implemented Diet level as a real food-stat modifier: each Diet level adds +1 to every regeneration stat the food grants, capped at level 3. Level 0 remains exactly the catalog value; levels 1/2/3 are catalog+1/+2/+3.
+- Centralized the formula in shared `effectiveFoodStatValue`, used by manual/Auto Feed consumption, battle-engine `use_item`, battle-resolution reconstruction, and the Diet tooltip.
+- Battle snapshots now carry the persisted per-food Diet levels so precomputed battles derive the same level the authoritative resolver will apply.
+- Added focused assertions for the formula and engine application. No database migration was required; existing `dietLevels` persistence is reused.
+- Verification: shared build passed; API build passed; frontend build passed with the existing non-blocking Angular component CSS-budget/CommonJS warnings; `diet-auto-feed.spec.js` passed 4/4; `openspec validate diet-level-stat-bonus --strict` passed; `git diff --check` passed. No production deployment performed.

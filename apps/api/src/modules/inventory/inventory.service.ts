@@ -4,6 +4,7 @@ import { Repository, EntityManager } from 'typeorm';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { Character } from '../../database/entities/character.entity';
 import { DataService } from '../data/data.service';
+import { effectiveFoodStatValue } from '@nanommo/shared';
 
 @Injectable()
 export class InventoryService {
@@ -324,8 +325,8 @@ export class InventoryService {
       };
       character.activeFoodBuff = {
         itemId,
-        hpRegenPerTenTicks: Number(item.effect?.hpRegenPerTenTicks ?? 0),
-        spRegenPerTenTicks: Number(item.effect?.spRegenPerTenTicks ?? 0),
+        hpRegenPerTenTicks: effectiveFoodStatValue(item.effect?.hpRegenPerTenTicks, nextLevel),
+        spRegenPerTenTicks: effectiveFoodStatValue(item.effect?.spRegenPerTenTicks, nextLevel),
         expiresAt: digestUntil,
       };
       character.lastSeenAt = new Date();

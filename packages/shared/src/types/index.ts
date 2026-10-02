@@ -27,6 +27,7 @@ export interface CharacterSnapshot {
   equipment: EquipmentSnapshot;
   gambitPage: GambitPage | null;
   foodBuff: FoodBuff | null;
+  dietLevels?: Record<string, { level: number; lastDigestUntil: string }>;
   statusEffects: StatusEffect[];
   cooldowns: Record<string, number>;
 }

@@ -13,6 +13,7 @@ import {
   resolveRewards,
   type CombatantSnapshot,
 } from '@nanommo/shared';
+import { effectiveFoodStatValue } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 import { CharacterService } from '../character/character.service';
 import { InventoryService } from '../inventory/inventory.service';
@@ -227,6 +228,7 @@ export class BattleService {
       foodBuffItemId: foodActive ? food.itemId : undefined,
       foodBuffHpRegenPerTenTicks: foodActive ? Number(food.hpRegenPerTenTicks ?? 0) : undefined,
       foodBuffSpRegenPerTenTicks: foodActive ? Number(food.spRegenPerTenTicks ?? 0) : undefined,
+      dietLevelByFood: Object.fromEntries(Object.entries(character.dietLevels ?? {}).map(([itemId, value]) => [itemId, Math.max(0, Math.min(3, Number(value.level ?? 0)))])),
       foodDigestRemainingTicksByItem: foodDigestOverride ?? Object.fromEntries(
         Object.entries(character.dietLevels ?? {}).map(([itemId, value]) => {
           const until = Date.parse(value.lastDigestUntil);
@@ -863,8 +865,8 @@ export class BattleService {
       const usedAt = new Date(battle.startAt).getTime() + Number(lastFoodUse.event.tick ?? 0) * MS_PER_TICK;
       character.activeFoodBuff = {
         itemId: lastFoodUse.def.id,
-        hpRegenPerTenTicks: Number(lastFoodUse.def.effect?.hpRegenPerTenTicks ?? 0),
-        spRegenPerTenTicks: Number(lastFoodUse.def.effect?.spRegenPerTenTicks ?? 0),
+        hpRegenPerTenTicks: effectiveFoodStatValue(lastFoodUse.def.effect?.hpRegenPerTenTicks, Number(dietLevels[lastFoodUse.event.itemId]?.level ?? 0)),
+        spRegenPerTenTicks: effectiveFoodStatValue(lastFoodUse.def.effect?.spRegenPerTenTicks, Number(dietLevels[lastFoodUse.event.itemId]?.level ?? 0)),
         expiresAt: new Date(usedAt + Number(lastFoodUse.def.effect?.durationSeconds ?? 0) * MS_PER_TICK).toISOString(),
       };
     } else if (character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() <= Date.now()) {

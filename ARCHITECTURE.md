@@ -224,6 +224,10 @@ for each tick:
 
 ---
 
+## Diet food stat scaling
+
+Diet mastery is part of the authoritative food-buff calculation. The shared `effectiveFoodStatValue(catalogValue, dietLevel)` helper is the single formula used when food is consumed manually or by Auto Feed, when the deterministic battle engine resolves `use_item`, when battle resolution reconstructs `activeFoodBuff`, and when the frontend renders the Diet tooltip. The engine receives persisted per-food Diet levels in its combat snapshot; item definitions remain raw catalog data so levels are not baked into shared definitions.
+
 ## Authoritative Resource Synchronization
 
 Character HP/SP and Inventory quantities have two distinct frontend concerns:

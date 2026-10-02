@@ -7,6 +7,13 @@ export {
 } from './prng';
 export * from './rewards';
 
+/** Effective food regeneration value: Diet level adds +1 per level. */
+export function effectiveFoodStatValue(catalogValue: number, dietLevel: number): number {
+  const value = Number(catalogValue ?? 0);
+  const level = Math.max(0, Math.min(3, Number(dietLevel ?? 0)));
+  return value + level;
+}
+
 /**
  * A combatant snapshot as seen by the gambit evaluator.
  * Kept structural (any) on purpose: the API builds it, the engine only reads it.
@@ -43,6 +50,8 @@ export interface CombatantSnapshot {
   foodBuffSpRegenPerTenTicks?: number;
   /** Remaining digestion ticks per food item; prevents repeat consumption while digesting. */
   foodDigestRemainingTicksByItem?: Record<string, number>;
+  /** Persisted Diet level per food; absent means the food has never been consumed. */
+  dietLevelByFood?: Record<string, number>;
   /** Ticks left per cooldown key. Keys: `skill:<id>`, `item:potion`, `defend`. */
   cooldowns?: Record<string, number>;
   /**
@@ -672,8 +681,13 @@ export class BattleEngine {
                   [itemId]: self.foodBuffTicksRemaining,
                 };
                 self.foodBuffItemId = itemId;
-                self.foodBuffHpRegenPerTenTicks = Number(def.effect?.hpRegenPerTenTicks ?? 0);
-                self.foodBuffSpRegenPerTenTicks = Number(def.effect?.spRegenPerTenTicks ?? 0);
+                const dietLevels = self.dietLevelByFood ?? {};
+                const hasConsumedBefore = Object.prototype.hasOwnProperty.call(dietLevels, itemId);
+                const currentDietLevel = Math.max(0, Math.min(3, Number(dietLevels[itemId] ?? 0)));
+                const nextDietLevel = hasConsumedBefore ? Math.min(3, currentDietLevel + 1) : 0;
+                self.dietLevelByFood = { ...dietLevels, [itemId]: nextDietLevel };
+                self.foodBuffHpRegenPerTenTicks = effectiveFoodStatValue(def.effect?.hpRegenPerTenTicks, nextDietLevel);
+                self.foodBuffSpRegenPerTenTicks = effectiveFoodStatValue(def.effect?.spRegenPerTenTicks, nextDietLevel);
                 record({
                   tick,
                   actor: 'character',
