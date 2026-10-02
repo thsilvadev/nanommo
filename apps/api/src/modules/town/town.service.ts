@@ -4,6 +4,7 @@ import { Repository, EntityManager } from 'typeorm';
 import { Character } from '../../database/entities/character.entity';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { DataService } from '../data/data.service';
+import { InventoryService } from '../inventory/inventory.service';
 
 const GOLD_CAP = 1_000_000_000_000;
 const INVENTORY_SLOTS = 50;
@@ -17,6 +18,7 @@ export class TownService {
     @InjectRepository(Character) private readonly characterRepo: Repository<Character>,
     @InjectRepository(InventoryItem) private readonly inventoryRepo: Repository<InventoryItem>,
     private readonly dataService: DataService,
+    private readonly inventoryService: InventoryService,
   ) {}
 
   private vendor(): Vendor {
@@ -273,36 +275,11 @@ export class TownService {
   }
 
   private async consumeFoodForNpc(manager: EntityManager, character: Character) {
-    const repo = manager.getRepository(InventoryItem);
-    const rows = await repo.find({ where: { characterId: character.id, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
-    const food = rows.find(row => {
-      const def = this.item(row.itemId);
-      return def?.type === 'consumable' && def?.effect?.type === 'food_buff';
-    });
-
-    let itemId = food?.itemId ?? 'food_bread';
-    if (!food) {
-      const bread = this.item('food_bread');
-      if (!bread?.effect || bread.effect.type !== 'food_buff') throw new NotFoundException('Bread definition unavailable');
-    } else {
-      itemId = food.itemId;
-    }
-
-    const definition = this.item(itemId);
-    character.activeFoodBuff = {
-      itemId,
-      hpRegenPerTenTicks: Number(definition.effect.hpRegenPerTenTicks ?? 0),
-      spRegenPerTenTicks: Number(definition.effect.spRegenPerTenTicks ?? 0),
-      expiresAt: new Date(Date.now() + Number(definition.effect.durationSeconds ?? 0) * 1000).toISOString(),
-    };
-    character.lastSeenAt = new Date();
-
-    if (food) {
-      food.quantity -= 1;
-      if (food.quantity <= 0) await repo.remove(food); else await repo.save(food);
-    }
-    await manager.getRepository(Character).save(character);
-    return itemId;
+    // Marcelus provides the bread directly, so it is a Diet consumption without
+    // removing an inventory item. The same authoritative Diet/buff/digestion
+    // implementation is used by normal inventory food consumption.
+    await this.inventoryService.consumeFood(character.id, 'food_bread', manager, false);
+    return 'food_bread';
   }
 
   async chooseNpcDialogue(characterId: string, npcId: string, choiceId: string, nodeId = 'greeting') {

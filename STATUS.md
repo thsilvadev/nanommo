@@ -993,6 +993,9 @@ This intentionally duplicates a small amount of realtime payload data. The dupli
 
 ### Latest feature — Diet & Auto Feed (2026-10-01)
 
+- Follow-up fix: Father Marcelus' provided bread now uses the canonical server-side food consumption path, so NPC-provided food also enters Diet, updates digestion/level state and activates the same food buff rules.
+- Added temporary development-only food QA cheat: `GET /inventory/__dev_7f3a91c2/grant-all-foods`, granting 10 of every food to the most recently updated character. Explicit removal debt is recorded in `SPEC.md`.
+
 - Created OpenSpec change `diet-auto-feed` with proposal, design, spec and implementation tasks. Strict OpenSpec validation passes.
 - Character now persists `diet` (up to three ordered food entries), `dietLevels` (per-food level + last digestion boundary) and authoritative `autoFeed`.
 - Food consumption is centralized on a transactional backend path with Character/Inventory row locks. It shifts the three Diet slots, prevents repeating a food while its prior digestion is active, and increases permanent Diet stars only after completed digestion, capped at ★★★.

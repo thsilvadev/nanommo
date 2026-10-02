@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { Character } from '../../database/entities/character.entity';
 import { DataService } from '../data/data.service';
@@ -275,40 +275,34 @@ export class InventoryService {
     return this.transferItem(characterId, itemId, quantity, 'warehouse', 'inventory');
   }
 
-  async consumeFood(characterId: string, itemId: string): Promise<Character> {
+  async consumeFood(characterId: string, itemId: string, manager?: EntityManager, consumeInventory = true): Promise<Character> {
     const item = this.dataService.getItemById(itemId);
     if (!item || item.type !== 'consumable' || item.effect?.type !== 'food_buff') {
       throw new BadRequestException('Item is not a food');
     }
 
-    const queryRunner = this.characterRepo.manager.connection.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const characterRepo = queryRunner.manager.getRepository(Character);
-      const inventoryRepo = queryRunner.manager.getRepository(InventoryItem);
+    const apply = async (tx: EntityManager): Promise<Character> => {
+      const characterRepo = tx.getRepository(Character);
+      const inventoryRepo = tx.getRepository(InventoryItem);
       const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
       if (!character) throw new NotFoundException('Character not found');
-      if (character.status === 'grinding') {
-        // Auto Feed uses this path from the authoritative battle resolver.
-        // Manual callers are still blocked by useConsumable() below.
-      }
 
-      const stacks = await inventoryRepo.find({
-        where: { characterId, itemId, location: 'inventory' },
-        order: { slotIndex: 'ASC' },
-        lock: { mode: 'pessimistic_write' },
-      });
-      const stack = stacks.find((row) => row.quantity > 0);
-      if (!stack) throw new BadRequestException('Insufficient item quantity');
+      let stack: InventoryItem | undefined;
+      if (consumeInventory) {
+        const stacks = await inventoryRepo.find({
+          where: { characterId, itemId, location: 'inventory' },
+          order: { slotIndex: 'ASC' },
+          lock: { mode: 'pessimistic_write' },
+        });
+        stack = stacks.find((row) => row.quantity > 0);
+        if (!stack) throw new BadRequestException('Insufficient item quantity');
+      }
 
       const now = Date.now();
       const dietLevels = character.dietLevels ?? {};
       const previous = dietLevels[itemId];
       const previousDigestUntil = previous?.lastDigestUntil ? Date.parse(previous.lastDigestUntil) : 0;
-      if (previousDigestUntil > now) {
-        throw new BadRequestException('Food is still digesting');
-      }
+      if (previousDigestUntil > now) throw new BadRequestException('Food is still digesting');
 
       const currentLevel = Math.max(0, Math.min(3, Number(previous?.level ?? 0)));
       const nextLevel = previousDigestUntil > 0 ? Math.min(3, currentLevel + 1) : currentLevel;
@@ -317,9 +311,11 @@ export class InventoryService {
       const diet = Array.isArray(character.diet) ? character.diet.slice(-2) : [];
       diet.push({ itemId, consumedAt, digestUntil, dietLevel: nextLevel });
 
-      stack.quantity -= 1;
-      if (stack.quantity <= 0) await inventoryRepo.remove(stack);
-      else await inventoryRepo.save(stack);
+      if (stack) {
+        stack.quantity -= 1;
+        if (stack.quantity <= 0) await inventoryRepo.remove(stack);
+        else await inventoryRepo.save(stack);
+      }
 
       character.diet = diet;
       character.dietLevels = {
@@ -333,7 +329,16 @@ export class InventoryService {
         expiresAt: digestUntil,
       };
       character.lastSeenAt = new Date();
-      const saved = await characterRepo.save(character);
+      return characterRepo.save(character);
+    };
+
+    if (manager) return apply(manager);
+
+    const queryRunner = this.characterRepo.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const saved = await apply(queryRunner.manager);
       await queryRunner.commitTransaction();
       return saved;
     } catch (error) {
@@ -397,6 +402,20 @@ export class InventoryService {
       str: character.str, agi: character.agi, dex: character.dex, vit: character.vit, int: character.int, sor: character.sor,
     }, { maxHp, maxSp });
     return { maxHp: stats.maxHp, maxSp: stats.maxSp };
+  }
+
+  /** TEMP DEV CHEAT — remove after Diet/food QA is complete. */
+  async grantAllFoodsCheat(quantity = 10) {
+    if (process.env.NODE_ENV === 'production') throw new NotFoundException();
+    const character = await this.characterRepo.findOne({ order: { updatedAt: 'DESC' } });
+    if (!character) throw new NotFoundException('Character not found');
+    const foods = this.dataService.getItems().filter((item: any) => item?.type === 'consumable' && item?.effect?.type === 'food_buff');
+    const granted = [];
+    for (const food of foods) {
+      const result = await this.addItem(character.id, food.id, quantity, 'inventory');
+      granted.push({ itemId: food.id, quantity, slotIndex: result.slotIndex });
+    }
+    return { characterId: character.id, quantity, foods: granted };
   }
 
   /**
