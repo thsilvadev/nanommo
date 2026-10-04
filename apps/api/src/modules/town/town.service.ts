@@ -5,11 +5,12 @@ import { Character } from '../../database/entities/character.entity';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { DataService } from '../data/data.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { CharacterService } from '../character/character.service';
 
 const GOLD_CAP = 1_000_000_000_000;
 const INVENTORY_SLOTS = 50;
 
-type VendorItem = { itemId: string; price: number; infiniteStock?: boolean; quantity?: number };
+type VendorItem = { itemId: string; price?: number; priceFromItem?: boolean; infiniteStock?: boolean; quantity?: number };
 type Vendor = { id: string; name: string; type: 'vendor'; location: 'town'; buysAnyItem: boolean; buyRatePercent: number; sellStock: VendorItem[] };
 
 @Injectable()
@@ -19,20 +20,25 @@ export class TownService {
     @InjectRepository(InventoryItem) private readonly inventoryRepo: Repository<InventoryItem>,
     private readonly dataService: DataService,
     private readonly inventoryService: InventoryService,
+    private readonly characterService: CharacterService,
   ) {}
 
-  private vendor(): Vendor {
-    const raw = this.dataService.getNpcVendor();
-    if (!raw || raw.location !== 'town') throw new NotFoundException('Vendor catalog unavailable');
-    if (!raw.id || !raw.name || raw.type !== 'vendor') throw new NotFoundException('Vendor definition is invalid');
+  private vendor(vendorId = 'william'): Vendor {
+    if (vendorId === 'william') {
+      const raw = this.dataService.getNpcVendor();
+      if (!raw || raw.location !== 'town') throw new NotFoundException('Vendor catalog unavailable');
+      return {
+        id: String(raw.id), name: String(raw.name), type: 'vendor', location: 'town',
+        buysAnyItem: Boolean(raw.buysAnyItem), buyRatePercent: Number(raw.buyRatePercent ?? 0),
+        sellStock: Array.isArray(raw.sellStock) ? raw.sellStock : [],
+      };
+    }
+    const raw = this.npcCatalog().find((x: any) => x.id === vendorId && x.location === 'town' && Array.isArray(x.types) && x.types.includes('vendor'));
+    if (!raw?.vendor) throw new NotFoundException('Vendor not found');
     return {
-      id: String(raw.id),
-      name: String(raw.name),
-      type: 'vendor',
-      location: 'town',
-      buysAnyItem: Boolean(raw.buysAnyItem),
-      buyRatePercent: Number(raw.buyRatePercent ?? 0),
-      sellStock: Array.isArray(raw.sellStock) ? raw.sellStock : [],
+      id: String(raw.id), name: String(raw.name), type: 'vendor', location: 'town',
+      buysAnyItem: Boolean(raw.vendor.buysAnyItem), buyRatePercent: Number(raw.vendor.buyRatePercent ?? 0),
+      sellStock: Array.isArray(raw.vendor.sellStock) ? raw.vendor.sellStock : [],
     };
   }
 
@@ -49,7 +55,7 @@ export class TownService {
   private buyPrice(vendor: Vendor, itemId: string): number {
     const entry = vendor.sellStock.find(x => x.itemId === itemId);
     if (!entry) throw new BadRequestException('Item is not sold by this vendor');
-    const price = Number(entry.price);
+    const price = entry.priceFromItem ? Number(this.item(itemId).marketBasePrice ?? this.item(itemId).sellPriceToVendor ?? 0) : Number(entry.price);
     if (!Number.isSafeInteger(price) || price <= 0) throw new BadRequestException('Vendor price is invalid');
     return price;
   }
@@ -129,12 +135,11 @@ export class TownService {
   }
 
   async getVendorCatalog() {
-    const v = this.vendor();
-    return [{ id: v.id, name: v.name, type: v.type, location: v.location }];
+    return (await this.getTownNPCs()).filter((npc: any) => npc.types.includes('vendor'));
   }
 
   async getVendorStock(vendorId: string) {
-    const v = this.vendor();
+    const v = this.vendor(vendorId);
     if (vendorId !== v.id) throw new NotFoundException('Vendor not found');
     return v.sellStock.map((entry, index) => ({
       slotIndex: index,
@@ -147,7 +152,7 @@ export class TownService {
   }
 
   async getVendorQuote(vendorId: string, itemId: string) {
-    const v = this.vendor();
+    const v = this.vendor(vendorId);
     if (vendorId !== v.id) throw new NotFoundException('Vendor not found');
     const item = this.item(itemId);
     const buyEntry = v.sellStock.find(x => x.itemId === itemId);
@@ -163,8 +168,7 @@ export class TownService {
 
   async buyFromVendor(characterId: string, vendorId: string, itemId: string, quantity: number) {
     this.assertPositiveInteger(quantity);
-    const v = this.vendor();
-    if (vendorId !== v.id) throw new NotFoundException('Vendor not found');
+    const v = this.vendor(vendorId);
     const item = this.item(itemId);
     if (!item.stackable && quantity !== 1) throw new BadRequestException('Non-stackable items can only be bought one at a time');
     const unitPrice = this.buyPrice(v, itemId);
@@ -186,8 +190,7 @@ export class TownService {
 
   async sellToVendor(characterId: string, vendorId: string, itemId: string, quantity: number) {
     this.assertPositiveInteger(quantity);
-    const v = this.vendor();
-    if (vendorId !== v.id) throw new NotFoundException('Vendor not found');
+    const v = this.vendor(vendorId);
     const item = this.item(itemId);
     if (!item.stackable && quantity !== 1) throw new BadRequestException('Non-stackable items can only be sold one at a time');
     const unitPrice = this.sellPrice(v, itemId);
@@ -224,13 +227,13 @@ export class TownService {
 
   private npcPublic(npc: any) {
     const types = Array.isArray(npc.types) ? npc.types : [];
-    return { id: npc.id, name: npc.name, location: npc.location, types };
+    return { id: npc.id, name: npc.name, location: npc.location, types, greeting: npc.greeting ?? npc.vendor?.greeting };
   }
 
   async getTownNPCs() {
     const william = this.vendor();
     return [
-      { id: william.id, name: william.name, location: william.location, types: ['vendor'] },
+      { id: william.id, name: william.name, location: william.location, types: ['vendor'], greeting: this.dataService.getNpcVendor()?.greeting },
       ...this.npcCatalog().map((npc: any) => this.npcPublic(npc)),
     ].filter((npc, index, all) => all.findIndex(x => x.id === npc.id) === index);
   }
@@ -249,10 +252,16 @@ export class TownService {
     return !expiry || expiry <= Date.now();
   }
 
-  private choiceAvailable(choice: any, character: Character) {
+  private async choiceAvailable(choice: any, character: Character) {
     if (!choice.condition) return true;
     if (choice.condition.type === 'hungry') return this.characterHungry(character);
     if (choice.condition.type === 'not_hungry') return !this.characterHungry(character);
+    if (choice.condition.type === 'has_items' || choice.condition.type === 'not_has_items') {
+      const requirements = Array.isArray(choice.condition.items) ? choice.condition.items : [];
+      const rows = await this.inventoryRepo.find({ where: { characterId: character.id, location: 'inventory' } });
+      const hasAll = requirements.every((req: any) => rows.filter(r => r.itemId === req.itemId).reduce((n, r) => n + Number(r.quantity ?? 0), 0) >= Number(req.quantity ?? 0));
+      return choice.condition.type === 'has_items' ? hasAll : !hasAll;
+    }
     return false;
   }
 
@@ -264,13 +273,20 @@ export class TownService {
       npcId,
       nodeId: node.id,
       npcText: node.npcText,
-      choices: (node.choices ?? []).filter((choice: any) => this.choiceAvailable(choice, character))
+      choices: (await Promise.all((node.choices ?? []).map(async (choice: any) => ({ choice, available: await this.choiceAvailable(choice, character) })))).filter(x => x.available).map(x => x.choice)
         .map((choice: any) => ({ id: choice.id, text: choice.text, nextNodeId: choice.nextNodeId })),
     };
   }
 
   async getNpcDialogue(characterId: string, npcId: string) {
     const character = await this.assertTown(characterId);
+    if (npcId === 'father_marcelus') {
+      const derived = await this.characterService.getDerivedStatsForCharacter(character);
+      character.hpCurrent = derived.maxHp;
+      character.spCurrent = derived.maxSp;
+      character.lastSeenAt = new Date();
+      await this.characterRepo.save(character);
+    }
     return this.dialogueState(character, npcId);
   }
 
@@ -296,17 +312,27 @@ export class TownService {
 
       const node = this.questNode(npc, nodeId);
       const choice = (node.choices ?? []).find((x: any) => x.id === choiceId);
-      if (!choice || !this.choiceAvailable(choice, character)) throw new BadRequestException('Dialogue choice is not available');
-
-      if (choice.nextNodeId) return this.dialogueState(character, npcId, choice.nextNodeId);
+      if (!choice || !(await this.choiceAvailable(choice, character))) throw new BadRequestException('Dialogue choice is not available');
 
       if (choice.effect?.type === 'eat_bread') {
         if (!this.characterHungry(character)) throw new BadRequestException('Character is not hungry');
         const consumedItemId = await this.consumeFoodForNpc(manager, character);
-        return { ...(await this.dialogueState(character, npcId, 'hungry_done')), consumedItemId };
+        return { ...(await this.dialogueState(character, npcId, choice.nextNodeId ?? 'hungry_done')), consumedItemId };
       }
 
-      return this.dialogueState(character, npcId, node.id);
+      if (choice.effect?.type === 'trade_items') {
+        const effect = choice.effect;
+        const requirements = Array.isArray(effect.remove) ? effect.remove : [];
+        const rows = await manager.getRepository(InventoryItem).find({ where: { characterId, location: 'inventory' }, lock: { mode: 'pessimistic_write' } });
+        for (const req of requirements) {
+          const owned = rows.filter(r => r.itemId === req.itemId).reduce((n, r) => n + Number(r.quantity ?? 0), 0);
+          if (owned < Number(req.quantity ?? 0)) throw new BadRequestException('Required quest items are missing');
+        }
+        for (const req of requirements) await this.removeInventoryAtomic(manager, characterId, req.itemId, Number(req.quantity));
+        for (const reward of (effect.add ?? [])) await this.addInventoryAtomic(manager, characterId, reward.itemId, Number(reward.quantity ?? 1));
+      }
+
+      return this.dialogueState(character, npcId, choice.nextNodeId ?? node.id);
     });
   }
 

@@ -80,7 +80,7 @@ export class VendorStore {
     try{
       const q=await this.api.get<VendorQuote>('/town/vendor/'+this.selectedNpcId()+'/quote/'+itemId).toPromise();
       const unit=Number(q?.sellPrice??0);
-      if(unit<=0){this.error.set('William cannot buy this item');return;}
+      if(unit<=0){this.error.set('This vendor cannot buy this item');return;}
       const max=q?.stackable?owned:1;
       this.modal.set({mode:'sell',itemId,quantity:1,maxQuantity:max,unitPrice:unit});
     }catch(e:any){this.error.set(e?.error?.message??'Unable to price item');}

@@ -159,7 +159,7 @@ export interface XpCurveEntry {
 }
 
 export type NpcCapabilityType = 'vendor' | 'quest';
-export interface TownNpc { id: string; name: string; location: 'town'; types: NpcCapabilityType[]; }
+export interface TownNpc { id: string; name: string; location: 'town'; types: NpcCapabilityType[]; greeting?: string; }
 export interface VendorNpc extends TownNpc { types: ['vendor']; }
 export interface QuestNpc extends TownNpc { types: ['quest']; }
 export interface NpcDialogueChoice { id: string; text: string; nextNodeId?: string; }

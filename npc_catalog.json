@@ -17,9 +17,7 @@
           },
           "hungry": {
             "npcText": "Eat and rest, for the love of god is forever, but you are not.",
-            "choices": [
-              {"id":"eat_bread","text":"Eat the bread.","effect":{"type":"eat_bread"}}
-            ]
+            "choices": [{"id":"eat_bread","text":"Eat the bread.","effect":{"type":"eat_bread"}}]
           },
           "hungry_done": {
             "npcText": "Eat and rest, for the love of god is forever, but you are not.",
@@ -27,6 +25,82 @@
           },
           "fine": {
             "npcText": "The Lord doesn't want blood to be spilled. But I pray you'll return in peace 🙏.",
+            "choices": []
+          }
+        }
+      }
+    },
+    {
+      "id": "blacksmith_loren",
+      "name": "Blacksmith Loren",
+      "location": "town",
+      "types": ["vendor"],
+      "vendor": {
+        "buysAnyItem": true,
+        "buyRatePercent": 40,
+        "slotCount": 10,
+        "greeting": "Haha! I know why you come here. Take a look at these fine crafts of mine. If you feel like selling stuff, I buy too!",
+        "sellStock": [
+          {"itemId":"equip_sword_t1","priceFromItem":true,"infiniteStock":true},
+          {"itemId":"equip_greatsword_t1","priceFromItem":true,"infiniteStock":true},
+          {"itemId":"equip_dagger_t1","priceFromItem":true,"infiniteStock":true},
+          {"itemId":"equip_bow_t1","priceFromItem":true,"infiniteStock":true},
+          {"itemId":"equip_staff_t1","priceFromItem":true,"infiniteStock":true},
+          {"itemId":"equip_wand_t1","priceFromItem":true,"infiniteStock":true},
+          {"itemId":"equip_shield_t1","priceFromItem":true,"infiniteStock":true},
+          {"itemId":"equip_body_phys_t1","priceFromItem":true,"infiniteStock":true},
+          {"itemId":"equip_body_magic_t1","priceFromItem":true,"infiniteStock":true}
+        ]
+      }
+    },
+    {
+      "id": "cecilia",
+      "name": "Cecilia",
+      "location": "town",
+      "types": ["quest"],
+      "quest": {
+        "entryNodeId": "greeting",
+        "nodes": {
+          "greeting": {
+            "npcText": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…",
+            "choices": [{"id":"ask","text":"Do you? What can you do?","nextNodeId":"offer"}]
+          },
+          "offer": {
+            "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 3x slime gel, 1x golem core shard and 1x viper fang and I’ll give you something that’ll bring luck to your journey.",
+            "choices": [
+              {
+                "id":"handle_items",
+                "text":"[Handle the items].",
+                "condition":{"type":"has_items","items":[
+                  {"itemId":"part_slime_common","quantity":3},
+                  {"itemId":"part_cindergolem_common","quantity":1},
+                  {"itemId":"part_venomviper_common","quantity":1}
+                ]},
+                "nextNodeId":"reward",
+                "effect":{"type":"trade_items","remove":[
+                  {"itemId":"part_slime_common","quantity":3},
+                  {"itemId":"part_cindergolem_common","quantity":1},
+                  {"itemId":"part_venomviper_common","quantity":1}
+                ],"add":[{"itemId":"equip_accessory_sor_t1","quantity":1}]}
+              },
+              {
+                "id":"return_later",
+                "text":"Sure! I’ll be back!",
+                "condition":{"type":"not_has_items","items":[
+                  {"itemId":"part_slime_common","quantity":3},
+                  {"itemId":"part_cindergolem_common","quantity":1},
+                  {"itemId":"part_venomviper_common","quantity":1}
+                ]},
+                "nextNodeId":"return_later"
+              }
+            ]
+          },
+          "return_later": {
+            "npcText": "Dear, come back when you have 3x slime gel, 1x golem core shard and 1x viper fang! You are lucky I’m pacient, but don’t keep me waiting!",
+            "choices": [{"id":"fast","text":"Ok! I’ll be fast!"}]
+          },
+          "reward": {
+            "npcText": "ahn.. let me see..  *clink!* this… **ting!** I gues… **fwoosh**! it’s done! Here, have it! May fate bless your journey with luck, my dear.",
             "choices": []
           }
         }

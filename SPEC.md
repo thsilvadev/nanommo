@@ -767,11 +767,19 @@ The Town right Info Panel uses one generic NPC selector. Capability renderers ar
 
 ### 12.1.2 Father Marcelus
 
-`father_marcelus` is a quest NPC. Opening dialogue: "May the light be with us, friend. How are you, fellow adventurer?"
+`father_marcelus` is a quest NPC. Opening dialogue: "May the light be with us, friend. How are you, fellow adventurer?" Speaking to Marcelus in Town always restores the character to the authoritative maximum HP and SP before the dialogue is returned.
 
 Hungry branch: "I'm hungry..." → "Eat and rest, for the love of god is forever, but you are not." The second choice consumes food immediately. If the character is hungry and has no food item in inventory, the server grants Bread only transiently and consumes it in the same transaction, so Bread never remains in inventory.
 
 Not-hungry branch: "I'm fine, prayer. Came to get blessed for battle." → "The Lord doesn't want blood to be spilled. But I pray you'll return in peace 🙏." This branch has no character or inventory mutation.
+
+### 12.1.3 Blacksmith Loren
+
+`blacksmith_loren` is a vendor NPC with ten visual slots. Its infinite stock contains the nine canonical T1 equipment pieces: sword, greatsword, dagger, bow, staff, wand, shield, physical body armor and magic body armor. Its greeting is data-driven from `npc_catalog.json`; vendor BUY/SELL remains authoritative and uses the existing item pricing fields for Loren's stock.
+
+### 12.1.4 Cecilia
+
+`cecilia` is a quest NPC. Her server-authoritative exchange requires 3 `part_slime_common`, 1 `part_cindergolem_common` and 1 `part_venomviper_common`, and rewards exactly 1 canonical `equip_accessory_sor_t1` (Worn Lucky Ring). The inventory condition is evaluated when the offer node is returned, so the hand-over choice is available immediately on the first conversation when all materials are already owned. The exchange locks/revalidates Town status and inventory and removes/adds all items atomically.
 
 ### 12.2 Warehouse
 

@@ -1025,3 +1025,96 @@ Verification for this feature:
 - Battle snapshots now carry the persisted per-food Diet levels so precomputed battles derive the same level the authoritative resolver will apply.
 - Added focused assertions for the formula and engine application. No database migration was required; existing `dietLevels` persistence is reused.
 - Verification: shared build passed; API build passed; frontend build passed with the existing non-blocking Angular component CSS-budget/CommonJS warnings; `diet-auto-feed.spec.js` passed 4/4; `openspec validate diet-level-stat-bonus --strict` passed; `git diff --check` passed. No production deployment performed.
+<<<<<<< Updated upstream
+=======
+
+
+### Latest feature — Mobile responsive shell (2026-10-02)
+
+Started and implemented OpenSpec change `mobile-responsive-shell` from the Kilo execution plan `.kilo/plans/1790967686382-mobile-responsive-shell.md`. Before implementation, `STATUS.md`, `SPEC.md`, `openspec/specs/SPEC.md` and `PLAY_WINDOW_SPEC.md` were read. OpenSpec proposal/spec/design/tasks were created and `openspec validate mobile-responsive-shell --strict` passes.
+
+Implemented in this session:
+- Added `viewport-fit=cover` and a dedicated mobile branch in PlayComponent, preserving the desktop shell at desktop widths.
+- Added mobile routes for Battle, Map, Items, Gambits and Character, plus a /play/grind compatibility route.
+- Added ViewportService, TickerService, UiPrefsStore and the initial shared GameFormatService.
+- Added MobileShellComponent with fixed header, HP/SP/XP micro-bars, reconnecting indicator, menu surface and five-item bottom navigation.
+- Added MobileCharPanelComponent and SheetPanelComponent with 10/50/90% detents, 88px floor, handle-only Pointer Events, snapping and separate Town/Grind localStorage preferences.
+- Added MobileItemsComponent with 4x2 equipment presentation, 5x10 inventory and single-tap action sheet for use/equip/sell.
+- Added a mobile battle sheet with elapsed battle-log events and Town/NPC presentation.
+
+Verification:
+- `pnpm --filter @nanommo/frontend build`: passed. Existing Angular CSS-budget/CommonJS warnings remain non-blocking.
+- `pnpm --filter @nanommo/shared build`: passed.
+- `pnpm --filter @nanommo/api build`: passed.
+- `pnpm exec openspec validate mobile-responsive-shell --strict`: passed.
+- `git diff --check`: passed.
+- No backend/database/API contract was changed and no production deployment was performed.
+
+Known gaps / traps discovered:
+1. The existing four 250ms component timers are still present; TickerService exists but migration was not completed. Do not claim timer consolidation yet.
+2. TradeModal and AccountDeleteModal are still embedded in their original parents; mobile Settings currently reuses the music control but not the full account-delete modal extraction.
+3. Existing desktop CDK drag/drop bindings still need the single `canDrag()` gate; the mobile shell itself does not depend on drag, but the planned cross-component touch gate is not complete.
+4. Mobile Gambit still lacks the planned ▲/▼ controls and explicit mobile CDK disablement.
+5. The current Map mobile route reuses the Grind component rather than a dedicated MapBoard-only mobile tab; this is functional reuse, not the final task-23 UX smoke target.
+6. No live browser smoke was run in this session because the local backend stack was not running. The mobile behavior therefore still needs real 390x844 and 360x740 browser verification, including safe-area, sheet gestures, route back behavior, and authoritative item actions.
+7. The OpenSpec plan remains intentionally unmarked for tasks that are not actually complete; its artifact set is complete and strictly validated, but implementation task checkboxes should be reconciled after the remaining integrations are finished.
+
+
+### Latest follow-up — Mobile responsive shell completion (2026-10-02)
+
+The mobile shell integration was completed according to the decisions closed during the implementation session. This section supersedes the earlier mobile-shell gap list above.
+
+Implemented/finalized:
+- Mobile navigation now uses the exact routes `/play/m/battle`, `/play/m/map`, `/play/m/items`, `/play/m/gambits`, and `/play/m/character`.
+- Desktop routes `/play/grind`, `/play/character`, and `/play/gambits` remain on the existing desktop components/chrome. `/play/m/*` redirects to the corresponding desktop route at viewport >=900px, including a reactive redirect when an already-open mobile route crosses the breakpoint.
+- `/play/grind` is the mobile Battle alias; Map uses the existing `MapBoard`; Items uses the dedicated mobile Items surface; mobile Gambits loads `GambitEditorComponent` directly; mobile Character shows only Attributes + Mastery.
+- Removed global `viewport-fit=cover`; safe-area padding is confined to the mobile shell so desktop/iPad landscape does not inherit a global notch-overlap policy.
+- Added the single shared `TickerService` for the four requested 250ms presentation clocks only: CharacterSummary battle display, InventoryGrid, BattleProgress, and GrindInfo. The ticker pauses on `document.hidden` and resumes with an immediate time refresh. `townTimer`, `townPoll`, and LoginMusicService `requestAnimationFrame` were left intact.
+- Added the single shared `TradeModalComponent` and `AccountDeleteModalComponent`. Trade keeps the desktop dialog and becomes a bottom-anchored <=90dvh slide-up panel on mobile with the requested readable typography, 48px controls, 8px gaps, numeric input mode, and tracking. Account deletion remains centered, uses 16px confirmation input, 14px copy, 48px buttons, and no bottom-sheet dismissal.
+- Added `ActionSheetComponent` as a separate item-action menu. Mobile Items uses one tap; sale opens the existing TradeModal confirmation. Desktop double-click and CDK handlers remain available through the desktop components.
+- Added the requested CDK gates in CharacterSummary, InventoryGrid, VendorPanel and GambitEditor via `canDrag()` / `cdkDropListDisabled`; mobile does not depend on drag/drop.
+- Mobile Gambits now support tap-to-toggle/greyed rows, touch-sized enable control, ▲/▼ priority movement with priority renormalization, and `inputmode="numeric"` for numeric parameters.
+- Mobile Character cockpit now exposes authoritative diet/Auto Feed state and equipment remains visible behind the sheet at the 10% detent; no equipment was added to the Character page.
+- Added `BattleLogComponent` with all elapsed events in ascending tick order, scroll preservation, and a new-lines affordance when the user has scrolled away from the bottom.
+- Kept the Town sheet on the existing VendorPanel and made vendor stock tappable on touch so the authoritative buy modal opens. The Town 10% sheet exposes the Map CTA.
+- Updated the active OpenSpec proposal/design/spec/tasks to match these final decisions; tasks are marked complete except the intentionally skipped browser smoke task.
+
+Verification after final integration:
+- Frontend production build: passed. Angular reports existing/non-blocking component CSS-budget and CommonJS warnings; no TypeScript/template build errors remain.
+- Shared build: passed.
+- API build: passed.
+- `pnpm exec openspec validate mobile-responsive-shell --strict`: passed.
+- `git diff --check`: passed.
+- Browser smoke: intentionally not run, per session decision.
+- No backend/database/API contract changes and no production deployment.
+
+Traps to preserve for the next session:
+1. Do not reintroduce `/play/gambits` as a mobile route. Mobile Gambits is `/play/m/gambits`; desktop `/play/gambits` remains the existing Character/Gambits chrome.
+2. Do not restore global `viewport-fit=cover`; safe-area handling is deliberately localized to mobile shell surfaces.
+3. Do not replace `townTimer`, `townPoll`, or LoginMusicService `requestAnimationFrame` with TickerService; they serve different timing/network responsibilities.
+4. Do not re-enable CDK drag on coarse/touch pointers. `canDrag()` is the single cross-component gate.
+5. The mobile Battle surface currently reuses the existing Grind component inside the mobile shell because the repository does not have a separate BattleCockpitComponent; do not invent new battle gameplay logic to change that.
+6. The frontend still has the pre-existing Angular component CSS-budget/CommonJS warnings shown by the build; they are warnings, not validation failures.
+
+
+### Latest feature — Town NPCs: Blacksmith Loren, Cecilia, Father Marcelus heal (2026-10-04)
+
+Implemented OpenSpec change `town-npcs-loren-cecilia-father-heal`.
+
+- Added **Blacksmith Loren** as a data-driven Town vendor with the nine canonical T1 equipment pieces: sword, greatsword, dagger, bow, staff, wand, shield, physical body armor and magic body armor. Stock is infinite and uses existing item pricing fields; greeting is data-driven.
+- Added **Cecilia** as a quest NPC with the requested dialogue and server-authoritative material exchange: 3 Slime Gel + 1 Golem Core Shard + 1 Viper Fang → 1 Worn Lucky Ring. Conditions are checked from authoritative inventory and the removal/reward transaction is atomic.
+- The requested reward id `quip_accessory_sor_t1` did not exist in the canonical item catalog; the implementation uses the existing canonical `equip_accessory_sor_t1` item (Worn Lucky Ring) rather than inventing a new item.
+- Updated the generic Town NPC vendor path so William remains backed by `npc_vendor.json`, while catalog vendors such as Loren own their stock in `npc_catalog.json`.
+- Vendor greetings are now supplied by NPC data in the frontend instead of hardcoding William's text.
+- Speaking to **Father Marcelus** in Town now always restores authoritative HP and SP to their maximums before returning the dialogue state. Existing Marcelus dialogue/food behavior remains unchanged.
+
+Verification:
+- `pnpm --filter @nanommo/shared build`: passed.
+- `pnpm --filter @nanommo/api build`: passed.
+- `pnpm --filter frontend build`: passed; existing Angular CSS-budget/CommonJS warnings remain non-blocking.
+- `node apps/api/test/npc-framework.test.js`: 12 assertions passed.
+- `node apps/api/test/npc-town-additions.test.js`: 12 assertions passed.
+- `pnpm exec openspec validate town-npcs-loren-cecilia-father-heal --strict`: passed.
+- `git diff --check`: passed.
+- No production deployment performed.
+>>>>>>> Stashed changes

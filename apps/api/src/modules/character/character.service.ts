@@ -202,6 +202,31 @@ export class CharacterService {
     return this.toDto(character);
   }
 
+  async getDerivedStatsForCharacter(character: Character): Promise<{ maxHp: number; maxSp: number }> {
+    const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
+    const equipment = { def: 0, maxHp: 0, maxSp: 0, weaponFixedAtk: 0, statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 } };
+    for (const row of equipped) {
+      const item = this.dataService.getItemById(row.itemId);
+      equipment.def += Number(item?.fixedStats?.def ?? 0);
+      equipment.maxHp += Number(item?.fixedStats?.maxHp ?? 0);
+      equipment.maxSp += Number(item?.fixedStats?.maxSp ?? 0);
+      if (row.slot === 'mainHand') equipment.weaponFixedAtk += Number(item?.fixedStats?.atk ?? 0);
+      for (const [key, value] of Object.entries(item?.fixedStats?.statBonus ?? {})) {
+        if (key in equipment.statBonus && typeof value === 'number') (equipment.statBonus as any)[key] += value;
+      }
+    }
+    const attrs = {
+      str: character.str + equipment.statBonus.STR,
+      agi: character.agi + equipment.statBonus.AGI,
+      dex: character.dex + equipment.statBonus.DEX,
+      vit: character.vit + equipment.statBonus.VIT,
+      int: character.int + equipment.statBonus.INT,
+      sor: character.sor + equipment.statBonus.SOR,
+    };
+    const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
+    return { maxHp: derived.maxHp, maxSp: derived.maxSp };
+  }
+
   private async applyTownRegeneration(character: Character): Promise<void> {
     if (character.status !== 'town') return;
 

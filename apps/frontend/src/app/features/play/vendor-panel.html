@@ -4,8 +4,13 @@
     <div class="vendor-title"><strong>{{npc.name}}</strong><span>{{npc.types.join(' / ') | uppercase}}</span></div>
 
     <ng-container *ngIf="npc.types.includes('vendor')">
+<<<<<<< Updated upstream
       <p class="vendor-greeting">Hello, adventurer! How can I help you? Wanna buy goods or sell me your loot? Just drag’n’drop items</p>
       <div id="vendor-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid">
+=======
+      <p class="vendor-greeting">{{npc.greeting || 'Hello, adventurer!'}}</p>
+      <div id="vendor-drop-list" cdkDropList [cdkDropListDisabled]="!canDrag()" [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid">
+>>>>>>> Stashed changes
         <div *ngFor="let slot of slots" class="vendor-slot" [class.filled]="stockAt(slot)">
           <div *ngIf="stockAt(slot) as item" cdkDrag [cdkDragData]="dragData(item)" class="vendor-item">
             <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon">
