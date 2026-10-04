@@ -9,9 +9,10 @@ import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { BattleQueueEntry } from '../../database/entities/battle-queue-entry.entity';
 import { DataModule } from '../data/data.module';
 import { CharacterModule } from '../character/character.module';
+import { InventoryModule } from '../inventory/inventory.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EquippedItem, Character, WeaponProficiency, InventoryItem, BattleQueueEntry]), DataModule, CharacterModule],
+  imports: [TypeOrmModule.forFeature([EquippedItem, Character, WeaponProficiency, InventoryItem, BattleQueueEntry]), DataModule, CharacterModule, InventoryModule],
   controllers: [EquipmentController],
   providers: [EquipmentService],
   exports: [EquipmentService],

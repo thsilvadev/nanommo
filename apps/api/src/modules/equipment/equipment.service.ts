@@ -12,6 +12,10 @@ import { BattleEngine } from '@nanommo/shared';
 export interface EquipmentStats {
   def: number;
   mdefPercent: number;
+  maxHp: number;
+  maxSp: number;
+  weaponFixedAtk: number;
+  weaponFixedMatk: number;
   statBonus: {
     STR?: number;
     AGI?: number;
@@ -20,8 +24,6 @@ export interface EquipmentStats {
     INT?: number;
     SOR?: number;
   };
-  weaponFixedAtk?: number;
-  weaponFixedMatk?: number;
 }
 
 export interface DerivedStats {
@@ -100,6 +102,10 @@ export class EquipmentService {
     const stats: EquipmentStats = {
       def: 0,
       mdefPercent: 0,
+      maxHp: 0,
+      maxSp: 0,
+      weaponFixedAtk: 0,
+      weaponFixedMatk: 0,
       statBonus: {
         STR: 0,
         AGI: 0,
@@ -115,12 +121,10 @@ export class EquipmentService {
       if (!itemDef || itemDef.type !== 'equipment') continue;
 
       // Add fixed stats
-      if (itemDef.fixedStats?.def) {
-        stats.def += itemDef.fixedStats.def;
-      }
-      if (itemDef.fixedStats?.mdefPercent) {
-        stats.mdefPercent += itemDef.fixedStats.mdefPercent;
-      }
+      stats.def += Number(itemDef.fixedStats?.def ?? 0);
+      stats.mdefPercent += Number(itemDef.fixedStats?.mdefPercent ?? 0);
+      stats.maxHp += Number(itemDef.fixedStats?.maxHp ?? 0);
+      stats.maxSp += Number(itemDef.fixedStats?.maxSp ?? 0);
 
       // Add stat bonuses from fixed stats
       if (itemDef.fixedStats?.statBonus) {
@@ -141,15 +145,11 @@ export class EquipmentService {
         }
       }
 
-      // Add weapon fixed attack values
-      if (equip.slot === 'mainHand' && itemDef.fixedStats?.atk) {
-        stats.weaponFixedAtk = (stats.weaponFixedAtk || 0) + itemDef.fixedStats.atk;
+      // Weapon fixed contributions only come from the main-hand weapon.
+      if (equip.slot === 'mainHand') {
+        stats.weaponFixedAtk += Number(itemDef.fixedStats?.atk ?? 0);
+        stats.weaponFixedMatk += Number(itemDef.fixedStats?.matk ?? 0);
       }
-
-      // TODO: Add magic attack from weapons if applicable
-      // if (itemDef.fixedStats?.matk) {
-      //   stats.weaponFixedMatk = (stats.weaponFixedMatk || 0) + itemDef.fixedStats.matk;
-      // }
     }
 
     // Clamp MDEF% to 0-100 range
@@ -162,13 +162,16 @@ export class EquipmentService {
    * Calculate derived stats for a character with current equipment
    */
   async calculateDerivedStats(character: Character): Promise<DerivedStats> {
-    const equipStats=await this.calculateEquipmentStats(character.id);
-    const equipped=await this.getEquipment(character.id);
-    let maxHp=0,maxSp=0;
-    for(const equip of equipped){const item=this.dataService.getItemById(equip.itemId);maxHp+=Number(item?.fixedStats?.maxHp??0);maxSp+=Number(item?.fixedStats?.maxSp??0);}
-    const attrs={str:character.str+(equipStats.statBonus.STR||0),agi:character.agi+(equipStats.statBonus.AGI||0),dex:character.dex+(equipStats.statBonus.DEX||0),vit:character.vit+(equipStats.statBonus.VIT||0),int:character.int+(equipStats.statBonus.INT||0),sor:character.sor+(equipStats.statBonus.SOR||0)};
-    const stats=BattleEngine.calculateDerivedStats(character.level,attrs,{def:equipStats.def,maxHp,maxSp,weaponFixedAtk:equipStats.weaponFixedAtk});
-    return {...stats,matk:0,mdefPercent:equipStats.mdefPercent};
+    const equipStats = await this.calculateEquipmentStats(character.id);
+    const attrs = {
+      str: character.str + (equipStats.statBonus.STR || 0),
+      agi: character.agi + (equipStats.statBonus.AGI || 0),
+      dex: character.dex + (equipStats.statBonus.DEX || 0),
+      vit: character.vit + (equipStats.statBonus.VIT || 0),
+      int: character.int + (equipStats.statBonus.INT || 0),
+      sor: character.sor + (equipStats.statBonus.SOR || 0),
+    };
+    return BattleEngine.calculateDerivedStats(character.level, attrs, equipStats);
   }
 
   /**
@@ -181,7 +184,8 @@ export class EquipmentService {
 
     const itemDef = this.dataService.getItemById(itemId);
     if (!itemDef || itemDef.type !== 'equipment') throw new BadRequestException('Item is not equipment');
-    if (itemDef.slot !== slot) throw new BadRequestException(`Item ${itemId} cannot be equipped in slot ${slot}`);
+    const slotCompatible = itemDef.slot === slot || (itemDef.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'));
+    if (!slotCompatible) throw new BadRequestException(`Item ${itemId} cannot be equipped in slot ${slot}`);
     if (character.level < (itemDef.levelReq || 1)) {
       throw new BadRequestException(`Character level ${character.level} is below requirement ${itemDef.levelReq}`);
     }
@@ -227,11 +231,15 @@ export class EquipmentService {
     if (current) {
       current.itemId = itemId;
       current.instanceData = source.instanceData ?? null;
-      return this.equippedItemRepo.save(current);
+      await this.equippedItemRepo.save(current);
+    } else {
+      await this.equippedItemRepo.save(this.equippedItemRepo.create({
+        characterId, slot, itemId, instanceData: source.instanceData ?? null,
+      }));
     }
-    return this.equippedItemRepo.save(this.equippedItemRepo.create({
-      characterId, slot, itemId, instanceData: source.instanceData ?? null,
-    }));
+    character.lastSeenAt = new Date();
+    await this.characterRepo.save(character);
+    return this.getEquippedInSlot(characterId, slot).then((equipped) => equipped as EquippedItem);
   }
 
   /**
@@ -247,6 +255,8 @@ export class EquipmentService {
     if (equipped) {
       await this.addEquipmentToInventory(characterId, equipped.itemId, equipped.instanceData);
       await this.equippedItemRepo.delete(equipped.id);
+      character.lastSeenAt = new Date();
+      await this.characterRepo.save(character);
       this.logger.debug(`Character ${characterId} unequipped from slot ${slot}`);
     }
   }

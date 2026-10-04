@@ -1025,8 +1025,6 @@ Verification for this feature:
 - Battle snapshots now carry the persisted per-food Diet levels so precomputed battles derive the same level the authoritative resolver will apply.
 - Added focused assertions for the formula and engine application. No database migration was required; existing `dietLevels` persistence is reused.
 - Verification: shared build passed; API build passed; frontend build passed with the existing non-blocking Angular component CSS-budget/CommonJS warnings; `diet-auto-feed.spec.js` passed 4/4; `openspec validate diet-level-stat-bonus --strict` passed; `git diff --check` passed. No production deployment performed.
-<<<<<<< Updated upstream
-=======
 
 
 ### Latest feature — Mobile responsive shell (2026-10-02)
@@ -1117,4 +1115,29 @@ Verification:
 - `pnpm exec openspec validate town-npcs-loren-cecilia-father-heal --strict`: passed.
 - `git diff --check`: passed.
 - No production deployment performed.
->>>>>>> Stashed changes
+
+
+### Latest bugfix — Equipment Stats, Accessory Slots & Realtime Character Sheet (2026-10-04)
+
+Implemented OpenSpec change `equipment-stats-realtime-fixes`.
+
+- Fixed authoritative equipment aggregation so fixed stats and per-instance rolled Attributes are included consistently in Character-derived state.
+- Starter `equip_sword_t1` now contributes its canonical +8 ATK to Character Stats; the level-1 starter snapshot is ATK 18 with base attributes at 5.
+- Added authoritative Magic ATK to the Character contract and frontend Stats: `floor(INT * 2) + weaponFixedMatk`.
+- Fixed generic accessory compatibility: catalog items with `slot: accessory` can be equipped into `accessoryLeft` or `accessoryRight`; Worn Lucky Ring is no longer rejected by the slot check.
+- Character DTO now exposes `attributeBonuses`, including fixed equipment Attribute bonuses and instance rolled Attribute bonuses.
+- Equipment tooltips now show actual granted stats (fixed + rolled) instead of catalog metadata.
+- Character Attributes now have explanatory hover tooltips and render positive non-base contributions in green as `(+N)`.
+- Character screen renamed `Derived Stats` to `Stats` and now renders Magic ATK.
+- Successful equip/unequip HTTP responses now return authoritative Character + Equipment + Inventory + stateVersion; the frontend applies that snapshot immediately instead of waiting for a second Character GET.
+- Successful manual consumable HTTP use now returns the same authoritative Character + Inventory convergence payload, so HP/SP/buff state updates immediately with the inventory mutation.
+- Resolved pre-existing conflict markers in the Town Vendor template by preserving the current data-driven NPC greeting behavior.
+
+Verification:
+- `pnpm --filter @nanommo/shared build`: passed.
+- `pnpm --filter @nanommo/api build`: passed.
+- `pnpm --filter frontend build`: passed; existing non-blocking Angular CSS-budget/CommonJS warnings remain.
+- `node apps/api/test/equipment-stats-realtime.js`: 5 assertions passed.
+- `pnpm exec openspec validate equipment-stats-realtime-fixes --strict`: passed.
+- `git diff --check`: passed.
+- No production deployment performed.

@@ -55,12 +55,14 @@ export class CharacterDto {
   vit!: number;
   int!: number;
   sor!: number;
+  attributeBonuses!: Record<string, number>;
   gold!: number;
   hpCurrent!: number;
   spCurrent!: number;
   maxHp!: number;
   maxSp!: number;
   attack!: number;
+  magicAttack!: number;
   defense!: number;
   attackSpeed!: number;
   castSpeed!: number;

@@ -23,6 +23,8 @@ export class CharacterPageComponent implements OnInit {
  selectedWeaponIndex(){const i=this.weaponRows().findIndex(r=>r[0]===this.selectedWeapon());return i<0?0:i}
  setTab(t:string){this.tab=t;if(t==='gambits')this.router.navigate(['/play/character'],{queryParams:{tab:'gambits'}});else this.router.navigate(['/play/character'],{queryParams:{tab:t}})}
  value(k:string){const c=this.character.character() as any;return (c?.[k]??0)+(this.pending()[k]??0)}
+ attributeBonus(k:string){const c=this.character.character() as any;const key=k.toUpperCase();return Number(c?.attributeBonuses?.[key]??0)}
+ attributeTooltip(k:string){const tips:Record<string,string>={str:'STR increases Physical ATK.',agi:'AGI increases Attack Speed and Evasion.',dex:'DEX increases Accuracy and Cast Speed.',vit:'VIT increases Max HP and HP Regen.',int:'INT increases Max SP, SP Regen and Magic ATK.',sor:'SOR increases Critical Chance.'};return tips[k]??''}
  delta(k:string){return this.pending()[k]??0}
  change(k:string,n:number){const points=Object.values(this.pending()).reduce((a,b)=>a+b,0);if(n>0&&(this.character.character()?.unspentAttributePoints??0)-points<=0)return;const next={...this.pending(),[k]:(this.pending()[k]??0)+n};if(next[k]===0)delete next[k];this.pending.set(next)}
  reset(){this.pending.set({});this.error.set(null)}
@@ -35,7 +37,7 @@ export class CharacterPageComponent implements OnInit {
  equipmentDragData(slot:string,it:any){return {source:'equipment',slot,id:it.id,characterId:it.characterId,itemId:it.itemId,instanceData:it.instanceData}}
  inventoryDragData(it:any){return {source:'inventory',id:it.id,characterId:it.characterId,itemId:it.itemId,quantity:it.quantity,instanceData:it.instanceData}}
  async drop(slot:string,e:CdkDragDrop<any>){const it=e.item.data;if(!it)return;try{if(it.source!=='equipment')await this.inventory.equip(slot,it.itemId);this.selectedItem.set(it)}catch(err:any){this.error.set(err?.error?.message??'Equipment change rejected by server')}finally{this.inventory.endDrag()}}
- async doubleClickInventory(it:any){const def=this.catalog.item(it.itemId);if(def?.type==='equipment'&&def.slot){try{await this.inventory.equip(def.slot,it.itemId)}catch(err:any){this.error.set(err?.error?.message??'Equipment change rejected by server')}}}
+ async doubleClickInventory(it:any){const def:any=this.catalog.item(it.itemId);if(def?.type==='equipment'&&def.slot){const slot=def.slot==='accessory'?(this.inventory.equipment().some(e=>e.slot==='accessoryLeft')?'accessoryRight':'accessoryLeft'):def.slot;try{await this.inventory.equip(slot,it.itemId)}catch(err:any){this.error.set(err?.error?.message??'Equipment change rejected by server')}}}
  async doubleClickEquipped(slot:string){try{await this.inventory.unequip(slot)}catch(err:any){this.error.set(err?.error?.message??'Unequip rejected by server')}}
  async dropToInventory(e:CdkDragDrop<any>){const it=e.item.data;if(it?.source==='equipment')await this.doubleClickEquipped(it.slot);}
 

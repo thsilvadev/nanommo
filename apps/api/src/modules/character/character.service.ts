@@ -23,6 +23,40 @@ export class CharacterService {
     private dataService: DataService,
   ) {}
 
+  private buildEquipmentStats(equipped: EquippedItem[]) {
+    const equipment = {
+      def: 0,
+      mdefPercent: 0,
+      maxHp: 0,
+      maxSp: 0,
+      weaponFixedAtk: 0,
+      weaponFixedMatk: 0,
+      statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 },
+    };
+    for (const row of equipped) {
+      const item = this.dataService.getItemById(row.itemId);
+      if (!item || item.type !== 'equipment') continue;
+      equipment.def += Number(item.fixedStats?.def ?? 0);
+      equipment.mdefPercent += Number(item.fixedStats?.mdefPercent ?? 0);
+      equipment.maxHp += Number(item.fixedStats?.maxHp ?? 0);
+      equipment.maxSp += Number(item.fixedStats?.maxSp ?? 0);
+      if (row.slot === 'mainHand') {
+        equipment.weaponFixedAtk += Number(item.fixedStats?.atk ?? 0);
+        equipment.weaponFixedMatk += Number(item.fixedStats?.matk ?? 0);
+      }
+      for (const [key, value] of Object.entries(item.fixedStats?.statBonus ?? {})) {
+        if (key in equipment.statBonus && typeof value === 'number') (equipment.statBonus as any)[key] += value;
+      }
+      const rolledAttribute = row.instanceData?.rolledAttribute as keyof typeof equipment.statBonus | undefined;
+      const rolledValue = Number(row.instanceData?.rolledValue ?? 0);
+      if (rolledAttribute && rolledValue > 0 && rolledAttribute in equipment.statBonus) {
+        (equipment.statBonus as any)[rolledAttribute] += rolledValue;
+      }
+    }
+    equipment.mdefPercent = Math.min(100, Math.max(0, equipment.mdefPercent));
+    return equipment;
+  }
+
   async createCharacter(userId: string, username: string): Promise<CharacterDto> {
     // Check if character already exists
     const existing = await this.characterRepository.findOne({
@@ -204,17 +238,7 @@ export class CharacterService {
 
   async getDerivedStatsForCharacter(character: Character): Promise<{ maxHp: number; maxSp: number }> {
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
-    const equipment = { def: 0, maxHp: 0, maxSp: 0, weaponFixedAtk: 0, statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 } };
-    for (const row of equipped) {
-      const item = this.dataService.getItemById(row.itemId);
-      equipment.def += Number(item?.fixedStats?.def ?? 0);
-      equipment.maxHp += Number(item?.fixedStats?.maxHp ?? 0);
-      equipment.maxSp += Number(item?.fixedStats?.maxSp ?? 0);
-      if (row.slot === 'mainHand') equipment.weaponFixedAtk += Number(item?.fixedStats?.atk ?? 0);
-      for (const [key, value] of Object.entries(item?.fixedStats?.statBonus ?? {})) {
-        if (key in equipment.statBonus && typeof value === 'number') (equipment.statBonus as any)[key] += value;
-      }
-    }
+    const equipment = this.buildEquipmentStats(equipped);
     const attrs = {
       str: character.str + equipment.statBonus.STR,
       agi: character.agi + equipment.statBonus.AGI,
@@ -238,18 +262,7 @@ export class CharacterService {
     if (tenTickPeriods <= 0) return;
 
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
-    const equipment = { def: 0, maxHp: 0, maxSp: 0, weaponFixedAtk: 0, statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 } };
-    for (const row of equipped) {
-      const item = this.dataService.getItemById(row.itemId);
-      equipment.def += Number(item?.fixedStats?.def ?? 0);
-      equipment.maxHp += Number(item?.fixedStats?.maxHp ?? 0);
-      equipment.maxSp += Number(item?.fixedStats?.maxSp ?? 0);
-      if (row.slot === 'mainHand') equipment.weaponFixedAtk += Number(item?.fixedStats?.atk ?? 0);
-      for (const [key, value] of Object.entries(item?.fixedStats?.statBonus ?? {})) {
-        if (key in equipment.statBonus && typeof value === 'number') (equipment.statBonus as any)[key] += value;
-      }
-    }
-
+    const equipment = this.buildEquipmentStats(equipped);
     const attrs = {
       str: character.str + equipment.statBonus.STR,
       agi: character.agi + equipment.statBonus.AGI,
@@ -283,18 +296,15 @@ export class CharacterService {
     // permanent mastery survives an entry leaving the window.
     const activeDiet = character.diet.filter((entry) => Date.parse(entry.digestUntil) > Date.now());
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
-    const equipment = { def: 0, maxHp: 0, maxSp: 0, weaponFixedAtk: 0, statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 } };
-    for (const row of equipped) {
-      const item = this.dataService.getItemById(row.itemId);
-      equipment.def += Number(item?.fixedStats?.def ?? 0);
-      equipment.maxHp += Number(item?.fixedStats?.maxHp ?? 0);
-      equipment.maxSp += Number(item?.fixedStats?.maxSp ?? 0);
-      if (row.slot === 'mainHand') equipment.weaponFixedAtk += Number(item?.fixedStats?.atk ?? 0);
-      for (const [key, value] of Object.entries(item?.fixedStats?.statBonus ?? {})) {
-        if (key in equipment.statBonus && typeof value === 'number') (equipment.statBonus as any)[key] += value;
-      }
-    }
-    const attrs = { str: character.str + equipment.statBonus.STR, agi: character.agi + equipment.statBonus.AGI, dex: character.dex + equipment.statBonus.DEX, vit: character.vit + equipment.statBonus.VIT, int: character.int + equipment.statBonus.INT, sor: character.sor + equipment.statBonus.SOR };
+    const equipment = this.buildEquipmentStats(equipped);
+    const attrs = {
+      str: character.str + equipment.statBonus.STR,
+      agi: character.agi + equipment.statBonus.AGI,
+      dex: character.dex + equipment.statBonus.DEX,
+      vit: character.vit + equipment.statBonus.VIT,
+      int: character.int + equipment.statBonus.INT,
+      sor: character.sor + equipment.statBonus.SOR,
+    };
     const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
     return {
       id: character.id,
@@ -310,12 +320,21 @@ export class CharacterService {
       vit: character.vit,
       int: character.int,
       sor: character.sor,
+      attributeBonuses: {
+        STR: equipment.statBonus.STR,
+        AGI: equipment.statBonus.AGI,
+        DEX: equipment.statBonus.DEX,
+        VIT: equipment.statBonus.VIT,
+        INT: equipment.statBonus.INT,
+        SOR: equipment.statBonus.SOR,
+      },
       gold: Number(character.gold),
       hpCurrent: character.hpCurrent,
       spCurrent: character.spCurrent,
       maxHp: derived.maxHp,
       maxSp: derived.maxSp,
       attack: derived.atk,
+      magicAttack: derived.matk,
       defense: derived.def,
       attackSpeed: derived.attackSpeed,
       castSpeed: derived.castSpeed,

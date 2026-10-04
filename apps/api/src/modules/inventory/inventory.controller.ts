@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, UseGuards, Request, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, UseGuards, Request, Body, Param, Query, BadRequestException } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { CharacterService } from '../character/character.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -70,7 +70,14 @@ export class InventoryController {
   async useConsumable(@Request() req: any, @Body() body: { itemId: string }) {
     const userId = req.user.userId;
     const character = await this.characterService.getCharacterByUserId(userId);
-    return this.inventoryService.useConsumable(character.id, body.itemId);
+    await this.inventoryService.useConsumable(character.id, body.itemId);
+    const characterAfter = await this.characterService.getCharacterDtoById(character.id);
+    if (!characterAfter) throw new BadRequestException('Character not found');
+    return {
+      character: characterAfter,
+      inventory: await this.inventoryService.getInventory(character.id),
+      stateVersion: characterAfter.stateVersion,
+    };
   }
 
   /**

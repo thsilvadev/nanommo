@@ -2,7 +2,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { ApiService } from './api.service';
 import { GameSocketService } from './game.socket.service';
-import { Character, InventoryItem, EquippedItem, BattleQueueEntry, BattleQueueUpdated, BattleResolved, CharacterLeveledUp, CharacterDied, MapPresence } from './game.models';
+import { Character, InventoryItem, EquippedItem, EquipmentMutationResponse, BattleQueueEntry, BattleQueueUpdated, BattleResolved, CharacterLeveledUp, CharacterDied, MapPresence } from './game.models';
 type LoadState='idle'|'loading'|'loaded'|'error'|'reconnecting';
 @Injectable({providedIn:'root'})
 export class CharacterStore {
@@ -27,11 +27,29 @@ export class InventoryStore {
  readonly items=this._items.asReadonly();readonly equipment=this._equipment.asReadonly();readonly state=this._state.asReadonly();readonly draggedItemId=this._draggedItemId.asReadonly();private loadSeq=0;private realtimeGeneration=0;private realtimeRevision=0;
  async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const [inventory,equipment]=await Promise.all([this.api.get<{items:InventoryItem[];stateVersion:number}>('/inventory').toPromise(),this.api.get<EquippedItem[]>('/equipment').toPromise()]);if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if((inventory?.stateVersion??0)<this.realtimeRevision)return;this._items.set(inventory?.items??[]);this._equipment.set(equipment??[]);this._state.set('loaded')}catch{if(seq===this.loadSeq&&generation===this.realtimeGeneration)this._state.set('error')}}
  applyRealtimeSnapshot(items:InventoryItem[],revision:number){if(revision<=this.realtimeRevision)return;this.realtimeRevision=revision;this.realtimeGeneration++;this._items.set(items);this._state.set('loaded');}
- async equip(slot:string,itemId:string){await this.api.put('/equipment/equip',{slot,itemId}).toPromise();await this.load();}
- async unequip(slot:string){await this.api.delete('/equipment/slot/'+slot).toPromise();await this.load();}
+ applyMutationSnapshot(snapshot:EquipmentMutationResponse){
+  if(snapshot.stateVersion<=this.realtimeRevision)return;
+  this.realtimeRevision=snapshot.stateVersion;
+  this.realtimeGeneration++;
+  this._items.set(snapshot.inventory??[]);
+  this._equipment.set(snapshot.equipment??[]);
+  this._state.set('loaded');
+  this.character.applyRealtimeSnapshot(snapshot.character,snapshot.stateVersion);
+ }
+ async equip(slot:string,itemId:string){const snapshot=await this.api.put<EquipmentMutationResponse>('/equipment/equip',{slot,itemId}).toPromise();if(snapshot)this.applyMutationSnapshot(snapshot);}
+ async unequip(slot:string){const snapshot=await this.api.delete<EquipmentMutationResponse>('/equipment/slot/'+slot).toPromise();if(snapshot)this.applyMutationSnapshot(snapshot);}
  beginDrag(itemId:string){this._draggedItemId.set(itemId)}
  endDrag(){this._draggedItemId.set(null)}
- async useConsumable(itemId:string){await this.api.post('/inventory/use',{itemId}).toPromise();await Promise.all([this.load(),this.character.load()]);}
+ async useConsumable(itemId:string){
+  const snapshot=await this.api.post<{character:Character;inventory:InventoryItem[];stateVersion:number}>('/inventory/use',{itemId}).toPromise();
+  if(!snapshot)return;
+  if(snapshot.stateVersion<=this.realtimeRevision)return;
+  this.realtimeRevision=snapshot.stateVersion;
+  this.realtimeGeneration++;
+  this._items.set(snapshot.inventory??[]);
+  this._state.set('loaded');
+  this.character.applyRealtimeSnapshot(snapshot.character,snapshot.stateVersion);
+ }
 }
 @Injectable({providedIn:'root'})
 export class BattleStore {

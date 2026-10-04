@@ -159,6 +159,8 @@ The battle queue is invalidated and rebuilt from scratch whenever, and only when
 
 Anything else (a battle resolving normally, a potion being consumed by the gambit as predicted) does **not** trigger recalculation — it was already accounted for in the original simulation.
 
+After a successful HTTP equipment or consumable mutation, the frontend MUST apply the authoritative Character/Inventory/Equipment state returned by that mutation immediately. Attributes and Stats MUST NOT wait for a follow-up Character poll to reflect the new state. The client never recomputes gameplay formulas; it only presents the authoritative response.
+
 ---
 
 ## 4. Data Model (TypeORM entities)
@@ -238,6 +240,8 @@ Unique index on `(characterId, weaponType)`. One row per weapon type is created 
 | slot | enum(head, body, mainHand, offHand, shoes, cape, accessoryLeft, accessoryRight) | |
 | itemId | varchar | |
 | instanceData | jsonb, nullable | `{ rolledAttribute, rolledValue }` or elemental immunity for shoes (static, no roll) |
+
+Catalog equipment with `slot: accessory` is compatible with either persisted `accessoryLeft` or `accessoryRight`; the persisted EquippedItem always stores the explicit left/right slot.
 
 ### 4.6 `GambitPage`
 | field | type | notes |
@@ -361,6 +365,7 @@ These formulas were designed after the shape of Ragnarok Online (soft-cap DEF fo
 The six attributes are always present at character creation with value 5. Each point contributes to one or more derived stats through the following NanoMMO formulas. The design is inspired by Ragnarok Online relationships, but the numeric values are original to NanoMMO.
 
 attack = floor(STR * 2) + weaponAttack
+magicAttack = floor(INT * 2) + weaponMagicAttack
 defense = equipmentDefense
 maxHp = 50 + floor(VIT * 18) + equipmentMaxHp
 maxSp = 20 + floor(INT * 8) + equipmentMaxSp
@@ -376,7 +381,7 @@ Attack Speed and Cast Speed are displayed as ratings where higher is faster. The
 
 At level 1 with all six attributes at 5 and the starter sword's +8 ATK:
 
-ATK 18 | DEF 0 | Max HP 140 | Max SP 60
+ATK 18 | MATK 10 | DEF 0 | Max HP 140 | Max SP 60
 Attack Speed 110 | Cast Speed 110
 Evasion 7 | Accuracy 60
 HP Regen 3 / 10 ticks | SP Regen 3 / 10 ticks
@@ -670,6 +675,8 @@ Every equipment item **template** in `items.json` defines:
 - `fixedStats` — permanent, identical on every drop of that template (e.g. all "Reinforced Chestplate" always give `def: 18, statBonus: {VIT: 2, STR: 1}`). This is what makes a template a Tank piece vs. a Mage piece.
 - `randomRollOnDrop` — for all slots **except shoes**: at the moment of drop, roll **one** random attribute from `[STR, AGI, DEX, VIT, INT, SOR]` and a random integer **1–6** bonus to it. This roll is generated once, server-side, using the deterministic per-character PRNG stream (§11.2, same mechanism as monster/drop selection — not a separate `Math.random()`), and stored permanently in `InventoryItem.instanceData` / `EquippedItem.instanceData` as `{ rolledAttribute, rolledValue }`. It never changes again — "eternal" as specified.
 - Shoes (`equip_shoes_*`) never roll — their single fixed effect is `elementalImmunity: <element>` (full immunity to that element's status/bonus-damage interactions, per confirmed design; no move-speed effect in MVP).
+
+Equipment tooltips show the actual stats granted by the item instance (fixed stats plus its rolled Attribute, when present). Roll-generation metadata, vendor/economic fields and stack metadata are not presented as granted stats.
 
 ### 10.4 Item categories
 
@@ -997,7 +1004,11 @@ are defined in `PLAY_WINDOW_SPEC.md`.
 `/play/character` is the extended character-management screen.
 
 Internal tabs:
-1. **Character** — only `Attributes` and `Derived Stats`. Do not render Paper Doll, Build Summary, Equipment, or Inventory in this tab.
+1. **Character** — only `Attributes` and `Stats`. Do not render Paper Doll, Build Summary, Equipment, or Inventory in this tab.
+
+The Character tab's six Attributes show the base value plus any authoritative non-base contribution in green `(+N)`. Hovering an Attribute explains which Stats it feeds. The authoritative Character DTO exposes `attributeBonuses` and all Stats, including Magic ATK.
+
+The Stats section includes HP, SP, Attack, Magic ATK, Defense, Attack Speed, Cast Speed, Evasion, Accuracy, HP Regen, SP Regen and Critical.
 2. **Gambits** — the full three-page Gambit editor.
 3. **Mastery** — weapon mastery workspace. The left side shows the selected weapon type and its mastery tree; the right side shows the weapon list/levels. The skill-tree container is intentionally present even before skills are implemented.
 

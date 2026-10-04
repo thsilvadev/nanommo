@@ -239,6 +239,8 @@ Unique index on `(characterId, weaponType)`. One row per weapon type is created 
 | itemId | varchar | |
 | instanceData | jsonb, nullable | `{ rolledAttribute, rolledValue }` or elemental immunity for shoes (static, no roll) |
 
+Catalog equipment with `slot: accessory` is compatible with either persisted `accessoryLeft` or `accessoryRight`; persisted EquippedItem rows always use the explicit left/right slot.
+
 ### 4.6 `GambitPage`
 | field | type | notes |
 |---|---|---|
@@ -361,6 +363,7 @@ These formulas were designed after the shape of Ragnarok Online (soft-cap DEF fo
 The six attributes are always present at character creation with value 5. Each point contributes to one or more derived stats through the following NanoMMO formulas. The design is inspired by Ragnarok Online relationships, but the numeric values are original to NanoMMO.
 
 attack = floor(STR * 2) + weaponAttack
+magicAttack = floor(INT * 2) + weaponMagicAttack
 defense = equipmentDefense
 maxHp = 50 + floor(VIT * 18) + equipmentMaxHp
 maxSp = 20 + floor(INT * 8) + equipmentMaxSp
@@ -996,7 +999,9 @@ are defined in `PLAY_WINDOW_SPEC.md`.
 `/play/character` is the extended character-management screen.
 
 Internal tabs:
-1. **Character** — only `Attributes` and `Derived Stats`. Do not render Paper Doll, Build Summary, Equipment, or Inventory in this tab.
+1. **Character** — only `Attributes` and `Stats`. Do not render Paper Doll, Build Summary, Equipment, or Inventory in this tab.
+
+The Character tab shows authoritative non-base Attribute contributions in green `(+N)`, with a hover tooltip explaining each Attribute's Stat mapping. Stats includes Magic ATK alongside HP, SP, Attack, Defense, Attack Speed, Cast Speed, Evasion, Accuracy, HP Regen, SP Regen and Critical.
 2. **Gambits** — the full three-page Gambit editor.
 3. **Mastery** — weapon mastery workspace. The left side shows the selected weapon type and its mastery tree; the right side shows the weapon list/levels. The skill-tree container is intentionally present even before skills are implemented.
 
