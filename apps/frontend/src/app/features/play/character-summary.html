@@ -23,7 +23,7 @@
     <div class="bar-row"><span>HP</span><div class="bar hp"><i [style.width.%]="hpPct()"></i></div><b>{{displayHp()??'—'}}</b></div>
     <div class="bar-row"><span>SP</span><div class="bar sp"><i [style.width.%]="spPct()"></i></div><b>{{displaySp()??'—'}}</b></div>
   </div>
-  <div class="status-reserve" aria-label="Status effects reserved space"><span>STATUS</span><div></div></div>
+  <div class="status-reserve" aria-label="Status effects reserved space"><span>STATUS</span></div>
   <div class="diet-block"><div class="diet-title"><span>DIET</span><label class="auto-feed"><span>Auto Feed</span><input type="checkbox" [checked]="character.character()?.autoFeed" (change)="toggleAutoFeed()"><i></i></label></div><div class="diet-slots"><div class="diet-slot" *ngFor="let index of dietSlots" [class.diet-mastered]="dietLevel(index)>0" [style.--diet-rain-alpha]="dietRainAlpha(index)"><ng-container *ngIf="dietEntry(index) as food; else emptyFood"><ng-container *ngIf="dietLevel(index)>0"><i *ngFor="let drop of dietRainDrops; let rainIndex=index" class="diet-rain" [style.--rain-index]="rainIndex"></i></ng-container><img [src]="dietIcon(index)" [alt]="dietName(index)" [style.opacity]="dietRemainingSeconds(index)<=0 ? 0.28 : 1"><div class="diet-stars">{{dietStars(index)}}</div><div class="diet-timer">{{dietTimerLabel(index)}}</div><div class="item-tooltip"><strong>{{dietName(index)}}</strong><span *ngFor="let line of dietTooltipLines(index)"><b>{{line.label}}</b> {{line.value}}</span></div></ng-container><ng-template #emptyFood><img src="/assets/ui/food.svg" alt="Empty food slot"></ng-template></div></div></div>
   <div class="status-line"><span class="status-dot"></span>{{statusLabel()}}</div>
 </section>
