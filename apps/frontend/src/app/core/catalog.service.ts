@@ -13,7 +13,19 @@ export class CatalogService {
   const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;
   return visible.filter(k=>k!=='id'&&k!=='name'&&!hidden.has(k)&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k==='effect'?'Effect':k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:k==='effect'?this.formatItemEffect(d[k]):typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}));
  }
- formatItemEffect(effect:any){if(!effect)return '';if(effect.status){const status=String(effect.status).replace(/_/g,' ');return `Cures ${status}.`;}if(effect.type==='heal_hp')return `Restores ${Number(effect.amount)||0} HP.`;if(effect.type==='heal_sp')return `Restores ${Number(effect.amount)||0} SP.`;if(effect.type==='food_buff')return `Regenerates HP/SP for ${Math.round((Number(effect.durationSeconds)||0)/60)} minutes.`;return String(effect.type??'').replace(/_/g,' ').replace(/^./,x=>x.toUpperCase())+'.';}
+ formatItemEffect(effect:any){if(!effect)return '';if(effect.status){const status=String(effect.status).replace(/_/g,' ');return `Cures ${status}.`;}if(effect.type==='heal_hp')return `Restores ${Number(effect.amount)||0} HP.`;if(effect.type==='heal_sp')return `Restores ${Number(effect.amount)||0} SP.`;if(effect.type==='food_buff'){
+ const lines:string[]=[];
+ const hp=Number(effect.hpRegenPerTenTicks??0);const sp=Number(effect.spRegenPerTenTicks??0);
+ if(hp)lines.push('HP Regen: +'+hp+' / 10 ticks');
+ if(sp)lines.push('SP Regen: +'+sp+' / 10 ticks');
+ const duration=Number(effect.durationSeconds)||0;
+ if(duration)lines.push('Duration: '+this.formatDuration(duration));
+ return lines.join(' · ');
+}return String(effect.type??'').replace(/_/g,' ').replace(/^./,x=>x.toUpperCase())+'.';}
+ formatDuration(seconds:number){
+  const s=Math.max(0,Math.round(seconds));const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);const sec=s%60;
+  return h>0?`${h}h ${String(m).padStart(2,'0')}m`:m>0?`${m}m`:`${sec}s`;
+ }
  equipmentStatLines(itemId:string,instanceData?:any){
   const item:any=this.item(itemId);if(item?.type!=='equipment')return [];
   const lines:any[]=[];const fixed=item.fixedStats??{};

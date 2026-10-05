@@ -1177,3 +1177,18 @@ Verification:
 - `pnpm exec openspec validate diet-autofeed-streak-fixes --strict`: passed.
 - `git diff --check`: passed.
 - No production deployment performed.
+
+
+### Latest follow-up — Food tooltip concrete stats (2026-10-05)
+
+Implemented OpenSpec change `food-tooltip-stats`.
+
+- The shared `CatalogService.itemTooltipLines()` / `formatItemEffect()` path now formats `food_buff` effects with the concrete configured values instead of the generic `Regenerates HP/SP` text.
+- Food tooltips now show each non-zero stat, e.g. `HP Regen: +4 / 10 ticks`, `SP Regen: +1 / 10 ticks`, plus duration.
+- Because Vendor, Inventory and other catalog-backed item panels use the same formatter, the correction applies consistently without panel-specific tooltip implementations.
+- No food gameplay formulas or buff behavior were changed.
+
+Verification:
+- `pnpm exec openspec validate food-tooltip-stats --strict`: passed.
+- `pnpm --filter frontend build`: passed; existing non-blocking Angular CSS-budget/CommonJS warnings remain.
+- `git diff --check`: passed.
