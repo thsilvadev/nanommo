@@ -1192,3 +1192,20 @@ Verification:
 - `pnpm exec openspec validate food-tooltip-stats --strict`: passed.
 - `pnpm --filter frontend build`: passed; existing non-blocking Angular CSS-budget/CommonJS warnings remain.
 - `git diff --check`: passed.
+
+
+### Latest QA cheat fix — /reset-diet finishes digestion only (2026-10-05)
+
+Implemented OpenSpec change `reset-diet-finishes-digestion`.
+
+- `GET /inventory/__dev_7f3a91c2/reset-diet` no longer wipes the Diet configuration.
+- It preserves all retained Diet slots, each entry's `dietLevel`, the `dietLevels` map, and the Auto Feed setting.
+- It only moves each retained food's `digestUntil` to the current time and clears the active food buff, making the character hungry and ready to consume again.
+- Pending queued food-use events are still stripped so a previously queued battle cannot immediately resurrect the food digestion/buff state.
+- This allows the intended QA loop: eat food → `/upgrade-diet` → `/reset-diet` → eat the retained food again or another food → observe streak/eviction behavior.
+
+Verification:
+- `pnpm exec openspec validate reset-diet-finishes-digestion --strict`: passed.
+- `pnpm --filter @nanommo/api build`: passed.
+- `git diff --check`: passed.
+- No production deployment performed.

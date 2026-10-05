@@ -497,13 +497,16 @@ export class InventoryService {
         `RESET DIET cheat target: characterId=${character.id} name=${character.name} status=${character.status} currentMapId=${character.currentMapId ?? 'null'} dietCount=${Array.isArray(character.diet) ? character.diet.length : 0} activeFoodBuff=${character.activeFoodBuff ? 'present' : 'null'}`,
       );
 
-      character.diet = [];
-      character.dietLevels = {};
+      const now = new Date().toISOString();
+      const diet = Array.isArray(character.diet)
+        ? character.diet.map((entry) => ({ ...entry, digestUntil: now }))
+        : [];
+
+      // This QA cheat is intentionally non-destructive: it only finishes digestion.
+      // Retained slots and their diet levels are the state being tested by
+      // /upgrade-diet and subsequent food consumption.
+      character.diet = diet;
       character.activeFoodBuff = null;
-      // tryAutoFeed feeds strictly from diet + dietLevels, i.e. exactly what this
-      // wipe clears. Leaving it armed only re-populates the diet on the next
-      // battle resolve, so a diet reset disarms it.
-      character.autoFeed = false;
       character.lastSeenAt = new Date();
       const strippedFoodEvents = await this.stripQueuedFoodEvents(manager, character.id);
       const saved = await repo.save(character);
