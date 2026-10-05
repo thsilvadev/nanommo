@@ -106,6 +106,9 @@ Suggested desktop grid:
 - center content has a minimum width before responsive collapse;
 - gaps: 8–12px.
 - all three desktop zones share one fixed viewport-derived height and aligned bottom edge.
+- Grind central workspace contains the inventory below the Location header and to the left of the 4:3 map.
+- Equipment and diet cells are always square.
+- Play text sizes are explicitly hard-coded at the enlarged readability scale; browser zoom is not used.
 
 ### 2.2 Top bar
 

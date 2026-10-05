@@ -53,6 +53,10 @@ Implemented the desktop UI scale/layout pass: application-level scale tokens now
 
 Updated `PLAY_WINDOW_SPEC.md` with the new desktop layout contract. No gameplay/API behavior was changed. Frontend production build, `git diff --check`, and strict OpenSpec validation passed. Browser visual smoke/drag interaction for this change remains to be run.
 
+### Latest follow-up — play-ui-scale-layout correction (2026-10-05)
+
+Corrected the desktop layout after visual review: the left/center/right play zones now share the same fixed viewport height; Grind owns one central framed workspace containing the inventory below the Location header and to the left of the 4:3 map; equipment and diet cells are fixed square dimensions with larger vertical equipment gaps; and play typography/tooltips were explicitly doubled through CSS font-size values/tokens, without browser zoom.
+
 ## 0. Executive summary
 
 | Aspect | State | Evidence |
