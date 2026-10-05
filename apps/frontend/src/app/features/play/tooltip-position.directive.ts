@@ -1,6 +1,4 @@
-import { Directive, ElementRef, OnDestroy, inject } from '@angular/core';
-import { Overlay, OverlayRef } from '@angular/cdk/overlay';
-import { DomPortal } from '@angular/cdk/portal';
+import { Directive, ElementRef, OnDestroy } from '@angular/core';
 
 @Directive({
   selector: '.item-tooltip',
@@ -9,9 +7,8 @@ import { DomPortal } from '@angular/cdk/portal';
 export class TooltipPositionDirective implements OnDestroy {
   private readonly tooltip: HTMLElement;
   private readonly anchor: HTMLElement;
-  private readonly overlay = inject(Overlay);
-  private overlayRef: OverlayRef | null = null;
-  private portal: DomPortal<HTMLElement> | null = null;
+  private floating: HTMLElement | null = null;
+  private observer: MutationObserver | null = null;
 
   private readonly onPointerEnter = (event: PointerEvent) => this.show(event);
   private readonly onPointerMove = (event: PointerEvent) => this.position(event);
@@ -21,76 +18,91 @@ export class TooltipPositionDirective implements OnDestroy {
     this.tooltip = element.nativeElement;
     this.anchor = this.tooltip.parentElement as HTMLElement;
     if (!this.anchor) return;
+
     this.anchor.addEventListener('pointerenter', this.onPointerEnter);
     this.anchor.addEventListener('pointermove', this.onPointerMove);
     this.anchor.addEventListener('pointerleave', this.onPointerLeave);
+
+    this.observer = new MutationObserver(() => {
+      if (this.floating) this.floating.innerHTML = this.tooltip.innerHTML;
+    });
+    this.observer.observe(this.tooltip, { childList: true, subtree: true, characterData: true, attributes: true });
   }
 
   private show(event: PointerEvent) {
-    if (!this.overlayRef) {
-      this.overlayRef = this.overlay.create({
-        hasBackdrop: false,
-        disposeOnNavigation: false,
-        scrollStrategy: this.overlay.scrollStrategies.noop(),
-        panelClass: 'nm-tooltip-overlay',
-      });
-      this.portal = new DomPortal(this.tooltip);
+    if (!this.floating) {
+      this.floating = this.tooltip.cloneNode(true) as HTMLElement;
+      this.floating.classList.add('nm-floating-tooltip');
+      this.floating.removeAttribute('style');
+      document.body.appendChild(this.floating);
     }
-    if (!this.overlayRef.hasAttached() && this.portal) this.overlayRef.attach(this.portal);
-    this.tooltip.style.display = 'grid';
-    this.tooltip.style.visibility = 'hidden';
+
+    this.floating.innerHTML = this.tooltip.innerHTML;
+    this.floating.style.display = 'grid';
+    this.floating.style.visibility = 'hidden';
     this.position(event);
   }
 
   private position(event: PointerEvent) {
-    if (!this.overlayRef?.hasAttached()) return;
+    if (!this.floating) return;
 
     requestAnimationFrame(() => {
-      const rect = this.tooltip.getBoundingClientRect();
-      const margin = 14;
+      if (!this.floating) return;
+
+      const el = this.floating;
+      const margin = 10;
+      const gap = 14;
+      const viewportWidth = document.documentElement.clientWidth;
+      const viewportHeight = document.documentElement.clientHeight;
+
+      el.style.left = '0px';
+      el.style.top = '0px';
+
+      const rect = el.getBoundingClientRect();
       const x = event.clientX;
       const y = event.clientY;
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
 
-      const right = x + margin;
-      const left = x - rect.width - margin;
-      const top = y - rect.height - margin;
-      const bottom = y + margin;
+      const rightX = x + gap;
+      const leftX = x - rect.width - gap;
+      const fitsRight = rightX + rect.width <= viewportWidth - margin;
+      const fitsLeft = leftX >= margin;
 
-      const nextLeft = right + rect.width <= viewportWidth
-        ? right
-        : left >= 0
-          ? left
-          : Math.max(margin, Math.min(right, viewportWidth - rect.width - margin));
+      const nextLeft = fitsRight
+        ? rightX
+        : fitsLeft
+          ? leftX
+          : Math.max(margin, Math.min(rightX, viewportWidth - rect.width - margin));
 
-      const nextTop = top >= 0
-        ? top
-        : bottom + rect.height <= viewportHeight
-          ? bottom
-          : Math.max(margin, Math.min(bottom, viewportHeight - rect.height - margin));
+      const aboveY = y - rect.height - gap;
+      const belowY = y + gap;
+      const fitsAbove = aboveY >= margin;
+      const fitsBelow = belowY + rect.height <= viewportHeight - margin;
 
-      this.overlayRef!.updatePositionStrategy(
-        this.overlay.position().global().left(`${nextLeft}px`).top(`${nextTop}px`),
-      );
-      this.overlayRef!.updatePosition();
-      this.tooltip.style.visibility = 'visible';
+      const nextTop = fitsAbove
+        ? aboveY
+        : fitsBelow
+          ? belowY
+          : Math.max(margin, Math.min(aboveY, viewportHeight - rect.height - margin));
+
+      el.style.left = `${nextLeft}px`;
+      el.style.top = `${nextTop}px`;
+      el.style.visibility = 'visible';
     });
   }
 
   private hide() {
-    if (this.overlayRef?.hasAttached()) this.overlayRef.detach();
-    this.tooltip.style.display = '';
-    this.tooltip.style.visibility = '';
+    if (this.floating) {
+      this.floating.style.display = 'none';
+      this.floating.style.visibility = 'hidden';
+    }
   }
 
   ngOnDestroy() {
-    if (this.anchor) {
-      this.anchor.removeEventListener('pointerenter', this.onPointerEnter);
-      this.anchor.removeEventListener('pointermove', this.onPointerMove);
-      this.anchor.removeEventListener('pointerleave', this.onPointerLeave);
-    }
-    this.overlayRef?.dispose();
-    this.overlayRef = null;
+    this.anchor?.removeEventListener('pointerenter', this.onPointerEnter);
+    this.anchor?.removeEventListener('pointermove', this.onPointerMove);
+    this.anchor?.removeEventListener('pointerleave', this.onPointerLeave);
+    this.observer?.disconnect();
+    this.floating?.remove();
+    this.floating = null;
   }
 }

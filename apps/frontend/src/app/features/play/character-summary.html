@@ -1,5 +1,5 @@
 <section class="panel summary">
-  <div class="panel-title"><span>CHARACTER</span><button (click)="go('/play/character')">OPEN</button></div>
+  <div class="panel-title"><span>CHARACTER</span></div>
   <div class="paper-doll">
     <div class="equip-column equip-column-left">
       <div *ngFor="let slot of slots.slice(0,4)" [class.focused]="isSlotFocused(slot.key)" class="equip-slot"

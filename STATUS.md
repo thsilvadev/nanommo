@@ -1232,7 +1232,8 @@ Verification:
 - Fixed the Grind inventory 5×10 grid so intrinsic square rows no longer stretch vertically from the flex layout; Active Gambit stays at the top and Inventory at the bottom with a dedicated middle area.
 - Added local-only Hunting / Defensive / Fleeing mode icons using `hunting.svg`, `defensive.svg`, and `fleeing.svg`; Hunting is highlighted by default. No backend behavior is attached yet.
 - Removed Inventory panel padding so its usable width matches the Active Gambit control.
-- Reworked shared item tooltips to use Angular CDK Overlay at the top stacking level, with 15px padding, intrinsic text sizing, viewport-safe wrapping and cursor-aware left/right + above/below placement.
+- Reworked shared item tooltips to use a document-level floating clone, independent of the originating container, with maximum stacking order and cursor-aware left/right + above/below placement.
+- Tooltip content now has 10px padding, intrinsic height, no internal clipping/scrollbar and viewport-safe width/wrapping, so it does not push Diet/Inventory/Vendor layout or get clipped by parent containers.
 - Preserved the centralized `CatalogService.itemTooltipLines()` content path and existing tier colors.
 - Verification passed:
   - `pnpm --filter @nanommo/frontend build` (existing non-blocking CSS-budget/CommonJS warnings remain)

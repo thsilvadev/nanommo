@@ -1,5 +1,5 @@
 <section class="vendor-panel" aria-label="Town Vendor">
-  <div class="npc-select"><label for="town-npc-select">Choose NPC</label><select id="town-npc-select" aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)"><option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{npc.name}}</option></select></div>
+  <div class="npc-select"><label for="town-npc-select">Talk to:</label><select id="town-npc-select" aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)"><option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{npc.name}}</option></select></div>
   <ng-container *ngIf="vendor.selectedNpc() as npc">
     <div class="vendor-title"><strong>{{npc.name}}</strong><span>{{npc.types.join(' / ') | uppercase}}</span></div>
 
