@@ -1226,6 +1226,21 @@ Verification:
 - No production deployment performed.
 
 
+## Grind layout and tooltip correction — 2026-10-05
+
+- Continued OpenSpec change `play-ui-scale-layout`.
+- Fixed the Grind inventory 5×10 grid so intrinsic square rows no longer stretch vertically from the flex layout; Active Gambit stays at the top and Inventory at the bottom with a dedicated middle area.
+- Added local-only Hunting / Defensive / Fleeing mode icons using `hunting.svg`, `defensive.svg`, and `fleeing.svg`; Hunting is highlighted by default. No backend behavior is attached yet.
+- Removed Inventory panel padding so its usable width matches the Active Gambit control.
+- Reworked shared item tooltips to use Angular CDK Overlay at the top stacking level, with 15px padding, intrinsic text sizing, viewport-safe wrapping and cursor-aware left/right + above/below placement.
+- Preserved the centralized `CatalogService.itemTooltipLines()` content path and existing tier colors.
+- Verification passed:
+  - `pnpm --filter @nanommo/frontend build` (existing non-blocking CSS-budget/CommonJS warnings remain)
+  - `pnpm exec openspec validate play-ui-scale-layout --strict`
+  - `git diff --check`
+- No production deployment performed.
+
+
 ## Equipment hand-swap fix — 2026-10-05
 
 - Implemented OpenSpec change `two-handed-offhand-swap`.

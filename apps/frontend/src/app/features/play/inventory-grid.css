@@ -18,11 +18,11 @@
 .inv-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  grid-template-rows: repeat(10, minmax(0, 1fr));
+  grid-template-rows: repeat(10, auto);
   gap: 5px;
   align-content: start;
   overflow: auto;
-  flex: 1;
+  flex: 0 0 auto;
   min-height: 0;
 }
 .inv-slot {

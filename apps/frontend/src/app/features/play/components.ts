@@ -7,9 +7,11 @@ import { VendorStore } from '../../core/vendor.store';
 import { VendorStockItem, effectiveFoodStatValue } from '@nanommo/shared';
 import { GameSocketService } from '../../core/game.socket.service';
 import { ApiService } from '../../core/api.service';
+import { TooltipPositionDirective } from './tooltip-position.directive';
+import { OverlayModule } from '@angular/cdk/overlay';
 import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkDragPreview, CdkDragPlaceholder } from '@angular/cdk/drag-drop';
 
-@Component({selector:'app-character-summary',standalone:true,imports:[CommonModule,CdkDrag,CdkDropList,CdkDragPreview,CdkDragPlaceholder],templateUrl:'./character-summary.html',styleUrl:'./character-summary.css'})
+@Component({selector:'app-character-summary',standalone:true,imports:[CommonModule,OverlayModule,CdkDrag,CdkDropList,CdkDragPreview,CdkDragPlaceholder,TooltipPositionDirective],templateUrl:'./character-summary.html',styleUrl:'./character-summary.css'})
 export class CharacterSummary implements OnDestroy {
  readonly character=inject(CharacterStore);readonly inventory=inject(InventoryStore);readonly battle=inject(BattleStore);readonly catalog=inject(CatalogService);readonly router=inject(Router);readonly battleDisplayNow=signal(Date.now());private readonly battleDisplayTimer=setInterval(()=>this.battleDisplayNow.set(Date.now()),250);
  private lastDietBoundary=0;
@@ -122,7 +124,7 @@ export class MapBoard implements OnDestroy {
 
 }
 
-@Component({selector:'app-inventory-grid',standalone:true,imports:[CommonModule,CdkDropList,CdkDrag],templateUrl:'./inventory-grid.html',styleUrl:'./inventory-grid.css'})
+@Component({selector:'app-inventory-grid',standalone:true,imports:[CommonModule,OverlayModule,CdkDropList,CdkDrag,TooltipPositionDirective],templateUrl:'./inventory-grid.html',styleUrl:'./inventory-grid.css'})
 export class InventoryGrid implements OnDestroy {
  readonly inventory=inject(InventoryStore);readonly catalog=inject(CatalogService);readonly battle=inject(BattleStore);readonly vendor=inject(VendorStore);slots=Array.from({length:50},(_,i)=>i);readonly characterSlotIds=['character-slot-head','character-slot-body','character-slot-mainHand','character-slot-offHand','character-slot-shoes','character-slot-cape','character-slot-accessoryLeft','character-slot-accessoryRight'];readonly vendorDropListIds=['vendor-drop-list'];readonly now=signal(Date.now());private readonly timer=setInterval(()=>this.now.set(Date.now()),250);
  item(i:number){return this.inventory.items().find(x=>x.slotIndex===i)}
@@ -146,7 +148,7 @@ export class InventoryGrid implements OnDestroy {
 @Component({selector:'app-town-center',standalone:true,imports:[CommonModule,InventoryGrid],templateUrl:'./town-center.html',styleUrl:'./town-center.css'})
 export class TownCenter {}
 
-@Component({selector:'app-vendor-panel',standalone:true,imports:[CommonModule,CdkDropList,CdkDrag,CdkDragPreview,CdkDragPlaceholder],templateUrl:'./vendor-panel.html',styleUrl:'./vendor-panel.css'})
+@Component({selector:'app-vendor-panel',standalone:true,imports:[CommonModule,OverlayModule,CdkDropList,CdkDrag,CdkDragPreview,CdkDragPlaceholder,TooltipPositionDirective],templateUrl:'./vendor-panel.html',styleUrl:'./vendor-panel.css'})
 export class VendorPanel {
   readonly vendor=inject(VendorStore);readonly inventory=inject(InventoryStore);readonly catalog=inject(CatalogService);readonly slots=Array.from({length:10},(_,i)=>i);
   constructor(){void this.vendor.load();}

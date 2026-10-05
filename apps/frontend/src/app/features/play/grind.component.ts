@@ -11,6 +11,7 @@ export class GrindComponent {
   readonly gambits=signal<GambitPage[]>([]);
   readonly loading=signal(false);
   readonly error=signal<string|null>(null);
+  readonly huntMode=signal<'hunting'|'defensive'|'fleeing'>('hunting');
 
   constructor(){void this.loadGambits();}
 

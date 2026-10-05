@@ -106,11 +106,14 @@ Suggested desktop grid:
 - center content has a minimum width before responsive collapse;
 - gaps: 8–12px.
 - all three desktop zones share one fixed viewport-derived height and aligned bottom edge.
-- Grind central workspace contains the inventory below the Location header and to the left of the 4:3 map.
+- Grind central workspace contains the inventory to the left of the 4:3 map.
 - Equipment and diet cells are always square.
 - Play text sizes are explicitly hard-coded at the enlarged readability scale; browser zoom is not used.
-- Grind includes an unbordered Active Gambit title + selector above the vertical inventory; selecting a Gambit activates it through the existing server-authoritative Gambit activation API.
+- Grind includes an unbordered Active Gambit title + selector at the top of the inventory column; selecting a Gambit activates it through the existing server-authoritative Gambit activation API.
+- The inventory column keeps Active Gambit at the top and Inventory at the bottom, with a local hunt-mode selector in the space between them.
+- Hunt mode uses the `hunting.svg`, `defensive.svg`, and `fleeing.svg` icons; Hunting is selected by default and the current visual selection is local-only until its backend system is implemented.
 - Central Grind inventory and map sub-panels are borderless; the right Grind panel fills the same fixed shell height as Character and the map.
+- Grind inventory uses exactly 5 columns × 10 rows with intrinsic square rows, avoiding stretched vertical row spacing.
 
 ### 2.2 Top bar
 

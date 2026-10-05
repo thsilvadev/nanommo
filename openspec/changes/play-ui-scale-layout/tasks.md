@@ -38,3 +38,10 @@
 - [x] 6.2 Add an unbordered Active Gambit selector above the Grind inventory; verify selecting a named Gambit activates that page through the authoritative /gambits/:pageId/activate endpoint and updates the character state.
 - [x] 6.3 Remove the inventory/map sub-panel borders and restore the Auto Feed switch thumb; verify both central panels remain borderless and the switch shows its yellow checked thumb.
 - [x] 6.4 Make the right Grind panel fill the shared desktop shell height and keep its dynamic contents top-aligned; verify its bottom edge aligns with Character and the map.
+
+## 7. Grind column and tooltip corrections
+
+- [x] 7.1 Remove the stretched vertical spacing between inventory rows by making the 5×10 grid use intrinsic square rows; keep Active Gambit at the top and Inventory at the bottom of the shared column.
+- [x] 7.2 Add the three local hunt-mode icons between Active Gambit and Inventory, with Hunting active by default and local-only highlight state for now.
+- [x] 7.3 Remove the Inventory panel padding so its content width matches Active Gambit.
+- [x] 7.4 Move item tooltips to viewport-fixed positioning with maximum stacking order, 15px padding, unconstrained text height, and cursor-aware left/right + above/below placement to avoid viewport clipping; preserve centralized CatalogService tooltip content and tier colors.
