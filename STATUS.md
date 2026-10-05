@@ -1209,3 +1209,18 @@ Verification:
 - `pnpm --filter @nanommo/api build`: passed.
 - `git diff --check`: passed.
 - No production deployment performed.
+
+
+## Equipment hand-swap fix — 2026-10-05
+
+- Implemented OpenSpec change `two-handed-offhand-swap`.
+- Equipping an offHand item while a two-handed weapon is equipped now moves the two-handed weapon to inventory and leaves mainHand empty.
+- Equipping a two-handed weapon now moves any offHand item to inventory and leaves offHand empty.
+- The same rule applies to staged equipment changes during Grind; pending `null` changes now mean authoritative desequip-and-return-to-inventory.
+- Existing valid one-handed combinations remain unchanged.
+- Verification passed:
+  - `pnpm exec openspec validate two-handed-offhand-swap --strict`
+  - `pnpm --filter @nanommo/api build`
+  - `node apps/api/test/equipment-hand-swaps.js` — 12 assertions passed
+  - `git diff --check`
+- No production deployment performed.

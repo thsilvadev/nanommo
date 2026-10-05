@@ -218,12 +218,41 @@ export class EquipmentService {
       const pending = { ...(character.pendingEquipmentChanges ?? {}) };
       const previous = pending[slot];
       if (previous) await this.addEquipmentToInventory(characterId, previous.itemId, previous.instanceData);
+
+      const pendingMain = pending.mainHand?.itemId
+        ? this.dataService.getItemById(pending.mainHand.itemId)
+        : pending.mainHand === null
+          ? null
+          : await this.getEquippedInSlot(characterId, 'mainHand').then((equipped) => equipped ? this.dataService.getItemById(equipped.itemId) : null);
+      const conflictingSlot = this.getConflictingHandSlot(slot, itemDef.weaponType as string, pendingMain?.weaponType as string | undefined);
+      if (conflictingSlot) {
+        const conflictingPending = pending[conflictingSlot];
+        if (conflictingPending) {
+          await this.addEquipmentToInventory(characterId, conflictingPending.itemId, conflictingPending.instanceData);
+        }
+        pending[conflictingSlot] = null;
+      }
+
       await this.inventoryItemRepo.delete(source.id);
       pending[slot] = { itemId, instanceData: source.instanceData ?? null };
       character.pendingEquipmentChanges = pending;
       await this.characterRepo.save(character);
       this.logger.debug(`Character ${characterId} staged ${itemId} for ${slot}`);
       return current ?? this.equippedItemRepo.create({ characterId, slot, itemId: itemId, instanceData: source.instanceData ?? null });
+    }
+
+    const currentMain = await this.getEquippedInSlot(characterId, 'mainHand');
+    const conflictingSlot = this.getConflictingHandSlot(
+      slot,
+      itemDef.weaponType as string,
+      currentMain ? this.dataService.getItemById(currentMain.itemId)?.weaponType as string : undefined,
+    );
+    if (conflictingSlot) {
+      const conflicting = await this.getEquippedInSlot(characterId, conflictingSlot);
+      if (conflicting) {
+        await this.addEquipmentToInventory(characterId, conflicting.itemId, conflicting.instanceData);
+        await this.equippedItemRepo.delete(conflicting.id);
+      }
     }
 
     if (current && current.itemId !== itemId) await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData);
@@ -261,6 +290,17 @@ export class EquipmentService {
     }
   }
 
+  private getConflictingHandSlot(
+    slot: string,
+    weaponType: string,
+    currentMainWeaponType?: string,
+  ): 'mainHand' | 'offHand' | null {
+    const twoHanded = ['greatsword', 'bow', 'staff', 'wand'].includes(weaponType);
+    if (slot === 'offHand' && ['greatsword', 'bow', 'staff', 'wand'].includes(currentMainWeaponType ?? '')) return 'mainHand';
+    if (slot === 'mainHand' && twoHanded) return 'offHand';
+    return null;
+  }
+
   private async addEquipmentToInventory(characterId: string, itemId: string, instanceData: any): Promise<void> {
     const rows = await this.inventoryItemRepo.find({
       where: { characterId, location: 'inventory' },
@@ -288,8 +328,17 @@ export class EquipmentService {
 
     const pending = character.pendingEquipmentChanges;
     for (const [slot, change] of Object.entries(pending)) {
-      if (!change) continue;
       const current = await this.getEquippedInSlot(characterId, slot);
+
+      if (change === null) {
+        if (current) {
+          await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData);
+          await this.equippedItemRepo.delete(current.id);
+        }
+        continue;
+      }
+
+      if (!change) continue;
       if (current && current.itemId !== change.itemId) {
         await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData);
       }
@@ -327,34 +376,53 @@ export class EquipmentService {
     const offEquipped = current.find((e) => e.slot === 'offHand');
 
     // Determine what will be equipped after this change
+    const requestedMain = mainWeapon !== undefined ? this.dataService.getItemById(mainWeapon) : null;
+    const requestedOff = offHandWeapon !== undefined ? this.dataService.getItemById(offHandWeapon) : null;
+    const requestedMainIsTwoHanded = ['greatsword', 'bow', 'staff', 'wand'].includes(
+      String(requestedMain?.weaponType ?? ''),
+    );
+
+    const currentMainType = mainEquipped
+      ? this.dataService.getItemById(mainEquipped.itemId)?.weaponType as string
+      : undefined;
+    const currentMainIsTwoHanded = ['greatsword', 'bow', 'staff', 'wand'].includes(currentMainType ?? '');
+
+    // Equipping an off-hand while a 2H weapon is active clears mainHand.
     const newMain =
       mainWeapon !== undefined
-        ? this.dataService.getItemById(mainWeapon)
-        : mainEquipped
-          ? this.dataService.getItemById(mainEquipped.itemId)
-          : null;
+        ? requestedMain
+        : offHandWeapon !== undefined && currentMainIsTwoHanded
+          ? null
+          : mainEquipped
+            ? this.dataService.getItemById(mainEquipped.itemId)
+            : null;
+
+    // Equipping a 2H weapon clears offHand.
     const newOff =
       offHandWeapon !== undefined
-        ? this.dataService.getItemById(offHandWeapon)
-        : offEquipped
-          ? this.dataService.getItemById(offEquipped.itemId)
-          : null;
+        ? requestedOff
+        : mainWeapon !== undefined && requestedMainIsTwoHanded
+          ? null
+          : offEquipped
+            ? this.dataService.getItemById(offEquipped.itemId)
+            : null;
 
-    if (!newMain && !mainWeapon) {
-      // Unequipping main hand - always valid
+    if (!newMain) {
+      if (!newOff) return { valid: true };
+      if (newOff.type !== 'equipment' || newOff.weaponType !== 'shield') {
+        return { valid: false, errors: ['An off-hand without a main-hand weapon must be a shield'] };
+      }
       return { valid: true };
     }
 
-    if (!newMain || newMain.type !== 'equipment') {
+    if (newMain.type !== 'equipment') {
       return { valid: false, errors: ['Main hand must be a weapon'] };
     }
 
-    const mainType = newMain?.weaponType as string;
-    const isTwoHanded = ['greatsword', 'bow', 'staff', 'wand'].includes(
-      mainType,
-    );
+    const mainType = newMain.weaponType as string;
+    const isTwoHanded = ['greatsword', 'bow', 'staff', 'wand'].includes(mainType);
 
-    // Two-handed weapons cannot have off-hand
+    // Two-handed weapons occupy both hand slots; equipping one clears offHand.
     if (isTwoHanded && newOff) {
       errors.push(
         `${mainType} is two-handed and cannot have an off-hand weapon`,

@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-10-05
+goal: Make equipping an offHand while a two-handed weapon is equipped
+  automatically empty mainHand, and equipping a two-handed weapon automatically
+  empty offHand.
