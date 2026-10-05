@@ -1,1 +1,18 @@
-<div class="grind-page"><div class="grind-inventory"><app-inventory-grid /></div><div class="grind-map"><app-map-board /></div></div>
+<div class="grind-page">
+  <div class="grind-inventory-column">
+    <div class="active-gambit">
+      <div class="active-gambit-title">Active Gambit</div>
+      <select
+        [value]="character.character()?.activeGambitPageId || ''"
+        [disabled]="loading() || !gambits().length"
+        (change)="selectGambit($any($event.target).value)"
+        aria-label="Active Gambit">
+        <option value="" disabled>Select Gambit</option>
+        <option *ngFor="let gambit of gambits()" [value]="gambit.id">{{gambit.title || ('Gambit ' + (gambit.slotIndex + 1))}}</option>
+      </select>
+      <small *ngIf="error()">{{error()}}</small>
+    </div>
+    <div class="grind-inventory"><app-inventory-grid /></div>
+  </div>
+  <div class="grind-map"><app-map-board /></div>
+</div>

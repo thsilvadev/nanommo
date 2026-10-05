@@ -57,6 +57,10 @@ Updated `PLAY_WINDOW_SPEC.md` with the new desktop layout contract. No gameplay/
 
 Corrected the desktop layout after visual review: the left/center/right play zones now share the same fixed viewport height; Grind owns one central framed workspace containing the inventory below the Location header and to the left of the 4:3 map; equipment and diet cells are fixed square dimensions with larger vertical equipment gaps; and play typography/tooltips were explicitly doubled through CSS font-size values/tokens, without browser zoom.
 
+### Latest follow-up — play-ui-scale-layout alignment + Active Gambit (2026-10-05)
+
+Corrected the remaining desktop composition issues: equipment-column vertical spacing now matches the horizontal paper-doll gap; Grind now has an unbordered Active Gambit selector above the inventory, using the existing authoritative Gambit activation endpoint; inventory and map sub-panels are borderless; Auto Feed's checked thumb is restored; and the right Grind panel fills the shared shell height with top-aligned dynamic content.
+
 ## 0. Executive summary
 
 | Aspect | State | Evidence |

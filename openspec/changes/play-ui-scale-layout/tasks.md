@@ -31,3 +31,10 @@
 - [x] 5.2 Run shared/API/frontend builds and git diff --check; verify no build errors or whitespace errors are introduced.
 - [x] 5.3 Run strict OpenSpec validation for play-ui-scale-layout; verify the change validates successfully.
 - [ ] 5.4 Run a browser smoke check at 100% browser zoom for Grind, Town, Character and Gambits at the target desktop viewport plus an existing narrow/mobile viewport; verify panel alignment, readability, inventory geometry, item sizing and absence of horizontal overflow.
+
+## 6. Follow-up layout corrections
+
+- [x] 6.1 Match equipment-column vertical gap to the horizontal paper-doll gap and keep equipment/diet cells square; verify no additional vertical spacing is introduced.
+- [x] 6.2 Add an unbordered Active Gambit selector above the Grind inventory; verify selecting a named Gambit activates that page through the authoritative /gambits/:pageId/activate endpoint and updates the character state.
+- [x] 6.3 Remove the inventory/map sub-panel borders and restore the Auto Feed switch thumb; verify both central panels remain borderless and the switch shows its yellow checked thumb.
+- [x] 6.4 Make the right Grind panel fill the shared desktop shell height and keep its dynamic contents top-aligned; verify its bottom edge aligns with Character and the map.
