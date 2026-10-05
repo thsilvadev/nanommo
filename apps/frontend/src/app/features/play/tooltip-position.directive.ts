@@ -1,12 +1,12 @@
 import { Directive, ElementRef, OnDestroy } from '@angular/core';
 
 @Directive({
-  selector: '.item-tooltip',
+  selector: '.item-tooltip:not(.diet-tooltip), .diet-slot',
   standalone: true,
 })
 export class TooltipPositionDirective implements OnDestroy {
-  private readonly tooltip: HTMLElement;
   private readonly anchor: HTMLElement;
+  private readonly host: HTMLElement;
   private floating: HTMLElement | null = null;
   private raf = 0;
   private pointer = { x: 0, y: 0 };
@@ -22,8 +22,8 @@ export class TooltipPositionDirective implements OnDestroy {
   private readonly onLeave = () => this.hide();
 
   constructor(element: ElementRef<HTMLElement>) {
-    this.tooltip = element.nativeElement;
-    this.anchor = this.tooltip.parentElement as HTMLElement;
+    this.host = element.nativeElement;
+    this.anchor = this.host.classList.contains('diet-slot') ? this.host : this.host.parentElement as HTMLElement;
     if (!this.anchor) return;
     this.anchor.addEventListener('pointerenter', this.onEnter);
     this.anchor.addEventListener('pointermove', this.onMove);
@@ -31,14 +31,18 @@ export class TooltipPositionDirective implements OnDestroy {
   }
 
   private show() {
+    const tooltip = this.host.classList.contains('diet-slot')
+      ? this.host.querySelector('.diet-tooltip') as HTMLElement
+      : this.host;
+    if (!tooltip) return;
     if (!this.floating) {
-      this.floating = this.tooltip.cloneNode(true) as HTMLElement;
+      this.floating = tooltip.cloneNode(true) as HTMLElement;
       this.floating.classList.remove('item-tooltip');
       this.floating.classList.add('nm-floating-tooltip');
       this.floating.removeAttribute('style');
       document.body.appendChild(this.floating);
     }
-    this.floating.innerHTML = this.tooltip.innerHTML;
+    this.floating.innerHTML = tooltip.innerHTML;
     this.floating.style.display = 'grid';
     this.floating.style.visibility = 'hidden';
     this.position();

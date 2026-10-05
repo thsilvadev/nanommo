@@ -67,7 +67,7 @@
             [style.opacity]="dietRemainingSeconds(index)<=0 ? 0.28 : 1">
           <div class="diet-stars">{{dietStars(index)}}</div>
           <div class="diet-timer">{{dietTimerLabel(index)}}</div>
-          <div class="item-tooltip"><strong>{{dietName(index)}}</strong><span
+          <div class="item-tooltip diet-tooltip"><strong>{{dietName(index)}}</strong><span
               *ngFor="let line of dietTooltipLines(index)"><b>{{line.label}}</b> {{line.value}}</span></div>
         </ng-container><ng-template #emptyFood><img src="/assets/ui/food.svg" alt="Empty food slot"></ng-template></div>
     </div>
