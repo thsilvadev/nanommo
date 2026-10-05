@@ -70,7 +70,7 @@ export class CharacterService {
     // Calculate base stats
     const baseStats = BattleEngine.calculateDerivedStats(1, {
       str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5,
-    }, { weaponFixedAtk: 8 });
+    }, {});
 
     // Create character
     const character = this.characterRepository.create({
@@ -98,12 +98,6 @@ export class CharacterService {
 
     const savedCharacter = await this.characterRepository.save(character);
 
-    // Starter equipment is authoritative, not a frontend-only assumption.
-    await this.equippedItemRepository.save(this.equippedItemRepository.create({
-      characterId: savedCharacter.id,
-      slot: 'mainHand',
-      itemId: 'equip_sword_t1',
-    }));
     await this.inventoryItemRepository.save([
       this.inventoryItemRepository.create({
         characterId: savedCharacter.id,

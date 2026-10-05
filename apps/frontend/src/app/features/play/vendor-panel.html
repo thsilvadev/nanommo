@@ -9,7 +9,8 @@
         <div *ngFor="let slot of slots" class="vendor-slot" [class.filled]="stockAt(slot)">
           <div *ngIf="stockAt(slot) as item" cdkDrag [cdkDragData]="dragData(item)" class="vendor-item">
             <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon">
-            <b>∞</b><small>{{item.buyPrice}} G</small>
+            <b>∞</b>
+            <div class="item-tooltip"><strong [class]="itemTierClass(item.itemId)">{{vendor.itemName(item.itemId)}}</strong><span *ngFor="let line of catalog.itemTooltipLines(item.itemId)">{{line.label}}: {{line.value}}</span></div><small>{{item.buyPrice}} G</small>
             <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)"></ng-template>
             <ng-template cdkDragPlaceholder><span class="vendor-placeholder"></span></ng-template>
           </div>

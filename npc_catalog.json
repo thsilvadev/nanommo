@@ -41,13 +41,13 @@
         "slotCount": 10,
         "greeting": "Haha! I know why you come here. Take a look at these fine crafts of mine. If you feel like selling stuff, I buy too!",
         "sellStock": [
-          {"itemId":"equip_sword_t1","priceFromItem":true,"infiniteStock":true},
-          {"itemId":"equip_greatsword_t1","priceFromItem":true,"infiniteStock":true},
-          {"itemId":"equip_dagger_t1","priceFromItem":true,"infiniteStock":true},
-          {"itemId":"equip_bow_t1","priceFromItem":true,"infiniteStock":true},
-          {"itemId":"equip_staff_t1","priceFromItem":true,"infiniteStock":true},
-          {"itemId":"equip_wand_t1","priceFromItem":true,"infiniteStock":true},
-          {"itemId":"equip_shield_t1","priceFromItem":true,"infiniteStock":true},
+          {"itemId":"equip_sword_t1","price":2000,"infiniteStock":true},
+          {"itemId":"equip_greatsword_t1","price":2000,"infiniteStock":true},
+          {"itemId":"equip_dagger_t1","price":2000,"infiniteStock":true},
+          {"itemId":"equip_bow_t1","price":2000,"infiniteStock":true},
+          {"itemId":"equip_staff_t1","price":2000,"infiniteStock":true},
+          {"itemId":"equip_wand_t1","price":2000,"infiniteStock":true},
+          {"itemId":"equip_shield_t1","price":2000,"infiniteStock":true},
           {"itemId":"equip_body_phys_t1","priceFromItem":true,"infiniteStock":true},
           {"itemId":"equip_body_magic_t1","priceFromItem":true,"infiniteStock":true}
         ]

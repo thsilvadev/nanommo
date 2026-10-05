@@ -206,7 +206,7 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | regenAnchorAt | timestamptz, nullable | stable origin for the character's continuous 10-tick regeneration timeline |
 | createdAt / updatedAt | timestamptz | |
 
-Character creation bootstrap (one time only): equip `equip_sword_t1` and seed the starter pack with 50 `pot_hp_small` and 5 `food_bread`. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
+Character creation bootstrap (one time only): seed the starter pack with 50 `pot_hp_small` and 5 `food_bread`. Characters start **unarmed**; no `equip_sword_t1` or other weapon is granted or equipped at creation. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
 
 ### 4.3 `WeaponProficiency`
 | field | type | notes |
@@ -697,7 +697,7 @@ Foods are 60-minute (`durationSeconds: 3600`) buffs granting passive HP/SP regen
 
 Each map is **one single global room** (confirmed design — no instancing, no multiple parallel rooms per map). All players grinding the same map share the same "how many players are here" pressure on encounter search time (§11.4).
 
-Town sits at the center; the four cardinal exits (**North/South/East/West**) lead to the three maps (one exit currently unused/reserved for future expansion — wire it in the UI as a disabled/"coming soon" direction rather than omitting it, since the world is designed to grow outward from town). A living character's regeneration timeline is continuous and authoritative: HP/SP regeneration is evaluated every 10 ticks across battle, encounter search, and non-battle Grind time, and Battle start/end never resets the interval. Town also applies the same derived regeneration rates while the character is alive, capped at max HP/SP. A Hungry character (no active food buff) cannot enter or continue grind.
+Town sits at the center; the four cardinal exits (**North/South/East/West**) lead to the three maps (one exit currently unused/reserved for future expansion — wire it in the UI as a disabled/"coming soon" direction rather than omitting it, since the world is designed to grow outward from town). A living character's regeneration timeline is continuous and authoritative: HP/SP regeneration is evaluated every 10 ticks across battle, encounter search, and non-battle Grind time, and Battle start/end never resets the interval. Town also applies the same derived regeneration rates while the character is alive, capped at max HP/SP. A character may enter Grind without a weapon; the only character-state gate is that the character must not be Hungry (in addition to normal email-verification and map-level requirements).
 
 ### 11.2 Deterministic monster & drop selection (no giant arrays)
 

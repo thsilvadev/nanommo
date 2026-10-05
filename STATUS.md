@@ -1141,3 +1141,16 @@ Verification:
 - `pnpm exec openspec validate equipment-stats-realtime-fixes --strict`: passed.
 - `git diff --check`: passed.
 - No production deployment performed.
+
+
+### Latest follow-up — Town vendor tooltip / first-weapon progression (2026-10-05)
+
+Implemented OpenSpec change `town-vendor-and-grind-entry-fixes`.
+
+- Item tooltip line generation is now centralized in frontend `CatalogService`; Inventory, Character equipment and Vendor stock use the same helper.
+- Vendor stock items now render the shared item tooltip, including equipment fixed stats and tier-colored names.
+- Blacksmith Loren's seven T1 weapons now cost exactly 2,000 gold each; body armor prices are unchanged.
+- Map entry no longer requires a main-hand weapon. Existing email verification, map level and Hungry gates remain authoritative.
+- New characters no longer receive or equip `equip_sword_t1`; they start unarmed while retaining the existing starter consumables.
+- Weapon-dependent battle skills still require their appropriate equipped weapon; only the map-entry gate changed.
+- No production deployment performed.

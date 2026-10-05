@@ -28,7 +28,7 @@ export class CharacterSummary implements OnDestroy {
  statusLabel(){const s=this.character.character()?.status;return s==='grinding'?'Grinding':s==='dead_pending_return'?'Dead — return pending':'In Town'}
  itemName(slot:string){const e=this.equipped(slot);return e?(this.catalog.item(e.itemId)?.name??e.itemId):''}
  itemDefinition(slot:string){const e=this.equipped(slot);return e?this.catalog.item(e.itemId):null}
- itemTooltipLines(slot:string){const equippedItem=this.equipped(slot);if(!equippedItem)return [];const d:any=this.catalog.item(equippedItem.itemId);if(!d)return [];if(d.type==='equipment')return this.catalog.equipmentStatLines(equippedItem.itemId,equippedItem.instanceData);const hidden=d.type==='consumable'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor']):d.type==='monster_part'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;return visible.filter(k=>k!=='id'&&k!=='name'&&!hidden.has(k)&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k==='effect'?'Effect':k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:k==='effect'?this.formatItemEffect(d[k]):typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}))}
+ itemTooltipLines(slot:string){const e=this.equipped(slot);return e?this.catalog.itemTooltipLines(e.itemId,e.instanceData):[]}
  formatItemEffect(effect:any){if(!effect)return '';if(effect.status){const status=String(effect.status).replace(/_/g,' ');return `Cures ${status}.`}if(effect.type==='heal_hp')return `Restores ${Number(effect.amount)||0} HP.`;if(effect.type==='heal_sp')return `Restores ${Number(effect.amount)||0} SP.`;if(effect.type==='food_buff')return `Regenerates HP/SP for ${Math.round((Number(effect.durationSeconds)||0)/60)} minutes.`;return String(effect.type??'').replace(/_/g,' ').replace(/^./,x=>x.toUpperCase())+'.'}
  itemTierClass(slot:string){const tier=Number((this.itemDefinition(slot) as any)?.tier??0);return tier>=2&&tier<=5?'tier-'+tier:''}
  dietEntry(index:number){return this.character.character()?.diet?.[index]??null}
@@ -128,7 +128,7 @@ export class InventoryGrid implements OnDestroy {
  item(i:number){return this.inventory.items().find(x=>x.slotIndex===i)}
  itemTitle(i:any){return this.catalog.item(i.itemId)?.name??i.itemId}
  itemDefinition(i:any){return this.catalog.item(i.itemId)}
- itemTooltipLines(i:any){const d:any=this.itemDefinition(i);if(!d)return [];if(d.type==='equipment')return this.catalog.equipmentStatLines(i.itemId,i.instanceData);const hidden=d.type==='consumable'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor']):d.type==='monster_part'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;return visible.filter(k=>k!=='id'&&k!=='name'&&!hidden.has(k)&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k==='effect'?'Effect':k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:k==='effect'?this.formatItemEffect(d[k]):typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}))}
+ itemTooltipLines(i:any){return this.catalog.itemTooltipLines(i.itemId,i.instanceData)}
  formatItemEffect(effect:any){if(!effect)return '';if(effect.status){const status=String(effect.status).replace(/_/g,' ');return `Cures ${status}.`}if(effect.type==='heal_hp')return `Restores ${Number(effect.amount)||0} HP.`;if(effect.type==='heal_sp')return `Restores ${Number(effect.amount)||0} SP.`;if(effect.type==='food_buff')return `Regenerates HP/SP for ${Math.round((Number(effect.durationSeconds)||0)/60)} minutes.`;return String(effect.type??'').replace(/_/g,' ').replace(/^./,x=>x.toUpperCase())+'.'}
  itemTierClass(i:any){const tier=Number((this.itemDefinition(i) as any)?.tier??0);return tier>=2&&tier<=5?'tier-'+tier:''}
  glyph(i:any){return this.catalog.itemIcon(i.itemId)}
@@ -148,9 +148,10 @@ export class TownCenter {}
 
 @Component({selector:'app-vendor-panel',standalone:true,imports:[CommonModule,CdkDropList,CdkDrag,CdkDragPreview,CdkDragPlaceholder],templateUrl:'./vendor-panel.html',styleUrl:'./vendor-panel.css'})
 export class VendorPanel {
-  readonly vendor=inject(VendorStore);readonly inventory=inject(InventoryStore);readonly slots=Array.from({length:10},(_,i)=>i);
+  readonly vendor=inject(VendorStore);readonly inventory=inject(InventoryStore);readonly catalog=inject(CatalogService);readonly slots=Array.from({length:10},(_,i)=>i);
   constructor(){void this.vendor.load();}
   stockAt(slot:number){return this.vendor.stock().find(x=>x.slotIndex===slot);}
+  itemTierClass(itemId:string){const tier=Number((this.catalog.item(itemId) as any)?.tier??0);return tier>=2&&tier<=5?'tier-'+tier:'';}
   dragData(item:VendorStockItem){return {source:'vendor',vendorId:this.vendor.selectedNpcId(),itemId:item.itemId,stock:item};}
   drop(ev:CdkDragDrop<any>){const data=ev.item.data;if(data?.source==='inventory')void this.vendor.openSell(data.itemId);}
 }
