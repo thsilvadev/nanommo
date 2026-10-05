@@ -46,6 +46,13 @@ Not yet browser-verified in this session: physical drag/drop interaction, Town r
 
 ---
 
+
+### Latest follow-up — `play-ui-scale-layout` (2026-10-05)
+
+Implemented the desktop UI scale/layout pass: application-level scale tokens now make the intended enlarged readability the default at 100% browser zoom; the three play zones use a fixed viewport-derived height with aligned bottoms and a wider left/right distribution; Grind now uses a 4:3 map beside a 5×10 vertical inventory; item icons occupy most of their slots consistently in inventory, equipment and vendor stock; and the Character quick panel uses left/right equipment columns around the portrait with a reserved Status area. Mobile remains on the existing responsive composition.
+
+Updated `PLAY_WINDOW_SPEC.md` with the new desktop layout contract. No gameplay/API behavior was changed. Frontend production build, `git diff --check`, and strict OpenSpec validation passed. Browser visual smoke/drag interaction for this change remains to be run.
+
 ## 0. Executive summary
 
 | Aspect | State | Evidence |

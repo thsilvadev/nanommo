@@ -1,1 +1,1 @@
-.grind-page{display:flex;flex-direction:column;gap:8px}
+.grind-page{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:var(--nm-panel-gap);align-items:start;min-height:100%}.grind-map{min-width:0}.grind-inventory{min-width:0}.grind-inventory app-inventory-grid{display:block;height:100%}@media(max-width:1199px) and (min-width:900px){.grind-page{grid-template-columns:minmax(0,1fr) 270px}}@media(max-width:899px){.grind-page{display:flex;flex-direction:column;gap:8px}.grind-inventory{width:100%}}

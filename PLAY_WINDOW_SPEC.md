@@ -102,9 +102,10 @@ Use CSS grid, not absolute-positioned screenshot recreation.
 Suggested desktop grid:
 - shell: `min-height: 100dvh;`
 - top bar: 68–76px;
-- content: `grid-template-columns: minmax(250px, 22%) minmax(480px, 1fr) minmax(250px, 22%)`;
+- content: desktop uses wider lateral zones and a reduced center; exact sizing is centralized in the play-shell CSS tokens.
 - center content has a minimum width before responsive collapse;
 - gaps: 8–12px.
+- all three desktop zones share one fixed viewport-derived height and aligned bottom edge.
 
 ### 2.2 Top bar
 
@@ -145,6 +146,8 @@ Equipment slots:
 `head`, `body`, `mainHand`, `offHand`, `shoes`, `cape`,
 `accessoryLeft`, `accessoryRight`.
 
+In the quick Character summary, the eight slots are arranged in two columns around the centered portrait, with a reserved Status region below HP/SP for future buff/debuff icons.
+
 Equipment interaction:
 - drag inventory item onto compatible slot;
 - drag equipped item back to inventory;
@@ -184,6 +187,8 @@ Inventory:
 - exactly 50 slots;
 - 5 rows × 10 columns on wide desktop;
 - each slot is a square game inventory cell;
+- item icons occupy most of the usable slot interior;
+- the same item-to-slot proportion is used by inventory, equipment and NPC/vendor stock;
 - stack count appears bottom-right;
 - equipment is never stacked;
 - empty slots remain visible;
