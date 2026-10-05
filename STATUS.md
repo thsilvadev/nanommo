@@ -1154,3 +1154,26 @@ Implemented OpenSpec change `town-vendor-and-grind-entry-fixes`.
 - New characters no longer receive or equip `equip_sword_t1`; they start unarmed while retaining the existing starter consumables.
 - Weapon-dependent battle skills still require their appropriate equipped weapon; only the map-entry gate changed.
 - No production deployment performed.
+
+
+### Latest bugfix — Diet Auto Feed / retained food streak (2026-10-05)
+
+Implemented OpenSpec change `diet-autofeed-streak-fixes`.
+
+- Fixed Diet streak semantics: Diet stars are now a streak attached to the retained three-slot window, not permanent per-food mastery.
+- Expired food entries remain in their Diet slots as transparent/marked history until a later authoritative food consumption shifts them out.
+- Consuming a retained expired food increments its streak (0 → 1 → 2 → 3, capped at 3).
+- When a food is evicted from the oldest slot, its `dietLevels` record is removed. If that food is eaten again later, it starts at 0 stars.
+- Manual and Auto Feed food consumption continue through the same transactional `consumeFood()` path.
+- Character DTOs no longer prune expired Diet entries; the frontend visually marks expired entries instead of mutating Diet locally.
+- Auto Feed boundary logic remains server-authoritative and now works with retained Diet entries, consuming an eligible configured food before Grind falls into Hungry and rebuilding the future queue afterward.
+- Added `apps/api/test/diet-autofeed-streak-fixes.spec.js` with 6 focused assertions covering streak progression, eviction/reset, retained streak preservation and Auto Feed boundary consumption.
+
+Verification:
+- `pnpm --filter @nanommo/shared build`: passed.
+- `pnpm --filter @nanommo/api build`: passed.
+- `pnpm --filter frontend build`: passed; existing Angular CSS-budget/CommonJS warnings remain non-blocking.
+- `node apps/api/test/diet-autofeed-streak-fixes.spec.js`: 6 assertions passed.
+- `pnpm exec openspec validate diet-autofeed-streak-fixes --strict`: passed.
+- `git diff --check`: passed.
+- No production deployment performed.

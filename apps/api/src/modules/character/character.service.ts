@@ -282,13 +282,10 @@ export class CharacterService {
   private async toDto(character: Character): Promise<CharacterDto> {
     if (!Array.isArray(character.diet)) character.diet = [];
     if (!character.dietLevels) character.dietLevels = {};
-    // Entries past their digestion boundary are history, not active slots, so they are
-    // filtered out of the DTO instead of being persisted away. This is display-only:
-    // nothing that validates or resolves food reads the DTO. consumeFood and
-    // applyResolvedFoodState read the entity's own diet, and the repeat-food digestion
-    // gate keys off dietLevels[itemId].lastDigestUntil, which this leaves untouched, so
-    // permanent mastery survives an entry leaving the window.
-    const activeDiet = character.diet.filter((entry) => Date.parse(entry.digestUntil) > Date.now());
+    // Diet entries remain visible after digestion as marked history until a later
+    // authoritative food consumption shifts them out of the three-slot window.
+    // Gameplay legality never depends on the DTO; the backend checks the entity state.
+    const activeDiet = character.diet;
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
     const equipment = this.buildEquipmentStats(equipped);
     const attrs = {

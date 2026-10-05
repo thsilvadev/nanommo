@@ -6,6 +6,34 @@ import { Character } from '../../database/entities/character.entity';
 import { DataService } from '../data/data.service';
 import { effectiveFoodStatValue } from '@nanommo/shared';
 
+export function buildDietStateAfterFoodConsumption(
+  currentDiet: Array<{ itemId: string; consumedAt: string; digestUntil: string; dietLevel: number }>,
+  itemId: string,
+  consumedAt: string,
+  digestUntil: string,
+): {
+  diet: Array<{ itemId: string; consumedAt: string; digestUntil: string; dietLevel: number }>;
+  dietLevels: Record<string, { level: number; lastDigestUntil: string }>;
+  nextLevel: number;
+} {
+  const diet = Array.isArray(currentDiet) ? currentDiet.slice() : [];
+  const previousEntry = [...diet].reverse().find((entry) => entry.itemId === itemId);
+  const nextLevel = previousEntry
+    ? Math.min(3, Math.max(0, Number(previousEntry.dietLevel ?? 0)) + 1)
+    : 0;
+  const nextDiet = [...diet.slice(-2), { itemId, consumedAt, digestUntil, dietLevel: nextLevel }];
+  return {
+    diet: nextDiet,
+    dietLevels: Object.fromEntries(
+      nextDiet.map((entry) => [
+        entry.itemId,
+        { level: Math.max(0, Math.min(3, Number(entry.dietLevel ?? 0))), lastDigestUntil: entry.digestUntil },
+      ]),
+    ),
+    nextLevel,
+  };
+}
+
 @Injectable()
 export class InventoryService {
   private readonly logger = new Logger(InventoryService.name);
@@ -300,17 +328,14 @@ export class InventoryService {
       }
 
       const now = Date.now();
-      const dietLevels = character.dietLevels ?? {};
-      const previous = dietLevels[itemId];
-      const previousDigestUntil = previous?.lastDigestUntil ? Date.parse(previous.lastDigestUntil) : 0;
+      const diet = Array.isArray(character.diet) ? character.diet.slice() : [];
+      const previousEntry = [...diet].reverse().find((entry) => entry.itemId === itemId);
+      const previousDigestUntil = previousEntry?.digestUntil ? Date.parse(previousEntry.digestUntil) : 0;
       if (previousDigestUntil > now) throw new BadRequestException('Food is still digesting');
 
-      const currentLevel = Math.max(0, Math.min(3, Number(previous?.level ?? 0)));
-      const nextLevel = previousDigestUntil > 0 ? Math.min(3, currentLevel + 1) : currentLevel;
       const consumedAt = new Date(now).toISOString();
       const digestUntil = new Date(now + Number(item.effect?.durationSeconds ?? 0) * 1000).toISOString();
-      const diet = Array.isArray(character.diet) ? character.diet.slice(-2) : [];
-      diet.push({ itemId, consumedAt, digestUntil, dietLevel: nextLevel });
+      const dietState = buildDietStateAfterFoodConsumption(diet, itemId, consumedAt, digestUntil);
 
       if (stack) {
         stack.quantity -= 1;
@@ -318,15 +343,12 @@ export class InventoryService {
         else await inventoryRepo.save(stack);
       }
 
-      character.diet = diet;
-      character.dietLevels = {
-        ...dietLevels,
-        [itemId]: { level: nextLevel, lastDigestUntil: digestUntil },
-      };
+      character.diet = dietState.diet;
+      character.dietLevels = dietState.dietLevels;
       character.activeFoodBuff = {
         itemId,
-        hpRegenPerTenTicks: effectiveFoodStatValue(item.effect?.hpRegenPerTenTicks, nextLevel),
-        spRegenPerTenTicks: effectiveFoodStatValue(item.effect?.spRegenPerTenTicks, nextLevel),
+        hpRegenPerTenTicks: effectiveFoodStatValue(item.effect?.hpRegenPerTenTicks, dietState.nextLevel),
+        spRegenPerTenTicks: effectiveFoodStatValue(item.effect?.spRegenPerTenTicks, dietState.nextLevel),
         expiresAt: digestUntil,
       };
       character.lastSeenAt = new Date();
