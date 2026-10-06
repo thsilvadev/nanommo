@@ -1,16 +1,19 @@
 <section class="gambit-editor">
     <header class="gambit-head">
         <div><small>GAMBITS</small>
-            <p>Gambits são regras automáticas que fazem seu personagem tomar decisões durante a batalha sem precisar de
-                comandos manuais.
-                Cada linha combina uma ou duas condições, como “HP abaixo de 50%”, com uma ação, como usar uma poção ou
-                atacar.
-                As linhas são executadas por prioridade: organize as regras mais importantes acima das menos importantes
-                para controlar o comportamento.
-                Você pode criar até 3 páginas de Gambits, configurar suas linhas e ativar a página que deseja usar
-                durante o combate.
-                Use Gambits para automatizar sua estratégia: por exemplo, “HP < 50% → usar poção” acima de “sempre →
-                    atacar” mantém seu personagem vivo antes de continuar atacando. </p>
+            <small>Gambits são regras automáticas que fazem seu personagem tomar decisões durante a batalha sem precisar
+                de
+                comandos manuais.</small>
+            <small>Cada linha combina uma ou duas condições, como “HP abaixo de 50%”, com uma ação, como usar uma poção
+                ou
+                atacar. </small>
+            <small>As linhas são executadas por prioridade: organize as regras mais importantes acima das menos
+                importantes
+                para controlar o comportamento.</small>
+            <small>Você pode criar até 3 páginas de Gambits, configurar suas linhas e ativar a página que deseja usar
+                durante o combate.</small>
+            <small>Use Gambits para automatizar sua estratégia: por exemplo, “HP < 50% → usar poção” acima de “sempre →
+                    atacar” mantém seu personagem vivo antes de continuar atacando. </small>
         </div>
     </header>
     <div class="page-tabs"><button *ngFor="let p of pages();let i=index" [class.active]="i===active()"
