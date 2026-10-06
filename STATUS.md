@@ -1,7 +1,15 @@
 # NanoMMO — Implementation Status
 
-**Last Updated:** 2026-10-06 (implemented direct-damage ±1% variance)
-**Session Focus:** Small seeded variance for direct attacks/skills, with a hard DOT exclusion.
+**Last Updated:** 2026-10-06 (separated Food from combat Consumables and hardened Auto Feed continuity)
+**Session Focus:** Food item-type boundary, no food Gambit actions, and authoritative Auto Feed at battle resolution.
+
+### Latest follow-up — diet-food-type-autofeed (2026-10-06)
+
+Separated the seven `food_buff` item definitions from generic combat consumables: every food now has `type: food` in both server and frontend catalogs. Manual food use remains available outside battle through the existing transactional `consumeFood()` path, while the shared Gambit evaluator now requires `type: consumable` for `use_item`, making food impossible to consume during a battle simulation. Auto Feed likewise selects only `type: food` and remains exclusively a battle-resolution continuity mechanism; no Grind-entry trigger or client polling was added.
+
+The authoritative resolution order remains: apply the resolved battle state → determine the next encounter boundary → attempt Auto Feed if the active food cannot cover that boundary → rebuild unresolved queue on successful consumption → only then allow Hungry/Town fallback. Existing historical food-use events in already-queued battle logs remain understood by `applyResolvedFoodState()` for compatibility, but new simulations cannot create them.
+
+Regression/build verification: shared build, API build, frontend production build, 3/3 Jest assertions in `diet-auto-feed.spec.js`, 9/9 boundary assertions in `diet-autofeed-streak-fixes.spec.js`, strict OpenSpec validation, and `git diff --check` all passed. Frontend reports only the repository's existing non-fatal CSS-budget/CommonJS warnings. No production deployment was performed.
 
 ### Latest follow-up — direct-damage-variance (2026-10-06)
 

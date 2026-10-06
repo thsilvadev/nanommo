@@ -139,7 +139,7 @@ export class InventoryGrid implements OnDestroy {
  onDragEnd(){this.inventory.endDrag()}
  dropInventory(ev:CdkDragDrop<any>){const data=ev.item.data;if(data?.source==='equipment')void this.inventory.unequip(data.slot);else if(data?.source==='vendor')void this.vendor.openBuy(data.stock)}
  accessorySlot(){const equipped=this.inventory.equipment();return equipped.some(x=>x.slot==='accessoryLeft')?'accessoryRight':'accessoryLeft'}
- async doubleClick(it:any){const d:any=this.catalog.item(it.itemId);if(d?.type==='consumable'){try{await this.inventory.useConsumable(it.itemId)}catch{}}else if(d?.type==='equipment'&&d.slot){const slot=d.slot==='accessory'?this.accessorySlot():d.slot;try{await this.inventory.equip(slot,it.itemId)}catch{}}}
+ async doubleClick(it:any){const d:any=this.catalog.item(it.itemId);if(d?.type==='consumable'||d?.type==='food'){try{await this.inventory.useConsumable(it.itemId)}catch{}}else if(d?.type==='equipment'&&d.slot){const slot=d.slot==='accessory'?this.accessorySlot():d.slot;try{await this.inventory.equip(slot,it.itemId)}catch{}}}
  dragData(it:any){return {source:'inventory',...it}}
  ngOnDestroy(){clearInterval(this.timer)}
 }

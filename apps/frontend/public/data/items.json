@@ -635,7 +635,7 @@
         "spRegenPerTenTicks": 1
       },
       "vendorSells": true,
-      "type": "consumable",
+      "type": "food",
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
@@ -651,7 +651,7 @@
         "spRegenPerTenTicks": 1
       },
       "vendorSells": false,
-      "type": "consumable",
+      "type": "food",
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
@@ -667,7 +667,7 @@
         "spRegenPerTenTicks": 4
       },
       "vendorSells": false,
-      "type": "consumable",
+      "type": "food",
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
@@ -683,7 +683,7 @@
         "spRegenPerTenTicks": 8
       },
       "vendorSells": false,
-      "type": "consumable",
+      "type": "food",
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
@@ -699,7 +699,7 @@
         "spRegenPerTenTicks": 5
       },
       "vendorSells": false,
-      "type": "consumable",
+      "type": "food",
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
@@ -715,7 +715,7 @@
         "spRegenPerTenTicks": 6
       },
       "vendorSells": false,
-      "type": "consumable",
+      "type": "food",
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
@@ -731,7 +731,7 @@
         "spRegenPerTenTicks": 2
       },
       "vendorSells": false,
-      "type": "consumable",
+      "type": "food",
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,

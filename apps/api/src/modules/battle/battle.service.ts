@@ -829,7 +829,7 @@ export class BattleService {
 
     for (const itemId of candidates) {
       const definition = this.dataService.getItemById(itemId);
-      if (definition?.type !== 'consumable' || definition.effect?.type !== 'food_buff') continue;
+      if (definition?.type !== 'food' || definition.effect?.type !== 'food_buff') continue;
 
       const lastDigestUntil = character.dietLevels?.[itemId]?.lastDigestUntil
         ? Date.parse(character.dietLevels[itemId].lastDigestUntil)

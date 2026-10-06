@@ -684,12 +684,13 @@ Every equipment item **template** in `items.json` defines:
 ### 10.4 Item categories
 
 - **Monster parts** (30): 2 per monster (`common`, `rare`). Sellable to the vendor (never usable as a potion), reserved for future crafting/quest hooks (fields present in schema, unused by any system in MVP — do not build crafting/quests, just don't break the schema by omitting the fields).
-- **Consumables** (15): HP potions (S/M/L), SP potions (S/M/L), Antidote, Greater Elixir (rare drop, heals both pools), and 7 **foods**. All consumables share `sellPriceToVendor: 7` gold as specified. Only the 6 basic potions + Antidote are sold by the town vendor (§12.1); Elixir and all foods are drop/market only.
+- **Consumables** (8): HP potions (S/M/L), SP potions (S/M/L), Antidote, and Greater Elixir (rare drop, heals both pools). All consumables share `sellPriceToVendor: 7` gold as specified. Only the 6 basic potions + Antidote are sold by the town vendor (§12.1); Elixir is drop/market only.
+- **Foods** (7): food items whose `effect.type` is `food_buff`. Foods are stackable inventory items and are consumed manually outside battle or automatically by Auto Feed; they are not consumables and cannot be used by Gambits.
 - **Equipment** (51): 21 weapons (7 types × 3 tiers), 24 armor (head/body/cape × physical-or-magic variant × 3 tiers), 6 accessories (2 variants × 3 tiers), 6 shoes (2 elements × 3 tiers, chosen to match each map's monster elements — see §11).
 
 ### 10.5 Foods (buffs) — detail
 
-Foods are 60-minute (`durationSeconds: 3600`) buffs granting passive HP/SP regen per 10 ticks on top of the normal regeneration formula, with varying HP:SP ratios. Only one food buff is active at a time (`Character.activeFoodBuff`). The Diet system additionally persists three ordered food entries, permanent per-food Diet levels from 0 to 3, and digestion boundaries. A food cannot be consumed again while its previous digestion is active; after it finishes, the next successful repeat increases that food's Diet level up to 3. Auto Feed is the official automatic food mechanism and consumes only food identified by the character's Diet state and present in Inventory; it is evaluated server-side at authoritative digestion/grind boundaries.
+Foods are 60-minute (`durationSeconds: 3600`) buffs granting passive HP/SP regen per 10 ticks on top of the normal regeneration formula, with varying HP:SP ratios. Every food item has `type: food` and `effect.type: food_buff`. Only one food buff is active at a time (`Character.activeFoodBuff`). The Diet system additionally persists three ordered food entries, permanent per-food Diet levels from 0 to 3, and digestion boundaries. A food cannot be consumed again while its previous digestion is active; after it finishes, the next successful repeat increases that food's Diet level up to 3. Food has exactly two consumption paths: manual use outside battle and Auto Feed at authoritative Grind battle-resolution boundaries. Food is never a Gambit `use_item` action. Auto Feed consumes only food identified by the character's Diet state and present in Inventory; it is evaluated server-side before Hungry/Town fallback.
 
 ---
 

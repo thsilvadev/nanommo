@@ -306,7 +306,7 @@ export class InventoryService {
 
   async consumeFood(characterId: string, itemId: string, manager?: EntityManager, consumeInventory = true): Promise<Character> {
     const item = this.dataService.getItemById(itemId);
-    if (!item || item.type !== 'consumable' || item.effect?.type !== 'food_buff') {
+    if (!item || item.type !== 'food' || item.effect?.type !== 'food_buff') {
       throw new BadRequestException('Item is not a food');
     }
 
@@ -374,8 +374,8 @@ export class InventoryService {
 
   async useConsumable(characterId: string, itemId: string): Promise<{ character: Character; itemId: string }> {
     const item = this.dataService.getItemById(itemId);
-    if (!item || item.type !== 'consumable') {
-      throw new BadRequestException('Item is not a usable consumable');
+    if (!item || !['consumable', 'food'].includes(item.type)) {
+      throw new BadRequestException('Item is not a usable item');
     }
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
@@ -387,7 +387,7 @@ export class InventoryService {
     if (count <= 0) throw new BadRequestException('Insufficient item quantity');
 
     const effect = item.effect ?? {};
-    if (effect.type === 'food_buff') {
+    if (item.type === 'food' && effect.type === 'food_buff') {
       const updated = await this.consumeFood(characterId, itemId);
       return { character: updated, itemId };
     }

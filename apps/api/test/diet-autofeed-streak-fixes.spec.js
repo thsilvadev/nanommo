@@ -45,7 +45,7 @@ async function run() {
   assert.equal(r.dietLevels.bread.level, 2);
 
   const food = (id) => ({
-    id, type: 'consumable',
+    id, type: 'food',
     effect: { type: 'food_buff', durationSeconds: 3600, hpRegenPerTenTicks: 4, spRegenPerTenTicks: 1 },
   });
   const service = Object.create(BattleService.prototype);

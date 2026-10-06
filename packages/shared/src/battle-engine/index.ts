@@ -198,6 +198,7 @@ export class GambitEvaluator {
     action: any,
     self: CombatantSnapshot,
     inventory: Record<string, number> = {},
+    itemDefinitions: Record<string, any> = {},
   ): boolean {
     const id = action?.id;
     const params = GambitEvaluator.readParams(action);
@@ -221,6 +222,8 @@ export class GambitEvaluator {
 
       case 'use_item': {
         const itemId = params.itemId;
+        const definition = itemDefinitions[itemId];
+        if (definition?.type !== 'consumable') return false;
         if (!itemId) return false;
         if ((inventory[itemId] ?? 0) <= 0) return false;
         if ((self.foodDigestRemainingTicksByItem?.[itemId] ?? 0) > 0) return false;
@@ -292,6 +295,7 @@ export class GambitEvaluator {
     self: CombatantSnapshot,
     foe: CombatantSnapshot,
     inventory: Record<string, number> = {},
+    itemDefinitions: Record<string, any> = {},
   ): { action: any; line: any } | null {
     const lines = Array.isArray(gambitPage?.lines) ? gambitPage.lines : [];
     if (lines.length === 0) return null;
@@ -316,7 +320,7 @@ export class GambitEvaluator {
       if (!conditionsMet) continue;
 
       // condition-true but illegal -> skip entirely, does not block (§7.3 step 4)
-      if (!GambitEvaluator.isActionLegal(action, self, inventory)) continue;
+      if (!GambitEvaluator.isActionLegal(action, self, inventory, itemDefinitions)) continue;
 
       return { action, line };
     }
@@ -598,6 +602,7 @@ export class BattleEngine {
             self,
             foe,
             inventory,
+            itemDefinitions,
           );
 
           if (choice && choice.action.id === 'attack') {
@@ -639,6 +644,7 @@ export class BattleEngine {
             self,
             foe,
             inventory,
+            itemDefinitions,
           );
 
           if (choice) {
