@@ -394,3 +394,36 @@ The HTTP and realtime paths are intentionally guarded independently:
 **Last Updated:** October 1, 2026
 **Architecture Version:** 1.1
 **Status:** Active MVP implementation
+
+
+## Frontend UI implementation lessons — 2026-10-05
+
+The Grind scaling/layout pass established durable frontend rules for future Character/Gambits/Mastery UI work.
+
+### Application-level scaling, not browser zoom
+
+The intended enlarged readability level is part of the application CSS. Do not use browser zoom or transform scaling to imitate a larger UI. Those approaches complicate responsive layout, fixed-position overlays and hit testing. Prefer scoped CSS tokens/explicit font sizes and grid/flex dimensions.
+
+### Fixed shell baseline
+
+The desktop play shell treats the outer left/center/right zones as a geometry invariant: their bottom edges align at one viewport-derived baseline. Content-heavy inner panels may manage their own overflow, but they must not change the outer panel height. Character, Gambits and Mastery should consume this invariant rather than inventing content-driven heights.
+
+### Reuse item UI
+
+Inventory, equipment and vendor stock use the same item presentation and centralized CatalogService.itemTooltipLines() content path. Future item-bearing surfaces, including the Character Inventory, should reuse that path rather than implement separate tooltip/content logic.
+
+### Tooltip safety boundary
+
+The current tooltip implementation uses pointer events and a document-level floating clone positioned relative to the cursor/viewport. A previous MutationObserver-per-tooltip implementation caused severe Firefox CPU/UI freezes and had to be removed. Do not reintroduce MutationObserver-driven tooltip positioning or container-local tooltip elements that can be clipped by overflow.
+
+### Desktop/mobile isolation
+
+Desktop readability/layout rules must be scoped to the intended desktop breakpoint. Mobile has its own deliberate composition and must not be treated as a scaled-down desktop screenshot.
+
+### Dense row integrity
+
+When increasing typography in dense editors such as Gambits, layout constraints must preserve semantic groups on one line. Do not solve wrapping by shrinking the requested font size or hiding overflow. Reserve width for labels and parameters with grid/flex constraints and keep repeated rows structurally consistent.
+
+### Verification discipline
+
+Builds and git diff --check prove syntax/build integrity, not visual correctness. When browser smoke is unavailable, record that explicitly instead of claiming visual verification. UI changes that touch Inventory/equipment should also exercise drag/drop, tooltips and equipment edge cases where practical.

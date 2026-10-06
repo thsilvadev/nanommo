@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-05
+skip_specs: true
+goal: Update Character, Gambits and Mastery desktop UI using the proven Grind scaling/layout approach without changing gameplay contracts.

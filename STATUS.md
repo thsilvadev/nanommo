@@ -1255,3 +1255,22 @@ Verification:
   - `node apps/api/test/equipment-hand-swaps.js` — 12 assertions passed
   - `git diff --check`
 - No production deployment performed.
+
+
+## Session closeout — Character UI follow-up prepared (2026-10-05)
+
+Prepared OpenSpec change character-ui-scale-layout for the next session. The proposal is grounded in the Grind UI scaling/layout work and records the traps discovered during implementation.
+
+Key handoff rules:
+- Character Inventory must reuse the existing InventoryGrid and current item/tooltip path; do not fork item rendering for the Character page.
+- Desktop enlargement is implemented with explicit CSS sizing, never browser zoom or transform scaling.
+- The three Character central panels (Inventory / Attributes / Stats), Gambit editor, and Mastery/Weapons panels must respect the existing shell fixed-height/bottom-alignment invariant.
+- Gambit typography is enlarged without sacrificing one-line condition+parameter and action+parameter rows; do not hide wrapping with overflow or shrink the requested font scale.
+- The selected Gambit page is represented by an 8px solid green border instead of the textual ACTIVE marker; action buttons belong semantically inside page-meta.
+- Do not reintroduce the former MutationObserver tooltip implementation: it caused severe Firefox CPU/UI freezes. The current document-level floating tooltip clone using pointer events is the stable implementation.
+- Mobile remains a separate responsive composition; desktop scale selectors must be scoped so they do not leak into mobile.
+- SPEC.md was not changed for this handoff because the requested work is visual/layout-only and introduces no gameplay/API contract.
+
+Next-session OpenSpec: openspec/changes/character-ui-scale-layout/.
+
+Validation note: the new OpenSpec artifacts were created at session close. Implementation is intentionally deferred to the next session.
