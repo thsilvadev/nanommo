@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -13,7 +13,7 @@ import { LoginMusicService } from '../../shared/login-music.service';
   template: `
     <div class="auth-screen auth-login-screen"><app-login-music-control /><div class="auth-login-fade" aria-hidden="true"></div>
       <div class="auth-panel ml-5">
-        
+
 
         @if (error()) {
           <div class="mb-6 p-4 bg-red-900/50 border border-red-700 text-red-200 rounded-lg text-sm">
@@ -29,19 +29,19 @@ import { LoginMusicService } from '../../shared/login-music.service';
 
         <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="space-y-5">
           <div>
-            <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Nome de Usuário</label>
+            <label for="identifier" class="block text-sm font-medium text-gray-300 mb-1">E-mail ou nome do personagem</label>
             <input
               type="text"
-              id="username"
-              name="username"
-              [(ngModel)]="form.username"
+              id="identifier"
+              name="identifier"
+              [(ngModel)]="form.identifier"
               required
-              #usernameInput="ngModel"
+              #identifierInput="ngModel"
               class="auth-input"
-              placeholder="Seu nome de usuário"
+              placeholder="Seu e-mail ou nome do personagem"
             />
-            @if (usernameInput.invalid && (usernameInput.dirty || usernameInput.touched)) {
-              <p class="mt-1 text-sm text-red-400">Nome de usuário é obrigatório</p>
+            @if (identifierInput.invalid && (identifierInput.dirty || identifierInput.touched)) {
+              <p class="mt-1 text-sm text-red-400">E-mail ou nome do personagem é obrigatório</p>
             }
           </div>
 
@@ -98,7 +98,7 @@ export class LoginComponent {
   private readonly music = inject(LoginMusicService);
 
   form = {
-    username: '',
+    identifier: '',
     password: '',
   };
 
@@ -113,15 +113,14 @@ export class LoginComponent {
   }
 
   onSubmit(): void {
-    const { username, password } = this.form;
-    this.authStore.login(username, password).subscribe({
+    const { identifier, password } = this.form;
+    this.authStore.login(identifier, password).subscribe({
       next: async () => {
         await this.music.fadeOut(2000);
-        await this.router.navigate(['/play']);
+        const destination = this.authStore.routeAfterLogin();
+        await this.router.navigate([destination]);
       },
       error: () => {},
     });
   }
 }
-
-import { signal } from '@angular/core';

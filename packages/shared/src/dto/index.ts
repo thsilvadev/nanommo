@@ -2,14 +2,12 @@ import { Attribute } from '../types';
 
 // Auth DTOs
 export class RegisterDto {
-  username!: string;
   email!: string;
   password!: string;
-  cpf!: string;
 }
 
 export class LoginDto {
-  username!: string;
+  identifier!: string;
   password!: string;
 }
 
@@ -30,7 +28,7 @@ export class ResetPasswordDto {
 
 // Character DTOs
 export class CreateCharacterDto {
-  username!: string;
+  name!: string;
 }
 
 export class SpendAttributePointsDto {

@@ -7,6 +7,7 @@ import * as argon2 from 'argon2';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/database/entities';
+import { Character } from '@/database/entities/character.entity';
 import { RegisterDto, LoginDto, AuthTokenDto, ForgotPasswordDto, ResetPasswordDto } from '@nanommo/shared';
 import { MailerService } from '../mailer/mailer.service';
 import { CharacterService } from '../character/character.service';
@@ -21,6 +22,8 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Character)
+    private characterRepository: Repository<Character>,
     private dataSource: DataSource,
     private jwtService: JwtService,
     private mailerService: MailerService,
@@ -33,78 +36,60 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto): Promise<AuthTokenDto> {
-    // Validate input
-    if (!dto.username || !dto.email || !dto.password || !dto.cpf) {
+    if (!dto.email || !dto.password) {
       throw new BadRequestException('Missing required fields');
     }
 
-    if (dto.username.length < 3 || dto.username.length > 16) {
-      throw new BadRequestException('Username must be 3-16 characters');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(dto.email)) {
+      throw new BadRequestException('Invalid email format');
     }
 
     if (dto.password.length < 8) {
       throw new BadRequestException('Password must be at least 8 characters');
     }
 
-    // Check if user already exists
     const existingUser = await this.userRepository.findOne({
-      where: [{ username: dto.username }, { email: dto.email }],
+      where: { email: dto.email, provider: 'local' },
     });
 
     if (existingUser) {
-      throw new BadRequestException('Username or email already registered');
+      throw new BadRequestException('Email already registered');
     }
 
-    // Hash password using argon2id
     const passwordHash = await argon2.hash(dto.password, {
       type: argon2.argon2id,
-      memoryCost: 19456, // 19 MB
+      memoryCost: 19456,
       timeCost: 2,
       parallelism: 1,
     });
 
-    // Hash CPF
-    const cpfHash = this.hashCpf(dto.cpf);
-
-    // Generate email verification token
     const verificationToken = this.generateVerificationToken();
-    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // Create user
     const user = this.userRepository.create({
-      username: dto.username,
       email: dto.email,
       passwordHash,
-      cpfHash,
       emailVerificationToken: verificationToken,
       emailVerificationTokenExpiresAt: verificationTokenExpiresAt,
+      provider: 'local',
+      providerId: null,
+      emailVerified: false,
     });
 
     await this.userRepository.save(user);
 
-    // Send verification email (non-blocking - log error but don't fail registration)
     try {
       await this.mailerService.sendVerificationEmail(user.email, verificationToken);
     } catch (error) {
       this.logger.error(`Failed to send verification email to ${user.email}: ${(error as Error).message}`);
     }
 
-    // Generate sessionId for first login
     const sessionId = uuidv4();
     user.activeSessionId = sessionId;
     await this.userRepository.save(user);
 
-    // Auto-create character with username as default name
-    try {
-      await this.characterService.createCharacter(user.id, user.username);
-      this.logger.log(`Auto-created character for user ${user.username}`);
-    } catch (error) {
-      this.logger.error(`Failed to auto-create character for user ${user.username}: ${(error as Error).message}`);
-      // Don't fail registration if character creation fails, but log it
-    }
-
-    // Generate tokens with sessionId
-    return this.generateTokens(user.id, user.username, sessionId);
+    return this.generateTokens(user.id, sessionId);
   }
 
   private async getForeignKeyColumn(
@@ -134,8 +119,6 @@ export class AuthService {
     await queryRunner.startTransaction();
 
     try {
-      // Resolve FK column names from the live schema instead of assuming the
-      // database uses TypeORM property names (e.g. characterId vs character_id).
       const characterUserColumn = await this.getForeignKeyColumn(queryRunner, 'characters', 'users');
       const characters = await queryRunner.query(
         'SELECT id FROM characters WHERE ' + this.quoteIdentifier(characterUserColumn) + ' = $1',
@@ -218,32 +201,39 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<AuthTokenDto> {
-    const user = await this.userRepository.findOne({
-      where: { username: dto.username },
-    });
+    const { identifier, password } = dto;
+
+    let user: User | null = null;
+
+    if (identifier.includes('@')) {
+      user = await this.userRepository.findOne({
+        where: { email: identifier, provider: 'local' },
+      });
+    } else {
+      const character = await this.characterRepository.findOne({
+        where: { name: identifier },
+        relations: ['user'],
+      });
+      if (character?.user) {
+        user = character.user;
+      }
+    }
 
     if (!user) {
-      throw new UnauthorizedException('Invalid username or password');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await argon2.verify(user.passwordHash, dto.password);
+    const isPasswordValid = await argon2.verify(user.passwordHash, password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid username or password');
-    }
-    if (user.emailVerified !== true) {
-      throw new UnauthorizedException('Please verify your email before logging in');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Generate new sessionId and save to user
     const sessionId = uuidv4();
     user.activeSessionId = sessionId;
-
-    // Update last seen
     user.lastSeenAt = new Date();
     await this.userRepository.save(user);
 
-    // Generate tokens with sessionId
-    return this.generateTokens(user.id, user.username, sessionId);
+    return this.generateTokens(user.id, sessionId);
   }
 
   async refresh(refreshToken: string): Promise<AuthTokenDto> {
@@ -259,14 +249,14 @@ export class AuthService {
       if (!user || user.activeSessionId !== payload.sessionId) {
         throw new UnauthorizedException('SESSION_INVALIDATED');
       }
-      return this.generateTokens(user.id, user.username, user.activeSessionId);
+      return this.generateTokens(user.id, user.activeSessionId);
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
 
-  async validateToken(token: string): Promise<{ userId: string; username: string } | null> {
+  async validateToken(token: string): Promise<{ userId: string; characterId: string | null; emailVerified: boolean; sessionId: string; type: string } | null> {
     try {
       const payload = this.jwtService.verify(token);
       return payload;
@@ -275,30 +265,33 @@ export class AuthService {
     }
   }
 
-  private generateTokens(userId: string, username: string, sessionId: string): AuthTokenDto {
+  private async generateTokens(userId: string, sessionId: string): Promise<AuthTokenDto> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const character = await this.characterRepository.findOne({ where: { userId } });
+
     const accessToken = this.jwtService.sign({
       userId,
-      username,
+      characterId: character?.id ?? null,
+      emailVerified: user.emailVerified,
       sessionId,
       type: 'access',
-    }, { expiresIn: '15m' }); // 15 minutes
+    }, { expiresIn: '15m' });
 
     const refreshToken = this.jwtService.sign({
       userId,
       sessionId,
       type: 'refresh',
-    }, { expiresIn: '7d' }); // 7 days
+    }, { expiresIn: '7d' });
 
     return {
       accessToken,
       refreshToken,
-      expiresIn: 15 * 60, // 900 seconds (access token TTL)
+      expiresIn: 15 * 60,
     };
-  }
-
-  private hashCpf(cpf: string): string {
-    const pepper = process.env.CPF_PEPPER || 'default_pepper_change_in_production';
-    return crypto.createHmac('sha256', pepper).update(cpf).digest('hex');
   }
 
   async verifyEmail(token: string): Promise<{ success: boolean; message: string }> {
@@ -310,17 +303,14 @@ export class AuthService {
       throw new BadRequestException('Invalid verification token');
     }
 
-    // Check if token is expired
     if (user.emailVerificationTokenExpiresAt && user.emailVerificationTokenExpiresAt < new Date()) {
       throw new BadRequestException('Verification token has expired');
     }
 
-    // Check if already verified
     if (user.emailVerified === true) {
       throw new BadRequestException('Email already verified');
     }
 
-    // Verify email
     user.emailVerified = true;
     user.emailVerificationToken = null;
     user.emailVerificationTokenExpiresAt = null;
@@ -331,11 +321,10 @@ export class AuthService {
 
   async resendVerificationEmail(email: string): Promise<{ success: boolean; message: string }> {
     const user = await this.userRepository.findOne({
-      where: { email },
+      where: { email, provider: 'local' },
     });
 
     if (!user) {
-      // Don't reveal if email exists or not for security
       return { success: true, message: 'If the email exists, a verification email has been sent' };
     }
 
@@ -343,7 +332,6 @@ export class AuthService {
       throw new BadRequestException('Email already verified');
     }
 
-    // Check cooldown
     if (user.lastResendVerificationAt) {
       const elapsed = Date.now() - user.lastResendVerificationAt.getTime();
       if (elapsed < this.RESEND_VERIFICATION_COOLDOWN_MS) {
@@ -352,16 +340,14 @@ export class AuthService {
       }
     }
 
-    // Generate new token (invalidates old one)
     const verificationToken = this.generateVerificationToken();
-    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     user.emailVerificationToken = verificationToken;
     user.emailVerificationTokenExpiresAt = verificationTokenExpiresAt;
     user.lastResendVerificationAt = new Date();
     await this.userRepository.save(user);
 
-    // Send verification email
     try {
       await this.mailerService.sendVerificationEmail(user.email, verificationToken);
     } catch (error) {
@@ -374,37 +360,32 @@ export class AuthService {
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ success: boolean; message: string }> {
     const user = await this.userRepository.findOne({
-      where: { email: dto.email },
+      where: { email: dto.email, provider: 'local' },
     });
 
-    // Always return the same generic message for security (prevents email enumeration)
     const genericMessage = 'If the email exists, we sent a password reset link';
 
     if (!user) {
       return { success: true, message: genericMessage };
     }
 
-    // Generate password reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const resetTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     user.passwordResetToken = resetToken;
     user.passwordResetExpiresAt = resetTokenExpiresAt;
     await this.userRepository.save(user);
 
-    // Send password reset email
     try {
       await this.mailerService.sendPasswordResetEmail(user.email, resetToken);
     } catch (error) {
       this.logger.error(`Failed to send password reset email to ${user.email}: ${(error as Error).message}`);
-      // Still return generic message to not leak info
     }
 
     return { success: true, message: genericMessage };
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ success: boolean; message: string }> {
-    // Atomic claim: only proceed if token matches AND not expired AND not already used (passwordResetToken is not null)
     const claimed = await this.userRepository
       .createQueryBuilder()
       .update(User)
@@ -425,7 +406,6 @@ export class AuthService {
       .execute();
 
     if (!claimed.affected) {
-      // Check if token exists but expired to give a clearer error
       const user = await this.userRepository.findOne({
         where: { passwordResetToken: dto.token },
       });
@@ -433,7 +413,6 @@ export class AuthService {
         if (user.passwordResetExpiresAt && user.passwordResetExpiresAt < new Date()) {
           throw new BadRequestException('Reset token has expired');
         }
-        // Token was already used (passwordResetToken is null)
         throw new BadRequestException('Invalid or expired reset token');
       }
       throw new BadRequestException('Invalid or expired reset token');

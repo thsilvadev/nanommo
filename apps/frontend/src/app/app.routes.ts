@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth.guard';
+import { authGuard, guestGuard, characterGuard, createCharacterGuard } from './core/auth.guard';
 
 export const routes: Routes = [
   {
@@ -16,6 +16,11 @@ export const routes: Routes = [
     path: 'register',
     loadComponent: () => import('./features/auth/register.component').then((m) => m.RegisterComponent),
     canActivate: [guestGuard],
+  },
+  {
+    path: 'create-character',
+    loadComponent: () => import('./features/auth/create-character.component').then((m) => m.CreateCharacterComponent),
+    canActivate: [createCharacterGuard],
   },
   {
     path: 'verify-email',
@@ -38,7 +43,7 @@ export const routes: Routes = [
   {
     path: 'play',
     loadComponent: () => import('./features/play/play.component').then((m) => m.PlayComponent),
-    canActivate: [authGuard],
+    canActivate: [characterGuard],
     children: [
       { path: '', redirectTo: 'grind', pathMatch: 'full' },
       { path: 'grind', loadComponent: () => import('./features/play/grind.component').then((m) => m.GrindComponent) },

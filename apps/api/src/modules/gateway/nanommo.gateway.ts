@@ -91,7 +91,7 @@ export class NanommoGateway
         }
 
         socket.userId = payload.userId;
-        socket.username = payload.username;
+        socket.username = character.name;
         socket.sessionId = payload.sessionId;
         socket.characterId = character.id;
         next();

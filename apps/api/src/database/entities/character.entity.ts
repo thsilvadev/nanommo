@@ -4,6 +4,7 @@ import { User } from './user.entity';
 @Entity('characters')
 @Index(['userId'])
 @Unique(['userId'])
+@Unique(['name'])
 export class Character {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

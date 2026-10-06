@@ -1,15 +1,10 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne, Unique, Index } from 'typeorm';
 
 @Entity('users')
-@Unique(['username'])
-@Unique(['email'])
-@Unique(['cpfHash'])
+@Unique(['provider', 'email'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
-
-  @Column({ type: 'varchar', length: 16 })
-  username!: string;
 
   @Column({ type: 'varchar' })
   email!: string;
@@ -17,11 +12,14 @@ export class User {
   @Column({ type: 'varchar' })
   passwordHash!: string;
 
-  @Column({ type: 'varchar', length: 64 })
-  cpfHash!: string;
-
   @Column({ type: 'boolean', default: false })
   emailVerified!: boolean;
+
+  @Column({ type: 'varchar', enum: ['local', 'google'], default: 'local' })
+  provider!: 'local' | 'google';
+
+  @Column({ type: 'varchar', nullable: true })
+  providerId?: string;
 
   @Column({ type: 'varchar', nullable: true })
   emailVerificationToken?: string;

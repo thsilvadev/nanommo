@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem } from '@/database/entities';
@@ -22,6 +22,14 @@ export class CharacterService {
     private inventoryItemRepository: Repository<InventoryItem>,
     private dataService: DataService,
   ) {}
+
+  private readonly NAME_PATTERN = /^[a-zA-Z0-9]{3,16}$/;
+
+  private validateName(name: string): void {
+    if (!this.NAME_PATTERN.test(name)) {
+      throw new BadRequestException('Character name must be 3-16 alphanumeric characters');
+    }
+  }
 
   private buildEquipmentStats(equipped: EquippedItem[]) {
     const equipment = {
@@ -57,8 +65,9 @@ export class CharacterService {
     return equipment;
   }
 
-  async createCharacter(userId: string, username: string): Promise<CharacterDto> {
-    // Check if character already exists
+  async createCharacter(userId: string, name: string): Promise<CharacterDto> {
+    this.validateName(name);
+
     const existing = await this.characterRepository.findOne({
       where: { userId },
     });
@@ -67,15 +76,21 @@ export class CharacterService {
       throw new BadRequestException('Character already exists for this user');
     }
 
-    // Calculate base stats
+    const duplicateName = await this.characterRepository.findOne({
+      where: { name },
+    });
+
+    if (duplicateName) {
+      throw new ConflictException('Character name already in use');
+    }
+
     const baseStats = BattleEngine.calculateDerivedStats(1, {
       str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5,
     }, {});
 
-    // Create character
     const character = this.characterRepository.create({
       userId,
-      name: username,
+      name,
       level: 1,
       xp: 0,
       unspentAttributePoints: 0,
@@ -115,7 +130,6 @@ export class CharacterService {
       }),
     ]);
 
-    // Create weapon proficiencies for all 7 weapon types
     const weaponTypes: WeaponType[] = [
       WeaponType.SWORD,
       WeaponType.GREATSWORD,
@@ -136,7 +150,6 @@ export class CharacterService {
       await this.weaponProficiencyRepository.save(proficiency);
     }
 
-    // Create 3 empty gambit pages (slots 0, 1, 2) as per SPEC
     let firstGambitPageId: string | undefined;
     for (let slotIndex = 0; slotIndex < 3; slotIndex++) {
       const gambitPage = this.gambitPageRepository.create({
@@ -191,9 +204,6 @@ export class CharacterService {
       throw new NotFoundException('Character not found');
     }
 
-    // The DTO carries no class-validator metadata, so a malformed body reaches
-    // here as `undefined`. Reject it as a 400 instead of letting
-    // `Object.values(undefined)` surface as a 500.
     if (attributes === null || typeof attributes !== 'object' || Array.isArray(attributes)) {
       throw new BadRequestException('attributes must be an object');
     }
@@ -203,7 +213,6 @@ export class CharacterService {
       throw new BadRequestException('Not enough unspent attribute points');
     }
 
-    // Update attributes
     if (attributes.str) character.str += attributes.str;
     if (attributes.agi) character.agi += attributes.agi;
     if (attributes.dex) character.dex += attributes.dex;
@@ -282,9 +291,6 @@ export class CharacterService {
   private async toDto(character: Character): Promise<CharacterDto> {
     if (!Array.isArray(character.diet)) character.diet = [];
     if (!character.dietLevels) character.dietLevels = {};
-    // Diet entries remain visible after digestion as marked history until a later
-    // authoritative food consumption shifts them out of the three-slot window.
-    // Gameplay legality never depends on the DTO; the backend checks the entity state.
     const activeDiet = character.diet;
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
     const equipment = this.buildEquipmentStats(equipped);

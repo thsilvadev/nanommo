@@ -5,6 +5,8 @@ import { SKIP_AUTH_REFRESH } from './api.service';
 import { HttpContext } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
+import { CharacterStore } from './game.store';
+import { Character } from './game.models';
 
 export interface AuthTokens {
   accessToken: string;
@@ -14,7 +16,8 @@ export interface AuthTokens {
 
 export interface UserPayload {
   userId: string;
-  username: string;
+  characterId: string | null;
+  emailVerified: boolean;
   sessionId: string;
   type: 'access' | 'refresh';
 }
@@ -25,6 +28,7 @@ export interface UserPayload {
 export class AuthStore {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
+  private readonly characterStore = inject(CharacterStore);
 
   private readonly _accessToken = signal<string | null>(null);
   private readonly _refreshToken = signal<string | null>(null);
@@ -103,12 +107,12 @@ export class AuthStore {
     }
   }
 
-  register(username: string, email: string, password: string, cpf: string): Observable<AuthTokens> {
+  register(email: string, password: string): Observable<AuthTokens> {
     this._isLoading.set(true);
     this._error.set(null);
 
     return new Observable<AuthTokens>((observer) => {
-      this.api.post<AuthTokens>('/auth/register', { username, email, password, cpf }).subscribe({
+      this.api.post<AuthTokens>('/auth/register', { email, password }).subscribe({
         next: (tokens) => {
           this._isLoading.set(false);
           observer.next(tokens);
@@ -124,12 +128,12 @@ export class AuthStore {
     });
   }
 
-  login(username: string, password: string): Observable<AuthTokens> {
+  login(identifier: string, password: string): Observable<AuthTokens> {
     this._isLoading.set(true);
     this._error.set(null);
 
     return new Observable<AuthTokens>((observer) => {
-      this.api.post<AuthTokens>('/auth/login', { username, password }).subscribe({
+      this.api.post<AuthTokens>('/auth/login', { identifier, password }).subscribe({
         next: (tokens) => {
           this.setTokens(tokens);
           this._isLoading.set(false);
@@ -144,6 +148,39 @@ export class AuthStore {
         },
       });
     });
+  }
+
+  createCharacter(name: string): Observable<Character> {
+    this._isLoading.set(true);
+    this._error.set(null);
+
+    return new Observable<Character>((observer) => {
+      this.api.post<Character>('/characters', { name }).subscribe({
+        next: (character) => {
+          this._isLoading.set(false);
+          this.characterStore.applyRealtimeSnapshot(character, character.stateVersion);
+          observer.next(character);
+          observer.complete();
+        },
+        error: (err) => {
+          this._isLoading.set(false);
+          const message = err.error?.message || 'Failed to create character';
+          this._error.set(message);
+          observer.error(err);
+        },
+      });
+    });
+  }
+
+  routeAfterLogin(): string {
+    const payload = this._userPayload();
+    if (payload && payload.emailVerified === false) {
+      return '/verify-email-pending';
+    }
+    if (this.characterStore.character()) {
+      return '/play';
+    }
+    return '/create-character';
   }
 
   deleteAccount(): Observable<{ success: boolean }> {

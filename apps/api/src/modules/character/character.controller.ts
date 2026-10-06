@@ -1,17 +1,29 @@
-import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request as ExpressRequest } from 'express';
 import { CharacterService } from './character.service';
 import { CreateCharacterDto, CharacterDto, SpendAttributePointsDto, SetAutoFeedDto } from '@nanommo/shared';
+import { User } from '@/database/entities';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Controller('characters')
 export class CharacterController {
-  constructor(private characterService: CharacterService) {}
+  constructor(
+    private characterService: CharacterService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) {}
 
   @Post()
   @UseGuards(AuthGuard('jwt'))
   async create(@Request() req: ExpressRequest, @Body() dto: CreateCharacterDto): Promise<CharacterDto> {
-    return this.characterService.createCharacter((req.user as any).userId, dto.username);
+    const userId = (req.user as any).userId;
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user || user.emailVerified !== true) {
+      throw new ForbiddenException('Email must be verified before creating a character');
+    }
+    return this.characterService.createCharacter(userId, dto.name);
   }
 
   @Get()

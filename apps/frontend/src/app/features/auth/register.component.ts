@@ -21,25 +21,6 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
 
         <form (ngSubmit)="onSubmit()" #registerForm="ngForm" class="space-y-1">
           <div>
-            <label for="username" class="block text-sm font-medium text-gray-300">Nome de Usuário</label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              [(ngModel)]="form.username"
-              required
-              minlength="3"
-              maxlength="16"
-              #usernameInput="ngModel"
-              class="auth-input"
-              placeholder="Seu nome no jogo (3-16 caracteres)"
-            />
-            @if (usernameInput.invalid && (usernameInput.dirty || usernameInput.touched)) {
-              <p class="mt-1 text-sm text-red-400">Nome de usuário deve ter 3-16 caracteres</p>
-            }
-          </div>
-
-          <div>
             <label for="email" class="block text-sm font-medium text-gray-300">E-mail</label>
             <input
               type="email"
@@ -75,24 +56,6 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
             }
           </div>
 
-          <div>
-            <label for="cpf" class="block text-sm font-medium text-gray-300">CPF</label>
-            <input
-              type="text"
-              id="cpf"
-              name="cpf"
-              [(ngModel)]="form.cpf"
-              required
-              #cpfInput="ngModel"
-              class="auth-input"
-              placeholder="000.000.000-00"
-              maxlength="14"
-            />
-            @if (cpfInput.invalid && (cpfInput.dirty || cpfInput.touched)) {
-              <p class="mt-1 text-sm text-red-400">CPF é obrigatório</p>
-            }
-          </div>
-
           <button
             type="submit"
             [disabled]="isLoading() || registerForm.invalid"
@@ -124,18 +87,16 @@ export class RegisterComponent {
   private readonly router = inject(Router);
 
   form = {
-    username: '',
     email: '',
     password: '',
-    cpf: '',
   };
 
   isLoading = this.authStore.isLoading;
   error = this.authStore.error;
 
   onSubmit(): void {
-    const { username, email, password, cpf } = this.form;
-    this.authStore.register(username, email, password, cpf).subscribe({
+    const { email, password } = this.form;
+    this.authStore.register(email, password).subscribe({
       next: () => {
         this.router.navigate(['/verify-email-pending'], { queryParams: { email } });
       },
