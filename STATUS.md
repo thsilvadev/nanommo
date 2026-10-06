@@ -3,13 +3,13 @@
 **Last Updated:** 2026-10-06 (separated Food from combat Consumables and hardened Auto Feed continuity)
 **Session Focus:** Food item-type boundary, no food Gambit actions, and authoritative Auto Feed at battle resolution.
 
-### Latest follow-up — diet-food-type-autofeed (2026-10-06)
+### Latest follow-up — diet-food-type-autofeed-correction (2026-10-06)
 
-Separated the seven `food_buff` item definitions from generic combat consumables: every food now has `type: food` in both server and frontend catalogs. Manual food use remains available outside battle through the existing transactional `consumeFood()` path, while the shared Gambit evaluator now requires `type: consumable` for `use_item`, making food impossible to consume during a battle simulation. Auto Feed likewise selects only `type: food` and remains exclusively a battle-resolution continuity mechanism; no Grind-entry trigger or client polling was added.
+Corrected the Auto Feed eligibility boundary discovered during manual testing: `tryAutoFeed()` is called during authoritative battle resolution, but an existing guard previously returned early whenever `activeFoodBuff.expiresAt` was later than the calculated next battle boundary. That made a state such as `[blueberry 0m] [hunter's stew 0m] [bread 46m]` fail to consume the two ready Diet foods even though they were available in Inventory.
 
-Auto Feed now fills all currently eligible Diet entries in the same battle-resolution boundary, up to the three Diet slots, when those foods are available in Inventory and their digestion has reached 0. The Diet is re-read after each consumption so FIFO rotation is preserved and a food cannot be consumed again while its newly-created digestion is active. The authoritative resolution order remains: apply the resolved battle state → determine the next encounter boundary → if needed, consume every eligible Diet food → rebuild the unresolved queue once after successful Auto Feed → only then allow Hungry/Town fallback. Existing historical food-use events in already-queued battle logs remain understood by `applyResolvedFoodState()` for compatibility, but new simulations cannot create them.
+Auto Feed now evaluates the Diet on every battle-resolution boundary. Any configured `food` whose Diet entry has digestion at 0 and whose Inventory count is positive is eligible, even when another food buff is still active. It consumes all currently eligible Diet foods (up to the three slots) through authoritative `consumeFood()`, re-reading Diet after each consumption. The Grind-entry trigger remains absent.
 
-Regression/build verification for this follow-up: shared build, API build, 3/3 Jest assertions in `diet-auto-feed.spec.js`, 13/13 boundary/refill assertions in `diet-autofeed-streak-fixes.spec.js`, strict OpenSpec validation, and `git diff --check` all passed. The focused test now explicitly proves three eligible Diet foods are consumed in one Auto Feed boundary. Frontend reports only the repository's existing non-fatal CSS-budget/CommonJS warnings. No production deployment was performed.
+The regression suite explicitly covers this case by giving the character an active food buff that expires after the supplied boundary while all three Diet foods are ready; the expected result is still consumption of all three. OpenSpec/root SPEC now describe this as the authoritative behavior. No production deployment was performed.
 
 ### Latest follow-up — direct-damage-variance (2026-10-06)
 

@@ -8,3 +8,4 @@
 - [x] 1.6 Add/adjust regression tests for food-vs-consumable boundaries and battle-resolution Auto Feed continuity.
 - [x] 1.7 Run builds, focused tests, strict OpenSpec validation and `git diff --check`.
 - [x] 1.8 Extend Auto Feed to consume every currently eligible Diet food in one battle-resolution boundary, up to the three Diet slots, with regression coverage for multi-food refill.
+- [x] 1.9 Correct the Auto Feed eligibility boundary: an already-active food buff does not block eligible 0m Diet foods from being consumed at battle resolution, with regression coverage.

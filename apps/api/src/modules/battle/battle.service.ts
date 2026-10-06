@@ -815,10 +815,12 @@ export class BattleService {
   private async tryAutoFeed(character: Character, boundaryAt: number): Promise<boolean> {
     if (!character.autoFeed || character.returnToTownAfterBattle) return false;
 
-    const activeExpiresAt = character.activeFoodBuff?.expiresAt
-      ? Date.parse(character.activeFoodBuff.expiresAt)
-      : 0;
-    if (activeExpiresAt > boundaryAt) return false;
+    // Auto Feed is evaluated at every authoritative battle-resolution boundary.
+    // An already-active food buff does not suppress feeding: any Diet entry whose
+    // digestion has reached 0 and whose food is available may be consumed now.
+    // boundaryAt remains part of the caller's Grind-continuity calculation, but
+    // eligibility is defined by the current Diet digestion state.
+    void boundaryAt;
 
     const now = Date.now();
     let consumedAny = false;

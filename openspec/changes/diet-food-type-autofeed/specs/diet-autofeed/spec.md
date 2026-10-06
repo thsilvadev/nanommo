@@ -32,13 +32,12 @@ Food SHALL be consumable manually outside battle through the existing authoritat
 
 ### Requirement: Auto Feed is the Grind continuity mechanism
 
-When Auto Feed is enabled and the character is continuing Grind, battle resolution SHALL evaluate Auto Feed before routing the character to Hungry/Town because the current food cannot cover the next encounter boundary.
+When Auto Feed is enabled and the character is continuing Grind, every authoritative battle resolution SHALL evaluate the current Diet before routing the character to Hungry/Town.
 
 #### Scenario: Eligible food at battle end
 - GIVEN Auto Feed is enabled
 - AND the character is grinding
-- AND the active food expires at or before the next encounter boundary
-- AND one or more configured Diet foods are available in Inventory and are not still digesting
+- AND one or more configured Diet foods are available in Inventory and have digestion at 0
 - WHEN the battle resolves
 - THEN the server consumes every currently eligible Diet food, up to the three Diet slots, through the authoritative `consumeFood()` path
 - AND the same food is not consumed again while its newly-created digestion is active
@@ -47,7 +46,6 @@ When Auto Feed is enabled and the character is continuing Grind, battle resoluti
 
 #### Scenario: No eligible food
 - GIVEN Auto Feed is enabled
-- AND the active food cannot cover the next encounter boundary
 - AND no configured Diet food is eligible and available
 - WHEN the battle resolves
 - THEN no food is consumed

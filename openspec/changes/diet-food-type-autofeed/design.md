@@ -15,7 +15,7 @@ A `food` item is never legal for Gambit `use_item`, and the shared BattleEngine 
 
 ## Grind continuity
 
-Auto Feed remains a battle-resolution concern only. After applying the resolved battle's authoritative state, the server calculates the next encounter boundary. If the active food does not cover that boundary, Auto Feed walks the current Diet and consumes every currently eligible food available in Inventory, up to the three Diet slots, through the authoritative `consumeFood()` path. The Diet is re-read after each successful consumption so FIFO rotation and the no-same-food-while-digesting rule remain authoritative. On any success, unresolved precomputed battles are discarded and rebuilt once from the new authoritative Character + Inventory state. Only then may the resolver route the character to Hungry/Town.
+Auto Feed remains a battle-resolution concern only. After applying the resolved battle's authoritative state, the server evaluates the current Diet on every resolution boundary. It walks the current Diet and consumes every currently eligible food available in Inventory, up to the three Diet slots, through the authoritative `consumeFood()` path; an already-active food buff does not suppress this evaluation. The Diet is re-read after each successful consumption so FIFO rotation and the no-same-food-while-digesting rule remain authoritative. On any success, unresolved precomputed battles are discarded and rebuilt once from the new authoritative Character + Inventory state. Only then may the resolver route the character to Hungry/Town.
 
 No extra Auto Feed action is performed on map entry; the existing server-side resolution boundary is the single continuity trigger.
 
