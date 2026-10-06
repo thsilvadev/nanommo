@@ -125,7 +125,7 @@
   border: 0;
 }
 .grind-inventory .panel-title {
-  padding-left: 2px;
+  padding-left: 0px;
 }
 @media (max-width: 1199px) and (min-width: 900px) {
   .grind-page {
