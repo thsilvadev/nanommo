@@ -12,17 +12,17 @@
       </select>
       <small *ngIf="error()">{{error()}}</small>
     </div>
-    <!-- <div class="grind-mode-select" aria-label="Hunting mode">
+    <div class="grind-mode-select" aria-label="Hunting mode">
       <button type="button" [class.active]="huntMode()==='hunting'" (click)="huntMode.set('hunting')" title="Hunting">
         <img src="/assets/ui/hunting.svg" alt="Hunting">
       </button>
-      <button type="button" [class.active]="huntMode()==='defensive'" (click)="huntMode.set('defensive')" title="Defensive">
+      <!-- <button type="button" [class.active]="huntMode()==='defensive'" (click)="huntMode.set('defensive')" title="Defensive">
         <img src="/assets/ui/defensive.svg" alt="Defensive">
-      </button>
+      </button> -->
       <button type="button" [class.active]="huntMode()==='fleeing'" (click)="huntMode.set('fleeing')" title="Fleeing">
         <img src="/assets/ui/fleeing.svg" alt="Fleeing">
       </button>
-    </div> -->
+    </div>
     <div class="grind-inventory"><app-inventory-grid /></div>
   </div>
   <div class="grind-map"><app-map-board /></div>
