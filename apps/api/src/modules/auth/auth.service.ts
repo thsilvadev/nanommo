@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, UnauthorizedException, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, HttpException, HttpStatus, UnauthorizedException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -54,7 +54,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('Email already registered');
+      throw new ConflictException('Email already registered');
     }
 
     const passwordHash = await argon2.hash(dto.password, {
@@ -223,14 +223,28 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+      throw new HttpException('Account temporarily locked', HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     const isPasswordValid = await argon2.verify(user.passwordHash, password);
     if (!isPasswordValid) {
+      user.failedLoginCount = (user.failedLoginCount ?? 0) + 1;
+      if (user.failedLoginCount >= 5) {
+        user.lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+        user.failedLoginCount = 0;
+      }
+      await this.userRepository.save(user);
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    user.failedLoginCount = 0;
+    user.lockedUntil = null;
 
     const sessionId = uuidv4();
     user.activeSessionId = sessionId;
     user.lastSeenAt = new Date();
+    user.lastLoginAt = new Date();
     await this.userRepository.save(user);
 
     return this.generateTokens(user.id, sessionId);

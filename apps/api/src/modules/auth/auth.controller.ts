@@ -27,6 +27,7 @@ export class AuthController {
   }
 
   @Get('verify-email')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async verifyEmail(@Query('token') token: string): Promise<{ success: boolean; message: string }> {
     if (!token) {
       return { success: false, message: 'Token is required' };

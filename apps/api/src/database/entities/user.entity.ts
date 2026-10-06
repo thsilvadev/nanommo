@@ -46,6 +46,15 @@ export class User {
   lastSeenAt?: Date;
 
   @Column({ type: 'timestamptz', nullable: true })
+  lastLoginAt?: Date;
+
+  @Column({ type: 'int', default: 0 })
+  failedLoginCount!: number;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  lockedUntil?: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
   lastResendVerificationAt?: Date;
 
   @CreateDateColumn()

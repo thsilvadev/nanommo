@@ -21,7 +21,10 @@ export class SplitRegistrationCharacterCreation1792000000000 implements Migratio
     await queryRunner.query(`
       ALTER TABLE users
       ADD COLUMN provider varchar NOT NULL DEFAULT 'local',
-      ADD COLUMN "providerId" varchar
+      ADD COLUMN "providerId" varchar,
+      ADD COLUMN "lastLoginAt" timestamptz,
+      ADD COLUMN "failedLoginCount" integer NOT NULL DEFAULT 0,
+      ADD COLUMN "lockedUntil" timestamptz
     `);
 
     await queryRunner.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS "UQ_users_email"`);
@@ -32,6 +35,9 @@ export class SplitRegistrationCharacterCreation1792000000000 implements Migratio
     await queryRunner.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS "UQ_users_provider_email"`);
     await queryRunner.query(`ALTER TABLE users ADD CONSTRAINT "UQ_users_email" UNIQUE (email)`);
 
+    await queryRunner.query(`ALTER TABLE users DROP COLUMN "lockedUntil"`);
+    await queryRunner.query(`ALTER TABLE users DROP COLUMN "failedLoginCount"`);
+    await queryRunner.query(`ALTER TABLE users DROP COLUMN "lastLoginAt"`);
     await queryRunner.query(`ALTER TABLE users DROP COLUMN "providerId"`);
     await queryRunner.query(`ALTER TABLE users DROP COLUMN provider`);
 
@@ -41,12 +47,14 @@ export class SplitRegistrationCharacterCreation1792000000000 implements Migratio
     await queryRunner.query(`ALTER TABLE users ADD COLUMN "cpfHash" varchar(64) NOT NULL DEFAULT ''`);
     await queryRunner.query(`ALTER TABLE users ADD CONSTRAINT "UQ_users_cpfHash" UNIQUE ("cpfHash")`);
 
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_characters_name"`);
-
     await queryRunner.query(`
-      UPDATE characters
-      SET name = NULL
-      WHERE characters.name IS NOT NULL
+      UPDATE users
+      SET username = characters.name
+      FROM characters
+      WHERE characters."userId" = users.id
+        AND characters.name IS NOT NULL
     `);
+
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_characters_name"`);
   }
 }

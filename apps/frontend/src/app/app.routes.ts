@@ -29,7 +29,6 @@ export const routes: Routes = [
   {
     path: 'verify-email-pending',
     loadComponent: () => import('./features/auth/email-verification-pending.component').then((m) => m.EmailVerificationPendingComponent),
-    canActivate: [guestGuard],
   },
   {
     path: 'forgot-password',

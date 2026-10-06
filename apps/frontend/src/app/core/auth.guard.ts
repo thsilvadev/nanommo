@@ -27,6 +27,9 @@ export const characterGuard: CanActivateFn = (route, state): boolean | UrlTree |
 
   return from(ensureCharacterLoaded(characterStore)).pipe(
     map(() => {
+      if (authStore.userPayload()?.emailVerified === false) {
+        return router.createUrlTree(['/verify-email-pending']);
+      }
       if (characterStore.character()) {
         return true;
       }
@@ -47,6 +50,9 @@ export const createCharacterGuard: CanActivateFn = (route, state): boolean | Url
 
   return from(ensureCharacterLoaded(characterStore)).pipe(
     map(() => {
+      if (authStore.userPayload()?.emailVerified === false) {
+        return router.createUrlTree(['/verify-email-pending']);
+      }
       if (characterStore.character()) {
         return router.createUrlTree(['/play']);
       }
@@ -72,7 +78,7 @@ export const guestGuard: CanActivateFn = (route, state): boolean | UrlTree | Obs
       }
       return router.createUrlTree(['/create-character']);
     }),
-    catchError(() => of(router.createUrlTree(['/play']))),
+    catchError(() => of(router.createUrlTree(['/create-character']))),
   );
 };
 

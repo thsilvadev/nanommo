@@ -34,13 +34,13 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
             </div>
             <div>
               <h1 class="text-2xl font-bold text-white mb-2">E-mail confirmado!</h1>
-              <p class="text-gray-400 mb-6">Seu e-mail foi verificado com sucesso. Agora volte para o login para entrar no jogo.</p>
+              <p class="text-gray-400 mb-6">Seu e-mail foi verificado com sucesso. Agora crie seu personagem para entrar no jogo.</p>
             </div>
             <a
-              routerLink="/login"
+              routerLink="/create-character"
               class="auth-button auth-button-inline"
             >
-              Voltar ao login
+              Criar personagem
             </a>
           </div>
         }
