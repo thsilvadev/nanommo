@@ -1,7 +1,15 @@
 # NanoMMO — Implementation Status
 
-**Last Updated:** 2026-10-06 (finalized authoritative Character/Inventory realtime synchronization and documented failure modes)
-**Session Focus:** Play shell map/inventory/info-panel polish, Mastery tab, Gambit row controls, active Gambit HUD title, and navbar branding.
+**Last Updated:** 2026-10-06 (fixed Diet Auto Feed boundary reliability at empty Grind queue)
+**Session Focus:** Diet Auto Feed boundary reliability and authoritative Grind continuity.
+
+### Latest follow-up — diet-autofeed-boundary-reliability (2026-10-06)
+
+Fixed a server-side Auto Feed race at the boundary between a resolved battle and the next Grind encounter. Previously, when queue generation stopped because the active food could not safely cover another encounter, the resolver had no future queue row and passed Date.now() to Auto Feed. Food that expired shortly after the current battle could therefore be treated as still valid, leaving the future queue empty and eventually routing the character to Hungry/Town.
+
+Auto Feed now prefers the existing first unresolved battle startAt; when no future battle exists, it uses the authoritative resolved battle endAt plus the same encounter-search delay used by queue generation (2s + 0.1s per other grinder on the map). A successful automatic consumption still uses the existing transactional consumeFood() path, discards unresolved precomputed battles, and rebuilds the Grind queue from the resulting authoritative Character + Inventory state. No frontend timer/polling workaround was introduced.
+
+Regression coverage now includes the empty-queue boundary and the search-delay calculation. Verification passed: API build, shared build, frontend build, 9 focused Auto Feed boundary assertions, strict OpenSpec validation, and git diff --check. Existing frontend CSS budget/CommonJS warnings remain non-blocking. No production deployment was performed.
 
 ### Latest follow-up — Login/Auth visual shell + persistent login music (2026-09-29)
 

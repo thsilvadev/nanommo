@@ -2,8 +2,11 @@ const assert = require('node:assert/strict');
 
 const { buildDietStateAfterFoodConsumption } =
   require('../dist/apps/api/src/modules/inventory/inventory.service.js');
-const { BattleService } =
-  require('../dist/apps/api/src/modules/battle/battle.service.js');
+const {
+  BattleService,
+  calculateEncounterSearchDelayMs,
+  calculateNextEncounterBoundaryAt,
+} = require('../dist/apps/api/src/modules/battle/battle.service.js');
 
 const at = (n) => new Date(1_000_000 + n * 10_000).toISOString();
 
@@ -57,6 +60,14 @@ async function run() {
   };
   service.dataService = { getItemById: (id) => food(id) };
 
+  const boundaryBase = 5_000_000;
+  assert.equal(calculateEncounterSearchDelayMs(0), 2000);
+  assert.equal(calculateEncounterSearchDelayMs(7), 2700);
+  assert.equal(
+    calculateNextEncounterBoundaryAt(boundaryBase, 7),
+    boundaryBase + 2700,
+  );
+
   const character = {
     id: 'char-1', autoFeed: true, returnToTownAfterBattle: false,
     activeFoodBuff: { itemId: 'bread', expiresAt: new Date(Date.now() - 1000).toISOString() },
@@ -66,7 +77,26 @@ async function run() {
   assert.equal(await service.tryAutoFeed(character, Date.now()), true);
   assert.equal(character.activeFoodBuff.itemId, 'meat');
 
-  console.log('Diet/Auto Feed streak regressions: 6 assertions passed.');
+  const boundaryCharacter = {
+    ...character,
+    activeFoodBuff: {
+      itemId: 'bread',
+      expiresAt: new Date(Date.now() + 1000).toISOString(),
+    },
+    dietLevels: {
+      meat: {
+        level: 1,
+        lastDigestUntil: new Date(Date.now() - 3600000).toISOString(),
+      },
+    },
+  };
+  assert.equal(
+    await service.tryAutoFeed(boundaryCharacter, Date.now() + 2000),
+    true,
+  );
+  assert.equal(boundaryCharacter.activeFoodBuff.itemId, 'meat');
+
+  console.log('Diet/Auto Feed boundary regressions: 9 assertions passed.');
 }
 
 run().catch((error) => {

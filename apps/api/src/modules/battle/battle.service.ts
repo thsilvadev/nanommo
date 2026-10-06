@@ -32,6 +32,13 @@ export function calculateEncounterSearchDelayMs(otherPlayers: number): number {
   return 2000 + Math.max(0, Math.floor(otherPlayers)) * 100;
 }
 
+export function calculateNextEncounterBoundaryAt(
+  battleEndAt: number,
+  otherPlayers: number,
+): number {
+  return battleEndAt + calculateEncounterSearchDelayMs(otherPlayers);
+}
+
 export function applyLevelXpResolution(
   currentXp: number,
   currentLevel: number,
@@ -726,9 +733,20 @@ export class BattleService {
     await this.characterRepo.save(character);
 
     const futureQueue = await this.getBattleQueue(character.id, 100);
-    const nextBattleStart = futureQueue[0]?.startAt
+    const nextQueuedBattleStart = futureQueue[0]?.startAt
       ? futureQueue[0].startAt.getTime()
-      : Date.now();
+      : 0;
+    const mapPlayers = character.currentMapId
+      ? await this.characterRepo.count({
+          where: { currentMapId: character.currentMapId, status: 'grinding' as any },
+        })
+      : 0;
+    const otherPlayers = Math.max(0, mapPlayers - 1);
+    const nextEncounterBoundary = calculateNextEncounterBoundaryAt(
+      new Date(battle.endAt).getTime(),
+      otherPlayers,
+    );
+    const nextBattleStart = nextQueuedBattleStart || nextEncounterBoundary;
     const autoFed = await this.tryAutoFeed(character, nextBattleStart);
     if (autoFed) {
       await this.discardUnresolvedBattles(character.id);
