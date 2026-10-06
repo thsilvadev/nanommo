@@ -439,7 +439,7 @@ export class InventoryService {
     if (!character) throw new NotFoundException('Character not found');
     const itemCatalog = this.dataService.getItems();
     const consumables = Array.isArray(itemCatalog) ? itemCatalog : itemCatalog?.consumables ?? [];
-    const foods = consumables.filter((item: any) => item?.type === 'consumable' && item?.effect?.type === 'food_buff');
+    const foods = consumables.filter((item: any) => item?.type === 'food' && item?.effect?.type === 'food_buff');
     const granted = [];
     for (const food of foods) {
       const result = await this.addItem(character.id, food.id, quantity, 'inventory');

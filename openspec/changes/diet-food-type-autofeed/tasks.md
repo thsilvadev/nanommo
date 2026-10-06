@@ -7,3 +7,4 @@
 - [x] 1.5 Keep Auto Feed at battle resolution only; do not add a Grind-entry trigger.
 - [x] 1.6 Add/adjust regression tests for food-vs-consumable boundaries and battle-resolution Auto Feed continuity.
 - [x] 1.7 Run builds, focused tests, strict OpenSpec validation and `git diff --check`.
+- [x] 1.8 Extend Auto Feed to consume every currently eligible Diet food in one battle-resolution boundary, up to the three Diet slots, with regression coverage for multi-food refill.

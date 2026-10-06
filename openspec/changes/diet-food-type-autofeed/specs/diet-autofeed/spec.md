@@ -38,10 +38,11 @@ When Auto Feed is enabled and the character is continuing Grind, battle resoluti
 - GIVEN Auto Feed is enabled
 - AND the character is grinding
 - AND the active food expires at or before the next encounter boundary
-- AND a configured Diet food is available in Inventory and is not still digesting
+- AND one or more configured Diet foods are available in Inventory and are not still digesting
 - WHEN the battle resolves
-- THEN the server consumes that food through the authoritative `consumeFood()` path
-- AND the unresolved future queue is discarded and rebuilt from the new authoritative state
+- THEN the server consumes every currently eligible Diet food, up to the three Diet slots, through the authoritative `consumeFood()` path
+- AND the same food is not consumed again while its newly-created digestion is active
+- AND the unresolved future queue is discarded and rebuilt once from the new authoritative state
 - AND the character remains in Grind
 
 #### Scenario: No eligible food

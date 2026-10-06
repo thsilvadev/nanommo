@@ -49,15 +49,6 @@ async function run() {
     effect: { type: 'food_buff', durationSeconds: 3600, hpRegenPerTenTicks: 4, spRegenPerTenTicks: 1 },
   });
   const service = Object.create(BattleService.prototype);
-  service.inventoryService = {
-    getItemCount: async (_id, itemId) => itemId === 'meat' ? 2 : 0,
-    consumeFood: async (id, itemId) => ({
-      id,
-      activeFoodBuff: { itemId, expiresAt: new Date(Date.now() + 3600000).toISOString() },
-      diet: [{ itemId, consumedAt: new Date().toISOString(), digestUntil: new Date(Date.now() + 3600000).toISOString(), dietLevel: 1 }],
-      dietLevels: { [itemId]: { level: 1, lastDigestUntil: new Date(Date.now() + 3600000).toISOString() } },
-    }),
-  };
   service.dataService = { getItemById: (id) => food(id) };
 
   const boundaryBase = 5_000_000;
@@ -68,35 +59,61 @@ async function run() {
     boundaryBase + 2700,
   );
 
+  const consumed = [];
+  service.inventoryService = {
+    getItemCount: async (_id, itemId) => ['meat', 'carrot', 'fish'].includes(itemId) ? 2 : 0,
+    consumeFood: async (id, itemId) => {
+      consumed.push(itemId);
+      const future = new Date(Date.now() + 3600000).toISOString();
+      const currentDiet = id === 'char-1' ? character.diet : boundaryCharacter.diet;
+      const nextDiet = [...currentDiet.slice(-2), {
+        itemId,
+        consumedAt: new Date().toISOString(),
+        digestUntil: future,
+        dietLevel: 1,
+      }];
+      return {
+        id,
+        activeFoodBuff: { itemId, expiresAt: future },
+        diet: nextDiet,
+        dietLevels: Object.fromEntries(nextDiet.map((entry) => [entry.itemId, { level: entry.dietLevel, lastDigestUntil: entry.digestUntil }])),
+      };
+    },
+  };
+
   const character = {
     id: 'char-1', autoFeed: true, returnToTownAfterBattle: false,
     activeFoodBuff: { itemId: 'bread', expiresAt: new Date(Date.now() - 1000).toISOString() },
-    diet: [{ itemId: 'meat', consumedAt: new Date(Date.now() - 7200000).toISOString(), digestUntil: new Date(Date.now() - 3600000).toISOString(), dietLevel: 1 }],
-    dietLevels: { meat: { level: 1, lastDigestUntil: new Date(Date.now() - 3600000).toISOString() } },
+    diet: [
+      { itemId: 'meat', consumedAt: new Date(Date.now() - 7200000).toISOString(), digestUntil: new Date(Date.now() - 3600000).toISOString(), dietLevel: 1 },
+      { itemId: 'carrot', consumedAt: new Date(Date.now() - 7200000).toISOString(), digestUntil: new Date(Date.now() - 3600000).toISOString(), dietLevel: 1 },
+      { itemId: 'fish', consumedAt: new Date(Date.now() - 7200000).toISOString(), digestUntil: new Date(Date.now() - 3600000).toISOString(), dietLevel: 1 },
+    ],
+    dietLevels: {
+      meat: { level: 1, lastDigestUntil: new Date(Date.now() - 3600000).toISOString() },
+      carrot: { level: 1, lastDigestUntil: new Date(Date.now() - 3600000).toISOString() },
+      fish: { level: 1, lastDigestUntil: new Date(Date.now() - 3600000).toISOString() },
+    },
   };
-  assert.equal(await service.tryAutoFeed(character, Date.now()), true);
-  assert.equal(character.activeFoodBuff.itemId, 'meat');
-
   const boundaryCharacter = {
     ...character,
-    activeFoodBuff: {
-      itemId: 'bread',
-      expiresAt: new Date(Date.now() + 1000).toISOString(),
-    },
-    dietLevels: {
-      meat: {
-        level: 1,
-        lastDigestUntil: new Date(Date.now() - 3600000).toISOString(),
-      },
-    },
+    id: 'char-2',
+    activeFoodBuff: { itemId: 'bread', expiresAt: new Date(Date.now() + 1000).toISOString() },
   };
+
+  assert.equal(await service.tryAutoFeed(character, Date.now()), true);
+  assert.deepEqual(consumed, ['meat', 'carrot', 'fish']);
+  assert.equal(character.activeFoodBuff.itemId, 'fish');
+
+  consumed.length = 0;
   assert.equal(
     await service.tryAutoFeed(boundaryCharacter, Date.now() + 2000),
     true,
   );
-  assert.equal(boundaryCharacter.activeFoodBuff.itemId, 'meat');
+  assert.deepEqual(consumed, ['meat', 'carrot', 'fish']);
+  assert.equal(boundaryCharacter.activeFoodBuff.itemId, 'fish');
 
-  console.log('Diet/Auto Feed boundary regressions: 9 assertions passed.');
+  console.log('Diet/Auto Feed boundary regressions: 13 assertions passed.');
 }
 
 run().catch((error) => {

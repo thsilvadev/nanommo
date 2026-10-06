@@ -821,29 +821,39 @@ export class BattleService {
     if (activeExpiresAt > boundaryAt) return false;
 
     const now = Date.now();
-    const configuredIds = [
-      ...(Array.isArray(character.diet) ? character.diet.map((entry) => entry.itemId) : []),
-      ...Object.keys(character.dietLevels ?? {}),
-    ];
-    const candidates = [...new Set(configuredIds)];
+    let consumedAny = false;
 
-    for (const itemId of candidates) {
-      const definition = this.dataService.getItemById(itemId);
-      if (definition?.type !== 'food' || definition.effect?.type !== 'food_buff') continue;
+    // Fill every currently eligible Diet slot in the same authoritative boundary.
+    // Each successful consumeFood() mutates Character.diet, so re-read the current
+    // Diet on every pass. This naturally preserves FIFO rotation and the rule that
+    // the same food cannot be consumed again while it is still digesting.
+    for (let pass = 0; pass < 3; pass++) {
+      const diet = Array.isArray(character.diet) ? character.diet : [];
+      let consumedThisPass = false;
 
-      const lastDigestUntil = character.dietLevels?.[itemId]?.lastDigestUntil
-        ? Date.parse(character.dietLevels[itemId].lastDigestUntil)
-        : 0;
-      if (lastDigestUntil > now) continue;
+      for (const entry of diet) {
+        const itemId = entry?.itemId;
+        if (!itemId) continue;
 
-      if ((await this.inventoryService.getItemCount(character.id, itemId)) <= 0) continue;
+        const definition = this.dataService.getItemById(itemId);
+        if (definition?.type !== 'food' || definition.effect?.type !== 'food_buff') continue;
 
-      const updated = await this.inventoryService.consumeFood(character.id, itemId);
-      Object.assign(character, updated);
-      return true;
+        const digestUntil = entry?.digestUntil ? Date.parse(entry.digestUntil) : 0;
+        if (digestUntil > now) continue;
+
+        if ((await this.inventoryService.getItemCount(character.id, itemId)) <= 0) continue;
+
+        const updated = await this.inventoryService.consumeFood(character.id, itemId);
+        Object.assign(character, updated);
+        consumedAny = true;
+        consumedThisPass = true;
+        break;
+      }
+
+      if (!consumedThisPass) break;
     }
 
-    return false;
+    return consumedAny;
   }
 
   private applyResolvedFoodState(character: Character, battle: BattleQueueEntry): void {
