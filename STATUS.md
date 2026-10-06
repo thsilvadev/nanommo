@@ -1,7 +1,17 @@
 # NanoMMO — Implementation Status
 
-**Last Updated:** 2026-10-06 (fixed Diet Auto Feed boundary reliability at empty Grind queue)
-**Session Focus:** Diet Auto Feed boundary reliability and authoritative Grind continuity.
+**Last Updated:** 2026-10-06 (implemented direct-damage ±1% variance)
+**Session Focus:** Small seeded variance for direct attacks/skills, with a hard DOT exclusion.
+
+### Latest follow-up — direct-damage-variance (2026-10-06)
+
+Implemented a server/shared BattleEngine rule for direct damage: every successful basic Attack or damaging Skill from either character or monster now rolls one uniform seeded multiplier in the 0.99–1.01 range. The roll is applied after hit/crit, mitigation and existing direct-damage modifiers, immediately before the existing integer rounding/minimum-damage handling. Misses stay at 0 and do not consume a variance roll.
+
+The variance is centralized in `BattleEngine.applyDirectDamageVariance()` and uses the existing Mulberry32 battle RNG, so the battle remains deterministic/replayable for the same seed while different seeds can produce small damage differences.
+
+The current engine has no active damage-over-time tick implementation. The OpenSpec/root SPEC contract therefore explicitly excludes DOT ticks from direct variance and establishes the future invariant: when a DOT is implemented, its per-tick damage N and tick interval M are fixed at application time and reused without rerolling/recalculation on later ticks.
+
+Regression coverage: 4/4 focused direct-damage tests passed (±1% range, same-seed determinism, different-seed variation, and misses remaining zero). Shared build, API build, frontend build, strict OpenSpec validation, and git diff --check passed. Frontend still reports the repository's existing non-fatal component CSS-budget/CommonJS warnings. No production deployment was performed.
 
 ### Latest follow-up — diet-autofeed-boundary-reliability (2026-10-06)
 

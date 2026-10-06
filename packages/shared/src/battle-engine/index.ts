@@ -412,6 +412,17 @@ export class BattleEngine {
   }
 
   /**
+   * Apply the requested small variance to an already-final direct-damage value.
+   * The roll is intentionally seeded and belongs after mitigation/multipliers,
+   * but before the existing integer rounding and minimum-damage rule.
+   * DOT ticks must not call this helper.
+   */
+  static applyDirectDamageVariance(finalDamage: number, rng: Mulberry32): number {
+    const multiplier = 0.99 + rng.next() * 0.02;
+    return finalDamage * multiplier;
+  }
+
+  /**
    * Calculate hit chance given accuracy and evasion
    */
   static calculateHitChance(accuracy: number, evasion: number): number {
@@ -595,8 +606,9 @@ export class BattleEngine {
             const crit = landed && rng.chance(self.critChance / 100);
             const baseDamage = self.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
             const mitigation = BattleEngine.calculatePhysicalDamage(baseDamage, foe.def);
+            const finalDamage = mitigation * meleeMult;
             const damage = landed
-              ? Math.max(1, Math.floor(mitigation * meleeMult))
+              ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
               : 0;
             foe.hp = Math.max(0, foe.hp - damage);
 
@@ -739,14 +751,13 @@ export class BattleEngine {
               );
               const crit = landed && rng.chance(self.critChance / 100);
               const raw = (isMagic ? self.matk : self.atk) * mult * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
+              const finalDamage = (isMagic
+                ? BattleEngine.calculateMagicDamage(raw, foe.mdefPercent)
+                : BattleEngine.calculatePhysicalDamage(raw, foe.def)) * archetypeMult;
               const damage = landed
                 ? Math.max(
                     1,
-                    Math.floor(
-                      (isMagic
-                        ? BattleEngine.calculateMagicDamage(raw, foe.mdefPercent)
-                        : BattleEngine.calculatePhysicalDamage(raw, foe.def)) * archetypeMult,
-                    ),
+                    Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)),
                   )
                 : 0;
               foe.hp = Math.max(0, foe.hp - damage);
@@ -794,14 +805,16 @@ export class BattleEngine {
           );
           const crit = landed && rng.chance(foe.critChance / 100);
           const raw = foe.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
-          let damage = landed
-            ? Math.max(1, Math.floor(BattleEngine.calculatePhysicalDamage(raw, self.def)))
-            : 0;
-          // SPEC §8.3: defend reduces the next incoming hit by a flat 30%
+          let finalDamage = BattleEngine.calculatePhysicalDamage(raw, self.def);
+          // SPEC §8.3: defend reduces the next incoming hit by a flat 30%.
+          // This is a final damage modifier, so variance is applied after it.
           if (self.defending) {
-            damage = Math.floor(damage * (1 - BattleEngine.DEFEND_DAMAGE_REDUCTION));
+            finalDamage *= 1 - BattleEngine.DEFEND_DAMAGE_REDUCTION;
             self.defending = false;
           }
+          const damage = landed
+            ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
+            : 0;
           self.hp = Math.max(0, self.hp - damage);
           record({
             tick,
@@ -853,8 +866,9 @@ export class BattleEngine {
             const raw =
               (String(def.damageType ?? 'melee') === 'magic' ? foe.matk : foe.atk) *
               Number(effect.dmgMult ?? 1);
+            const finalDamage = BattleEngine.calculatePhysicalDamage(raw, self.def);
             const damage = landed
-              ? Math.max(1, Math.floor(BattleEngine.calculatePhysicalDamage(raw, self.def)))
+              ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
               : 0;
             self.hp = Math.max(0, self.hp - damage);
             record({

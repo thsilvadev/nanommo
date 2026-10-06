@@ -570,6 +570,14 @@ Stored in `BattleQueueEntry.log` (and copied verbatim into `Character.lastDeathL
 
 The frontend's "last death" modal renders: how the battle started (map, monster, starting stats), a scrollable event feed (damage sources highlighted), and the final blow.
 
+### 7.7.1 Direct damage variance
+
+Every successful direct basic attack or damaging Skill from either a character or monster applies one server-side seeded damage multiplier uniformly between **0.99 and 1.01** (-1% to +1%) to the final damage after hit/crit, mitigation and all existing direct-damage modifiers, immediately before integer rounding and the minimum-damage rule. Misses remain 0 and do not consume a direct-damage variance roll.
+
+Damage-over-time ticks are excluded. When a future DOT effect is applied, its per-tick damage value N and tick interval M are determined once and stored on that effect; subsequent ticks reuse the stored N and M without rerolling or recalculating them.
+
+The variance uses the battle engine's seeded PRNG, preserving same-seed battle replay determinism.
+
 ### 7.8 Balance note: under-leveling on purpose
 
 Because the XP curve (§6) is intentionally punishing, a well-built gambit should let a character farm monsters **1–2 levels above the map's "comfortable" band** for faster XP/hour, at higher risk. Concretely: a level-3 character with a solid gambit (potion-on-low-HP, food-on-hungry, correct weapon matchup per §11.3 favored archetype) should be able to sustainably farm level 5–6 monsters in Green Grounds. This is achieved naturally by the formulas above (soft-cap physical mitigation means a slight level disadvantage isn't a hard wall) and should be validated in balance testing (§19.3) — if a level-3 character with the example gambit page (`gambit_catalog.json → exampleGambitPage`) reliably loses to a level-6 Dire Wolf Alpha, DEF/HP constants need adjustment, not the design intent.
