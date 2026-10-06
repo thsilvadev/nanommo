@@ -1,6 +1,6 @@
 # NanoMMO — Implementation Status
 
-**Last Updated:** 2026-10-01 (finalized authoritative Character/Inventory realtime synchronization and documented failure modes)
+**Last Updated:** 2026-10-06 (finalized authoritative Character/Inventory realtime synchronization and documented failure modes)
 **Session Focus:** Play shell map/inventory/info-panel polish, Mastery tab, Gambit row controls, active Gambit HUD title, and navbar branding.
 
 ### Latest follow-up — Login/Auth visual shell + persistent login music (2026-09-29)
@@ -1282,3 +1282,23 @@ Key handoff rules:
 Next-session OpenSpec: openspec/changes/character-ui-scale-layout/.
 
 Validation note: the new OpenSpec artifacts were created at session close. Implementation is intentionally deferred to the next session.
+
+## Character/Gambit/right-panel UI follow-up — 2026-10-06
+
+Finalized the follow-up corrections to `character-ui-scale-layout` and the contextual right-panel typography.
+
+- Gambit selected-page border was reduced from 8px to 2px while retaining the solid green active-state treatment.
+- Empty Gambit pages no longer collapse the editor area: the `app-gambit-editor` host is explicitly block-level and full-width inside the Character Gambit panel.
+- Gambit line controls were restructured so the enable/disable switch sits below the remove button in a dedicated vertical `line-tools` column; this keeps the toggle from increasing the main condition/action row footprint.
+- Previously enlarged Character, Gambit and Mastery typography was reduced by approximately 10% after visual review; the sheet-header character name remains excluded from the scaling rule.
+- Right-panel event log text was increased by approximately 30% (`16px` → `21px`).
+- Quest NPC dialogue `.quest-text` was doubled (`11px` → `22px`). Quest choice-button sizing was intentionally left unchanged.
+
+Validation after the final UI corrections:
+- `git diff --check`: passed.
+- `pnpm --filter @nanommo/frontend build`: passed; only existing/non-blocking Angular CSS-budget and CommonJS warnings remain.
+- No backend/gameplay/API contract was changed.
+- No production deployment performed.
+- Live backend/browser smoke was not claimed where unavailable.
+
+Documentation decision: `SPEC.md`, `ARCHITECTURE.md`, and `PLAY_WINDOW_SPEC.md` require no changes for this follow-up because these edits only refine presentation/typography and preserve the existing server-authoritative contracts and UI architecture.
