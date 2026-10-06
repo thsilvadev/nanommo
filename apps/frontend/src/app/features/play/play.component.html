@@ -2,7 +2,7 @@
 <header class="game-topbar">
   <div class="brand-logo"><img src="/assets/lords-transparent.png" alt="Lords"></div>
   <nav class="main-tabs" aria-label="Game navigation">
-    <button [class.active]="is('/play/grind')||is('/play')" (click)="go('/play/grind')">Grind</button>
+    <button [class.active]="is('/play/grind')||is('/play')" (click)="go('/play/grind')">Play</button>
     <button [class.active]="is('/play/character')" (click)="goCharacter()">Character</button>
     <button (click)="go('/play/gambits')">Gambits</button>
     <button class="muted">Tournament</button><button class="muted">Trade</button>
