@@ -7,8 +7,9 @@ import { CharacterStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
 import { ApiService } from '../../core/api.service';
 import { GambitEditorComponent } from '../gambit/gambit-editor.component';
+import { InventoryGrid } from '../play/components';
 
-@Component({selector:'app-character-page',standalone:true,imports:[CommonModule,GambitEditorComponent,CdkDrag,CdkDropList],templateUrl:'./character-page.component.html',styleUrl:'./character-page.component.css'})
+@Component({selector:'app-character-page',standalone:true,imports:[CommonModule,GambitEditorComponent,InventoryGrid,CdkDrag,CdkDropList],templateUrl:'./character-page.component.html',styleUrl:'./character-page.component.css'})
 export class CharacterPageComponent implements OnInit {
  readonly character=inject(CharacterStore);readonly inventory=inject(InventoryStore);readonly catalog=inject(CatalogService);readonly api=inject(ApiService);private readonly router=inject(Router);private readonly route=inject(ActivatedRoute);readonly equipmentTargetIds=['character-page-slot-head','character-page-slot-body','character-page-slot-mainHand','character-page-slot-offHand','character-page-slot-shoes','character-page-slot-cape','character-page-slot-accessoryLeft','character-page-slot-accessoryRight'];
  @Input() tab='character';weaponLevels=signal<Record<string,number>>({});selectedWeapon=signal('sword');pending=signal<Record<string,number>>({});saving=signal(false);error=signal<string|null>(null);selectedItem=signal<any|null>(null);
@@ -40,5 +41,4 @@ export class CharacterPageComponent implements OnInit {
  async doubleClickInventory(it:any){const def:any=this.catalog.item(it.itemId);if(def?.type==='equipment'&&def.slot){const slot=def.slot==='accessory'?(this.inventory.equipment().some(e=>e.slot==='accessoryLeft')?'accessoryRight':'accessoryLeft'):def.slot;try{await this.inventory.equip(slot,it.itemId)}catch(err:any){this.error.set(err?.error?.message??'Equipment change rejected by server')}}}
  async doubleClickEquipped(slot:string){try{await this.inventory.unequip(slot)}catch(err:any){this.error.set(err?.error?.message??'Unequip rejected by server')}}
  async dropToInventory(e:CdkDragDrop<any>){const it=e.item.data;if(it?.source==='equipment')await this.doubleClickEquipped(it.slot);}
-
 }

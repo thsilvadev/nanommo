@@ -57,6 +57,14 @@ Updated `PLAY_WINDOW_SPEC.md` with the new desktop layout contract. No gameplay/
 
 Corrected the desktop layout after visual review: the left/center/right play zones now share the same fixed viewport height; Grind owns one central framed workspace containing the inventory below the Location header and to the left of the 4:3 map; equipment and diet cells are fixed square dimensions with larger vertical equipment gaps; and play typography/tooltips were explicitly doubled through CSS font-size values/tokens, without browser zoom.
 
+### Latest follow-up — character-ui-scale-layout (2026-10-06)
+
+Implemented the Character desktop presentation pass using the existing shared InventoryGrid: Character now has Inventory + Attributes + Stats as three bottom-aligned central panels, Stats is a single column, and Attributes/Stats typography is doubled at desktop scale. The shared InventoryGrid keeps the existing tooltip, stack, consumable, drag/drop and double-click interaction path, including the global CharacterSummary equipment targets.
+
+Gambits now use doubled desktop typography (except the sheet-header character name), the selected page tab uses a solid 8px green border instead of the textual ACTIVE marker, and Add line/Save Page/Activate are semantically inside page-meta. Condition/action parameter groups are constrained to stay on one desktop row with matching node/line footprints. Mastery and Weapons now fill the shared desktop baseline with doubled typography.
+
+Validation: git diff --check passed; strict OpenSpec validation passed; frontend production build passed after reducing the Character CSS below its 5.12 kB component budget. The build still reports the repository's existing non-fatal style-budget warnings for several other components and the Gambit CSS. A live backend was unavailable on localhost during this session, so live interaction/browser smoke was not completed; no browser smoke result is claimed. No production deploy.
+
 ### Latest follow-up — play-ui-scale-layout alignment + Active Gambit (2026-10-05)
 
 Corrected the remaining desktop composition issues: equipment-column vertical spacing now matches the horizontal paper-doll gap; Grind now has an unbordered Active Gambit selector above the inventory, using the existing authoritative Gambit activation endpoint; inventory and map sub-panels are borderless; Auto Feed's checked thumb is restored; and the right Grind panel fills the shared shell height with top-aligned dynamic content.
