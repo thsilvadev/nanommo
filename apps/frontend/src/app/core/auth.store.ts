@@ -128,6 +128,24 @@ export class AuthStore {
     });
   }
 
+  loginWithGoogle(): void {
+    window.location.href = environment.apiBaseUrl + '/auth/google';
+  }
+
+  redeemGoogleHandoff(code: string): Observable<AuthTokens> {
+    this._isLoading.set(true);
+    this._error.set(null);
+    return this.api.post<AuthTokens>('/auth/google/redeem?code=' + encodeURIComponent(code), {}, { context: new HttpContext().set(SKIP_AUTH_REFRESH, true) }).pipe(
+      tap(tokens => this.setTokens(tokens)),
+      finalize(() => this._isLoading.set(false)),
+      catchError(err => {
+        const message = err.error?.message || 'Google login failed';
+        this._error.set(message);
+        return throwError(() => err);
+      }),
+    );
+  }
+
   login(identifier: string, password: string): Observable<AuthTokens> {
     this._isLoading.set(true);
     this._error.set(null);

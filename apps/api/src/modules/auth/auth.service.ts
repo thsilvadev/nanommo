@@ -89,7 +89,7 @@ export class AuthService {
     user.activeSessionId = sessionId;
     await this.userRepository.save(user);
 
-    return this.generateTokens(user.id, sessionId);
+    return this.generateTokensForUser(user.id, sessionId);
   }
 
   private async getForeignKeyColumn(
@@ -247,7 +247,7 @@ export class AuthService {
     user.lastLoginAt = new Date();
     await this.userRepository.save(user);
 
-    return this.generateTokens(user.id, sessionId);
+    return this.generateTokensForUser(user.id, sessionId);
   }
 
   async refresh(refreshToken: string): Promise<AuthTokenDto> {
@@ -263,7 +263,7 @@ export class AuthService {
       if (!user || user.activeSessionId !== payload.sessionId) {
         throw new UnauthorizedException('SESSION_INVALIDATED');
       }
-      return this.generateTokens(user.id, user.activeSessionId);
+      return this.generateTokensForUser(user.id, user.activeSessionId);
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('Invalid refresh token');
@@ -279,7 +279,7 @@ export class AuthService {
     }
   }
 
-  private async generateTokens(userId: string, sessionId: string): Promise<AuthTokenDto> {
+  async generateTokensForUser(userId: string, sessionId: string): Promise<AuthTokenDto> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new UnauthorizedException('User not found');

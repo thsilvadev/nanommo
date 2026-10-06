@@ -1328,3 +1328,24 @@ Validation after the final UI corrections:
 - Live backend/browser smoke was not claimed where unavailable.
 
 Documentation decision: `SPEC.md`, `ARCHITECTURE.md`, and `PLAY_WINDOW_SPEC.md` require no changes for this follow-up because these edits only refine presentation/typography and preserve the existing server-authoritative contracts and UI architecture.
+
+## Google OAuth authentication — 2026-10-06
+
+Implemented OpenSpec change google-oauth-authentication.
+
+- Added backend-mediated Google OIDC Authorization Code flow using google-auth-library, cryptographic state, PKCE S256, server-side ID-token validation, and Redis-backed ephemeral OAuth state.
+- Added /auth/google, /auth/google/callback, and one-time /auth/google/redeem handoff exchange. NanoMMO JWT/refresh tokens are never placed in the Google callback URL.
+- Google identity is keyed by provider=google + Google OIDC sub; a matching local email is rejected with explicit local-login guidance instead of automatic account merging.
+- First-time Google users are created without a password and without a Character; existing Character routing remains authoritative. Google verified email is accepted as verified.
+- Added Continue com Google to Login and Register plus /auth/google/callback.
+- User.passwordHash is now nullable for OAuth accounts; migration 1793000000000-GoogleOAuth added.
+- Added Google OAuth variables to .env.example; no Google secret was added to .env or frontend source.
+
+Verification:
+- pnpm exec openspec validate google-oauth-authentication --strict: passed.
+- pnpm --filter @nanommo/shared build: passed.
+- pnpm --filter @nanommo/api build: passed.
+- pnpm --filter frontend build: passed; existing non-blocking CSS-budget/CommonJS warnings remain.
+- git diff --check: passed.
+- Real Google login smoke test remains pending manual Google Cloud Console configuration and credentials.
+- No production deployment performed.

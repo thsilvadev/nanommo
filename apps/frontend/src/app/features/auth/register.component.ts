@@ -19,7 +19,10 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
           </div>
         }
 
-        <form (ngSubmit)="onSubmit()" #registerForm="ngForm" class="space-y-1">
+        <div class="my-4 text-center text-gray-400">ou</div>
+          <button type="button" class="auth-button" (click)="loginWithGoogle()">Continuar com Google</button>
+
+          <form (ngSubmit)="onSubmit()" #registerForm="ngForm" class="space-y-1">
           <div>
             <label for="email" class="block text-sm font-medium text-gray-300">E-mail</label>
             <input
@@ -93,6 +96,8 @@ export class RegisterComponent {
 
   isLoading = this.authStore.isLoading;
   error = this.authStore.error;
+
+  loginWithGoogle(): void { this.authStore.loginWithGoogle(); }
 
   onSubmit(): void {
     const { email, password } = this.form;

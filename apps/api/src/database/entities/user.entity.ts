@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToOne, Unique, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Unique } from 'typeorm';
 
 @Entity('users')
 @Unique(['provider', 'email'])
@@ -9,8 +9,8 @@ export class User {
   @Column({ type: 'varchar' })
   email!: string;
 
-  @Column({ type: 'varchar' })
-  passwordHash!: string;
+  @Column({ type: 'varchar', nullable: true })
+  passwordHash!: string | null;
 
   @Column({ type: 'boolean', default: false })
   emailVerified!: boolean;

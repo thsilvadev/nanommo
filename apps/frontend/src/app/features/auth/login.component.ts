@@ -27,7 +27,10 @@ import { LoginMusicService } from '../../shared/login-music.service';
           </div>
         }
 
-        <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="space-y-5">
+        <div class="my-4 text-center text-gray-400">ou</div>
+          <button type="button" class="auth-button" (click)="loginWithGoogle()">Continuar com Google</button>
+
+          <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="space-y-5">
           <div>
             <label for="identifier" class="block text-sm font-medium text-gray-300 mb-1">E-mail ou nome do personagem</label>
             <input
@@ -111,6 +114,8 @@ export class LoginComponent {
     const urlParams = new URLSearchParams(window.location.search);
     this.returnUrlReason.set(urlParams.get('reason'));
   }
+
+  loginWithGoogle(): void { this.authStore.loginWithGoogle(); }
 
   onSubmit(): void {
     const { identifier, password } = this.form;
