@@ -188,6 +188,7 @@ export class GrindInfo implements OnDestroy {
  monsterHp(entry:any){return Number(this.lastEvent(entry)?.hpRemaining?.monster??entry.log?.header?.monsterSnapshot?.hp??0)}
  characterMaxHp(entry:any){return Number(entry.log?.header?.characterSnapshot?.maxHp??0)}
  monsterMaxHp(entry:any){return Number(entry.log?.header?.monsterSnapshot?.maxHp??entry.log?.header?.monsterSnapshot?.hp??0)}
+ monsterLevel(entry:any){return Number(this.monsterSnapshot(entry).level??0)}
  percent(v:number,max:number){return max>0?Math.max(0,Math.min(100,v/max*100)):0}
  recentEvents(entry:any){const tick=this.elapsedTicks(entry);return this.events(entry).filter((e:any)=>Number(e.tick??0)<=tick).slice(-4).reverse()}
  eventText(e:any){if(e.action==='attack'){const critical=e.crit?' CRITICAL!':'';return e.actor==='monster'?'Monster attacks for '+Number(e.damage??0)+critical:'Character attacks for '+Number(e.damage??0)+critical}if(e.action==='regen')return 'You regenerated '+Number(e.amount??0)+' '+String(e.resource??'HP')+'.';if(e.action==='use_item')return (e.actor==='character'?'Character uses ':'Monster uses ')+String(e.itemId??'item').replaceAll('_',' ');if(e.action==='use_skill')return (e.actor==='character'?'Character casts ':'Monster casts ')+String(e.skillId??'skill').replaceAll('_',' ');return String(e.action??'event')}
