@@ -1,0 +1,31 @@
+<section class="battle-logs-page">
+  <div class="battle-logs-panel">
+    <header class="logs-header"><div><div class="eyebrow">COMBAT HISTORY</div><h1>Battle Logs</h1></div><span class="logs-count" *ngIf="!loading()">{{battles().length}} battles</span></header>
+    <div class="logs-columns" *ngIf="!loading() && battles().length"><span>Result</span><span>Enemy</span><span>Level</span><span>Map</span><span>Date & Time</span></div>
+    <div class="logs-list">
+      <div class="state" *ngIf="loading()">Loading battle history...</div>
+      <div class="state error" *ngIf="!loading() && error()">{{error()}}</div>
+      <div class="state" *ngIf="!loading() && !error() && !battles().length">No battles have been recorded yet.</div>
+      <button class="battle-row" *ngFor="let battle of battles()" type="button" (click)="openBattle(battle)">
+        <span class="result" [class.win]="battle.outcome==='win'" [class.loss]="battle.outcome==='loss'">{{battle.outcome==='win'?'VICTORY':'DEFEAT'}}</span>
+        <span class="enemy">{{battle.monsterName}}</span><span class="level">Lv. {{battle.monsterLevel}}</span><span class="map">{{battle.mapName}}</span><time>{{formatDate(battle.startAt)}}</time>
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="log-backdrop" *ngIf="selected() || detailLoading() || detailError()" (click)="close()">
+  <section class="log-modal" role="dialog" aria-modal="true" aria-labelledby="battle-log-title" (click)="$event.stopPropagation()">
+    <header class="log-modal-header" *ngIf="selected() as battle">
+      <div><div class="eyebrow">BATTLE LOG</div><h2 id="battle-log-title">{{battle.monsterName}} <small>Lv. {{battle.monsterLevel}}</small></h2><div class="battle-meta">{{battle.mapName}} · {{formatDate(battle.startAt)}} · {{formatDuration(battle.startAt,battle.endAt)}}</div></div>
+      <div class="modal-result" [class.win]="battle.outcome==='win'" [class.loss]="battle.outcome==='loss'">{{battle.outcome==='win'?'VICTORY':'DEFEAT'}}</div>
+      <button type="button" class="close" (click)="close()" aria-label="Close battle log">×</button>
+    </header>
+    <div class="log-summary" *ngIf="selected() as battle"><span>Start HP <strong>{{battle.log?.header?.characterSnapshot?.hp ?? '—'}}</strong></span><span>Enemy HP <strong>{{battle.log?.header?.monsterSnapshot?.hp ?? '—'}}</strong></span><span>XP <strong>+{{battle.xpGain}}</strong></span><span>Gold <strong>+{{battle.goldGain}}</strong></span></div>
+    <div class="event-feed" *ngIf="selected() as battle">
+      <article class="event" *ngFor="let event of (battle.log?.events ?? [])"><span class="tick">T{{event.tick ?? 0}}</span><div class="event-body"><div>{{eventText(event)}}</div><small *ngIf="event.hpRemaining as hp">HP: You {{hp.character}} · Enemy {{hp.monster}}</small></div></article>
+      <div class="final-result" [class.win]="battle.outcome==='win'" [class.loss]="battle.outcome==='loss'">{{battle.outcome==='win'?'Victory':'Defeat'}} · Battle finished after {{battle.log?.durationTicks ?? 0}} ticks</div>
+    </div>
+    <div class="modal-state" *ngIf="detailLoading()">Loading battle log...</div><div class="modal-state error" *ngIf="detailError()">{{detailError()}}</div>
+  </section>
+</div>

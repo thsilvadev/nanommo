@@ -1349,3 +1349,11 @@ Verification:
 - git diff --check: passed.
 - Real Google login smoke test remains pending manual Google Cloud Console configuration and credentials.
 - No production deployment performed.
+
+### Latest feature — battle-logs-page (2026-10-07)
+
+Implemented the authenticated Battle Logs page using the existing resolved BattleQueueEntry audit trail. The backend now exposes newest-first resolved battle summaries and an ownership-scoped detail endpoint for the persisted full log; no second history table or combat simulation was introduced.
+
+The frontend adds /play/battle-logs to the existing Play shell, including a one-row-per-battle history with result, enemy, enemy level, map and date/time, plus a near-full-height modal with a scrollable chronological human-readable combat feed. The page follows the existing center-panel geometry and floor alignment with the left/right panels.
+
+Verification passed: strict OpenSpec validation, git diff --check, shared build, API build and frontend build. The frontend reports the existing CSS budget/CommonJS warnings plus a 508-byte CSS-budget warning for the new Battle Logs stylesheet; all are non-fatal. No production deployment was performed.

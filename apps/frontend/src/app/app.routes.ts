@@ -18,6 +18,7 @@ export const routes: Routes = [
       { path: 'grind', loadComponent: () => import('./features/play/grind.component').then((m) => m.GrindComponent) },
       { path: 'character', loadComponent: () => import('./features/character/character-page.component').then((m) => m.CharacterPageComponent) },
       { path: 'gambits', loadComponent: () => import('./features/character/character-page.component').then((m) => m.CharacterPageComponent), data: { defaultTab: 'gambits' } },
+      { path: 'battle-logs', loadComponent: () => import('./features/play/battle-logs.component').then((m) => m.BattleLogsComponent) },
     ],
   },
   { path: '**', redirectTo: '/login' },

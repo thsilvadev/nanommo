@@ -95,6 +95,31 @@ export class BattleService {
     });
   }
 
+  async getResolvedBattleHistory(characterId: string, limit = 100): Promise<any[]> {
+    const safeLimit = Math.max(1, Math.min(100, Number(limit) || 100));
+    const rows = await this.battleQueueRepo.find({
+      where: { characterId, resolved: true }, order: { startAt: 'DESC' }, take: safeLimit,
+    });
+    return rows.map((battle) => {
+      const monster = this.dataService.getMonsterById(battle.monsterId);
+      const map = this.dataService.getMapById(battle.mapId);
+      return { id:battle.id, outcome:battle.outcome, monsterId:battle.monsterId, monsterName:monster?.name ?? battle.monsterId,
+        monsterLevel:Number(monster?.level ?? 0), mapId:battle.mapId, mapName:map?.name ?? battle.mapId,
+        startAt:battle.startAt, endAt:battle.endAt, xpGain:Number(battle.xpGain ?? 0), goldGain:Number(battle.goldGain ?? 0) };
+    });
+  }
+
+  async getResolvedBattleDetail(characterId: string, battleId: string): Promise<any | null> {
+    const battle = await this.battleQueueRepo.findOne({ where: { id:battleId, characterId, resolved:true } });
+    if (!battle) return null;
+    const monster = this.dataService.getMonsterById(battle.monsterId);
+    const map = this.dataService.getMapById(battle.mapId);
+    return { id:battle.id, outcome:battle.outcome, monsterId:battle.monsterId, monsterName:monster?.name ?? battle.monsterId,
+      monsterLevel:Number(monster?.level ?? 0), mapId:battle.mapId, mapName:map?.name ?? battle.mapId, startAt:battle.startAt,
+      endAt:battle.endAt, xpGain:Number(battle.xpGain ?? 0), goldGain:Number(battle.goldGain ?? 0), drops:battle.drops ?? [],
+      itemsConsumed:battle.itemsConsumed ?? [], hpAfter:battle.hpAfter, spAfter:battle.spAfter, seedUsed:battle.seedUsed, log:battle.log };
+  }
+
   /**
    * Get a single battle by ID
    */

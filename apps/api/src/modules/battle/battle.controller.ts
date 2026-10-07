@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards, Request, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Param, UseGuards, Request, BadRequestException, NotFoundException } from '@nestjs/common';
 import { BattleService } from './battle.service';
 import { CharacterService } from '../character/character.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -33,6 +33,22 @@ export class BattleController {
     }
 
     return queue;
+  }
+
+  @Get('history')
+  async getHistory(@Request() req: any) {
+    const character = await this.characterService.getCharacterByUserId(req.user.userId);
+    if (!character) throw new BadRequestException('Character not found');
+    return this.battleService.getResolvedBattleHistory(character.id);
+  }
+
+  @Get(':battleId')
+  async getHistoryDetail(@Request() req: any, @Param('battleId') battleId: string) {
+    const character = await this.characterService.getCharacterByUserId(req.user.userId);
+    if (!character) throw new BadRequestException('Character not found');
+    const battle = await this.battleService.getResolvedBattleDetail(character.id, battleId);
+    if (!battle) throw new NotFoundException('Battle not found');
+    return battle;
   }
 
   /**

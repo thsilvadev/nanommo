@@ -4,7 +4,7 @@
   <nav class="main-tabs" aria-label="Game navigation">
     <button [class.active]="is('/play/grind')||is('/play')" (click)="go('/play/grind')">Play</button>
     <button [class.active]="is('/play/character')" (click)="goCharacter()">Character</button>
-    <button (click)="go('/play/gambits')">Gambits</button>
+    <button (click)="go('/play/gambits')">Gambits</button><button [class.active]="is('/play/battle-logs')" (click)="go('/play/battle-logs')">Battle Logs</button>
     <button class="muted">Tournament</button><button class="muted">Trade</button>
   </nav>
   <div class="top-character" *ngIf="character.character() as c">

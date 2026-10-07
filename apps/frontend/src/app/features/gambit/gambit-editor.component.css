@@ -10,20 +10,28 @@
 }
 .gambit-head {
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: end;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
   flex: 0 0 auto;
 }
 .gambit-head small {
-  font: 18px Arial;
-  letter-spacing: 2px;
+  font: 15px Arial;
+  line-height: 1.35;
   color: #806c56;
+  text-align: justify;
 }
 .gambit-head h2 {
   font: 27px Georgia;
   color: #caa967;
   margin: 4px 0 0;
+}
+.gambit-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 820px;
+  width: 100%;
 }
 .page-tabs {
   display: flex;
