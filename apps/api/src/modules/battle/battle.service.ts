@@ -792,6 +792,7 @@ export class BattleService {
       ? new Date(character.activeFoodBuff.expiresAt).getTime()
       : 0;
     const hungryAfterBattle = !foodExpiresAt || foodExpiresAt <= Date.now();
+    const leavingMapId = character.currentMapId;
     if (returningToTown || hungryAfterBattle) {
       // Town return and food exhaustion both end the current grind cleanly.
       // The current battle is already resolved, so no unresolved encounter may remain.
@@ -800,6 +801,11 @@ export class BattleService {
       character.status = 'town';
       character.lastSeenAt = new Date();
       await this.characterRepo.save(character);
+
+      if (leavingMapId) {
+        await this.gatewayService.removePlayerFromMap(character.id, leavingMapId);
+        await this.gatewayService.publishMapPresence(leavingMapId);
+      }
     }
 
     // SPEC §3.4 / §6.3: a level-up changes derived stats (maxHp/maxSp/atk...),
@@ -965,6 +971,9 @@ export class BattleService {
     };
 
     await this.characterRepo.save(character);
+
+    await this.gatewayService.removePlayerFromMap(character.id, battle.mapId);
+    await this.gatewayService.publishMapPresence(battle.mapId);
 
     // Everything still queued assumed the character survived
     const doomed = await this.battleQueueRepo.find({

@@ -1,35 +1,49 @@
 <div class="game-app">
-<header class="game-topbar">
-  <div class="brand-logo"><img src="/assets/lords-transparent.png" alt="Lords"></div>
-  <nav class="main-tabs" aria-label="Game navigation">
-    <button [class.active]="is('/play/grind')||is('/play')" (click)="go('/play/grind')">Play</button>
-    <button [class.active]="is('/play/character')" (click)="goCharacter()">Character</button>
-    <button (click)="go('/play/gambits')">Gambits</button><button [class.active]="is('/play/battle-logs')" (click)="go('/play/battle-logs')">Battle Logs</button>
-    <button class="muted">Tournament</button><button class="muted">Trade</button>
-  </nav>
-  <div class="top-character" *ngIf="character.character() as c">
-    <div class="avatar-mini">{{c.name.slice(0,1).toUpperCase()}}</div>
-    <div><strong>{{c.name}}</strong><small>Lv. {{c.level}}</small></div>
-    <div class="xp-stack"><small>{{activeGambitTitle()}}</small><div class="xp-mini" [title]="xpTitle()"><span [style.width.%]="xpWidth()"></span></div></div>
-    <div class="resource gold"><img src="/assets/ui/coin.svg" alt=""> {{c.gold | number}}</div>
-  </div>
-  <div class="top-actions"><app-login-music-control variant="header" /><button (click)="chatOpen.set(!chatOpen())">CHAT</button><div class="settings-wrap"><button aria-label="Settings" (click)="settingsOpen.set(!settingsOpen())"><img src="/assets/ui/settings.svg" alt=""></button><div class="settings-menu" *ngIf="settingsOpen()"><button (click)="openDeleteAccount()">Delete account</button></div></div><button (click)="auth.logout()">EXIT</button></div>
-</header>
-<main class="game-board">
-  <aside class="zone-left"><app-character-summary /></aside>
-  <section class="zone-center"><router-outlet /></section>
-  <aside class="zone-right"><app-grind-info /></aside>
-</main>
-<app-chat-drawer [open]="chatOpen()" (closed)="chatOpen.set(false)" />
+  <header class="game-topbar">
+    <div class="brand-logo"><img src="/assets/lords-transparent.png" alt="Lords"></div>
+    <nav class="main-tabs" aria-label="Game navigation">
+      <button [class.active]="is('/play/grind')||is('/play')" (click)="go('/play/grind')">Play</button>
+      <button [class.active]="is('/play/character')" (click)="goCharacter()">Character</button>
+      <button (click)="go('/play/gambits')">Gambits</button><button [class.active]="is('/play/battle-logs')"
+        (click)="go('/play/battle-logs')">Battle Logs</button>
+      <button class="muted">Tournament</button><button class="muted">Trade</button>
+    </nav>
+    <div class="top-character" *ngIf="character.character() as c">
+      <div class="avatar-mini">{{c.name.slice(0,1).toUpperCase()}}</div>
+      <div><strong>{{c.name}}</strong><small>Lv. {{c.level}}</small></div>
+      <div class="xp-stack"><small>{{activeGambitTitle()}}</small>
+        <div class="xp-mini" [title]="xpTitle()"><span [style.width.%]="xpWidth()"></span></div>
+      </div>
+      <div class="resource gold"><img src="/assets/ui/coin.svg" alt=""> {{c.gold | number}}</div>
+    </div>
+    <div class="top-actions"><app-login-music-control variant="header" /><button
+        (click)="chatOpen.set(!chatOpen())">CHAT</button>
+      <div class="settings-wrap"><button aria-label="Settings" (click)="settingsOpen.set(!settingsOpen())"><img
+            src="/assets/ui/settings.svg" alt=""></button>
+        <div class="settings-menu" *ngIf="settingsOpen()"><button (click)="openDeleteAccount()">Delete account</button>
+        </div>
+      </div><button (click)="auth.logout()">EXIT</button>
+    </div>
+  </header>
+  <main class="game-board">
+    <aside class="zone-left"><app-character-summary /></aside>
+    <section class="zone-center"><router-outlet /></section>
+    <aside class="zone-right"><app-grind-info /></aside>
+  </main>
+  <app-chat-drawer [open]="chatOpen()" (closed)="chatOpen.set(false)" />
 </div>
 
 <div class="account-modal-backdrop" *ngIf="deleteAccountOpen()" (click)="cancelDeleteAccount()">
-  <section class="account-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title" (click)="$event.stopPropagation()">
+  <section class="account-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title"
+    (click)="$event.stopPropagation()">
     <h2 id="delete-account-title">Delete account</h2>
     <p>This permanently deletes your character, inventory, equipment, progression and account data.</p>
     <p>Type <strong>DELETE</strong> to confirm.</p>
-    <input [value]="deleteConfirm()" (input)="deleteConfirm.set($any($event.target).value)" autocomplete="off" spellcheck="false" aria-label="Type DELETE" />
+    <input [value]="deleteConfirm()" (input)="deleteConfirm.set($any($event.target).value)" autocomplete="off"
+      spellcheck="false" aria-label="Type DELETE" />
     <div class="modal-error" *ngIf="deleteAccountError()">{{deleteAccountError()}}</div>
-    <div class="modal-actions"><button class="cancel" (click)="cancelDeleteAccount()">Cancel</button><button class="danger" [disabled]="deleteConfirm()!=='DELETE'" (click)="confirmDeleteAccount()">Delete account</button></div>
+    <div class="modal-actions"><button class="cancel" (click)="cancelDeleteAccount()">Cancel</button><button
+        class="danger" [disabled]="deleteConfirm()!=='DELETE'" (click)="confirmDeleteAccount()">Delete account</button>
+    </div>
   </section>
 </div>

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { MapKillCounter, Character, User } from '../../database/entities';
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
+import { GatewayService } from '../gateway/gateway.service';
 
 @Injectable()
 export class MapService {
@@ -18,6 +19,7 @@ export class MapService {
     private readonly userRepo: Repository<User>,
     private readonly dataService: DataService,
     private readonly battleService: BattleService,
+    private readonly gatewayService: GatewayService,
   ) {}
 
   /**
@@ -99,6 +101,11 @@ export class MapService {
       character.returnToTownAfterBattle = true;
       await this.characterRepo.save(character);
 
+      if (mapId) {
+        await this.gatewayService.removePlayerFromMap(characterId, mapId);
+        await this.gatewayService.publishMapPresence(mapId);
+      }
+
       // Cancelling future entries is an optimization/safety cleanup. The persistent
       // flag is the authoritative guard, so a cleanup failure must never turn a
       // valid Town request into a 500 response. The resolving battle will discard
@@ -130,6 +137,12 @@ export class MapService {
     character.status = 'town';
     character.lastSeenAt = new Date();
     await this.characterRepo.save(character);
+
+    if (mapId) {
+      await this.gatewayService.removePlayerFromMap(characterId, mapId);
+      await this.gatewayService.publishMapPresence(mapId);
+    }
+
     try {
       await this.battleService.cancelPendingBattles(characterId);
     } catch (error) {
