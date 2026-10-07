@@ -265,15 +265,9 @@
   cursor: pointer;
 }
 @media (max-width: 600px) {
-  .gambit-head {
-    display: block;
-  }
   .head-actions {
     margin-top: 8px;
     overflow: auto;
-  }
-  .gambit-line {
-    grid-template-columns: 24px 1fr 20px;
   }
 }
 @media (max-width: 1199px) and (min-width: 900px) {

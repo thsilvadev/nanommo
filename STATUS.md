@@ -1357,3 +1357,18 @@ Implemented the authenticated Battle Logs page using the existing resolved Battl
 The frontend adds /play/battle-logs to the existing Play shell, including a one-row-per-battle history with result, enemy, enemy level, map and date/time, plus a near-full-height modal with a scrollable chronological human-readable combat feed. The page follows the existing center-panel geometry and floor alignment with the left/right panels.
 
 Verification passed: strict OpenSpec validation, git diff --check, shared build, API build and frontend build. The frontend reports the existing CSS budget/CommonJS warnings plus a 508-byte CSS-budget warning for the new Battle Logs stylesheet; all are non-fatal. No production deployment was performed.
+
+
+### Battle Logs production build follow-up — 2026-10-07
+
+The deployment command initially failed because `gambit-editor.component.css` exceeded the production `anyComponentStyle` maximum-error budget by 73 bytes (5.19 kB vs 5.12 kB). This was unrelated to the Battle Logs implementation; the new Battle Logs stylesheet was only a non-fatal warning.
+
+Fixed by removing duplicated responsive CSS rules from the Gambit editor's max-600px media query; the existing max-899px rules already provide the same behavior. The production budget is now met exactly at 5.12 kB.
+
+Final verification:
+- Exact deployment command `pnpm --filter @nanommo/shared build && node scripts/set-env.js && pnpm --filter @nanommo/frontend build --configuration production`: passed, exit code 0.
+- `pnpm exec openspec validate battle-logs-page --strict`: passed.
+- `git diff --check`: passed.
+- `pnpm -r build`: passed for shared, frontend, and API.
+- Remaining Angular CSS-budget messages are warnings only; no production build error remains.
+- No production deployment performed.
