@@ -128,19 +128,44 @@ export class MapPresenceService implements OnModuleInit, OnModuleDestroy {
     try {
       const characters = await this.characterRepo.find({ select: ['id', 'currentMapId', 'pendingMapTransition'] });
 
-      const mapMembers = new Map<string, string[]>();
+      const mapMembers = new Map<string, Set<string>>();
       for (const character of characters) {
-        if (!character.currentMapId) continue;
-        const members = mapMembers.get(character.currentMapId) ?? [];
-        members.push(character.id);
-        mapMembers.set(character.currentMapId, members);
+        const activeMapId = this.getActiveMapId(character);
+        if (!activeMapId) continue;
+        const members = mapMembers.get(activeMapId) ?? new Set<string>();
+        members.add(character.id);
+        mapMembers.set(activeMapId, members);
       }
 
-      for (const [mapId, characterIds] of mapMembers) {
+      // Reconcile every existing Redis map hash, not only maps represented by
+      // current PostgreSQL rows. This is what repairs stale members after a
+      // character moves away or a process crashes before cleanup, including
+      // Town (which can legitimately have no currently-authoritative member).
+      const redisMapIds = new Set<string>();
+      let cursor = '0';
+      do {
+        const result = await this.redis.scan(cursor, 'MATCH', 'map:players:*', 'COUNT', 100);
+        cursor = String(result[0]);
+        for (const key of result[1]) {
+          redisMapIds.add(key.slice('map:players:'.length));
+        }
+      } while (cursor !== '0');
+
+      for (const mapId of new Set([...mapMembers.keys(), ...redisMapIds])) {
+        const key = 'map:players:' + mapId;
         const before = await this.getPlayersOnMap(mapId);
-        for (const characterId of characterIds) {
+        const expected = mapMembers.get(mapId) ?? new Set<string>();
+        const current = await this.redis.hgetall(key);
+
+        for (const characterId of Object.keys(current)) {
+          if (!expected.has(characterId)) {
+            await this.redis.hdel(key, characterId);
+          }
+        }
+        for (const characterId of expected) {
           await this.addPlayerToMap(characterId, mapId);
         }
+
         const after = await this.getPlayersOnMap(mapId);
         if (after !== before) {
           await this.publishMapPresence(mapId);

@@ -69,10 +69,10 @@
 - [x] 8.8 Food exhaustion moves map presence old -> Town.
 - [x] 8.9 Disconnected Town/grinding characters remain present.
 - [x] 8.10 Reconciliation restores missing Town and grind-map memberships.
-- [ ] 8.11 Stale Redis members are pruned for every map, including Town.
+- [x] 8.11 Stale Redis members are pruned for every map, including Town.
 - [x] 8.12 Encounter-search timing still counts only active grinders and does not count Town residents.
 - [x] 8.13 No production source reference to `returnToTownAfterBattle` remains.
-- [ ] 8.14 Socket room transition works for REST/battle-driven changes when a socket is connected.
+- [x] 8.14 Socket room transition works for REST/battle-driven changes when a socket is connected.
 
 ## 9. Documentation and verification
 
@@ -81,7 +81,7 @@
 - [x] 9.3 Update `PLAY_WINDOW_SPEC.md` only where the Town map/presence UI contract requires it.
 - [x] 9.4 Update `STATUS.md` with migration, verification and architectural traps discovered.
 - [x] 9.5 Run shared/API/frontend builds.
-- [ ] 9.6 Run map-presence, cleanup, encounter-search and migration regression tests.
+- [x] 9.6 Run map-presence, cleanup, encounter-search and migration regression tests.
 - [x] 9.7 Run strict OpenSpec validation.
 - [x] 9.8 Run `git diff --check`.
 - [ ] 9.9 Perform live authenticated smoke when the local stack is available; do not claim it when unavailable.
