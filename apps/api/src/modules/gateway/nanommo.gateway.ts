@@ -42,7 +42,7 @@ interface AuthenticatedSocket extends Socket {
 export class NanommoGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
 {
-  // @WebSocketServer()
+  @WebSocketServer()
   server!: Server;
 
   private logger = new Logger('NanommoGateway');

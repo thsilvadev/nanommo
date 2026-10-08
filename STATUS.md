@@ -1,5 +1,17 @@
 # NanoMMO — Implementation Status
 
+### Latest follow-up — realtime map presence Socket.IO transport (2026-10-08)
+
+Investigated the complete `playersOnMap` realtime chain. The frontend already creates a Socket.IO client for the `/game` namespace from `PlayComponent.ngOnInit()`, uses the production API origin, forces WebSocket transport, authenticates with the JWT, and `BattleStore.bindEvents()` already consumes `map:presence`. `MapBoard.playersInMap()` already derives the displayed value from the current map and the latest absolute presence snapshot.
+
+The concrete gateway defect was that `NanommoGateway.server` had `@WebSocketServer()` commented out. Redis presence/transition subscribers therefore attempted to use an uninitialized Socket.IO server when forwarding `map:presence` and joining/leaving map rooms. The decorator was restored; no new namespace or alternate transport was introduced.
+
+Caddy does not require a separate WebSocket proxy route for this architecture. The intended deployment is one `reverse_proxy` for the complete NestJS backend host; Caddy's `reverse_proxy` supports WebSocket HTTP upgrade/tunneling automatically. The known local Caddyfile pattern (`api.idlelords.com { reverse_proxy nanommo-backend:3000 }`) is therefore compatible with Socket.IO `/game`. If the production Caddy differs from this pattern, inspect that external Caddyfile before changing application routing.
+
+Verification after the fix: API build passed; frontend production build passed (existing CSS-budget/CommonJS warnings only); strict OpenSpec validation passed; `git diff --check` passed. No production deployment was performed. Browser-level production WebSocket connectivity was not claimed because the production Caddy host/container is not available from the development workstation.
+
+---
+
 ### Latest follow-up — existing production database migration adoption (2026-10-08)
 
 The remote database had a valid existing schema but an empty TypeORM `migrations` table. Because `migrationsRun=true` now correctly runs migrations while `synchronize=false` protects the schema from pre-migration synchronization, the first startup exposed historical migrations trying to recreate columns already present (initially `characters.stateVersion`).
