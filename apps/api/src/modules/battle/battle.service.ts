@@ -298,6 +298,23 @@ export class BattleService {
    * the previous one's hp/sp/inventory state. Rewards (xp/gold/drops) are rolled
    * here but only APPLIED at resolve time by the BullMQ job.
    */
+  private async refreshAndPublishMapPresence(mapId: string): Promise<void> {
+    const grinders = await this.characterRepo.find({
+      select: ['id'],
+      where: {
+        currentMapId: mapId,
+        status: 'grinding' as any,
+        returnToTownAfterBattle: false,
+      },
+    });
+
+    for (const grinder of grinders) {
+      await this.gatewayService.addPlayerToMap(grinder.id, mapId);
+    }
+
+    await this.gatewayService.publishMapPresence(mapId);
+  }
+
   async queueBattles(
     characterId: string,
     targetDepth: number = this.QUEUE_DEPTH_TARGET,
@@ -566,6 +583,11 @@ export class BattleService {
       const saved = await this.battleQueueRepo.save(entry);
       newBattles.push(saved);
       chainTimelineMs = battleEndTime;
+
+      // Keep realtime map population fresh at every newly scheduled battle.
+      // Presence is gameplay-authoritative, so refresh all active grinders on
+      // this map before publishing instead of trusting an old Redis snapshot.
+      await this.refreshAndPublishMapPresence(mapId);
 
       const delayMs = saved.endAt.getTime() - Date.now();
       await this.bullQueue.add(

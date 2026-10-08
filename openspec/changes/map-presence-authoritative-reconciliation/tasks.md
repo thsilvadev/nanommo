@@ -14,6 +14,7 @@
 - [x] 2.3 Ensure disconnected grinders are included in reconciliation and remain in `playersInMap`.
 - [x] 2.4 Exclude deferred-Town characters from reconciliation.
 - [x] 2.5 Publish corrected counts for affected maps and stop the interval on gateway shutdown.
+- [x] 2.6 Refresh and publish the affected map when each new battle is scheduled, ensuring a per-battle-cycle population update.
 
 ## 3. Socket lifecycle correction
 

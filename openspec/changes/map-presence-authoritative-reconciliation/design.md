@@ -42,7 +42,7 @@ A server-side interval (target: 10 seconds) queries authoritative Character rows
 
 Every qualifying character refreshes its Redis map membership. This query is deliberately not limited to connected sockets, so a disconnected grinder remains counted.
 
-The reconciliation publishes the corrected count for affected maps. A stale Redis member is removed by the normal count/prune path before publication.
+The reconciliation publishes the corrected count for affected maps. A stale Redis member is removed by the normal count/prune path before publication. Battle queue generation also refreshes and publishes the affected map after each newly scheduled battle, so the realtime population is refreshed at least once per battle cycle rather than only on map entry/exit.
 
 ### 3. Disconnect is not map-exit
 

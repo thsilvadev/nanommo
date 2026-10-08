@@ -53,6 +53,15 @@ Every server path that clears `Character.currentMapId` and routes the character 
 - **WHEN** queue generation finds no valid projected food and no active battle exists
 - **THEN** the character is saved in Town, its previous map presence is removed, and the corrected count is published
 
+### Requirement: Per-battle map population refresh
+
+The server SHALL refresh authoritative active grinders and publish the current map population when a new battle is scheduled for a grinding character. This is an additional refresh point and does not depend on Socket.IO connection or map re-entry.
+
+#### Scenario: New battle refreshes population
+
+- **WHEN** a new battle is scheduled for a character grinding on map M
+- **THEN** active grinders on map M are refreshed in Redis and a `map:presence` event with the current count is published
+
 ### Requirement: Correct published count
 
 The `map:presence` event SHALL report the count after stale members have been pruned.
