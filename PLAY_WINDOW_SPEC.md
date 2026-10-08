@@ -570,3 +570,8 @@ The implementation is not done until:
 
 When these documents conflict, preserve game rules in `SPEC.md`; this document owns
 visual composition and interaction details for these screens.
+
+
+### Town map presence
+
+Town is the canonical gameplay map `map_town`. The existing Town tile/panel remains unchanged visually, while its realtime `Players in map: X` count uses the same map-presence contract as every other map.

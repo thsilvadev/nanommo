@@ -103,7 +103,7 @@ export class BattleRecoveryService implements OnApplicationBootstrap {
 
     let toppedUp = 0;
     for (const character of characters) {
-      if (!character.currentMapId) continue;
+      if (!character.currentMapId || character.pendingMapTransition) continue;
 
       try {
         const queue = await this.battleService.getBattleQueue(character.id, 100);

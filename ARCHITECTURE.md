@@ -70,6 +70,8 @@ outcome = simulateBattle(character, monster, gambit, rng)
 | **Framework** | NestJS 10+ | TypeScript-first, DI, modularity, GraphQL-ready |
 | **ORM** | TypeORM 0.3 | Strong TypeScript support, migrations, JSONB columns |
 | **Database** | PostgreSQL 16 | ACID, JSONB for complex data, excellent JSON support |
+| **Gameplay presence** | MapPresenceService + Redis | Centralized map membership, realtime snapshots, self-healing cache |
+| **Online presence** | OnlinePresenceService + Redis | Separate reusable online/heartbeat boundary for future friends lists |
 | **Cache/Pub-Sub** | Redis 7 | Presence tracking, job queue backbone |
 | **Authentication** | Passport.js + JWT | Industry standard, stateless, CORS-friendly |
 | **Validation** | class-validator | Decorators, recursive validation, DTO synergy |
@@ -102,7 +104,7 @@ outcome = simulateBattle(character, monster, gambit, rng)
 ```
 User (username, email, passwordHash)
   ↓
-Character (level, xp, gold, status, currentMapId)
+Character (level, xp, gold, status, currentMapId, pendingMapTransition)
   ├→ WeaponProficiency × 7 (one per weapon type)
   ├→ InventoryItem × 50 (inventory) + 10 (warehouse)
   ├→ EquippedItem × 8 (head, body, mainHand, offHand, etc.)
@@ -181,7 +183,7 @@ while character.xp >= character.nextLevelXp:
 // Handle death
 if entry.outcome == 'loss':
   character.status = 'town'
-  character.currentMapId = null
+  character.currentMapId = 'map_town'
   character.hpCurrent = 1
   character.xp -= character.nextLevelXp * 0.05
   character.lastDeathLog = entry.log
@@ -294,7 +296,8 @@ The HTTP and realtime paths are intentionally guarded independently:
 
 ### Caching
 - ✅ DataService loads JSON files once at startup (immutable)
-- ✅ Redis for presence tracking (O(1) lookups)
+- ✅ Redis for gameplay map-presence runtime cache (timestamped HASH per map)
+- ✅ Redis pub/sub for cross-process realtime event fanout
 - ✅ Redis for job queue (BullMQ)
 - ✅ HTTP cache headers on static assets (frontend)
 
@@ -305,8 +308,86 @@ The HTTP and realtime paths are intentionally guarded independently:
 
 ### Real-time Efficiency
 - ✅ Socket rooms minimize broadcast scope
-- ✅ Debounced character updates (batch events)
-- ✅ Presence tracking uses Redis sets (not DB)
+- ✅ Map population is pushed as absolute snapshots only when membership/count changes
+- ✅ PostgreSQL remains authoritative; Redis map presence is a self-healing runtime cache
+- ✅ Online/socket presence is isolated from gameplay map presence
+- ✅ Reconciliation repairs missed map-presence writes without turning the battle loop into a presence mechanism
+
+---
+
+## Map Presence, Online Presence & Future Movement
+
+### Ownership
+
+Map presence is a gameplay-state concern, not a Socket.IO connection concern.
+
+The authoritative question is:
+
+`currentMapId is set && pendingMapTransition is null` for generic map presence; `status='grinding' && currentMapId = target && pendingMapTransition is null` for encounter search
+
+`MapPresenceService` owns this predicate, Redis map membership, absolute population publication, stale-member pruning and periodic reconciliation.
+
+`OnlinePresenceService` owns online/socket state and is the reusable home for the future heartbeat that will support friend/online-player lists. It does not decide whether a character is on a gameplay map.
+
+### Realtime flow
+
+```
+Authoritative Character transition
+          |
+          v
+MapPresenceService.syncCharacter(characterId, previousMapId)
+          |
+          +--> Redis map hash updated
+          |
+          +--> population changed?
+                   |
+                  yes
+                   |
+                   v
+            Redis pub/sub
+           gateway:map:presence
+                   |
+                   v
+            NanommoGateway
+           Socket.IO map room
+                   |
+                   v
+             map:presence
+        { mapId, playersOnMap }
+                   |
+                   v
+                Frontend
+              replace count
+```
+
+The frontend never applies `+1/-1` deltas. It replaces its displayed count with the absolute snapshot. A later snapshot naturally corrects any missed/interleaved update.
+
+### Central transition boundary
+
+Any future movement implementation should follow this sequence:
+
+1. Capture the previous `currentMapId`.
+2. Apply and persist the authoritative new Character map state.
+3. Call `MapPresenceService.syncCharacter(characterId, previousMapId)`.
+
+The same boundary already covers map entry, map-to-map movement, Town routing, death and food exhaustion. A deferred Town request uses the generic `pendingMapTransition` state: presence is removed immediately while `currentMapId` remains the battle map, then the transition finalizes to `map_town` after the active battle resolves.
+
+Battle start/end is not a map-presence event. The character is still on the same map unless authoritative gameplay state says otherwise.
+
+### Redis role
+
+Redis is deliberately a cache/runtime layer here:
+
+- PostgreSQL answers who should count.
+- Redis makes the per-map membership and publication path fast and ephemeral.
+- Timestamps allow stale members to be removed.
+- A 10-second reconciliation pass repairs missed writes or process interruptions.
+
+A Redis failure must never be interpreted as a gameplay state transition. The next reconciliation and explicit state transition restore the cache.
+
+### Future heartbeat boundary
+
+The future heartbeat should call `OnlinePresenceService.touch()` to keep online state fresh. It must not add/remove map membership and must not be used to infer gameplay movement.
 
 ---
 
@@ -391,8 +472,8 @@ The HTTP and realtime paths are intentionally guarded independently:
 
 ---
 
-**Last Updated:** October 1, 2026
-**Architecture Version:** 1.1
+**Last Updated:** October 8, 2026
+**Architecture Version:** 1.2
 **Status:** Active MVP implementation
 
 

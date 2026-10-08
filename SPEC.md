@@ -79,6 +79,7 @@ nanommo/
 │   │   │   │   ├── town/        # vendor, warehouse
 │   │   │   │   ├── chat/
 │   │   │   │   ├── market/
+│   │   │   │   ├── presence/    # gameplay map presence + reusable online presence
 │   │   │   │   ├── mail/
 │   │   │   │   └── gateway/     # Socket.IO gateway, thin — delegates to modules
 │   │   │   ├── data/            # static JSON: monsters.json, items.json, npc_vendor.json,
@@ -197,14 +198,14 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | gold | bigint (numeric(15,0)), default 0 | cap 1,000,000,000,000 |
 | hpCurrent | int | persisted so grind can resume mid-HP |
 | spCurrent | int | |
-| currentMapId | varchar, nullable | null = in town |
+| currentMapId | varchar, NOT NULL | canonical physical location; `map_town` = Town |
 | status | enum('town','grinding','dead_pending_return') | |
 | activeGambitPageId | uuid, FK → GambitPage, nullable | |
 | lastDeathLog | jsonb, nullable | see §7.7, overwritten each death |
 | activeFoodBuff | jsonb, nullable | `{ itemId, hpRegenPerTenTicks, spRegenPerTenTicks, expiresAt }` |
 | activeTempBuffs | jsonb, default [] | array of `{ source, stat, mult|flat, expiresAt|expiresAtTick }` from skills like Bloodlust |
 | statusEffects | jsonb, default [] | array of `{ type, appliedAtTick, expiresAtTick, sourceSkillId }` |
-| lastSeenAt | timestamptz | for online/offline + presence |
+| lastSeenAt | timestamptz | online/offline metadata; future heartbeat owns online freshness, not gameplay map membership |
 | regenAnchorAt | timestamptz, nullable | stable origin for the character's continuous 10-tick regeneration timeline |
 | createdAt / updatedAt | timestamptz | |
 
@@ -539,7 +540,7 @@ This means, under ideal "automaticozão" conditions (good gambit, enough potions
 ### 7.6 Death handling
 
 On the `BattleQueueEntry` whose `outcome = 'loss'`:
-- `Character.status = 'town'`, `Character.currentMapId = null`
+- `Character.status = 'town'`, `Character.currentMapId = 'map_town'`
 - `Character.hpCurrent = 1` (never 0, avoids edge cases elsewhere — `TUNABLE`, could be `round(maxHp*0.01)`)
 - XP loss per §6.4 applied
 - `Character.lastDeathLog` is **overwritten** with this battle's full log (§7.7) — only the single most recent death is ever kept, per spec
@@ -742,7 +743,7 @@ searchTimeSeconds = 2 + (otherPlayersGrindingOnMap * 0.1)
 
 The character being queued is excluded from `otherPlayersGrindingOnMap`. The same delay is applied before the first encounter and between every subsequent queued encounter. It is not a separate `BattleQueueEntry`; it is represented by the gap between the previous `endAt` and the next battle's `startAt`. Existing 1-second battle ticks and battle duration formulas are unchanged.
 
-The authoritative grinder count for encounter timing is based on Character rows with `status = grinding` and the same `currentMapId`. Realtime UI presence is additionally tracked in Redis and broadcast through the `/game` Socket.IO gateway whenever map membership changes.
+The authoritative encounter-search count is grinder-specific: `status = grinding`, the same `currentMapId`, and `pendingMapTransition IS NULL`. Generic gameplay map presence is location-based: `currentMapId IS SET AND pendingMapTransition IS NULL`, independent of status. Realtime UI presence is a separate Redis-backed runtime cache broadcast through the `/game` Socket.IO gateway whenever map membership changes.
 
 ### 11.5 Drop rates (confirmed, apply per kill — multiple can trigger)
 
@@ -908,13 +909,17 @@ Namespace: `/game`. Auth via handshake (§15.2). Suggested rooms: `char:<charact
 | `character:died` | `{ deathLog }` | triggers town routing + "last death" affordance client-side |
 | `character:leveledUp` | `{ newLevel, unspentAttributePoints }` | |
 | `chat:message` | `{ channel, username, message, sentAt }` | fanned out to the relevant room |
-| `map:presence` | `{ mapId, playersOnMap }` | realtime population for the current map; Socket.IO disconnect does not remove a grinding character from gameplay presence |
+| `map:presence` | `{ mapId, playersOnMap }` | absolute realtime population snapshot; emitted when gameplay map membership/count changes; Socket.IO disconnect does not remove a grinding character from gameplay presence |
 | `mail:newItem` | `{ unreadCount }` | badge update |
 | `market:orderFilled` | `{ orderId }` | so the Market UI can refresh without polling |
 
 ### Map population authority
 
-`playersOnMap` is gameplay presence, not online/socket presence. A character counts while its authoritative Character state is `status='grinding'`, has a `currentMapId`, and is not marked `returnToTownAfterBattle`. This remains true after Socket.IO disconnect because the server continues the grind. Redis `map:players:{mapId}` is a self-healing runtime cache with timestamped members; server reconciliation refreshes authoritative grinders independently of connected sockets and stale members are pruned before counts are published.
+`playersOnMap` is gameplay map presence, not online/socket presence. A character counts while its authoritative Character state is `status='grinding'`, has a `currentMapId`, and is not marked `returnToTownAfterBattle`. This remains true after Socket.IO disconnect because the server continues the grind.
+
+Map membership changes are the normal realtime trigger: after an authoritative map-state transition is persisted, the shared MapPresenceService synchronizes the previous/new map and emits the absolute `map:presence` snapshot for each affected map. This applies to map entry, future map-to-map movement, Town return, death, food-exhaustion routing, and the deferred Town request that makes the character temporarily ineligible for map presence. Battle start/end alone is not a map-presence trigger.
+
+Redis `map:players:{mapId}` is a timestamped self-healing runtime cache, not gameplay authority. Periodic reconciliation repairs missed writes, process restarts and disconnected grinders; it is a safety net rather than the normal realtime mechanism. The online/socket presence used by a future heartbeat/friends list is intentionally separate from gameplay map presence.
 
 Equipment changes, food consumption, attribute point allocation, inventory/warehouse moves, and market/mail actions are plain **REST** endpoints (they are not latency-sensitive and benefit from standard HTTP semantics — status codes, idempotency, easier testing) — only genuinely realtime, push-driven data goes over the socket. Document each REST endpoint with a standard NestJS Swagger decorator; a full OpenAPI listing is intentionally not enumerated line-by-line in this document — the controllers should be organized 1:1 with the modules in §2.1, using conventional REST verbs/paths (`POST /character/attributes/allocate`, `PATCH /equipment/:slot`, `POST /inventory/move`, `POST /market/orders`, `DELETE /market/orders/:id`, `POST /mail/:id/collect`, etc).
 
@@ -1290,7 +1295,7 @@ These 7 files are the complete static game data and ship in `apps/api/src/data/`
 Load all seven at boot, validate their shape, and fail fast on mismatch (§18.2 philosophy applies here too — a malformed data file should crash the boot, not silently degrade).
 
 ### Grind synchronization follow-up
-- A Town request made during an active battle is deferred server-side through Character.returnToTownAfterBattle; future queued battles are cancelled, the active battle resolves normally, then the character transitions to Town before any replacement battle is queued.
+- A Town request made during an active battle is deferred server-side through `Character.pendingMapTransition = { destinationMapId: 'map_town', reason: 'town_request' }`; future queued battles are cancelled, the active battle resolves normally, then the character transitions to `map_town` before any replacement battle is queued.
 - Frontend Character, Inventory, and Battle state loads must not allow an older HTTP response to overwrite newer authoritative state received through the realtime game channel.
 - Persisted Character HP/SP and Inventory quantities remain authoritative outside an active battle. During an ACTIVE battle, the Character Summary may use a read-only display projection from the immutable queued battle log plus `startAt`/`endAt`; this projection never writes to CharacterStore, InventoryStore, or the server and is abandoned immediately when the battle is no longer ACTIVE.
 - `battle:resolved` and the immediately following post-resolution `battle:queueUpdated` carry Character and complete Inventory from the same server state revision. This closes ordering races between their independent Redis pub/sub channels. Realtime snapshots with an older or equal revision are ignored, and HTTP responses that were in flight across a newer realtime update are discarded.

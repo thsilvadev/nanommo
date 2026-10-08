@@ -30,15 +30,12 @@ export interface BattleQueueUpdatedPayload {
 }
 
 /**
- * GatewayService — handles event emission and presence tracking
- * Injected into NanommoGateway for WebSocket emission
- * Also available to other modules (battle, chat, market) for event triggers
+ * GatewayService — publishes server events to Redis pub/sub.
+ * NanommoGateway consumes those channels and emits the corresponding Socket.IO events.
  */
 @Injectable()
 export class GatewayService {
   private logger = new Logger('GatewayService');
-  private readonly PRESENCE_EXPIRE_SECONDS = 3600; // 1 hour
-  private readonly MAP_PRESENCE_STALE_MS = 30_000;
 
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
 
@@ -99,88 +96,6 @@ export class GatewayService {
     );
   }
 
-  /**
-   * Update character presence in Redis
-   */
-  async updatePresence(
-    characterId: string,
-    location: string, // 'town' or mapId
-  ): Promise<void> {
-    await this.redis.setex(
-      `presence:${characterId}`,
-      this.PRESENCE_EXPIRE_SECONDS,
-      location,
-    );
-  }
-
-  /**
-   * Add character to online set
-   */
-  async setOnline(characterId: string): Promise<void> {
-    await this.redis.sadd('players:online', characterId);
-  }
-
-  /**
-   * Remove character from online set
-   */
-  async setOffline(characterId: string): Promise<void> {
-    await this.redis.srem('players:online', characterId);
-    await this.redis.del(`presence:${characterId}`);
-  }
-
-  /**
-   * Get online player count
-   */
-  async getOnlineCount(): Promise<number> {
-    return this.redis.scard('players:online');
-  }
-
-  /**
-   * Get players on a specific map
-   */
-  async getPlayersOnMap(mapId: string): Promise<number> {
-    const key = `map:players:${mapId}`;
-    const entries = await this.redis.hgetall(key);
-    const now = Date.now();
-
-    for (const [characterId, rawTimestamp] of Object.entries(entries)) {
-      const timestamp = Number(rawTimestamp);
-      if (!Number.isFinite(timestamp) || now - timestamp >= this.MAP_PRESENCE_STALE_MS) {
-        // Re-read before deleting so a concurrent refresh wins over this prune.
-        const current = await this.redis.hget(key, characterId);
-        if (current === rawTimestamp) {
-          await this.redis.hdel(key, characterId);
-        }
-      }
-    }
-
-    return this.redis.hlen(key);
-  }
-
-  async publishMapPresence(mapId: string): Promise<void> {
-    const playersOnMap = await this.getPlayersOnMap(mapId);
-    await this.redis.publish(
-      'gateway:map:presence',
-      JSON.stringify({ mapId, playersOnMap }),
-    );
-  }
-
-  /**
-   * Add player to map
-   */
-  async addPlayerToMap(characterId: string, mapId: string): Promise<void> {
-    await this.redis.hset(`map:players:${mapId}`, characterId, Date.now());
-  }
-
-  /**
-   * Remove player from map
-   */
-  async removePlayerFromMap(
-    characterId: string,
-    mapId: string,
-  ): Promise<void> {
-    await this.redis.hdel(`map:players:${mapId}`, characterId);
-  }
 
   /**
    * Emit mail:newItem event

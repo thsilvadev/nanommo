@@ -43,7 +43,7 @@ export class BattleQueueProcessor {
         battle.characterId,
       );
 
-      if (character && character.status === 'grinding' && character.currentMapId) {
+      if (character && character.status === 'grinding' && character.currentMapId && !character.pendingMapTransition) {
         // Get current queue depth
         const queue = await this.battleService.getBattleQueue(
           battle.characterId,
@@ -80,6 +80,7 @@ export class BattleQueueProcessor {
       throw error;
     }
   }
+
 
   /**
    * Process 'queue-battles' job

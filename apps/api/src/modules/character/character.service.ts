@@ -345,7 +345,7 @@ export class CharacterService {
       diet: activeDiet,
       dietLevels: character.dietLevels ?? {},
       autoFeed: character.autoFeed === true,
-      currentMapId: character.currentMapId || undefined,
+      currentMapId: character.currentMapId,
       status: character.status,
       activeGambitPageId: character.activeGambitPageId || undefined,
       lastSeenAt: character.lastSeenAt,

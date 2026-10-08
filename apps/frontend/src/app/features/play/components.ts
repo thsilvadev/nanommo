@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
 import { VendorStore } from '../../core/vendor.store';
-import { VendorStockItem, effectiveFoodStatValue } from '@nanommo/shared';
+import { VendorStockItem, effectiveFoodStatValue, TOWN_MAP_ID } from '@nanommo/shared';
 import { GameSocketService } from '../../core/game.socket.service';
 import { ApiService } from '../../core/api.service';
 import { TooltipPositionDirective } from './tooltip-position.directive';
@@ -67,8 +67,8 @@ export class MapBoard implements OnDestroy {
  enter(id:string){const map=this.maps.find(m=>m.id===id);if(!map||map.unlockLevel>this.level())return;this.error.set(null);this.api.post(`/maps/${id}/enter`,{}).subscribe({next:async()=>{this.battle.beginGrindSession();this.townReturnPending.set(false);await this.character.load();try{await this.socket.emit('map:syncPresence',{mapId:id})}catch{}},error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
  enterTown(){
   const current=this.character.character();
-  if(current?.status==='town' || !current?.currentMapId){
-   this.character.applyPatch({status:'town',currentMapId:undefined});
+  if(current?.currentMapId===TOWN_MAP_ID){
+   this.character.applyPatch({status:'town',currentMapId:TOWN_MAP_ID});
    this.townReturnPending.set(false);
    this.returnToTownBattleId.set(null);
    this.stopTownPoll();
@@ -109,7 +109,7 @@ export class MapBoard implements OnDestroy {
    void this.character.load().finally(()=>{
     this.townPollBusy=false;
     const c=this.character.character();
-    if(c?.status==='town' || !c?.currentMapId){
+    if(c?.currentMapId===TOWN_MAP_ID){
      this.townReturnPending.set(false);
      this.returnToTownBattleId.set(null);
      this.stopTownPoll();
@@ -176,7 +176,7 @@ export class GrindInfo implements OnDestroy {
  monsterStatusEffects(entry:any){return this.monsterSnapshot(entry).statusEffects??[]}
  monsterStats(entry:any){const m=this.monsterSnapshot(entry);return [{label:'ATK',value:m.atk},{label:'MATK',value:m.matk},{label:'DEF',value:m.def},{label:'MDEF',value:m.mdefPercent+'%'},{label:'ACC',value:m.accuracy},{label:'EVA',value:m.evasion},{label:'CRIT',value:m.critChance+'%'}]}
 
- isTown(){const c=this.character.character();return !!c && (c.status==='town'||!c.currentMapId)}
+ isTown(){const c=this.character.character();return !!c && c.currentMapId===TOWN_MAP_ID}
  activeGambitTitle(){return this.character.character()?.activeGambitPageId?'Configured':'Not configured'}
  xpText(){const c=this.character.character();return c?`${c.xp} / ${c.xpToNext}`:'—'}
  monster(id:string){return this.catalog.monster(id)}

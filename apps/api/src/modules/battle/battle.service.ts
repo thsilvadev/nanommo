@@ -13,7 +13,7 @@ import {
   resolveRewards,
   type CombatantSnapshot,
 } from '@nanommo/shared';
-import { effectiveFoodStatValue } from '@nanommo/shared';
+import { effectiveFoodStatValue, TOWN_MAP_ID } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 import { CharacterService } from '../character/character.service';
 import { InventoryService, buildDietStateAfterFoodConsumption } from '../inventory/inventory.service';
@@ -21,6 +21,7 @@ import { EquipmentService } from '../equipment/equipment.service';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
 import { GatewayService, BattleResolvedPayload, CharacterLeveledUpPayload, CharacterDiedPayload } from '../gateway/gateway.service';
+import { MapPresenceService } from '../presence/map-presence.service';
 
 /** SPEC §11.2: epoch rollover once the counter reaches this many kills. */
 const EPOCH_ROLLOVER_AT = 10_000;
@@ -81,6 +82,7 @@ export class BattleService {
     private readonly inventoryService: InventoryService,
     private readonly equipmentService: EquipmentService,
     private readonly gatewayService: GatewayService,
+    private readonly mapPresenceService: MapPresenceService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
@@ -298,22 +300,6 @@ export class BattleService {
    * the previous one's hp/sp/inventory state. Rewards (xp/gold/drops) are rolled
    * here but only APPLIED at resolve time by the BullMQ job.
    */
-  private async refreshAndPublishMapPresence(mapId: string): Promise<void> {
-    const grinders = await this.characterRepo.find({
-      select: ['id'],
-      where: {
-        currentMapId: mapId,
-        status: 'grinding' as any,
-        returnToTownAfterBattle: false,
-      },
-    });
-
-    for (const grinder of grinders) {
-      await this.gatewayService.addPlayerToMap(grinder.id, mapId);
-    }
-
-    await this.gatewayService.publishMapPresence(mapId);
-  }
 
   async queueBattles(
     characterId: string,
@@ -323,7 +309,7 @@ export class BattleService {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
 
-    if (character.returnToTownAfterBattle) return this.getBattleQueue(characterId, 100);
+    if (character.pendingMapTransition) return this.getBattleQueue(characterId, 100);
     if (!character.currentMapId) {
       throw new BadRequestException('Character is not on a map');
     }
@@ -392,14 +378,13 @@ export class BattleService {
       );
       if (!activeBattle) {
         const leavingMapId = character.currentMapId;
-        character.currentMapId = null as any;
+        character.currentMapId = TOWN_MAP_ID;
         character.status = 'town';
-        character.returnToTownAfterBattle = false;
+        character.pendingMapTransition = null;
         character.lastSeenAt = new Date();
         await this.characterRepo.save(character);
         if (leavingMapId) {
-          await this.gatewayService.removePlayerFromMap(characterId, leavingMapId);
-          await this.gatewayService.publishMapPresence(leavingMapId);
+          await this.mapPresenceService.syncCharacter(characterId, leavingMapId);
         }
         await this.discardUnresolvedBattles(characterId);
         if (publishQueueEvent) await this.safePublishQueueUpdated(characterId, []);
@@ -440,9 +425,7 @@ export class BattleService {
 
     // Encounter search: 2s base + 0.1s for every OTHER grinder currently on this map.
     // Character status/map membership is authoritative and the current character is excluded.
-    const mapPlayers = await this.characterRepo.count({
-      where: { currentMapId: mapId, status: 'grinding' as any },
-    });
+    const mapPlayers = await this.mapPresenceService.countActiveGrinders(mapId);
     const otherPlayers = Math.max(0, mapPlayers - 1);
     const encounterSearchMs = calculateEncounterSearchDelayMs(otherPlayers);
 
@@ -584,10 +567,6 @@ export class BattleService {
       newBattles.push(saved);
       chainTimelineMs = battleEndTime;
 
-      // Keep realtime map population fresh at every newly scheduled battle.
-      // Presence is gameplay-authoritative, so refresh all active grinders on
-      // this map before publishing instead of trusting an old Redis snapshot.
-      await this.refreshAndPublishMapPresence(mapId);
 
       const delayMs = saved.endAt.getTime() - Date.now();
       await this.bullQueue.add(
@@ -789,9 +768,7 @@ export class BattleService {
       ? futureQueue[0].startAt.getTime()
       : 0;
     const mapPlayers = character.currentMapId
-      ? await this.characterRepo.count({
-          where: { currentMapId: character.currentMapId, status: 'grinding' as any },
-        })
+      ? await this.mapPresenceService.countActiveGrinders(character.currentMapId)
       : 0;
     const otherPlayers = Math.max(0, mapPlayers - 1);
     const nextEncounterBoundary = calculateNextEncounterBoundaryAt(
@@ -814,7 +791,7 @@ export class BattleService {
     // `resolved` was already claimed atomically at the top of this method.
     await this.battleQueueRepo.save(battle);
 
-    const returningToTown = character.returnToTownAfterBattle;
+    const returningToTown = character.pendingMapTransition?.destinationMapId === TOWN_MAP_ID;
     const foodExpiresAt = character.activeFoodBuff?.expiresAt
       ? new Date(character.activeFoodBuff.expiresAt).getTime()
       : 0;
@@ -823,15 +800,14 @@ export class BattleService {
     if (returningToTown || hungryAfterBattle) {
       // Town return and food exhaustion both end the current grind cleanly.
       // The current battle is already resolved, so no unresolved encounter may remain.
-      character.returnToTownAfterBattle = false;
-      character.currentMapId = null as any;
+      character.pendingMapTransition = null;
+      character.currentMapId = TOWN_MAP_ID;
       character.status = 'town';
       character.lastSeenAt = new Date();
       await this.characterRepo.save(character);
 
       if (leavingMapId) {
-        await this.gatewayService.removePlayerFromMap(character.id, leavingMapId);
-        await this.gatewayService.publishMapPresence(leavingMapId);
+        await this.mapPresenceService.syncCharacter(character.id, leavingMapId);
       }
     }
 
@@ -871,7 +847,7 @@ export class BattleService {
   }
 
   private async tryAutoFeed(character: Character, boundaryAt: number): Promise<boolean> {
-    if (!character.autoFeed || character.returnToTownAfterBattle) return false;
+    if (!character.autoFeed || character.pendingMapTransition) return false;
 
     // Auto Feed is evaluated at every authoritative battle-resolution boundary.
     // An already-active food buff does not suppress feeding: any Diet entry whose
@@ -981,7 +957,7 @@ export class BattleService {
     character.status = 'town';
     // null, not undefined: TypeORM silently skips undefined columns on save,
     // which would leave the character on a map it is no longer standing on.
-    character.currentMapId = null as any;
+    character.currentMapId = TOWN_MAP_ID;
     character.lastSeenAt = new Date();
     character.hpCurrent = 1;
 
@@ -999,8 +975,7 @@ export class BattleService {
 
     await this.characterRepo.save(character);
 
-    await this.gatewayService.removePlayerFromMap(character.id, battle.mapId);
-    await this.gatewayService.publishMapPresence(battle.mapId);
+    await this.mapPresenceService.syncCharacter(character.id, battle.mapId);
 
     // Everything still queued assumed the character survived
     const doomed = await this.battleQueueRepo.find({

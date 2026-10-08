@@ -1,86 +1,91 @@
 # Design
 
 ## Context
+NanoMMO needs a realtime playersOnMap counter, but three different concepts were previously too easy to conflate:
 
-Map population is represented by Redis hashes:
+- gameplay map membership: whether the authoritative Character state says the character is actively grinding on a map;
+- online/socket presence: whether a user currently has a live Socket.IO connection;
+- transport: how a changed gameplay state is delivered to connected clients.
 
-`map:players:{mapId}` → `characterId -> lastRefreshTimestamp`
-
-The frontend receives `map:presence` through the existing `/game` Socket.IO connection. Encounter-search timing already uses authoritative Character rows and does not depend on the Redis count.
-
-A critical gameplay rule is that disconnecting does NOT stop grinding. Therefore socket connectivity must never determine whether a character counts on a map.
+The authoritative gameplay state is PostgreSQL. Redis remains useful as a fast, ephemeral runtime cache and pub/sub bridge, but it is not the source of truth. Socket.IO distributes absolute map-population snapshots to clients.
 
 ## Goals
-
-- Count every character that is authoritatively grinding on the map, whether connected or disconnected.
-- Remove stale/historical Redis members without allowing them to inflate the visible count.
-- Recover after API process crashes without permanently corrupting population.
-- Keep deferred Town return absent from presence.
-- Preserve the existing `map:presence` event and Redis hash shape.
+- Make map membership changes the direct realtime trigger for map:presence.
+- Centralize map-presence synchronization so future movement code has one reusable integration point.
+- Keep the event payload absolute ({ mapId, playersOnMap }), not delta-based.
+- Keep Redis as a self-healing runtime cache without making it the gameplay authority.
+- Keep disconnected grinders in gameplay map presence.
+- Keep the 10s reconciliation as a safety net for missed writes/process crashes, not as the normal realtime trigger.
+- Separate online presence from gameplay map presence so the existing/future heartbeat can be reused later for friend and online-player lists.
+- Keep returnToTownAfterBattle scoped to deferred battle-return semantics; it is only one input into the active-map-presence predicate.
+- Make encounter-search timing use the exact same active-grinder definition as playersOnMap.
 
 ## Non-Goals
-
-- Do not change encounter-search timing.
+- Do not implement the future friend/online-player list.
+- Do not implement a heartbeat loop in this change.
+- Do not change battle timing or encounter-search rules.
 - Do not introduce frontend polling.
-- Do not treat Socket.IO connection state as gameplay state.
-- Do not add a database presence table.
-- Do not change the Grind map header layout.
+- Do not make Socket.IO connection state authoritative gameplay state.
+- Do not introduce a database presence table.
+- Do not change the map:presence payload contract.
 
-## Decisions
+## Architecture
 
-### 1. Redis fields carry refresh timestamps
+### Authoritative active map predicate
+A character counts on a map when status=grinding, currentMapId is non-null, and returnToTownAfterBattle is not true.
+This predicate is centralized in MapPresenceService.getActiveMapId().
+returnToTownAfterBattle is not a generic movement state. It remains necessary for the special case where a player requests Town during an active battle: the flag prevents the battle loop from scheduling/continuing normal grind while the current battle finishes, and map presence is removed immediately.
 
-`addPlayerToMap(characterId, mapId)` stores the current epoch-millisecond timestamp. The configured stale-presence TTL is 30 seconds.
+### Centralized synchronization
+MapPresenceService.syncCharacter(characterId, previousMapId) is the integration point for authoritative Character map-state changes.
+The caller changes and saves the Character first, then calls the service with the map occupied before the mutation.
 
-### 2. Authoritative server reconciliation, independent of sockets
+Examples:
+- Town/map -> map: remove old membership, publish old map count.
+- map A -> map B: remove A, publish A; add B, publish B.
+- death -> Town: remove old map, publish decremented count.
+- food exhaustion -> Town: remove old map, publish decremented count.
+- deferred Town request during battle: the flag makes the active-map predicate false, so presence is removed immediately even though currentMapId stays populated until battle resolution.
+- future movement: capture old currentMapId, persist the new map, then call this service once.
 
-A server-side interval (target: 10 seconds) queries authoritative Character rows whose state qualifies as active map grinding:
+This makes map membership a state-transition concern rather than a battle-lifecycle concern.
 
-- `status === 'grinding'`
-- `currentMapId` is set
-- `returnToTownAfterBattle !== true`
+### Redis cache
+Redis stores map:players:{mapId} as characterId -> lastRefreshTimestamp.
+It is intentionally ephemeral. The timestamp allows stale members to be pruned. PostgreSQL remains authoritative.
+getPlayersOnMap() prunes entries older than 30 seconds and then returns the Redis count. Concurrent refresh protection rechecks the observed timestamp before deleting a stale field.
 
-Every qualifying character refreshes its Redis map membership. This query is deliberately not limited to connected sockets, so a disconnected grinder remains counted.
+### Realtime publication
+On an actual map-membership count change, MapPresenceService publishes gateway:map:presence with the absolute payload { mapId, playersOnMap }.
+NanommoGateway consumes the Redis pub/sub channel and emits map:presence to the corresponding Socket.IO room map:{mapId}.
+The frontend simply replaces its current playersOnMap value with the received absolute snapshot. It does not calculate +1/-1, inspect Redis, or count players itself.
+Absolute snapshots are deliberate: missed/interleaved events do not accumulate client-side arithmetic drift.
 
-The reconciliation publishes the corrected count for affected maps. A stale Redis member is removed by the normal count/prune path before publication. Battle queue generation also refreshes and publishes the affected map after each newly scheduled battle, so the realtime population is refreshed at least once per battle cycle rather than only on map entry/exit.
+### Reconciliation
+Every 10 seconds, MapPresenceService queries authoritative active grinders from PostgreSQL and refreshes their Redis entries. It publishes only when the resulting count differs from the previous cache count.
+Reconciliation is a repair mechanism for Redis member loss, API/process restarts, missed cleanup, stale/historical cache entries, and disconnected grinders that continue grinding.
+It is not the source of normal realtime updates.
 
-### 3. Disconnect is not map-exit
+### Online presence and future heartbeat
+OnlinePresenceService owns players:online, presence:{characterId}, online/offline operations, and a reusable touch() hook for the future heartbeat.
+It deliberately does not determine whether a character is on a gameplay map.
+A future friend/online-player system can reuse this service without coupling it to map movement or battle state.
 
-`handleDisconnect()` MUST NOT remove a character from `map:players:*` solely because the socket disconnected. It may remove online/session presence, socket rooms/subscribers, and connection bookkeeping.
+## Module boundaries
+- PresenceModule owns MapPresenceService and OnlinePresenceService.
+- MapService owns map gameplay transitions and calls MapPresenceService after persistence.
+- BattleService owns battle/death/hunger/Town rules and calls MapPresenceService only when those rules actually change map membership.
+- NanommoGateway owns authentication, Socket.IO rooms and delivery.
+- GatewayService owns generic Redis-backed server event publication for battle/chat/market/etc.; it does not own gameplay map presence or online presence.
 
-Map presence is removed only by an authoritative gameplay transition out of grinding (Town, death, explicit leave, etc.).
+## Why battle start is not a presence trigger
+A battle is not a map-membership transition. A character can begin, end, or move between battles while remaining on the same map.
+The previous refresh-map-presence BullMQ job existed only because the implementation lacked a direct event at startAt. That was a workaround for the realtime symptom, not a good ownership boundary. The job is removed. Map population now changes because membership changes.
 
-### 4. Prune stale entries before counting
-
-Before `getPlayersOnMap` returns a count, fields older than the 30-second TTL are removed. The prune compares the timestamp observed during the read with the current field value before deleting, so a concurrent refresh wins.
-
-### 5. Explicit cleanup remains authoritative
-
-When a server path changes a character out of active grinding, it captures the previous map ID before clearing it, saves the authoritative state, removes the Redis member, and publishes the corrected count.
-
-This includes the existing leave/deferred-leave, death and battle-resolution Town paths, plus the queue-generation food-exhaustion/no-active-battle path.
-
-### 6. Deferred Town return
-
-Requesting Town during an active battle sets `returnToTownAfterBattle=true` and removes map presence immediately. Reconciliation excludes that character until the battle resolver completes the Town transition.
-
-### 7. Publish the post-prune count
-
-`publishMapPresence(mapId)` obtains the count only after stale pruning, so direct socket responses and Redis-published `map:presence` events share the same corrected count.
-
-## Failure / Recovery Behavior
-
-- A disconnected grinder remains in the authoritative DB state and is refreshed by reconciliation.
-- If Redis loses a member, the next reconciliation re-adds it.
-- If the API crashes, old Redis members become stale and are excluded/pruned on the next count; active grinders are restored by reconciliation.
-- If a character leaves grind, explicit cleanup removes its Redis member; later reconciliation does not re-add it.
-- Duplicate cleanup remains harmless.
-
-## Verification Strategy
-
-1. Redis/hash test: active members count, stale members are pruned, refreshed members survive, and published count is post-prune.
-2. Disconnect regression: disconnecting a character while its authoritative state remains grinding leaves map presence intact.
-3. Reconciliation regression: disconnected/connected grinding characters are refreshed; Town/deferred-return characters are not.
-4. Battle regression: queue-generation food-exhaustion/no-active-battle Town transition removes presence.
-5. Existing map cleanup and encounter-search tests remain green.
-6. Run shared/API/frontend builds, strict OpenSpec validation and `git diff --check`.
+## Failure / Recovery behavior
+- Disconnecting a socket does not remove map presence.
+- Leaving a map removes presence immediately (or, for deferred Town return, as soon as the return request makes the character ineligible).
+- Death removes the previous map membership.
+- If Redis loses a member, reconciliation restores it from PostgreSQL.
+- If Redis contains a stale member, count/publish pruning excludes it.
+- If an event is missed by a client, the next absolute snapshot corrects the client state; join/reconnect also receives a fresh snapshot.

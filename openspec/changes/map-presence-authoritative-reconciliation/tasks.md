@@ -1,48 +1,45 @@
 # Tasks
 
-## 1. Redis presence becomes self-healing
+## 1. Centralize gameplay map presence
+- [x] 1.1 Create PresenceModule as the dedicated presence boundary.
+- [x] 1.2 Create MapPresenceService as the single map-membership integration point.
+- [x] 1.3 Centralize the active-map predicate (grinding + currentMapId + not deferred Town).
+- [x] 1.4 Route map entry/exit through MapPresenceService.
+- [x] 1.5 Route death, battle-resolution Town return and queue-generation food-exhaustion exits through MapPresenceService.
+- [x] 1.6 Make future encounter-search population use the same active-grinder definition.
 
-- [x] 1.1 Keep `map:players:{mapId}` values as last-refresh timestamps and define stale-presence TTL (30s).
-- [x] 1.2 Prune stale entries before `getPlayersOnMap` returns a count.
-- [x] 1.3 Ensure concurrent refresh cannot be deleted by a stale prune that observed an older timestamp.
-- [x] 1.4 Make `publishMapPresence` publish the post-prune count.
+## 2. Realtime event flow
+- [x] 2.1 Publish map:presence from actual map-membership count changes.
+- [x] 2.2 Keep the existing { mapId, playersOnMap } absolute payload.
+- [x] 2.3 Keep Socket.IO room delivery unchanged.
+- [x] 2.4 Remove the battle-start refresh-map-presence BullMQ job and processor.
+- [x] 2.5 Keep reconciliation as a safety/repair mechanism only.
 
-## 2. Authoritative server reconciliation
+## 3. Redis runtime cache
+- [x] 3.1 Keep Redis map hashes with refresh timestamps.
+- [x] 3.2 Prune stale members before counting/publishing.
+- [x] 3.3 Keep concurrent-refresh protection during stale deletion.
+- [x] 3.4 Preserve Redis pub/sub as the cross-process event bridge.
 
-- [x] 2.1 Add a server-side reconciliation interval (10s) independent of Socket.IO connections.
-- [x] 2.2 Refresh every authoritative active grinder (`status=grinding`, `currentMapId` set, `returnToTownAfterBattle=false`).
-- [x] 2.3 Ensure disconnected grinders are included in reconciliation and remain in `playersInMap`.
-- [x] 2.4 Exclude deferred-Town characters from reconciliation.
-- [x] 2.5 Publish corrected counts for affected maps and stop the interval on gateway shutdown.
-- [x] 2.6 Refresh and publish the affected map when each new battle is scheduled, ensuring a per-battle-cycle population update.
+## 4. Online presence boundary
+- [x] 4.1 Move online/set-online/set-offline/location state to OnlinePresenceService.
+- [x] 4.2 Keep a reusable touch() hook for the future heartbeat.
+- [x] 4.3 Do not couple heartbeat/socket-online state to gameplay map presence.
 
-## 3. Socket lifecycle correction
-
-- [x] 3.1 Remove map-presence deletion from `handleDisconnect()`.
-- [x] 3.2 Keep online/socket cleanup on disconnect unchanged.
-- [x] 3.3 Keep explicit map cleanup on map leave, death, battle Town return and other authoritative exits.
-
-## 4. Complete authoritative exit coverage
-
-- [x] 4.1 In `BattleService.queueBattles`, capture map ID before the projected-food/no-active-battle Town transition.
-- [x] 4.2 After saving Town state, remove presence and publish the corrected count.
-- [x] 4.3 Re-check every `currentMapId = null` / Town transition in API code and ensure each exit has explicit cleanup or reconciliation coverage.
-
-## 5. Regression tests
-
-- [x] 5.1 Prove stale Redis members are actually pruned and excluded from published count.
-- [x] 5.2 Prove refreshed active members survive stale pruning.
-- [x] 5.3 Prove disconnect does NOT remove presence for a character still grinding.
-- [x] 5.4 Prove server reconciliation refreshes disconnected grinders.
-- [x] 5.5 Prove `returnToTownAfterBattle=true` is not re-added by reconciliation.
-- [x] 5.6 Prove queueBattles food-exhaustion/no-active-battle cleanup.
-- [x] 5.7 Keep existing immediate/deferred leave, death and resolveBattle cleanup assertions.
+## 5. Regression coverage
+- [x] 5.1 Verify entry publishes the new absolute count.
+- [x] 5.2 Verify movement A -> B decrements A and increments B.
+- [x] 5.3 Verify death/food/Town exits use the centralized sync hook.
+- [x] 5.4 Verify deferred Town request removes map presence immediately.
+- [x] 5.5 Verify disconnected grinders remain present.
+- [x] 5.6 Verify reconciliation repairs missing Redis membership.
+- [x] 5.7 Verify stale members are excluded/pruned.
+- [x] 5.8 Verify no battle-start presence processor remains.
 
 ## 6. Verification
-
-- [x] 6.1 Run map presence tests.
-- [x] 6.2 Run encounter-search regression test.
-- [x] 6.3 Run shared/API/frontend production builds.
-- [x] 6.4 Run strict OpenSpec validation.
-- [x] 6.5 Run `git diff --check`.
-- [ ] 6.6 Perform live authenticated smoke when the local stack is available.
+- [x] 6.1 API build.
+- [x] 6.2 Map presence regression tests.
+- [x] 6.3 Map cleanup regression tests.
+- [x] 6.4 Encounter-search regression tests.
+- [x] 6.5 git diff --check.
+- [ ] 6.6 Live authenticated smoke when the local stack is available.

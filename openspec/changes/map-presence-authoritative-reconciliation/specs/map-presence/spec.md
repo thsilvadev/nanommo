@@ -2,89 +2,65 @@
 
 ## ADDED Requirements
 
-### Requirement: Authoritative self-healing realtime map presence
+### Requirement: Centralized authoritative map membership
+The server SHALL derive gameplay map presence from the Character state and SHALL expose one reusable synchronization service for authoritative map-state changes.
+A character counts on a map exactly when status=grinding, currentMapId is set, and returnToTownAfterBattle is not true.
 
-The server SHALL treat map presence as a cache of authoritative gameplay state. A character SHALL count in `playersInMap` while `status=grinding`, `currentMapId` is set, and `returnToTownAfterBattle` is not true, regardless of Socket.IO connection state. Redis members SHALL carry a last-refresh timestamp and stale members SHALL be excluded before counting.
+#### Scenario: Map entry
+- **WHEN** an authoritative map-entry transition saves a character on map M
+- **THEN** the map-presence service adds that character to M and publishes the resulting absolute population for M
 
-#### Scenario: Disconnected grinder remains present
+#### Scenario: Map movement
+- **WHEN** an authoritative movement transition changes a character from map A to map B
+- **THEN** the service removes the character from A and publishes A's new count, then adds the character to B and publishes B's new count
 
-- **WHEN** a character is grinding on map M and its Socket.IO connection disconnects
-- **THEN** the character continues counting in `playersInMap` while its authoritative gameplay state remains active grinding
+#### Scenario: Death exits the map
+- **WHEN** a grinding character dies and its authoritative state becomes Town with currentMapId=null
+- **THEN** the previous map membership is removed and the previous map receives the decremented absolute population
 
-#### Scenario: Server reconciliation refreshes active grinder
+#### Scenario: Food exhaustion exits the map
+- **WHEN** authoritative grind continuation stops because the character has no valid food and the character is routed to Town
+- **THEN** the previous map membership is removed and its corrected population is published
 
-- **WHEN** a character is actively grinding on map M, whether connected or disconnected
-- **THEN** server-side reconciliation refreshes its Redis presence before the stale-presence TTL expires
+### Requirement: Realtime map population is event-driven
+The server SHALL publish map:presence when map membership actually changes. Battle start/end is not itself a map-presence trigger.
 
-#### Scenario: Stale member is pruned
+#### Scenario: Battle start without movement
+- **WHEN** a battle starts and the character remains on the same map with the same active-map eligibility
+- **THEN** no map-presence change is inferred solely from battle start
 
-- **WHEN** a map-presence hash contains a member whose last-refresh timestamp is older than the stale-presence TTL
-- **THEN** the member is removed before the map population count is returned or published
+#### Scenario: Membership change
+- **WHEN** a character enters, leaves, or moves between maps
+- **THEN** the affected map(s) receive the current absolute playersOnMap value through the existing map:presence event
 
-#### Scenario: Concurrent refresh wins over stale prune
+### Requirement: Absolute presence payload
+The map:presence event SHALL retain { mapId, playersOnMap }, where playersOnMap is the full current count.
 
-- **WHEN** stale pruning observes an old timestamp and the character refreshes presence before deletion
-- **THEN** the refreshed membership remains present and is counted
+#### Scenario: Client receives population snapshot
+- **WHEN** the client receives map:presence
+- **THEN** it replaces the displayed count with playersOnMap rather than applying a delta
 
-### Requirement: Disconnect does not imply map exit
+### Requirement: Redis is a runtime cache, not gameplay authority
+Redis SHALL retain the existing timestamped map:players:{mapId} cache and SHALL be repaired from authoritative PostgreSQL state by periodic reconciliation.
 
-The server SHALL NOT remove map presence solely because a Socket.IO connection disconnects.
+#### Scenario: Redis member loss
+- **WHEN** an active grinder is missing from Redis but remains eligible in PostgreSQL
+- **THEN** reconciliation restores the Redis member and the correct population
 
 #### Scenario: Disconnect while grinding
+- **WHEN** a grinding character's Socket.IO connection disconnects
+- **THEN** map presence is not removed and the character remains eligible for population
 
-- **WHEN** a grinding character disconnects and its authoritative `status` and `currentMapId` remain active
-- **THEN** no map-presence deletion occurs and the character remains eligible for `playersInMap`
+### Requirement: Deferred Town return remains a special battle rule
+returnToTownAfterBattle SHALL remain a battle/Town-return control flag, not the general map-membership mechanism.
 
-### Requirement: Deferred Town return is absent from active map presence
+#### Scenario: Deferred Town request
+- **WHEN** a character requests Town during an active battle
+- **THEN** the flag remains authoritative for the battle lifecycle, but map presence is removed immediately because the character is no longer eligible for active map presence
 
-The server SHALL remove presence immediately when a character requests deferred Town return and SHALL NOT re-add it while `returnToTownAfterBattle=true`.
+### Requirement: Online presence is separate and reusable
+Online/socket presence SHALL be owned by OnlinePresenceService. It SHALL remain independent from gameplay map presence and SHALL expose a reusable heartbeat touch hook for future friend/online-player features.
 
-#### Scenario: Deferred return during active battle
-
-- **WHEN** a character requests Town while a battle is active
-- **THEN** its map presence is removed and reconciliation does not re-add it while the deferred-return flag remains true
-
-### Requirement: Queue-generation Town transition cleans presence
-
-Every server path that clears `Character.currentMapId` and routes the character to Town SHALL clean the corresponding Redis map presence.
-
-#### Scenario: Food exhaustion during queue generation with no active battle
-
-- **WHEN** queue generation finds no valid projected food and no active battle exists
-- **THEN** the character is saved in Town, its previous map presence is removed, and the corrected count is published
-
-### Requirement: Per-battle map population refresh
-
-The server SHALL refresh authoritative active grinders and publish the current map population when a new battle is scheduled for a grinding character. This is an additional refresh point and does not depend on Socket.IO connection or map re-entry.
-
-#### Scenario: New battle refreshes population
-
-- **WHEN** a new battle is scheduled for a character grinding on map M
-- **THEN** active grinders on map M are refreshed in Redis and a `map:presence` event with the current count is published
-
-### Requirement: Correct published count
-
-The `map:presence` event SHALL report the count after stale members have been pruned.
-
-#### Scenario: Published count excludes stale member
-
-- **WHEN** a map has two active members and one stale Redis member
-- **THEN** the published payload reports exactly 2 players on the map
-
-### Requirement: Map presence cleanup on all gameplay exit paths
-
-The server SHALL remove a character from Redis map presence and publish the updated count whenever authoritative gameplay state stops that character from grinding on a map. Cleanup SHALL remain idempotent.
-
-#### Scenario: Every authoritative Town transition cleans presence
-
-- **WHEN** a server-authoritative path changes a grinding character to Town and clears its previous `currentMapId`
-- **THEN** the previous map presence is removed and the updated count is published
-
-### Requirement: Existing realtime map population channel
-
-The server SHALL continue to use the existing `map:presence` event over `/game` Socket.IO. No frontend polling or new event type is introduced.
-
-#### Scenario: Current map header receives population
-
-- **WHEN** map population changes and the client is connected to that map room
-- **THEN** the existing `map:presence` event supplies the current `playersOnMap` count
+#### Scenario: Socket disconnect
+- **WHEN** a client disconnects
+- **THEN** online presence is updated without modifying gameplay map membership

@@ -26,7 +26,7 @@ export class BattleController {
       queue.length === 0 &&
       character.status === 'grinding' &&
       character.currentMapId &&
-      !character.returnToTownAfterBattle
+      !character.pendingMapTransition
     ) {
       await this.battleService.queueBattles(character.id, 5, false);
       queue = await this.battleService.getBattleQueue(character.id);

@@ -4,7 +4,8 @@ import { Repository } from 'typeorm';
 import { MapKillCounter, Character, User } from '../../database/entities';
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
-import { GatewayService } from '../gateway/gateway.service';
+import { MapPresenceService } from '../presence/map-presence.service';
+import { TOWN_MAP_ID } from '@nanommo/shared';
 
 @Injectable()
 export class MapService {
@@ -19,7 +20,7 @@ export class MapService {
     private readonly userRepo: Repository<User>,
     private readonly dataService: DataService,
     private readonly battleService: BattleService,
-    private readonly gatewayService: GatewayService,
+    private readonly mapPresenceService: MapPresenceService,
   ) {}
 
   /**
@@ -52,6 +53,9 @@ export class MapService {
 
     const map = this.dataService.getMapById(mapId);
     if (!map) throw new BadRequestException('Map not found');
+    if (map.id === TOWN_MAP_ID || map.isTown) throw new BadRequestException('Town is not a grind map');
+
+    const previousMapId = character.currentMapId;
 
     const foodBuff = character.activeFoodBuff;
     if (!foodBuff?.expiresAt || new Date(foodBuff.expiresAt).getTime() <= Date.now()) {
@@ -68,9 +72,10 @@ export class MapService {
     // Update character status
     character.currentMapId = mapId;
     character.status = 'grinding';
-    character.returnToTownAfterBattle = false;
+    character.pendingMapTransition = null;
     character.lastSeenAt = new Date();
     await this.characterRepo.save(character);
+    await this.mapPresenceService.syncCharacter(characterId, previousMapId);
 
     // Queue initial battles
     await this.battleService.queueBattles(characterId, 5);
@@ -98,12 +103,11 @@ export class MapService {
     if (activeBattle) {
       // Register the return request first. The active battle remains authoritative
       // and must resolve before Town is entered.
-      character.returnToTownAfterBattle = true;
+      character.pendingMapTransition = { destinationMapId: TOWN_MAP_ID, reason: 'town_request' };
       await this.characterRepo.save(character);
 
       if (mapId) {
-        await this.gatewayService.removePlayerFromMap(characterId, mapId);
-        await this.gatewayService.publishMapPresence(mapId);
+        await this.mapPresenceService.syncCharacter(characterId, mapId);
       }
 
       // Cancelling future entries is an optimization/safety cleanup. The persistent
@@ -131,16 +135,15 @@ export class MapService {
       };
     }
 
-    character.returnToTownAfterBattle = false;
+    character.pendingMapTransition = null;
     // null, not undefined: TypeORM skips undefined columns on save
-    character.currentMapId = null as any;
+    character.currentMapId = TOWN_MAP_ID;
     character.status = 'town';
     character.lastSeenAt = new Date();
     await this.characterRepo.save(character);
 
     if (mapId) {
-      await this.gatewayService.removePlayerFromMap(characterId, mapId);
-      await this.gatewayService.publishMapPresence(mapId);
+      await this.mapPresenceService.syncCharacter(characterId, mapId);
     }
 
     try {

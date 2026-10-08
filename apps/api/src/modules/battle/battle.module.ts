@@ -16,6 +16,7 @@ import { InventoryModule } from '../inventory/inventory.module';
 import { EquipmentModule } from '../equipment/equipment.module';
 import { RedisModule } from '../../config/redis.module';
 import { GatewayService } from '../gateway/gateway.service';
+import { PresenceModule } from '../presence/presence.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { GatewayService } from '../gateway/gateway.service';
     InventoryModule,
     EquipmentModule,
     RedisModule,
+    PresenceModule,
   ],
   controllers: [BattleController],
   providers: [BattleService, BattleQueueProcessor, BattleRecoveryService, GatewayService],

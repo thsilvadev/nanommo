@@ -1,40 +1,38 @@
 # Proposal
 
 ## Why
+The previous map-presence work correctly separated socket connectivity from gameplay presence and added Redis reconciliation, but it still treated battle scheduling/start as a convenient refresh trigger. That couples a simple map-membership concern to the battle engine.
 
-The previous map-presence cleanup fixed several explicit map-exit paths, but the Redis population cache can still become stale. More importantly, Socket.IO connection state is not gameplay presence: a character that disconnects while grinding continues grinding and MUST continue counting in `playersInMap`.
-
-The current Redis hash is therefore a cache of authoritative gameplay state, not an online-player set. It can retain stale members after crashes, missed cleanup, or historical bugs, while the current `handleDisconnect()` incorrectly removes a grinding character merely because its socket closed.
-
-There is also an uncovered server-authoritative Town transition in `BattleService.queueBattles`: when projected food is exhausted and there is no active battle, the character is moved to Town and `currentMapId` is cleared without removing map presence.
+NanoMMO is about to gain character movement. Map presence should therefore be modeled around the actual gameplay transition: entering, leaving, or moving between maps. The same abstraction must also cover death, hunger/Town routing, and the special deferred Town request.
 
 ## What Changes
-
-- Keep Redis `map:players:{mapId}` as the realtime presence cache, with timestamped members and bounded stale-entry pruning.
-- Make authoritative gameplay state the source of presence eligibility: a character counts while `status=grinding`, `currentMapId` is set, and it has not requested deferred Town return.
-- Refresh presence from a server-side reconciliation that queries authoritative grinding characters, not from connected sockets. Disconnected grinders therefore remain present.
-- NEVER remove map presence merely because a Socket.IO connection disconnects. Disconnect cleanup only removes connection/session state; gameplay presence remains until the authoritative character leaves grind.
-- Prune stale Redis members before counting/publishing.
-- Cover the remaining `BattleService.queueBattles` Town transition with explicit cleanup.
-- Keep explicit cleanup on authoritative Town/death/leave transitions; cleanup remains idempotent.
-- Add regression tests proving disconnected grinders remain counted, stale members are pruned, and the queue-generation Town path cleans presence.
-- Do not change the frontend `playersInMap` contract or add polling.
+- Introduce a dedicated PresenceModule with MapPresenceService for gameplay map membership and OnlinePresenceService for online/socket presence.
+- Make MapPresenceService.syncCharacter(characterId, previousMapId) the reusable synchronization boundary after authoritative Character map-state changes.
+- Publish the existing absolute map:presence payload when map population actually changes.
+- Keep Redis map hashes as a fast, self-healing runtime cache and Redis pub/sub as the cross-process transport bridge.
+- Keep the existing 10-second reconciliation only as a recovery/safety mechanism.
+- Remove the battle-start refresh-map-presence BullMQ job; battle lifecycle is no longer the normal map-presence trigger.
+- Preserve the existing map:presence frontend contract and room model.
+- Keep the future heartbeat modularized in OnlinePresenceService without implementing friend lists or heartbeat behavior now.
+- Make encounter-search timing consume the same active-grinder definition used by map presence.
 
 ## Capabilities
-
 ### Modified Capabilities
-
-- `map-presence`: Presence becomes an authoritative, self-healing gameplay-state cache rather than a socket-connected-player count.
+- map-presence: gameplay map presence becomes event-driven from authoritative membership transitions and is centralized for future movement.
+- online-presence: online/socket state is separated into a reusable service for the future heartbeat.
 
 ## Impact
+Implementation areas:
+- apps/api/src/modules/presence/*
+- apps/api/src/modules/map/map.service.ts
+- apps/api/src/modules/battle/battle.service.ts
+- apps/api/src/modules/gateway/nanommo.gateway.ts
+- apps/api/src/modules/gateway/gateway.service.ts
+- apps/api/src/modules/battle/battle-queue.processor.ts
+- apps/api/test/map-presence.test.js
+- apps/api/test/map-presence-cleanup.test.js
+- SPEC.md
+- ARCHITECTURE.md
+- STATUS.md
 
-Likely implementation areas:
-
-- `apps/api/src/modules/gateway/gateway.service.ts`
-- `apps/api/src/modules/gateway/nanommo.gateway.ts`
-- `apps/api/src/modules/battle/battle.service.ts`
-- `apps/api/test/map-presence.test.js`
-- `apps/api/test/map-presence-cleanup.test.js`
-- OpenSpec/root documentation describing the map-presence contract
-
-No database migration is expected. Redis presence remains ephemeral runtime state.
+No database migration is expected. Redis map presence remains ephemeral runtime state.

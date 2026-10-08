@@ -20,6 +20,8 @@ import { DataService } from '../data/data.service';
 import { GatewayService } from './gateway.service';
 import { MapService } from '../map/map.service';
 import { BattleService } from '../battle/battle.service';
+import { MapPresenceService } from '../presence/map-presence.service';
+import { OnlinePresenceService } from '../presence/online-presence.service';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
 
@@ -47,7 +49,6 @@ export class NanommoGateway
   private connectedSockets = new Map<string, string>(); // charId -> socketId
   private redisSubscribers = new Map<string, any>(); // channel -> redis subscriber
   private mapPresenceSubscriber: Redis | null = null;
-  private mapPresenceReconciliationTimer: NodeJS.Timeout | null = null;
 
   constructor(
     @InjectRepository(Character)
@@ -59,6 +60,8 @@ export class NanommoGateway
     private readonly gatewayService: GatewayService,
     private readonly mapService: MapService,
     private readonly battleService: BattleService,
+    private readonly mapPresenceService: MapPresenceService,
+    private readonly onlinePresenceService: OnlinePresenceService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
@@ -104,22 +107,32 @@ export class NanommoGateway
     });
 
     this.mapPresenceSubscriber = this.redis.duplicate();
-    this.mapPresenceSubscriber.on('message', (_, message) => {
+    this.mapPresenceSubscriber.on('message', (channel, message) => {
       try {
         const payload = JSON.parse(message);
-        if (payload?.mapId) {
+        if (channel === 'gateway:map:presence' && payload?.mapId) {
           this.server.to(`map:${payload.mapId}`).emit('map:presence', payload);
         }
+        if (channel === 'gateway:map:transition' && payload?.characterId) {
+          const socketId = this.connectedSockets.get(payload.characterId);
+          if (socketId) {
+            const socket = this.server.sockets.sockets.get(socketId);
+            if (socket) {
+              if (payload.previousMapId) socket.leave(`map:${payload.previousMapId}`);
+              if (payload.nextMapId) {
+                socket.join(`map:${payload.nextMapId}`);
+                void this.mapPresenceService.getPlayersOnMap(payload.nextMapId).then(playersOnMap => {
+                  socket.emit('map:presence', { mapId: payload.nextMapId, playersOnMap });
+                });
+              }
+            }
+          }
+        }
       } catch {
-        // Ignore malformed presence payloads; gameplay remains server-authoritative.
+        // Ignore malformed internal presence payloads; gameplay remains server-authoritative.
       }
     });
-    this.mapPresenceSubscriber.subscribe('gateway:map:presence');
-
-    void this.reconcileGrindingMapPresence();
-    this.mapPresenceReconciliationTimer = setInterval(() => {
-      void this.reconcileGrindingMapPresence();
-    }, 10_000);
+    this.mapPresenceSubscriber.subscribe('gateway:map:presence', 'gateway:map:transition');
 
     this.logger.log(
       `Gateway initialized on namespace ${process.env.WEBSOCKET_NAMESPACE || '/game'}`,
@@ -147,30 +160,31 @@ export class NanommoGateway
       // Join private room for character
       client.join(`char:${character.id}`);
 
-      // If grinding, join map room
-      if (character.currentMapId && character.status === 'grinding' && !character.returnToTownAfterBattle) {
-        client.join(`map:${character.currentMapId}`);
-        await this.gatewayService.addPlayerToMap(
-          character.id,
-          character.currentMapId,
-        );
+      // Reconcile this character's gameplay map presence before joining the map room.
+      // The service uses the authoritative Character state; socket connectivity is not
+      // itself a gameplay-presence signal.
+      await this.mapPresenceService.syncCharacter(character.id, character.currentMapId ?? null);
+
+      if (this.mapPresenceService.getActiveMapId(character)) {
+        const activeMapId = this.mapPresenceService.getActiveMapId(character)!;
+        client.join(`map:${activeMapId}`);
         client.emit('map:presence', {
-          mapId: character.currentMapId,
-          playersOnMap: await this.gatewayService.getPlayersOnMap(character.currentMapId),
+          mapId: activeMapId,
+          playersOnMap: await this.mapPresenceService.getPlayersOnMap(activeMapId),
         });
-        await this.gatewayService.publishMapPresence(character.currentMapId);
       }
 
       // Subscribe to global chat rooms
       client.join('chat:global');
       client.join('chat:town');
 
-      // Update presence in Redis
-      await this.gatewayService.updatePresence(
+      // Online/socket presence is separate from gameplay map presence. This service
+      // will later be refreshed by the reusable heartbeat for friends/online lists.
+      await this.onlinePresenceService.updateLocation(
         character.id,
         character.currentMapId || 'town',
       );
-      await this.gatewayService.setOnline(character.id);
+      await this.onlinePresenceService.setOnline(character.id);
 
       // Setup Redis subscribers for this character's events
       this.setupRedisSubscribers(character.id, client);
@@ -188,20 +202,15 @@ export class NanommoGateway
   async handleDisconnect(client: AuthenticatedSocket) {
     try {
       if (client.characterId) {
-        const character = await this.characterRepo.findOne({
-          where: { id: client.characterId },
-        });
-
         // Socket disconnect is not a gameplay/map exit. A character that remains
         // grinding must continue counting in playersInMap even while offline.
-
         this.connectedSockets.delete(client.characterId);
 
         // Cleanup Redis subscribers for this character
         this.cleanupRedisSubscribers(client.characterId);
 
         // Remove from online set
-        await this.gatewayService.setOffline(client.characterId);
+        await this.onlinePresenceService.setOffline(client.characterId);
 
         this.logger.log(`Character disconnected: ${client.characterId}`);
       }
@@ -211,37 +220,7 @@ export class NanommoGateway
     }
   }
 
-  private async reconcileGrindingMapPresence(): Promise<void> {
-    try {
-      const grinders = await this.characterRepo.find({
-        select: ['id', 'currentMapId'],
-        where: {
-          status: 'grinding' as any,
-          returnToTownAfterBattle: false,
-        },
-      });
-
-      const affectedMaps = new Set<string>();
-      for (const character of grinders) {
-        if (!character.currentMapId) continue;
-        await this.gatewayService.addPlayerToMap(character.id, character.currentMapId);
-        affectedMaps.add(character.currentMapId);
-      }
-
-      for (const mapId of affectedMaps) {
-        await this.gatewayService.publishMapPresence(mapId);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(`Map presence reconciliation failed: ${message}`);
-    }
-  }
-
   onModuleDestroy() {
-    if (this.mapPresenceReconciliationTimer) {
-      clearInterval(this.mapPresenceReconciliationTimer);
-      this.mapPresenceReconciliationTimer = null;
-    }
     this.mapPresenceSubscriber?.disconnect();
     this.mapPresenceSubscriber = null;
   }
@@ -265,21 +244,15 @@ export class NanommoGateway
       await this.mapService.enterMap(character.id, data.mapId);
 
       if (oldMapId && oldMapId !== data.mapId) {
-        await this.gatewayService.removePlayerFromMap(character.id, oldMapId);
         client.leave(`map:${oldMapId}`);
       }
 
-      await this.gatewayService.updatePresence(character.id, data.mapId);
-      await this.gatewayService.addPlayerToMap(character.id, data.mapId);
+      await this.onlinePresenceService.updateLocation(character.id, data.mapId);
       client.join(`map:${data.mapId}`);
       client.emit('map:presence', {
         mapId: data.mapId,
-        playersOnMap: await this.gatewayService.getPlayersOnMap(data.mapId),
+        playersOnMap: await this.mapPresenceService.getPlayersOnMap(data.mapId),
       });
-      await this.gatewayService.publishMapPresence(data.mapId);
-      if (oldMapId && oldMapId !== data.mapId) {
-        await this.gatewayService.publishMapPresence(oldMapId);
-      }
 
       client.emit('map:entered', { success: true, mapId: data.mapId });
     } catch (error) {
@@ -298,19 +271,19 @@ export class NanommoGateway
     const character = await this.characterRepo.findOne({ where: { id: client.characterId } });
     if (!character) throw new WsException('Character not found');
 
-    if (character.status === 'grinding' && character.currentMapId === data.mapId && !character.returnToTownAfterBattle) {
-      await this.gatewayService.addPlayerToMap(character.id, data.mapId);
+    await this.mapPresenceService.syncCharacter(character.id, data.mapId);
+
+    const activeMapId = this.mapPresenceService.getActiveMapId(character);
+    if (activeMapId === data.mapId) {
       client.join(`map:${data.mapId}`);
     } else {
-      await this.gatewayService.removePlayerFromMap(character.id, data.mapId);
       client.leave(`map:${data.mapId}`);
     }
 
     client.emit('map:presence', {
       mapId: data.mapId,
-      playersOnMap: await this.gatewayService.getPlayersOnMap(data.mapId),
+      playersOnMap: await this.mapPresenceService.getPlayersOnMap(data.mapId),
     });
-    await this.gatewayService.publishMapPresence(data.mapId);
   }
 
   @SubscribeMessage('map:leave')
@@ -323,11 +296,9 @@ export class NanommoGateway
       const oldMapId = character.currentMapId;
       await this.mapService.leaveMap(character.id);
 
-      await this.gatewayService.updatePresence(character.id, 'town');
+      await this.onlinePresenceService.updateLocation(character.id, 'town');
       if (oldMapId) {
-        await this.gatewayService.removePlayerFromMap(character.id, oldMapId);
         client.leave(`map:${oldMapId}`);
-        await this.gatewayService.publishMapPresence(oldMapId);
       }
 
       client.emit('map:left', { success: true });

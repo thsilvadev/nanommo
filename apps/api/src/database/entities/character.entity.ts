@@ -1,5 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, VersionColumn, ManyToOne, JoinColumn, Unique, Index } from 'typeorm';
 import { User } from './user.entity';
+import { PendingMapTransition } from '@nanommo/shared';
 
 @Entity('characters')
 @Index(['userId'])
@@ -55,8 +56,8 @@ export class Character {
   @Column({ type: 'int' })
   spCurrent!: number;
 
-  @Column({ type: 'varchar', nullable: true })
-  currentMapId?: string;
+  @Column({ type: 'varchar', default: 'map_town' })
+  currentMapId!: string;
 
   @Column({ type: 'enum', enum: ['town', 'grinding', 'dead_pending_return'], default: 'town' })
   status!: string;
@@ -91,9 +92,8 @@ export class Character {
   @Column({ type: 'timestamptz' })
   lastSeenAt!: Date;
 
-  /** A requested Town return waits for the current battle to resolve. */
-  @Column({ type: 'boolean', default: false })
-  returnToTownAfterBattle!: boolean;
+  @Column({ type: 'jsonb', nullable: true })
+  pendingMapTransition?: PendingMapTransition | null;
 
   /** Stable origin for the character's continuous 10-tick regeneration timeline. */
   @Column({ type: 'timestamptz', nullable: true })

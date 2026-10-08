@@ -195,7 +195,7 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | gold | bigint (numeric(15,0)), default 0 | cap 1,000,000,000,000 |
 | hpCurrent | int | persisted so grind can resume mid-HP |
 | spCurrent | int | |
-| currentMapId | varchar, nullable | null = in town |
+| currentMapId | varchar, NOT NULL | canonical physical location; `map_town` = Town |
 | status | enum('town','grinding','dead_pending_return') | |
 | activeGambitPageId | uuid, FK → GambitPage, nullable | |
 | lastDeathLog | jsonb, nullable | see §7.7, overwritten each death |
@@ -537,7 +537,7 @@ This means, under ideal "automaticozão" conditions (good gambit, enough potions
 ### 7.6 Death handling
 
 On the `BattleQueueEntry` whose `outcome = 'loss'`:
-- `Character.status = 'town'`, `Character.currentMapId = null`
+- `Character.status = 'town'`, `Character.currentMapId = 'map_town'`
 - `Character.hpCurrent = 1` (never 0, avoids edge cases elsewhere — `TUNABLE`, could be `round(maxHp*0.01)`)
 - XP loss per §6.4 applied
 - `Character.lastDeathLog` is **overwritten** with this battle's full log (§7.7) — only the single most recent death is ever kept, per spec
@@ -745,7 +745,7 @@ searchTimeSeconds = 2 + (otherPlayersGrindingOnMap * 0.1)
 
 The character being queued is excluded from `otherPlayersGrindingOnMap`. The same delay is applied before the first encounter and between every subsequent queued encounter. It is not a separate `BattleQueueEntry`; it is represented by the gap between the previous `endAt` and the next battle's `startAt`. Existing 1-second battle ticks and battle duration formulas are unchanged.
 
-The authoritative grinder count for encounter timing is based on Character rows with `status = grinding` and the same `currentMapId`. Realtime UI presence is additionally tracked in Redis and broadcast through the `/game` Socket.IO gateway whenever map membership changes.
+The authoritative encounter-search count is based on Character rows with `status = grinding`, the same `currentMapId`, and no `pendingMapTransition`. Generic map presence is based on `currentMapId` being set and `pendingMapTransition` being null, including Town.
 
 ### 11.5 Drop rates (confirmed, apply per kill — multiple can trigger)
 
@@ -1287,7 +1287,7 @@ These 7 files are the complete static game data and ship in `apps/api/src/data/`
 Load all seven at boot, validate their shape, and fail fast on mismatch (§18.2 philosophy applies here too — a malformed data file should crash the boot, not silently degrade).
 
 ### Grind synchronization follow-up
-- A Town request during an active battle is deferred through the authoritative character state until that battle resolves; no future encounter may start after the request.
+- A Town request during an active battle sets `pendingMapTransition` to `map_town`; the character leaves map presence immediately, no future encounter may start, and the active battle finalizes the transition to Town.
 - Character, Inventory, and Battle frontend synchronization must prevent stale HTTP loads from overwriting newer realtime authoritative state.
 - Persisted Character HP/SP and Inventory quantities remain authoritative outside an active battle. During an ACTIVE battle, the Character Summary may use a read-only display projection from the immutable queued battle log plus `startAt`/`endAt`; this projection never writes to CharacterStore, InventoryStore, or the server and is abandoned immediately when the battle is no longer ACTIVE.
 - `battle:resolved` and the immediately following post-resolution `battle:queueUpdated` carry Character and complete Inventory from the same server state revision. This closes ordering races between their independent Redis pub/sub channels. Realtime snapshots with an older or equal revision are ignored, and HTTP responses that were in flight across a newer realtime update are discarded.

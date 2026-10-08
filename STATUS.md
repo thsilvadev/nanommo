@@ -1,18 +1,28 @@
 # NanoMMO — Implementation Status
 
-### Latest follow-up — `map-presence-authoritative-reconciliation` (2026-10-08)
+### Latest follow-up — `map-presence-event-driven-membership` (2026-10-08)
 
-Corrected realtime map population so Socket.IO connectivity is no longer treated as gameplay presence. A character that disconnects while still `status='grinding'` continues counting in `playersInMap`; `handleDisconnect()` now only cleans connection/online state and never removes map presence.
+Refactored map presence around the actual gameplay state transition instead of the battle lifecycle. A dedicated `MapPresenceService` now owns the authoritative predicate and the reusable `syncCharacter(characterId, previousMapId)` hook. Map entry, map-to-map movement, immediate Town return, deferred Town return, death, and food-exhaustion routing all converge on this same presence boundary.
 
-Redis map presence is now self-healing: `map:players:{mapId}` stores refresh timestamps, stale members older than 30s are pruned before counting/publishing, and a server-side 10s reconciliation refreshes every authoritative grinder from Postgres, including disconnected characters. Characters marked `returnToTownAfterBattle` are excluded until the authoritative Town transition completes. Existing explicit Town/death/leave cleanup remains in place, including the previously uncovered queue-generation food-exhaustion path.
+The existing `map:presence` Socket.IO event remains the transport to the frontend, but the event is now emitted from actual map-membership/count changes and carries the absolute `{ mapId, playersOnMap }` snapshot. Battle start is no longer a presence trigger, and the previous delayed BullMQ `refresh-map-presence` job was removed.
 
-OpenSpec `map-presence-authoritative-reconciliation` validated successfully in strict mode. Regression coverage: map presence 10/10 assertions; map cleanup immediate/deferred/death/resolve/queue-generation paths all passed; encounter search 5/5. Shared build, API build and frontend production build passed. Frontend output contains only the repository's existing non-fatal CSS-budget/CommonJS warnings. `git diff --check` passed. No production deployment.
+Redis remains a lightweight self-healing runtime cache: timestamped per-map hashes are still pruned before counting, while a 10s reconciliation repairs missed writes/process crashes and disconnected grinders. PostgreSQL remains the gameplay authority. Encounter-search timing now uses the same centralized active-grinder definition, eliminating another independent presence predicate.
+
+Online/socket presence was separated into reusable `OnlinePresenceService`; its `touch()` hook is intentionally reserved for the future heartbeat/friends online-list work and is not used for gameplay map presence.
+
+OpenSpec `map-presence-authoritative-reconciliation` was updated to this ownership model. Regression coverage: map presence 12/12; map cleanup immediate/deferred/death/resolve/queue-generation all use the centralized sync hook; encounter search 5/5. API build passed. No production deployment.
+
+---
+
+### Previous follow-up — `map-presence-authoritative-reconciliation` (2026-10-08)
+
+The previous revision established authoritative Redis-backed reconciliation and disconnect semantics. Its battle-start refresh mechanism was subsequently removed in favor of the event-driven membership architecture documented above.
 
 ---
 
 
-**Last Updated:** 2026-10-08 (authoritative map presence reconciliation)
-**Session Focus:** Food item-type boundary, no food Gambit actions, and authoritative Auto Feed at battle resolution.
+**Last Updated:** 2026-10-08 (event-driven authoritative map presence)
+**Session Focus:** Centralized gameplay map membership, realtime map population snapshots, and separation of online presence from future heartbeat.
 
 ### Latest follow-up — diet-food-type-autofeed-correction (2026-10-06)
 
@@ -1383,3 +1393,34 @@ Final verification:
 - `pnpm -r build`: passed for shared, frontend, and API.
 - Remaining Angular CSS-budget messages are warnings only; no production build error remains.
 - No production deployment performed.
+
+
+### Latest session — `town-as-map-and-generic-transition` (2026-10-08)
+
+Implemented the OpenSpec change making Town a first-class gameplay map and replacing the battle-specific deferred Town flag with a generic pending map transition.
+
+#### Implemented
+- Canonical `TOWN_MAP_ID = 'map_town'`; Character `currentMapId` is non-nullable and Town is persisted as `map_town`.
+- Added `pendingMapTransition` JSONB with destination/reason; production code no longer reads/writes `returnToTownAfterBattle`.
+- Added `map_town` to the canonical map catalog and frontend mirror with `isTown: true`; Town remains excluded from normal grind entry/recommendations and has no monster pool.
+- Added a reversible migration that converts legacy Town NULLs and deferred-return flags before dropping the legacy column.
+- Generic map presence now uses `currentMapId` + no pending transition, so Town residents count in Town independently of `status`. Encounter-search population remains explicitly grinder-only.
+- Added internal Redis map-membership transition publication; the gateway moves connected sockets between map rooms for REST/battle-driven transitions and emits the existing absolute `map:presence` payload.
+- Immediate Town, deferred Town, death and hunger exits now persist `map_town` and synchronize presence.
+- Frontend Character location is required and Town detection no longer interprets null/undefined as Town.
+
+#### Verification
+- `pnpm --filter @nanommo/shared build`: passed.
+- `pnpm --filter @nanommo/api build`: passed.
+- `pnpm --filter @nanommo/frontend build`: passed; existing Angular CSS-budget/CommonJS warnings remain non-blocking.
+- `node apps/api/test/map-presence.test.js`: passed, 12 assertions.
+- `node apps/api/test/map-presence-cleanup.test.js`: passed.
+- `node apps/api/test/encounter-search.test.js`: passed, 5 assertions.
+- No production deployment performed.
+
+#### Architectural traps / lessons
+- `status` is activity state, not physical location. Never use it to decide generic map membership.
+- `map_town` is a real map ID even though it is not a grind map; do not reintroduce null/undefined as a Town sentinel.
+- `pendingMapTransition` means the character is temporarily not a member of its current map; presence must not inspect the transition reason.
+- Encounter-search load and generic map population are intentionally different predicates.
+- REST/battle-driven location changes must publish an internal membership transition so connected sockets follow authoritative room membership; frontend polling is not the transport mechanism.
