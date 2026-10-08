@@ -1,16 +1,5 @@
 # NanoMMO — Implementation Status
 
-### Latest follow-up — `town-as-map-and-generic-transition` final verification (2026-10-08)
-
-Applied the remaining verification/robustness work for Town-as-map and generic transitions. Gameplay map presence reconciliation now uses the same authoritative predicate as `syncCharacter()` and scans all existing `map:players:*` Redis hashes, so stale members are removed even when a map has no current PostgreSQL member; this explicitly covers `map_town`. Encounter-search population remains separately restricted to active grinders.
-
-Added re-runnable regression coverage for Socket.IO room transitions and migration ordering/down behavior. The socket test verifies an authoritative `map_green_grounds -> map_town` transition makes a connected character leave the old room, join `map:map_town`, and receive the absolute Town snapshot. The migration test verifies legacy deferred Town rows are translated before the legacy column is removed, NULL locations are backfilled, `currentMapId` becomes NOT NULL/defaulted, and the down path restores the legacy representation.
-
-Verification: shared build passed; API build passed; frontend production build passed with the repository's existing non-fatal CSS-budget/CommonJS warnings; strict OpenSpec validation passed; `git diff --check` passed; map presence 12/12, cleanup 5 scenario assertions, socket transition 3/3, migration ordering/down 11/11, and encounter search 5/5 all passed. No production deployment was performed. Live authenticated smoke remains unavailable because the local production-like stack/database is not running on this workstation.
-
-Architectural trap recorded: `returnToTownAfterBattle` remains intentionally present only in historical TypeORM migrations needed to migrate old databases; production runtime code no longer reads/writes it. New location logic must use `currentMapId`, and deferred membership must use `pendingMapTransition` without teaching MapPresenceService about battle reasons.
-
----
 ### Latest follow-up — realtime map presence Socket.IO transport (2026-10-08)
 
 Investigated the complete `playersOnMap` realtime chain. The frontend already creates a Socket.IO client for the `/game` namespace from `PlayComponent.ngOnInit()`, uses the production API origin, forces WebSocket transport, authenticates with the JWT, and `BattleStore.bindEvents()` already consumes `map:presence`. `MapBoard.playersInMap()` already derives the displayed value from the current map and the latest absolute presence snapshot.

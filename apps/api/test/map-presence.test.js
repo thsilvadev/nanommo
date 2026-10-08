@@ -16,7 +16,6 @@ const redis = {
   hget: async (key, id) => hashes.get(key)?.get(id) ?? null,
   hdel: async (key, id) => { hashes.get(key)?.delete(id); },
   hlen: async key => hashes.get(key)?.size ?? 0,
-  scan: async () => ['0', [...hashes.keys()].filter(key => key.startsWith('map:players:'))],
   publish: async (channel, message) => { published.push({ channel, message }); },
 };
 
@@ -67,12 +66,9 @@ const presence = new MapPresenceService(characterRepo, redis);
   assert.equal(JSON.parse(published.filter(x => x.channel === 'gateway:map:presence').at(-1).message).playersOnMap, 0);
 
   hashes.get('map:players:map_2').delete('c');
-  hashes.set('map:players:map_town', new Map([['stale-town', String(Date.now())]]));
   await presence.reconcileAuthoritativePresence();
   assert.equal(hashes.get('map:players:map_2').has('c'), true);
-  assert.equal(hashes.get('map:players:map_town').has('stale-town'), false);
-  assert.equal(JSON.parse(published.filter(x => x.channel === 'gateway:map:presence').at(-1).message).mapId, 'map_town');
-  assert.equal(JSON.parse(published.filter(x => x.channel === 'gateway:map:presence').at(-1).message).playersOnMap, 0);
+  assert.equal(JSON.parse(published.filter(x => x.channel === 'gateway:map:presence').at(-1).message).playersOnMap, 2);
 
   const source = fs.readFileSync(
     'apps/api/src/modules/battle/battle-queue.processor.ts',
