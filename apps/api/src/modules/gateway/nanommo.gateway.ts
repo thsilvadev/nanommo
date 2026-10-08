@@ -12,7 +12,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Logger, Inject } from '@nestjs/common';
+import { Logger, Inject, OnModuleDestroy } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Character } from '../../database/entities/character.entity';
 import { User } from '../../database/entities/user.entity';
@@ -38,7 +38,7 @@ interface AuthenticatedSocket extends Socket {
   },
 })
 export class NanommoGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
 {
   // @WebSocketServer()
   server!: Server;
@@ -47,6 +47,7 @@ export class NanommoGateway
   private connectedSockets = new Map<string, string>(); // charId -> socketId
   private redisSubscribers = new Map<string, any>(); // channel -> redis subscriber
   private mapPresenceSubscriber: Redis | null = null;
+  private mapPresenceReconciliationTimer: NodeJS.Timeout | null = null;
 
   constructor(
     @InjectRepository(Character)
@@ -115,6 +116,11 @@ export class NanommoGateway
     });
     this.mapPresenceSubscriber.subscribe('gateway:map:presence');
 
+    void this.reconcileGrindingMapPresence();
+    this.mapPresenceReconciliationTimer = setInterval(() => {
+      void this.reconcileGrindingMapPresence();
+    }, 10_000);
+
     this.logger.log(
       `Gateway initialized on namespace ${process.env.WEBSOCKET_NAMESPACE || '/game'}`,
     );
@@ -142,7 +148,7 @@ export class NanommoGateway
       client.join(`char:${character.id}`);
 
       // If grinding, join map room
-      if (character.currentMapId && character.status === 'grinding') {
+      if (character.currentMapId && character.status === 'grinding' && !character.returnToTownAfterBattle) {
         client.join(`map:${character.currentMapId}`);
         await this.gatewayService.addPlayerToMap(
           character.id,
@@ -186,13 +192,8 @@ export class NanommoGateway
           where: { id: client.characterId },
         });
 
-        if (character && character.currentMapId) {
-          await this.gatewayService.removePlayerFromMap(
-            client.characterId,
-            character.currentMapId,
-          );
-          await this.gatewayService.publishMapPresence(character.currentMapId);
-        }
+        // Socket disconnect is not a gameplay/map exit. A character that remains
+        // grinding must continue counting in playersInMap even while offline.
 
         this.connectedSockets.delete(client.characterId);
 
@@ -208,6 +209,41 @@ export class NanommoGateway
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Disconnect error: ${errorMessage}`);
     }
+  }
+
+  private async reconcileGrindingMapPresence(): Promise<void> {
+    try {
+      const grinders = await this.characterRepo.find({
+        select: ['id', 'currentMapId'],
+        where: {
+          status: 'grinding' as any,
+          returnToTownAfterBattle: false,
+        },
+      });
+
+      const affectedMaps = new Set<string>();
+      for (const character of grinders) {
+        if (!character.currentMapId) continue;
+        await this.gatewayService.addPlayerToMap(character.id, character.currentMapId);
+        affectedMaps.add(character.currentMapId);
+      }
+
+      for (const mapId of affectedMaps) {
+        await this.gatewayService.publishMapPresence(mapId);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Map presence reconciliation failed: ${message}`);
+    }
+  }
+
+  onModuleDestroy() {
+    if (this.mapPresenceReconciliationTimer) {
+      clearInterval(this.mapPresenceReconciliationTimer);
+      this.mapPresenceReconciliationTimer = null;
+    }
+    this.mapPresenceSubscriber?.disconnect();
+    this.mapPresenceSubscriber = null;
   }
 
   /**
@@ -262,7 +298,7 @@ export class NanommoGateway
     const character = await this.characterRepo.findOne({ where: { id: client.characterId } });
     if (!character) throw new WsException('Character not found');
 
-    if (character.status === 'grinding' && character.currentMapId === data.mapId) {
+    if (character.status === 'grinding' && character.currentMapId === data.mapId && !character.returnToTownAfterBattle) {
       await this.gatewayService.addPlayerToMap(character.id, data.mapId);
       client.join(`map:${data.mapId}`);
     } else {

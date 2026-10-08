@@ -908,9 +908,13 @@ Namespace: `/game`. Auth via handshake (§15.2). Suggested rooms: `char:<charact
 | `character:died` | `{ deathLog }` | triggers town routing + "last death" affordance client-side |
 | `character:leveledUp` | `{ newLevel, unspentAttributePoints }` | |
 | `chat:message` | `{ channel, username, message, sentAt }` | fanned out to the relevant room |
-| `map:presence` | `{ mapId, playersOnMap }` | realtime on map enter/leave/disconnect |
+| `map:presence` | `{ mapId, playersOnMap }` | realtime population for the current map; Socket.IO disconnect does not remove a grinding character from gameplay presence |
 | `mail:newItem` | `{ unreadCount }` | badge update |
 | `market:orderFilled` | `{ orderId }` | so the Market UI can refresh without polling |
+
+### Map population authority
+
+`playersOnMap` is gameplay presence, not online/socket presence. A character counts while its authoritative Character state is `status='grinding'`, has a `currentMapId`, and is not marked `returnToTownAfterBattle`. This remains true after Socket.IO disconnect because the server continues the grind. Redis `map:players:{mapId}` is a self-healing runtime cache with timestamped members; server reconciliation refreshes authoritative grinders independently of connected sockets and stale members are pruned before counts are published.
 
 Equipment changes, food consumption, attribute point allocation, inventory/warehouse moves, and market/mail actions are plain **REST** endpoints (they are not latency-sensitive and benefit from standard HTTP semantics — status codes, idempotency, easier testing) — only genuinely realtime, push-driven data goes over the socket. Document each REST endpoint with a standard NestJS Swagger decorator; a full OpenAPI listing is intentionally not enumerated line-by-line in this document — the controllers should be organized 1:1 with the modules in §2.1, using conventional REST verbs/paths (`POST /character/attributes/allocate`, `PATCH /equipment/:slot`, `POST /inventory/move`, `POST /market/orders`, `DELETE /market/orders/:id`, `POST /mail/:id/collect`, etc).
 

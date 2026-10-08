@@ -1,6 +1,17 @@
 # NanoMMO — Implementation Status
 
-**Last Updated:** 2026-10-06 (separated Food from combat Consumables and hardened Auto Feed continuity)
+### Latest follow-up — `map-presence-authoritative-reconciliation` (2026-10-08)
+
+Corrected realtime map population so Socket.IO connectivity is no longer treated as gameplay presence. A character that disconnects while still `status='grinding'` continues counting in `playersInMap`; `handleDisconnect()` now only cleans connection/online state and never removes map presence.
+
+Redis map presence is now self-healing: `map:players:{mapId}` stores refresh timestamps, stale members older than 30s are pruned before counting/publishing, and a server-side 10s reconciliation refreshes every authoritative grinder from Postgres, including disconnected characters. Characters marked `returnToTownAfterBattle` are excluded until the authoritative Town transition completes. Existing explicit Town/death/leave cleanup remains in place, including the previously uncovered queue-generation food-exhaustion path.
+
+OpenSpec `map-presence-authoritative-reconciliation` validated successfully in strict mode. Regression coverage: map presence 10/10 assertions; map cleanup immediate/deferred/death/resolve/queue-generation paths all passed; encounter search 5/5. Shared build, API build and frontend production build passed. Frontend output contains only the repository's existing non-fatal CSS-budget/CommonJS warnings. `git diff --check` passed. No production deployment.
+
+---
+
+
+**Last Updated:** 2026-10-08 (authoritative map presence reconciliation)
 **Session Focus:** Food item-type boundary, no food Gambit actions, and authoritative Auto Feed at battle resolution.
 
 ### Latest follow-up — diet-food-type-autofeed-correction (2026-10-06)

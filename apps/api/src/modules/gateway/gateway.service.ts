@@ -38,6 +38,7 @@ export interface BattleQueueUpdatedPayload {
 export class GatewayService {
   private logger = new Logger('GatewayService');
   private readonly PRESENCE_EXPIRE_SECONDS = 3600; // 1 hour
+  private readonly MAP_PRESENCE_STALE_MS = 30_000;
 
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
 
@@ -138,7 +139,22 @@ export class GatewayService {
    * Get players on a specific map
    */
   async getPlayersOnMap(mapId: string): Promise<number> {
-    return this.redis.hlen(`map:players:${mapId}`);
+    const key = `map:players:${mapId}`;
+    const entries = await this.redis.hgetall(key);
+    const now = Date.now();
+
+    for (const [characterId, rawTimestamp] of Object.entries(entries)) {
+      const timestamp = Number(rawTimestamp);
+      if (!Number.isFinite(timestamp) || now - timestamp >= this.MAP_PRESENCE_STALE_MS) {
+        // Re-read before deleting so a concurrent refresh wins over this prune.
+        const current = await this.redis.hget(key, characterId);
+        if (current === rawTimestamp) {
+          await this.redis.hdel(key, characterId);
+        }
+      }
+    }
+
+    return this.redis.hlen(key);
   }
 
   async publishMapPresence(mapId: string): Promise<void> {

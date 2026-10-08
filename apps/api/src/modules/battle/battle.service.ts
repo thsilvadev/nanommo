@@ -374,11 +374,16 @@ export class BattleService {
           Date.now() < Date.parse(entry.endAt.toString()),
       );
       if (!activeBattle) {
+        const leavingMapId = character.currentMapId;
         character.currentMapId = null as any;
         character.status = 'town';
         character.returnToTownAfterBattle = false;
         character.lastSeenAt = new Date();
         await this.characterRepo.save(character);
+        if (leavingMapId) {
+          await this.gatewayService.removePlayerFromMap(characterId, leavingMapId);
+          await this.gatewayService.publishMapPresence(leavingMapId);
+        }
         await this.discardUnresolvedBattles(characterId);
         if (publishQueueEvent) await this.safePublishQueueUpdated(characterId, []);
         return [];

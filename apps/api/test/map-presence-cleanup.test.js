@@ -177,5 +177,31 @@ function createBattleService({ gateway, characterRepo, battleQueueRepo, mapKillC
     console.log('BattleService resolveBattle town-return cleanup verified');
   }
 
+  {
+    const gateway = createGatewayMock();
+    const service = createBattleService({ gateway });
+    const character = {
+      id: 'char-1', currentMapId: 'map_hunger', status: 'grinding', level: 1, xp: 0,
+      diet: [], dietLevels: {}, activeFoodBuff: null, returnToTownAfterBattle: false,
+      hpCurrent: 100, spCurrent: 100, lastSeenAt: new Date(),
+    };
+    service.characterRepo = {
+      findOne: async () => character,
+      save: async (row) => { Object.assign(character, row); return row; },
+    };
+    service.getBattleQueue = async () => [];
+    service.buildInventoryMap = async () => ({});
+    service.discardUnresolvedBattles = async () => {};
+    service.safePublishQueueUpdated = async () => {};
+
+    const result = await service.queueBattles('char-1', 1, true);
+    assert.deepStrictEqual(result, []);
+    assert.strictEqual(character.status, 'town');
+    assert.strictEqual(character.currentMapId, null);
+    assert.ok(gateway.calls.some(c => c.method === 'removePlayerFromMap' && c.characterId === 'char-1' && c.mapId === 'map_hunger'), 'queue generation must remove hunger-exhausted presence');
+    assert.ok(gateway.calls.some(c => c.method === 'publishMapPresence' && c.mapId === 'map_hunger'), 'queue generation must publish corrected hunger count');
+    console.log('BattleService queue-generation Town cleanup verified');
+  }
+
   console.log('\nAll map presence cleanup tests passed.');
 })().catch(error => { console.error(error); process.exit(1); });
