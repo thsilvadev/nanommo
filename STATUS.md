@@ -1,5 +1,15 @@
 # NanoMMO — Implementation Status
 
+### Latest follow-up — existing production database migration adoption (2026-10-08)
+
+The remote database had a valid existing schema but an empty TypeORM `migrations` table. Because `migrationsRun=true` now correctly runs migrations while `synchronize=false` protects the schema from pre-migration synchronization, the first startup exposed historical migrations trying to recreate columns already present (initially `characters.stateVersion`).
+
+Historical migrations that only add schema elements already present in the deployed schema were made idempotent where necessary: CharacterStateVersion, DietAutoFeed, SplitRegistrationCharacterCreation, and GoogleOAuth now inspect/guard existing schema state before applying their changes. This preserves existing character/account data and allows an adopted database with empty migration history to traverse the migration chain safely. The TownAsMapAndGenericTransition migration remains responsible for the actual data transition from legacy `currentMapId IS NULL` to canonical `map_town`, adding `pendingMapTransition`, and removing `returnToTownAfterBattle`.
+
+The database itself was not reachable from the development workstation, so no claim is made that the remote migration run has completed. API build, strict OpenSpec validation, and `git diff --check` passed. The next deployment/startup should run the migrations against the real database; if the database matches the inspected schema, the historical guards will advance to the Town migration instead of failing on existing columns.
+
+---
+
 ### Latest follow-up — `map-presence-event-driven-membership` (2026-10-08)
 
 Refactored map presence around the actual gameplay state transition instead of the battle lifecycle. A dedicated `MapPresenceService` now owns the authoritative predicate and the reusable `syncCharacter(characterId, previousMapId)` hook. Map entry, map-to-map movement, immediate Town return, deferred Town return, death, and food-exhaustion routing all converge on this same presence boundary.
