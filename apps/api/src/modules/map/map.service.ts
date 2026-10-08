@@ -91,6 +91,21 @@ export class MapService {
       where: { id: characterId },
     });
     if (!character) throw new NotFoundException('Character not found');
+
+    // Idempotent defense-in-depth: Town is a real map, but it is not a grind map.
+    // Never run grind cleanup/sequence-reset logic against the canonical Town location.
+    if (character.currentMapId === TOWN_MAP_ID) {
+      return {
+        deferred: false,
+        character: {
+          id: character.id,
+          status: character.status,
+          currentMapId: character.currentMapId,
+          lastSeenAt: character.lastSeenAt,
+        },
+      };
+    }
+
     const mapId = character.currentMapId;
     const activeBattle = (await this.battleService.getBattleQueue(characterId, 100))
       .find((entry) => Date.parse(entry.startAt.toString()) <= Date.now() &&
@@ -194,8 +209,9 @@ export class MapService {
 
     const allMaps = await this.getMaps();
     
-    // Filter maps that are accessible (within 5 levels)
+    // Recommended maps are grindable maps only; Town is a physical location, not a grind target.
     return allMaps.filter(map => {
+      if (map.isTown || map.id === TOWN_MAP_ID) return false;
       const minLevel = (map.unlockLevel || 1);
       const maxLevel = Math.min(minLevel + 10, 99);
       return character.level >= minLevel && character.level <= maxLevel;

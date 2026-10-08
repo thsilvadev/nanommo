@@ -574,4 +574,4 @@ visual composition and interaction details for these screens.
 
 ### Town map presence
 
-Town is the canonical gameplay map `map_town`. The existing Town tile/panel remains unchanged visually, while its realtime `Players in map: X` count uses the same map-presence contract as every other map.
+Town is the canonical gameplay map `map_town`. The existing Town tile/panel remains unchanged visually, while its realtime `Players in map: X` count uses the same map-presence contract as every other map. The Grind Board has exactly one visible Town node, and that node is the visual representation of `map_town`; the canonical Town entry is excluded from the generic grind-map tile loop so it cannot render twice. Preserve the Town node's existing placement, dimensions, icon, borders, colors, typography and scaling.

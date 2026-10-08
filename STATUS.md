@@ -1417,6 +1417,35 @@ Final verification:
 - No production deployment performed.
 
 
+### Latest session — `town-canonical-map-unification` (2026-10-08)
+
+Unified the Grind Board around the already-established canonical `map_town` Town location.
+
+#### Implemented
+- The backend/frontend canonical catalogs already contained exactly one Town entry; no duplicate catalog object was introduced.
+- The dedicated Board Town node now explicitly represents the canonical `map_town` entry.
+- Generic `map` rendering now excludes `isTown` entries (and defensively excludes `map_town`), eliminating the second visible Town node and the erroneous `POST /maps/map_town/enter` path.
+- Town remains non-grindable and continues to use the authoritative `/maps/leave` transition path.
+- `getRecommendedMaps()` also excludes Town, keeping `map_town` out of grind/recommended map targets.
+- `leaveMap()` is idempotent for an already-settled `map_town` character and never performs grind queue cleanup or encounter-sequence reset against Town.
+- Town NPC/Vendor reads and interactions now require `currentMapId = map_town`, `pendingMapTransition = null`, and the existing `status = town` consistency state. A stale `status = town` alone no longer grants Town access.
+- Repository-wide reference search proved `TownCenter` was unused; its declaration and unused template/style files were removed. No `/play/town` route or replacement Town screen was introduced.
+- Reusable regression coverage was added for the single Town catalog/node invariant and already-in-Town no-op behavior; existing Vendor/NPC service tests were updated for the canonical location contract.
+- Before this change was implemented, the unrelated prior-session commit `808c356` was reverted with `8fe25af` so the working state was restored to its pre-session baseline.
+
+#### Verification
+- `pnpm --filter @nanommo/shared build`: passed.
+- `pnpm --filter @nanommo/api build`: passed.
+- `pnpm --filter @nanommo/frontend build --configuration production`: passed; existing CSS-budget/CommonJS warnings remain non-blocking.
+- `node apps/api/test/town-canonical-map-unification.test.js`: passed, 17 assertions.
+- `node apps/api/test/map-leave-town-idempotency.test.js`: passed, 3 assertions.
+- `node apps/api/test/town-vendor.service.test.js`: passed, 11 assertions.
+- `node apps/api/test/npc-town-additions.test.js`: passed, 14 assertions.
+- `node apps/frontend/smoke-town-map-ui.js`: passed.
+- `node apps/frontend/smoke-vendor-ui.js`: not completed; after reaching the real frontend it became blocked during the pre-existing Vendor drag/drop portion, so no pass is claimed for that full script.
+- No live authenticated API/database smoke was possible because the backend stack was not running locally.
+- No production deployment performed.
+
 ### Latest session — `town-as-map-and-generic-transition` (2026-10-08)
 
 Implemented the OpenSpec change making Town a first-class gameplay map and replacing the battle-specific deferred Town flag with a generic pending map transition.

@@ -7,7 +7,7 @@ const catalog = require('../../../npc_catalog.json');
 const items = require('../../../items.json');
 const allItems = [...(items.consumables || []), ...(items.equipment || []), ...(items.monsterParts || [])];
 const itemById = id => allItems.find(x => x.id === id);
-const makeCharacter = hungry => ({ id: 'char-1', status: 'town', activeFoodBuff: hungry ? null : { itemId:'food_bread', expiresAt:new Date(Date.now()+3600000).toISOString(), hpRegenPerTenTicks:4, spRegenPerTenTicks:1 }, lastSeenAt:new Date() });
+const makeCharacter = hungry => ({ id: 'char-1', status: 'town', currentMapId:'map_town', pendingMapTransition:null, activeFoodBuff: hungry ? null : { itemId:'food_bread', expiresAt:new Date(Date.now()+3600000).toISOString(), hpRegenPerTenTicks:4, spRegenPerTenTicks:1 }, lastSeenAt:new Date() });
 
 function harness(character, rows) {
   const charRepo = { findOne: async () => character, save: async x => x };

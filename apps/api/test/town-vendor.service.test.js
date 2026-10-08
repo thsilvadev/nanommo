@@ -25,7 +25,7 @@ function harness(character, rows=[]) {
     };
   };
   const manager = { getRepository: managerRepo };
-  const characterRepo = { manager:{transaction:async(fn)=>fn(manager)} };
+  const characterRepo = { findOne:async()=>state.character, manager:{transaction:async(fn)=>fn(manager)} };
   const inventoryRepo = { find: async(opts)=>state.rows.filter(r=>r.characterId===opts.where.characterId && r.location===opts.where.location), count: async(opts)=>state.rows.filter(r=>r.characterId===opts.where.characterId && r.location===opts.where.location).length };
   const data = {
     getNpcVendor:()=>({id:'william',name:'William',type:'vendor',location:'town',buysAnyItem:true,buyRatePercent:40,sellStock:[{itemId:'pot_hp_small',price:15,infiniteStock:true},{itemId:'pot_hp_medium',price:40,infiniteStock:true}]}),
@@ -35,8 +35,8 @@ function harness(character, rows=[]) {
 }
 
 async function run(){
-  let {service,state}=harness({id:'c1',status:'town',gold:100});
-  const stock=await service.getVendorStock('william');
+  let {service,state}=harness({id:'c1',status:'town',currentMapId:'map_town',pendingMapTransition:null,gold:100});
+  const stock=await service.getVendorStock('c1','william');
   assert.equal(stock.length,2);
   assert.equal(stock[0].buyPrice,15);
 
@@ -55,14 +55,15 @@ async function run(){
   await assert.rejects(()=>service.buyFromVendor('c1','william','pot_hp_medium',-1),/positive integer/);
   await assert.rejects(()=>service.buyFromVendor('c1','william','sword',1),/Item is not sold/);
 
-  ({service,state}=harness({id:'c2',status:'grinding',gold:100},[{id:'i1',characterId:'c2',location:'inventory',slotIndex:0,itemId:'pot_hp_small',quantity:2}]));
+  ({service,state}=harness({id:'c2',status:'grinding',currentMapId:'map_green_grounds',pendingMapTransition:null,gold:100},[{id:'i1',characterId:'c2',location:'inventory',slotIndex:0,itemId:'pot_hp_small',quantity:2}]));
   await assert.rejects(()=>service.sellToVendor('c2','william','pot_hp_small',1),/only available in Town/);
+  await assert.rejects(()=>service.getVendorStock('c2','william'),/only available in Town/);
   assert.equal(state.rows[0].quantity,2);
 
-  ({service,state}=harness({id:'c3',status:'town',gold:100},Array.from({length:50},(_,i)=>({id:'i'+i,characterId:'c3',location:'inventory',slotIndex:i,itemId:'other',quantity:1}))));
+  ({service,state}=harness({id:'c3',status:'town',currentMapId:'map_town',pendingMapTransition:null,gold:100},Array.from({length:50},(_,i)=>({id:'i'+i,characterId:'c3',location:'inventory',slotIndex:i,itemId:'other',quantity:1}))));
   await assert.rejects(()=>service.buyFromVendor('c3','william','pot_hp_small',1),/Inventory is full/);
   assert.equal(state.character.gold,100);
 
-  console.log('town-vendor.service.test.js: 10 assertions passed');
+  console.log('town-vendor.service.test.js: 11 assertions passed');
 }
 run().catch(err=>{console.error(err);process.exit(1);});

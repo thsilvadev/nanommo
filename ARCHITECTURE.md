@@ -362,6 +362,10 @@ MapPresenceService.syncCharacter(characterId, previousMapId)
 
 The frontend never applies `+1/-1` deltas. It replaces its displayed count with the absolute snapshot. A later snapshot naturally corrects any missed/interleaved update.
 
+### Canonical Town identity
+
+Town has exactly one physical identity in the runtime: `map_town`. That same value is the Character location, canonical map-catalog entry, single Board Town node, map-presence identity, Socket.IO room suffix, Town NPC location boundary, and destination of Town-return transitions. `status = town` is an activity/state value only; it is never an alternative physical-location model. The Board must render the dedicated Town node once and must exclude `isTown` entries from the generic grind-map loop.
+
 ### Central transition boundary
 
 Any future movement implementation should follow this sequence:

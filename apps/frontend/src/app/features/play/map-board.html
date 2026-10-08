@@ -8,9 +8,9 @@
     </div>
     <div class="map-art">
         <div class="grid-overlay"></div>
-        <div class="town-center" role="button" tabindex="0" aria-label="Return to Town" (click)="enterTown()"
-            (keydown.enter)="enterTown()" (keydown.space)="enterTown()"><img src="/assets/ui/map.svg" alt=""><b>Town</b>
-        </div><button type="button" *ngFor="let tile of maps" class="map-tile"
+        <div class="town-center" role="button" tabindex="0" [attr.aria-label]="'Return to '+(townMap?.name || 'Town')" (click)="enterTown()"
+            (keydown.enter)="enterTown()" (keydown.space)="enterTown()"><img src="/assets/ui/map.svg" alt=""><b>{{townMap?.name || 'Town'}}</b>
+        </div><button type="button" *ngFor="let tile of grindMaps" class="map-tile"
             [class.selected]="tile.id===selected() || tile.id===character.character()?.currentMapId"
             [class.locked]="tile.unlockLevel>level()" (click)="select(tile); enter(tile.id)"
             [attr.aria-disabled]="tile.unlockLevel>level()" [disabled]="tile.unlockLevel>level()"

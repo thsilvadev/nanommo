@@ -6,6 +6,7 @@ import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { DataService } from '../data/data.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { CharacterService } from '../character/character.service';
+import { TOWN_MAP_ID } from '@nanommo/shared';
 
 const GOLD_CAP = 1_000_000_000_000;
 const INVENTORY_SLOTS = 50;
@@ -75,7 +76,7 @@ export class TownService {
       lock: { mode: 'pessimistic_write' },
     });
     if (!character) throw new NotFoundException('Character not found');
-    if (character.status !== 'town') throw new BadRequestException('Vendor transactions are only available in Town');
+    if (character.currentMapId !== TOWN_MAP_ID || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('Vendor transactions are only available in Town');
     return character;
   }
 
@@ -134,11 +135,12 @@ export class TownService {
     }
   }
 
-  async getVendorCatalog() {
-    return (await this.getTownNPCs()).filter((npc: any) => npc.types.includes('vendor'));
+  async getVendorCatalog(characterId: string) {
+    return (await this.getTownNPCs(characterId)).filter((npc: any) => npc.types.includes('vendor'));
   }
 
-  async getVendorStock(vendorId: string) {
+  async getVendorStock(characterId: string, vendorId: string) {
+    await this.assertTown(characterId);
     const v = this.vendor(vendorId);
     if (vendorId !== v.id) throw new NotFoundException('Vendor not found');
     return v.sellStock.map((entry, index) => ({
@@ -151,7 +153,8 @@ export class TownService {
     }));
   }
 
-  async getVendorQuote(vendorId: string, itemId: string) {
+  async getVendorQuote(characterId: string, vendorId: string, itemId: string) {
+    await this.assertTown(characterId);
     const v = this.vendor(vendorId);
     if (vendorId !== v.id) throw new NotFoundException('Vendor not found');
     const item = this.item(itemId);
@@ -221,7 +224,7 @@ export class TownService {
   private async assertTown(characterId: string): Promise<Character> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
-    if (character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
+    if (character.currentMapId !== TOWN_MAP_ID || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
     return character;
   }
 
@@ -230,7 +233,8 @@ export class TownService {
     return { id: npc.id, name: npc.name, location: npc.location, types, greeting: npc.greeting ?? npc.vendor?.greeting };
   }
 
-  async getTownNPCs() {
+  async getTownNPCs(characterId: string) {
+    await this.assertTown(characterId);
     const william = this.vendor();
     return [
       { id: william.id, name: william.name, location: william.location, types: ['vendor'], greeting: this.dataService.getNpcVendor()?.greeting },
@@ -308,7 +312,7 @@ export class TownService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!character) throw new NotFoundException('Character not found');
-      if (character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
+      if (character.currentMapId !== TOWN_MAP_ID || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
 
       const node = this.questNode(npc, nodeId);
       const choice = (node.choices ?? []).find((x: any) => x.id === choiceId);

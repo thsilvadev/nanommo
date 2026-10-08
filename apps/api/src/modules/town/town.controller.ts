@@ -18,13 +18,13 @@ export class TownController {
   }
 
   @Get('vendor/catalog')
-  getVendorCatalog() { return this.townService.getVendorCatalog(); }
+  async getVendorCatalog(@Request() req: any) { return this.townService.getVendorCatalog(await this.characterId(req)); }
 
   @Get('vendor/:vendorId/stock')
-  getVendorStock(@Param('vendorId') vendorId: string) { return this.townService.getVendorStock(vendorId); }
+  async getVendorStock(@Request() req: any, @Param('vendorId') vendorId: string) { return this.townService.getVendorStock(await this.characterId(req), vendorId); }
 
   @Get('vendor/:vendorId/quote/:itemId')
-  getVendorQuote(@Param('vendorId') vendorId: string, @Param('itemId') itemId: string) { return this.townService.getVendorQuote(vendorId, itemId); }
+  async getVendorQuote(@Request() req: any, @Param('vendorId') vendorId: string, @Param('itemId') itemId: string) { return this.townService.getVendorQuote(await this.characterId(req), vendorId, itemId); }
 
   @Post('vendor/:vendorId/buy')
   async buyFromVendor(@Request() req: any, @Param('vendorId') vendorId: string, @Body() body: { itemId: string; quantity: number }) {
@@ -46,7 +46,7 @@ export class TownController {
   async withdrawFromWarehouse(@Request() req: any, @Body() body: { itemId: string; quantity: number }) { return this.townService.withdrawFromWarehouse(await this.characterId(req), body.itemId, body.quantity); }
 
   @Get('npcs')
-  getTownNPCs() { return this.townService.getTownNPCs(); }
+  async getTownNPCs(@Request() req: any) { return this.townService.getTownNPCs(await this.characterId(req)); }
   @Get('npcs/:npcId/dialogue')
   async getNpcDialogue(@Request() req: any, @Param('npcId') npcId: string) {
     return this.townService.getNpcDialogue(await this.characterId(req), npcId);

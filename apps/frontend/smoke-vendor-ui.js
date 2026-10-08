@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 
   await page.route('http://localhost:3000/**',async route=>{
     const req=route.request(), url=req.url(), method=req.method();
-    if(url.endsWith('/characters')) return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'c1',userId:'smoke-user',name:'Smoke',level:1,xp:0,xpToNext:100,unspentAttributePoints:0,str:5,agi:5,dex:5,vit:5,int:5,sor:5,gold,hpCurrent:100,spCurrent:50,maxHp:100,maxSp:50,attack:8,defense:0,attackSpeed:10,castSpeed:10,evasion:0,accuracy:0,hpRegenPerTenTicks:1,spRegenPerTenTicks:1,criticalChance:0,hungry:true,status:'town',lastSeenAt:new Date().toISOString(),createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()})});
+    if(url.endsWith('/characters')) return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'c1',userId:'smoke-user',name:'Smoke',level:1,xp:0,xpToNext:100,unspentAttributePoints:0,str:5,agi:5,dex:5,vit:5,int:5,sor:5,gold,hpCurrent:100,spCurrent:50,maxHp:100,maxSp:50,attack:8,defense:0,attackSpeed:10,castSpeed:10,evasion:0,accuracy:0,hpRegenPerTenTicks:1,spRegenPerTenTicks:1,criticalChance:0,hungry:true,status:'town',currentMapId:'map_town',pendingMapTransition:null,lastSeenAt:new Date().toISOString(),createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()})});
     if(url.endsWith('/inventory')) return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{id:'i1',characterId:'c1',location:'inventory',slotIndex:0,itemId:'pot_hp_small',quantity}])});
     if(url.endsWith('/equipment')) return route.fulfill({status:200,contentType:'application/json',body:'[]'});
     if(url.endsWith('/battles/queue')) return route.fulfill({status:200,contentType:'application/json',body:'[]'});
@@ -20,7 +20,7 @@ const assert = require('node:assert/strict');
     if(url.includes('/town/vendor/william/quote/pot_hp_small')) return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({vendorId:'william',itemId:'pot_hp_small',buyPrice:15,sellPrice:2,stackable:true,maxStack:20})});
     if(method==='POST' && url.endsWith('/town/vendor/william/sell')){ quantity-=1; gold+=2; return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({goldReceived:2})}); }
     if(method==='POST' && url.endsWith('/town/vendor/william/buy')){ quantity+=1; gold-=15; return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({goldSpent:15})}); }
-    if(url.includes('/maps')) return route.fulfill({status:200,contentType:'application/json',body:'[]'});
+    if(url.endsWith('/maps')) return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([{id:'map_town',name:'Town',unlockLevel:1,isTown:true},{id:'map_green_grounds',name:'Green Grounds',unlockLevel:1,isTown:false}])});
     return route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({message:'mock route missing'})});
   });
 
@@ -29,8 +29,11 @@ const assert = require('node:assert/strict');
   assert.equal(await page.locator('app-town-center').count(),0);
   assert.equal(await page.locator('.map-panel').count(),1);
   assert.equal(await page.locator('.town-center').count(),1);
+  assert.equal(await page.locator('.town-center b').innerText(),'TOWN');
+  assert.equal(await page.locator('.map-tile').count(),1);
+  assert.equal(await page.locator('.map-tile b').innerText(),'GREEN GROUNDS');
   assert.equal(await page.locator('.panel-title').filter({hasText:'TOWN'}).count(),1);
-  assert.equal(await page.locator('.npc-select label').innerText(),'Choose NPC');
+  assert.equal(await page.locator('.npc-select label').innerText(),'Talk to:');
   assert.equal(await page.locator('.vendor-slot').count(),10);
 
   async function drag(src,dst){const a=await src.boundingBox(),b=await dst.boundingBox();if(!a||!b)throw new Error('drag bounds missing');await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(a.x+a.width/2+20,a.y+a.height/2+10,{steps:5});await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:12});await page.waitForTimeout(150);await page.mouse.up();}

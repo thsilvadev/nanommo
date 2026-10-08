@@ -7,7 +7,7 @@ const items = require('../../../items.json');
 const allItems = [...(items.consumables || []), ...(items.equipment || []), ...(items.monsterParts || [])];
 const itemById = id => allItems.find(x => x.id === id);
 
-function harness(rows, character = { id:'c1', status:'town', hpCurrent:1, spCurrent:1, str:5, agi:5, dex:5, vit:5, int:5, sor:5 }) {
+function harness(rows, character = { id:'c1', status:'town', currentMapId:'map_town', pendingMapTransition:null, hpCurrent:1, spCurrent:1, str:5, agi:5, dex:5, vit:5, int:5, sor:5 }) {
   const charRepo = { findOne: async () => character, save: async x => x };
   const invRepo = {
     find: async () => rows,
@@ -35,11 +35,11 @@ async function run() {
     {id:'v',characterId:'c1',location:'inventory',slotIndex:2,itemId:'part_venomviper_common',quantity:1},
   ];
   let {service,character}=harness(rows);
-  const npcs = await service.getTownNPCs();
+  const npcs = await service.getTownNPCs('c1');
   assert.ok(npcs.some(n=>n.id==='blacksmith_loren' && n.types.includes('vendor')));
   assert.ok(npcs.some(n=>n.id==='cecilia' && n.types.includes('quest')));
 
-  const stock = await service.getVendorStock('blacksmith_loren');
+  const stock = await service.getVendorStock('c1','blacksmith_loren');
   assert.deepStrictEqual(stock.map(x=>x.itemId), [
     'equip_sword_t1','equip_greatsword_t1','equip_dagger_t1','equip_bow_t1','equip_staff_t1','equip_wand_t1','equip_shield_t1','equip_body_phys_t1','equip_body_magic_t1'
   ]);
@@ -70,6 +70,11 @@ async function run() {
   assert.strictEqual(character.hpCurrent,123);
   assert.strictEqual(character.spCurrent,45);
 
-  console.log('Town NPC additions: 12 assertions passed');
+  character.status='town'; character.currentMapId='map_green_grounds';
+  await assert.rejects(()=>service.getNpcDialogue('c1','cecilia'),/only available in Town/);
+  character.currentMapId='map_town'; character.pendingMapTransition={destinationMapId:'map_town',reason:'town_request'};
+  await assert.rejects(()=>service.getNpcDialogue('c1','cecilia'),/only available in Town/);
+
+  console.log('Town NPC additions: 14 assertions passed');
 }
 run().catch(error => { console.error(error); process.exit(1); });

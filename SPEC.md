@@ -696,6 +696,10 @@ Foods are 60-minute (`durationSeconds: 3600`) buffs granting passive HP/SP regen
 
 ### 11.1 The three maps
 
+The canonical map catalog contains exactly one Town entry: `id = map_town`, `isTown = true`. Town is a real physical gameplay location and participates in map presence, but it is **not** a grind map and never belongs in encounter pools or grind-entry requests. There must never be a second Town object, Town ID, or synthetic legacy location in the map catalog or Board.
+
+The Grind Board displays exactly one Town node: the visual representation of `map_town`. Town is excluded from the generic grind-map renderer, so the canonical catalog entry can never create a second visible Town node.
+
 | Map | Unlock level | Monster levels | Theme |
 |---|---|---|---|
 | Green Grounds | 1 | 1, 2, 3, 4, 6 | Grassy plains, first steps |
@@ -770,7 +774,7 @@ Town NPCs are data-driven actors composed from reusable capabilities. The shared
 
 A `vendor` capability owns the existing vendor inventory and BUY/SELL behavior. A `quest` capability owns a server-authoritative dialogue graph with NPC text, player choices, conditions and effects. Quest NPCs do not have an NPC inventory unless they also expose `vendor`.
 
-Quest dialogue choices are client intents only. The backend re-evaluates character/inventory conditions and applies inventory/character effects atomically in Town. Effects may add/remove inventory items or apply a transient consumable effect immediately without persisting a temporary item.
+Quest dialogue choices are client intents only. The backend re-evaluates character/inventory conditions and applies inventory/character effects atomically in Town. Effects may add/remove inventory items or apply a transient consumable effect immediately without persisting a temporary item. Town-only NPC endpoints and interactions require the canonical physical location boundary `currentMapId = map_town` with `pendingMapTransition = null`; stale `status = town` alone is insufficient. If a Town return is still pending, NPC access remains rejected until Town is finalized.
 
 The Town right Info Panel uses one generic NPC selector. Capability renderers are stacked in deterministic order: vendor/inventory first, quest/dialogue below it. This allows a future NPC to expose multiple capabilities without creating another UI or service architecture.
 
@@ -915,7 +919,7 @@ Namespace: `/game`. Auth via handshake (§15.2). Suggested rooms: `char:<charact
 
 ### Map population authority
 
-`playersOnMap` is gameplay map presence, not online/socket presence. A character counts while its authoritative Character state is `status='grinding'`, has a `currentMapId`, and is not marked `returnToTownAfterBattle`. This remains true after Socket.IO disconnect because the server continues the grind.
+`playersOnMap` is gameplay map presence, not online/socket presence. A character counts while its authoritative Character state has a `currentMapId` and `pendingMapTransition = null`; settled Town residents therefore count on `map_town`, while encounter-search population remains restricted to characters actually grinding on a grindable map. This remains true after Socket.IO disconnect because gameplay map membership is authoritative in persisted Character state.
 
 Map membership changes are the normal realtime trigger: after an authoritative map-state transition is persisted, the shared MapPresenceService synchronizes the previous/new map and emits the absolute `map:presence` snapshot for each affected map. This applies to map entry, future map-to-map movement, Town return, death, food-exhaustion routing, and the deferred Town request that makes the character temporarily ineligible for map presence. Battle start/end alone is not a map-presence trigger.
 

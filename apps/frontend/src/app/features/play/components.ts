@@ -49,7 +49,7 @@ export class CharacterSummary implements OnDestroy {
 @Component({selector:'app-map-board',standalone:true,imports:[CommonModule],templateUrl:'./map-board.html',styleUrl:'./map-board.css'})
 export class MapBoard implements OnDestroy {
  readonly character=inject(CharacterStore);readonly battle=inject(BattleStore);private readonly api=inject(ApiService);private readonly socket=inject(GameSocketService);
- maps:any[]=[];selected=signal<string|null>(null);error=signal<string|null>(null);readonly townReturnPending=signal(false);private readonly returnToTownBattleId=signal<string|null>(null);private townPoll:ReturnType<typeof setInterval>|null=null;private townPollBusy=false;
+ maps:any[]=[];grindMaps:any[]=[];townMap:any=null;selected=signal<string|null>(null);error=signal<string|null>(null);readonly townReturnPending=signal(false);private readonly returnToTownBattleId=signal<string|null>(null);private townPoll:ReturnType<typeof setInterval>|null=null;private townPollBusy=false;
  constructor(){
   effect(()=>{
    const targetId=this.returnToTownBattleId();
@@ -58,7 +58,7 @@ export class MapBoard implements OnDestroy {
    this.townReturnPending.set(false);
    void Promise.all([this.character.load(), this.battle.load()]);
   });
-  this.api.get<any[]>('/maps').subscribe({next:m=>this.maps=m,error:e=>this.error.set(e?.error?.message??'Unable to load maps')});
+  this.api.get<any[]>('/maps').subscribe({next:m=>{this.maps=m;this.townMap=m.find(x=>x?.id===TOWN_MAP_ID&&x?.isTown===true)??null;this.grindMaps=m.filter(x=>x?.isTown!==true&&x?.id!==TOWN_MAP_ID)},error:e=>this.error.set(e?.error?.message??'Unable to load maps')});
  }
  mapName(){return this.maps.find(m=>m.id===this.character.character()?.currentMapId)?.name||'Town'}
  playersInMap(){const current=this.character.character()?.currentMapId;return current&&this.battle.mapPresence()?.mapId===current?this.battle.mapPresence()?.playersOnMap??0:0}
@@ -143,9 +143,6 @@ export class InventoryGrid implements OnDestroy {
  dragData(it:any){return {source:'inventory',...it}}
  ngOnDestroy(){clearInterval(this.timer)}
 }
-
-@Component({selector:'app-town-center',standalone:true,imports:[CommonModule,InventoryGrid],templateUrl:'./town-center.html',styleUrl:'./town-center.css'})
-export class TownCenter {}
 
 @Component({selector:'app-vendor-panel',standalone:true,imports:[CommonModule,CdkDropList,CdkDrag,CdkDragPreview,CdkDragPlaceholder,TooltipPositionDirective],templateUrl:'./vendor-panel.html',styleUrl:'./vendor-panel.css'})
 export class VendorPanel {
