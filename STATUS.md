@@ -1424,3 +1424,8 @@ Implemented the OpenSpec change making Town a first-class gameplay map and repla
 - `pendingMapTransition` means the character is temporarily not a member of its current map; presence must not inspect the transition reason.
 - Encounter-search load and generic map population are intentionally different predicates.
 - REST/battle-driven location changes must publish an internal membership transition so connected sockets follow authoritative room membership; frontend polling is not the transport mechanism.
+
+
+### Follow-up fix — migration ordering
+
+A startup failure exposed that TypeORM had `synchronize: true` in development. TypeORM schema synchronization runs before migrations, so it attempted to enforce `currentMapId NOT NULL` while legacy rows still contained NULL. Schema management is now migration-driven: `synchronize: false` and `migrationsRun: true`. The Town migration itself already normalizes every legacy `currentMapId IS NULL` row to `map_town` before applying NOT NULL.

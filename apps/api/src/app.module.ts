@@ -45,11 +45,13 @@ import { GatewayModule } from './modules/gateway/gateway.module';
       username: process.env.DB_USER || 'nanommo',
       password: process.env.DB_PASSWORD || 'nanommo_dev_password',
       database: process.env.DB_NAME || 'nanommo',
-      synchronize: process.env.NODE_ENV === 'development',
+      // Schema changes are migration-driven. Running synchronize before migrations can
+      // attempt NOT NULL changes before legacy rows are normalized by the migration.
+      synchronize: false,
       logging: process.env.DB_LOGGING === 'true',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-      migrationsRun: process.env.RUN_MIGRATIONS === 'true',
+      migrationsRun: true,
     }),
     PassportModule,
     AuthModule,
