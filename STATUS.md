@@ -588,7 +588,7 @@ had been passing for the wrong reason.
 |---|-------|----------|------|
 | 1 | `maxHp: null` on the attribute-allocation response | Low (cosmetic) | DTO does not compute derived stats. The suite reads maxHp/maxSP from Postgres instead, since `GET /characters` also omits them. |
 | 2 | Level-1 characters lose most Green Grounds fights organically | Medium (balance) | Not a code defect. A level-1 character with an `always → attack` gambit is genuinely too weak, so every scenario pins the kill counter or seeds progression. |
-| 3 | No gambit page → no legal action on any gauge | Medium (design) | With `activeGambitPageId = null` the engine hits the 200-tick stalemate valve and records a `loss`. Any character auto-created by registration has an active page (slots 0–2 are created empty and slot 0 is activated by `createCharacter`), so this only bites a hand-edited row. Worth a guard. |
+| 3 | No gambit page → no legal action on any gauge | Medium (design/data integrity) | With `activeGambitPageId = null`, the character has no legal action; without a duration cap the battle continues until the monster defeats the character. Registration normally activates slot 0, so this only bites a hand-edited/corrupt row. Consider a separate data-integrity guard; do not reintroduce a duration-based defeat. |
 | 4 | `pnpm --filter @nanommo/api lint` cannot run | Low (tooling) | `ESLint couldn't find a configuration file` — no eslint config resolves in `apps/api`. Pre-existing: it fails identically with this change's files removed, and its glob `{src,test}/**/*.ts` does not target the new `.js` scripts either way. Not a regression from this change. |
 
 ### 6.4 Limits of what the suite can prove
@@ -1492,3 +1492,14 @@ Implemented the OpenSpec change making Town a first-class gameplay map and repla
 ### Follow-up fix — migration ordering
 
 A startup failure exposed that TypeORM had `synchronize: true` in development. TypeORM schema synchronization runs before migrations, so it attempted to enforce `currentMapId NOT NULL` while legacy rows still contained NULL. Schema management is now migration-driven: `synchronize: false` and `migrationsRun: true`. The Town migration itself already normalizes every legacy `currentMapId IS NULL` row to `map_town` before applying NOT NULL.
+
+
+## Battle duration-limit removal — 2026-10-09
+
+Investigated the battle-duration rule against `SPEC.md`, `openspec/specs/SPEC.md`, and the shared battle engine. The intended specification already said a battle runs until a combatant reaches 0 HP, but `BattleEngine` contained an undocumented `MAX_TICKS = 200` safety valve. `simulateBattle()` stopped at that tick count and its fallback outcome expression classified any result that was not a character-survived monster kill as `loss`; therefore, if both combatants still had HP at tick 200, the character was falsely defeated and routed through the normal death path.
+
+Removed `MAX_TICKS`, the `maxTicks` option, and the tick cutoff from the simulation loop. The engine now continues while both combatants have HP. `durationTicks` still records the actual simulated duration, so the existing queue scheduling continues to derive `endAt` from the real result. Root `SPEC.md` and `openspec/specs/SPEC.md` now explicitly prohibit duration-based defeats; `FLEE` remains a future, unimplemented termination condition. Added OpenSpec change `battle-no-duration-limit` and regression assertions that the battle continues past 200 ticks and resolves as a win only when the monster is defeated.
+
+Likely reason for the original cap (inference, not a documented gameplay decision): the code comment explicitly called it a safety valve to prevent a stalemate from hanging queue generation. That technical safeguard was implemented as a gameplay defeat, which conflicts with the authoritative rule. A genuine invalid/no-action stalemate must not be silently converted into a character death; this change does not introduce a replacement artificial outcome.
+
+Verification: `pnpm --filter @nanommo/shared build` passed; `pnpm --filter @nanommo/api build` passed; `pnpm --filter @nanommo/api exec jest --runInBand --runTestsByPath test/direct-damage-variance.spec.js` passed (4 tests, including the >200-tick battle regression); `pnpm exec openspec validate battle-no-duration-limit --strict` passed; `git diff --check` passed. A first validation attempt correctly flagged the new capability delta as `MODIFIED` against a nonexistent granular spec; changed it to `ADDED` and strict validation then passed. No production deployment.

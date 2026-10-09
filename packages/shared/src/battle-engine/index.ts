@@ -342,8 +342,6 @@ export class BattleEngine {
   static readonly MIN_CAST_GAUGE = 3;
   static readonly MONSTER_CAST_GAUGE = 6;
   static readonly DEFEND_DAMAGE_REDUCTION = 0.3;
-  /** Safety valve so a stalemate can't hang the queue (SPEC §7.1 is tick-indexed). */
-  static readonly MAX_TICKS = 200;
 
   /**
    * Calculate derived stats from base attributes and equipment (SPEC §5)
@@ -485,7 +483,6 @@ export class BattleEngine {
       weaponBaseAttackTicks?: number;
       itemDefinitions?: Record<string, any>;
       monsterSkillDefs?: Record<string, any>;
-      maxTicks?: number;
       /** Absolute character timeline tick at which this battle starts. */
       regenTickOffset?: number;
     } = {},
@@ -502,7 +499,6 @@ export class BattleEngine {
     const rng = new Mulberry32(seed);
     const inventory: Record<string, number> = { ...(options.inventory ?? {}) };
     const itemDefinitions: Record<string, any> = options.itemDefinitions ?? {};
-    const maxTicks = options.maxTicks ?? BattleEngine.MAX_TICKS;
     const regenTickOffset = Math.max(0, Math.floor(options.regenTickOffset ?? 0));
 
     // Monsters follow the exact same engine using their own gambit array (§7.3)
@@ -578,11 +574,8 @@ export class BattleEngine {
       });
     };
 
-    while (
-      tick < maxTicks &&
-      self.hp > 0 &&
-      foe.hp > 0
-    ) {
+    // There is no duration/tick cap: a battle ends only when one combatant reaches 0 HP.
+    while (self.hp > 0 && foe.hp > 0) {
       // Conditions like `every_n_ticks` are tick-indexed (SPEC §7.1)
       self.tick = tick;
       foe.tick = tick;

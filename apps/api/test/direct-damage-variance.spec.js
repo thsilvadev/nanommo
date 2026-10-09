@@ -27,19 +27,21 @@ describe('Direct damage variance', () => {
         statusEffects: [],
       },
       {
-        id: 'variance_dummy', hp: 10000, atk: 0, matk: 0, def: 0,
+        id: 'variance_dummy', hp: 30000, atk: 0, matk: 0, def: 0,
         mdefPercent: 0, accuracy: 0, evasion: 0, critChance: 0,
         atkSpeedTicks: 100,
         gambit: [{ priority: 1, condition: { type: 'always' }, action: { type: 'attack' } }],
       },
       { lines: [{ priority: 1, conditions: [{ id: 'always' }], action: { id: 'attack' } }] },
       seed,
-      { weaponBaseAttackTicks: 2, maxTicks: 4 },
+      { weaponBaseAttackTicks: 2 },
     );
 
     const results = new Set();
     for (let i = 0; i < 100; i += 1) {
       const result = makeBattle(`variance-seed-${i}`);
+      assert.ok(result.durationTicks > 200, 'battle must continue past the former 200-tick cap');
+      assert.equal(result.outcome, 'win');
       const hit = result.log.events.find((event) => event.action === 'attack' && event.actor === 'character' && event.hit === true);
       if (hit) results.add(hit.damage);
     }
@@ -63,7 +65,7 @@ describe('Direct damage variance', () => {
       },
       { lines: [{ priority: 1, conditions: [{ id: 'always' }], action: { id: 'attack' } }] },
       'miss-variance-seed',
-      { weaponBaseAttackTicks: 2, maxTicks: 4 },
+      { weaponBaseAttackTicks: 2 },
     );
 
     const attack = result.log.events.find((event) => event.action === 'attack' && event.actor === 'character');

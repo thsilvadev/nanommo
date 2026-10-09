@@ -462,8 +462,8 @@ function divergence(divergenceNumber, message) {
  * `always -> attack` gambit page, and return the tokens/ids every scenario needs.
  *
  * A gambit page is required, not cosmetic: with no active page the character
- * has no legal action on any gauge, so every battle hits the engine's
- * MAX_TICKS stalemate valve and is recorded as a `loss` (STATUS.md Issue #2).
+ * has no legal action on any gauge, so the monster may defeat the character
+ * before any player action can occur.
  */
 async function createCharacter({ gambit = true, enterMap = false, mapId = MAP_ID, level } = {}) {
   const stamp = `${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(-13);

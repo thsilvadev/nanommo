@@ -501,7 +501,7 @@ Lives in `packages/shared/src/battle-engine/`. Pure functions only — no DB, no
 
 ### 7.1 The tick
 
-**1 tick = 1 second of in-game time.** A battle is simulated as a loop over integer ticks starting at 0, until one side's HP reaches 0. The number of ticks the loop takes **is** the battle's duration; the frontend displays a progress bar computed purely from `startAt`/`endAt` timestamps (`endAt = startAt + ticksElapsed * 1000ms`), so it never needs to know about ticks itself.
+**1 tick = 1 second of in-game time.** A battle is simulated as a loop over integer ticks starting at 0, until one combatant's HP reaches 0. There is **no maximum tick count, timeout, or duration-based defeat**; a battle cannot be declared a loss merely because it lasted a long time. `FLEE` may become a future explicit termination condition when implemented, but is not currently available. The number of ticks the loop takes **is** the battle's duration; the frontend displays a progress bar computed purely from `startAt`/`endAt` timestamps (`endAt = startAt + ticksElapsed * 1000ms`), so it never needs to know about ticks itself.
 
 ### 7.2 Action gauges
 
@@ -545,6 +545,8 @@ This means, under ideal "automaticozão" conditions (good gambit, enough potions
 `BattleQueueEntry` rows are the source of truth, not the BullMQ job state. On backend boot, for every character with unresolved `BattleQueueEntry` rows whose `endAt < now()`, resolve them **synchronously in order** (oldest first) exactly as the scheduled job would have — applying effects, deaths, drops, and level-ups — before accepting new socket connections for that character. Then re-derive the live queue depth and top it back up to 5 if the character is still alive and still on a map. This guarantees zero data loss and zero "free time" exploits from server downtime.
 
 ### 7.6 Death handling
+
+A battle outcome is never decided by elapsed time or tick count. `outcome = 'loss'` is valid only when the character's HP reaches 0 (including a simultaneous mutual knockout); reaching any elapsed-time threshold must never cause defeat.
 
 On the `BattleQueueEntry` whose `outcome = 'loss'`:
 - `Character.status = 'town'`, `Character.currentMapId = 'map_town'`
