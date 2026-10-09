@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { EquippedItem } from '../../database/entities/equipped-item.entity';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { Character } from '../../database/entities/character.entity';
@@ -61,8 +61,9 @@ export class EquipmentService {
   /**
    * All equipped items for a character
    */
-  async getEquipment(characterId: string): Promise<EquippedItem[]> {
-    return this.equippedItemRepo.find({
+  async getEquipment(characterId: string, manager?: EntityManager): Promise<EquippedItem[]> {
+    const repo = manager?.getRepository(EquippedItem) ?? this.equippedItemRepo;
+    return repo.find({
       where: { characterId },
     });
   }
@@ -87,8 +88,10 @@ export class EquipmentService {
   async getEquippedInSlot(
     characterId: string,
     slot: string,
+    manager?: EntityManager,
   ): Promise<EquippedItem | null> {
-    return this.equippedItemRepo.findOne({
+    const repo = manager?.getRepository(EquippedItem) ?? this.equippedItemRepo;
+    return repo.findOne({
       where: { characterId, slot },
     });
   }
@@ -97,8 +100,8 @@ export class EquipmentService {
    * Calculate total equipment stats (DEF, MDEF%, attribute bonuses)
    * Used in character stats calculation
    */
-  async calculateEquipmentStats(characterId: string): Promise<EquipmentStats> {
-    const equipped = await this.getEquipment(characterId);
+  async calculateEquipmentStats(characterId: string, manager?: EntityManager): Promise<EquipmentStats> {
+    const equipped = await this.getEquipment(characterId, manager);
     const stats: EquipmentStats = {
       def: 0,
       mdefPercent: 0,
@@ -301,15 +304,16 @@ export class EquipmentService {
     return null;
   }
 
-  private async addEquipmentToInventory(characterId: string, itemId: string, instanceData: any): Promise<void> {
-    const rows = await this.inventoryItemRepo.find({
+  private async addEquipmentToInventory(characterId: string, itemId: string, instanceData: any, manager?: EntityManager): Promise<void> {
+    const inventoryRepo = manager?.getRepository(InventoryItem) ?? this.inventoryItemRepo;
+    const rows = await inventoryRepo.find({
       where: { characterId, location: 'inventory' },
       order: { slotIndex: 'ASC' },
     });
     const used = new Set(rows.map((row) => row.slotIndex));
     for (let slotIndex = 0; slotIndex < 50; slotIndex += 1) {
       if (used.has(slotIndex)) continue;
-      await this.inventoryItemRepo.save(this.inventoryItemRepo.create({
+      await inventoryRepo.save(inventoryRepo.create({
         characterId,
         location: 'inventory',
         slotIndex,
@@ -322,39 +326,41 @@ export class EquipmentService {
     throw new BadRequestException('Inventory is full');
   }
 
-  async applyPendingEquipmentChanges(characterId: string): Promise<boolean> {
-    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+  async applyPendingEquipmentChanges(characterId: string, manager?: EntityManager): Promise<boolean> {
+    const characterRepo = manager?.getRepository(Character) ?? this.characterRepo;
+    const equippedRepo = manager?.getRepository(EquippedItem) ?? this.equippedItemRepo;
+    const character = await characterRepo.findOne({ where: { id: characterId } });
     if (!character?.pendingEquipmentChanges) return false;
 
     const pending = character.pendingEquipmentChanges;
     for (const [slot, change] of Object.entries(pending)) {
-      const current = await this.getEquippedInSlot(characterId, slot);
+      const current = await this.getEquippedInSlot(characterId, slot, manager);
 
       if (change === null) {
         if (current) {
-          await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData);
-          await this.equippedItemRepo.delete(current.id);
+          await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData, manager);
+          await equippedRepo.delete(current.id);
         }
         continue;
       }
 
       if (!change) continue;
       if (current && current.itemId !== change.itemId) {
-        await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData);
+        await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData, manager);
       }
       if (current) {
         current.itemId = change.itemId;
         current.instanceData = change.instanceData ?? null;
-        await this.equippedItemRepo.save(current);
+        await equippedRepo.save(current);
       } else {
-        await this.equippedItemRepo.save(this.equippedItemRepo.create({
+        await equippedRepo.save(equippedRepo.create({
           characterId, slot, itemId: change.itemId, instanceData: change.instanceData ?? null,
         }));
       }
     }
 
     character.pendingEquipmentChanges = null as any;
-    await this.characterRepo.save(character);
+    await characterRepo.save(character);
     this.logger.log(`Applied pending equipment changes for ${characterId}`);
     return true;
   }

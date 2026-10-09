@@ -69,8 +69,9 @@ export class InventoryService {
   /**
    * Get inventory item count for a specific item
    */
-  async getItemCount(characterId: string, itemId: string): Promise<number> {
-    const item = await this.inventoryItemRepo.findOne({
+  async getItemCount(characterId: string, itemId: string, manager?: EntityManager): Promise<number> {
+    const repo = manager?.getRepository(InventoryItem) ?? this.inventoryItemRepo;
+    const item = await repo.findOne({
       where: { characterId, itemId },
     });
     return item?.quantity ?? 0;
@@ -82,9 +83,11 @@ export class InventoryService {
   private async getFreeSlots(
     characterId: string,
     location: 'inventory' | 'warehouse',
+    manager?: EntityManager,
   ): Promise<number> {
+    const repo = manager?.getRepository(InventoryItem) ?? this.inventoryItemRepo;
     const maxSlots = location === 'inventory' ? 50 : 10;
-    const usedSlots = await this.inventoryItemRepo.count({
+    const usedSlots = await repo.count({
       where: { characterId, location },
     });
     return maxSlots - usedSlots;
@@ -96,9 +99,11 @@ export class InventoryService {
   private async getNextSlot(
     characterId: string,
     location: 'inventory' | 'warehouse',
+    manager?: EntityManager,
   ): Promise<number> {
+    const repo = manager?.getRepository(InventoryItem) ?? this.inventoryItemRepo;
     const maxSlots = location === 'inventory' ? 50 : 10;
-    const items = await this.inventoryItemRepo.find({
+    const items = await repo.find({
       where: { characterId, location },
       order: { slotIndex: 'ASC' },
     });
@@ -123,7 +128,9 @@ export class InventoryService {
     quantity: number,
     location: 'inventory' | 'warehouse' = 'inventory',
     instanceData?: any,
+    manager?: EntityManager,
   ): Promise<InventoryItem> {
+    const inventoryRepo = manager?.getRepository(InventoryItem) ?? this.inventoryItemRepo;
     const item = this.dataService.getItemById(itemId);
     if (!item) throw new NotFoundException(`Item ${itemId} not found`);
 
@@ -132,7 +139,7 @@ export class InventoryService {
 
     // Try to add to existing stack if stackable
     if (item.stackable && item.maxStack && item.maxStack > 1) {
-      const existingStacks = await this.inventoryItemRepo.find({
+      const existingStacks = await inventoryRepo.find({
         where: { characterId, location, itemId },
       });
 
@@ -141,7 +148,7 @@ export class InventoryService {
         if (space > 0) {
           const toAdd = Math.min(remaining, space);
           stack.quantity += toAdd;
-          lastItem = await this.inventoryItemRepo.save(stack);
+          lastItem = await inventoryRepo.save(stack);
           remaining -= toAdd;
 
           if (remaining === 0) {
@@ -153,7 +160,7 @@ export class InventoryService {
 
     // Try to create new slot for remaining quantity
     if (remaining > 0) {
-      const freeSlots = await this.getFreeSlots(characterId, location);
+      const freeSlots = await this.getFreeSlots(characterId, location, manager);
 
       if (freeSlots === 0) {
         // Inventory full, try warehouse fallback
@@ -161,19 +168,19 @@ export class InventoryService {
           this.logger.debug(
             `Inventory full for character ${characterId}, falling back to warehouse`,
           );
-          return this.addItem(characterId, itemId, remaining, 'warehouse', instanceData);
+          return this.addItem(characterId, itemId, remaining, 'warehouse', instanceData, manager);
         }
         throw new BadRequestException('Inventory and warehouse full');
       }
 
       // Split remaining into stacks if needed
       while (remaining > 0) {
-        const slot = await this.getNextSlot(characterId, location);
+        const slot = await this.getNextSlot(characterId, location, manager);
         const stackSize = item.stackable
           ? Math.min(remaining, item.maxStack || remaining)
           : 1;
 
-        const newItem = this.inventoryItemRepo.create({
+        const newItem = inventoryRepo.create({
           characterId,
           location,
           slotIndex: slot,
@@ -182,7 +189,7 @@ export class InventoryService {
           instanceData: instanceData || null,
         });
 
-        lastItem = await this.inventoryItemRepo.save(newItem);
+        lastItem = await inventoryRepo.save(newItem);
         remaining -= stackSize;
 
         if (remaining === 0) {
@@ -198,7 +205,7 @@ export class InventoryService {
         return lastItem;
       }
       // Fallback: fetch the most recently added item
-      const recentItem = await this.inventoryItemRepo.findOne({
+      const recentItem = await inventoryRepo.findOne({
         where: { characterId, itemId, location },
         order: { slotIndex: 'DESC' },
       });
@@ -220,11 +227,13 @@ export class InventoryService {
     characterId: string,
     itemId: string,
     quantity: number,
+    manager?: EntityManager,
   ): Promise<void> {
+    const inventoryRepo = manager?.getRepository(InventoryItem) ?? this.inventoryItemRepo;
     let remaining = quantity;
 
     // Find and remove from stacks
-    const items = await this.inventoryItemRepo.find({
+    const items = await inventoryRepo.find({
       where: { characterId, itemId },
     });
 
@@ -236,9 +245,9 @@ export class InventoryService {
       remaining -= toRemove;
 
       if (item.quantity <= 0) {
-        await this.inventoryItemRepo.remove(item);
+        await inventoryRepo.remove(item);
       } else {
-        await this.inventoryItemRepo.save(item);
+        await inventoryRepo.save(item);
       }
     }
 

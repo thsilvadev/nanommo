@@ -163,52 +163,31 @@ for each entry in battleQueue:
 
 ### 3. **Battle Resolution** (When BullMQ job fires)
 ```
-entry = fetch BattleQueueEntry
-character = fetch Character
+reference = fetch BattleQueueEntry (immutable characterId)
+BEGIN PostgreSQL transaction
+  character = SELECT Character FOR UPDATE
+  entry = SELECT BattleQueueEntry FOR UPDATE
+  if entry.resolved:
+    COMMIT; return already-resolved (no effects)
 
-// Apply results
-// Auto Feed is evaluated here at authoritative digestion/grind boundaries.
-// If the current food expires before the next encounter and an eligible Diet food exists,
-// consume it server-side and rebuild the unresolved future queue from the new state.
-character.xp += entry.xpGain
-character.gold += entry.goldGain
-character.inventory += entry.drops
+  // In this transaction: apply simulated consumptions, XP/HP/SP and level-ups,
+  // Diet/Auto Feed, pending equipment changes, drops, kill counter and Town/death
+  // routing. Delete future rows here when they are invalidated by those changes.
+  // Every participating repository/service receives the same EntityManager.
+  entry.resolved = true
+COMMIT
 
-// Check level-up
-while character.xp >= character.nextLevelXp:
-  character.level += 1
-  character.hpCurrent = character.maxHp  // Restore on level-up
-  character.xp -= character.nextLevelXp
-
-// Handle death
-if entry.outcome == 'loss':
-  character.status = 'town'
-  character.currentMapId = 'map_town'
-  character.hpCurrent = 1
-  character.xp -= character.nextLevelXp * 0.05
-  character.lastDeathLog = entry.log
-  delete all unresolved BattleQueueEntry rows
-
-// Cleanup
-entry.resolved = true
-if queue.length < 5:
-  queueBattles(character)
-
-// Broadcast authoritative resource state
-emit 'battle:resolved' {
-  entryId,
-  outcome,
-  xpGain,
-  goldGain,
-  drops,
-  stateRevision,
-  characterAfter,
-  inventoryAfter,
-}
-// After queue advance/rebuild, publish the same Character + Inventory snapshot
-// and stateRevision on battle:queueUpdated. The two Redis channels may arrive
-// in either order at the browser, so delivery order is never treated as causal.
+// Only after commit: remove BullMQ jobs for deleted/completed rows; synchronize
+// Redis map presence if the character left the map; rebuild/top up the queue from
+// committed Character + Equipment + Inventory + Diet state; publish socket events.
 ```
+
+The database transaction is the exactly-once boundary. Do not use BullMQ job state, Redis, or socket delivery as a substitute for transactional idempotency. On rollback, `resolved` remains false and all battle DB effects are undone, so BullMQ retry or boot recovery can safely reapply the whole battle.
+
+
+### Transactional battle resolution invariant
+
+`BattleService.resolveBattle()` uses one PostgreSQL transaction for the battle's authoritative database effects. Acquire locks in **Character → BattleQueueEntry** order so concurrent jobs for one character serialize. Item consumption, XP/HP/SP, Diet/Auto Feed, equipment substitutions, drops, kill counter and Town/death queue cleanup are persisted together with `BattleQueueEntry.resolved = true`. A thrown error rolls those database writes back; retry/recovery can then safely apply the battle once. BullMQ job cleanup, Redis map-presence synchronization, queue rebuilding and socket publication stay outside the transaction and must not be treated as the idempotency guard for rewards.
 
 ### 4. **Gambit Evaluation** (During simulateBattle)
 ```

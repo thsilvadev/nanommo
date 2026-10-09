@@ -17,9 +17,10 @@
  * There is no `POST /battles/:id/resolve` route, so the race is staged at the
  * BullMQ layer: a second `resolve-battle` job is injected for the same
  * `battleId` alongside the first, with a distinct `jobId` so BullMQ keeps both.
- * The atomicity primitive underneath is the conditional
- * `UPDATE battle_queue_entries SET resolved = true WHERE id = $1 AND resolved = false`
- * (battle.service.ts:371-383), which is also asserted directly.
+ * The atomicity primitive is now a PostgreSQL transaction that locks the
+ * Character row before the BattleQueueEntry row, applies all authoritative DB
+ * effects, and commits `resolved = true` with those effects. This test races
+ * duplicate jobs and verifies the resulting state was applied exactly once.
  *
  * Env:
  *   PHASE3_IDEMPOTENCY_DELAY_MS  gap between the two job submissions (default 0).
@@ -44,7 +45,7 @@ const SUBMISSION_GAP_MS = Number(process.env.PHASE3_IDEMPOTENCY_DELAY_MS ?? 0);
 const WITH_RESTART =
   process.env.PHASE3_IDEMPOTENCY_WITH_RESTART === '1' || process.env.PHASE3_RESTART === '1';
 
-/** The log line `resolveBattle()` emits when the claim loses (battle.service.ts:381). */
+/** The log line `resolveBattle()` emits when a duplicate caller sees the committed result. */
 const SKIP_LOG = 'already resolved - skipping';
 
 /**
@@ -277,8 +278,7 @@ async function runRace(ctx, first, { withRestart = false } = {}) {
  * expectations — only the combined one is the state the resolver is supposed to
  * produce.
  *
- * Order matches `resolveBattle()`: consumption first (battle.service.ts:411-417,
- * clamped at the stock held), then drops for a win (:478-496).
+ * Order matches `resolveBattle()`: consumption first, clamped at the stock held, then drops for a win.
  */
 function expectedInventoryAfterOnce(before, expected) {
   const map = { ...before };
@@ -468,79 +468,44 @@ function first_events(result) {
 }
 
 // ---------------------------------------------------------------------------
-//  The claim predicate, asserted directly
+//  Committed resolved-row/live-queue contract
 // ---------------------------------------------------------------------------
 
 /**
- * The exact primitive `resolveBattle()` depends on. Run it twice on a real row
- * and confirm the second statement matches nothing — this is what makes a second
- * concurrent caller a no-op rather than a second payout.
+ * Verify a successfully resolved audit row stays persisted but is absent from
+ * the live queue. The concurrent duplicate-job race above exercises the actual
+ * row-lock/transaction path; this assertion avoids coupling the test to SQL
+ * implementation details.
  */
-async function assertClaimPredicate(first) {
+async function assertResolvedReadPath(first) {
   const row = await h.sql(
     'SELECT resolved FROM battle_queue_entries WHERE id = $1',
     [first.id],
   );
-  const alreadyResolved = row.rows[0]?.resolved === true;
-
   h.assert(
-    'battle.service.ts:371-383 the raced row is already resolved before the predicate is exercised directly',
-    alreadyResolved,
-    `resolved=${row.rows[0]?.resolved} on ${first.id}; the predicate is asserted on a fresh row below so the 1-then-0 sequence is observable`,
+    'the successful transaction committed resolved=true on the retained audit row',
+    row.rows[0]?.resolved === true,
+    `resolved=${row.rows[0]?.resolved} on entry ${first.id}`,
   );
 
-  const freshId = await h.insertQueueEntry(first.characterId, {
-    sequenceIndex: 90,
-    outcome: 'win',
-    log: { header: { phase3: 'claim-predicate' }, events: [] },
-    hpAfter: 1,
-    resolved: false,
-  });
-
-  const firstClaim = await h.sql(
-    'UPDATE battle_queue_entries SET resolved = true WHERE id = $1 AND resolved = false',
-    [freshId],
-  );
-  const secondClaim = await h.sql(
-    'UPDATE battle_queue_entries SET resolved = true WHERE id = $1 AND resolved = false',
-    [freshId],
-  );
-
-  h.assertEqual(
-    'battle.service.ts:371-383 the conditional claim matches exactly 1 row the first time',
-    firstClaim.rowCount,
-    1,
-    `UPDATE battle_queue_entries SET resolved = true WHERE id = '${freshId}' AND resolved = false`,
-  );
-  h.assertEqual(
-    'battle.service.ts:371-383 the same claim matches 0 rows the second time — this is what makes a double resolve a no-op',
-    secondClaim.rowCount,
-    0,
-    `second identical UPDATE reported ${secondClaim.rowCount} affected row(s)`,
-  );
-
-  // Also assert the API's read path agrees, since `getBattleQueue` filters on
-  // the same column and a claimed-but-still-listed row would be a real bug.
   const listed = await h.sql(
-    'SELECT count(*)::int AS n FROM battle_queue_entries WHERE "characterId" = $1 AND resolved = false AND "sequenceIndex" = 90',
-    [first.characterId],
+    'SELECT count(*)::int AS n FROM battle_queue_entries WHERE id = $1 AND resolved = false',
+    [first.id],
   );
   h.assertEqual(
-    '§7.4.3 a claimed row does not appear in the live queue read path',
+    'a committed resolved battle is absent from every unresolved/live queue read',
     listed.rows[0].n,
     0,
-    `rows with sequenceIndex 90 and resolved = false: ${listed.rows[0].n}`,
+    `unresolved rows for battle ${first.id}: ${listed.rows[0].n}`,
   );
-
-  await h.sql('DELETE FROM battle_queue_entries WHERE id = $1', [freshId]);
 }
 
 /**
  * The losing side of the race, observed rather than assumed: the backend logs
- * `Battle <id> already resolved - skipping` (battle.service.ts:381) when the
- * conditional claim matches nothing. If that line is absent, the two jobs did
- * not actually contend and the "applied exactly once" result above is a
- * serial-delivery result wearing a concurrency test's clothes.
+ * `Battle <id> already resolved - skipping` when the second caller acquires the
+ * Character lock after the first transaction committed. If that line is absent,
+ * the two jobs did not demonstrably contend and the "applied exactly once" result
+ * may be a serial-delivery result wearing a concurrency test's clothes.
  */
 async function assertSkipWasObserved(ctx, result) {
   let logs = '';
@@ -548,7 +513,7 @@ async function assertSkipWasObserved(ctx, result) {
     logs = h.backendLogs(1800);
   } catch (error) {
     h.assert(
-      '§3.1 the backend log was readable so the losing claim could be observed',
+      '§3.1 the backend log was readable so the duplicate transaction could be observed',
       false,
       `docker compose logs backend failed: ${error.message}`,
     );
@@ -564,30 +529,28 @@ async function assertSkipWasObserved(ctx, result) {
     .filter((line) => line.includes(`Resolved battle ${result.first.id}`));
 
   h.assert(
-    '§3.1 the losing caller logged "already resolved - skipping" — the claim path was genuinely exercised',
+    '§3.1 the duplicate caller logged "already resolved - skipping" — the locking/idempotency path was exercised',
     skipLines.length >= 1,
     skipLines.length >= 1
-      ? `${skipLines.length} skip line(s) for ${result.first.id}; the backend rejected the second claim and returned before applying anything`
-      : `no "${SKIP_LOG}" line for ${result.first.id} in the last 30 minutes of backend logs. The conditional claim may ` +
-        'still be correct (asserted directly above), but this run did not observe a losing caller, so treat the ' +
-        'exactly-once result as a serial-delivery result rather than a proven race.',
+      ? `${skipLines.length} skip line(s) for ${result.first.id}; the second caller observed the committed result and returned without applying effects again`
+      : `no "${SKIP_LOG}" line for ${result.first.id} in the last 30 minutes of backend logs. The transaction locking may still be correct, but this run did not observe a losing caller, so treat the exactly-once result as a serial-delivery result rather than a proven race.`,
   );
   h.assert(
     '§3.1 exactly one payout log line exists for the battle',
     resolveLines.length === 1,
     `${resolveLines.length} "Resolved battle ${result.first.id}" line(s) in the backend log — more than one would mean the ` +
-      'second caller applied effects before the claim rejected it',
+      'second caller applied effects after the first transaction committed',
   );
 
   if (skipLines.length >= 1) {
     h.note(
-      `overlap observed: the claim was contended (${skipLines.length} losing caller(s) rejected by the conditional UPDATE). ` +
+      `overlap observed: the transaction was contended (${skipLines.length} duplicate caller(s) waited and then skipped). ` +
         'The exactly-once assertions above therefore describe a real race, not two sequential resolves.',
     );
   } else {
     h.note(
       'NO OVERLAP OBSERVED: the second job was delivered after the first had already completed, so nothing contended. ' +
-        'The outcome assertions still hold and the claim predicate is asserted directly, but this run did not exercise ' +
+        'The outcome assertions still hold, but this run did not exercise ' +
         'concurrency. Re-run, or use PHASE3_IDEMPOTENCY_WITH_RESTART=1, to try for a real overlap.',
     );
   }
@@ -627,8 +590,8 @@ async function main() {
   console.log('\n--- 3. §7.3 consumed items decremented exactly once ---');
   await assertItemsConsumedOnce(ctx, result);
 
-  console.log('\n--- 4. The claim predicate, directly ---');
-  await assertClaimPredicate(first);
+  console.log('\n--- 4. Resolved audit row is excluded from the live queue ---');
+  await assertResolvedReadPath(first);
   await assertSkipWasObserved(ctx, result);
 
   void entries;

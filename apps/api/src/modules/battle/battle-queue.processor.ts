@@ -29,8 +29,13 @@ export class BattleQueueProcessor {
     try {
       this.logger.debug(`Resolving battle ${battleId}`);
 
-      // Resolve the battle (apply XP, gold, drops, level-ups, death handling)
-      await this.battleService.resolveBattle(battleId);
+      // Resolve the battle (apply XP, gold, drops, level-ups, death handling).
+      // A duplicate delivery is a successful no-op; do not race the winning
+      // caller's post-commit queue rebuild with a second top-up.
+      const resolvedByThisCall = await this.battleService.resolveBattle(battleId);
+      if (!resolvedByThisCall) {
+        return { success: true, battleId, skipped: true };
+      }
 
       // After resolution, fetch the resolved battle to get character ID
       const battle = await this.battleService.getBattleById(battleId);

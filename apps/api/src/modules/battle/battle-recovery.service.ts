@@ -76,8 +76,8 @@ export class BattleRecoveryService implements OnApplicationBootstrap {
     let resolved = 0;
     for (const battle of stale) {
       try {
-        await this.battleService.resolveBattle(battle.id);
-        resolved += 1;
+        const resolvedByThisCall = await this.battleService.resolveBattle(battle.id);
+        if (resolvedByThisCall) resolved += 1;
       } catch (error) {
         // One bad row must not abort the rest of the recovery pass.
         this.logger.error(

@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable, Logger, NotFoundException, BadRequestEx
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 import { BattleQueueEntry, Character, MapKillCounter, GambitPage, InventoryItem } from '@/database/entities';
 import {
   BattleEngine,
@@ -664,246 +664,293 @@ export class BattleService {
 
   /**
    * Resolve a battle and apply its effects. This is the ONLY place where
-   * xp / gold / drops / consumed items / the kill counter actually mutate.
+   * XP / gold / drops / consumed items / the kill counter actually mutate.
    *
-   * Idempotent: the row is claimed with a conditional UPDATE before any effect
-   * is applied. The same battle can legitimately be handed to this method twice —
-   * once by the BullMQ delayed job and once by the §7.5 boot recovery pass (or
-   * by a BullMQ retry after a partial failure) — and XP/gold/drops/inventory
-   * must not be granted twice.
+   * The battle row and Character are locked inside one PostgreSQL transaction.
+   * All authoritative database effects plus the final resolved marker commit
+   * atomically, so a failed attempt rolls back and is safe to retry. Competing
+   * jobs for the same Character serialize on the Character row; duplicate jobs
+   * subsequently observe the committed resolved marker and become no-ops.
    */
-  async resolveBattle(battleId: string): Promise<void> {
-    const claimed = await this.battleQueueRepo
-      .createQueryBuilder()
-      .update(BattleQueueEntry)
-      .set({ resolved: true })
-      .where('"id" = :battleId', { battleId })
-      .andWhere('"resolved" = false')
-      .execute();
+  async resolveBattle(battleId: string): Promise<boolean> {
+    // Read the immutable character foreign key first so we can always acquire
+    // locks in Character -> Battle order. This serializes resolution work for a
+    // character and avoids two different battle jobs each holding a battle row
+    // while waiting for the same Character row.
+    const reference = await this.battleQueueRepo.findOne({ where: { id: battleId } });
+    if (!reference) throw new NotFoundException('Battle not found');
 
-    if (!claimed.affected) {
-      this.logger.log(`Battle ${battleId} already resolved - skipping`);
-      return;
-    }
+    const result = await this.battleQueueRepo.manager.transaction(async (manager) => {
+      const battleRepo = manager.getRepository(BattleQueueEntry);
+      const characterRepo = manager.getRepository(Character);
+      const character = await characterRepo.findOne({
+        where: { id: reference.characterId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!character) throw new Error('Character not found');
 
-    // A delayed job that is still pending for this battle is now redundant, so
-    // drop it. This is the case when the §7.5 boot recovery pass wins the race.
-    // When we are the job's own handler the job is `active` and locked, and
-    // BullMQ refuses removal — that is expected, not an error.
-    try {
-      const job = await this.bullQueue.getJob(battleId);
-      if (job && (await job.getState()) !== 'active') {
-        await job.remove();
-      }
-    } catch (error) {
-      this.logger.debug(
-        `Could not remove BullMQ job for battle ${battleId}: ${
-          error instanceof Error ? error.message : 'unknown'
-        }`,
-      );
-    }
+      const battle = await battleRepo.findOne({
+        where: { id: battleId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!battle) throw new NotFoundException('Battle not found');
+      if (battle.resolved) return { alreadyResolved: true as const };
 
-    const battle = await this.battleQueueRepo.findOne({ where: { id: battleId } });
-    if (!battle) throw new NotFoundException('Battle not found');
-
-    const character = await this.characterRepo.findOne({
-      where: { id: battle.characterId },
-    });
-    if (!character) throw new Error('Character not found');
-
-    // Items were spent during the simulation - they leave the real inventory now.
-    for (const consumed of battle.itemsConsumed ?? []) {
-      const have = await this.inventoryService.getItemCount(character.id, consumed.itemId);
-      const take = Math.min(have, consumed.quantity);
-      if (take > 0) {
-        await this.inventoryService.removeItem(character.id, consumed.itemId, take);
-      }
-    }
-
-    if (battle.outcome === 'loss') {
-      this.applyResolvedFoodState(character, battle);
-      const deathLog = await this.handleCharacterDeath(character, battle);
-      await this.safePublishBattleResolved(character.id, battle);
-      await this.safePublishCharacterDied(character.id, deathLog);
-      return;
-    }
-
-    // --- XP: the monster's xpReward, already rolled at simulation time
-    character.xp = Number(character.xp) + Number(battle.xpGain ?? 0);
-
-    // Monsters do not award gold. Keep this explicit at the authoritative apply boundary
-    // so legacy queued entries cannot grant monster gold even if they were created earlier.
-    const monsterGoldGain = 0;
-    if (monsterGoldGain > 0) {
-      character.gold = Math.min(1_000_000_000_000, Number(character.gold) + monsterGoldGain);
-    }
-
-    character.hpCurrent = Math.max(1, battle.hpAfter);
-    character.spCurrent = Math.max(0, battle.spAfter);
-
-    // --- level ups: consume every crossed threshold; the reduced Grind XP rate
-    // is the pacing control, so a single resolution is allowed to advance multiple levels.
-    const xpResolution = applyLevelXpResolution(
-      0,
-      character.level,
-      character.xp,
-      (level) => this.dataService.getXpToNextLevel(level),
-    );
-    character.xp = xpResolution.xp;
-    character.level = xpResolution.level;
-    const levelsGained = xpResolution.levelsGained;
-    if (levelsGained > 0) character.unspentAttributePoints += 5;
-    const leveledUp = levelsGained > 0;
-    if (leveledUp) {
-      // SPEC §6.3: maxHp/maxSp recompute immediately, but hpCurrent/spCurrent are
-      // NOT auto-topped - they stay ratio-adjusted so a mid-grind level-up can
-      // neither heal for free nor leave HP nonsensically low against the new max.
-      // A single ratio step is applied for the whole batch of levels gained, using
-      // the stats before the first level-up and the stats after the last one.
-      const preLevel = character.level - levelsGained;
-      // SPEC §5.2 / §6.3: the ratio is taken between two maxHp/maxSp values, so both
-      // sides must be derived from the SAME character+equipment state the battles were
-      // simulated against. `buildCharacterSnapshot()` (battle.service.ts:144-160) folds
-      // `statBonus` into the attributes and passes the real `def`/`mdefPercent`/weapon
-      // ATK; passing `{}` here instead scaled an equipped character by the wrong ratio.
-      const equipmentStats = await this.equipmentService.calculateEquipmentStats(character.id);
-      const attributes = {
-        str: character.str + (equipmentStats.statBonus.STR || 0),
-        agi: character.agi + (equipmentStats.statBonus.AGI || 0),
-        dex: character.dex + (equipmentStats.statBonus.DEX || 0),
-        vit: character.vit + (equipmentStats.statBonus.VIT || 0),
-        int: character.int + (equipmentStats.statBonus.INT || 0),
-        sor: character.sor + (equipmentStats.statBonus.SOR || 0),
-      };
-      const equipment = {
-        def: equipmentStats.def,
-        mdefPercent: equipmentStats.mdefPercent,
-        weaponFixedAtk: equipmentStats.weaponFixedAtk,
-        weaponFixedMatk: equipmentStats.weaponFixedMatk,
-      };
-      const before = BattleEngine.calculateDerivedStats(preLevel, attributes, equipment);
-      const after = BattleEngine.calculateDerivedStats(character.level, attributes, equipment);
-
-      character.hpCurrent = Math.min(
-        after.maxHp,
-        Math.max(1, Math.round(Number(character.hpCurrent) * (after.maxHp / before.maxHp))),
-      );
-      character.spCurrent = Math.min(
-        after.maxSp,
-        Math.max(0, Math.round(Number(character.spCurrent) * (after.maxSp / before.maxSp))),
-      );
-    }
-
-    this.applyResolvedFoodState(character, battle);
-    const equipmentChanged = await this.equipmentService.applyPendingEquipmentChanges(character.id);
-    await this.characterRepo.save(character);
-
-    // --- drops (SPEC §11.5)
-    if (Array.isArray(battle.drops) && battle.drops.length > 0) {
-      for (const drop of battle.drops) {
-        try {
-          await this.inventoryService.addItem(
-            character.id,
-            drop.itemId,
-            drop.quantity ?? 1,
-            'inventory',
-            drop.instanceData,
-          );
-        } catch (error) {
-          this.logger.warn(
-            `Failed to add drop ${drop.itemId} to ${character.id}: ${
-              error instanceof Error ? error.message : 'unknown'
-            }`,
-          );
+      // Simulated consumptions and all resulting inventory changes share this
+      // transaction with the battle claim and Character state.
+      for (const consumed of battle.itemsConsumed ?? []) {
+        const have = await this.inventoryService.getItemCount(character.id, consumed.itemId, manager);
+        const take = Math.min(have, consumed.quantity);
+        if (take > 0) {
+          await this.inventoryService.removeItem(character.id, consumed.itemId, take, manager);
         }
       }
+
+      if (battle.outcome === 'loss') {
+        this.applyResolvedFoodState(character, battle);
+        const death = await this.handleCharacterDeath(character, battle, manager);
+        battle.resolved = true;
+        await battleRepo.save(battle);
+        return {
+          alreadyResolved: false as const,
+          kind: 'death' as const,
+          battle,
+          character,
+          deathLog: death.deathLog,
+          discardedBattleIds: death.discardedBattleIds,
+          previousMapId: battle.mapId,
+        };
+      }
+
+      // --- XP and combat result
+      character.xp = Number(character.xp) + Number(battle.xpGain ?? 0);
+      // Monsters do not award gold; retain the explicit authoritative zero.
+      const monsterGoldGain = 0;
+      if (monsterGoldGain > 0) {
+        character.gold = Math.min(1_000_000_000_000, Number(character.gold) + monsterGoldGain);
+      }
+
+      character.hpCurrent = Math.max(1, battle.hpAfter);
+      character.spCurrent = Math.max(0, battle.spAfter);
+
+      const xpResolution = applyLevelXpResolution(
+        0,
+        character.level,
+        character.xp,
+        (level) => this.dataService.getXpToNextLevel(level),
+      );
+      character.xp = xpResolution.xp;
+      character.level = xpResolution.level;
+      const levelsGained = xpResolution.levelsGained;
+      if (levelsGained > 0) character.unspentAttributePoints += 5;
+      const leveledUp = levelsGained > 0;
+
+      if (leveledUp) {
+        // Both derived-stat snapshots use this transaction's authoritative loadout.
+        const equipmentStats = await this.equipmentService.calculateEquipmentStats(character.id, manager);
+        const attributes = {
+          str: character.str + (equipmentStats.statBonus.STR || 0),
+          agi: character.agi + (equipmentStats.statBonus.AGI || 0),
+          dex: character.dex + (equipmentStats.statBonus.DEX || 0),
+          vit: character.vit + (equipmentStats.statBonus.VIT || 0),
+          int: character.int + (equipmentStats.statBonus.INT || 0),
+          sor: character.sor + (equipmentStats.statBonus.SOR || 0),
+        };
+        const equipment = {
+          def: equipmentStats.def,
+          mdefPercent: equipmentStats.mdefPercent,
+          weaponFixedAtk: equipmentStats.weaponFixedAtk,
+          weaponFixedMatk: equipmentStats.weaponFixedMatk,
+        };
+        const before = BattleEngine.calculateDerivedStats(character.level - levelsGained, attributes, equipment);
+        const after = BattleEngine.calculateDerivedStats(character.level, attributes, equipment);
+        character.hpCurrent = Math.min(
+          after.maxHp,
+          Math.max(1, Math.round(Number(character.hpCurrent) * (after.maxHp / before.maxHp))),
+        );
+        character.spCurrent = Math.min(
+          after.maxSp,
+          Math.max(0, Math.round(Number(character.spCurrent) * (after.maxSp / before.maxSp))),
+        );
+      }
+
+      this.applyResolvedFoodState(character, battle);
+      const equipmentChanged = await this.equipmentService.applyPendingEquipmentChanges(character.id, manager);
+      await characterRepo.save(character);
+
+      // Drops are part of the same transaction as rewards. Preserve the existing
+      // overflow policy: if both inventory and warehouse are full, log and keep
+      // resolving other drops rather than aborting the battle.
+      if (Array.isArray(battle.drops) && battle.drops.length > 0) {
+        for (const drop of battle.drops) {
+          try {
+            await this.inventoryService.addItem(
+              character.id,
+              drop.itemId,
+              drop.quantity ?? 1,
+              'inventory',
+              drop.instanceData,
+              manager,
+            );
+          } catch (error) {
+            this.logger.warn(
+              `Failed to add drop ${drop.itemId} to ${character.id}: ${
+                error instanceof Error ? error.message : 'unknown'
+              }`,
+            );
+          }
+        }
+      }
+
+      // Keep Character + Inventory under one final Character revision.
+      await characterRepo.save(character);
+
+      // Auto Feed uses the same EntityManager; a conflict/exception rolls back
+      // the battle instead of leaving a partially applied payout. Eligibility
+      // conflicts for still-digesting foods are handled as a normal skipped item.
+      const autoFed = await this.tryAutoFeed(character, 0, manager);
+      if (autoFed) await characterRepo.save(character);
+
+      const killCounter = await this.incrementKillCounter(character.id, battle.mapId, battle.monsterId, manager);
+      const previousMapId = character.currentMapId;
+      const returningToTown = character.pendingMapTransition?.destinationMapId === TOWN_MAP_ID;
+      const foodExpiresAt = character.activeFoodBuff?.expiresAt
+        ? new Date(character.activeFoodBuff.expiresAt).getTime()
+        : 0;
+      const hungryAfterBattle = !foodExpiresAt || foodExpiresAt <= Date.now();
+      const routedToTown = returningToTown || hungryAfterBattle;
+
+      if (routedToTown) {
+        character.pendingMapTransition = null;
+        character.currentMapId = TOWN_MAP_ID;
+        character.status = 'town';
+        character.lastSeenAt = new Date();
+        await characterRepo.save(character);
+      }
+
+      // The success marker is written only after all transactional battle effects
+      // are complete. The transaction commits it atomically with XP, inventory,
+      // character state, Diet, equipment substitutions and the kill counter.
+      battle.resolved = true;
+      await battleRepo.save(battle);
+
+      const queueRepo = manager.getRepository(BattleQueueEntry);
+      let discardedBattleIds: string[] = [];
+      // These future rows were simulated against state that no longer exists:
+      // Town/death ends Grind; Auto Feed changes food/inventory; level-up changes
+      // derived stats; applying pending equipment changes changes the loadout.
+      // Remove them in this same transaction, then rebuild the fresh chain after
+      // commit. If the transaction fails, both the battle and its old queue stay.
+      if (character.status === 'town' || autoFed || leveledUp || equipmentChanged) {
+        const unresolved = await queueRepo.find({ where: { characterId: character.id, resolved: false } });
+        discardedBattleIds = unresolved.map((entry) => entry.id);
+        if (discardedBattleIds.length) await queueRepo.delete({ id: In(discardedBattleIds) });
+      }
+
+      return {
+        alreadyResolved: false as const,
+        kind: 'win' as const,
+        battle,
+        character,
+        killCounter,
+        levelsGained,
+        leveledUp,
+        equipmentChanged,
+        autoFed,
+        discardedBattleIds,
+        previousMapId: routedToTown ? previousMapId : null,
+      };
+    });
+
+    if (result.alreadyResolved) {
+      this.logger.log(`Battle ${battleId} already resolved - skipping`);
+      // Tell callers not to run their post-resolution queue top-up for a
+      // duplicate delivery while the winning caller is maintaining the queue.
+      return false;
     }
 
-    // Inventory drops are part of the same authoritative post-resolution snapshot.
-    // Touch Character after all inventory mutations so its updatedAt can serve as the
-    // revision for the complete Character + Inventory state.
-    await this.characterRepo.save(character);
-
-    const futureQueue = await this.getBattleQueue(character.id, 100);
-    const nextQueuedBattleStart = futureQueue[0]?.startAt
-      ? futureQueue[0].startAt.getTime()
-      : 0;
-    const mapPlayers = character.currentMapId
-      ? await this.mapPresenceService.countActiveGrinders(character.currentMapId)
-      : 0;
-    const otherPlayers = Math.max(0, mapPlayers - 1);
-    const nextEncounterBoundary = calculateNextEncounterBoundaryAt(
-      new Date(battle.endAt).getTime(),
-      otherPlayers,
-    );
-    const nextBattleStart = nextQueuedBattleStart || nextEncounterBoundary;
-    const autoFed = await this.tryAutoFeed(character, nextBattleStart);
-    if (autoFed) {
-      await this.characterRepo.save(character);
-      await this.invalidateAndRebuildFutureCombatQueue(character.id);
-    }
-
-    // --- the kill actually happened: bump the counter (SPEC §11.2)
-    const killCounter = await this.incrementKillCounter(character.id, battle.mapId, battle.monsterId);
-
-    // `resolved` was already claimed atomically at the top of this method.
-    await this.battleQueueRepo.save(battle);
-
-    const returningToTown = character.pendingMapTransition?.destinationMapId === TOWN_MAP_ID;
-    const foodExpiresAt = character.activeFoodBuff?.expiresAt
-      ? new Date(character.activeFoodBuff.expiresAt).getTime()
-      : 0;
-    const hungryAfterBattle = !foodExpiresAt || foodExpiresAt <= Date.now();
-    const leavingMapId = character.currentMapId;
-    if (returningToTown || hungryAfterBattle) {
-      // Town return and food exhaustion both end the current grind cleanly.
-      // The current battle is already resolved, so no unresolved encounter may remain.
-      character.pendingMapTransition = null;
-      character.currentMapId = TOWN_MAP_ID;
-      character.status = 'town';
-      character.lastSeenAt = new Date();
-      await this.characterRepo.save(character);
-
-      if (leavingMapId) {
-        await this.mapPresenceService.syncCharacter(character.id, leavingMapId);
+    // BullMQ, Redis presence and Socket.IO are deliberately outside the database
+    // transaction. Their failure cannot roll back or duplicate the committed
+    // battle payout; stale queue rows have already been removed atomically above.
+    const jobsToRemove = [...new Set([battleId, ...result.discardedBattleIds])];
+    for (const id of jobsToRemove) {
+      try {
+        const job = await this.bullQueue.getJob(id);
+        if (!job) continue;
+        const state = await job.getState();
+        if (id === battleId && state === 'active') continue;
+        await job.remove();
+      } catch (error) {
+        this.logger.debug(
+          `Could not remove BullMQ job for battle ${id}: ${error instanceof Error ? error.message : 'unknown'}`,
+        );
       }
     }
 
-    // SPEC §3.4 / §6.3: a level-up changes derived stats (maxHp/maxSp/atk...),
-    // which invalidates every remaining entry in the chain — they were simulated
-    // against the OLD stats. Discard them and rebuild the queue from scratch with
-    // the new character state. Must run AFTER the kill counter is bumped so the
-    // rebuilt chain does not re-encounter the same monster index it just killed.
-    if (character.status === 'town') {
-      await this.discardUnresolvedBattles(character.id);
-    } else if (leveledUp || equipmentChanged) {
-      await this.invalidateAndRebuildFutureCombatQueue(character.id);
-    } else if (character.currentMapId && character.status === 'grinding') {
-      await this.queueBattles(character.id, this.QUEUE_DEPTH_TARGET, false);
+    if (result.previousMapId) {
+      try {
+        await this.mapPresenceService.syncCharacter(result.character.id, result.previousMapId);
+      } catch (error) {
+        this.logger.warn(
+          `Map presence sync failed after battle ${result.battle.id} committed: ${error instanceof Error ? error.message : 'unknown'}`,
+        );
+      }
     }
-    if (leveledUp) {
-      await this.safePublishCharacterLeveledUp(character.id, {
-        newLevel: character.level,
-        unspentAttributePoints: character.unspentAttributePoints,
+
+    if (result.kind === 'death') {
+      await this.safePublishBattleResolved(result.character.id, result.battle);
+      await this.safePublishCharacterDied(result.character.id, result.deathLog);
+      return true;
+    }
+
+    // Queue operations depend on committed Character / Inventory / kill-counter
+    // state. In particular, Auto Feed rebuild now happens AFTER the kill index is
+    // incremented, so the new chain cannot replay the kill just resolved.
+    try {
+      if (result.character.status !== 'town') {
+        if (result.autoFed || result.leveledUp || result.equipmentChanged) {
+          await this.invalidateAndRebuildFutureCombatQueue(result.character.id);
+        } else if (result.character.currentMapId && result.character.status === 'grinding') {
+          await this.queueBattles(result.character.id, this.QUEUE_DEPTH_TARGET, false);
+        }
+      }
+    } catch (error) {
+      // The payout has committed. The processor's queue-depth top-up and boot
+      // recovery can repair queue shape; do not report the battle itself failed.
+      this.logger.error(
+        `Battle ${result.battle.id} committed but queue maintenance failed: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+    }
+
+    if (result.leveledUp) {
+      await this.safePublishCharacterLeveledUp(result.character.id, {
+        newLevel: result.character.level,
+        unspentAttributePoints: result.character.unspentAttributePoints,
       });
     }
-    // battle:resolved and the subsequent queueUpdated must expose the same final
-    // Character + Inventory + Diet revision; neither event is allowed to carry a
-    // pre-Auto-Feed snapshot.
-    await this.safePublishBattleResolved(character.id, battle);
-    const liveQueue = await this.getBattleQueue(character.id, 5);
-    const authoritativeSnapshot = await this.buildAuthoritativeBattleSnapshot(character.id);
-    await this.safePublishQueueUpdated(character.id, liveQueue, authoritativeSnapshot);
+    await this.safePublishBattleResolved(result.character.id, result.battle);
+    try {
+      const liveQueue = await this.getBattleQueue(result.character.id, 5);
+      const authoritativeSnapshot = await this.buildAuthoritativeBattleSnapshot(result.character.id);
+      await this.safePublishQueueUpdated(result.character.id, liveQueue, authoritativeSnapshot);
+    } catch (error) {
+      // All authoritative effects are already committed. A read/snapshot failure
+      // cannot turn the successful battle into a retry that would skip publication.
+      this.logger.warn(
+        `Post-commit queue snapshot failed for ${result.character.id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
 
     this.logger.log(
-      `Resolved battle ${battle.id} char=${character.id} ${battle.monsterId} ` +
-        `xp+=${battle.xpGain} gold+=${battle.goldGain} drops=${JSON.stringify(battle.drops)} ` +
-        `level=${character.level} xp=${character.xp} gold=${character.gold} ` +
-        `mapKillCount=${killCounter.mapKillCount} perMonster=${battle.monsterId}:${killCounter.perMonsterCount}`,
+      `Resolved battle ${result.battle.id} char=${result.character.id} ${result.battle.monsterId} ` +
+        `xp+=${result.battle.xpGain} gold+=${result.battle.goldGain} drops=${JSON.stringify(result.battle.drops)} ` +
+        `level=${result.character.level} xp=${result.character.xp} gold=${result.character.gold} ` +
+        `mapKillCount=${result.killCounter.mapKillCount} perMonster=${result.battle.monsterId}:${result.killCounter.perMonsterCount}`,
     );
+    return true;
   }
 
-  private async tryAutoFeed(character: Character, boundaryAt: number): Promise<boolean> {
+  private async tryAutoFeed(character: Character, boundaryAt: number, manager?: EntityManager): Promise<boolean> {
     if (!character.autoFeed || character.pendingMapTransition) return false;
 
     // Auto Feed is evaluated at every authoritative battle-resolution boundary.
@@ -927,6 +974,10 @@ export class BattleService {
       for (const entry of diet) {
         const itemId = entry?.itemId;
         if (!itemId) continue;
+        // Repeated foods intentionally occupy multiple Diet slots. Eligibility
+        // follows the latest retained occurrence, exactly as consumeFood() does.
+        const latestEntry = [...diet].reverse().find((candidate) => candidate?.itemId === itemId);
+        if (entry !== latestEntry) continue;
 
         const definition = this.dataService.getItemById(itemId);
         if (definition?.type !== 'food' || definition.effect?.type !== 'food_buff') continue;
@@ -934,9 +985,17 @@ export class BattleService {
         const digestUntil = entry?.digestUntil ? Date.parse(entry.digestUntil) : 0;
         if (digestUntil > now) continue;
 
-        if ((await this.inventoryService.getItemCount(character.id, itemId)) <= 0) continue;
+        if ((await this.inventoryService.getItemCount(character.id, itemId, manager)) <= 0) continue;
 
-        const updated = await this.inventoryService.consumeFood(character.id, itemId);
+        let updated: Character;
+        try {
+          updated = await this.inventoryService.consumeFood(character.id, itemId, manager);
+        } catch (error) {
+          // A concurrent/just-refreshed digestion timestamp is a normal lost
+          // eligibility race, not a battle-resolution failure. Try another food.
+          if (error instanceof BadRequestException && error.message === 'Food is still digesting') continue;
+          throw error;
+        }
         Object.assign(character, updated);
         consumedAny = true;
         consumedThisPass = true;
@@ -1009,59 +1068,47 @@ export class BattleService {
     for (const entry of remaining) {
       await this.bullQueue.getJob(entry.id).then((job) => job?.remove()).catch(() => undefined);
     }
-    await this.battleQueueRepo.delete({ id: In(remaining.map((entry) => entry.id)) });
+    await this.battleQueueRepo.delete({ id: In(remaining.map((entry) => entry.id)), resolved: false });
   }
 
   /**
    * Handle character death (SPEC §7.6)
    */
-  private async handleCharacterDeath(character: Character, battle: BattleQueueEntry): Promise<any> {
-    // Consumed items are still gone, and the character is routed to town.
+  private async handleCharacterDeath(
+    character: Character,
+    battle: BattleQueueEntry,
+    manager: EntityManager,
+  ): Promise<{ deathLog: any; discardedBattleIds: string[] }> {
+    const characterRepo = manager.getRepository(Character);
+    const queueRepo = manager.getRepository(BattleQueueEntry);
     character.status = 'town';
-    // null, not undefined: TypeORM silently skips undefined columns on save,
-    // which would leave the character on a map it is no longer standing on.
     character.currentMapId = TOWN_MAP_ID;
     character.lastSeenAt = new Date();
     character.hpCurrent = 1;
+    character.pendingMapTransition = null;
 
-    // SPEC §6.4 XP loss: 5% of the next level requirement
     const xpLoss = Math.floor(this.dataService.getXpToNextLevel(character.level) * 0.05);
     character.xp = Math.max(0, Number(character.xp) - xpLoss);
-
-    // SPEC §7.7: lastDeathLog is overwritten with this battle's full log
     character.lastDeathLog = {
       monsterId: battle.monsterId,
       mapId: battle.mapId,
       timestamp: new Date().toISOString(),
       log: battle.log,
     };
+    await characterRepo.save(character);
 
-    await this.characterRepo.save(character);
+    // Exclude this battle (still marked unresolved until its transactional commit).
+    const pending = await queueRepo.find({ where: { characterId: character.id, resolved: false } });
+    const doomed = pending.filter((entry) => entry.id !== battle.id);
+    const discardedBattleIds = doomed.map((entry) => entry.id);
+    if (discardedBattleIds.length) await queueRepo.delete({ id: In(discardedBattleIds) });
 
-    await this.mapPresenceService.syncCharacter(character.id, battle.mapId);
-
-    // Everything still queued assumed the character survived
-    const doomed = await this.battleQueueRepo.find({
-      where: { characterId: character.id, resolved: false },
-    });
-    if (doomed.length) {
-      await this.battleQueueRepo.delete({ id: In(doomed.map((b) => b.id)) });
-      for (const entry of doomed) {
-        await this.bullQueue
-          .getJob(entry.id)
-          .then((job) => job?.remove())
-          .catch(() => undefined);
-      }
-    }
-
-    await this.resetEncounterSequence(character.id, battle.mapId, 'death');
-
+    await this.resetEncounterSequence(character.id, battle.mapId, 'death', manager);
     this.logger.log(
-      `Character ${character.id} died to ${battle.monsterId}; ` +
-        `${doomed.length} queued battle(s) discarded`,
+      `Character ${character.id} died to ${battle.monsterId}; ${doomed.length} queued battle(s) discarded`,
     );
 
-    return character.lastDeathLog;
+    return { deathLog: character.lastDeathLog, discardedBattleIds };
   }
 
   async publishQueueUpdated(characterId: string): Promise<void> {
@@ -1075,7 +1122,7 @@ export class BattleService {
     });
     const future = pending.filter((entry) => entry.id !== activeBattleId);
     if (!future.length) return;
-    await this.battleQueueRepo.delete({ id: In(future.map((entry) => entry.id)) });
+    await this.battleQueueRepo.delete({ id: In(future.map((entry) => entry.id)), resolved: false });
     for (const entry of future) {
       await this.bullQueue.getJob(entry.id).then((job) => job?.remove()).catch(() => undefined);
     }
@@ -1087,7 +1134,7 @@ export class BattleService {
     });
     if (!pending.length) return;
 
-    await this.battleQueueRepo.delete({ id: In(pending.map((entry) => entry.id)) });
+    await this.battleQueueRepo.delete({ id: In(pending.map((entry) => entry.id)), resolved: false });
     for (const entry of pending) {
       await this.bullQueue.getJob(entry.id).then((job) => job?.remove()).catch(() => undefined);
     }
@@ -1124,20 +1171,23 @@ export class BattleService {
   }
 
   private async safePublishBattleResolved(characterId: string, battle: BattleQueueEntry): Promise<void> {
-    const state = await this.buildAuthoritativeBattleSnapshot(characterId);
-    if (!state) return;
-    const payload: BattleResolvedPayload = {
-      entryId: battle.id,
-      outcome: battle.outcome,
-      xpGain: Number(battle.xpGain ?? 0),
-      goldGain: Number(battle.goldGain ?? 0),
-      drops: battle.drops ?? [],
-      ...state,
-    };
     try {
+      const state = await this.buildAuthoritativeBattleSnapshot(characterId);
+      if (!state) return;
+      const payload: BattleResolvedPayload = {
+        entryId: battle.id,
+        outcome: battle.outcome,
+        xpGain: Number(battle.xpGain ?? 0),
+        goldGain: Number(battle.goldGain ?? 0),
+        drops: battle.drops ?? [],
+        ...state,
+      };
       await this.gatewayService.publishBattleResolved(characterId, payload);
     } catch (error) {
-      this.logger.warn(`battle:resolved publication failed for ${characterId}: ${error instanceof Error ? error.message : String(error)}`);
+      // Snapshot assembly and transport are post-commit work too. Do not bubble
+      // them to BullMQ as a failed battle: a retry sees resolved=true and cannot
+      // safely reproduce a missed socket event. Log it for observability instead.
+      this.logger.warn(`battle:resolved snapshot/publication failed for ${characterId}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -1161,11 +1211,12 @@ export class BattleService {
   //  MapKillCounter (SPEC §11.2)
   // ===========================================================================
 
-  private async getOrCreateKillCounter(characterId: string, mapId: string): Promise<MapKillCounter> {
-    let counter = await this.mapKillCounterRepo.findOne({ where: { characterId, mapId } });
+  private async getOrCreateKillCounter(characterId: string, mapId: string, manager?: EntityManager): Promise<MapKillCounter> {
+    const repo = manager?.getRepository(MapKillCounter) ?? this.mapKillCounterRepo;
+    let counter = await repo.findOne({ where: { characterId, mapId } });
     if (!counter) {
-      counter = await this.mapKillCounterRepo.save(
-        this.mapKillCounterRepo.create({
+      counter = await repo.save(
+        repo.create({
           characterId,
           mapId,
           epoch: 0,
@@ -1188,8 +1239,10 @@ export class BattleService {
     characterId: string,
     mapId: string,
     monsterId: string,
+    manager?: EntityManager,
   ): Promise<{ mapKillCount: number; perMonsterCount: number; epoch: number }> {
-    const counter = await this.getOrCreateKillCounter(characterId, mapId);
+    const repo = manager?.getRepository(MapKillCounter) ?? this.mapKillCounterRepo;
+    const counter = await this.getOrCreateKillCounter(characterId, mapId, manager);
 
     counter.mapKillCount = Number(counter.mapKillCount ?? 0) + 1;
 
@@ -1205,7 +1258,7 @@ export class BattleService {
       );
     }
 
-    await this.mapKillCounterRepo.save(counter);
+    await repo.save(counter);
 
     return {
       mapKillCount: Number(counter.mapKillCount),
@@ -1230,14 +1283,15 @@ export class BattleService {
    * still come up again - just not pinned, and never as the forced first
    * encounter of a re-entry.
    */
-  async resetEncounterSequence(characterId: string, mapId: string, reason: string): Promise<void> {
-    const counter = await this.getOrCreateKillCounter(characterId, mapId);
+  async resetEncounterSequence(characterId: string, mapId: string, reason: string, manager?: EntityManager): Promise<void> {
+    const repo = manager?.getRepository(MapKillCounter) ?? this.mapKillCounterRepo;
+    const counter = await this.getOrCreateKillCounter(characterId, mapId, manager);
 
     counter.epoch = Number(counter.epoch ?? 0) + 1;
     counter.mapKillCount = 0;
     counter.perMonsterKillCount = {};
 
-    await this.mapKillCounterRepo.save(counter);
+    await repo.save(counter);
 
     this.logger.log(
       `MapKillCounter reset (${reason}) for ${characterId}/${mapId} -> epoch ${counter.epoch}`,

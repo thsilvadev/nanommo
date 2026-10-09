@@ -1,5 +1,16 @@
 # NanoMMO — Implementation Status
 
+### Latest correction — atomic battle resolution + Auto Feed duplicate-food eligibility (2026-10-09)
+
+Fixed the Diet duplicate-entry eligibility mismatch: Auto Feed now evaluates only the newest retained occurrence for each `itemId`, skips the food if that occurrence is still digesting, and can continue to a different eligible food. The expected `Food is still digesting` guard is treated as a skipped candidate; unrelated exceptions still propagate.
+
+Reworked `BattleService.resolveBattle()` so authoritative PostgreSQL effects and the final `BattleQueueEntry.resolved = true` commit in one transaction. Lock order is Character then BattleQueueEntry. Simulated inventory consumption, XP/HP/SP and level-up changes, Diet/Auto Feed, pending equipment substitutions, drops, kill counter, death/Town routing, and invalidated future queue rows all use the same transaction manager. A DB failure rolls them all back so BullMQ retry/boot recovery can apply the battle completely. BullMQ job cleanup, map-presence synchronization, queue rebuilding, and Socket.IO publication remain post-commit. Post-commit queue/event snapshot failures are logged without turning a committed payout into a failed/retried battle. Duplicate deliveries now return an explicit skipped result so `BattleQueueProcessor` does not race the winning caller's queue maintenance with a redundant top-up; recovery counts only battles actually resolved by its call.
+
+Verification in this session: API build passed; targeted standalone Diet/Auto Feed regression passed including an older expired bread occurrence plus a newer still-digesting bread occurrence while meat remains eligible; existing `diet-auto-feed.spec.js` passed 3/3; idempotency integration script syntax passed after updating it to the transaction/row-lock contract; strict OpenSpec validation and `git diff --check` passed. The full concurrent BullMQ/recovery integration could not run because Docker Desktop is unavailable, API on `localhost:3010` is not running, and local Redis is unavailable. No production deploy was performed.
+
+Historical caution: this code change does not retroactively repair battles already marked `resolved = true` by the previous implementation after a partial failure. Those rows require inspection against their Character state, inventory, kill counter and event history before any manual reconciliation; automatic replay would risk duplicate rewards.
+
+
 ### Latest correction — Nest module import cycle (2026-10-09)
 
 The new CharacterService → BattleService mutation boundary exposed a pre-existing module graph that was not fully covered by `forwardRef`: `CharacterModule → BattleModule → InventoryModule → CharacterModule`, plus the equivalent `CharacterModule → BattleModule → EquipmentModule → CharacterModule` cycle. Nest could therefore evaluate `CharacterModule` as `undefined` while scanning `InventoryModule` (and then `EquipmentModule`). Added deferred module references on the Inventory/Character, Equipment/Character, Equipment/Inventory, and Battle/Inventory/Equipment edges. The API build passes, and runtime startup now gets past Nest module scanning/InstanceLoader initialization; the local smoke run then stops retrying PostgreSQL/Redis because local services are not running (`127.0.0.1:5432` / `6379`). No production deployment.
