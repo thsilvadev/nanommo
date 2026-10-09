@@ -403,7 +403,7 @@ The boundary checks the persisted unresolved queue for the authoritative active-
 
 Inactive Gambit edits do not cross this boundary, and activating the already-active page is a no-op. The current in-progress battle is never edited or re-simulated; only future unresolved snapshots are invalidated.
 
-Nest's CharacterModule/BattleModule dependency is intentionally circular and therefore uses `forwardRef`; `BattleService` remains the sole owner of queue reconstruction and BullMQ cleanup.
+The CharacterModule/BattleModule dependency is intentionally circular and uses `forwardRef`. Because BattleModule also imports InventoryModule and EquipmentModule, and both of those modules import CharacterModule (EquipmentModule also imports InventoryModule), those cycle-closing module references must also use `forwardRef` on both sides where applicable. Keep this module graph explicit when adding future cross-module dependencies; `BattleService` remains the sole owner of queue reconstruction and BullMQ cleanup.
 
 ## Testing Strategy
 

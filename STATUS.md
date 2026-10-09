@@ -1,5 +1,9 @@
 # NanoMMO — Implementation Status
 
+### Latest correction — Nest module import cycle (2026-10-09)
+
+The new CharacterService → BattleService mutation boundary exposed a pre-existing module graph that was not fully covered by `forwardRef`: `CharacterModule → BattleModule → InventoryModule → CharacterModule`, plus the equivalent `CharacterModule → BattleModule → EquipmentModule → CharacterModule` cycle. Nest could therefore evaluate `CharacterModule` as `undefined` while scanning `InventoryModule` (and then `EquipmentModule`). Added deferred module references on the Inventory/Character, Equipment/Character, Equipment/Inventory, and Battle/Inventory/Equipment edges. The API build passes, and runtime startup now gets past Nest module scanning/InstanceLoader initialization; the local smoke run then stops retrying PostgreSQL/Redis because local services are not running (`127.0.0.1:5432` / `6379`). No production deployment.
+
 ### Latest follow-up — `character-mutation-queue-invalidation` correction (2026-10-08)
 
 Corrected the character-mutation queue boundary so active combat-state mutations are accepted without ever modifying the battle already in progress. Attribute-point spending, activation of a different Gambit page, and edits to the currently active Gambit page now persist during an active battle; the active `BattleQueueEntry` and its BullMQ resolution job are preserved, while stale future entries after it are discarded. No replacement future battle is scheduled during the active battle. After that battle resolves, the normal queue-advance boundary rebuilds the future chain from the updated Character + Equipment + Inventory + active Gambit state.

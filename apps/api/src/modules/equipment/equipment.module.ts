@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EquipmentController } from './equipment.controller';
 import { EquipmentService } from './equipment.service';
@@ -12,7 +12,7 @@ import { CharacterModule } from '../character/character.module';
 import { InventoryModule } from '../inventory/inventory.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EquippedItem, Character, WeaponProficiency, InventoryItem, BattleQueueEntry]), DataModule, CharacterModule, InventoryModule],
+  imports: [TypeOrmModule.forFeature([EquippedItem, Character, WeaponProficiency, InventoryItem, BattleQueueEntry]), DataModule, forwardRef(() => CharacterModule), forwardRef(() => InventoryModule)],
   controllers: [EquipmentController],
   providers: [EquipmentService],
   exports: [EquipmentService],
