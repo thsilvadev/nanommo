@@ -151,11 +151,14 @@ server only needs to "resolve" (apply effects) one battle at a time via a schedu
 ### 3.4 What "recalculation" means
 
 The battle queue is invalidated and rebuilt from scratch whenever, and only whenever:
-- The player changes their **active gambit page** (or edits the currently active one) — only allowed while not mid-battle (see §8.5).
+- The player changes their **active gambit page** (or edits the currently active one).
+- The player spends **attribute points** that change combat statistics.
 - The player changes **equipment**.
 - The player consumes a **food** item manually from the inventory UI (as opposed to via gambit) or otherwise changes buffs outside of the auto-battle loop.
 - The player switches **map**.
 - The player **levels up** mid-queue in a way that changes stats (handled automatically by the resolver, not player-triggered, but still forces a requeue — see §7.6).
+
+All future-combat mutations use one BattleService-owned boundary. If no battle is currently running (`startAt <= now < endAt`), the mutation is persisted, stale unresolved entries and their BullMQ jobs are discarded, and the canonical queue is rebuilt to depth 5 when the character remains eligible to grind. If a battle is currently running, the mutation is still accepted and persisted, the active entry/job are preserved, and only stale future entries after the active battle are discarded; no replacement future battle is scheduled before the active battle resolves. The normal queue-advance boundary then rebuilds the future chain from the updated authoritative state. The current in-progress battle is never recalculated or replaced. Failed validation happens before queue invalidation. Editing an inactive Gambit page and re-activating the page that is already active are no-ops for queue invalidation.
 
 Anything else (a battle resolving normally, a potion being consumed by the gambit as predicted) does **not** trigger recalculation — it was already accounted for in the original simulation.
 
@@ -460,6 +463,10 @@ Sanity checkpoints from the generated table (assumptions above): level 60 reache
 The ratio is taken between two `maxHp`/`maxSp` values, so **both ends must be derived from the same state the battles were simulated against** — the character's attributes *including* equipment `statBonus` (§5.2), with the character's real `def`/`mdefPercent`/weapon ATK as the third argument of `calculateDerivedStats`. Deriving the ratio from bare attributes instead scales an equipped character by the wrong factor (a level-1 character in tier-1 armour, VIT 5 → 26, would be scaled by 176/158 = 1.114 instead of 428/410 = 1.044, and the result would then be clamped against the wrong maximum). Implemented in `battle.service.ts:453-484`; verified by the equipped-character level-up scenario in `apps/api/test-phase3-levelup.js`.
 
 A single XP resolution SHALL consume every XP threshold crossed by the awarded XP, allowing multiple level gains when enough XP is awarded. Each crossed threshold is consumed in order and excess XP remains stored toward the next level. The reduced Grind XP rate is the pacing control. This is enforced server-side in the authoritative resolver.
+
+### 6.3.1 Attribute allocation and future-battle safety
+
+Spending unspent STR/AGI/DEX/VIT/INT/SOR points is a combat-state mutation because those attributes feed derived combat statistics. The server validates the complete spend before persisting it. If an unresolved `BattleQueueEntry` is currently in flight (`startAt <= now < endAt`), the request is still accepted: Character attributes are updated, the active battle entry/job remain unchanged, and only stale future entries after that active battle are invalidated. The future chain is rebuilt from the persisted post-spend Character state after the active battle resolves. When no battle is in flight, the successful spend immediately invalidates the unresolved future chain through the same BattleService-owned discard/cancel/rebuild boundary used by level-up, equipment and food mutations.
 
 ### 6.4 XP loss on death
 

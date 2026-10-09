@@ -1,4 +1,5 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, forwardRef, Inject } from '@nestjs/common';
+import { BattleService } from '../battle/battle.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { GambitPage } from '../../database/entities/gambit-page.entity';
@@ -29,6 +30,8 @@ export class GambitService {
     @InjectRepository(Character)
     private readonly characterRepo: Repository<Character>,
     private readonly dataService: DataService,
+    @Inject(forwardRef(() => BattleService))
+    private readonly battleService: BattleService,
   ) {}
 
   /**
@@ -321,7 +324,11 @@ export class GambitService {
       if (existingPage) {
         existingPage.title = pageData.title ?? existingPage.title;
         existingPage.lines = canonicalLines;
-        return this.gambitPageRepo.save(existingPage);
+        const affectsActiveCombat = character.activeGambitPageId === existingPage.id;
+        if (!affectsActiveCombat) return this.gambitPageRepo.save(existingPage);
+        return this.battleService.runFutureCombatMutation(characterId, async () => {
+          return this.gambitPageRepo.save(existingPage);
+        });
       }
     }
 
@@ -406,7 +413,14 @@ export class GambitService {
       page.lines = this.canonicalizeLines(pageData.lines);
     }
 
-    return this.gambitPageRepo.save(page);
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character) throw new NotFoundException('Character not found');
+    const affectsActiveCombat = character.activeGambitPageId === page.id;
+    if (!affectsActiveCombat) return this.gambitPageRepo.save(page);
+
+    return this.battleService.runFutureCombatMutation(characterId, async () => {
+      return this.gambitPageRepo.save(page);
+    });
   }
 
   /**
@@ -459,10 +473,13 @@ export class GambitService {
       throw new NotFoundException('Gambit page not found');
     }
 
-    character.activeGambitPageId = pageId;
-    await this.characterRepo.save(character);
+    if (character.activeGambitPageId === pageId) return page;
 
-    return page;
+    return this.battleService.runFutureCombatMutation(characterId, async () => {
+      character.activeGambitPageId = pageId;
+      await this.characterRepo.save(character);
+      return page;
+    });
   }
 
   /**

@@ -1,9 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException, Logger, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger, ConflictException, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem } from '@/database/entities';
 import { CharacterDto, Attribute, WeaponType, BattleEngine } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
+import { BattleService } from '../battle/battle.service';
 
 @Injectable()
 export class CharacterService {
@@ -21,6 +22,8 @@ export class CharacterService {
     @InjectRepository(InventoryItem)
     private inventoryItemRepository: Repository<InventoryItem>,
     private dataService: DataService,
+    @Inject(forwardRef(() => BattleService))
+    private battleService: BattleService,
   ) {}
 
   private readonly NAME_PATTERN = /^[a-zA-Z0-9]{3,16}$/;
@@ -222,7 +225,9 @@ export class CharacterService {
 
     character.unspentAttributePoints -= totalToSpend;
 
-    const saved = await this.characterRepository.save(character);
+    const saved = await this.battleService.runFutureCombatMutation(characterId, async () => {
+      return this.characterRepository.save(character);
+    });
     return await this.toDto(saved);
   }
 

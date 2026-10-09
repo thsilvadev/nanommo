@@ -395,6 +395,16 @@ The future heartbeat should call `OnlinePresenceService.touch()` to keep online 
 
 ---
 
+## Future-combat mutation boundary
+
+`BattleService` owns the authoritative invalidation/rebuild boundary for any successful mutation that changes a future battle simulation. `CharacterService.spendAttributePoints()` and `GambitService` active-page edits/activation call this boundary rather than deleting `BattleQueueEntry` rows or BullMQ jobs themselves.
+
+The boundary checks the persisted unresolved queue for the authoritative active-battle window `startAt <= now < endAt`. It never rejects these combat-state mutations merely because a battle is active. During an active battle, the mutation is persisted, the active BattleQueueEntry and its BullMQ job are preserved, and only stale future entries after the active battle are discarded; the replacement future chain is intentionally deferred until that battle resolves. When no battle is active, stale unresolved entries and their jobs are discarded and `queueBattles()` rebuilds the canonical five-entry chain from the new Character + Equipment + Inventory + active Gambit state. Town and pending-transition states never fabricate a grind queue.
+
+Inactive Gambit edits do not cross this boundary, and activating the already-active page is a no-op. The current in-progress battle is never edited or re-simulated; only future unresolved snapshots are invalidated.
+
+Nest's CharacterModule/BattleModule dependency is intentionally circular and therefore uses `forwardRef`; `BattleService` remains the sole owner of queue reconstruction and BullMQ cleanup.
+
 ## Testing Strategy
 
 ### Unit Tests

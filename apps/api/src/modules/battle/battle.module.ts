@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BattleQueueEntry } from '../../database/entities/battle-queue-entry.entity';
@@ -38,7 +38,7 @@ import { PresenceModule } from '../presence/presence.module';
       },
     }),
     DataModule,
-    CharacterModule,
+    forwardRef(() => CharacterModule),
     InventoryModule,
     EquipmentModule,
     RedisModule,

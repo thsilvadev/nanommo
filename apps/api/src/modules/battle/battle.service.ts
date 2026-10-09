@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -78,6 +78,7 @@ export class BattleService {
     @InjectRepository(InventoryItem)
     private readonly inventoryItemRepo: Repository<InventoryItem>,
     private readonly dataService: DataService,
+    @Inject(forwardRef(() => CharacterService))
     private readonly characterService: CharacterService,
     private readonly inventoryService: InventoryService,
     private readonly equipmentService: EquipmentService,
@@ -95,6 +96,66 @@ export class BattleService {
       order: { sequenceIndex: 'ASC' },
       take: limit,
     });
+  }
+
+  /**
+   * Authoritative boundary for mutations that change future combat simulation.
+   *
+   * A mutation is always persisted. If a battle is currently running, that
+   * battle remains immutable and its scheduled job is preserved; only the stale
+   * future entries are discarded. The future chain is then rebuilt by the normal
+   * battle-resolution/queue-advance boundary after the active battle finishes.
+   * When no battle is running, the mutation immediately rebuilds the canonical
+   * queue from the post-mutation authoritative state.
+   */
+  async runFutureCombatMutation<T>(
+    characterId: string,
+    mutation: () => Promise<T>,
+  ): Promise<T> {
+    const queue = await this.getBattleQueue(characterId, 100);
+    const now = Date.now();
+    const activeBattle = queue.find(
+      (entry) => entry.startAt.getTime() <= now && now < entry.endAt.getTime(),
+    );
+
+    const result = await mutation();
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character) throw new NotFoundException('Character not found');
+
+    if (activeBattle) {
+      // The active battle is already a persisted immutable snapshot. Remove only
+      // entries after it so no stale future simulation can resolve. Do not remove
+      // or reschedule the active battle's BullMQ job.
+      await this.discardUnresolvedBattles(characterId, activeBattle.id);
+      const remainingQueue = await this.getBattleQueue(characterId, 100);
+      await this.safePublishQueueUpdated(characterId, remainingQueue);
+      return result;
+    }
+
+    await this.invalidateAndRebuildFutureCombatQueue(characterId);
+    return result;
+  }
+
+  private async invalidateAndRebuildFutureCombatQueue(characterId: string): Promise<void> {
+    await this.discardUnresolvedBattles(characterId);
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character) throw new NotFoundException('Character not found');
+
+    const grinding =
+      character.status === 'grinding' &&
+      !!character.currentMapId &&
+      !character.pendingMapTransition &&
+      character.currentMapId !== TOWN_MAP_ID;
+
+    if (!grinding) {
+      await this.safePublishQueueUpdated(characterId, []);
+      return;
+    }
+
+    await this.queueBattles(characterId, this.QUEUE_DEPTH_TARGET, false);
+    const rebuiltQueue = await this.getBattleQueue(characterId, 5);
+    const snapshot = await this.buildAuthoritativeBattleSnapshot(characterId);
+    await this.safePublishQueueUpdated(characterId, rebuiltQueue, snapshot);
   }
 
   async getResolvedBattleHistory(characterId: string, limit = 100): Promise<any[]> {
@@ -778,11 +839,8 @@ export class BattleService {
     const nextBattleStart = nextQueuedBattleStart || nextEncounterBoundary;
     const autoFed = await this.tryAutoFeed(character, nextBattleStart);
     if (autoFed) {
-      await this.discardUnresolvedBattles(character.id);
       await this.characterRepo.save(character);
-      if (character.currentMapId && character.status === 'grinding') {
-        await this.queueBattles(character.id, this.QUEUE_DEPTH_TARGET, false);
-      }
+      await this.invalidateAndRebuildFutureCombatQueue(character.id);
     }
 
     // --- the kill actually happened: bump the counter (SPEC §11.2)
@@ -819,8 +877,7 @@ export class BattleService {
     if (character.status === 'town') {
       await this.discardUnresolvedBattles(character.id);
     } else if (leveledUp || equipmentChanged) {
-      await this.discardUnresolvedBattles(character.id);
-      await this.queueBattles(character.id, this.QUEUE_DEPTH_TARGET, false);
+      await this.invalidateAndRebuildFutureCombatQueue(character.id);
     } else if (character.currentMapId && character.status === 'grinding') {
       await this.queueBattles(character.id, this.QUEUE_DEPTH_TARGET, false);
     }
@@ -940,8 +997,14 @@ export class BattleService {
     }
   }
 
-  private async discardUnresolvedBattles(characterId: string): Promise<void> {
-    const remaining = await this.battleQueueRepo.find({ where: { characterId, resolved: false } });
+  private async discardUnresolvedBattles(characterId: string, preserveBattleId?: string): Promise<void> {
+    const unresolved = await this.battleQueueRepo.find({
+      where: { characterId, resolved: false },
+      order: { sequenceIndex: 'ASC' },
+    });
+    const remaining = preserveBattleId
+      ? unresolved.filter((entry) => entry.id !== preserveBattleId)
+      : unresolved;
     if (!remaining.length) return;
     for (const entry of remaining) {
       await this.bullQueue.getJob(entry.id).then((job) => job?.remove()).catch(() => undefined);

@@ -1,5 +1,17 @@
 # NanoMMO — Implementation Status
 
+### Latest follow-up — `character-mutation-queue-invalidation` correction (2026-10-08)
+
+Corrected the character-mutation queue boundary so active combat-state mutations are accepted without ever modifying the battle already in progress. Attribute-point spending, activation of a different Gambit page, and edits to the currently active Gambit page now persist during an active battle; the active `BattleQueueEntry` and its BullMQ resolution job are preserved, while stale future entries after it are discarded. No replacement future battle is scheduled during the active battle. After that battle resolves, the normal queue-advance boundary rebuilds the future chain from the updated Character + Equipment + Inventory + active Gambit state.
+
+When no battle is active, the same BattleService-owned boundary still discards the unresolved stale chain and immediately rebuilds the canonical five-entry queue when the character remains eligible to grind. Inactive Gambit edits remain queue-neutral, and activation of the already-active page is a no-op. Nest circular dependency between CharacterModule/BattleModule remains handled with `forwardRef`; queue ownership stays in BattleService. No schema migration or new socket event was introduced.
+
+The previous implementation incorrectly introduced an HTTP 409 rejection for active-battle mutations; that behavior was not authorized by the OpenSpec and has been removed. The committed regression script was updated to verify active-battle preservation and post-resolution rebuilding instead of rejection.
+
+Verification after the correction: API build passed; shared build passed; frontend production build passed; strict OpenSpec validation passed; the mutation regression script passes Node syntax checking but its live run cannot execute because the local backend at `http://localhost:3010` is not running. `git diff --check` passed. No production deployment.
+
+---
+
 ### Latest follow-up — realtime map presence Socket.IO transport (2026-10-08)
 
 Investigated the complete `playersOnMap` realtime chain. The frontend already creates a Socket.IO client for the `/game` namespace from `PlayComponent.ngOnInit()`, uses the production API origin, forces WebSocket transport, authenticates with the JWT, and `BattleStore.bindEvents()` already consumes `map:presence`. `MapBoard.playersInMap()` already derives the displayed value from the current map and the latest absolute presence snapshot.
