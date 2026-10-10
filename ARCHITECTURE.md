@@ -189,6 +189,10 @@ The database transaction is the exactly-once boundary. Do not use BullMQ job sta
 
 `BattleService.resolveBattle()` uses one PostgreSQL transaction for the battle's authoritative database effects. Acquire locks in **Character → BattleQueueEntry** order so concurrent jobs for one character serialize. Item consumption, XP/HP/SP, Diet/Auto Feed, equipment substitutions, drops, kill counter and Town/death queue cleanup are persisted together with `BattleQueueEntry.resolved = true`. A thrown error rolls those database writes back; retry/recovery can then safely apply the battle once. BullMQ job cleanup, Redis map-presence synchronization, queue rebuilding and socket publication stay outside the transaction and must not be treated as the idempotency guard for rewards.
 
+### Food expiry and queue projection boundary
+
+`BattleService.queueBattles()` projects `activeFoodBuff` across pre-simulated future entries only to decide whether it can append more encounters. A projected buff cleared because it expires during a future queued battle is not the current persisted Character state and must never itself cause an early Town transition. A battle may start only if food is valid at its actual `startAt`, including the encounter-search delay; if no battle can legally start before a still-future expiry and the queue is empty, schedule a server-side `queue-battles` recheck at that expiry. At the actual boundary, Auto Feed gets its existing authoritative `InventoryService.consumeFood()` opportunity before Town fallback. Never use frontend timers, socket presence or an arbitrary grace period to determine food exhaustion.
+
 ### 4. **Gambit Evaluation** (During simulateBattle)
 ```
 for each tick:

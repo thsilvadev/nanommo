@@ -433,11 +433,32 @@ export class BattleService {
     projectFoodFromQueue(currentQueue);
     projectedFoodExpiresAt = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
     if (!projectedFoodExpiresAt || projectedFoodExpiresAt <= Date.now()) {
+      const now = Date.now();
       const activeBattle = currentQueue.find(
-        (entry) => Date.parse(entry.startAt.toString()) <= Date.now() &&
-          Date.now() < Date.parse(entry.endAt.toString()),
+        (entry) => Date.parse(entry.startAt.toString()) <= now &&
+          now < Date.parse(entry.endAt.toString()),
       );
       if (!activeBattle) {
+        // Queue projection answers whether another future encounter can be
+        // added; it is not the Character's current food state. A projected buff
+        // can expire during a future queued battle while the persisted buff is
+        // still valid now. Never turn that prediction into an early Town exit.
+        const actualFoodExpiresAt = character.activeFoodBuff?.expiresAt
+          ? Date.parse(String(character.activeFoodBuff.expiresAt))
+          : 0;
+        if (actualFoodExpiresAt > now) return currentQueue;
+
+        // If queue generation itself reaches the real exhaustion boundary before
+        // any battle is active, give Auto Feed the same authoritative chance the
+        // resolver gives it. A successful consume persists the food through the
+        // existing InventoryService path; throw away stale projections and rebuild.
+        const autoFed = await this.tryAutoFeed(character, now);
+        if (autoFed) {
+          await this.characterRepo.save(character);
+          await this.discardUnresolvedBattles(characterId);
+          return this.queueBattles(characterId, targetDepth, publishQueueEvent);
+        }
+
         const leavingMapId = character.currentMapId;
         character.currentMapId = TOWN_MAP_ID;
         character.status = 'town';
@@ -496,16 +517,21 @@ export class BattleService {
     const loadout = await this.loadCombatantLoadout(characterId);
     const weaponBaseAttackTicks = this.getWeaponBaseAttackTicks(loadout.weaponTypes);
 
+    let blockedByFoodExpiryBeforeNextStart = false;
     for (let i = 0; i < battlesToAdd; i++) {
-      if (!projectedFoodExpiresAt || projectedFoodExpiresAt <= nextStartTime.getTime()) {
-        break;
-      }
       const sequenceIndex = maxSequenceIndex + 1 + i;
       const killIndex = projectedMapKillCount;
 
       // Every encounter has its own search phase, including the first one.
       const searchStartTime = new Date(nextStartTime);
-      nextStartTime = new Date(nextStartTime.getTime() + encounterSearchMs);
+      const encounterStartAt = nextStartTime.getTime() + encounterSearchMs;
+      // Eligibility is evaluated at the actual battle start, after encounter
+      // search, not at the beginning of the search gap.
+      if (!projectedFoodExpiresAt || projectedFoodExpiresAt <= encounterStartAt) {
+        blockedByFoodExpiryBeforeNextStart = true;
+        break;
+      }
+      nextStartTime = new Date(encounterStartAt);
 
       // SPEC §11.2: nextMonsterId(mapId, mapKillCount) = weightedPick(rngForIndex(mapKillCount))
       const monster = rngForIndex(encounterSeed, killIndex).weightedPick(monsters);
@@ -654,6 +680,27 @@ export class BattleService {
     }
 
     const liveQueue = [...currentQueue, ...newBattles];
+    if (liveQueue.length === 0 && blockedByFoodExpiryBeforeNextStart) {
+      const actualFoodExpiresAt = character.activeFoodBuff?.expiresAt
+        ? Date.parse(String(character.activeFoodBuff.expiresAt))
+        : 0;
+      if (actualFoodExpiresAt > 0) {
+        // No battle can legally start before the current buff expires, so there
+        // is no battle-resolution job to revisit the boundary. Reuse the
+        // existing queue-battles worker to re-evaluate at the exact expiry (or
+        // immediately if the expiry passed during queue generation).
+        await this.bullQueue.add(
+          'queue-battles',
+          { characterId },
+          {
+            delay: Math.max(0, actualFoodExpiresAt - Date.now()),
+            jobId: `food-expiry-check-${characterId}-${actualFoodExpiresAt}`,
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 2000 },
+          },
+        );
+      }
+    }
     if (publishQueueEvent) await this.safePublishQueueUpdated(characterId, liveQueue);
     return liveQueue;
   }

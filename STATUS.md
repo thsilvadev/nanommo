@@ -1518,3 +1518,28 @@ Removed `MAX_TICKS`, the `maxTicks` option, and the tick cutoff from the simulat
 Likely reason for the original cap (inference, not a documented gameplay decision): the code comment explicitly called it a safety valve to prevent a stalemate from hanging queue generation. That technical safeguard was implemented as a gameplay defeat, which conflicts with the authoritative rule. A genuine invalid/no-action stalemate must not be silently converted into a character death; this change does not introduce a replacement artificial outcome.
 
 Verification: `pnpm --filter @nanommo/shared build` passed; `pnpm --filter @nanommo/api build` passed; `pnpm --filter @nanommo/api exec jest --runInBand --runTestsByPath test/direct-damage-variance.spec.js` passed (4 tests, including the >200-tick battle regression); `pnpm exec openspec validate battle-no-duration-limit --strict` passed; `git diff --check` passed. A first validation attempt correctly flagged the new capability delta as `MODIFIED` against a nonexistent granular spec; changed it to `ADDED` and strict validation then passed. No production deployment.
+
+
+## Grind food-expiry early-exit regression — 2026-10-10
+
+Investigated the report that Sauro returned to Town roughly two minutes before the active bread buff should have expired. The provided logs show successful battle outcomes, a queue update reaching zero, and later Socket.IO disconnect/reconnect events; they do not include the authoritative `activeFoodBuff.expiresAt` or a transition call stack, so the logs alone do not prove which exact production invocation caused the exit.
+
+### Confirmed code defect and correction
+
+A deterministic service regression proved the suspected `BattleService.queueBattles()` branch. `projectFoodFromQueue()` cleared its projected food buff when an unresolved future battle ended after the expiry timestamp. If no battle was active at the current instant, the method treated that projected null buff as actual hunger and persisted `currentMapId = map_town` / `status = town`, synchronized map presence, discarded the unresolved queue and published an empty queue—even though the persisted active food was still valid now. The new regression failed before the fix with `actual: 'town', expected: 'grinding'`.
+
+The correction separates projected queue food from current persisted food: future projection alone cannot route a character to Town while the authoritative food expiry remains in the future. Queue generation now checks the food boundary against the actual encounter start after the encounter-search delay. If no battle can legally start before a still-future expiry and there is no queued battle whose resolver will revisit the state, the server schedules the existing `queue-battles` worker at the exact food expiry instead of adding an illegal battle or relying on a browser timer. At actual exhaustion, the existing Auto Feed path is attempted before Town fallback; a successful feed invalidates stale future projections and rebuilds the queue.
+
+### Verification
+
+- `pnpm --filter @nanommo/api build`: passed.
+- `node apps/api/test/grind-food-expiry-exit-regression.test.js`: passed; covers 2-minute, 1-minute, 5-second and 1-second positive food durations, a future battle crossing expiry, preserving an active battle, encounter-search delay crossing expiry, Auto Feed success/no-eligible-food branches, and Town/presence behavior after actual expiry.
+- Pre-fix regression run: failed as expected because queue generation changed the character to Town while food remained valid.
+- `node apps/api/test/diet-autofeed-streak-fixes.spec.js`: passed.
+- `pnpm --filter @nanommo/api exec jest --runInBand --runTestsByPath test/diet-auto-feed.spec.js`: passed (3 tests).
+- `node apps/api/test/map-leave-town-idempotency.test.js`: passed (3 assertions).
+- `node apps/api/test/encounter-search.test.js`: passed (5 assertions).
+- `git diff --check`: passed.
+- `pnpm exec openspec validate grind-food-expiry-exit-regression --strict`: passed.
+- `node apps/api/test/map-presence-cleanup.test.js`: still fails in its existing direct `handleCharacterDeath()` test because the harness does not supply the now-required transaction `manager` (`Cannot read properties of undefined (reading 'getRepository')`). This failure is outside the changed food-expiry branch; no unrelated test/harness change was made to hide it.
+- No production deployment or live production mutation performed.
