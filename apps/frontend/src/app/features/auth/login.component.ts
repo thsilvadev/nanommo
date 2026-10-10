@@ -27,7 +27,7 @@ import { LoginMusicService } from '../../shared/login-music.service';
           </div>
         }
 
-        <div class="my-4 text-center text-gray-400">ou</div>
+        
           <button type="button" class="google-auth-button" (click)="loginWithGoogle()" aria-label="Continuar com Google">
             <svg class="google-logo" viewBox="0 0 18 18" aria-hidden="true">
               <path fill="#EA4335" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.482h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"/>
@@ -37,7 +37,7 @@ import { LoginMusicService } from '../../shared/login-music.service';
             </svg>
             <span>Continuar com Google</span>
           </button>
-
+          <div class="my-4 text-center text-gray-400">ou</div>
           <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="space-y-5">
           <div>
             <label for="identifier" class="block text-sm font-medium text-gray-300 mb-1">E-mail ou nome do personagem</label>
@@ -133,7 +133,7 @@ export class LoginComponent {
         const destination = this.authStore.routeAfterLogin();
         await this.router.navigate([destination]);
       },
-      error: () => {},
+      error: () => { },
     });
   }
 }
