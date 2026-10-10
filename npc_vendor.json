@@ -38,7 +38,7 @@
     },
     {
       "itemId": "antidote",
-      "price": 20,
+      "price": 100,
       "infiniteStock": true
     }
   ],
