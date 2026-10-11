@@ -605,7 +605,7 @@ Modeled directly on Final Fantasy XII's Gambit system, adapted for a single cont
 - Exactly **one page is active** at a time (`Character.activeGambitPageId`); the first page is active by default.
 - The starter page contains the confirmed default behavior: `self_hp_below_percent` at `< 30%` → use `pot_hp_small`, followed by `always` → attack nearest foe.
 - Each page has an optional `title` (≤30 chars) and up to **20 lines**.
-- Switching the active page is only allowed while the character is not in the middle of a battle. Reject while an unresolved `BattleQueueEntry` is currently in flight; allow the change between battles and rebuild the future queue.
+- Switching the active page is allowed during an active battle. Persist the new active page immediately, preserve the immutable active battle and its BullMQ job, invalidate only stale future entries, and rebuild the future queue after the active battle resolves. When no battle is active, rebuild immediately through the BattleService-owned mutation boundary.
 
 ### 8.2 Gambit line shape (stored in `GambitPage.lines`)
 
@@ -1312,3 +1312,12 @@ Load all seven at boot, validate their shape, and fail fast on mismatch (§18.2 
 ## Future combat roadmap: PvE/PvP up to 5v5
 
 The current MVP battle simulator remains one character versus one monster. Party formation, allied targeting, target switching, group PvP, multi-target AoE and lane-to-lane movement are not implemented by the current duel contract. Future PvE and PvP modes are planned to support up to five combatants versus five combatants. Position, movement, target-selection and multi-target rules must be specified in their own approved OpenSpec changes before implementation; this roadmap does not silently extend current one-on-one semantics.
+
+
+## Battle distance and movement — implementation contract
+
+The current simulator remains one character versus one monster, but each battle uses an eight-space lane indexed 0–7. Distance is the number of empty spaces between units: `max(0, abs(positionA - positionB) - 1)`, so adjacent means distance 0 and the endpoints mean distance 6. Melee-vs-melee starts at positions 3/4; if either unit is RANGED, they start at 0/7. Positions are local to the immutable precomputed battle and do not represent map movement or frontend-authoritative state.
+
+A character's entry style is frozen from valid enabled Foe Gambit actions: Bow basic Attack or an available ranged skill/item makes it RANGED; Ally/self support does not. Monsters explicitly declare `combatStyle`, `basicAttackDamageType`, `basicAttackRange`, and level-1 `moveSpeedBase` in `monsters.json`. Character base Move Speed is 50 + level; monster effective speed is catalog base + monster level - 1. A separate movement gauge accrues speed while an out-of-range selected action sets approach intent; each 100 points moves at most one space per tick and retains overflow. Movement resolves after actions, so current-tick range checks use positions from tick start. A range-blocked action does not spend SP/items or start cooldown and blocks lower-priority fallback on that gauge fire.
+
+Slow is one canonical timed status: -50 Move Speed for 20 ticks; reapplication refreshes the same status. Wailing Wraith uses ranged magic Ice Bolt (MATK multiplier 1.0, range 6, cooldown 20 ticks) and applies Slow on a successful hit. Battle logs must preserve initial position/style/speed and record movement, range-blocked actions and status application/expiry deterministically. The lane has no UI visualization yet. Group combat, multi-target AoE, cross-lane movement and PvP/5x5 execution remain future work; the long-term direction is five independent eight-space lanes.

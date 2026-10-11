@@ -65,6 +65,15 @@ export interface CombatantSnapshot {
   /** Set by the engine when the combatant braced; cleared on the next hit taken. */
   defending?: boolean;
   element?: string | null;
+  combatStyle?: 'melee' | 'ranged';
+  position?: number;
+  basicAttackDamageType?: 'melee' | 'ranged' | 'magic';
+  basicAttackRange?: number;
+  moveSpeedBase?: number;
+  moveSpeed?: number;
+  movementGauge?: number;
+  movementIntent?: boolean;
+  movementIntentRange?: number;
 }
 
 export type GambitGaugeType = 'attack' | 'cast';
@@ -361,8 +370,9 @@ export class BattleEngine {
     const mdefPercent = Math.min(100, Math.max(0, Number(equipment?.mdefPercent ?? 0)));
     const attackSpeed = 100 + Math.floor(agi * 2);
     const castSpeed = 100 + Math.floor(dex * 2);
-    const evasion = Math.floor(agi * 1.5);
-    const accuracy = 50 + Math.floor(dex * 2);
+    // Canonical Precision/Evasion scale (SPEC §5.2): starting DEX/AGI 5 => 80/100.
+    const evasion = 99 + Math.floor(agi / 3);
+    const accuracy = 79 + Math.floor(dex / 3) + Number(equipment?.accuracyModifier ?? 0);
     const hpRegenPerTenTicks = 1 + Math.floor(vit / 2);
     const spRegenPerTenTicks = 1 + Math.floor(int / 2);
     const critChance = 1 + Math.floor(sor * 0.3 * 10) / 10;
@@ -396,6 +406,11 @@ export class BattleEngine {
       dex: Number(monsterDefinition?.dex ?? 0),
       statusEffects: [],
       element: monsterDefinition?.element ?? null,
+      combatStyle: monsterDefinition?.combatStyle === 'ranged' ? 'ranged' : 'melee',
+      basicAttackDamageType: monsterDefinition?.basicAttackDamageType ?? 'melee',
+      basicAttackRange: Number(monsterDefinition?.basicAttackRange ?? 0),
+      moveSpeedBase: Number(monsterDefinition?.moveSpeedBase ?? 50) + level - 1,
+      moveSpeed: Number(monsterDefinition?.moveSpeedBase ?? 50) + level - 1,
     };
   }
 
@@ -428,7 +443,7 @@ export class BattleEngine {
    * Calculate hit chance given accuracy and evasion
    */
   static calculateHitChance(accuracy: number, evasion: number): number {
-    return Math.max(5, Math.min(95, 75 + (accuracy - evasion) * 0.5));
+    return Math.max(5, Math.min(95, 100 + accuracy - evasion));
   }
 
   /**
@@ -539,6 +554,23 @@ export class BattleEngine {
       skillDefs: monsterSkillDefs,
     };
 
+    const playerStyle = characterSnapshot.combatStyle === 'ranged' || characterSnapshot.basicAttackDamageType === 'ranged'
+      ? 'ranged' : 'melee';
+    self.combatStyle = playerStyle;
+    self.basicAttackDamageType = characterSnapshot.basicAttackDamageType ?? 'melee';
+    self.basicAttackRange = Number(characterSnapshot.basicAttackRange ?? (self.basicAttackDamageType === 'ranged' ? 6 : 0));
+    self.position = playerStyle === 'melee' && foe.combatStyle === 'melee' ? 3 : 0;
+    foe.position = playerStyle === 'melee' && foe.combatStyle === 'melee' ? 4 : 7;
+    self.moveSpeedBase = 50 + Number(self.level ?? 1);
+    self.moveSpeed = self.moveSpeedBase;
+    self.movementGauge = Number(self.movementGauge ?? 0);
+    self.movementIntent = false;
+    foe.movementGauge = 0;
+    foe.movementIntent = false;
+    const distanceBetween = () => Math.max(0, Math.abs(Number(self.position) - Number(foe.position)) - 1);
+    const startingPositions = { character: Number(self.position), monster: Number(foe.position) };
+    const startingMoveSpeeds = { character: Number(self.moveSpeed), monster: Number(foe.moveSpeed) };
+    const startingStyles = { character: self.combatStyle, monster: foe.combatStyle };
     const events: any[] = [];
     const itemsConsumed: Array<{ itemId: string; quantity: number }> = [];
 
@@ -598,13 +630,22 @@ export class BattleEngine {
             itemDefinitions,
           );
 
-          if (choice && choice.action.id === 'attack') {
+          if (choice && choice.action.id === 'attack' && distanceBetween() > Number(self.basicAttackRange ?? 0)) {
+            self.movementIntent = true;
+            self.movementIntentRange = Number(self.basicAttackRange ?? 0);
+            record({ tick, actor: 'character', action: 'range_blocked', attemptedAction: 'attack', targetDistance: distanceBetween(), requiredRange: Number(self.basicAttackRange ?? 0) });
+          } else if (choice && choice.action.id === 'attack') {
+            self.movementIntent = false;
+            self.movementIntentRange = undefined;
             const hitChance = BattleEngine.calculateHitChance(self.accuracy, foe.evasion);
             const landed = rng.chance(hitChance / 100);
             const crit = landed && rng.chance(self.critChance / 100);
             const baseDamage = self.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
-            const mitigation = BattleEngine.calculatePhysicalDamage(baseDamage, foe.def);
-            const finalDamage = mitigation * meleeMult;
+            const attackType = self.basicAttackDamageType ?? 'melee';
+            const mitigation = attackType === 'magic'
+              ? BattleEngine.calculateMagicDamage(baseDamage, foe.mdefPercent)
+              : BattleEngine.calculatePhysicalDamage(baseDamage, foe.def);
+            const finalDamage = mitigation * (attackType === 'ranged' ? rangedMult : attackType === 'magic' ? magicMult : meleeMult);
             const damage = landed
               ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
               : 0;
@@ -616,7 +657,7 @@ export class BattleEngine {
               action: 'attack',
               target: 'monster',
               damage,
-              damageType: 'melee',
+              damageType: attackType,
               crit,
               hit: landed,
             });
@@ -640,9 +681,21 @@ export class BattleEngine {
             itemDefinitions,
           );
 
-          if (choice) {
+          const selectedSkillId = choice?.action?.skillId ?? choice?.action?.params?.skillId;
+          const selectedSkillDef = selectedSkillId ? (self.skillDefs?.[selectedSkillId] ?? {}) : {};
+          const selectedSkillRange = selectedSkillDef.ranged === true
+            ? Number(selectedSkillDef.maxRange ?? 6)
+            : Number(selectedSkillDef.maxRange ?? 0);
+          const skillOutOfRange = choice?.action?.id === 'use_skill' && distanceBetween() > selectedSkillRange;
+          if (skillOutOfRange) {
+            self.movementIntent = true;
+            self.movementIntentRange = selectedSkillRange;
+            record({ tick, actor: 'character', action: 'range_blocked', attemptedAction: 'use_skill', skillId: selectedSkillId, targetDistance: distanceBetween(), requiredRange: selectedSkillRange });
+          }
+          if (choice && !skillOutOfRange) {
             const action = choice.action;
             const params = (action as any);
+            if (action.id === 'use_skill') { self.movementIntent = false; self.movementIntentRange = undefined; }
 
             if (action.id === 'use_item') {
               const itemId = params.itemId ?? params.params?.itemId;
@@ -744,11 +797,11 @@ export class BattleEngine {
               const isMagic = String(def.damageType ?? 'melee') === 'magic';
               const archetypeMult = isMagic
                 ? magicMult
-                : rangedMult;
-              const landed = rng.chance(
-                BattleEngine.calculateHitChance(self.accuracy, foe.evasion) / 100,
-              );
-              const crit = landed && rng.chance(self.critChance / 100);
+                : (String(def.damageType ?? 'melee') === 'ranged' || selectedSkillRange > 0 ? rangedMult : meleeMult);
+              // Active abilities are guaranteed to connect; Accuracy/Evasion and crits
+              // apply only to basic attacks unless a skill explicitly opts in later.
+              const landed = true;
+              const crit = false;
               const raw = (isMagic ? self.matk : self.atk) * mult * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
               const finalDamage = (isMagic
                 ? BattleEngine.calculateMagicDamage(raw, foe.mdefPercent)
@@ -798,13 +851,22 @@ export class BattleEngine {
           {},
         );
 
-        if (choice && choice.action.id === 'attack') {
+        if (choice && choice.action.id === 'attack' && distanceBetween() > Number(foe.basicAttackRange ?? 0)) {
+          foe.movementIntent = true;
+          foe.movementIntentRange = Number(foe.basicAttackRange ?? 0);
+          record({ tick, actor: 'monster', action: 'range_blocked', attemptedAction: 'attack', targetDistance: distanceBetween(), requiredRange: Number(foe.basicAttackRange ?? 0) });
+        } else if (choice && choice.action.id === 'attack') {
+          foe.movementIntent = false;
+          foe.movementIntentRange = undefined;
           const landed = rng.chance(
             BattleEngine.calculateHitChance(foe.accuracy, self.evasion) / 100,
           );
           const crit = landed && rng.chance(foe.critChance / 100);
-          const raw = foe.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
-          let finalDamage = BattleEngine.calculatePhysicalDamage(raw, self.def);
+          const monsterAttackType = foe.basicAttackDamageType ?? 'melee';
+          const raw = (monsterAttackType === 'magic' ? foe.matk : foe.atk) * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
+          let finalDamage = monsterAttackType === 'magic'
+            ? BattleEngine.calculateMagicDamage(raw, self.mdefPercent)
+            : BattleEngine.calculatePhysicalDamage(raw, self.def);
           // SPEC §8.3: defend reduces the next incoming hit by a flat 30%.
           // This is a final damage modifier, so variance is applied after it.
           if (self.defending) {
@@ -821,7 +883,7 @@ export class BattleEngine {
             action: 'attack',
             target: 'character',
             damage,
-            damageType: 'melee',
+            damageType: monsterAttackType,
             crit,
             hit: landed,
           });
@@ -839,9 +901,22 @@ export class BattleEngine {
           self,
           {},
         );
-        if (choice && choice.action.id === 'use_skill') {
+        const monsterSelectedSkillId = choice?.action?.skillId ?? choice?.action?.params?.skillId;
+        const monsterSelectedSkillDef: any = monsterSelectedSkillId ? (monsterSkillDefs[monsterSelectedSkillId] ?? {}) : {};
+        const monsterSkillRange = monsterSelectedSkillDef.ranged === true
+          ? Number(monsterSelectedSkillDef.maxRange ?? 6)
+          : Number(monsterSelectedSkillDef.maxRange ?? 0);
+        const monsterSkillOutOfRange = choice?.action?.id === 'use_skill' && distanceBetween() > monsterSkillRange;
+        if (monsterSkillOutOfRange) {
+          foe.movementIntent = true;
+          foe.movementIntentRange = monsterSkillRange;
+          record({ tick, actor: 'monster', action: 'range_blocked', attemptedAction: 'use_skill', skillId: monsterSelectedSkillId, targetDistance: distanceBetween(), requiredRange: monsterSkillRange });
+        }
+        if (choice && choice.action.id === 'use_skill' && !monsterSkillOutOfRange) {
           const skillId = choice.action.skillId ?? choice.action.params?.skillId;
           const def: any = monsterSkillDefs[skillId] ?? {};
+          foe.movementIntent = false;
+          foe.movementIntentRange = undefined;
           foeCooldowns[`skill:${skillId}`] = Number(def.cooldownTicks ?? 0);
           const effect = def.effect ?? {};
           const healAmount = Number(
@@ -859,13 +934,14 @@ export class BattleEngine {
               healAmount: foe.hp - before,
             });
           } else {
-            const landed = rng.chance(
-              BattleEngine.calculateHitChance(foe.accuracy, self.evasion) / 100,
-            );
+            // Monster active skills follow the same guaranteed-hit/no-crit contract.
+            const landed = true;
             const raw =
               (String(def.damageType ?? 'melee') === 'magic' ? foe.matk : foe.atk) *
               Number(effect.dmgMult ?? 1);
-            const finalDamage = BattleEngine.calculatePhysicalDamage(raw, self.def);
+            const finalDamage = String(def.damageType ?? 'melee') === 'magic'
+              ? BattleEngine.calculateMagicDamage(raw, self.mdefPercent)
+              : BattleEngine.calculatePhysicalDamage(raw, self.def);
             const damage = landed
               ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
               : 0;
@@ -880,6 +956,11 @@ export class BattleEngine {
               damageType: String(def.damageType ?? 'melee'),
               hit: landed,
             });
+            if (landed && effect.applyStatus === 'slow') {
+              self.statusEffects = (self.statusEffects ?? []).filter((status: any) => (status.type ?? status.id) !== 'slow');
+              self.statusEffects.push({ type: 'slow', appliedAtTick: tick, expiresAtTick: tick + Number(effect.statusDurationTicks ?? 20), sourceSkillId: skillId });
+              record({ tick, actor: 'monster', action: 'status_applied', status: 'slow', target: 'character', durationTicks: Number(effect.statusDurationTicks ?? 20), moveSpeedPenalty: Number(effect.moveSpeedPenalty ?? 50) });
+            }
           }
         }
       }
@@ -907,6 +988,34 @@ export class BattleEngine {
         if (spRegenerated > 0) record({ tick, actor: 'character', action: 'regen', resource: 'MP', amount: spRegenerated });
       }
 
+      // Timed movement debuffs and deterministic post-action movement phase.
+      for (const [unit, actor] of [[self, 'character'], [foe, 'monster']] as Array<[CombatantSnapshot, string]>) {
+        const expiredStatuses = (unit.statusEffects ?? []).filter((status: any) => Number(status.expiresAtTick ?? Infinity) <= tick);
+        for (const status of expiredStatuses) {
+          record({ tick, actor, action: 'status_expired', status: status.type ?? status.id, moveSpeedPenalty: (status.type ?? status.id) === 'slow' ? 50 : 0 });
+        }
+        unit.statusEffects = (unit.statusEffects ?? []).filter((status: any) => Number(status.expiresAtTick ?? Infinity) > tick);
+        const slowed = (unit.statusEffects ?? []).some((status: any) => (status.type ?? status.id) === 'slow');
+        const baseSpeed = Number(unit.moveSpeedBase ?? unit.moveSpeed ?? 0);
+        unit.moveSpeed = Math.max(0, baseSpeed - (slowed ? 50 : 0));
+      }
+      for (const [unit, target, actor] of [[self, foe, 'character'], [foe, self, 'monster']] as Array<[CombatantSnapshot, CombatantSnapshot, string]>) {
+        if (!unit.movementIntent || target.hp <= 0) { unit.movementIntent = false; continue; }
+        const range = Number(unit.movementIntentRange ?? unit.basicAttackRange ?? 0);
+        if (distanceBetween() <= range) { unit.movementIntent = false; unit.movementIntentRange = undefined; continue; }
+        unit.movementGauge = Number(unit.movementGauge ?? 0) + Number(unit.moveSpeed ?? 0);
+        if (Number(unit.movementGauge) >= 100) {
+          unit.movementGauge = Number(unit.movementGauge) - 100;
+          const fromPosition = Number(unit.position ?? 0);
+          const direction = Number(target.position ?? 0) > fromPosition ? 1 : -1;
+          const toPosition = fromPosition + direction;
+          if (toPosition >= 0 && toPosition <= 7 && toPosition !== Number(target.position)) {
+            unit.position = toPosition;
+            record({ tick, actor, action: 'move', fromPosition, toPosition, distanceBefore: distanceBetween() + 1, distanceAfter: distanceBetween(), moveSpeed: unit.moveSpeed, reason: 'approach_out_of_range_action' });
+          }
+        }
+      }
+
       tick += 1;
     }
 
@@ -919,10 +1028,11 @@ export class BattleEngine {
         header: {
           monsterId: monsterDefinition?.id ?? null,
           seedUsed: seed,
-          characterSnapshot: characterSnapshot,
-          monsterSnapshot: BattleEngine.buildMonsterSnapshot(monsterDefinition),
+          characterSnapshot: { ...characterSnapshot, position: startingPositions.character, combatStyle: startingStyles.character, basicAttackDamageType: self.basicAttackDamageType, basicAttackRange: self.basicAttackRange, moveSpeedBase: startingMoveSpeeds.character, moveSpeed: startingMoveSpeeds.character, movementGauge: 0 },
+          monsterSnapshot: { ...BattleEngine.buildMonsterSnapshot(monsterDefinition), position: startingPositions.monster, combatStyle: startingStyles.monster, basicAttackDamageType: foe.basicAttackDamageType, basicAttackRange: foe.basicAttackRange, moveSpeedBase: startingMoveSpeeds.monster, moveSpeed: startingMoveSpeeds.monster, movementGauge: 0 },
         },
         events,
+        finalPositions: { character: Number(self.position), monster: Number(foe.position) },
         outcome,
         durationTicks: tick,
       },

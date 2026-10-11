@@ -870,6 +870,21 @@
       },
       "baseCastTicks": 4,
       "cooldownTicks": 999
+    },
+    {
+      "id": "monster_skill_ice_bolt",
+      "name": "Ice Bolt",
+      "damageType": "magic",
+      "ranged": true,
+      "maxRange": 6,
+      "effect": {
+        "dmgMult": 1.0,
+        "applyStatus": "slow",
+        "statusDurationTicks": 20,
+        "moveSpeedPenalty": 50
+      },
+      "baseCastTicks": 6,
+      "cooldownTicks": 20
     }
   ]
 }

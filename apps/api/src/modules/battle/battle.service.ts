@@ -581,6 +581,35 @@ export class BattleService {
       }
       const seed = `${characterId}:${mapId}:${monsterId}:${sequenceIndex}:${counter.epoch}:${killIndex}`;
 
+      // Freeze the entry combat style into this immutable battle snapshot. Bow basic
+      // attacks and any enabled, available ranged Foe skill/item make the player ranged.
+      const gambitLines = Array.isArray((gambitPage as any)?.lines) ? (gambitPage as any).lines : [];
+      const normalizedWeaponTypes = loadout.weaponTypes.map((type) => String(type).toLowerCase());
+      const hasBow = normalizedWeaponTypes.includes('bow');
+      const hasRangedBasic = hasBow || normalizedWeaponTypes.some((type) => ['staff', 'wand', 'rod'].includes(type));
+      const hasRangedGambitAction = gambitLines.some((line: any) => {
+        if (line?.enabled === false || line?.disabled === true) return false;
+        const action = line?.action ?? {};
+        const id = action.id ?? action.type;
+        const target = action.target ?? action.targetType ?? action.params?.target;
+        if (target && !['foe', 'enemy', 'monster'].includes(String(target).toLowerCase())) return false;
+        if (id === 'attack') return hasRangedBasic;
+        if (id === 'use_skill') {
+          const skillId = action.skillId ?? action.params?.skillId;
+          const def = loadout.skillDefs[skillId];
+          return !!loadout.skills[skillId] && !!def && (def.ranged === true || Number(def.maxRange ?? 0) > 0);
+        }
+        if (id === 'use_item') {
+          const itemId = action.itemId ?? action.params?.itemId;
+          const def = itemDefinitions[itemId];
+          return !!itemId && (workingInventory[itemId] ?? 0) > 0 && !!def && (def.ranged === true || Number(def.maxRange ?? 0) > 0);
+        }
+        return false;
+      });
+      snapshot.combatStyle = hasRangedGambitAction ? 'ranged' : 'melee';
+      snapshot.basicAttackDamageType = hasBow ? 'ranged' : normalizedWeaponTypes.some((type) => ['staff', 'wand', 'rod'].includes(type)) ? 'magic' : 'melee';
+      snapshot.basicAttackRange = hasRangedBasic ? 6 : 0;
+
       // ---- Gambit is evaluated INSIDE the engine, per gauge fire (SPEC §7.3)
       const regenTickOffset = Math.max(0, Math.floor((nextStartTime.getTime() - regenAnchor) / MS_PER_TICK));
       const simulation = BattleEngine.simulateBattle(snapshot, monster, gambitPage, seed, {

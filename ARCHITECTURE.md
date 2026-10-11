@@ -506,3 +506,11 @@ When increasing typography in dense editors such as Gambits, layout constraints 
 ### Verification discipline
 
 Builds and git diff --check prove syntax/build integrity, not visual correctness. When browser smoke is unavailable, record that explicitly instead of claiming visual verification. UI changes that touch Inventory/equipment should also exercise drag/drop, tooltips and equipment edge cases where practical.
+
+## Battle distance and movement ownership
+
+The shared `BattleEngine` owns battle-local lane positions, empty-space distance, combat-style initialization, range checks, movement intent/gauge, Slow status timing and deterministic movement events. It remains pure and consumes immutable character/monster/Gambit/catalog snapshots; API queue generation freezes the character's entry combat style and uses the same simulator for every precomputed queue entry. Position state is not persisted as map location and the frontend does not simulate or visualize the lane in this change.
+
+Each duel has eight positions (0–7). Melee-vs-melee begins at 3/4; any RANGED participant means 0/7. Actions evaluate at the start-of-tick positions, then movement resolves in a deterministic post-action phase. The movement gauge is independent of attack/cast gauges and gains effective Move Speed only while approach intent exists. The server's immutable log records initial position/style/speed plus move and range-blocked events. Slow is a single refreshable -50 Move Speed status lasting 20 ticks; Wailing Wraith's ranged magic Ice Bolt applies it on a successful hit.
+
+Monster catalog metadata is explicit and mirrored in the frontend public catalog: `combatStyle`, `basicAttackDamageType`, `basicAttackRange`, and level-1 `moveSpeedBase`. The approved basic-attack hit chance is `clamp(100 + Precision - Evasion, 5, 95)`; monster Precision/Evasion values must be calibrated to that scale. This change does not implement lane UI, multi-target AoE, groups, PvP, cross-lane movement or executable 5x5 combat. The future design may represent up to five independent eight-space lanes.

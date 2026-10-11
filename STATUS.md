@@ -1,5 +1,14 @@
 # NanoMMO — Implementation Status
 
+### Latest implementation session — battle-distance-movement (2026-10-11)
+
+Started applying `openspec/changes/battle-distance-movement`. The shared engine now has positional/movement snapshot fields, eight-space initial placement (melee/melee 3/4; otherwise 0/7), basic-attack range blocking and approach intent, a separate Move Speed gauge with post-action movement, timed Slow application from monster skills, and the approved `clamp(100 + Precision - Evasion, 5, 95)` hit chance. Player snapshot derivation now recognizes ranged Gambit actions and equipped ranged weapon families. Wailing Wraith's Ice Bolt definition/Gambit and catalog combat metadata are present in both catalog mirrors; monster accuracy/evasion values were recalibrated for the new hit scale.
+
+Verification so far: shared, API, and frontend production builds passed (frontend has existing CSS-budget/CommonJS warnings); strict OpenSpec validation and `git diff --check` passed. Focused runtime assertions passed for hit chance and starting stat baselines, melee/ranged formations, deterministic same-seed replay, range blocking, movement events, catalog metadata across all 15 monsters, and Wailing Wraith applying Slow. No production deployment.
+
+**This change is not complete yet.** A committed focused regression script now covers the hit formula, all four entry-style pairings, deterministic replay, range blocking/movement, monster catalog metadata and Wraith Slow. Remaining gaps include occupied-space and movement-order/intent-change edge cases, range/resource invariants for every skill/item action, Slow refresh/expiry assertions, broader monster-stat calibration, and a final OpenSpec task-checklist review. The dependent Mastery change remains blocked until these are closed. Do not apply `hand-equipment-mastery-skills` yet.
+
+
 ### Latest planning and combat-catalog update — 2026-10-11
 
 Prepared two complete OpenSpec changes using the spec-driven schema:

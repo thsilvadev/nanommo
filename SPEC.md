@@ -152,14 +152,14 @@ server only needs to "resolve" (apply effects) one battle at a time via a schedu
 ### 3.4 What "recalculation" means
 
 The battle queue is invalidated and rebuilt from scratch whenever, and only whenever:
-- The player changes their **active gambit page** (or edits the currently active one) — only allowed while not mid-battle (see §8.5).
-- The player spends **attribute points** that change combat statistics — only allowed while not mid-battle.
+- The player changes their **active gambit page** (or edits the currently active one); during an active battle the change is persisted for future battles while the active battle snapshot remains unchanged (see §8.5).
+- The player spends **attribute points** that change combat statistics; during an active battle the spend is accepted but only affects battles after the active snapshot resolves.
 - The player changes **equipment**.
 - The player consumes a **food** item manually from the inventory UI (as opposed to via gambit) or otherwise changes buffs outside of the auto-battle loop.
 - The player switches **map**.
 - The player **levels up** mid-queue in a way that changes stats (handled automatically by the resolver, not player-triggered, but still forces a requeue — see §7.6).
 
-All future-combat mutations use one BattleService-owned boundary: first reject the mutation when an unresolved queue entry satisfies `startAt <= now < endAt`, then persist the mutation, delete every unresolved stale entry and cancel its BullMQ job, and rebuild the canonical queue to depth 5 when the character remains eligible to grind. The current in-progress battle is never recalculated or replaced. Failed validation/conflict requests happen before queue invalidation. Editing an inactive Gambit page and re-activating the page that is already active are no-ops for queue invalidation.
+All future-combat mutations use one BattleService-owned boundary. If an unresolved queue entry satisfies `startAt <= now < endAt`, the mutation is still accepted after validation: persist the new Character/Gambit state, preserve the active BattleQueueEntry and its BullMQ job unchanged, and invalidate only stale future entries after that active battle. Do not schedule a replacement chain while the battle is active; rebuild the canonical queue to depth 5 after it resolves, using the new state. When no battle is active, invalidate stale unresolved entries and rebuild immediately if the character remains eligible to grind. Failed validation happens before queue invalidation. Editing an inactive Gambit page and re-activating the page that is already active are no-ops for queue invalidation.
 
 Anything else (a battle resolving normally, a potion being consumed by the gambit as predicted) does **not** trigger recalculation — it was already accounted for in the original simulation.
 
@@ -600,7 +600,7 @@ Modeled directly on Final Fantasy XII's Gambit system, adapted for a single cont
 - Exactly **one page is active** at a time (`Character.activeGambitPageId`); the first page is active by default.
 - The starter page contains the confirmed default behavior: `self_hp_below_percent` at `< 30%` → use `pot_hp_small`, followed by `always` → attack nearest foe.
 - Each page has an optional `title` (≤30 chars) and up to **20 lines**.
-- Switching the active page is only allowed while the character is not in the middle of a battle. Reject while an unresolved `BattleQueueEntry` is currently in flight; allow the change between battles and rebuild the future queue.
+- Switching the active page is allowed during an active battle. Persist the new active page immediately, preserve the immutable active battle and its BullMQ job, invalidate only stale future entries, and rebuild the future queue after the active battle resolves. When no battle is active, rebuild immediately through the BattleService-owned mutation boundary.
 
 ### 8.2 Gambit line shape (stored in `GambitPage.lines`)
 
@@ -1320,3 +1320,12 @@ Load all seven at boot, validate their shape, and fail fast on mismatch (§18.2 
 ## Future combat roadmap: PvE/PvP up to 5v5
 
 The current MVP battle simulator remains one character versus one monster. Party formation, allied targeting, target switching, group PvP, multi-target AoE and lane-to-lane movement are not implemented by the current duel contract. Future PvE and PvP modes are planned to support up to five combatants versus five combatants. Position, movement, target-selection and multi-target rules must be specified in their own approved OpenSpec changes before implementation; this roadmap does not silently extend current one-on-one semantics.
+
+
+## Battle distance and movement — implementation contract
+
+The current simulator remains one character versus one monster, but each battle uses an eight-space lane indexed 0–7. Distance is the number of empty spaces between units: `max(0, abs(positionA - positionB) - 1)`, so adjacent means distance 0 and the endpoints mean distance 6. Melee-vs-melee starts at positions 3/4; if either unit is RANGED, they start at 0/7. Positions are local to the immutable precomputed battle and do not represent map movement or frontend-authoritative state.
+
+A character's entry style is frozen from valid enabled Foe Gambit actions: Bow basic Attack or an available ranged skill/item makes it RANGED; Ally/self support does not. Monsters explicitly declare `combatStyle`, `basicAttackDamageType`, `basicAttackRange`, and level-1 `moveSpeedBase` in `monsters.json`. Character base Move Speed is 50 + level; monster effective speed is catalog base + monster level - 1. A separate movement gauge accrues speed while an out-of-range selected action sets approach intent; each 100 points moves at most one space per tick and retains overflow. Movement resolves after actions, so current-tick range checks use positions from tick start. A range-blocked action does not spend SP/items or start cooldown and blocks lower-priority fallback on that gauge fire.
+
+Slow is one canonical timed status: -50 Move Speed for 20 ticks; reapplication refreshes the same status. Wailing Wraith uses ranged magic Ice Bolt (MATK multiplier 1.0, range 6, cooldown 20 ticks) and applies Slow on a successful hit. Battle logs must preserve initial position/style/speed and record movement, range-blocked actions and status application/expiry deterministically. The lane has no UI visualization yet. Group combat, multi-target AoE, cross-lane movement and PvP/5x5 execution remain future work; the long-term direction is five independent eight-space lanes.
