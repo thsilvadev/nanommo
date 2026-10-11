@@ -1,5 +1,26 @@
 # NanoMMO — Implementation Status
 
+### Latest planning and combat-catalog update — 2026-10-11
+
+Prepared two complete OpenSpec changes using the spec-driven schema:
+- `battle-distance-movement` defines the eight-space lane, empty-space distance, RANGED classification, deterministic movement gauge, range-blocked Gambit behavior, Slow/Ice Bolt and movement logs.
+- `hand-equipment-mastery-skills` now consumes that contract, renames Backstab to Blinkstrike, sets Violent Shot to push to distance 6, records Bow precision modifiers (-75/-74/-73), and keeps AoE/group battles out of the current single-target scope. The Mastery change remains dependent on applying battle-distance-movement first.
+
+Catalog-only groundwork explicitly requested during planning was added:
+- Added `equip_rune_t1/t2/t3` to root `items.json` and frontend `public/data/items.json`, with provisional DEF/MDEF values T1 2/10%, T2 5/20%, T3 10/35%. Values are intentionally easy to edit in JSON.
+- Added Rune SVGs to both frontend equipment icon paths (framed and unframed).
+- Added `combatStyle`, `basicAttackDamageType`, `basicAttackRange` and `moveSpeedBase` metadata to all 15 monster rows in `monsters.json` and its frontend data mirror. Field Bat and Dune Raider are RANGED with ranged-physical basic attacks; Wailing Wraith is classified RANGED because of the planned magic Ice Bolt Foe action, but its basic attack is ranged magic and adjacent-only; the other 12 monsters are MELEE with physical basic attacks. Move speeds are provisional JSON defaults.
+- Appended the future PvE/PvP up-to-5x5 roadmap to root `SPEC.md`, its `openspec/specs/SPEC.md` mirror, and `ARCHITECTURE.md`.
+
+Important runtime boundary: the new monster metadata is not yet consumed by BattleEngine. Ice Bolt has not been wired into the executable monster Gambit/data because the current engine does not yet implement the intended Slow effect/range behavior. Rune entries and icons exist, but Rune equip validation, Mastery XP/passives and active skill mechanics remain unimplemented until the OpenSpec changes are applied.
+
+Verification: both OpenSpec changes pass strict validation; both item JSON mirrors parse and contain all three Rune tiers; all proposal/runtime Rune SVGs parse as valid XML; shared, API and frontend production builds passed; `git diff --check` passed. Frontend build emits the existing CSS-budget and CommonJS warnings. No production deployment was performed.
+
+Review item still open before implementation: the approved hit formula is `clamp(100 + Precision - Evasion, 5, 95)`; the shared BattleEngine still runs the old formula until the distance/movement change is implemented. The total-DEX rule `Precision = 79 + floor(total DEX / 3)` preserves initial Precision 80 with DEX 5, but with a -75 T1 Bow DEX total 225 yields Precision 79 and DEX total 228 yields 80. This one-point checkpoint conflict is documented in the Mastery change and must be resolved rather than hidden by a special case.
+
+---
+
+
 ### Latest correction — atomic battle resolution + Auto Feed duplicate-food eligibility (2026-10-09)
 
 Fixed the Diet duplicate-entry eligibility mismatch: Auto Feed now evaluates only the newest retained occurrence for each `itemId`, skips the food if that occurrence is still digesting, and can continue to a different eligible food. The expected `Food is still digesting` guard is treated as a skipped candidate; unrelated exceptions still propagate.

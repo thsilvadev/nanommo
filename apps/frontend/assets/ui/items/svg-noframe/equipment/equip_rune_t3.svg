@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Rune Tier 3 - Sunfire</title>
+  <defs>
+    <radialGradient id="bg" cx="35%" cy="20%" r="90%"><stop offset="0" stop-color="#6d4920"/><stop offset="1" stop-color="#241407"/></radialGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0b3"/><stop offset=".45" stop-color="#e8a939"/><stop offset="1" stop-color="#8b4a13"/></linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#fff0a6"/><stop offset=".48" stop-color="#e59a25"/><stop offset="1" stop-color="#a65712"/></linearGradient>
+  </defs>
+  <path d="M64 3 73 17 91 7 95 26 115 27 109 46 125 58 111 70 119 89 99 94 98 114 78 109 64 125 50 110 30 117 28 97 9 90 17 71 3 58 19 45 12 25 32 25 38 7 55 17Z" fill="url(#bg)" stroke="#986322" stroke-width="2"/>
+  <path d="M64 13 98 29 114 64 98 99 64 115 30 99 14 64 30 29Z" fill="none" stroke="url(#edge)" stroke-width="4"/>
+  <path d="M64 22 90 36 103 64 90 92 64 106 38 92 25 64 38 36Z" fill="#38200c" stroke="#f5c252" stroke-width="2"/>
+  <circle cx="64" cy="64" r="24" fill="url(#stone)" stroke="#fff1b7" stroke-width="2"/>
+  <path d="M64 38 72 55 91 57 77 69 81 88 64 78 47 88 51 69 37 57 56 55Z" fill="#7a390b" stroke="#ffe8a0" stroke-width="2"/>
+  <path d="M64 45 69 59 83 64 69 69 64 84 59 69 45 64 59 59Z" fill="#fff5cc"/>
+  <path d="M64 8V19 M64 109V120 M8 64H19 M109 64H120 M24 24 32 32 M96 96 104 104 M104 24 96 32 M32 96 24 104" stroke="#ffe5a0" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="64" cy="64" r="5" fill="#fffbe6"/>
+</svg>

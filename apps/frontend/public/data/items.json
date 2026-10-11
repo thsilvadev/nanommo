@@ -1391,6 +1391,102 @@
       ]
     },
     {
+      "id": "equip_rune_t1",
+      "name": "Worn Rune",
+      "type": "equipment",
+      "slot": "offHand",
+      "weaponType": "rune",
+      "twoHanded": false,
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "def": 2,
+        "mdefPercent": 10
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 1800,
+      "marketBasePrice": 4500,
+      "dropPool": [
+        "map_green_grounds"
+      ]
+    },
+    {
+      "id": "equip_rune_t2",
+      "name": "Runed Rune",
+      "type": "equipment",
+      "slot": "offHand",
+      "weaponType": "rune",
+      "twoHanded": false,
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "def": 5,
+        "mdefPercent": 20
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 4680,
+      "marketBasePrice": 11700,
+      "dropPool": [
+        "map_menace"
+      ]
+    },
+    {
+      "id": "equip_rune_t3",
+      "name": "Ancient Rune",
+      "type": "equipment",
+      "slot": "offHand",
+      "weaponType": "rune",
+      "twoHanded": false,
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "def": 10,
+        "mdefPercent": 35
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "SOR"
+        ]
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "dropPool": [
+        "map_ruins"
+      ]
+    },
+    {
       "id": "equip_head_phys_t1",
       "name": "Worn Helm",
       "type": "equipment",

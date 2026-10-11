@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Rune Tier 2 - Amethyst</title>
+  <defs>
+    <radialGradient id="bg" cx="36%" cy="20%" r="90%"><stop offset="0" stop-color="#512c72"/><stop offset="1" stop-color="#160d2c"/></radialGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4c8ff"/><stop offset=".45" stop-color="#a35cdb"/><stop offset="1" stop-color="#5432a0"/></linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#efcaff"/><stop offset=".48" stop-color="#9959d4"/><stop offset="1" stop-color="#552b99"/></linearGradient>
+  </defs>
+  <path d="M64 4 76 15 93 12 101 28 117 38 111 56 124 70 110 83 109 102 89 105 77 120 60 112 42 122 32 105 14 99 18 80 5 65 17 50 15 31 34 25 45 9Z" fill="url(#bg)" stroke="#673e8e" stroke-width="2"/>
+  <path d="M64 14 98 30 114 64 98 98 64 114 30 98 14 64 30 30Z" fill="none" stroke="url(#edge)" stroke-width="4"/>
+  <path d="M64 23 91 36 102 64 91 92 64 105 37 92 26 64 37 36Z" fill="#211039" stroke="#c58cf0" stroke-width="2"/>
+  <circle cx="64" cy="64" r="24" fill="url(#stone)" stroke="#f0d4ff" stroke-width="2"/>
+  <path d="M64 39 72 53 88 56 77 68 80 84 64 76 48 84 51 68 40 56 56 53Z" fill="#411d72" stroke="#f2d7ff" stroke-width="2"/>
+  <path d="M64 45V83 M45 64H83 M51 51 77 77 M77 51 51 77" stroke="#f9eaff" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="64" cy="64" r="5" fill="#fff5ff"/>
+  <circle cx="64" cy="13" r="2.5" fill="#f1c5ff"/><circle cx="115" cy="64" r="2.5" fill="#f1c5ff"/><circle cx="64" cy="115" r="2.5" fill="#f1c5ff"/><circle cx="13" cy="64" r="2.5" fill="#f1c5ff"/>
+</svg>

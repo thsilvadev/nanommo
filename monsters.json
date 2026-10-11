@@ -1,6 +1,11 @@
 {
   "maps": [
-    { "id": "map_town", "name": "Town", "unlockLevel": 1, "isTown": true },
+    {
+      "id": "map_town",
+      "name": "Town",
+      "unlockLevel": 1,
+      "isTown": true
+    },
     {
       "id": "map_green_grounds",
       "name": "Green Grounds",
@@ -75,7 +80,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 40,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_fieldbat",
@@ -134,7 +143,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 62,
+      "combatStyle": "ranged",
+      "basicAttackDamageType": "ranged",
+      "basicAttackRange": 6
     },
     {
       "id": "mon_thornsprout",
@@ -195,7 +208,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 45,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_mudcrawler",
@@ -256,7 +273,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 40,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_direwolf",
@@ -326,7 +347,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 60,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_sandscorpion",
@@ -387,7 +412,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 48,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_duneraider",
@@ -446,7 +475,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 58,
+      "combatStyle": "ranged",
+      "basicAttackDamageType": "ranged",
+      "basicAttackRange": 6
     },
     {
       "id": "mon_cindergolem",
@@ -507,7 +540,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 35,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_venomviper",
@@ -579,7 +616,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 55,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_mirageStalker",
@@ -640,7 +681,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 60,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_brokensentinel",
@@ -699,7 +744,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 40,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_wraith",
@@ -760,7 +809,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 56,
+      "combatStyle": "ranged",
+      "basicAttackDamageType": "magic",
+      "basicAttackRange": 6
     },
     {
       "id": "mon_arcanewisp",
@@ -821,7 +874,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 65,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_boneknight",
@@ -891,7 +948,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 44,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_ruinsguardian",
@@ -961,7 +1022,11 @@
             "type": "attack"
           }
         }
-      ]
+      ],
+      "moveSpeedBase": 35,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     }
   ]
 }

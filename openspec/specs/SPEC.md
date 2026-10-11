@@ -372,8 +372,8 @@ maxHp = 50 + floor(VIT * 18) + equipmentMaxHp
 maxSp = 20 + floor(INT * 8) + equipmentMaxSp
 attackSpeed = 100 + floor(AGI * 2)
 castSpeed = 100 + floor(DEX * 2)
-evasion = floor(AGI * 1.5)
-accuracy = 50 + floor(DEX * 2)
+evasion = 99 + floor(AGI / 3)
+accuracy = 79 + floor(DEX / 3) + equipmentAccuracyModifier + passiveAccuracyModifier
 hpRegenPerTenTicks = 1 + floor(VIT / 2)
 spRegenPerTenTicks = 1 + floor(INT / 2)
 critChance% = floor(SOR * 0.3 * 10) / 10
@@ -384,7 +384,7 @@ At level 1 with all six attributes at 5 and the starter sword's +8 ATK:
 
 ATK 18 | DEF 0 | Max HP 140 | Max SP 60
 Attack Speed 110 | Cast Speed 110
-Evasion 7 | Accuracy 60
+Evasion 100 | Precision 80
 HP Regen 3 / 10 ticks | SP Regen 3 / 10 ticks
 Critical 2.5%
 
@@ -404,9 +404,9 @@ finalMagicDamage = rawDamage * (1 - mdefPercent/100)
 
 **Hit / evasion resolution:**
 ```
-hitChance% = clamp(75 + (accuracy - evasion) * 0.5, 5, 95)
+hitChance% = clamp(100 + accuracy - evasion, 5, 95)
 ```
-Rolled once per action at resolution time using the seeded PRNG (§11.2) — deterministic given the seed, not "live" randomness.
+Rolled once per basic attack at resolution time using the seeded PRNG (§11.2) — deterministic given the seed, not "live" randomness. Under this formula, Precision 80 versus Evasion 100 gives 80% hit / 20% miss. Monster Accuracy/Evasion values must be calibrated onto this same scale before these player baselines are active; do not reuse the current low monster Evasion values unchanged. Active abilities do not roll Accuracy/Evasion or critical hits unless an explicitly specified future exception says otherwise.
 
 **Critical hits:**
 ```
@@ -1307,3 +1307,8 @@ Load all seven at boot, validate their shape, and fail fast on mismatch (§18.2 
 - Persisted Character HP/SP and Inventory quantities remain authoritative outside an active battle. During an ACTIVE battle, the Character Summary may use a read-only display projection from the immutable queued battle log plus `startAt`/`endAt`; this projection never writes to CharacterStore, InventoryStore, or the server and is abandoned immediately when the battle is no longer ACTIVE.
 - `battle:resolved` and the immediately following post-resolution `battle:queueUpdated` carry Character and complete Inventory from the same server state revision. This closes ordering races between their independent Redis pub/sub channels. Realtime snapshots with an older or equal revision are ignored, and HTTP responses that were in flight across a newer realtime update are discarded.
 - `GET /inventory` returns `{ items, stateVersion }`, allowing the frontend InventoryStore to reject an older HTTP snapshot relative to the accepted realtime Character revision.
+
+
+## Future combat roadmap: PvE/PvP up to 5v5
+
+The current MVP battle simulator remains one character versus one monster. Party formation, allied targeting, target switching, group PvP, multi-target AoE and lane-to-lane movement are not implemented by the current duel contract. Future PvE and PvP modes are planned to support up to five combatants versus five combatants. Position, movement, target-selection and multi-target rules must be specified in their own approved OpenSpec changes before implementation; this roadmap does not silently extend current one-on-one semantics.

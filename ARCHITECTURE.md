@@ -453,6 +453,7 @@ The CharacterModule/BattleModule dependency is intentionally circular and uses `
 ### Planned
 - Horizontal scaling with Redis pub/sub
 - Guild system with guild wars
+- Future PvE/PvP party battles up to 5 vs 5; the current simulator remains one character versus one monster, and group/target/area rules require separate approved OpenSpec changes
 - PvP arena battles
 - Daily dungeons with unique loot
 - Multi-language support

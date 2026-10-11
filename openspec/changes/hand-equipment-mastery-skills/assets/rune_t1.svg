@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Rune Tier 1 - Sapphire</title>
+  <defs>
+    <radialGradient id="bg" cx="35%" cy="25%" r="90%"><stop offset="0" stop-color="#163e64"/><stop offset="1" stop-color="#071627"/></radialGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#bdeaff"/><stop offset=".45" stop-color="#368bce"/><stop offset="1" stop-color="#153d7a"/></linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#9ae7ff"/><stop offset=".48" stop-color="#2779c9"/><stop offset="1" stop-color="#10417e"/></linearGradient>
+  </defs>
+  <path d="M64 5 105 22 123 64 105 106 64 123 23 106 5 64 23 22Z" fill="url(#bg)" stroke="#2f6f9d" stroke-width="2"/>
+  <path d="M64 14 98 28 114 64 98 100 64 114 30 100 14 64 30 28Z" fill="none" stroke="url(#edge)" stroke-width="4"/>
+  <path d="M64 24 91 37 101 64 91 91 64 104 37 91 27 64 37 37Z" fill="#0c2440" stroke="#4aabea" stroke-width="2"/>
+  <circle cx="64" cy="64" r="25" fill="url(#stone)" stroke="#b4edff" stroke-width="2"/>
+  <path d="M64 37 73 54 64 49 55 54Z M64 91 73 74 64 79 55 74Z" fill="#d5f7ff"/>
+  <path d="M64 47 76 64 64 81 52 64Z" fill="#0b315c" stroke="#d1f7ff" stroke-width="2"/>
+  <path d="M64 54V74 M54 64H74" stroke="#d9faff" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="64" cy="64" r="4" fill="#e8fcff"/>
+</svg>
