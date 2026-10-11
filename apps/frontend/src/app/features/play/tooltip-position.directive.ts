@@ -10,6 +10,7 @@ export class TooltipPositionDirective implements OnDestroy {
   private floating: HTMLElement | null = null;
   private raf = 0;
   private pointer = { x: 0, y: 0 };
+  private liveContentTimer: ReturnType<typeof setInterval> | null = null;
 
   private readonly onEnter = (e: PointerEvent) => {
     this.pointer = { x: e.clientX, y: e.clientY };
@@ -45,6 +46,13 @@ export class TooltipPositionDirective implements OnDestroy {
     this.floating.innerHTML = tooltip.innerHTML;
     this.floating.style.display = 'grid';
     this.floating.style.visibility = 'hidden';
+    if (!this.liveContentTimer) {
+      this.liveContentTimer = setInterval(() => {
+        if (!this.floating || this.floating.style.display === 'none') return;
+        this.floating.innerHTML = tooltip.innerHTML;
+        this.position();
+      }, 250);
+    }
     this.position();
   }
 
@@ -69,6 +77,10 @@ export class TooltipPositionDirective implements OnDestroy {
   }
 
   private hide() {
+    if (this.liveContentTimer) {
+      clearInterval(this.liveContentTimer);
+      this.liveContentTimer = null;
+    }
     if (this.floating) {
       this.floating.style.display = 'none';
       this.floating.style.visibility = 'hidden';
@@ -80,6 +92,7 @@ export class TooltipPositionDirective implements OnDestroy {
     this.anchor?.removeEventListener('pointermove', this.onMove);
     this.anchor?.removeEventListener('pointerleave', this.onLeave);
     if (this.raf) cancelAnimationFrame(this.raf);
+    if (this.liveContentTimer) clearInterval(this.liveContentTimer);
     this.floating?.remove();
   }
 }

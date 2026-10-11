@@ -2,10 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { ApiService } from '../../core/api.service';
 import { BattleHistoryEntry, BattleLogDetail } from '../../core/game.models';
+import { CharacterStore } from '../../core/game.store';
 
 @Component({selector:'app-battle-logs',standalone:true,imports:[CommonModule],templateUrl:'./battle-logs.component.html',styleUrl:'./battle-logs.component.css'})
 export class BattleLogsComponent {
   private readonly api=inject(ApiService);
+  private readonly character=inject(CharacterStore);
   readonly battles=signal<BattleHistoryEntry[]>([]);
   readonly selected=signal<BattleLogDetail|null>(null);
   readonly loading=signal(true); readonly detailLoading=signal(false);
@@ -17,13 +19,26 @@ export class BattleLogsComponent {
   close(){this.selected.set(null);this.detailError.set(null);}
   formatDate(value:string){return new Date(value).toLocaleString([], {dateStyle:'medium',timeStyle:'short'});}
   formatDuration(start:string,end:string){const seconds=Math.max(0,Math.round((Date.parse(end)-Date.parse(start))/1000));return seconds<60?seconds+'s':Math.floor(seconds/60)+'m '+seconds%60+'s';}
+  displayEvents(battle:BattleLogDetail){return (battle.log?.events??[]).filter((event:any)=>event?.action!=='range_blocked');}
   eventText(event:any){
-    const actor=event?.actor==='character'?'You':event?.actor==='monster'?(this.selected()?.monsterName??'Enemy'):String(event?.actor??'Unknown');
-    const action=String(event?.action??'action').replace(/_/g,' ');
-    if(event?.action==='attack') return actor+' '+action+(event.crit?' — CRITICAL HIT':'')+(event.damage!=null?' for '+event.damage+' damage':'')+'.';
-    if(event?.action==='use_skill') return actor+' used '+String(event.skillId??'a skill').replace(/_/g,' ')+(event.damage!=null?' for '+event.damage+' damage':'')+(event.healAmount!=null?' and healed '+event.healAmount+' HP':'')+'.';
+    const log:any=this.selected()?.log;
+    const playerName=String(log?.header?.characterSnapshot?.characterName??this.character.character()?.name??'Character');
+    const monsterName=String(this.selected()?.monsterName??'Enemy');
+    const actor=event?.actor==='character'?playerName:event?.actor==='monster'?monsterName:String(event?.actor??'Unknown');
+    if(event?.action==='move'){
+      const spaces=Number(event.spacesMoved??Math.abs(Number(event.toPosition??0)-Number(event.fromPosition??0)));
+      const arrow=event?.direction==='right'?'-->':'<--';
+      return actor+' moved ( '+spaces+' ) '+arrow;
+    }
+    if(event?.action==='freeze_applied') return playerName+' is freezing ('+Number(event.stackCount??1)+')';
+    if(event?.action==='status_applied'&&event?.status==='slow') return playerName+' is slowed';
+    if(event?.action==='attack') return actor+' attack'+(event.crit?' — CRITICAL HIT':'')+(event.damage!=null?' for '+event.damage+' damage':'')+'.';
+    if(event?.action==='use_skill'){
+      const skill=event.skillId==='monster_skill_ice_bolt'?'Ice Bolt':String(event.skillId??'a skill').replace(/_/g,' ');
+      return actor+' used '+skill+(event.damage!=null?' for '+event.damage+' damage':'')+(event.healAmount!=null?' and healed '+event.healAmount+' HP':'')+'.';
+    }
     if(event?.action==='use_item') return actor+' used '+String(event.itemId??'an item').replace(/_/g,' ')+(event.healAmount!=null?' and restored '+event.healAmount+' HP':'')+'.';
     if(event?.healAmount!=null) return actor+' healed for '+event.healAmount+' HP.';
-    return actor+' '+action+'.';
+    return actor+' '+String(event?.action??'action').replace(/_/g,' ')+'.';
   }
 }

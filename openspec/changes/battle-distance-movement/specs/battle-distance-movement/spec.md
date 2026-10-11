@@ -53,6 +53,8 @@ A character SHALL classify as RANGED at battle start when its active/enabled Gam
 
 ### Requirement: Every monster has explicit combatStyle, attack damage type and movement speed base
 
+All monster Evasion values SHALL be reduced by 10% from the previously calibrated catalog values, rounded to the nearest integer, to adjust the monster hit profile to the approved hit formula.
+
 All current monster definitions SHALL explicitly declare combatStyle as melee or ranged, an attack damage type, and a per-monster level-1 moveSpeedBase. The system SHALL not infer monster combat style from name/lore or attack speed.
 
 #### Scenario: Ranged physical monsters
@@ -63,7 +65,18 @@ All current monster definitions SHALL explicitly declare combatStyle as melee or
 #### Scenario: Wailing Wraith is ranged magical
 - **GIVEN** the monster is mon_wraith (Wailing Wraith)
 - **WHEN** its battle snapshot is built
-- **THEN** it is RANGED and its offensive spell Ice Bolt deals magic damage and applies Slow
+- **THEN** it is RANGED because Ice Bolt is a valid ranged Foe skill
+- **AND** Ice Bolt deals magic damage and may add a Freeze stack to the character
+- **AND** its basic attack is melee with required distance 0
+- **AND** the Wraith remains stationary while Ice Bolt is legal and in range
+- **AND** its fallback attack Gambit line requires the `silence` status
+
+#### Scenario: Silenced Wraith falls back to melee
+- **GIVEN** Wailing Wraith has the `silence` status
+- **WHEN** its monster Gambit is evaluated
+- **THEN** Ice Bolt is illegal and the fallback basic attack is selected
+- **AND** it approaches only if the character is not adjacent
+- **AND** it attacks normally when the character is adjacent
 
 #### Scenario: Remaining monsters use melee physical basics
 - **GIVEN** any current monster except Field Bat, Dune Raider and Wailing Wraith
@@ -85,7 +98,7 @@ Melee basic attacks and melee skills SHALL execute only on an adjacent target di
 - **AND** a lower-priority line has a ranged action
 - **WHEN** the gauge fires
 - **THEN** the high-priority action is range-blocked and no lower-priority action executes on that gauge firing
-- **AND** an explanatory range-blocked event is recorded
+- **AND** no `range_blocked` event is added to the battle log
 
 #### Scenario: Ranged fallback cancels stale approach
 - **GIVEN** a unit has an approach intent from an earlier out-of-range melee action
@@ -125,38 +138,51 @@ Actions on a tick SHALL evaluate position from the beginning of that tick. Movem
 - **WHEN** its next action gauge fires on a later tick
 - **THEN** the range check uses the new position and the adjacent attack can execute
 
-### Requirement: Slow reduces Move Speed and has timed deterministic behavior
+### Requirement: Slow remains a reusable timed status effect
 
-Slow SHALL apply a flat -50 Move Speed modifier for 20 seconds. Reapplying Slow SHALL refresh one existing Slow status rather than stacking another independent speed penalty.
-
-#### Scenario: Ice Bolt applies Slow
-- **GIVEN** Wailing Wraith successfully resolves Ice Bolt
-- **WHEN** the spell lands
-- **THEN** its target receives Slow for 20 seconds and has 50 less effective Move Speed (clamped at zero)
+Slow SHALL remain a canonical status type for future skills. It applies a flat -50 Move Speed modifier for 20 seconds. Reapplying Slow SHALL refresh the existing Slow status rather than stacking independent -50 penalties.
 
 #### Scenario: Slow is refreshed
 - **GIVEN** a unit is already Slowed
-- **WHEN** another Slow is applied
-- **THEN** the expiry refreshes to 20 seconds after reapplication without stacking another -50 modifier
+- **WHEN** another skill applies Slow
+- **THEN** the existing Slow duration refreshes to 20 seconds after reapplication without stacking another -50 modifier
 
 #### Scenario: Slow expires
 - **GIVEN** a unit has Slow
 - **WHEN** its 20-second duration ends
 - **THEN** the -50 Move Speed modifier is removed
 
+### Requirement: Ice Bolt applies independently stacked Freeze to the character
+
+Ice Bolt SHALL cost 0 SP, have a one-second cast time and no cooldown. Its `maxRange` in `skill_trees.json` includes the target's occupied space, so `maxRange: 7` reaches the maximum empty-space distance of 6 between positions 0 and 7. Each successful cast SHALL have a seeded 25% chance to add one Freeze status stack to the character. Each stack reduces Move Speed by 15 for 5 seconds. Stacks SHALL expire independently, may stack up to five active stacks, and SHALL NOT exceed a total -75 Move Speed modifier. Freeze is distinct from Slow and MUST be included in the ordinary `statusEffects` list.
+
+#### Scenario: Ice Bolt freezes the player
+- **GIVEN** Wailing Wraith successfully casts Ice Bolt at the character
+- **WHEN** the seeded 25% status roll succeeds and fewer than five Freeze stacks are active
+- **THEN** one Freeze status stack is added to the character for 5 seconds
+- **AND** effective Move Speed is reduced by 15 per active stack, clamped to zero
+- **AND** the log records `CharacterName is freezing (N)` for the resulting stack count
+
+#### Scenario: Freeze is capped and stacks expire independently
+- **GIVEN** the character already has five active Freeze stacks
+- **WHEN** another Ice Bolt cast resolves
+- **THEN** no sixth stack is added
+- **AND** each existing stack expires 5 seconds after its own application
+
 ### Requirement: Movement and range decisions are reproducible in logs
 
-Battle logs SHALL record starting positions/style/speed and every movement or range-blocked action with enough data to reconstruct the reason. Position remains server-authoritative and is part of the immutable precomputed battle result.
+Battle logs SHALL record starting positions/style/speed and every completed movement with actor, from/to positions, spaces moved, direction, before/after distance and effective Move Speed. Movement logs SHALL use the actor's character/monster name for presentation; no `range_blocked` log event SHALL be generated. Position remains server-authoritative and is part of the immutable precomputed battle result.
 
 #### Scenario: Reproducible movement
 - **GIVEN** identical battle snapshot and seed
 - **WHEN** the same battle is simulated twice
-- **THEN** movement positions, blocked-action events, combat actions and status durations are identical
+- **THEN** movement positions, movement events, combat actions and status durations are identical
 
 #### Scenario: Movement log
 - **GIVEN** a unit completes one movement step
 - **WHEN** the event is written
-- **THEN** it includes tick, actor, from/to positions, distance before/after, effective Move Speed and reason
+- **THEN** it includes tick, actor, from/to positions, `spacesMoved`, direction, distance before/after, effective Move Speed and reason
+- **AND** the UI presents a character movement as `CharacterName moved ( 1 ) -->` or `CharacterName moved ( 1 ) <--`
 
 ### Requirement: Current single-target scope leaves 5x5 as future roadmap
 

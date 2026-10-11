@@ -23,7 +23,7 @@
     </header>
     <div class="log-summary" *ngIf="selected() as battle"><span>Start HP <strong>{{battle.log?.header?.characterSnapshot?.hp ?? '—'}}</strong></span><span>Enemy HP <strong>{{battle.log?.header?.monsterSnapshot?.hp ?? '—'}}</strong></span><span>XP <strong>+{{battle.xpGain}}</strong></span><span>Gold <strong>+{{battle.goldGain}}</strong></span></div>
     <div class="event-feed" *ngIf="selected() as battle">
-      <article class="event" *ngFor="let event of (battle.log?.events ?? [])"><span class="tick">T{{event.tick ?? 0}}</span><div class="event-body"><div>{{eventText(event)}}</div><small *ngIf="event.hpRemaining as hp">HP: You {{hp.character}} · Enemy {{hp.monster}}</small></div></article>
+      <article class="event" *ngFor="let event of displayEvents(battle)"><span class="tick">T{{event.tick ?? 0}}</span><div class="event-body"><div>{{eventText(event)}}</div><small *ngIf="event.hpRemaining as hp">HP: You {{hp.character}} · Enemy {{hp.monster}}</small></div></article>
       <div class="final-result" [class.win]="battle.outcome==='win'" [class.loss]="battle.outcome==='loss'">{{battle.outcome==='win'?'Victory':'Defeat'}} · Battle finished after {{battle.log?.durationTicks ?? 0}} ticks</div>
     </div>
     <div class="modal-state" *ngIf="detailLoading()">Loading battle log...</div><div class="modal-state error" *ngIf="detailError()">{{detailError()}}</div>

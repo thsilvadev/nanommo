@@ -313,6 +313,7 @@ export class BattleService {
     const foodActive = foodExpiry > atTime;
     const foodTicks = foodActive ? Math.max(0, Math.ceil((foodExpiry - atTime) / MS_PER_TICK)) : 0;
     return {
+      characterName: character.name,
       level: character.level,
       hp: Math.max(1, Math.min(hp, derived.maxHp)),
       sp: Math.max(0, Math.min(sp, derived.maxSp)),

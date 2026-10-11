@@ -876,15 +876,18 @@
       "name": "Ice Bolt",
       "damageType": "magic",
       "ranged": true,
-      "maxRange": 6,
+      "maxRange": 7,
       "effect": {
         "dmgMult": 1.0,
-        "applyStatus": "slow",
-        "statusDurationTicks": 20,
-        "moveSpeedPenalty": 50
+        "applyStatus": "freeze",
+        "statusChance": 0.25,
+        "statusDurationTicks": 5,
+        "moveSpeedPenaltyPerStack": 15,
+        "maxStacks": 5
       },
-      "baseCastTicks": 6,
-      "cooldownTicks": 20
+      "baseCastTicks": 1,
+      "cooldownTicks": 0,
+      "spCost": 0
     }
   ]
 }

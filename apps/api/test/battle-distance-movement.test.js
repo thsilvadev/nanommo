@@ -30,11 +30,18 @@ function run() {
   assert.equal(derived.accuracy, 80);
   assert.equal(derived.evasion, 100);
 
+  const previousCalibratedEvasion = {
+    mon_slime: 98, mon_fieldbat: 101, mon_thornsprout: 101, mon_mudcrawler: 104,
+    mon_direwolf: 110, mon_sandscorpion: 113, mon_duneraider: 116, mon_cindergolem: 119,
+    mon_venomviper: 125, mon_mirageStalker: 125, mon_brokensentinel: 128, mon_wraith: 134,
+    mon_arcanewisp: 137, mon_boneknight: 140, mon_ruinsguardian: 143,
+  };
   for (const monster of monstersData.monsters) {
     assert(['melee', 'ranged'].includes(monster.combatStyle), `combatStyle: ${monster.id}`);
     assert(Number.isFinite(monster.moveSpeedBase) && monster.moveSpeedBase > 0, `moveSpeedBase: ${monster.id}`);
     assert(['melee', 'ranged', 'magic'].includes(monster.basicAttackDamageType), `basicAttackDamageType: ${monster.id}`);
     assert(Number.isFinite(monster.basicAttackRange), `basicAttackRange: ${monster.id}`);
+    assert.equal(monster.evasion, Math.round(previousCalibratedEvasion[monster.id] * 0.9), `Evasion -10%: ${monster.id}`);
   }
 
   const meleeMonster = {
@@ -75,29 +82,108 @@ function run() {
   }
 
   const rangedMonster = {
-    ...meleeMonster, id: 'test_ranged', hp: 2000, combatStyle: 'ranged',
+    ...meleeMonster, id: 'test_ranged', hp: 200, combatStyle: 'ranged',
     basicAttackDamageType: 'ranged', basicAttackRange: 6, moveSpeedBase: 62,
   };
   const moving = BattleEngine.simulateBattle(character, rangedMonster, page, 'distance-movement', { weaponBaseAttackTicks: 99 });
   assert.equal(moving.log.header.characterSnapshot.position, 0);
   assert.equal(moving.log.header.monsterSnapshot.position, 7);
-  assert(moving.log.events.some((event) => event.action === 'range_blocked'));
-  assert(moving.log.events.some((event) => event.action === 'move'));
+  assert(!moving.log.events.some((event) => event.action === 'range_blocked'), 'range-blocked events are intentionally omitted from logs');
+  assert(moving.log.events.some((event) => event.action === 'move' && event.spacesMoved === 1 && ['left', 'right'].includes(event.direction)));
+  const frozenMovement = BattleEngine.simulateBattle(
+    baselineCharacter({ hp: 50000, maxHp: 50000, statusEffects: [{ type: 'freeze', appliedAtTick: 0, expiresAtTick: 1000 }] }),
+    rangedMonster,
+    page,
+    'distance-frozen-movement',
+    { weaponBaseAttackTicks: 99 },
+  );
+  const firstCharacterMove = frozenMovement.log.events.find((event) => event.actor === 'character' && event.action === 'move');
+  assert(firstCharacterMove, 'a frozen melee character still approaches when out of range');
+  assert.equal(firstCharacterMove.moveSpeed, 36, 'one Freeze stack reduces level-1 character Move Speed from 51 to 36');
 
   const iceBolt = skillTree.monsterSkills.find((skill) => skill.id === 'monster_skill_ice_bolt');
-  assert(iceBolt && iceBolt.damageType === 'magic' && iceBolt.ranged && iceBolt.maxRange === 6);
+  assert(iceBolt && iceBolt.damageType === 'magic' && iceBolt.ranged && iceBolt.maxRange === 7);
+  assert.equal(iceBolt.spCost, 0);
+  assert.equal(iceBolt.baseCastTicks, 1);
+  assert.equal(iceBolt.cooldownTicks, 0);
+  assert.equal(iceBolt.effect.applyStatus, 'freeze');
+  assert.equal(iceBolt.effect.statusChance, 0.25);
+  assert.equal(iceBolt.effect.statusDurationTicks, 5);
+  assert.equal(iceBolt.effect.moveSpeedPenaltyPerStack, 15);
+  assert.equal(iceBolt.effect.maxStacks, 5);
   const wraith = monstersData.monsters.find((monster) => monster.id === 'mon_wraith');
-  const slowResult = BattleEngine.simulateBattle(
-    baselineCharacter({ hp: 50000, maxHp: 50000 }),
+  const monsterSkillDefs = Object.fromEntries(skillTree.monsterSkills.map((skill) => [skill.id, skill]));
+  const freezeResult = BattleEngine.simulateBattle(
+    baselineCharacter({ hp: 50000, maxHp: 50000, atk: 1 }),
     wraith,
     page,
     'distance-ice-bolt',
-    {
-      weaponBaseAttackTicks: 99,
-      monsterSkillDefs: Object.fromEntries(skillTree.monsterSkills.map((skill) => [skill.id, skill])),
-    },
+    { weaponBaseAttackTicks: 99, monsterSkillDefs },
   );
-  assert(slowResult.log.events.some((event) => event.action === 'status_applied' && event.status === 'slow'));
+  const iceEvents = freezeResult.log.events.filter((event) => event.actor === 'monster' && event.action === 'use_skill' && event.skillId === 'monster_skill_ice_bolt');
+  assert(iceEvents.length > 0, 'Wailing Wraith uses Ice Bolt');
+  assert(iceEvents.some((event) => event.tick === 0), '1-second cast resolves on the first simulation tick');
+  assert(!freezeResult.log.events.some((event) => event.actor === 'monster' && event.action === 'move'), 'Wailing Wraith stays stationary while Ice Bolt is usable');
+  assert(freezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Ice Bolt can apply Freeze');
+  for (const event of freezeResult.log.events.filter((item) => item.action === 'freeze_applied')) {
+    assert(event.stackCount >= 1 && event.stackCount <= 5);
+    assert.equal(event.expiresAtTick, event.tick + 5, 'each Freeze stack expires after five seconds');
+    assert.equal(event.moveSpeedPenalty, 15);
+  }
+  assert(!freezeResult.log.events.some((event) => event.action === 'range_blocked'), 'range blocks are not log events');
+  assert.equal(wraith.gambit[0].action.skillId, 'monster_skill_ice_bolt');
+  assert.equal(wraith.gambit[1].action.type, 'attack');
+  assert.equal(wraith.gambit[1].condition.type, 'self_has_status');
+  assert.equal(wraith.gambit[1].condition.status, 'silence');
+  assert(!freezeResult.log.events.some((event) => event.actor === 'monster' && event.action === 'attack'), 'Wailing Wraith does not basic-attack while Ice Bolt is usable');
+  assert.equal(wraith.basicAttackDamageType, 'melee');
+  assert.equal(wraith.basicAttackRange, 0);
+
+  const cappedFreezeCharacter = baselineCharacter({
+    hp: 50000, maxHp: 50000, atk: 1,
+    statusEffects: Array.from({ length: 5 }, () => ({
+      type: 'freeze', appliedAtTick: 0, expiresAtTick: 99999, moveSpeedPenalty: 15,
+    })),
+  });
+  const cappedFreezeResult = BattleEngine.simulateBattle(
+    cappedFreezeCharacter, wraith, page, 'distance-freeze-cap',
+    { weaponBaseAttackTicks: 99, monsterSkillDefs },
+  );
+  assert(!cappedFreezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Freeze cannot exceed five active stacks');
+
+  const slowSkill = {
+    id: 'monster_skill_test_slow', name: 'Test Slow', damageType: 'magic',
+    ranged: true, maxRange: 7, spCost: 0, baseCastTicks: 1, cooldownTicks: 999,
+    effect: { dmgMult: 0.1, applyStatus: 'slow', statusDurationTicks: 20, moveSpeedPenalty: 50 },
+  };
+  const slowWraith = {
+    ...wraith, hp: 30,
+    gambit: [{ priority: 1, condition: { type: 'always' }, action: { type: 'use_skill', skillId: slowSkill.id } }],
+  };
+  const slowResult = BattleEngine.simulateBattle(
+    baselineCharacter({ hp: 50000, maxHp: 50000, atk: 1 }),
+    slowWraith,
+    page,
+    'distance-slow-is-reusable',
+    { weaponBaseAttackTicks: 6, monsterSkillDefs: { ...monsterSkillDefs, [slowSkill.id]: slowSkill } },
+  );
+  const slowApplied = slowResult.log.events.find((event) => event.action === 'status_applied' && event.status === 'slow');
+  assert(slowApplied && slowApplied.actor === 'character', 'Slow remains a status effect applied to the player');
+  assert.equal(slowApplied.durationTicks, 20);
+  assert(slowResult.log.events.some((event) => event.action === 'status_expired' && event.status === 'slow' && event.tick === 20), 'Slow expiration remains deterministic and logged');
+  assert(!slowResult.log.events.some((event) => event.action === 'freeze_applied'), 'Slow and Freeze are distinct status types');
+
+  const silencedWraith = { ...wraith, statusEffects: [{ type: 'silence', appliedAtTick: 0, expiresAtTick: 99999 }] };
+  const silenceResult = BattleEngine.simulateBattle(
+    baselineCharacter({ hp: 50000, maxHp: 50000, atk: 1 }),
+    silencedWraith,
+    page,
+    'distance-wraith-silenced',
+    { weaponBaseAttackTicks: 2, monsterSkillDefs },
+  );
+  assert(!silenceResult.log.events.some((event) => event.actor === 'monster' && event.action === 'use_skill'), 'silenced Wraith cannot cast Ice Bolt');
+  assert(silenceResult.log.events.some((event) => event.actor === 'monster' && event.action === 'attack'), 'silenced Wraith falls back to its normal attack');
+  assert(silenceResult.log.events.some((event) => event.actor === 'monster' && event.action === 'move'), 'silenced Wraith approaches when not adjacent');
   console.log('battle-distance-movement: focused assertions passed');
 }
 

@@ -4,7 +4,7 @@
 
 - [x] 1.1 Extend the shared combatant snapshot with lane position, combatStyle, basic-attack damage/range metadata, movement gauge, movement intent and base/effective Move Speed; shared/API builds passed.
 - [ ] 1.2 Add an explicit combat-style derivation step for the character from enabled valid Foe Gambit lines, equipped Bow basic attacks, learned/equipped ranged skills and in-stock ranged items; verify Ally/self lines, disabled lines and unavailable actions never classify the player as RANGED.
-- [x] 1.3 Add explicit combatStyle and moveSpeedBase fields to every current monsters.json row, assigning Field Bat/Dune Raider as ranged physical, Wailing Wraith as ranged magic, and all remaining monsters as melee physical; committed catalog assertions cover all 15 rows and both mirrors match.
+- [x] 1.3 Add explicit combatStyle and moveSpeedBase fields to every current monsters.json row, assigning Field Bat/Dune Raider as ranged physical, Wailing Wraith as ranged due to ranged magic Ice Bolt with a melee physical basic attack, and all remaining monsters as melee physical; committed catalog assertions cover all 15 rows, the -10% Evasion adjustment, and matching mirrors.
 - [ ] 1.4 Add JSON-backed monster move speed constants by archetype and level scaling (constant + level - 1); verify the speed remains independent of atkSpeedTicks and varies only according to its catalog definition and level.
 
 ## 2. Positions and movement gauge
@@ -20,15 +20,15 @@
 
 - [ ] 3.1 Add explicit action range/target metadata and apply range checks to basic attacks, skills and items while retaining existing Gambit priority/legality rules; verify Foe ranged actions count toward entry position but Ally/self support does not.
 - [ ] 3.2 Treat Bow basic attack as ranged and all declared melee basic attacks/skills as usable only on the target immediately in front at distance 0; verify at-range attacks execute normally and out-of-range attacks cause movement instead.
-- [ ] 3.3 Add range-blocked log events with attempted action, required range and actual distance; verify such events do not record damage or resource/cooldown spending.
+- [x] 3.3 Do not emit range-blocked log events; retain movement intent without spending SP/items or starting cooldown, and cover no-range-blocked-event behaviour in the committed regression test.
 - [x] 3.4 Add position and movement fields to the battle log, including starting/final positions, move speed, distance before/after and reason; committed regression test verifies same-seed replay and movement events.
 - [ ] 3.5 Ensure every current monster has a valid Gambit and preserve existing monster behavior unless explicitly changed; verify the shared Gambit evaluator remains the single action-selection system.
 
-## 4. Slow and Wailing Wraith Ice Bolt
+## 4. Slow and Wailing Wraith Ice Bolt / Freeze
 
-- [ ] 4.1 Add canonical timed Slow state with -50 effective Move Speed for 20 seconds; verify speed clamps at zero and the same Slow refreshes duration instead of stacking penalties.
-- [ ] 4.2 Add monster_skill_ice_bolt using Wailing Wraith's MATK as magic damage and applying Slow on a successful spell; add the selected Wailing Wraith Gambit line(s) and JSON timing values; verify damage type, slow duration and cooldown behavior in the deterministic engine.
-- [ ] 4.3 Add regression coverage for Wraith at ranged starting position, Ice Bolt cast and Slow effect while preserving its intended fallback behavior; verify other monsters do not acquire Ice Bolt unless explicitly configured.
+- [ ] 4.1 Preserve Slow as a reusable timed status (-50 effective Move Speed for 20 seconds); verify clamping, refresh without stacking duplicate Slow entries and expiration.
+- [x] 4.2 Configure monster_skill_ice_bolt with Wailing Wraith MATK magic damage, zero SP/cooldown, one-tick cast, target-inclusive maxRange 7, and the Freeze effect (25% chance, -15 Move Speed per 5-second stack, max five); mirror the JSON and verify the shared simulator uses its damage/status contract.
+- [x] 4.3 Add regression coverage for Wraith's ranged formation, stationary Ice Bolt use, player Freeze application, and Silenced melee fallback/approach; verify movement and status logs use the updated event semantics.
 
 ## 5. Mastery integration
 
@@ -38,8 +38,8 @@
 
 ## 6. Documentation and integration verification
 
-- [x] 6.1 Update root SPEC.md and openspec/specs/SPEC.md mirror with lane, range, combatStyle, move speed, Slow/Ice Bolt and immutable-log rules; corrected the active-battle mutation language in both documents.
+- [x] 6.1 Update root SPEC.md and openspec/specs/SPEC.md mirror with lane, range, combatStyle, Move Speed, reusable Slow, stacked Freeze/Ice Bolt and no-range-blocked-log rules; corrected active-battle mutation language in both documents.
 - [x] 6.2 Update ARCHITECTURE.md with movement-gauge ownership, deterministic tick ordering, position snapshot/log fields and future five-lane 5x5 direction; explicitly notes that lane UI and group combat are not implemented.
-- [ ] 6.3 Add focused unit tests for distance, entry classification, position initialization, movement speed/gauge, range blocked actions, Slow refresh/expiry, Ice Bolt, logs and determinism; verify the focused suite passes.
+- [ ] 6.3 Expand the committed focused tests to cover remaining distance/occupancy/tie-order edge cases, Slow refresh/expiry, and invalid Gambit-action/range resource invariants; current regression covers formations, deterministic replay, movement, Freeze penalties/cap, Ice Bolt timing, Wraith stationary casting and Silenced fallback.
 - [ ] 6.4 Run shared/API/frontend builds, focused tests, strict OpenSpec validation and git diff --check; verify this change is complete before applying hand-equipment-mastery-skills.
 - [x] 6.5 Update STATUS.md with files changed, tests actually executed and remaining gaps; explicitly records that the change is incomplete and no production deployment was performed.

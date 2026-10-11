@@ -65,6 +65,7 @@ export interface CombatantSnapshot {
   /** Set by the engine when the combatant braced; cleared on the next hit taken. */
   defending?: boolean;
   element?: string | null;
+  characterName?: string;
   combatStyle?: 'melee' | 'ranged';
   position?: number;
   basicAttackDamageType?: 'melee' | 'ranged' | 'magic';
@@ -219,6 +220,8 @@ export class GambitEvaluator {
 
       case 'use_skill': {
         const skillId = params.skillId;
+        // Silence prevents casting; Gambit skips this line and can fall through to a legal fallback.
+        if ((self.statusEffects ?? []).some((status: any) => ['silence', 'silenced'].includes(String(status.type ?? status.id ?? '').toLowerCase()))) return false;
         // unlocked for the equipped weapon (SPEC §9.1)
         if (!skillId || !self.skills?.[skillId]) return false;
         // off cooldown
@@ -404,7 +407,7 @@ export class BattleEngine {
       spRegenPerTenTicks: 0,
       agi: Number(monsterDefinition?.agi ?? 0),
       dex: Number(monsterDefinition?.dex ?? 0),
-      statusEffects: [],
+      statusEffects: [...(monsterDefinition?.statusEffects ?? [])],
       element: monsterDefinition?.element ?? null,
       combatStyle: monsterDefinition?.combatStyle === 'ranged' ? 'ranged' : 'melee',
       basicAttackDamageType: monsterDefinition?.basicAttackDamageType ?? 'melee',
@@ -547,7 +550,7 @@ export class BattleEngine {
     const foe: CombatantSnapshot = {
       ...BattleEngine.buildMonsterSnapshot(monsterDefinition),
       cooldowns: foeCooldowns,
-      statusEffects: [],
+      statusEffects: [...(monsterDefinition?.statusEffects ?? [])],
       // Monster skills are all available to the monster; its own gambit decides
       // when to use one. Character skill *unlocking* (§9.1) does not apply here.
       skills: monsterSkillDefs,
@@ -608,6 +611,14 @@ export class BattleEngine {
 
     // There is no duration/tick cap: a battle ends only when one combatant reaches 0 HP.
     while (self.hp > 0 && foe.hp > 0) {
+      // Expire timed statuses before this tick's actions. Each Freeze stack owns its own expiry.
+      for (const [unit, actor] of [[self, 'character'], [foe, 'monster']] as Array<[CombatantSnapshot, string]>) {
+        const expired = (unit.statusEffects ?? []).filter((status: any) => Number(status.expiresAtTick ?? Infinity) <= tick);
+        for (const status of expired) {
+          record({ tick, actor, action: 'status_expired', status: status.type ?? status.id, sourceSkillId: status.sourceSkillId, moveSpeedPenalty: Number(status.moveSpeedPenalty ?? ((status.type ?? status.id) === 'slow' ? 50 : 0)) });
+        }
+        unit.statusEffects = (unit.statusEffects ?? []).filter((status: any) => Number(status.expiresAtTick ?? Infinity) > tick);
+      }
       // Conditions like `every_n_ticks` are tick-indexed (SPEC §7.1)
       self.tick = tick;
       foe.tick = tick;
@@ -633,7 +644,6 @@ export class BattleEngine {
           if (choice && choice.action.id === 'attack' && distanceBetween() > Number(self.basicAttackRange ?? 0)) {
             self.movementIntent = true;
             self.movementIntentRange = Number(self.basicAttackRange ?? 0);
-            record({ tick, actor: 'character', action: 'range_blocked', attemptedAction: 'attack', targetDistance: distanceBetween(), requiredRange: Number(self.basicAttackRange ?? 0) });
           } else if (choice && choice.action.id === 'attack') {
             self.movementIntent = false;
             self.movementIntentRange = undefined;
@@ -683,14 +693,14 @@ export class BattleEngine {
 
           const selectedSkillId = choice?.action?.skillId ?? choice?.action?.params?.skillId;
           const selectedSkillDef = selectedSkillId ? (self.skillDefs?.[selectedSkillId] ?? {}) : {};
+          // Ranged skill maxRange counts the target's occupied space; the lane distance API counts only empty spaces.
           const selectedSkillRange = selectedSkillDef.ranged === true
-            ? Number(selectedSkillDef.maxRange ?? 6)
-            : Number(selectedSkillDef.maxRange ?? 0);
+            ? Math.max(0, Number(selectedSkillDef.maxRange ?? 7) - 1)
+            : Math.max(0, Number(selectedSkillDef.maxRange ?? 1) - 1);
           const skillOutOfRange = choice?.action?.id === 'use_skill' && distanceBetween() > selectedSkillRange;
           if (skillOutOfRange) {
             self.movementIntent = true;
             self.movementIntentRange = selectedSkillRange;
-            record({ tick, actor: 'character', action: 'range_blocked', attemptedAction: 'use_skill', skillId: selectedSkillId, targetDistance: distanceBetween(), requiredRange: selectedSkillRange });
           }
           if (choice && !skillOutOfRange) {
             const action = choice.action;
@@ -854,7 +864,6 @@ export class BattleEngine {
         if (choice && choice.action.id === 'attack' && distanceBetween() > Number(foe.basicAttackRange ?? 0)) {
           foe.movementIntent = true;
           foe.movementIntentRange = Number(foe.basicAttackRange ?? 0);
-          record({ tick, actor: 'monster', action: 'range_blocked', attemptedAction: 'attack', targetDistance: distanceBetween(), requiredRange: Number(foe.basicAttackRange ?? 0) });
         } else if (choice && choice.action.id === 'attack') {
           foe.movementIntent = false;
           foe.movementIntentRange = undefined;
@@ -890,27 +899,34 @@ export class BattleEngine {
         }
       }
 
-      // ===== MONSTER: CAST GAUGE (flat threshold 6, §7.2) =====
+      // Monster cast gauge: ranged spells may define their cast time in the skill catalog.
+      // Other existing monster casts retain the legacy six-tick threshold.
+      const pendingMonsterCastChoice = GambitEvaluator.evaluateGambitPage(
+        monsterGambitPage,
+        'cast',
+        foe,
+        self,
+        {},
+      );
+      const pendingMonsterSkillId = pendingMonsterCastChoice?.action?.skillId ?? pendingMonsterCastChoice?.action?.params?.skillId;
+      const pendingMonsterSkillDef: any = pendingMonsterSkillId ? (monsterSkillDefs[pendingMonsterSkillId] ?? {}) : {};
+      const monsterCastThreshold = pendingMonsterCastChoice?.action?.id === 'use_skill' && pendingMonsterSkillDef.ranged === true
+        ? Math.max(1, Math.floor(Number(pendingMonsterSkillDef.baseCastTicks ?? BattleEngine.MONSTER_CAST_GAUGE)))
+        : BattleEngine.MONSTER_CAST_GAUGE;
       monsterCastGauge += 1;
-      if (monsterCastGauge >= BattleEngine.MONSTER_CAST_GAUGE) {
+      if (monsterCastGauge >= monsterCastThreshold) {
         monsterCastGauge = 0;
-        const choice = GambitEvaluator.evaluateGambitPage(
-          monsterGambitPage,
-          'cast',
-          foe,
-          self,
-          {},
-        );
+        const choice = pendingMonsterCastChoice;
         const monsterSelectedSkillId = choice?.action?.skillId ?? choice?.action?.params?.skillId;
         const monsterSelectedSkillDef: any = monsterSelectedSkillId ? (monsterSkillDefs[monsterSelectedSkillId] ?? {}) : {};
+        // Ranged skill maxRange includes the target's space; distanceBetween() counts empty spaces.
         const monsterSkillRange = monsterSelectedSkillDef.ranged === true
-          ? Number(monsterSelectedSkillDef.maxRange ?? 6)
-          : Number(monsterSelectedSkillDef.maxRange ?? 0);
+          ? Math.max(0, Number(monsterSelectedSkillDef.maxRange ?? 7) - 1)
+          : Math.max(0, Number(monsterSelectedSkillDef.maxRange ?? 1) - 1);
         const monsterSkillOutOfRange = choice?.action?.id === 'use_skill' && distanceBetween() > monsterSkillRange;
         if (monsterSkillOutOfRange) {
           foe.movementIntent = true;
           foe.movementIntentRange = monsterSkillRange;
-          record({ tick, actor: 'monster', action: 'range_blocked', attemptedAction: 'use_skill', skillId: monsterSelectedSkillId, targetDistance: distanceBetween(), requiredRange: monsterSkillRange });
         }
         if (choice && choice.action.id === 'use_skill' && !monsterSkillOutOfRange) {
           const skillId = choice.action.skillId ?? choice.action.params?.skillId;
@@ -957,9 +973,27 @@ export class BattleEngine {
               hit: landed,
             });
             if (landed && effect.applyStatus === 'slow') {
+              // Keep Slow as a reusable canonical status for future monster/player skills.
               self.statusEffects = (self.statusEffects ?? []).filter((status: any) => (status.type ?? status.id) !== 'slow');
               self.statusEffects.push({ type: 'slow', appliedAtTick: tick, expiresAtTick: tick + Number(effect.statusDurationTicks ?? 20), sourceSkillId: skillId });
-              record({ tick, actor: 'monster', action: 'status_applied', status: 'slow', target: 'character', durationTicks: Number(effect.statusDurationTicks ?? 20), moveSpeedPenalty: Number(effect.moveSpeedPenalty ?? 50) });
+              record({ tick, actor: 'character', action: 'status_applied', status: 'slow', target: 'character', durationTicks: Number(effect.statusDurationTicks ?? 20), moveSpeedPenalty: Number(effect.moveSpeedPenalty ?? 50) });
+            }
+            if (landed && effect.applyStatus === 'freeze') {
+              const activeFreezeStacks = (self.statusEffects ?? []).filter((status: any) => (status.type ?? status.id) === 'freeze');
+              const maxStacks = Math.max(1, Math.floor(Number(effect.maxStacks ?? 5)));
+              if (activeFreezeStacks.length < maxStacks && rng.chance(Number(effect.statusChance ?? 0.25))) {
+                const durationTicks = Math.max(1, Math.floor(Number(effect.statusDurationTicks ?? 5)));
+                self.statusEffects = [...(self.statusEffects ?? []), {
+                  type: 'freeze', appliedAtTick: tick, expiresAtTick: tick + durationTicks, sourceSkillId: skillId,
+                  moveSpeedPenalty: Math.max(0, Number(effect.moveSpeedPenaltyPerStack ?? 15)),
+                }];
+                record({
+                  tick, actor: 'character', action: 'freeze_applied', status: 'freeze', target: 'character',
+                  stackCount: activeFreezeStacks.length + 1, expiresAtTick: tick + durationTicks,
+                  durationTicks, moveSpeedPenalty: Math.max(0, Number(effect.moveSpeedPenaltyPerStack ?? 15)),
+                  sourceSkillId: skillId,
+                });
+              }
             }
           }
         }
@@ -989,15 +1023,14 @@ export class BattleEngine {
       }
 
       // Timed movement debuffs and deterministic post-action movement phase.
-      for (const [unit, actor] of [[self, 'character'], [foe, 'monster']] as Array<[CombatantSnapshot, string]>) {
-        const expiredStatuses = (unit.statusEffects ?? []).filter((status: any) => Number(status.expiresAtTick ?? Infinity) <= tick);
-        for (const status of expiredStatuses) {
-          record({ tick, actor, action: 'status_expired', status: status.type ?? status.id, moveSpeedPenalty: (status.type ?? status.id) === 'slow' ? 50 : 0 });
-        }
-        unit.statusEffects = (unit.statusEffects ?? []).filter((status: any) => Number(status.expiresAtTick ?? Infinity) > tick);
-        const slowed = (unit.statusEffects ?? []).some((status: any) => (status.type ?? status.id) === 'slow');
+      for (const unit of [self, foe]) {
+        const statuses = unit.statusEffects ?? [];
+        const slowed = statuses.some((status: any) => (status.type ?? status.id) === 'slow');
+        const freezeStacks = Math.min(5, statuses.filter((status: any) => (status.type ?? status.id) === 'freeze').length);
         const baseSpeed = Number(unit.moveSpeedBase ?? unit.moveSpeed ?? 0);
-        unit.moveSpeed = Math.max(0, baseSpeed - (slowed ? 50 : 0));
+        const slowPenalty = slowed ? 50 : 0;
+        const freezePenalty = freezeStacks * 15;
+        unit.moveSpeed = Math.max(0, baseSpeed - slowPenalty - freezePenalty);
       }
       for (const [unit, target, actor] of [[self, foe, 'character'], [foe, self, 'monster']] as Array<[CombatantSnapshot, CombatantSnapshot, string]>) {
         if (!unit.movementIntent || target.hp <= 0) { unit.movementIntent = false; continue; }
@@ -1010,8 +1043,9 @@ export class BattleEngine {
           const direction = Number(target.position ?? 0) > fromPosition ? 1 : -1;
           const toPosition = fromPosition + direction;
           if (toPosition >= 0 && toPosition <= 7 && toPosition !== Number(target.position)) {
+            const distanceBefore = distanceBetween();
             unit.position = toPosition;
-            record({ tick, actor, action: 'move', fromPosition, toPosition, distanceBefore: distanceBetween() + 1, distanceAfter: distanceBetween(), moveSpeed: unit.moveSpeed, reason: 'approach_out_of_range_action' });
+            record({ tick, actor, action: 'move', fromPosition, toPosition, spacesMoved: 1, direction: toPosition > fromPosition ? 'right' : 'left', distanceBefore, distanceAfter: distanceBetween(), moveSpeed: unit.moveSpeed, reason: 'approach_out_of_range_action' });
           }
         }
       }

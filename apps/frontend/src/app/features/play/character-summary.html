@@ -54,7 +54,22 @@
       <div class="bar sp"><i [style.width.%]="spPct()"></i></div><b>{{displaySp()??'—'}}</b>
     </div>
   </div>
-  <div class="status-reserve" aria-label="Status effects reserved space"><span>STATUS</span></div>
+  <div class="status-reserve" aria-label="Status effects">
+    <span>STATUS</span>
+    <div class="status-effects">
+      <div *ngIf="freezeStatus() as freeze" class="status-effect-icon" tabindex="0" aria-label="Freeze status">
+        <img src="/assets/ui/freeze.svg" alt="Freeze">
+        <span class="freeze-count">{{freeze.stacks}}</span>
+        <div class="item-tooltip freeze-tooltip">
+          <strong>Freeze</strong>
+          <span>Each stack reduces Move Speed by 15 for 5 seconds.</span>
+          <span>Stacks: {{freeze.stacks}} / 5</span>
+          <span>Total Move Speed penalty: -{{freeze.penalty}}</span>
+          <span *ngFor="let remaining of freeze.stackDurations; let i = index">Stack {{i + 1}} remaining: {{formatDuration(remaining)}}</span>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="diet-block">
     <div class="diet-title"><span>DIET</span><label class="auto-feed"><span>Auto Feed</span><input type="checkbox"
           [checked]="character.character()?.autoFeed" (change)="toggleAutoFeed()"><i></i></label></div>

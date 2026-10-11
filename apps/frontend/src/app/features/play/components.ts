@@ -27,6 +27,31 @@ export class CharacterSummary implements OnDestroy {
   hpPct() { const c = this.character.character(); const hp = this.displayHp(); return c?.maxHp && hp !== null ? Math.max(0, Math.min(100, hp / c.maxHp * 100)) : 0 }
   spPct() { const c = this.character.character(); const sp = this.displaySp(); return c?.maxSp && sp !== null ? Math.max(0, Math.min(100, sp / c.maxSp * 100)) : 0 }
   statusLabel() { const s = this.character.character()?.status; return s === 'grinding' ? 'Grinding' : s === 'dead_pending_return' ? 'Dead — return pending' : 'In Town' }
+  freezeStatus() {
+    const entry: any = this.battle.active();
+    const now = this.battleDisplayNow();
+    if (!entry) return null;
+    const startMs = Date.parse(entry.startAt);
+    if (now < startMs || now >= Date.parse(entry.endAt)) return null;
+    const tick = Math.floor((now - startMs) / 1000);
+    const effects: any[] = [];
+    const initial = entry.log?.header?.characterSnapshot?.statusEffects ?? [];
+    for (const status of initial) {
+      if ((status.type ?? status.id) === 'freeze' && Number(status.expiresAtTick ?? -1) > tick) effects.push(status);
+    }
+    const events = Array.isArray(entry.log?.events) ? entry.log.events : [];
+    for (const event of events) {
+      if (Number(event.tick ?? 0) > tick) break;
+      if (event.action === 'freeze_applied' && Number(event.expiresAtTick ?? -1) > tick) {
+        effects.push({ type: 'freeze', expiresAtTick: Number(event.expiresAtTick) });
+      }
+    }
+    const active = effects.filter(status => startMs + Number(status.expiresAtTick) * 1000 > now);
+    if (!active.length) return null;
+    const remainingSeconds = active
+      .map(status => Math.max(0, Math.ceil((startMs + Number(status.expiresAtTick) * 1000 - now) / 1000)));
+    return { stacks: Math.min(5, active.length), penalty: Math.min(5, active.length) * 15, stackDurations: remainingSeconds };
+  }
   itemName(slot: string) { const e = this.equipped(slot); return e ? (this.catalog.item(e.itemId)?.name ?? e.itemId) : '' }
   itemDefinition(slot: string) { const e = this.equipped(slot); return e ? this.catalog.item(e.itemId) : null }
   itemTooltipLines(slot: string) { const e = this.equipped(slot); return e ? this.catalog.itemTooltipLines(e.itemId, e.instanceData) : [] }
@@ -187,8 +212,28 @@ export class GrindInfo implements OnDestroy {
   monsterMaxHp(entry: any) { return Number(entry.log?.header?.monsterSnapshot?.maxHp ?? entry.log?.header?.monsterSnapshot?.hp ?? 0) }
   monsterLevel(entry: any) { return Number(this.monsterSnapshot(entry).level ?? 0) }
   percent(v: number, max: number) { return max > 0 ? Math.max(0, Math.min(100, v / max * 100)) : 0 }
-  recentEvents(entry: any) { const tick = this.elapsedTicks(entry); return this.events(entry).filter((e: any) => Number(e.tick ?? 0) <= tick).slice(-4).reverse() }
-  eventText(e: any) { if (e.action === 'attack') { const critical = e.crit ? ' CRITICAL!' : ''; return e.actor === 'monster' ? 'Monster attacks for ' + Number(e.damage ?? 0) + critical : 'Character attacks for ' + Number(e.damage ?? 0) + critical } if (e.action === 'regen') return 'You regenerated ' + Number(e.amount ?? 0) + ' ' + String(e.resource ?? 'HP') + '.'; if (e.action === 'use_item') return (e.actor === 'character' ? 'Character uses ' : 'Monster uses ') + String(e.itemId ?? 'item').replaceAll('_', ' '); if (e.action === 'use_skill') return (e.actor === 'character' ? 'Character casts ' : 'Monster casts ') + String(e.skillId ?? 'skill').replaceAll('_', ' '); return String(e.action ?? 'event') }
+  recentEvents(entry: any) { const tick = this.elapsedTicks(entry); return this.events(entry).filter((e: any) => e.action !== 'range_blocked' && Number(e.tick ?? 0) <= tick).slice(-4).reverse() }
+  eventText(e: any) {
+    if (e.action === 'range_blocked') return '';
+    const playerName = this.character.character()?.name ?? 'Character';
+    const monsterName = this.monster(this.battle.active()?.monsterId ?? '')?.name ?? 'Monster';
+    if (e.action === 'move') {
+      const actor = e.actor === 'character' ? playerName : monsterName;
+      const spaces = Number(e.spacesMoved ?? Math.abs(Number(e.toPosition ?? 0) - Number(e.fromPosition ?? 0)));
+      const arrow = e.direction === 'right' ? '-->' : '<--';
+      return `${actor} moved ( ${spaces} ) ${arrow}`;
+    }
+    if (e.action === 'freeze_applied') return `${playerName} is freezing (${Number(e.stackCount ?? 1)})`;
+    if (e.action === 'status_applied' && e.status === 'slow') return `${playerName} is slowed`;
+    if (e.action === 'attack') { const critical = e.crit ? ' CRITICAL!' : ''; return (e.actor === 'monster' ? monsterName : playerName) + ' attacks for ' + Number(e.damage ?? 0) + critical; }
+    if (e.action === 'regen') return 'You regenerated ' + Number(e.amount ?? 0) + ' ' + String(e.resource ?? 'HP') + '.';
+    if (e.action === 'use_item') return (e.actor === 'character' ? playerName + ' uses ' : monsterName + ' uses ') + String(e.itemId ?? 'item').replaceAll('_', ' ');
+    if (e.action === 'use_skill') {
+      const skill = String(e.skillId ?? 'skill') === 'monster_skill_ice_bolt' ? 'Ice Bolt' : String(e.skillId ?? 'skill').replaceAll('_', ' ');
+      return (e.actor === 'character' ? playerName + ' casts ' : monsterName + ' casts ') + skill;
+    }
+    return String(e.action ?? 'event');
+  }
   sessionDrops() { return this.battle.sessionDrops() }
   sessionDropName(it: any) { return this.catalog.item(it.itemId)?.name ?? it.itemId }
   sessionDropIcon(it: any) { return this.catalog.itemIcon(it.itemId) }
