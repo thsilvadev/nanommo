@@ -885,7 +885,7 @@
         "moveSpeedPenaltyPerStack": 15,
         "maxStacks": 5
       },
-      "baseCastTicks": 1,
+      "baseCastTicks": 2,
       "cooldownTicks": 0,
       "spCost": 0
     }
