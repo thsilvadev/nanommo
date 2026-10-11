@@ -33,8 +33,12 @@ export class BattleLogsComponent {
       const arrow=hasPositionDelta?(toPosition>fromPosition?'-->':'<--'):(event?.direction==='right'||event?.direction===1||event?.direction==='1')?'-->':(event?.direction==='left'||event?.direction===-1||event?.direction==='-1')?'<--':'';
       return actor+' moved ( '+spaces+' ) '+arrow;
     }
-    if(event?.action==='freeze_applied') return playerName+' is freezing ('+Number(event.stackCount??1)+')';
-    if(event?.action==='status_applied'&&event?.status==='slow') return playerName+' is slowed';
+    const status=String(event?.status??'status').replace(/_/g,' ').toLowerCase();
+    if(event?.action==='freeze_applied') return actor+' is freezing ('+Number(event.stackCount??1)+')';
+    if(event?.action==='status_stack_applied') return actor+' gained '+status+' ('+Number(event.stackCount??1)+')';
+    if(event?.action==='status_stack_lessened') return actor+"'s "+status+' lessens ('+Number(event.stackCount??0)+')';
+    if(event?.action==='status_ended'||event?.action==='status_expired') return actor+"'s "+status+' ended';
+    if(event?.action==='status_applied') return status==='slow'?actor+' is slowed':actor+' is affected by '+status;
     if(event?.action==='attack') return actor+' attack'+(event.crit?' — CRITICAL HIT':'')+(event.damage!=null?' for '+event.damage+' damage':'')+'.';
     if(event?.action==='use_skill'){
       const skill=event.skillId==='monster_skill_ice_bolt'?'Ice Bolt':String(event.skillId??'a skill').replace(/_/g,' ');

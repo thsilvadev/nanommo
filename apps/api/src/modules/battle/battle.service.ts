@@ -489,6 +489,9 @@ export class BattleService {
     const monsterSkillDefs = Object.fromEntries(
       this.dataService.getMonsterSkills().map((s: any) => [s.id, s]),
     );
+    const statusEffectDefs = Object.fromEntries(
+      this.dataService.getStatusEffects().map((status: any) => [status.id, status]),
+    );
     const itemDefinitions = Object.fromEntries(
       (this.dataService.getItems()?.consumables ?? []).map((c: any) => [c.id, c]),
     );
@@ -617,6 +620,7 @@ export class BattleService {
         inventory: workingInventory,
         itemDefinitions,
         monsterSkillDefs,
+        statusEffectDefs,
         regenTickOffset,
         weaponBaseAttackTicks,
       });

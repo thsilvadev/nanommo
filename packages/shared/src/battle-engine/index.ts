@@ -501,6 +501,7 @@ export class BattleEngine {
       weaponBaseAttackTicks?: number;
       itemDefinitions?: Record<string, any>;
       monsterSkillDefs?: Record<string, any>;
+      statusEffectDefs?: Record<string, any>;
       /** Absolute character timeline tick at which this battle starts. */
       regenTickOffset?: number;
     } = {},
@@ -523,6 +524,7 @@ export class BattleEngine {
     const normalizedGambitPage = GambitEvaluator.normalizeGambitPage(gambitPage);
     const monsterGambitPage = GambitEvaluator.normalizeGambitPage(monsterDefinition?.gambit);
     const monsterSkillDefs: Record<string, any> = options.monsterSkillDefs ?? {};
+    const statusEffectDefs: Record<string, any> = options.statusEffectDefs ?? {};
 
     const cooldowns: Record<string, number> = {};
 
@@ -611,13 +613,40 @@ export class BattleEngine {
 
     // There is no duration/tick cap: a battle ends only when one combatant reaches 0 HP.
     while (self.hp > 0 && foe.hp > 0) {
-      // Expire timed statuses before this tick's actions. Each Freeze stack owns its own expiry.
+      // Expire timed statuses before this tick's actions. Stackable statuses report each
+      // lost stack; the final lost stack uses the same explicit "ended" event as other statuses.
       for (const [unit, actor] of [[self, 'character'], [foe, 'monster']] as Array<[CombatantSnapshot, string]>) {
-        const expired = (unit.statusEffects ?? []).filter((status: any) => Number(status.expiresAtTick ?? Infinity) <= tick);
-        for (const status of expired) {
-          record({ tick, actor, action: 'status_expired', status: status.type ?? status.id, sourceSkillId: status.sourceSkillId, moveSpeedPenalty: Number(status.moveSpeedPenalty ?? ((status.type ?? status.id) === 'slow' ? 50 : 0)) });
+        const statuses = unit.statusEffects ?? [];
+        const expired = statuses.filter((status: any) => Number(status.expiresAtTick ?? Infinity) <= tick);
+        const remainingByStatus = new Map<string, number>();
+        for (const status of statuses) {
+          const statusId = String(status.type ?? status.id ?? '');
+          remainingByStatus.set(statusId, (remainingByStatus.get(statusId) ?? 0) + 1);
         }
-        unit.statusEffects = (unit.statusEffects ?? []).filter((status: any) => Number(status.expiresAtTick ?? Infinity) > tick);
+        for (const status of expired) {
+          const statusId = String(status.type ?? status.id ?? '');
+          const statusDef = statusEffectDefs[statusId] ?? {};
+          const remainingCount = Math.max(0, (remainingByStatus.get(statusId) ?? 1) - 1);
+          remainingByStatus.set(statusId, remainingCount);
+          const common = {
+            tick,
+            actor,
+            status: statusId,
+            sourceSkillId: status.sourceSkillId,
+            moveSpeedPenalty: Number(status.moveSpeedPenalty ?? statusDef.moveSpeedPenaltyPerStack ?? statusDef.moveSpeedPenalty ?? 0),
+            statusStackable: statusDef.stackable === true,
+          };
+          if (statusDef.stackable === true && remainingCount > 0) {
+            record({ ...common, action: 'status_stack_lessened', stackCount: remainingCount });
+          } else {
+            record({
+              ...common,
+              action: 'status_ended',
+              ...(statusDef.stackable === true ? { stackCount: 0 } : {}),
+            });
+          }
+        }
+        unit.statusEffects = statuses.filter((status: any) => Number(status.expiresAtTick ?? Infinity) > tick);
       }
       // Conditions like `every_n_ticks` are tick-indexed (SPEC §7.1)
       self.tick = tick;
@@ -972,27 +1001,67 @@ export class BattleEngine {
               damageType: String(def.damageType ?? 'melee'),
               hit: landed,
             });
-            if (landed && effect.applyStatus === 'slow') {
-              // Keep Slow as a reusable canonical status for future monster/player skills.
-              self.statusEffects = (self.statusEffects ?? []).filter((status: any) => (status.type ?? status.id) !== 'slow');
-              self.statusEffects.push({ type: 'slow', appliedAtTick: tick, expiresAtTick: tick + Number(effect.statusDurationTicks ?? 20), sourceSkillId: skillId });
-              record({ tick, actor: 'character', action: 'status_applied', status: 'slow', target: 'character', durationTicks: Number(effect.statusDurationTicks ?? 20), moveSpeedPenalty: Number(effect.moveSpeedPenalty ?? 50) });
-            }
-            if (landed && effect.applyStatus === 'freeze') {
-              const activeFreezeStacks = (self.statusEffects ?? []).filter((status: any) => (status.type ?? status.id) === 'freeze');
-              const maxStacks = Math.max(1, Math.floor(Number(effect.maxStacks ?? 5)));
-              if (activeFreezeStacks.length < maxStacks && rng.chance(Number(effect.statusChance ?? 0.25))) {
-                const durationTicks = Math.max(1, Math.floor(Number(effect.statusDurationTicks ?? 5)));
-                self.statusEffects = [...(self.statusEffects ?? []), {
-                  type: 'freeze', appliedAtTick: tick, expiresAtTick: tick + durationTicks, sourceSkillId: skillId,
-                  moveSpeedPenalty: Math.max(0, Number(effect.moveSpeedPenaltyPerStack ?? 15)),
-                }];
-                record({
-                  tick, actor: 'character', action: 'freeze_applied', status: 'freeze', target: 'character',
-                  stackCount: activeFreezeStacks.length + 1, expiresAtTick: tick + durationTicks,
-                  durationTicks, moveSpeedPenalty: Math.max(0, Number(effect.moveSpeedPenaltyPerStack ?? 15)),
-                  sourceSkillId: skillId,
-                });
+            if (landed && effect.applyStatus && statusEffectDefs[String(effect.applyStatus)]) {
+              const statusId = String(effect.applyStatus);
+              const statusDef = statusEffectDefs[statusId] ?? {};
+              const stackable = statusDef.stackable === true;
+              const activeStatusEntries = (self.statusEffects ?? []).filter(
+                (status: any) => String(status.type ?? status.id ?? '') === statusId,
+              );
+              const maxStacks = stackable
+                ? Math.max(1, Math.floor(Number(statusDef.maxStacks ?? 1)))
+                : 1;
+              const canApply = stackable
+                ? activeStatusEntries.length < maxStacks
+                : activeStatusEntries.length === 0 || statusDef.reapplication === 'refresh';
+
+              // Do not roll or consume RNG for a status that cannot be applied.
+              if (canApply) {
+                const statusChance = Math.max(0, Math.min(1, Number(effect.statusChance ?? 1)));
+                // Preserve the seeded RNG stream for guaranteed status applications.
+                const statusRollSucceeded = statusChance >= 1 || rng.chance(statusChance);
+                if (statusRollSucceeded) {
+                  if (!stackable && statusDef.reapplication === 'refresh') {
+                    self.statusEffects = (self.statusEffects ?? []).filter(
+                      (status: any) => String(status.type ?? status.id ?? '') !== statusId,
+                    );
+                  }
+                  const durationTicks = Math.max(
+                    1,
+                    Math.floor(Number(statusDef.statusDurationTicks ?? 1)),
+                  );
+                  const moveSpeedPenalty = Math.max(0, Number(
+                    stackable
+                      ? statusDef.moveSpeedPenaltyPerStack ?? 0
+                      : statusDef.moveSpeedPenalty ?? 0,
+                  ));
+                  self.statusEffects = [...(self.statusEffects ?? []), {
+                    type: statusId,
+                    appliedAtTick: tick,
+                    expiresAtTick: tick + durationTicks,
+                    sourceSkillId: skillId,
+                    moveSpeedPenalty,
+                  }];
+                  const stackCount = (self.statusEffects ?? []).filter(
+                    (status: any) => String(status.type ?? status.id ?? '') === statusId,
+                  ).length;
+                  const action = stackable
+                    ? (statusId === 'freeze' ? 'freeze_applied' : 'status_stack_applied')
+                    : 'status_applied';
+                  record({
+                    tick,
+                    actor: 'character',
+                    action,
+                    status: statusId,
+                    target: 'character',
+                    ...(stackable ? { stackCount } : {}),
+                    expiresAtTick: tick + durationTicks,
+                    durationTicks,
+                    moveSpeedPenalty,
+                    sourceSkillId: skillId,
+                    statusStackable: stackable,
+                  });
+                }
               }
             }
           }
@@ -1025,12 +1094,19 @@ export class BattleEngine {
       // Timed movement debuffs and deterministic post-action movement phase.
       for (const unit of [self, foe]) {
         const statuses = unit.statusEffects ?? [];
-        const slowed = statuses.some((status: any) => (status.type ?? status.id) === 'slow');
-        const freezeStacks = Math.min(5, statuses.filter((status: any) => (status.type ?? status.id) === 'freeze').length);
+        const statusPenalty = statuses.reduce((total: number, status: any) => {
+          const statusId = String(status.type ?? status.id ?? '');
+          const statusDef = statusEffectDefs[statusId] ?? {};
+          const penalty = Number(
+            status.moveSpeedPenalty
+            ?? statusDef.moveSpeedPenaltyPerStack
+            ?? statusDef.moveSpeedPenalty
+            ?? 0,
+          );
+          return total + Math.max(0, penalty);
+        }, 0);
         const baseSpeed = Number(unit.moveSpeedBase ?? unit.moveSpeed ?? 0);
-        const slowPenalty = slowed ? 50 : 0;
-        const freezePenalty = freezeStacks * 15;
-        unit.moveSpeed = Math.max(0, baseSpeed - slowPenalty - freezePenalty);
+        unit.moveSpeed = Math.max(0, baseSpeed - statusPenalty);
       }
       for (const [unit, target, actor] of [[self, foe, 'character'], [foe, self, 'monster']] as Array<[CombatantSnapshot, CombatantSnapshot, string]>) {
         if (!unit.movementIntent || target.hp <= 0) { unit.movementIntent = false; continue; }

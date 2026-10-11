@@ -880,10 +880,7 @@
       "effect": {
         "dmgMult": 1.0,
         "applyStatus": "freeze",
-        "statusChance": 0.25,
-        "statusDurationTicks": 5,
-        "moveSpeedPenaltyPerStack": 15,
-        "maxStacks": 5
+        "statusChance": 0.25
       },
       "baseCastTicks": 2,
       "cooldownTicks": 0,

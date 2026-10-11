@@ -1,0 +1,21 @@
+{
+  "statusEffects": [
+    {
+      "id": "freeze",
+      "name": "Freeze",
+      "stackable": true,
+      "statusDurationTicks": 5,
+      "moveSpeedPenaltyPerStack": 15,
+      "maxStacks": 5
+    },
+    {
+      "id": "slow",
+      "name": "Slow",
+      "stackable": false,
+      "statusDurationTicks": 20,
+      "moveSpeedPenalty": 50,
+      "maxStacks": 1,
+      "reapplication": "refresh"
+    }
+  ]
+}

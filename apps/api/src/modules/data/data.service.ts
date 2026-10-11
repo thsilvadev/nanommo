@@ -10,6 +10,7 @@ export class DataService implements OnModuleInit {
   private items: any = null;
   private monsters: any = null;
   private skillTrees: any = null;
+  private statusEffects: any = null;
   private gambitCatalog: any = null;
   private charXpCurve: any = null;
   private weaponXpCurve: any = null;
@@ -27,6 +28,7 @@ export class DataService implements OnModuleInit {
       this.items = this.loadJsonFile(path.join(dataDir, 'items.json'));
       this.monsters = this.loadJsonFile(path.join(dataDir, 'monsters.json'));
       this.skillTrees = this.loadJsonFile(path.join(dataDir, 'skill_trees.json'));
+      this.statusEffects = this.loadJsonFile(path.join(dataDir, 'status_effects.json'));
       this.gambitCatalog = this.loadJsonFile(path.join(dataDir, 'gambit_catalog.json'));
       this.charXpCurve = this.loadJsonFile(path.join(dataDir, 'char_xp_curve.json'));
       this.weaponXpCurve = this.loadJsonFile(path.join(dataDir, 'weapon_xp_curve.json'));
@@ -61,6 +63,10 @@ export class DataService implements OnModuleInit {
 
   getSkillTrees() {
     return this.skillTrees;
+  }
+
+  getStatusEffects(): any[] {
+    return this.statusEffects?.statusEffects ?? [];
   }
 
   getGambitCatalog() {

@@ -140,7 +140,7 @@ Actions on a tick SHALL evaluate position from the beginning of that tick. Movem
 
 ### Requirement: Slow remains a reusable timed status effect
 
-Slow SHALL remain a canonical status type for future skills. It applies a flat -50 Move Speed modifier for 20 seconds. Reapplying Slow SHALL refresh the existing Slow status rather than stacking independent -50 penalties.
+`status_effects.json` SHALL be the canonical catalog for status duration, stackability, stack caps, movement modifiers and reapplication policy; `apps/frontend/public/data/status_effects.json` SHALL mirror it. Slow SHALL be defined there as non-stackable, with a flat -50 Move Speed modifier for 20 seconds. Reapplying Slow SHALL refresh the existing Slow status rather than stacking independent -50 penalties.
 
 #### Scenario: Slow is refreshed
 - **GIVEN** a unit is already Slowed
@@ -154,20 +154,43 @@ Slow SHALL remain a canonical status type for future skills. It applies a flat -
 
 ### Requirement: Ice Bolt applies independently stacked Freeze to the character
 
-Ice Bolt SHALL cost 0 SP, use the catalogued two-tick cast time, and have no cooldown. Its `maxRange` in `skill_trees.json` includes the target's occupied space, so `maxRange: 7` reaches the maximum empty-space distance of 6 between positions 0 and 7. Each successful cast SHALL have a seeded 25% chance to add one Freeze status stack to the character. Each stack reduces Move Speed by 15 for 5 seconds. Stacks SHALL expire independently, may stack up to five active stacks, and SHALL NOT exceed a total -75 Move Speed modifier. Freeze is distinct from Slow and MUST be included in the ordinary `statusEffects` list.
+Ice Bolt SHALL cost 0 SP, use the catalogued two-tick cast time, and have no cooldown. Its `maxRange` in `skill_trees.json` includes the target's occupied space, so `maxRange: 7` reaches the maximum empty-space distance of 6 between positions 0 and 7. The skill SHALL specify `applyStatus: "freeze"` and a seeded `statusChance: 0.25`; duration, stackability, stack cap and per-stack Move Speed penalty SHALL come from the canonical `status_effects.json`, not duplicated skill metadata. Freeze SHALL remain distinct from Slow and MUST be included in the ordinary `statusEffects` list.
 
 #### Scenario: Ice Bolt freezes the player
 - **GIVEN** Wailing Wraith successfully casts Ice Bolt at the character
 - **WHEN** the seeded 25% status roll succeeds and fewer than five Freeze stacks are active
 - **THEN** one Freeze status stack is added to the character for 5 seconds
 - **AND** effective Move Speed is reduced by 15 per active stack, clamped to zero
-- **AND** the log records `CharacterName is freezing (N)` for the resulting stack count
+- **AND** the log records `CharacterName is freezing (N)` for the resulting stack count sourced from the status catalog
 
 #### Scenario: Freeze is capped and stacks expire independently
 - **GIVEN** the character already has five active Freeze stacks
 - **WHEN** another Ice Bolt cast resolves
 - **THEN** no sixth stack is added
 - **AND** each existing stack expires 5 seconds after its own application
+
+### Requirement: Status-effect stack loss and expiration are explicit in battle logs
+
+The shared BattleEngine SHALL use `status_effects.json` for stackability and stack limits. When one stack of a stackable effect expires and at least one stack remains, it SHALL emit `status_stack_lessened` with the new remaining stack count. When the last stack expires, or any non-stackable status expires, it SHALL emit `status_ended` for that status ID and affected unit. New battle logs SHALL NOT emit generic `status_expired` events. Both live Grind and Battle History SHALL render `status_stack_lessened` as `CharacterName's freeze lessens (N)` and `status_ended` as `CharacterName's freeze ended`, substituting the actual unit name and status ID.
+
+#### Scenario: A stack expires while another remains
+- **GIVEN** a unit has two active stacks of the same stackable status
+- **WHEN** one stack expires
+- **THEN** a `status_stack_lessened` event records the new stack count of one
+
+#### Scenario: The final stack or a non-stackable status ends
+- **GIVEN** a unit has one remaining stack, or one active non-stackable status
+- **WHEN** that effect expires
+- **THEN** a `status_ended` event identifies the affected unit and status ID
+
+### Requirement: Live and historical skill logs show resolved damage
+
+Every damaging `use_skill` event SHALL include its resolved `damage` value, and both the live Grind event feed and Battle History SHALL display that value in the skill message.
+
+#### Scenario: Ice Bolt damage in the live feed
+- **GIVEN** Wailing Wraith's Ice Bolt resolves for 39 damage
+- **WHEN** the event appears in the Grind panel
+- **THEN** it displays `Wailing Wraith casts Ice Bolt for 39 damage`
 
 ### Requirement: Movement and range decisions are reproducible in logs
 

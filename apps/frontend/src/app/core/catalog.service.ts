@@ -3,8 +3,9 @@ import { Injectable, signal } from '@angular/core';
 import { GambitCatalog, ItemDefinition, MonsterDefinition, WeaponCurve } from './game.models';
 @Injectable({providedIn:'root'})
 export class CatalogService {
- readonly items=signal<ItemDefinition[]>([]);readonly monsters=signal<MonsterDefinition[]>([]);readonly gambits=signal<GambitCatalog>({meta:{},conditions:[],actions:[]});readonly weaponCurve=signal<WeaponCurve[]>([]);readonly skills=signal<any[]>([]);private loaded=false;
- async load(){if(this.loaded)return;this.loaded=true;const get=async<T>(p:string)=>fetch('/data/'+p).then(r=>r.json() as Promise<T>);const [i,m,g,w,s]=await Promise.all([get<any>('items.json'),get<any>('monsters.json'),get<GambitCatalog>('gambit_catalog.json'),get<WeaponCurve[]>('weapon_xp_curve.json'),get<any>('skill_trees.json')]);this.items.set([...(i.consumables??[]),...(i.equipment??[]),...(i.monsterParts??[])]);this.monsters.set(m.monsters??[]);this.gambits.set(g);this.weaponCurve.set(w);this.skills.set(Object.values(s.trees??{}).flat());}
+ readonly items=signal<ItemDefinition[]>([]);readonly monsters=signal<MonsterDefinition[]>([]);readonly gambits=signal<GambitCatalog>({meta:{},conditions:[],actions:[]});readonly weaponCurve=signal<WeaponCurve[]>([]);readonly skills=signal<any[]>([]);readonly statusEffects=signal<any[]>([]);private loaded=false;
+ async load(){if(this.loaded)return;this.loaded=true;const get=async<T>(p:string)=>fetch('/data/'+p).then(r=>r.json() as Promise<T>);const [i,m,g,w,s,se]=await Promise.all([get<any>('items.json'),get<any>('monsters.json'),get<GambitCatalog>('gambit_catalog.json'),get<WeaponCurve[]>('weapon_xp_curve.json'),get<any>('skill_trees.json'),get<any>('status_effects.json')]);this.items.set([...(i.consumables??[]),...(i.equipment??[]),...(i.monsterParts??[])]);this.monsters.set(m.monsters??[]);this.gambits.set(g);this.weaponCurve.set(w);this.skills.set(Object.values(s.trees??{}).flat());this.statusEffects.set(se.statusEffects??[]);}
+ statusEffect(id:string){return this.statusEffects().find(x=>x.id===id);}
  item(id:string){return this.items().find(x=>x.id===id);}
  itemTooltipLines(itemId:string,instanceData?:any){
   const d:any=this.item(itemId);if(!d)return [];

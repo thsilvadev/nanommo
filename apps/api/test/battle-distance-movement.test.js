@@ -6,6 +6,8 @@ const { BattleEngine } = require('../../../packages/shared/dist/battle-engine');
 const root = path.resolve(__dirname, '../../..');
 const monstersData = JSON.parse(fs.readFileSync(path.join(root, 'monsters.json'), 'utf8'));
 const skillTree = JSON.parse(fs.readFileSync(path.join(root, 'skill_trees.json'), 'utf8'));
+const statusEffectsData = JSON.parse(fs.readFileSync(path.join(root, 'status_effects.json'), 'utf8'));
+const statusEffectDefs = Object.fromEntries(statusEffectsData.statusEffects.map((status) => [status.id, status]));
 
 function baselineCharacter(overrides = {}) {
   const derived = BattleEngine.calculateDerivedStats(1, {
@@ -113,7 +115,7 @@ function run() {
     rangedMonster,
     page,
     'distance-frozen-movement',
-    { weaponBaseAttackTicks: 99 },
+    { weaponBaseAttackTicks: 99, statusEffectDefs },
   );
   const firstCharacterMove = frozenMovement.log.events.find((event) => event.actor === 'character' && event.action === 'move');
   assert(firstCharacterMove, 'a frozen melee character still approaches when out of range');
@@ -125,10 +127,27 @@ function run() {
   assert.equal(iceBolt.baseCastTicks, 2, 'preserve the latest two-tick Ice Bolt cast-time balance');
   assert.equal(iceBolt.cooldownTicks, 0);
   assert.equal(iceBolt.effect.applyStatus, 'freeze');
-  assert.equal(iceBolt.effect.statusChance, 0.25);
-  assert.equal(iceBolt.effect.statusDurationTicks, 5);
-  assert.equal(iceBolt.effect.moveSpeedPenaltyPerStack, 15);
-  assert.equal(iceBolt.effect.maxStacks, 5);
+  assert.equal(iceBolt.effect.statusChance, 0.25, 'status chance remains configured on the skill');
+  assert.equal(iceBolt.effect.statusDurationTicks, undefined, 'status duration belongs to status_effects.json');
+  assert.equal(iceBolt.effect.moveSpeedPenaltyPerStack, undefined, 'status penalty belongs to status_effects.json');
+  assert.equal(iceBolt.effect.maxStacks, undefined, 'status stack cap belongs to status_effects.json');
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(path.join(root, 'status_effects.json'), 'utf8')),
+    JSON.parse(fs.readFileSync(path.join(root, 'apps/frontend/public/data/status_effects.json'), 'utf8')),
+    'status-effect catalog copies must match',
+  );
+  assert.deepEqual(statusEffectDefs.freeze && {
+    stackable: statusEffectDefs.freeze.stackable,
+    statusDurationTicks: statusEffectDefs.freeze.statusDurationTicks,
+    moveSpeedPenaltyPerStack: statusEffectDefs.freeze.moveSpeedPenaltyPerStack,
+    maxStacks: statusEffectDefs.freeze.maxStacks,
+  }, { stackable: true, statusDurationTicks: 5, moveSpeedPenaltyPerStack: 15, maxStacks: 5 });
+  assert.deepEqual(statusEffectDefs.slow && {
+    stackable: statusEffectDefs.slow.stackable,
+    statusDurationTicks: statusEffectDefs.slow.statusDurationTicks,
+    moveSpeedPenalty: statusEffectDefs.slow.moveSpeedPenalty,
+    reapplication: statusEffectDefs.slow.reapplication,
+  }, { stackable: false, statusDurationTicks: 20, moveSpeedPenalty: 50, reapplication: 'refresh' });
   const wraith = monstersData.monsters.find((monster) => monster.id === 'mon_wraith');
   const monsterSkillDefs = Object.fromEntries(skillTree.monsterSkills.map((skill) => [skill.id, skill]));
   const freezeResult = BattleEngine.simulateBattle(
@@ -136,10 +155,11 @@ function run() {
     wraith,
     page,
     'distance-ice-bolt',
-    { weaponBaseAttackTicks: 99, monsterSkillDefs },
+    { weaponBaseAttackTicks: 99, monsterSkillDefs, statusEffectDefs },
   );
   const iceEvents = freezeResult.log.events.filter((event) => event.actor === 'monster' && event.action === 'use_skill' && event.skillId === 'monster_skill_ice_bolt');
   assert(iceEvents.length > 0, 'Wailing Wraith uses Ice Bolt');
+  assert(iceEvents.every((event) => Number.isFinite(event.damage) && event.damage > 0), 'Ice Bolt battle events include the resolved damage for live and history logs');
   assert(iceEvents.some((event) => event.tick === 1), 'two-tick ranged cast threshold resolves Ice Bolt at tick 1');
   assert(!freezeResult.log.events.some((event) => event.actor === 'monster' && event.action === 'move'), 'Wailing Wraith stays stationary while Ice Bolt is usable');
   assert(freezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Ice Bolt can apply Freeze');
@@ -165,14 +185,14 @@ function run() {
   });
   const cappedFreezeResult = BattleEngine.simulateBattle(
     cappedFreezeCharacter, wraith, page, 'distance-freeze-cap',
-    { weaponBaseAttackTicks: 99, monsterSkillDefs },
+    { weaponBaseAttackTicks: 99, monsterSkillDefs, statusEffectDefs },
   );
   assert(!cappedFreezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Freeze cannot exceed five active stacks');
 
   const slowSkill = {
     id: 'monster_skill_test_slow', name: 'Test Slow', damageType: 'magic',
     ranged: true, maxRange: 7, spCost: 0, baseCastTicks: 1, cooldownTicks: 999,
-    effect: { dmgMult: 0.1, applyStatus: 'slow', statusDurationTicks: 20, moveSpeedPenalty: 50 },
+    effect: { dmgMult: 0.1, applyStatus: 'slow' },
   };
   const slowWraith = {
     ...wraith, hp: 30,
@@ -183,13 +203,45 @@ function run() {
     slowWraith,
     page,
     'distance-slow-is-reusable',
-    { weaponBaseAttackTicks: 6, monsterSkillDefs: { ...monsterSkillDefs, [slowSkill.id]: slowSkill } },
+    { weaponBaseAttackTicks: 6, monsterSkillDefs: { ...monsterSkillDefs, [slowSkill.id]: slowSkill }, statusEffectDefs },
   );
   const slowApplied = slowResult.log.events.find((event) => event.action === 'status_applied' && event.status === 'slow');
   assert(slowApplied && slowApplied.actor === 'character', 'Slow remains a status effect applied to the player');
   assert.equal(slowApplied.durationTicks, 20);
-  assert(slowResult.log.events.some((event) => event.action === 'status_expired' && event.status === 'slow' && event.tick === 20), 'Slow expiration remains deterministic and logged');
+  assert(slowResult.log.events.some((event) => event.action === 'status_ended' && event.status === 'slow' && event.tick === 20), 'Slow expiration is recorded as an explicit status end');
+  assert(!slowResult.log.events.some((event) => event.action === 'status_expired'), 'new logs do not emit generic status_expired events');
   assert(!slowResult.log.events.some((event) => event.action === 'freeze_applied'), 'Slow and Freeze are distinct status types');
+
+  const statusExpiryCharacter = baselineCharacter({
+    hp: 50000,
+    maxHp: 50000,
+    atk: 1,
+    statusEffects: [
+      { type: 'freeze', appliedAtTick: 0, expiresAtTick: 2, moveSpeedPenalty: 15 },
+      { type: 'freeze', appliedAtTick: 0, expiresAtTick: 4, moveSpeedPenalty: 15 },
+      { type: 'slow', appliedAtTick: 0, expiresAtTick: 5, moveSpeedPenalty: 50 },
+    ],
+  });
+  const statusExpiryMonster = { ...meleeMonster, hp: 50, atk: 1, atkSpeedTicks: 99 };
+  const statusExpiryResult = BattleEngine.simulateBattle(
+    statusExpiryCharacter,
+    statusExpiryMonster,
+    page,
+    'status-stack-lessens-then-ends',
+    { weaponBaseAttackTicks: 2, statusEffectDefs },
+  );
+  assert(
+    statusExpiryResult.log.events.some((event) => event.action === 'status_stack_lessened' && event.status === 'freeze' && event.tick === 2 && event.stackCount === 1),
+    'when one of two Freeze stacks expires, the log shows one remaining stack',
+  );
+  assert(
+    statusExpiryResult.log.events.some((event) => event.action === 'status_ended' && event.status === 'freeze' && event.tick === 4 && event.stackCount === 0),
+    'the final Freeze stack ending is logged explicitly',
+  );
+  assert(
+    statusExpiryResult.log.events.some((event) => event.action === 'status_ended' && event.status === 'slow' && event.tick === 5),
+    'non-stackable statuses also use explicit status-ended events',
+  );
 
   const silencedWraith = { ...wraith, statusEffects: [{ type: 'silence', appliedAtTick: 0, expiresAtTick: 99999 }] };
   const silenceResult = BattleEngine.simulateBattle(

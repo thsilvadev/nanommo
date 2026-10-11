@@ -34,6 +34,12 @@ export class CharacterSummary implements OnDestroy {
     const startMs = Date.parse(entry.startAt);
     if (now < startMs || now >= Date.parse(entry.endAt)) return null;
     const tick = Math.floor((now - startMs) / 1000);
+    const definition: any = this.catalog.statusEffect('freeze') ?? {
+      name: 'Freeze', maxStacks: 5, moveSpeedPenaltyPerStack: 15, statusDurationTicks: 5,
+    };
+    const maxStacks = Math.max(1, Number(definition.maxStacks ?? 5));
+    const penaltyPerStack = Math.max(0, Number(definition.moveSpeedPenaltyPerStack ?? 15));
+    const durationSeconds = Math.max(1, Number(definition.statusDurationTicks ?? 5));
     const effects: any[] = [];
     const initial = entry.log?.header?.characterSnapshot?.statusEffects ?? [];
     for (const status of initial) {
@@ -50,7 +56,16 @@ export class CharacterSummary implements OnDestroy {
     if (!active.length) return null;
     const remainingSeconds = active
       .map(status => Math.max(0, Math.ceil((startMs + Number(status.expiresAtTick) * 1000 - now) / 1000)));
-    return { stacks: Math.min(5, active.length), penalty: Math.min(5, active.length) * 15, stackDurations: remainingSeconds };
+    const stacks = Math.min(maxStacks, active.length);
+    return {
+      name: String(definition.name ?? 'Freeze'),
+      stacks,
+      maxStacks,
+      penaltyPerStack,
+      durationSeconds,
+      penalty: stacks * penaltyPerStack,
+      stackDurations: remainingSeconds,
+    };
   }
   itemName(slot: string) { const e = this.equipped(slot); return e ? (this.catalog.item(e.itemId)?.name ?? e.itemId) : '' }
   itemDefinition(slot: string) { const e = this.equipped(slot); return e ? this.catalog.item(e.itemId) : null }
@@ -233,14 +248,21 @@ export class GrindInfo implements OnDestroy {
             : '';
       return `${actor} moved ( ${spaces} ) ${arrow}`;
     }
-    if (e.action === 'freeze_applied') return `${playerName} is freezing (${Number(e.stackCount ?? 1)})`;
-    if (e.action === 'status_applied' && e.status === 'slow') return `${playerName} is slowed`;
-    if (e.action === 'attack') { const critical = e.crit ? ' CRITICAL!' : ''; return (e.actor === 'monster' ? monsterName : playerName) + ' attacks for ' + Number(e.damage ?? 0) + critical; }
+    const actor = e.actor === 'character' ? playerName : monsterName;
+    const status = String(e.status ?? 'status').replace(/_/g, ' ').toLowerCase();
+    if (e.action === 'freeze_applied') return `${actor} is freezing (${Number(e.stackCount ?? 1)})`;
+    if (e.action === 'status_stack_applied') return `${actor} gained ${status} (${Number(e.stackCount ?? 1)})`;
+    if (e.action === 'status_stack_lessened') return `${actor}'s ${status} lessens (${Number(e.stackCount ?? 0)})`;
+    if (e.action === 'status_ended' || e.action === 'status_expired') return `${actor}'s ${status} ended`;
+    if (e.action === 'status_applied') return status === 'slow' ? `${actor} is slowed` : `${actor} is affected by ${status}`;
+    if (e.action === 'attack') { const critical = e.crit ? ' CRITICAL!' : ''; return actor + ' attacks for ' + Number(e.damage ?? 0) + critical; }
     if (e.action === 'regen') return 'You regenerated ' + Number(e.amount ?? 0) + ' ' + String(e.resource ?? 'HP') + '.';
     if (e.action === 'use_item') return (e.actor === 'character' ? playerName + ' uses ' : monsterName + ' uses ') + String(e.itemId ?? 'item').replaceAll('_', ' ');
     if (e.action === 'use_skill') {
       const skill = String(e.skillId ?? 'skill') === 'monster_skill_ice_bolt' ? 'Ice Bolt' : String(e.skillId ?? 'skill').replaceAll('_', ' ');
-      return (e.actor === 'character' ? playerName + ' casts ' : monsterName + ' casts ') + skill;
+      const damage = e.damage != null ? ' for ' + Number(e.damage) + ' damage' : '';
+      const healing = e.healAmount != null ? ' and healed ' + Number(e.healAmount) + ' HP' : '';
+      return actor + ' casts ' + skill + damage + healing;
     }
     return String(e.action ?? 'event');
   }
