@@ -154,7 +154,7 @@ Slow SHALL remain a canonical status type for future skills. It applies a flat -
 
 ### Requirement: Ice Bolt applies independently stacked Freeze to the character
 
-Ice Bolt SHALL cost 0 SP, have a one-second cast time and no cooldown. Its `maxRange` in `skill_trees.json` includes the target's occupied space, so `maxRange: 7` reaches the maximum empty-space distance of 6 between positions 0 and 7. Each successful cast SHALL have a seeded 25% chance to add one Freeze status stack to the character. Each stack reduces Move Speed by 15 for 5 seconds. Stacks SHALL expire independently, may stack up to five active stacks, and SHALL NOT exceed a total -75 Move Speed modifier. Freeze is distinct from Slow and MUST be included in the ordinary `statusEffects` list.
+Ice Bolt SHALL cost 0 SP, use the catalogued two-tick cast time, and have no cooldown. Its `maxRange` in `skill_trees.json` includes the target's occupied space, so `maxRange: 7` reaches the maximum empty-space distance of 6 between positions 0 and 7. Each successful cast SHALL have a seeded 25% chance to add one Freeze status stack to the character. Each stack reduces Move Speed by 15 for 5 seconds. Stacks SHALL expire independently, may stack up to five active stacks, and SHALL NOT exceed a total -75 Move Speed modifier. Freeze is distinct from Slow and MUST be included in the ordinary `statusEffects` list.
 
 #### Scenario: Ice Bolt freezes the player
 - **GIVEN** Wailing Wraith successfully casts Ice Bolt at the character
@@ -182,7 +182,9 @@ Battle logs SHALL record starting positions/style/speed and every completed move
 - **GIVEN** a unit completes one movement step
 - **WHEN** the event is written
 - **THEN** it includes tick, actor, from/to positions, `spacesMoved`, direction, distance before/after, effective Move Speed and reason
-- **AND** the UI presents a character movement as `CharacterName moved ( 1 ) -->` or `CharacterName moved ( 1 ) <--`
+- **AND** the UI presents the movement using the actor's name
+- **AND** the arrow is derived from the actual lane positions: `-->` when `toPosition > fromPosition`, and `<--` when `toPosition < fromPosition`, for either actor
+- **AND** the arrow remains correct if the character and target later pass each other and swap sides
 
 ### Requirement: Current single-target scope leaves 5x5 as future roadmap
 

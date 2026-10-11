@@ -27,7 +27,10 @@ export class BattleLogsComponent {
     const actor=event?.actor==='character'?playerName:event?.actor==='monster'?monsterName:String(event?.actor??'Unknown');
     if(event?.action==='move'){
       const spaces=Number(event.spacesMoved??Math.abs(Number(event.toPosition??0)-Number(event.fromPosition??0)));
-      const arrow=event?.direction==='right'?'-->':'<--';
+      const fromPosition=Number(event?.fromPosition);
+      const toPosition=Number(event?.toPosition);
+      const hasPositionDelta=event?.fromPosition!=null&&event?.toPosition!=null&&Number.isFinite(fromPosition)&&Number.isFinite(toPosition)&&fromPosition!==toPosition;
+      const arrow=hasPositionDelta?(toPosition>fromPosition?'-->':'<--'):(event?.direction==='right'||event?.direction===1||event?.direction==='1')?'-->':(event?.direction==='left'||event?.direction===-1||event?.direction==='-1')?'<--':'';
       return actor+' moved ( '+spaces+' ) '+arrow;
     }
     if(event?.action==='freeze_applied') return playerName+' is freezing ('+Number(event.stackCount??1)+')';

@@ -220,7 +220,17 @@ export class GrindInfo implements OnDestroy {
     if (e.action === 'move') {
       const actor = e.actor === 'character' ? playerName : monsterName;
       const spaces = Number(e.spacesMoved ?? Math.abs(Number(e.toPosition ?? 0) - Number(e.fromPosition ?? 0)));
-      const arrow = e.direction === 'right' ? '-->' : '<--';
+      const fromPosition = Number(e.fromPosition);
+      const toPosition = Number(e.toPosition);
+      const hasPositionDelta = e.fromPosition != null && e.toPosition != null
+        && Number.isFinite(fromPosition) && Number.isFinite(toPosition) && fromPosition !== toPosition;
+      const arrow = hasPositionDelta
+        ? (toPosition > fromPosition ? '-->' : '<--')
+        : (e.direction === 'right' || e.direction === 1 || e.direction === '1')
+          ? '-->'
+          : (e.direction === 'left' || e.direction === -1 || e.direction === '-1')
+            ? '<--'
+            : '';
       return `${actor} moved ( ${spaces} ) ${arrow}`;
     }
     if (e.action === 'freeze_applied') return `${playerName} is freezing (${Number(e.stackCount ?? 1)})`;

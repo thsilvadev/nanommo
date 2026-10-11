@@ -27,7 +27,7 @@
 ## 4. Slow and Wailing Wraith Ice Bolt / Freeze
 
 - [ ] 4.1 Preserve Slow as a reusable timed status (-50 effective Move Speed for 20 seconds); verify clamping, refresh without stacking duplicate Slow entries and expiration.
-- [x] 4.2 Configure monster_skill_ice_bolt with Wailing Wraith MATK magic damage, zero SP/cooldown, one-tick cast, target-inclusive maxRange 7, and the Freeze effect (25% chance, -15 Move Speed per 5-second stack, max five); mirror the JSON and verify the shared simulator uses its damage/status contract.
+- [x] 4.2 Configure monster_skill_ice_bolt with Wailing Wraith MATK magic damage, zero SP/cooldown, two-tick cast, target-inclusive maxRange 7, and the Freeze effect (25% chance, -15 Move Speed per 5-second stack, max five); mirror the JSON and verify the shared simulator uses its damage/status contract.
 - [x] 4.3 Add regression coverage for Wraith's ranged formation, stationary Ice Bolt use, player Freeze application, and Silenced melee fallback/approach; verify movement and status logs use the updated event semantics.
 
 ## 5. Mastery integration

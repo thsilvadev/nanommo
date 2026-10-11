@@ -89,7 +89,25 @@ function run() {
   assert.equal(moving.log.header.characterSnapshot.position, 0);
   assert.equal(moving.log.header.monsterSnapshot.position, 7);
   assert(!moving.log.events.some((event) => event.action === 'range_blocked'), 'range-blocked events are intentionally omitted from logs');
-  assert(moving.log.events.some((event) => event.action === 'move' && event.spacesMoved === 1 && ['left', 'right'].includes(event.direction)));
+  const characterMovesRight = moving.log.events.filter((event) => event.actor === 'character' && event.action === 'move');
+  assert(characterMovesRight.length > 0, 'the character approaches the target from the left');
+  assert(characterMovesRight.every((event) => event.toPosition > event.fromPosition && event.direction === 'right'), 'a character moving to a higher lane position logs rightward direction');
+
+  const rangedCharacter = baselineCharacter({
+    hp: 50000, maxHp: 50000, combatStyle: 'ranged',
+    basicAttackDamageType: 'ranged', basicAttackRange: 6,
+  });
+  const targetApproach = BattleEngine.simulateBattle(
+    rangedCharacter,
+    { ...meleeMonster, hp: 50000, basicAttackRange: 0 },
+    page,
+    'distance-target-moves-left',
+    { weaponBaseAttackTicks: 99 },
+  );
+  const targetMovesLeft = targetApproach.log.events.filter((event) => event.actor === 'monster' && event.action === 'move');
+  assert(targetMovesLeft.length > 0, 'the target approaches the ranged character');
+  assert(targetMovesLeft.every((event) => event.toPosition < event.fromPosition && event.direction === 'left'), 'a target moving to a lower lane position logs leftward direction');
+
   const frozenMovement = BattleEngine.simulateBattle(
     baselineCharacter({ hp: 50000, maxHp: 50000, statusEffects: [{ type: 'freeze', appliedAtTick: 0, expiresAtTick: 1000 }] }),
     rangedMonster,
@@ -104,7 +122,7 @@ function run() {
   const iceBolt = skillTree.monsterSkills.find((skill) => skill.id === 'monster_skill_ice_bolt');
   assert(iceBolt && iceBolt.damageType === 'magic' && iceBolt.ranged && iceBolt.maxRange === 7);
   assert.equal(iceBolt.spCost, 0);
-  assert.equal(iceBolt.baseCastTicks, 1);
+  assert.equal(iceBolt.baseCastTicks, 2, 'preserve the latest two-tick Ice Bolt cast-time balance');
   assert.equal(iceBolt.cooldownTicks, 0);
   assert.equal(iceBolt.effect.applyStatus, 'freeze');
   assert.equal(iceBolt.effect.statusChance, 0.25);
@@ -122,7 +140,7 @@ function run() {
   );
   const iceEvents = freezeResult.log.events.filter((event) => event.actor === 'monster' && event.action === 'use_skill' && event.skillId === 'monster_skill_ice_bolt');
   assert(iceEvents.length > 0, 'Wailing Wraith uses Ice Bolt');
-  assert(iceEvents.some((event) => event.tick === 0), '1-second cast resolves on the first simulation tick');
+  assert(iceEvents.some((event) => event.tick === 1), 'two-tick ranged cast threshold resolves Ice Bolt at tick 1');
   assert(!freezeResult.log.events.some((event) => event.actor === 'monster' && event.action === 'move'), 'Wailing Wraith stays stationary while Ice Bolt is usable');
   assert(freezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Ice Bolt can apply Freeze');
   for (const event of freezeResult.log.events.filter((item) => item.action === 'freeze_applied')) {
