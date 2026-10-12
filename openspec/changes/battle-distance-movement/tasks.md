@@ -30,6 +30,7 @@
 - [x] 4.2 Configure monster_skill_ice_bolt with Wailing Wraith MATK magic damage, zero SP/cooldown, two-tick cast, target-inclusive maxRange 7, and `applyStatus: "freeze"` plus `statusChance: 0.25`; keep status duration, stack penalty and cap in the canonical `status_effects.json` and verify the shared simulator uses that status contract.
 - [x] 4.3 Add regression coverage for Wraith's ranged formation, stationary Ice Bolt use, player Freeze application, and Silenced melee fallback/approach; verify movement and status logs use the updated event semantics.
 - [x] 4.4 Add canonical root/frontend `status_effects.json`, move Freeze duration/penalty/cap out of Ice Bolt, load definitions into API/shared runtime and frontend, and cover stack-lessened/final-ended lifecycle events plus skill-damage log visibility.
+- [x] 4.5 Treat tick 0 as the initial instant for monster ranged-skill cast timing; verify the first two-tick Ice Bolt resolves at T2, repeats every two ticks, and the character's first movement can resolve on T2.
 
 ## 5. Mastery integration
 
@@ -44,3 +45,4 @@
 - [ ] 6.3 Expand the committed focused tests to cover remaining distance/occupancy/tie-order edge cases, Slow refresh/expiry, and invalid Gambit-action/range resource invariants; current regression covers formations, deterministic replay, movement, Freeze penalties/cap, Ice Bolt timing, Wraith stationary casting and Silenced fallback.
 - [ ] 6.4 Run shared/API/frontend builds, focused tests, strict OpenSpec validation and git diff --check; verify this change is complete before applying hand-equipment-mastery-skills.
 - [x] 6.5 Update STATUS.md with files changed, tests actually executed and remaining gaps; explicitly records that the change is incomplete and no production deployment was performed.
+- [x] 6.6 Add character base Move Speed (50 + level) to the Character page's derived Stats panel and verify level 48 displays 98.

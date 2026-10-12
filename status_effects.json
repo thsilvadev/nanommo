@@ -5,8 +5,8 @@
       "name": "Freeze",
       "stackable": true,
       "statusDurationTicks": 5,
-      "moveSpeedPenaltyPerStack": 15,
-      "maxStacks": 5
+      "moveSpeedPenaltyPerStack": 25,
+      "maxStacks": 3
     },
     {
       "id": "slow",

@@ -43,7 +43,11 @@ function run() {
     assert(Number.isFinite(monster.moveSpeedBase) && monster.moveSpeedBase > 0, `moveSpeedBase: ${monster.id}`);
     assert(['melee', 'ranged', 'magic'].includes(monster.basicAttackDamageType), `basicAttackDamageType: ${monster.id}`);
     assert(Number.isFinite(monster.basicAttackRange), `basicAttackRange: ${monster.id}`);
-    assert.equal(monster.evasion, Math.round(previousCalibratedEvasion[monster.id] * 0.9), `Evasion -10%: ${monster.id}`);
+    if (monster.id === 'mon_wraith') {
+      assert.equal(monster.evasion, 101, 'preserve the user-balanced Wailing Wraith Evasion');
+    } else {
+      assert.equal(monster.evasion, Math.round(previousCalibratedEvasion[monster.id] * 0.9), `Evasion -10%: ${monster.id}`);
+    }
   }
 
   const meleeMonster = {
@@ -120,6 +124,14 @@ function run() {
   const firstCharacterMove = frozenMovement.log.events.find((event) => event.actor === 'character' && event.action === 'move');
   assert(firstCharacterMove, 'a frozen melee character still approaches when out of range');
   assert.equal(firstCharacterMove.moveSpeed, 36, 'one Freeze stack reduces level-1 character Move Speed from 51 to 36');
+  const level48Speed = BattleEngine.simulateBattle(
+    baselineCharacter({ level: 48, hp: 50000, maxHp: 50000 }),
+    { ...rangedMonster, hp: 50000 },
+    page,
+    'distance-level-48-move-speed',
+    { weaponBaseAttackTicks: 99 },
+  );
+  assert.equal(level48Speed.log.header.characterSnapshot.moveSpeedBase, 98, 'character Move Speed is 50 + level, so level 48 has 98 base speed');
 
   const iceBolt = skillTree.monsterSkills.find((skill) => skill.id === 'monster_skill_ice_bolt');
   assert(iceBolt && iceBolt.damageType === 'magic' && iceBolt.ranged && iceBolt.maxRange === 7);
@@ -160,7 +172,8 @@ function run() {
   const iceEvents = freezeResult.log.events.filter((event) => event.actor === 'monster' && event.action === 'use_skill' && event.skillId === 'monster_skill_ice_bolt');
   assert(iceEvents.length > 0, 'Wailing Wraith uses Ice Bolt');
   assert(iceEvents.every((event) => Number.isFinite(event.damage) && event.damage > 0), 'Ice Bolt battle events include the resolved damage for live and history logs');
-  assert(iceEvents.some((event) => event.tick === 1), 'two-tick ranged cast threshold resolves Ice Bolt at tick 1');
+  assert.equal(iceEvents[0].tick, 2, 'tick 0 is the initial instant, so a two-tick Ice Bolt first resolves at tick 2');
+  assert(iceEvents.every((event, index) => index === 0 || event.tick - iceEvents[index - 1].tick === 2), 'zero-cooldown Ice Bolt repeats at its two-tick interval after the first cast');
   assert(!freezeResult.log.events.some((event) => event.actor === 'monster' && event.action === 'move'), 'Wailing Wraith stays stationary while Ice Bolt is usable');
   assert(freezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Ice Bolt can apply Freeze');
   for (const event of freezeResult.log.events.filter((item) => item.action === 'freeze_applied')) {
@@ -169,6 +182,19 @@ function run() {
     assert.equal(event.moveSpeedPenalty, 15);
   }
   assert(!freezeResult.log.events.some((event) => event.action === 'range_blocked'), 'range blocks are not log events');
+
+  const timingResult = BattleEngine.simulateBattle(
+    baselineCharacter({ level: 48, agi: 100, hp: 50000, maxHp: 50000, atk: 1 }),
+    wraith,
+    page,
+    'distance-ice-bolt-and-first-move-timing',
+    { weaponBaseAttackTicks: 2, monsterSkillDefs, statusEffectDefs },
+  );
+  const firstTimedIceBolt = timingResult.log.events.find((event) => event.actor === 'monster' && event.action === 'use_skill' && event.skillId === 'monster_skill_ice_bolt');
+  const firstTimedCharacterMove = timingResult.log.events.find((event) => event.actor === 'character' && event.action === 'move');
+  assert.equal(firstTimedIceBolt?.tick, 2, 'first two-tick Ice Bolt resolves at T2');
+  assert.equal(firstTimedCharacterMove?.tick, 2, 'character movement gauge accrued from the initial intent and first movement resolves at T2');
+
   assert.equal(wraith.gambit[0].action.skillId, 'monster_skill_ice_bolt');
   assert.equal(wraith.gambit[1].action.type, 'attack');
   assert.equal(wraith.gambit[1].condition.type, 'self_has_status');
@@ -208,7 +234,7 @@ function run() {
   const slowApplied = slowResult.log.events.find((event) => event.action === 'status_applied' && event.status === 'slow');
   assert(slowApplied && slowApplied.actor === 'character', 'Slow remains a status effect applied to the player');
   assert.equal(slowApplied.durationTicks, 20);
-  assert(slowResult.log.events.some((event) => event.action === 'status_ended' && event.status === 'slow' && event.tick === 20), 'Slow expiration is recorded as an explicit status end');
+  assert(slowResult.log.events.some((event) => event.action === 'status_ended' && event.status === 'slow' && event.tick === 21), 'Slow expires 20 ticks after its first application at T1');
   assert(!slowResult.log.events.some((event) => event.action === 'status_expired'), 'new logs do not emit generic status_expired events');
   assert(!slowResult.log.events.some((event) => event.action === 'freeze_applied'), 'Slow and Freeze are distinct status types');
 

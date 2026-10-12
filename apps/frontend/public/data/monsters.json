@@ -761,7 +761,7 @@
       "def": 22,
       "mdefPercent": 0,
       "accuracy": 89,
-      "evasion": 121,
+      "evasion": 101,
       "critChance": 5.4,
       "atkSpeedTicks": 4,
       "element": "shadow",

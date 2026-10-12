@@ -942,7 +942,10 @@ export class BattleEngine {
       const monsterCastThreshold = pendingMonsterCastChoice?.action?.id === 'use_skill' && pendingMonsterSkillDef.ranged === true
         ? Math.max(1, Math.floor(Number(pendingMonsterSkillDef.baseCastTicks ?? BattleEngine.MONSTER_CAST_GAUGE)))
         : BattleEngine.MONSTER_CAST_GAUGE;
-      monsterCastGauge += 1;
+      // Tick 0 is the initial battle instant, not one elapsed second. Start
+      // accruing monster cast time at tick 1 so a two-tick skill first lands at T2,
+      // then repeats every two ticks when its cooldown is zero.
+      if (tick > 0) monsterCastGauge += 1;
       if (monsterCastGauge >= monsterCastThreshold) {
         monsterCastGauge = 0;
         const choice = pendingMonsterCastChoice;

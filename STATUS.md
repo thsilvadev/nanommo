@@ -1,5 +1,9 @@
 # NanoMMO — Implementation Status
 
+### Latest implementation session — Ice Bolt initial cast timing and Character Move Speed (2026-10-12)
+
+Corrected the monster ranged-skill cast counter so tick 0 is treated as the initial instant rather than a full elapsed second. Wailing Wraith's two-tick Ice Bolt now first resolves at T2 and repeats every two ticks with zero cooldown; added regression assertions for the initial tick and repeat cadence. Added Move Speed to the Character page's derived Stats grid, calculated as 50 + character level (level 48 = 98), and simulator assertions for that base value and movement timing at T2. Preserved the user's Wailing Wraith Evasion rebalance at 101 and synchronized that field to the frontend monster catalog; the focused catalog test treats it as an explicit Wraith-specific override while retaining the general -10% checks for other monsters. The full root/frontend monster JSON files still differ in existing drop-chance tuning for other monsters, which was intentionally left untouched rather than overwritten during this targeted fix. No deployment.
+
 ### Latest implementation session — battle-distance-movement (2026-10-11)
 
 Applied further `battle-distance-movement` adjustments requested on 2026-10-11. Monster Evasion values are reduced by 10% from the prior calibrated values and mirrored in `apps/frontend/public/data/monsters.json`. Root Ice Bolt timing/range edits were preserved and synchronized to the frontend catalog: zero SP cost, two-tick cast, zero cooldown, `maxRange: 7` inclusive of the target space. Wailing Wraith's current root-catalog MATK 39 was preserved and mirrored to the frontend catalog; its basic attack is melee with range 0; while Ice Bolt is legal and in range the Wraith remains stationary. The fallback Gambit line now explicitly requires the `silence` status; Wraith cannot basic-attack while Ice Bolt is usable, and approaches/attacks only while silenced.

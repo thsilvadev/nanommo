@@ -107,12 +107,17 @@ Melee basic attacks and melee skills SHALL execute only on an adjacent target di
 
 ### Requirement: Move Speed drives a deterministic independent movement gauge
 
-Characters SHALL have base Move Speed 50 + characterLevel, making a level-1 character's initial value 51. Each monster SHALL have a catalogued level-1 speed constant and effective speed moveSpeedBase + level - 1. A separate movement gauge SHALL accrue effective speed while there is movement intent, move one space per 100 accumulated points and preserve overflow. Speed is clamped to at least zero.
+Characters SHALL have base Move Speed 50 + characterLevel, making a level-1 character's initial value 51. The Character page's derived Stats panel SHALL display this base Move Speed. Each monster SHALL have a catalogued level-1 speed constant and effective speed moveSpeedBase + level - 1. A separate movement gauge SHALL accrue effective speed while there is movement intent, move one space per 100 accumulated points and preserve overflow. Speed is clamped to at least zero.
 
 #### Scenario: Character level growth
 - **GIVEN** a character moves from level 1 to level 2 with no speed modifiers
 - **WHEN** base Move Speed is calculated
 - **THEN** it increases from 51 to 52
+
+#### Scenario: Character sheet displays base Move Speed
+- **GIVEN** a character is level 48
+- **WHEN** the Character tab's derived Stats panel is rendered
+- **THEN** Move Speed displays 98 (50 + 48)
 
 #### Scenario: Movement gauge threshold
 - **GIVEN** a unit with movement intent and effective speed 51
@@ -155,6 +160,13 @@ Actions on a tick SHALL evaluate position from the beginning of that tick. Movem
 ### Requirement: Ice Bolt applies independently stacked Freeze to the character
 
 Ice Bolt SHALL cost 0 SP, use the catalogued two-tick cast time, and have no cooldown. Its `maxRange` in `skill_trees.json` includes the target's occupied space, so `maxRange: 7` reaches the maximum empty-space distance of 6 between positions 0 and 7. The skill SHALL specify `applyStatus: "freeze"` and a seeded `statusChance: 0.25`; duration, stackability, stack cap and per-stack Move Speed penalty SHALL come from the canonical `status_effects.json`, not duplicated skill metadata. Freeze SHALL remain distinct from Slow and MUST be included in the ordinary `statusEffects` list.
+
+#### Scenario: Two-tick Ice Bolt respects the initial instant
+- **GIVEN** tick 0 is the initial battle instant
+- **AND** Wailing Wraith's Ice Bolt has `baseCastTicks: 2` and zero cooldown
+- **WHEN** the battle reaches its first two elapsed ticks
+- **THEN** the first Ice Bolt event resolves at T2, not T1
+- **AND** subsequent Ice Bolt events occur every two ticks while the skill remains legal and in range
 
 #### Scenario: Ice Bolt freezes the player
 - **GIVEN** Wailing Wraith successfully casts Ice Bolt at the character
