@@ -1,6 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Unique, Index } from 'typeorm';
 import { Character } from './character.entity';
-import { WeaponType } from '@nanommo/shared';
 
 @Entity('weapon_proficiencies')
 @Unique(['characterId', 'weaponType'])
@@ -16,12 +15,18 @@ export class WeaponProficiency {
   @JoinColumn({ name: 'characterId' })
   character?: Character;
 
-  @Column({ type: 'enum', enum: ['sword', 'greatsword', 'dagger', 'bow', 'staff', 'wand', 'shield'] })
-  weaponType!: WeaponType;
+  @Column({ type: 'varchar', length: 16 })
+  weaponType!: string;
 
-  @Column({ type: 'int', default: 1 })
+  @Column({ type: 'int', default: 0 })
   level!: number;
 
   @Column({ type: 'bigint', default: 0 })
   xp!: number;
+
+  @Column({ type: 'int', default: 0 })
+  spentSkillPoints!: number;
+
+  @Column({ type: 'jsonb', default: '{}' })
+  skillRanks!: Record<string, number>;
 }

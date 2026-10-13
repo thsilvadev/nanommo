@@ -29,6 +29,7 @@ export class ResetPasswordDto {
 // Character DTOs
 export class CreateCharacterDto {
   name!: string;
+  dominantHand!: 'right' | 'left';
 }
 
 export class SpendAttributePointsDto {
@@ -43,6 +44,8 @@ export class CharacterDto {
   id!: string;
   userId!: string;
   name!: string;
+  dominantHand!: 'right' | 'left';
+  knownItemIds!: string[];
   level!: number;
   xp!: number;
   xpToNext!: number;

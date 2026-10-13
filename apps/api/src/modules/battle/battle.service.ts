@@ -3,7 +3,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, In, Repository } from 'typeorm';
-import { BattleQueueEntry, Character, MapKillCounter, GambitPage, InventoryItem } from '@/database/entities';
+import { BattleQueueEntry, Character, MapKillCounter, GambitPage, InventoryItem, WeaponProficiency } from '@/database/entities';
 import {
   BattleEngine,
   GambitEvaluator,
@@ -11,6 +11,9 @@ import {
   mulberry32Seed,
   rngForIndex,
   resolveRewards,
+  calculateMasteryXpAwards,
+  masteryLevelForXp,
+  resolveRankScaledSkill,
   type CombatantSnapshot,
 } from '@nanommo/shared';
 import { effectiveFoodStatValue, TOWN_MAP_ID } from '@nanommo/shared';
@@ -22,12 +25,15 @@ import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
 import { GatewayService, BattleResolvedPayload, CharacterLeveledUpPayload, CharacterDiedPayload } from '../gateway/gateway.service';
 import { MapPresenceService } from '../presence/map-presence.service';
+import { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
+export { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
 
 /** SPEC §11.2: epoch rollover once the counter reaches this many kills. */
 const EPOCH_ROLLOVER_AT = 10_000;
 
 /** SPEC §7.1: 1 tick = 1 second of in-game time. */
 const MS_PER_TICK = 1000;
+
 
 export function calculateEncounterSearchDelayMs(otherPlayers: number): number {
   return 2000 + Math.max(0, Math.floor(otherPlayers)) * 100;
@@ -77,6 +83,8 @@ export class BattleService {
     private readonly gambitPageRepo: Repository<GambitPage>,
     @InjectRepository(InventoryItem)
     private readonly inventoryItemRepo: Repository<InventoryItem>,
+    @InjectRepository(WeaponProficiency)
+    private readonly weaponProficiencyRepo: Repository<WeaponProficiency>,
     private readonly dataService: DataService,
     @Inject(forwardRef(() => CharacterService))
     private readonly characterService: CharacterService,
@@ -212,8 +220,8 @@ export class BattleService {
   }
 
   /**
-   * SPEC §9.1: a skill is usable only if its weapon type is equipped AND
-   * WeaponProficiency.level >= skill.unlockWeaponLevel.
+   * A skill is usable only when it has an allocated rank and its category
+   * equipment is present in this immutable combat snapshot.
    */
   private async buildSkillAvailability(characterId: string): Promise<{
     skills: Record<string, any>;
@@ -221,30 +229,38 @@ export class BattleService {
     weaponTypes: string[];
   }> {
     const equipped = await this.equipmentService.getEquipment(characterId);
-    const equippedIds = new Set(equipped.map((e) => e.itemId));
-
     const weaponTypes: string[] = [];
     for (const slot of ['mainHand', 'offHand']) {
       const row = equipped.find((e) => e.slot === slot);
       if (!row) continue;
       const def = this.dataService.getItemById(row.itemId);
-      if (def?.weaponType && !weaponTypes.includes(def.weaponType)) {
-        weaponTypes.push(def.weaponType);
-      }
+      if (def?.weaponType && !weaponTypes.includes(def.weaponType)) weaponTypes.push(def.weaponType);
     }
-    void equippedIds;
 
-    const proficiencies = await this.equipmentService.getWeaponProficiencyLevels(characterId);
+    const masteryRows = await this.equipmentService.getWeaponMasteryRows(characterId);
+    const masteryByType = new Map(masteryRows.map((row) => [row.weaponType, row]));
     const skills: Record<string, any> = {};
     const skillDefs: Record<string, any> = {};
 
     for (const weaponType of weaponTypes) {
-      const profLevel = proficiencies[weaponType] ?? 1;
+      const ranks = masteryByType.get(weaponType)?.skillRanks ?? {};
       for (const skill of this.dataService.getSkillsForWeapon(weaponType)) {
-        if (Number(skill.unlockWeaponLevel ?? 1) > profLevel) continue;
-        skills[skill.id] = skill;
-        skillDefs[skill.id] = skill;
+        const rank = Math.max(0, Math.floor(Number(ranks[skill.id] ?? 0)));
+        if (rank < 1) continue;
+        const learnedDefinition = { ...skill, masteryRank: rank };
+        skillDefs[skill.id] = learnedDefinition;
+        // Passive nodes are snapshot data, never selectable Gambit actions.
+        if (skill.kind === 'active') skills[skill.id] = learnedDefinition;
       }
+    }
+
+    // Resolve rank-scaled costs/cooldowns once at snapshot construction. Stored
+    // Essence only exists in this immutable skill set when a learned Rune passive
+    // is actually equipped, and its discount is applied before Gambit legality.
+    const storedEssenceRank = Math.max(0, Number(skillDefs.stored_essence?.masteryRank ?? 0));
+    for (const definition of Object.values(skillDefs) as any[]) {
+      if (definition.kind !== 'active') continue;
+      Object.assign(definition, resolveRankScaledSkill(definition, definition.masteryRank, storedEssenceRank));
     }
 
     return { skills, skillDefs, weaponTypes };
@@ -265,10 +281,17 @@ export class BattleService {
     skills: Record<string, any>;
     skillDefs: Record<string, any>;
     weaponTypes: string[];
+    masteryEquipment: Array<{ slot: 'mainHand' | 'offHand'; category: string; twoHanded: boolean }>;
   }> {
     const equipmentStats = await this.equipmentService.calculateEquipmentStats(characterId);
     const { skills, skillDefs, weaponTypes } = await this.buildSkillAvailability(characterId);
-    return { equipmentStats, skills, skillDefs, weaponTypes };
+    const rows = await this.equipmentService.getEquipment(characterId);
+    const masteryEquipment = rows.flatMap((row) => {
+      if (row.slot !== 'mainHand' && row.slot !== 'offHand') return [];
+      const item = this.dataService.getItemById(row.itemId);
+      return item?.weaponType ? [{ slot: row.slot as 'mainHand' | 'offHand', category: String(item.weaponType), twoHanded: item.twoHanded === true }] : [];
+    });
+    return { equipmentStats, skills, skillDefs, weaponTypes, masteryEquipment };
   }
 
   /**
@@ -287,13 +310,13 @@ export class BattleService {
     loadout?: Awaited<ReturnType<BattleService['loadCombatantLoadout']>>,
     foodDigestOverride?: Record<string, number>,
   ): Promise<CombatantSnapshot> {
-    const { equipmentStats, skills, skillDefs, weaponTypes } =
+    const { equipmentStats, skills, skillDefs, weaponTypes, masteryEquipment } =
       loadout ?? (await this.loadCombatantLoadout(character.id));
 
     const derived = BattleEngine.calculateDerivedStats(
       character.level,
       {
-        str: character.str + (equipmentStats.statBonus.STR || 0),
+        str: character.str + (equipmentStats.statBonus.STR || 0) + 6 * Math.max(0, Number(skillDefs.brutality?.masteryRank ?? 0)),
         agi: character.agi + (equipmentStats.statBonus.AGI || 0),
         dex: character.dex + (equipmentStats.statBonus.DEX || 0),
         vit: character.vit + (equipmentStats.statBonus.VIT || 0),
@@ -305,6 +328,7 @@ export class BattleService {
         mdefPercent: equipmentStats.mdefPercent,
         weaponFixedAtk: equipmentStats.weaponFixedAtk,
         weaponFixedMatk: equipmentStats.weaponFixedMatk,
+        accuracyModifier: equipmentStats.accuracyModifier,
       },
     );
 
@@ -335,6 +359,7 @@ export class BattleService {
       ),
       skills,
       skillDefs,
+      masteryEquipment,
       statusEffects: character.statusEffects ?? [],
       equippedWeaponTypes: weaponTypes,
     } as CombatantSnapshot;
@@ -592,7 +617,7 @@ export class BattleService {
       const gambitLines = Array.isArray((gambitPage as any)?.lines) ? (gambitPage as any).lines : [];
       const normalizedWeaponTypes = loadout.weaponTypes.map((type) => String(type).toLowerCase());
       const hasBow = normalizedWeaponTypes.includes('bow');
-      const hasRangedBasic = hasBow || normalizedWeaponTypes.some((type) => ['staff', 'wand', 'rod'].includes(type));
+      const hasRangedBasic = hasBow || normalizedWeaponTypes.some((type) => ['staff', 'rod', 'rod'].includes(type));
       const hasRangedGambitAction = gambitLines.some((line: any) => {
         if (line?.enabled === false || line?.disabled === true) return false;
         const action = line?.action ?? {};
@@ -613,7 +638,7 @@ export class BattleService {
         return false;
       });
       snapshot.combatStyle = hasRangedGambitAction ? 'ranged' : 'melee';
-      snapshot.basicAttackDamageType = hasBow ? 'ranged' : normalizedWeaponTypes.some((type) => ['staff', 'wand', 'rod'].includes(type)) ? 'magic' : 'melee';
+      snapshot.basicAttackDamageType = hasBow ? 'ranged' : normalizedWeaponTypes.some((type) => ['staff', 'rod', 'rod'].includes(type)) ? 'magic' : 'melee';
       snapshot.basicAttackRange = hasRangedBasic ? 6 : 0;
 
       // ---- Gambit is evaluated INSIDE the engine, per gauge fire (SPEC §7.3)
@@ -779,6 +804,10 @@ export class BattleService {
       if (!battle) throw new NotFoundException('Battle not found');
       if (battle.resolved) return { alreadyResolved: true as const };
 
+      // Rewards are derived from the immutable precomputed snapshot and events,
+      // then committed under this battle's existing exactly-once transaction.
+      await this.applyMasteryRewards(battle, manager);
+
       // Simulated consumptions and all resulting inventory changes share this
       // transaction with the battle claim and Character state.
       for (const consumed of battle.itemsConsumed ?? []) {
@@ -875,6 +904,8 @@ export class BattleService {
               drop.instanceData,
               manager,
             );
+            const knownItems = Array.isArray(character.knownItemIds) ? character.knownItemIds : [];
+            if (!knownItems.includes(drop.itemId)) character.knownItemIds = [...knownItems, drop.itemId];
           } catch (error) {
             this.logger.warn(
               `Failed to add drop ${drop.itemId} to ${character.id}: ${
@@ -1031,6 +1062,21 @@ export class BattleService {
         `mapKillCount=${result.killCounter.mapKillCount} perMonster=${result.battle.monsterId}:${result.killCounter.perMonsterCount}`,
     );
     return true;
+  }
+
+  private async applyMasteryRewards(battle: BattleQueueEntry, manager: EntityManager): Promise<void> {
+    const awards = calculateMasteryXpAwards(battle.log, getMasteryXpPolicy());
+    const repo = manager.getRepository(WeaponProficiency);
+    for (const [category, amount] of Object.entries(awards)) {
+      if (amount <= 0) continue;
+      const row = await repo.findOne({ where: { characterId: battle.characterId, weaponType: category }, lock: { mode: 'pessimistic_write' } });
+      if (!row) continue;
+      // Preserve cumulative XP. Level and available skill points are derived
+      // from the single shared threshold table in the same battle transaction.
+      row.xp = Number(row.xp) + amount;
+      row.level = masteryLevelForXp(Number(row.xp));
+      await repo.save(row);
+    }
   }
 
   private async tryAutoFeed(character: Character, boundaryAt: number, manager?: EntityManager): Promise<boolean> {

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { EquippedItem } from '../../database/entities/equipped-item.entity';
@@ -7,7 +7,8 @@ import { Character } from '../../database/entities/character.entity';
 import { WeaponProficiency } from '../../database/entities/weapon-proficiency.entity';
 import { BattleQueueEntry } from '../../database/entities/battle-queue-entry.entity';
 import { DataService } from '../data/data.service';
-import { BattleEngine } from '@nanommo/shared';
+import { BattleEngine, effectiveWeaponAttack, validateHandLoadout } from '@nanommo/shared';
+import { BattleService } from '../battle/battle.service';
 
 export interface EquipmentStats {
   def: number;
@@ -16,6 +17,7 @@ export interface EquipmentStats {
   maxSp: number;
   weaponFixedAtk: number;
   weaponFixedMatk: number;
+  accuracyModifier: number;
   statBonus: {
     STR?: number;
     AGI?: number;
@@ -56,6 +58,8 @@ export class EquipmentService {
     @InjectRepository(BattleQueueEntry)
     private readonly battleQueueRepo: Repository<BattleQueueEntry>,
     private readonly dataService: DataService,
+    @Inject(forwardRef(() => BattleService))
+    private readonly battleService: BattleService,
   ) {}
 
   /**
@@ -76,9 +80,21 @@ export class EquipmentService {
     const rows = await this.weaponProfRepo.find({ where: { characterId } });
     const levels: Record<string, number> = {};
     for (const row of rows) {
-      levels[row.weaponType] = Number(row.level ?? 1);
+      levels[row.weaponType] = Number(row.level ?? 0);
     }
     return levels;
+  }
+
+  /** Server-authoritative Mastery state used when building immutable battle snapshots. */
+  async getWeaponMasteryRows(characterId: string): Promise<Array<{ weaponType: string; level: number; xp: number; spentSkillPoints: number; skillRanks: Record<string, number> }>> {
+    const rows = await this.weaponProfRepo.find({ where: { characterId } });
+    return rows.map((row) => ({
+      weaponType: row.weaponType,
+      level: Number(row.level ?? 0),
+      xp: Number(row.xp ?? 0),
+      spentSkillPoints: Number(row.spentSkillPoints ?? 0),
+      skillRanks: row.skillRanks ?? {},
+    }));
   }
 
 
@@ -109,6 +125,7 @@ export class EquipmentService {
       maxSp: 0,
       weaponFixedAtk: 0,
       weaponFixedMatk: 0,
+      accuracyModifier: 0,
       statBonus: {
         STR: 0,
         AGI: 0,
@@ -148,10 +165,16 @@ export class EquipmentService {
         }
       }
 
-      // Weapon fixed contributions only come from the main-hand weapon.
-      if (equip.slot === 'mainHand') {
-        stats.weaponFixedAtk += Number(itemDef.fixedStats?.atk ?? 0);
-        stats.weaponFixedMatk += Number(itemDef.fixedStats?.matk ?? 0);
+      // Only weapon ATK is halved in the secondary hand. Other item properties
+      // (including attribute and defensive bonuses) remain at full value.
+      if (equip.slot === 'mainHand' || equip.slot === 'offHand') {
+        stats.weaponFixedAtk += effectiveWeaponAttack(itemDef, equip.slot);
+        if (equip.slot === 'mainHand') {
+          stats.weaponFixedMatk += Number(itemDef.fixedStats?.matk ?? 0);
+        }
+      }
+      if (itemDef.weaponType === 'bow') {
+        stats.accuracyModifier -= ({ 1: 75, 2: 74, 3: 73 } as Record<number, number>)[Number(itemDef.tier)] ?? 75;
       }
     }
 
@@ -182,12 +205,16 @@ export class EquipmentService {
    * Validates compatibility and triggers battle queue invalidation
    */
   async equipItem(characterId: string, slot: string, itemId: string): Promise<EquippedItem> {
+    return this.battleService.runFutureCombatMutation(characterId, () => this.equipItemMutation(characterId, slot, itemId));
+  }
+
+  private async equipItemMutation(characterId: string, slot: string, itemId: string): Promise<EquippedItem> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
 
     const itemDef = this.dataService.getItemById(itemId);
     if (!itemDef || itemDef.type !== 'equipment') throw new BadRequestException('Item is not equipment');
-    const slotCompatible = itemDef.slot === slot || (itemDef.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'));
+    const slotCompatible = itemDef.slot === slot || (slot === 'offHand' && itemDef.secondaryHand === true) || (itemDef.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'));
     if (!slotCompatible) throw new BadRequestException(`Item ${itemId} cannot be equipped in slot ${slot}`);
     if (character.level < (itemDef.levelReq || 1)) {
       throw new BadRequestException(`Character level ${character.level} is below requirement ${itemDef.levelReq}`);
@@ -215,7 +242,9 @@ export class EquipmentService {
       where: { characterId, resolved: false },
       order: { sequenceIndex: 'ASC' },
     });
-    const grindHasScheduledBattle = character.status === 'grinding' && !!first;
+    const now = Date.now();
+    const activeBattle = first && first.startAt.getTime() <= now && now < first.endAt.getTime();
+    const grindHasScheduledBattle = character.status === 'grinding' && !!activeBattle;
 
     if (grindHasScheduledBattle) {
       const pending = { ...(character.pendingEquipmentChanges ?? {}) };
@@ -227,7 +256,7 @@ export class EquipmentService {
         : pending.mainHand === null
           ? null
           : await this.getEquippedInSlot(characterId, 'mainHand').then((equipped) => equipped ? this.dataService.getItemById(equipped.itemId) : null);
-      const conflictingSlot = this.getConflictingHandSlot(slot, itemDef.weaponType as string, pendingMain?.weaponType as string | undefined);
+      const conflictingSlot = this.getConflictingHandSlot(slot, itemDef, pendingMain);
       if (conflictingSlot) {
         const conflictingPending = pending[conflictingSlot];
         if (conflictingPending) {
@@ -247,8 +276,8 @@ export class EquipmentService {
     const currentMain = await this.getEquippedInSlot(characterId, 'mainHand');
     const conflictingSlot = this.getConflictingHandSlot(
       slot,
-      itemDef.weaponType as string,
-      currentMain ? this.dataService.getItemById(currentMain.itemId)?.weaponType as string : undefined,
+      itemDef,
+      currentMain ? this.dataService.getItemById(currentMain.itemId) : null,
     );
     if (conflictingSlot) {
       const conflicting = await this.getEquippedInSlot(characterId, conflictingSlot);
@@ -278,13 +307,24 @@ export class EquipmentService {
    * Unequip an item from a slot
    */
   async unequipItem(characterId: string, slot: string): Promise<void> {
+    return this.battleService.runFutureCombatMutation(characterId, () => this.unequipItemMutation(characterId, slot));
+  }
+
+  private async unequipItemMutation(characterId: string, slot: string): Promise<void> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
-    if (character.status === 'grinding') {
-      throw new BadRequestException('Equipment can only be unequipped in town');
-    }
     const equipped = await this.getEquippedInSlot(characterId, slot);
     if (equipped) {
+      if (slot === 'mainHand' && await this.getEquippedInSlot(characterId, 'offHand')) {
+        throw new BadRequestException('Remove the secondary item before removing the primary weapon');
+      }
+      const active = await this.battleQueueRepo.findOne({ where: { characterId, resolved: false }, order: { sequenceIndex: 'ASC' } });
+      const now = Date.now();
+      if (character.status === 'grinding' && active && active.startAt.getTime() <= now && now < active.endAt.getTime()) {
+        character.pendingEquipmentChanges = { ...(character.pendingEquipmentChanges ?? {}), [slot]: null };
+        await this.characterRepo.save(character);
+        return;
+      }
       await this.addEquipmentToInventory(characterId, equipped.itemId, equipped.instanceData);
       await this.equippedItemRepo.delete(equipped.id);
       character.lastSeenAt = new Date();
@@ -295,11 +335,11 @@ export class EquipmentService {
 
   private getConflictingHandSlot(
     slot: string,
-    weaponType: string,
-    currentMainWeaponType?: string,
+    itemDefinition: any,
+    currentMainDefinition?: any,
   ): 'mainHand' | 'offHand' | null {
-    const twoHanded = ['greatsword', 'bow', 'staff', 'wand'].includes(weaponType);
-    if (slot === 'offHand' && ['greatsword', 'bow', 'staff', 'wand'].includes(currentMainWeaponType ?? '')) return 'mainHand';
+    const twoHanded = itemDefinition?.twoHanded === true;
+    if (slot === 'offHand' && currentMainDefinition?.twoHanded) return null;
     if (slot === 'mainHand' && twoHanded) return 'offHand';
     return null;
   }
@@ -368,7 +408,7 @@ export class EquipmentService {
   /**
    * Validate weapon combination (dual wield rules per SPEC §5.3)
    * Valid combinations: Sword+Shield, Sword+Sword, Sword+Dagger, Dagger+Shield,
-   * Dagger+Dagger, or 2H weapons (Greatsword, Bow, Staff, Wand) alone
+   * Dagger+Dagger, or 2H weapons (Greatsword, Bow, Staff, Rod) alone
    */
   async validateWeaponCombination(
     characterId: string,
@@ -384,77 +424,27 @@ export class EquipmentService {
     // Determine what will be equipped after this change
     const requestedMain = mainWeapon !== undefined ? this.dataService.getItemById(mainWeapon) : null;
     const requestedOff = offHandWeapon !== undefined ? this.dataService.getItemById(offHandWeapon) : null;
-    const requestedMainIsTwoHanded = ['greatsword', 'bow', 'staff', 'wand'].includes(
-      String(requestedMain?.weaponType ?? ''),
-    );
 
     const currentMainType = mainEquipped
       ? this.dataService.getItemById(mainEquipped.itemId)?.weaponType as string
       : undefined;
-    const currentMainIsTwoHanded = ['greatsword', 'bow', 'staff', 'wand'].includes(currentMainType ?? '');
-
-    // Equipping an off-hand while a 2H weapon is active clears mainHand.
+    // A secondary request never silently removes an incompatible primary.
     const newMain =
       mainWeapon !== undefined
         ? requestedMain
-        : offHandWeapon !== undefined && currentMainIsTwoHanded
-          ? null
-          : mainEquipped
-            ? this.dataService.getItemById(mainEquipped.itemId)
-            : null;
+        : mainEquipped ? this.dataService.getItemById(mainEquipped.itemId) : null;
 
     // Equipping a 2H weapon clears offHand.
     const newOff =
       offHandWeapon !== undefined
         ? requestedOff
-        : mainWeapon !== undefined && requestedMainIsTwoHanded
+        : mainWeapon !== undefined && !!requestedMain?.twoHanded
           ? null
           : offEquipped
             ? this.dataService.getItemById(offEquipped.itemId)
             : null;
 
-    if (!newMain) {
-      if (!newOff) return { valid: true };
-      if (newOff.type !== 'equipment' || newOff.weaponType !== 'shield') {
-        return { valid: false, errors: ['An off-hand without a main-hand weapon must be a shield'] };
-      }
-      return { valid: true };
-    }
-
-    if (newMain.type !== 'equipment') {
-      return { valid: false, errors: ['Main hand must be a weapon'] };
-    }
-
-    const mainType = newMain.weaponType as string;
-    const isTwoHanded = ['greatsword', 'bow', 'staff', 'wand'].includes(mainType);
-
-    // Two-handed weapons occupy both hand slots; equipping one clears offHand.
-    if (isTwoHanded && newOff) {
-      errors.push(
-        `${mainType} is two-handed and cannot have an off-hand weapon`,
-      );
-    }
-
-    // One-handed weapon validation
-    if (!isTwoHanded && newOff) {
-      const offType = newOff.weaponType as string;
-
-      // Valid combinations: Sword+Shield, Sword+Sword, Sword+Dagger,
-      // Dagger+Shield, Dagger+Dagger
-      const validPairs: Record<string, string[]> = {
-        sword: ['shield', 'sword', 'dagger'],
-        dagger: ['shield', 'dagger'],
-        bow: [], // Bow is always 2H
-        staff: [], // Staff is always 2H
-        wand: [], // Wand is always 2H
-      };
-
-      if (!validPairs[mainType] || !validPairs[mainType].includes(offType)) {
-        errors.push(
-          `Invalid weapon combination: ${mainType} + ${offType}`,
-        );
-      }
-    }
+    errors.push(...validateHandLoadout(newMain, newOff));
 
     return {
       valid: errors.length === 0,

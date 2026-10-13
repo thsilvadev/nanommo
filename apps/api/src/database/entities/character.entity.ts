@@ -20,6 +20,13 @@ export class Character {
   @Column({ type: 'varchar', length: 16 })
   name!: string;
 
+  @Column({ type: 'varchar', length: 5, default: 'right' })
+  dominantHand!: 'right' | 'left';
+
+  /** Catalogue IDs known to this character for Gambit configuration. */
+  @Column({ type: 'jsonb', default: '[]' })
+  knownItemIds!: string[];
+
   @Column({ type: 'int', default: 1 })
   level!: number;
 

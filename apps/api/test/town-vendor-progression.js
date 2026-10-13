@@ -10,7 +10,7 @@ const t1Weapons = [
   'equip_dagger_t1',
   'equip_bow_t1',
   'equip_staff_t1',
-  'equip_wand_t1',
+  'equip_rod_t1',
   'equip_shield_t1',
 ];
 assert(loren, 'Blacksmith Loren must exist');

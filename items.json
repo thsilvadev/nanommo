@@ -768,6 +768,11 @@
       "marketBasePrice": 4500,
       "dropPool": [
         "map_green_grounds"
+      ],
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
       ]
     },
     {
@@ -799,6 +804,11 @@
       "marketBasePrice": 11700,
       "dropPool": [
         "map_menace"
+      ],
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
       ]
     },
     {
@@ -830,6 +840,11 @@
       "marketBasePrice": 21600,
       "dropPool": [
         "map_ruins"
+      ],
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
       ]
     },
     {
@@ -954,6 +969,13 @@
       "marketBasePrice": 4500,
       "dropPool": [
         "map_green_grounds"
+      ],
+      "secondaryHand": true,
+      "sameTypePairingAllowed": true,
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
       ]
     },
     {
@@ -985,6 +1007,13 @@
       "marketBasePrice": 11700,
       "dropPool": [
         "map_menace"
+      ],
+      "secondaryHand": true,
+      "sameTypePairingAllowed": true,
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
       ]
     },
     {
@@ -1016,6 +1045,13 @@
       "marketBasePrice": 21600,
       "dropPool": [
         "map_ruins"
+      ],
+      "secondaryHand": true,
+      "sameTypePairingAllowed": true,
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
       ]
     },
     {
@@ -1028,7 +1064,8 @@
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
-        "atk": 9
+        "atk": 9,
+        "accuracyModifier": -75
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1059,7 +1096,8 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "atk": 20
+        "atk": 20,
+        "accuracyModifier": -74
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1090,7 +1128,8 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "atk": 36
+        "atk": 36,
+        "accuracyModifier": -73
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1205,11 +1244,11 @@
       ]
     },
     {
-      "id": "equip_wand_t1",
-      "name": "Worn Wand",
+      "id": "equip_rod_t1",
+      "name": "Worn Rod",
       "type": "equipment",
       "slot": "mainHand",
-      "weaponType": "wand",
+      "weaponType": "rod",
       "twoHanded": false,
       "levelReq": 1,
       "tier": 1,
@@ -1233,14 +1272,19 @@
       "marketBasePrice": 4500,
       "dropPool": [
         "map_green_grounds"
+      ],
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
       ]
     },
     {
-      "id": "equip_wand_t2",
-      "name": "Reinforced Wand",
+      "id": "equip_rod_t2",
+      "name": "Reinforced Rod",
       "type": "equipment",
       "slot": "mainHand",
-      "weaponType": "wand",
+      "weaponType": "rod",
       "twoHanded": false,
       "levelReq": 8,
       "tier": 2,
@@ -1264,14 +1308,19 @@
       "marketBasePrice": 11700,
       "dropPool": [
         "map_menace"
+      ],
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
       ]
     },
     {
-      "id": "equip_wand_t3",
-      "name": "Ancient Wand",
+      "id": "equip_rod_t3",
+      "name": "Ancient Rod",
       "type": "equipment",
       "slot": "mainHand",
-      "weaponType": "wand",
+      "weaponType": "rod",
       "twoHanded": false,
       "levelReq": 15,
       "tier": 3,
@@ -1295,6 +1344,11 @@
       "marketBasePrice": 21600,
       "dropPool": [
         "map_ruins"
+      ],
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
       ]
     },
     {

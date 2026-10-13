@@ -18,7 +18,7 @@
     </div>
     <div *ngIf="page() as p" cdkDropList class="line-list" (cdkDropListDropped)="reorder($event)">
         <article *ngFor="let line of p.lines;let i=index" cdkDrag class="gambit-line"
-            [class.disabled]="line.enabled===false">
+            [class.disabled]="line.enabled===false" [class.missing-equipment]="skillEquipmentMissing(line)">
             <div class="priority">{{i+1}}</div>
             <div class="line-main">
                 <div class="node-block"><small>CONDITION</small><select [ngModel]="line.conditions[0].id"
@@ -76,7 +76,7 @@
                     </div>
                 </div>
             </div>
-            <div class="line-tools"><button class="remove" (click)="remove(i)">×</button><label class="switch"
+            <div class="line-tools"><span *ngIf="skillEquipmentMissing(line)" class="gambit-warning" [attr.title]="equipmentWarningText()" [attr.aria-label]="equipmentWarningText()">⚠️</span><button class="remove" (click)="remove(i)">×</button><label class="switch"
                     title="Enable Gambit line"><input type="checkbox" [checked]="line.enabled!==false"
                         (change)="line.enabled=$any($event.target).checked"><span aria-hidden="true"></span></label>
             </div>

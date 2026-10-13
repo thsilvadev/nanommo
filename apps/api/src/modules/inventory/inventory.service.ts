@@ -282,6 +282,7 @@ export class InventoryService {
           remaining -= toAdd;
 
           if (remaining === 0) {
+            await this.markItemKnown(characterId, itemId, manager);
             return lastItem;
           }
         }
@@ -323,6 +324,7 @@ export class InventoryService {
         remaining -= stackSize;
 
         if (remaining === 0) {
+          await this.markItemKnown(characterId, itemId, manager);
           return lastItem;
         }
       }
@@ -332,6 +334,7 @@ export class InventoryService {
     if (remaining === 0) {
       // If lastItem was set during stacking or creation, return it
       if (lastItem) {
+        await this.markItemKnown(characterId, itemId, manager);
         return lastItem;
       }
       // Fallback: fetch the most recently added item
@@ -348,6 +351,21 @@ export class InventoryService {
     throw new BadRequestException(
       `Failed to add item: remaining=${remaining}, lastItem=${lastItem ? 'exists' : 'undefined'}`,
     );
+  }
+
+  /**
+   * First successful item grant makes the catalogue entry known for Gambits.
+   * Battle transactions update their already-loaded Character instance in
+   * BattleService instead, preventing a stale entity save from overwriting it.
+   */
+  private async markItemKnown(characterId: string, itemId: string, manager?: EntityManager): Promise<void> {
+    if (manager) return;
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character) return;
+    const known = Array.isArray(character.knownItemIds) ? character.knownItemIds : [];
+    if (known.includes(itemId)) return;
+    character.knownItemIds = [...known, itemId];
+    await this.characterRepo.save(character);
   }
 
   /**

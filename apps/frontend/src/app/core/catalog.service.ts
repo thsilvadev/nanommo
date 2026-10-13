@@ -7,9 +7,9 @@ export class CatalogService {
  async load(){if(this.loaded)return;this.loaded=true;const get=async<T>(p:string)=>fetch('/data/'+p).then(r=>r.json() as Promise<T>);const [i,m,g,w,s,se]=await Promise.all([get<any>('items.json'),get<any>('monsters.json'),get<GambitCatalog>('gambit_catalog.json'),get<WeaponCurve[]>('weapon_xp_curve.json'),get<any>('skill_trees.json'),get<any>('status_effects.json')]);this.items.set([...(i.consumables??[]),...(i.equipment??[]),...(i.monsterParts??[])]);this.monsters.set(m.monsters??[]);this.gambits.set(g);this.weaponCurve.set(w);this.skills.set(Object.values(s.trees??{}).flat());this.statusEffects.set(se.statusEffects??[]);}
  statusEffect(id:string){return this.statusEffects().find(x=>x.id===id);}
  item(id:string){return this.items().find(x=>x.id===id);}
- itemTooltipLines(itemId:string,instanceData?:any){
+ itemTooltipLines(itemId:string,instanceData?:any,equippedSlot?:string){
   const d:any=this.item(itemId);if(!d)return [];
-  if(d.type==='equipment')return this.equipmentStatLines(itemId,instanceData);
+  if(d.type==='equipment')return this.equipmentStatLines(itemId,instanceData,equippedSlot);
   const hidden=d.type==='consumable'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor']):d.type==='monster_part'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();
   const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;
   return visible.filter(k=>k!=='id'&&k!=='name'&&!hidden.has(k)&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k==='effect'?'Effect':k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:k==='effect'?this.formatItemEffect(d[k]):typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}));
@@ -27,11 +27,15 @@ export class CatalogService {
   const s=Math.max(0,Math.round(seconds));const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);const sec=s%60;
   return h>0?`${h}h ${String(m).padStart(2,'0')}m`:m>0?`${m}m`:`${sec}s`;
  }
- equipmentStatLines(itemId:string,instanceData?:any){
+ equipmentStatLines(itemId:string,instanceData?:any,equippedSlot?:string){
   const item:any=this.item(itemId);if(item?.type!=='equipment')return [];
   const lines:any[]=[];const fixed=item.fixedStats??{};
   const labels:Record<string,string>={atk:'Attack',matk:'Magic ATK',def:'Defense',mdefPercent:'MDEF',maxHp:'Max HP',maxSp:'Max SP'};
-  for(const key of ['atk','matk','def','mdefPercent','maxHp','maxSp']){const value=Number(fixed[key]??0);if(value)lines.push({label:labels[key],value:`+${value}${key==='mdefPercent'?'%':''}`});}
+  for(const key of ['atk','matk','def','mdefPercent','maxHp','maxSp']){
+   const value=Number(fixed[key]??0);if(!value)continue;
+   if(key==='atk'&&equippedSlot==='offHand'&&item.weaponType&&!['shield','rune'].includes(String(item.weaponType))){lines.push({label:labels[key],originalValue:'+'+value,value:'+'+Math.floor(value/2)});}
+   else lines.push({label:labels[key],value:'+'+value+(key==='mdefPercent'?'%':'')});
+  }
   for(const [key,value] of Object.entries(fixed.statBonus??{})){const n=Number(value);if(n)lines.push({label:key,value:`+${n}`});}
   const rolledAttribute=String(instanceData?.rolledAttribute??'');const rolledValue=Number(instanceData?.rolledValue??0);
   if(rolledAttribute&&rolledValue)lines.push({label:`${rolledAttribute} (rolled)`,value:`+${rolledValue}`});

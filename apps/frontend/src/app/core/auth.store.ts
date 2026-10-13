@@ -168,12 +168,12 @@ export class AuthStore {
     });
   }
 
-  createCharacter(name: string): Observable<Character> {
+  createCharacter(name: string, dominantHand: 'right' | 'left'): Observable<Character> {
     this._isLoading.set(true);
     this._error.set(null);
 
     return new Observable<Character>((observer) => {
-      this.api.post<Character>('/characters', { name }).subscribe({
+      this.api.post<Character>('/characters', { name, dominantHand }).subscribe({
         next: (character) => {
           this._isLoading.set(false);
           this.characterStore.applyRealtimeSnapshot(character, character.stateVersion);

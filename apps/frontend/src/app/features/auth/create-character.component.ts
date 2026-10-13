@@ -19,9 +19,15 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
           <div class="mb-6 p-4 bg-red-900/50 border border-red-700 text-red-200 rounded-lg text-sm">
             {{ serverError() }}
           </div>
+
         }
 
         <form (ngSubmit)="onSubmit()" #createForm="ngForm" class="space-y-1">
+          <fieldset class="mt-4 text-gray-300">
+            <legend class="text-sm font-medium">Mão dominante</legend>
+            <label class="mr-5"><input type="radio" name="dominantHand" value="right" [(ngModel)]="form.dominantHand" required /> Direita</label>
+            <label><input type="radio" name="dominantHand" value="left" [(ngModel)]="form.dominantHand" required /> Esquerda</label>
+          </fieldset>
           <div>
             <label for="name" class="block text-sm font-medium text-gray-300">Nome do Personagem</label>
             <input
@@ -78,15 +84,16 @@ export class CreateCharacterComponent {
 
   form = {
     name: '',
+    dominantHand: 'right' as 'right' | 'left',
   };
 
   isLoading = this.authStore.isLoading;
   serverError = signal<string | null>(null);
 
   onSubmit(): void {
-    const { name } = this.form;
+    const { name, dominantHand } = this.form;
     this.serverError.set(null);
-    this.authStore.createCharacter(name).subscribe({
+    this.authStore.createCharacter(name, dominantHand).subscribe({
       next: () => {
         this.router.navigate(['/play']);
       },

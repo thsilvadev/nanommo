@@ -13,8 +13,21 @@ export enum WeaponType {
   DAGGER = 'dagger',
   BOW = 'bow',
   STAFF = 'staff',
-  WAND = 'wand',
+  ROD = 'rod',
   SHIELD = 'shield',
+  RUNE = 'rune',
+}
+
+/** Current Mastery categories. Shield and Rune are defensive equipment categories. */
+export enum MasteryCategory {
+  SWORD = 'sword',
+  GREATSWORD = 'greatsword',
+  DAGGER = 'dagger',
+  BOW = 'bow',
+  STAFF = 'staff',
+  ROD = 'rod',
+  SHIELD = 'shield',
+  RUNE = 'rune',
 }
 
 export enum EquipmentSlot {

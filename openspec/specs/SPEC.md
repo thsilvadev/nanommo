@@ -13,10 +13,10 @@
 3. Core Design Principles (determinism, server authority, seemless idle)
 4. Data Model (TypeORM entities)
 5. Attributes, Stats & Formulas
-6. Progression: Character XP & Weapon Proficiency
+6. Progression: Character XP & Mastery
 7. Battle Engine (tick simulation, action gauge, prediction queue)
 8. Gambit System
-9. Weapons & Skill Trees
+9. Mastery Skill Trees
 10. Items, Equipment & Inventory
 11. Maps, Encounter Queues & Drops
 12. Town: Vendor NPC, Warehouse, Chat
@@ -48,7 +48,7 @@ NanoMMO is a **browser-based idle MMORPG**. There is no manual combat input. The
 - **Server-authoritative, client-light.** The client never computes outcomes; it only animates timers derived from server-provided timestamps.
 - **Minimal network chatter.** The server pre-computes and pushes a short queue of upcoming battle results so the client can run "seemlessly" for minutes without a single extra request (see §7.4).
 - **True idle.** Progress continues while the browser is closed, as long as the character stays on a map (town = paused when offline). No punishing offline penalties beyond running out of consumables.
-- **Meaningful automation depth without code.** The Gambit system is the player's entire skill expression. It must be deep through 20 prioritized lines across 3 pages, while each line remains a simple single-condition rule composed from curated lists.
+- **Meaningful automation depth without code.** The Gambit system is the player's entire skill expression. It must be deep (up to 2 chained conditions, 20 lines, 3 pages) but never require the player to write logic — only compose from curated lists.
 
 ---
 
@@ -79,6 +79,7 @@ nanommo/
 │   │   │   │   ├── town/        # vendor, warehouse
 │   │   │   │   ├── chat/
 │   │   │   │   ├── market/
+│   │   │   │   ├── presence/    # gameplay map presence + reusable online presence
 │   │   │   │   ├── mail/
 │   │   │   │   └── gateway/     # Socket.IO gateway, thin — delegates to modules
 │   │   │   ├── data/            # static JSON: monsters.json, items.json, npc_vendor.json,
@@ -151,16 +152,18 @@ server only needs to "resolve" (apply effects) one battle at a time via a schedu
 ### 3.4 What "recalculation" means
 
 The battle queue is invalidated and rebuilt from scratch whenever, and only whenever:
-- The player changes their **active gambit page** (or edits the currently active one).
-- The player spends **attribute points** that change combat statistics.
+- The player changes their **active gambit page** (or edits the currently active one); during an active battle the change is persisted for future battles while the active battle snapshot remains unchanged (see §8.5).
+- The player spends **attribute points** that change combat statistics; during an active battle the spend is accepted but only affects battles after the active snapshot resolves.
 - The player changes **equipment**.
 - The player consumes a **food** item manually from the inventory UI (as opposed to via gambit) or otherwise changes buffs outside of the auto-battle loop.
 - The player switches **map**.
 - The player **levels up** mid-queue in a way that changes stats (handled automatically by the resolver, not player-triggered, but still forces a requeue — see §7.6).
 
-All future-combat mutations use one BattleService-owned boundary. If no battle is currently running (`startAt <= now < endAt`), the mutation is persisted, stale unresolved entries and their BullMQ jobs are discarded, and the canonical queue is rebuilt to depth 5 when the character remains eligible to grind. If a battle is currently running, the mutation is still accepted and persisted, the active entry/job are preserved, and only stale future entries after the active battle are discarded; no replacement future battle is scheduled before the active battle resolves. The normal queue-advance boundary then rebuilds the future chain from the updated authoritative state. The current in-progress battle is never recalculated or replaced. Failed validation happens before queue invalidation. Editing an inactive Gambit page and re-activating the page that is already active are no-ops for queue invalidation.
+All future-combat mutations use one BattleService-owned boundary. If an unresolved queue entry satisfies `startAt <= now < endAt`, the mutation is still accepted after validation: persist the new Character/Gambit state, preserve the active BattleQueueEntry and its BullMQ job unchanged, and invalidate only stale future entries after that active battle. Do not schedule a replacement chain while the battle is active; rebuild the canonical queue to depth 5 after it resolves, using the new state. When no battle is active, invalidate stale unresolved entries and rebuild immediately if the character remains eligible to grind. Failed validation happens before queue invalidation. Editing an inactive Gambit page and re-activating the page that is already active are no-ops for queue invalidation.
 
 Anything else (a battle resolving normally, a potion being consumed by the gambit as predicted) does **not** trigger recalculation — it was already accounted for in the original simulation.
+
+After a successful HTTP equipment or consumable mutation, the frontend MUST apply the authoritative Character/Inventory/Equipment state returned by that mutation immediately. Attributes and Stats MUST NOT wait for a follow-up Character poll to reflect the new state. The client never recomputes gameplay formulas; it only presents the authoritative response.
 
 ---
 
@@ -191,6 +194,8 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | id | uuid, PK | |
 | userId | uuid, FK → User, unique | 1:1 |
 | name | varchar(16) | denormalized copy of `User.username` |
+| dominantHand | varchar(5), default right | right/left; presentation only, never changes semantic hand API slots |
+| knownItemIds | jsonb, default [] | item IDs the character has seen/acquired; separate from inventory quantity |
 | level | int, default 1 | 1–99 |
 | xp | bigint, default 0 | current XP toward next level |
 | unspentAttributePoints | int, default 0 | |
@@ -205,22 +210,24 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | activeFoodBuff | jsonb, nullable | `{ itemId, hpRegenPerTenTicks, spRegenPerTenTicks, expiresAt }` |
 | activeTempBuffs | jsonb, default [] | array of `{ source, stat, mult|flat, expiresAt|expiresAtTick }` from skills like Bloodlust |
 | statusEffects | jsonb, default [] | array of `{ type, appliedAtTick, expiresAtTick, sourceSkillId }` |
-| lastSeenAt | timestamptz | for online/offline + presence |
+| lastSeenAt | timestamptz | online/offline metadata; future heartbeat owns online freshness, not gameplay map membership |
 | regenAnchorAt | timestamptz, nullable | stable origin for the character's continuous 10-tick regeneration timeline |
 | createdAt / updatedAt | timestamptz | |
 
 Character creation bootstrap (one time only): seed the starter pack with 50 `pot_hp_small` and 5 `food_bread`. Characters start **unarmed**; no `equip_sword_t1` or other weapon is granted or equipped at creation. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
 
-### 4.3 `WeaponProficiency`
+### 4.3 Mastery category progress (`weapon_proficiencies` legacy table)
 | field | type | notes |
 |---|---|---|
 | id | uuid, PK | |
 | characterId | uuid, FK | |
-| weaponType | enum(sword, greatsword, dagger, bow, staff, wand, shield) | |
-| level | int, default 1 | 1–50 |
-| xp | bigint, default 0 | |
+| weaponType | varchar(16) | one of `sword`, `greatsword`, `dagger`, `bow`, `staff`, `rod`, `shield`, `rune` |
+| level | int, default 0 | 0–10; derived from cumulative Mastery XP by the shared threshold table (§6.5) |
+| xp | bigint, default 0 | cumulative Mastery XP for this category |
+| spentSkillPoints | int, default 0 | ranks purchased in this category; must not exceed Mastery level |
+| skillRanks | jsonb, default `{}` | map from skill ID to allocated rank; ranks survive death |
 
-Unique index on `(characterId, weaponType)`. One row per weapon type is created lazily on first equip (or all 7 seeded at character creation — recommended, simpler).
+Unique index on `(characterId, weaponType)`. Character creation and the migration seed exactly one row for each of the eight categories at level 0, 0 XP, 0 spent points, and no learned ranks. The SQL table name remains `weapon_proficiencies` for compatibility; its legacy level-1-to-50 meaning is retired.
 
 ### 4.4 `InventoryItem` (also reused, with a `location` discriminator, for Warehouse)
 | field | type | notes |
@@ -242,7 +249,7 @@ Unique index on `(characterId, weaponType)`. One row per weapon type is created 
 | itemId | varchar | |
 | instanceData | jsonb, nullable | `{ rolledAttribute, rolledValue }` or elemental immunity for shoes (static, no roll) |
 
-Catalog equipment with `slot: accessory` is compatible with either persisted `accessoryLeft` or `accessoryRight`; persisted EquippedItem rows always use the explicit left/right slot.
+Catalog equipment with `slot: accessory` is compatible with either persisted `accessoryLeft` or `accessoryRight`; the persisted EquippedItem always stores the explicit left/right slot.
 
 ### 4.6 `GambitPage`
 | field | type | notes |
@@ -382,7 +389,7 @@ Attack Speed and Cast Speed are displayed as ratings where higher is faster. Att
 
 At level 1 with all six attributes at 5 and the starter sword's +8 ATK:
 
-ATK 18 | DEF 0 | Max HP 140 | Max SP 60
+ATK 18 | MATK 10 | DEF 0 | Max HP 140 | Max SP 60
 Attack Speed 110 | Cast Speed 110
 Evasion 100 | Precision 80
 HP Regen 3 / 10 ticks | SP Regen 3 / 10 ticks
@@ -414,29 +421,23 @@ isCrit = roll() < critChance%
 damage = isCrit ? damage * critMultiplier : damage
 ```
 
-### 5.3 Weapon type combat identity
+### 5.3 Hand equipment and weapon identity
 
-| Weapon | Slot(s) | Damage type | Legacy weapon timing metadata (ticks) | Notes |
-|---|---|---|---|---|
-| Sword | mainHand (1H) | melee | 6 | balanced; pairs with Shield or a second Sword/Dagger |
-| Greatsword | mainHand+offHand (2H) | melee | 10 | heaviest hit; occupies both hand slots |
-| Dagger | mainHand (1H) | melee | 4 | light melee; pairs with Shield, Sword, or a second Dagger |
-| Bow | mainHand+offHand (2H) | ranged physical | 7 | |
-| Staff | mainHand+offHand (2H) | ranged magic | 9 | highest MATK scaling |
-| Wand | mainHand+offHand (2H) | ranged magic + healing | 7 | only weapon with heal skills |
-| Shield | offHand only | — (utility) | n/a (no basic attack) | pairs with Sword or Dagger only |
+The eight canonical Mastery categories are Sword, Greatsword, Dagger, Bow, Staff, Rod, Shield, and Rune. Sword, Dagger, and Rod are one-handed primary weapons. Greatsword, Bow, and Staff occupy both hands. Dagger is the only weapon that may occupy either semantic hand; Shield and Rune are off-hand equipment. A secondary item requires a compatible one-handed primary. Dagger + Dagger and Sword/Rod + Dagger are legal; Sword + Sword is forbidden. Shield and Rune may pair with any one-handed primary. The item catalogue's slot, twoHanded, and allowedOffHandTypes metadata is the authoritative compatibility contract; do not maintain a second hard-coded weapon-name matrix.
 
-Valid main/off-hand combinations: `Sword+Shield`, `Sword+Sword`, `Sword+Dagger`, `Dagger+Shield`, `Dagger+Dagger`, or any of `Greatsword`/`Bow`/`Staff`/`Wand` alone (occupies both hand slots, `offHand` slot is locked/hidden in UI while equipped). Server validates this combination on every equip request — reject with a clear error code if illegal.
+The semantic slots remain mainHand (primary) and offHand (secondary), independent of a character's saved dominantHand (right or left). Dominant hand mirrors only the UI presentation; API names and combat semantics never change. A two-handed equip returns a conflicting secondary item to inventory. The server validates final hand combinations for every equip mutation.
 
-The table's weapon timing values remain legacy catalog metadata; the current character basic-Attack gauge interval is governed by the Attack Speed rating formula in §7.2, independently of weapon. The **basic Attack** gambit action still uses the mainHand weapon's damage type. **Skills** always use the **DEX-based cast gauge** regardless of weapon (see §7.2), and are only usable while their required `weaponType` is equipped in mainHand (or offHand for Shield skills).
+Main-hand weapon ATK contributes at 100%; secondary-hand weapon ATK contributes at 50%. Only the secondary weapon's ATK is reduced: attributes, defensive properties, and other bonuses/effects remain at full value. The equipped secondary weapon tooltip displays its original ATK struck through and the effective 50% contribution beside it, using the shared CatalogService tooltip path.
+
+Basic Attack's damage type comes from the main-hand item and timing uses the universal Attack Speed formula (§7.2), not legacy weapon timing metadata. Active skills require the relevant mastery rank, required equipment, sufficient SP, and a ready cooldown; active abilities do not roll Accuracy/Evasion or critical hits. Positional abilities consume the battle-distance-movement contract at the end of this document.
 
 ---
 
-## 6. Progression: Character XP & Weapon Proficiency
+## 6. Progression: Character XP & Mastery
 
 ### 6.1 Design intent
 
-Reaching character level 60 should take roughly **1 month of continuous idle grinding** (excluding time spent in town), and the **single step from level 59 to 60 alone** should account for roughly **half of that month** — i.e. the curve is dominated by its own tail, early levels fly by, the last stretch dominates. Beyond level 60 (cap 99), growth becomes deliberately near-impossible, framing 99 as an aspirational horizon rather than a realistic target. Weapon proficiency (separate resource, cap 50) should feel fast at first (level 10 in about a day) and become a true long-term commitment (level 50 in about a year).
+Reaching character level 60 should take roughly **1 month of continuous idle grinding** (excluding time spent in town), and the **single step from level 59 to 60 alone** should account for roughly **half of that month** — i.e. the curve is dominated by its own tail, early levels fly by, the last stretch dominates. Beyond level 60 (cap 99), growth becomes deliberately near-impossible, framing 99 as an aspirational horizon rather than a realistic target. Mastery is separate per category, starts at level 0, and is capped at level 10; skill points are earned by Mastery levels and spent on ranks.
 
 Both curves below were derived, not guessed: a small simulation (`packages/shared` should ship the generator script as `scripts/generate-xp-curves.ts` for future rebalancing) assumed **~20 effective idle-hours/day**, an **average battle length of 15s**, and an average XP-per-kill of `18 * monsterLevel^1.15` (this constant also drives `xpReward` in `monsters.json` — the two are the same formula, keep them in sync). Solving for these targets yields a clean **geometric doubling curve** up to level 60, then a steeper geometric tail to 99.
 
@@ -450,7 +451,7 @@ xpToNextLevel(L) =
 C1 = 2.4433638740432053e-10   // derived constant, TUNABLE only via full curve regeneration
 ```
 
-Do not hand-edit individual level values — if rebalancing is needed, adjust `C1` and/or the two exponents (`2.0` early ratio, `1.35` late ratio) and regenerate the full table. The complete precomputed table (all 98 rows: `level, xpToNext, cumulativeXp, estHoursAtThisLevel, estDaysAtThisLevel`) ships as `char_xp_curve.json` (§21) — **load this at boot and use it directly**; do not recompute the formula at runtime, just index into the table by level for O(1) lookups.
+Do not hand-edit individual level values — if rebalancing is needed, adjust `C1` and/or the two exponents (`2.0` early ratio, `1.35` late ratio) and regenerate the full table. The current Grind reward resolver additionally applies a **0.25 global XP pacing multiplier** to monster payouts; the canonical monster `xpReward` values remain the curve source data. The complete precomputed table (all 98 rows: `level, xpToNext, cumulativeXp, estHoursAtThisLevel, estDaysAtThisLevel`) ships as `char_xp_curve.json` (§21) — **load this at boot and use it directly**; do not recompute the formula at runtime, just index into the table by level for O(1) lookups.
 
 Sanity checkpoints from the generated table (assumptions above): level 60 reached at ~600 idle-hours (~30 days); level 59→60 alone takes ~294 idle-hours (~14.7 days, essentially half the total climb to 60); level 90 is ~205 years; level 99 is deliberately beyond any realistic playtime. This matches the intent: fast early game, brutal late game, 99 as a horizon.
 
@@ -466,7 +467,7 @@ A single XP resolution SHALL consume every XP threshold crossed by the awarded X
 
 ### 6.3.1 Attribute allocation and future-battle safety
 
-Spending unspent STR/AGI/DEX/VIT/INT/SOR points is a combat-state mutation because those attributes feed derived combat statistics. The server validates the complete spend before persisting it. If an unresolved `BattleQueueEntry` is currently in flight (`startAt <= now < endAt`), the request is still accepted: Character attributes are updated, the active battle entry/job remain unchanged, and only stale future entries after that active battle are invalidated. The future chain is rebuilt from the persisted post-spend Character state after the active battle resolves. When no battle is in flight, the successful spend immediately invalidates the unresolved future chain through the same BattleService-owned discard/cancel/rebuild boundary used by level-up, equipment and food mutations.
+Spending unspent STR/AGI/DEX/VIT/INT/SOR points is a combat-state mutation because those attributes feed derived combat statistics. The server validates the complete spend before persisting it. If an unresolved `BattleQueueEntry` is currently in flight (`startAt <= now < endAt`), the request is still accepted: the Character attributes are updated, the active battle entry/job remain unchanged, and only stale future entries after that active battle are invalidated. The future chain is rebuilt from the persisted post-spend Character state after the active battle resolves. When no battle is in flight, the successful spend immediately invalidates the unresolved future chain through the same BattleService-owned discard/cancel/rebuild boundary used by level-up, equipment and food mutations.
 
 ### 6.4 XP loss on death
 
@@ -480,15 +481,15 @@ Two things this deliberately does *not* do, both settled as of 2026-09-28 (previ
 Implemented as written in `battle.service.ts:545-546`; verified by `apps/api/test-phase3-death.js` (level 10 → `floor(30 × 0.05) = 1`; level 20 seeded at 1 XP with `floor(73 × 0.05) = 3` → clamped to 0, level unchanged at 20).
 
 
-### 6.5 Weapon proficiency XP formula
+### 6.5 Mastery XP and levels
 
-```
-weaponXpToNextLevel(L) = round(5886.4477522292345 * 1.1508260363470009^(L-1))   // L = 1..50
-```
+Mastery XP is awarded transactionally when the authoritative BattleService resolves a battle, using only the immutable equipment snapshot and actions recorded by that battle. Defaults are 2 XP for a successful offensive action with a two-handed weapon; 1 XP for each occupied one-handed weapon hand per successful offensive action; and 1 defensive XP for each equipped Shield or Rune when an incoming enemy attack/ability is confirmed as landed. Two Daggers therefore credit 2 XP to Dagger per eligible offensive action. Basic-attack misses award no offensive XP. An action skipped because it is unlearned, unequipped, on cooldown, or lacks SP awards no XP. An incoming miss awards no defensive XP. A battle retry or duplicate delivery MUST NOT award the same Mastery XP twice.
 
-Also ships precomputed as `weapon_xp_curve.json` (§21) — load and index, do not recompute at runtime. Derived assuming ~600 weapon actions/hour (~1 action every 6s blended across weapon speeds) and 10 XP per action performed with that weapon (basic Attack **and** Skill actions both grant weapon XP; using a Skill does not grant less). Sanity checkpoints: level 10 at ~1 idle-day, level 50 at ~1 idle-year, smooth exponential in between.
+All eight categories (sword, greatsword, dagger, bow, staff, rod, shield, rune) begin at level 0, 0 XP, and no learned ranks. Mastery level is capped at 10 and earned XP/levels/ranks survive death. The canonical shared data source must define the threshold table; frontend/backend must not independently derive it. Balance is not considered complete until deterministic pacing tests demonstrate the approved checkpoints: one two-handed category reaches level 5 around character level 23; two one-handed categories each reach level 5 around character level 28; and around character level 50 the reference build reaches level 10 in one category or level 7 in each of two categories. The DEX/Bow milestone discrepancy described near the end of this document remains unresolved; do not add a special-case discontinuity without a design decision.
 
-**Important:** switching equipped weapon type does not lose progress — each `WeaponProficiency` row is permanent and independent. A character can raise all 7 weapon types over time, but only the currently-equipped weapon's skills are usable at any moment (§9).
+The provisional shared cumulative thresholds for Mastery levels 1–10 are 5, 10, 25, 50, 100, 500, 25,000, 35,000, 45,000, and 60,000 XP (level 0 starts at 0 XP). The deterministic calibration harness reads `char_xp_curve.json` cumulative XP, cycles monsters at or below the target character level in catalog level order, awards each kill `floor(monster.xpReward × 0.25)` to match the production Grind payout, and estimates successful attack actions as `ceil(monster HP / (5 × character level))`. It applies the documented two-handed/one-handed per-action XP to those estimated actions. This simplified equal-level attack-count proxy estimates 148 two-handed action XP at character level 23, 115 XP per one-handed category at level 28, and 61,968 XP for a two-handed category versus 30,984 XP for each one-handed category around level 50. The thresholds yield L23 two-handed Mastery 5, L28 Mastery 5 in each of two one-handed categories, L50 two-handed Mastery 10, and L50 Mastery 7 in each of two one-handed categories. The late thresholds intentionally contain a steep gap to meet these design checkpoints; treat it as provisional, not live-gameplay proof, until combat-stat simulation and live telemetry establish acceptable pacing. The DEX/Bow milestone remains open. Threshold changes belong only in the shared Mastery progression function/table.
+
+Four API environment settings control reward amounts and must be validated as non-negative integers at boot: MASTERY_XP_TWO_HANDED_ACTION=2, MASTERY_XP_ONE_HANDED_ACTION=1, MASTERY_XP_SHIELD_ON_HIT=1, and MASTERY_XP_RUNE_ON_HIT=1. Environment parsing belongs to the API, never the shared simulator.
 
 ---
 
@@ -538,7 +539,7 @@ To satisfy "minimum requests, seemless experience" (confirmed design), the serve
 
 1. When a character enters a map (or the queue empties), the backend simulates **the next 5 battles in one shot**, chained: battle 2 starts from battle 1's `hpAfter`/`spAfter`/statuses/cooldown states, and so on. Each is written as a `BattleQueueEntry` with real wall-clock `startAt`/`endAt`. Every encounter also has an authoritative search gap before `startAt`: 2 seconds + 0.1 seconds per other character grinding on the same map.
 2. The full queue (5 entries, or fewer if a death cuts the chain short — see below) is sent to the client in one payload. The client renders the current battle's bar from `startAt`/`endAt` and has enough data to *know* what's coming next without asking.
-3. A **BullMQ delayed job** is scheduled for each entry's `endAt`. When it fires, resolution SHALL lock the Character row and then the BattleQueueEntry row, and apply all authoritative PostgreSQL effects in one transaction: simulated item consumption, XP/HP/SP and level-ups, Diet/Auto Feed, pending equipment substitutions, drops, kill-counter changes, death/Town routing, and any invalidated future rows. The transaction SHALL commit `resolved = true` together with those effects; a failed transaction rolls all of them back, leaving the battle eligible for a safe retry. Concurrent/duplicate jobs serialize on the Character lock; after the first commit, later callers see the retained audit row as resolved and do not apply effects again. BullMQ cleanup, map-presence synchronization, queue generation and Socket.IO publication happen after the database commit and are not used as the payout idempotency primitive. The backend emits the authoritative `battleResolved` socket event (the client already knew the outcome — this is the state sync + trigger to fetch the extended queue) and then updates the future queue; these external effects happen after commit. The resolved row remains as the §4.7 audit trail and disappears from every live read path when committed as resolved; if remaining queue depth `< 5` and the character is still eligible to grind, the queue is topped back up to 5.
+3. A **BullMQ delayed job** is scheduled for each entry's `endAt`. When it fires, resolution SHALL lock the Character row and then the BattleQueueEntry row, and apply all authoritative PostgreSQL effects in one transaction: simulated item consumption, XP/HP/SP and level-ups, Diet/Auto Feed, pending equipment substitutions, drops, kill-counter changes, death/Town routing, and any invalidated future rows. The transaction SHALL commit `resolved = true` together with those effects; a failed transaction rolls all of them back, leaving the battle eligible for a safe retry. Concurrent/duplicate jobs serialize on the Character lock; after the first commit, later callers see the retained audit row as resolved and do not apply effects again. BullMQ cleanup, map-presence synchronization, queue generation and Socket.IO publication happen after the database commit and are not used as the payout idempotency primitive. The backend publishes an authoritative `battle:resolved` snapshot containing the completed Character + Inventory state and its `stateRevision`; after queue maintenance, `battle:queueUpdated` carries that same final snapshot and revision so Redis channel ordering cannot expose stale state. The resolved row remains as the §4.7 audit trail and disappears from every live read path when committed as resolved; if remaining queue depth `< 5` and the character is still eligible to grind, the queue is topped back up to 5.
 4. **If a battle in the pre-simulated chain ends in the character's death**, everything simulated *after* that point in the chain is simply never generated (the chain naturally stops there) — on resolve, the character is routed to town per §7.6, and no new battles are queued until the player returns to a map.
 
 This means, under ideal "automaticozão" conditions (good gambit, enough potions/food), the client can go minutes without a single request, and the server does a small burst of CPU work only every ~5 battles instead of on every single kill. Auto Feed is evaluated at every authoritative battle-resolution boundary while Grind continues: the server walks the current Diet and consumes every configured food whose digestion has reached 0 and which is available in Inventory, regardless of whether another food buff is still active; the future queue is then rebuilt from the new Character + Inventory state when any food was consumed. When the same `itemId` occurs in multiple retained Diet slots, only its newest retained occurrence determines digestion eligibility. An older expired duplicate SHALL NOT make that food eligible while the newest occurrence is still digesting; Auto Feed skips that candidate and continues checking other foods without treating the normal eligibility conflict as a battle error.
@@ -587,14 +588,6 @@ Stored in `BattleQueueEntry.log` (and copied verbatim into `Character.lastDeathL
 
 The frontend's "last death" modal renders: how the battle started (map, monster, starting stats), a scrollable event feed (damage sources highlighted), and the final blow.
 
-### 7.7.1 Direct damage variance
-
-Every successful direct basic attack or damaging Skill from either a character or monster applies one server-side seeded damage multiplier uniformly between **0.99 and 1.01** (-1% to +1%) to the final damage after hit/crit, mitigation and all existing direct-damage modifiers, immediately before integer rounding and the minimum-damage rule. Misses remain 0 and do not consume a direct-damage variance roll.
-
-Damage-over-time ticks are excluded. When a future DOT effect is applied, its per-tick damage value N and tick interval M are determined once and stored on that effect; subsequent ticks reuse the stored N and M without rerolling or recalculating them.
-
-The variance uses the battle engine's seeded PRNG, preserving same-seed battle replay determinism.
-
 ### 7.8 Balance note: under-leveling on purpose
 
 Because the XP curve (§6) is intentionally punishing, a well-built gambit should let a character farm monsters **1–2 levels above the map's "comfortable" band** for faster XP/hour, at higher risk. Concretely: a level-3 character with a solid gambit (potion-on-low-HP, food-on-hungry, correct weapon matchup per §11.3 favored archetype) should be able to sustainably farm level 5–6 monsters in Green Grounds. This is achieved naturally by the formulas above (soft-cap physical mitigation means a slight level disadvantage isn't a hard wall) and should be validated in balance testing (§19.3) — if a level-3 character with the example gambit page (`gambit_catalog.json → exampleGambitPage`) reliably loses to a level-6 Dire Wolf Alpha, DEF/HP constants need adjustment, not the design intent.
@@ -618,7 +611,8 @@ Modeled directly on Final Fantasy XII's Gambit system, adapted for a single cont
 ```ts
 type GambitLine = {
   priority: number;                 // 1-20, execution order
-  conditions: [GambitCondition];   // exactly 1 condition
+  conditions: GambitCondition[];    // length 1 or 2
+  combinator: 'AND' | 'OR' | null;  // null if only 1 condition
   action: GambitAction;
 }
 type GambitCondition = { id: string; params?: Record<string, string|number> } // id from gambit_catalog.json "conditions"
@@ -639,7 +633,7 @@ Gambit actions are target-aware: the action's catalog params define the valid ta
 
 On every `GambitPage` write:
 - `lines.length <= 20`
-- each line's `conditions.length` is exactly 1; `combinator` is not part of the stored line shape
+- each line's `conditions.length` is 1 or 2; `combinator` is `null` iff length is 1
 - every `condition.id` and `action.id` exist in `gambit_catalog.json`
 - every `condition.params`/`action.params` match the expected shape/enum from the catalog entry (e.g. `band` must be one of the 5 valid values)
 - `use_skill` actions reference a real `skillId` from `skill_trees.json` (existence only — legality re: weapon-equipped is a runtime concern, not a save-time rejection, since the player might configure a page for a weapon they plan to equip later)
@@ -647,33 +641,19 @@ On every `GambitPage` write:
 
 Reject the whole write with a 400 + field-level errors if any line fails validation — never silently drop invalid lines.
 
-### 8.5 Frontend requirements (greying out)
+### 8.5 Frontend availability
 
-Any gambit line whose action currently cannot fire (skill not unlocked at current weapon proficiency level, skill's weapon not equipped, referenced item has 0 quantity in inventory) renders visually greyed out in the editor, with a hover tooltip explaining precisely why (e.g. *"Requires Bow equipped"*, *"Requires Bow proficiency level 20 (currently 14)"*, *"0x Small HP Potion in inventory"*). This is purely a UI affordance — the line is still saved and will simply be skipped by the engine at runtime per §7.3 until the condition changes, exactly as it would in live play. See §17.5 for the editor's full UX spec.
+Gambit item choices show only item IDs known to the character; item quantity remains an independent execution-time check. A character's known-item list is seeded from William's canonical vendor stock and updated idempotently on authoritative acquisition. The active-skill picker shows learned active skills only; passive skills are never Gambit actions. A saved skill line can be temporarily unavailable when the required weapon is not equipped; the editor shows a warning icon and the agreed tooltip, and the runtime skips that action without rewarding Mastery XP. Grind's active Gambit title shows a warning only when the active page contains a skill line disabled by missing equipment, and clicking it opens that Gambit page.
 
 ---
 
-## 9. Weapons & Skill Trees
+## 9. Mastery Skill Trees
 
-Full data in `skill_trees.json` (§21) — 7 weapon types × 7 skills each (unlocked at weapon proficiency levels **1, 5, 10, 20, 30, 40, 50**), plus 3 monster-only skills.
+skill_trees.json is the canonical definition source for eight Mastery categories with exactly two current skills each (16 player skills total), plus the existing monster-only skills. Skill progression is purchased with Mastery points; the retired automatic unlock schedule at proficiency levels 1/5/10/20/30/40/50 does not apply.
 
-### 9.1 Rules
+Each category has node 1 and node 2. Node 1 accepts ranks 1–5. Node 2 is unavailable until node 1 is rank 5, then accepts ranks 1–5. Each category grants one point per Mastery level gained, for a maximum of ten points at Mastery 10. The data/validation contract must support per-skill maxRank from 1 through 10 even though current nodes use five ranks. A passive only operates while the source equipment is present in the immutable battle snapshot. An active skill is usable only when it is learned at rank 1 or greater, its required equipment is present, enough SP is available, and its cooldown is ready. Its Gambit line remains saveable but is unavailable when a requirement is not met.
 
-- A skill is **usable** only if: (a) its `weaponType` is currently equipped in the relevant slot (mainHand for all types except Shield, which checks offHand), **and** (b) `WeaponProficiency.level >= skill.unlockWeaponLevel` for that weapon type on this character.
-- Skills are **never** purchased, dropped, or learned individually — unlocking is 100% automatic and tied to proficiency level. This keeps the system simple and removes an entire economy surface (no "skill book" items needed).
-- Each weapon type's tree is thematically consistent (see `skill_trees.json` for exact effects): Sword and Greatsword are pure melee DPS with an execute/AoE progression; Dagger favors speed/multi-hit/bleed-poison; Bow favors precision/defense-pierce/marking; Staff is heavy elemental burst magic; **Wand is the only tree with heal/cure skills** (this is where the "Priest" archetype comes from — a character built INT/DEX wielding a Wand); Shield is a pure utility/mitigation tree usable alongside Sword or Dagger.
-- `spCost` and `cooldownTicks` scale up with `unlockWeaponLevel` (see formulas in the generation script referenced by the JSON) — higher-tier skills hit harder but are used more sparingly.
-
-### 9.2 Archetype ⇄ build mapping (for player-facing UI copy only — mechanically there are no classes)
-
-| Informal archetype | Typical attributes | Typical weapon(s) |
-|---|---|---|
-| Warrior | STR, VIT | Sword/Shield, Greatsword, Dagger/Dagger |
-| Archer | DEX, AGI | Bow |
-| Mage | INT, DEX | Staff |
-| Priest | INT, VIT | Wand |
-
-These labels appear in monster `favoredAgainstArchetypeLabel` fields (§11.3) purely as flavor/guidance text — the engine only ever reads `damageTakenMultiplier.{melee,ranged,magic}` and the monster's `sustainPressure` flag, never a hardcoded "archetype" enum on the character.
+The exact current effects, costs, cooldowns, status behavior, and position interactions for Swordsmanship/Power Strike, Brutality/Heavy Swing, Double Strike/Blinkstrike, Shield Bash/War Cry, Fire Ball/Fire Blast, Wisp Flow/Light of Heaven, Fearless Focus/Violent Shot, and Stored Essence/Magic Barrier are governed by the hand-equipment-mastery-skills OpenSpec change and the skill catalogue. Current combat remains one character versus one monster; do not implement party support, multi-target AoE, PvP, or 5v5 combat as part of this contract. Positional skills must reuse the shared battle-distance-movement API.
 
 ---
 
@@ -711,12 +691,14 @@ Every equipment item **template** in `items.json` defines:
 - `randomRollOnDrop` — for all slots **except shoes**: at the moment of drop, roll **one** random attribute from `[STR, AGI, DEX, VIT, INT, SOR]` and a random integer **1–6** bonus to it. This roll is generated once, server-side, using the deterministic per-character PRNG stream (§11.2, same mechanism as monster/drop selection — not a separate `Math.random()`), and stored permanently in `InventoryItem.instanceData` / `EquippedItem.instanceData` as `{ rolledAttribute, rolledValue }`. It never changes again — "eternal" as specified.
 - Shoes (`equip_shoes_*`) never roll — their single fixed effect is `elementalImmunity: <element>` (full immunity to that element's status/bonus-damage interactions, per confirmed design; no move-speed effect in MVP).
 
+Equipment tooltips show the actual stats granted by the item instance (fixed stats plus its rolled Attribute, when present). Roll-generation metadata, vendor/economic fields and stack metadata are not presented as granted stats.
+
 ### 10.4 Item categories
 
 - **Monster parts** (30): 2 per monster (`common`, `rare`). Sellable to the vendor (never usable as a potion), reserved for future crafting/quest hooks (fields present in schema, unused by any system in MVP — do not build crafting/quests, just don't break the schema by omitting the fields).
 - **Consumables** (8): HP potions (S/M/L), SP potions (S/M/L), Antidote, and Greater Elixir (rare drop, heals both pools). All consumables share `sellPriceToVendor: 7` gold as specified. Only the 6 basic potions + Antidote are sold by the town vendor (§12.1); Elixir is drop/market only.
 - **Foods** (7): food items whose `effect.type` is `food_buff`. Foods are stackable inventory items and are consumed manually outside battle or automatically by Auto Feed; they are not consumables and cannot be used by Gambits.
-- **Equipment** (51): 21 weapons (7 types × 3 tiers), 24 armor (head/body/cape × physical-or-magic variant × 3 tiers), 6 accessories (2 variants × 3 tiers), 6 shoes (2 elements × 3 tiers, chosen to match each map's monster elements — see §11).
+- **Equipment**: the static catalogue is authoritative for the complete set of weapon, armor, accessory, shoe, and Rune templates. The former fixed equipment count predates the Rod/Rune changes and must not be used as a schema constraint.
 
 ### 10.5 Foods (buffs) — detail
 
@@ -767,7 +749,7 @@ This is **mathematically identical** in outcome and reproducibility to a pre-gen
 
 ### 11.3 Monster archetype matchups
 
-Each monster in `monsters.json` carries a `damageTakenMultiplier: { melee, ranged, magic }` object. A value `> 1.0` means that damage type is **effective** (easier fight for that build); `< 1.0` means **resisted** (harder). Within each map, the 5 monsters are deliberately spread across: one favors melee (Warrior), one favors ranged physical (Archer), one favors magic (Mage), one is a `sustainPressure` fight that punishes low-healing builds regardless of damage type (favors Priest/Wand builds via its self-heal or poison pressure), and one is `balanced` (no clear weakness — the odd one out, and where two of the game's three "monster with an active ability" fights live: enrage/massive-damage, self-heal, and stun, one per map, never more than one ability-monster per map).
+Each monster in `monsters.json` carries a `damageTakenMultiplier: { melee, ranged, magic }` object. A value `> 1.0` means that damage type is **effective** (easier fight for that build); `< 1.0` means **resisted** (harder). Within each map, the 5 monsters are deliberately spread across: one favors melee (Warrior), one favors ranged physical (Archer), one favors magic (Mage), one is a `sustainPressure` fight that punishes low-healing builds regardless of damage type (favors Priest/Rod builds via its self-heal or poison pressure), and one is `balanced` (no clear weakness — the odd one out, and where two of the game's three "monster with an active ability" fights live: enrage/massive-damage, self-heal, and stun, one per map, never more than one ability-monster per map).
 
 ### 11.4 Encounter search time
 
@@ -779,7 +761,7 @@ searchTimeSeconds = 2 + (otherPlayersGrindingOnMap * 0.1)
 
 The character being queued is excluded from `otherPlayersGrindingOnMap`. The same delay is applied before the first encounter and between every subsequent queued encounter. It is not a separate `BattleQueueEntry`; it is represented by the gap between the previous `endAt` and the next battle's `startAt`. Existing 1-second battle ticks and battle duration formulas are unchanged.
 
-The authoritative encounter-search count is based on Character rows with `status = grinding`, the same `currentMapId`, and no `pendingMapTransition`. Generic map presence is based on `currentMapId` being set and `pendingMapTransition` being null, including Town.
+The authoritative encounter-search count is grinder-specific: `status = grinding`, the same `currentMapId`, and `pendingMapTransition IS NULL`. Generic gameplay map presence is location-based: `currentMapId IS SET AND pendingMapTransition IS NULL`, independent of status. Realtime UI presence is a separate Redis-backed runtime cache broadcast through the `/game` Socket.IO gateway whenever map membership changes.
 
 ### 11.5 Drop rates (confirmed, apply per kill — multiple can trigger)
 
@@ -798,13 +780,7 @@ Consumable/equipment drops are resolved to a **specific item id** at roll time b
 
 ### 12.1 Vendor NPC
 
-Full data in `npc_vendor.json` (§21). The first Town vendor is **William** (`id: william`, `type: vendor`). His UI exposes **10 slots**; the seven configured sell-stock entries occupy the first seven and the remaining three are empty. His configured stock is infinite and sells: 3 HP potions, 3 SP potions, Antidote (fixed prices in the JSON).
-
-NPC data defines `id`, `name`, `type`, `location`, `greeting`, `slotCount`, `buysAnyItem`, `buyRatePercent` and sell-stock entries. The frontend renders by NPC type and does not hardcode vendor item names/prices.
-
-A vendor **buy price** (player buys from NPC) is the stock entry's fixed `price`. A vendor **sell price** (NPC buys from player) is calculated server-side as `floor(basePrice * buyRatePercent / 100)`, where `basePrice` is `marketBasePrice` when present and otherwise `sellPriceToVendor`. The client may display quotes but is never authoritative. Selling to the vendor **destroys the item immediately** — the vendor's own sell stock is completely independent and infinite; nothing a player sells is ever resold.
-
-BUY and SELL are atomic database transactions. The server locks the character row and relevant inventory rows, revalidates Town status, NPC membership, item membership, quantity, ownership, gold and inventory capacity, then commits all gold/inventory changes together. Frontend double-submit protection is UX only; backend transaction validation remains mandatory.
+Full data in `npc_vendor.json` (§21). One vendor, infinite fixed stock, sells: 3 HP potions, 3 SP potions, Antidote (fixed prices in the JSON). **Buys any item** at a flat **40%** of that item's `marketBasePrice`/`sellPriceToVendor` field (already precomputed per item in `items.json`). Selling to the vendor **destroys the item immediately** — the vendor's own sell stock is completely independent and infinite; nothing a player sells is ever resold (confirmed).
 
 ### 12.1.1 NPC framework
 
@@ -818,11 +794,19 @@ The Town right Info Panel uses one generic NPC selector. Capability renderers ar
 
 ### 12.1.2 Father Marcelus
 
-`father_marcelus` is a quest NPC. Opening dialogue: "May the light be with us, friend. How are you, fellow adventurer?"
+`father_marcelus` is a quest NPC. Opening dialogue: "May the light be with us, friend. How are you, fellow adventurer?" Speaking to Marcelus in Town always restores the character to the authoritative maximum HP and SP before the dialogue is returned.
 
 Hungry branch: "I'm hungry..." → "Eat and rest, for the love of god is forever, but you are not." The second choice consumes food immediately. If the character is hungry and has no food item in inventory, the server grants Bread only transiently and consumes it in the same transaction, so Bread never remains in inventory.
 
 Not-hungry branch: "I'm fine, prayer. Came to get blessed for battle." → "The Lord doesn't want blood to be spilled. But I pray you'll return in peace 🙏." This branch has no character or inventory mutation.
+
+### 12.1.3 Blacksmith Loren
+
+`blacksmith_loren` is a vendor NPC with ten visual slots. Its infinite stock contains the nine canonical T1 equipment pieces: sword, greatsword, dagger, bow, staff, rod, shield, physical body armor and magic body armor. Every T1 weapon in Loren's stock costs exactly 2,000 gold; body armor prices remain data-driven. Its greeting is data-driven from `npc_catalog.json`; vendor BUY/SELL remains authoritative.
+
+### 12.1.4 Cecilia
+
+`cecilia` is a quest NPC. Her server-authoritative exchange requires 3 `part_slime_common`, 1 `part_cindergolem_common` and 1 `part_venomviper_common`, and rewards exactly 1 canonical `equip_accessory_sor_t1` (Worn Lucky Ring). The inventory condition is evaluated when the offer node is returned, so the hand-over choice is available immediately on the first conversation when all materials are already owned. The exchange locks/revalidates Town status and inventory and removes/adds all items atomically.
 
 ### 12.2 Warehouse
 
@@ -943,9 +927,17 @@ Namespace: `/game`. Auth via handshake (§15.2). Suggested rooms: `char:<charact
 | `character:died` | `{ deathLog }` | triggers town routing + "last death" affordance client-side |
 | `character:leveledUp` | `{ newLevel, unspentAttributePoints }` | |
 | `chat:message` | `{ channel, username, message, sentAt }` | fanned out to the relevant room |
-| `map:presence` | `{ mapId, playersOnMap }` | realtime on map enter/leave/disconnect |
+| `map:presence` | `{ mapId, playersOnMap }` | absolute realtime population snapshot; emitted when gameplay map membership/count changes; Socket.IO disconnect does not remove a grinding character from gameplay presence |
 | `mail:newItem` | `{ unreadCount }` | badge update |
 | `market:orderFilled` | `{ orderId }` | so the Market UI can refresh without polling |
+
+### Map population authority
+
+`playersOnMap` is gameplay map presence, not online/socket presence. A character counts while its authoritative Character state has a `currentMapId` and `pendingMapTransition = null`; settled Town residents therefore count on `map_town`, while encounter-search population remains restricted to characters actually grinding on a grindable map. This remains true after Socket.IO disconnect because gameplay map membership is authoritative in persisted Character state.
+
+Map membership changes are the normal realtime trigger: after an authoritative map-state transition is persisted, the shared MapPresenceService synchronizes the previous/new map and emits the absolute `map:presence` snapshot for each affected map. This applies to map entry, future map-to-map movement, Town return, death, food-exhaustion routing, and the deferred Town request that makes the character temporarily ineligible for map presence. Battle start/end alone is not a map-presence trigger.
+
+Redis `map:players:{mapId}` is a timestamped self-healing runtime cache, not gameplay authority. Periodic reconciliation repairs missed writes, process restarts and disconnected grinders; it is a safety net rather than the normal realtime mechanism. The online/socket presence used by a future heartbeat/friends list is intentionally separate from gameplay map presence.
 
 Equipment changes, food consumption, attribute point allocation, inventory/warehouse moves, and market/mail actions are plain **REST** endpoints (they are not latency-sensitive and benefit from standard HTTP semantics — status codes, idempotency, easier testing) — only genuinely realtime, push-driven data goes over the socket. Document each REST endpoint with a standard NestJS Swagger decorator; a full OpenAPI listing is intentionally not enumerated line-by-line in this document — the controllers should be organized 1:1 with the modules in §2.1, using conventional REST verbs/paths (`POST /character/attributes/allocate`, `PATCH /equipment/:slot`, `POST /inventory/move`, `POST /market/orders`, `DELETE /market/orders/:id`, `POST /mail/:id/collect`, etc).
 
@@ -995,7 +987,7 @@ Concept references:
 
 ```text
 /login, /register, /verify-email, /reset-password
-/play                          -> shell; central play content remains the Grind view; Town state is reflected in the persistent right Info Panel
+/play                          -> shell; redirects to town or grind by Character.status
 /play/town                     -> vendor, warehouse, market, mail
 /play/grind                    -> map selection + battle bar + inventory + event feed
 /play/character                -> Character / Gambits / Mastery internal tabs
@@ -1019,11 +1011,9 @@ The compact XP bar in the top bar shows the active Gambit page title immediately
 
 The `/play/grind` center is:
 - `Currently in: {mapName}`;
-- one illustrated fantasy map with the selectable grind tiles, including a clickable Town destination;
+- one illustrated fantasy map with the selectable grind tiles;
 - battle progress/status;
 - the 50-slot inventory directly below the map.
-
-For the current Town iteration, the central region stays on this same Grind view even while the character is in Town. Clicking Town while idle returns immediately; clicking Town during an active battle requests the return and the client returns only after that battle resolves. The persistent right Info Panel switches to the Town context and contains the Town state plus the NPC/vendor interaction in the same panel.
 
 There is **no duplicate map selector/list below the map**. Map tiles are represented only in the central map; removing the redundant lower map strip is intentional.
 
@@ -1032,7 +1022,7 @@ The 50 inventory cells must fit without vertical scrolling at the intended deskt
 The left panel answers who the character is, what is equipped, HP/SP, active statuses,
 and derived combat stats.
 
-The right panel is a single large **Info Panel**. In Town it shows information about the currently selected object/item/map/character context. During Grind it shows the current grind state, monster information, consumable availability, XP progress and battle timing. Weapon proficiency is not a separate panel.
+The right panel is a single large **Info Panel**. In Town it shows information about the currently selected object/item/map/character context. During Grind it shows the current grind state, monster information, consumable availability, XP progress and battle timing. Mastery is not a separate Town panel.
 
 Exact component composition, dimensions, responsive behavior, visual tokens and states
 are defined in `PLAY_WINDOW_SPEC.md`.
@@ -1044,11 +1034,13 @@ are defined in `PLAY_WINDOW_SPEC.md`.
 Internal tabs:
 1. **Character** — only `Attributes` and `Stats`. Do not render Paper Doll, Build Summary, Equipment, or Inventory in this tab.
 
-The Character tab shows authoritative non-base Attribute contributions in green `(+N)`, with a hover tooltip explaining each Attribute's Stat mapping. Stats includes Magic ATK alongside HP, SP, Attack, Defense, Attack Speed, Cast Speed, Evasion, Accuracy, HP Regen, SP Regen and Critical.
+The Character tab's six Attributes show the base value plus any authoritative non-base contribution in green `(+N)`. Hovering an Attribute explains which Stats it feeds. The authoritative Character DTO exposes `attributeBonuses` and all Stats, including Magic ATK.
+
+The Stats section includes HP, SP, Attack, Magic ATK, Defense, Attack Speed, Cast Speed, Evasion, Accuracy, HP Regen, SP Regen and Critical.
 2. **Gambits** — the full three-page Gambit editor.
 3. **Mastery** — weapon mastery workspace. The left side shows the selected weapon type and its mastery tree; the right side shows the weapon list/levels. The skill-tree container is intentionally present even before skills are implemented.
 
-On the Mastery tab, **Weapons** is the right-side list of weapon types (Sword, Greatsword, Dagger, Bow, Staff, Wand, Shield) with each type's level. The selected weapon type is highlighted and its Mastery is shown on the left. Do not show the old Equipment or Inventory panels on this tab.
+On the Mastery tab, **Weapons** is the right-side list of weapon types (Sword, Greatsword, Dagger, Bow, Staff, Rod, Shield) with each type's level. The selected weapon type is highlighted and its Mastery is shown on the left. Do not show the old Equipment or Inventory panels on this tab.
 
 Attribute allocation:
 - shows all six attributes;
@@ -1260,7 +1252,7 @@ For a fixed matrix of `(characterSnapshot, monsterId, seed)` inputs covering: ea
 
 - Stat formulas (§5.2): pure input→output tests for `maxHp`, `atk`, `def` mitigation curve at several DEF values (verify the 50%-at-300 soft-cap claim), hit chance clamping at its 5%/95% bounds.
 - PRNG (§11.2): same `(seed, index)` always yields the same value; distribution sanity check (chi-square-ish spot check, not required to be rigorous) over a large sample.
-- Gambit evaluation (§7.3/§8): a line that's condition-true-but-illegal is correctly skipped in favor of the next; the single condition evaluates correctly; disabled lines are skipped.
+- Gambit evaluation (§7.3/§8): a line that's condition-true-but-illegal is correctly skipped in favor of the next; AND/OR combinators evaluate correctly; disabled lines are skipped.
 - XP curve tables (§6): loaded table values match the documented formula for a sample of levels (guards against the JSON and the formula silently drifting apart after a manual edit).
 
 ### 19.3 Balance/simulation tests
@@ -1291,7 +1283,7 @@ Use these as literal, sequential prompts to your IDE's AI assistant, one at a ti
 4. **Backend: data loading.** Copy the 7 JSON files (§21) into `apps/api/src/data/`, write a boot-time loader that schema-validates them (zod) and exposes them via an injectable `GameDataService`. Also port the two curve-generator scripts (xp_curve.py / weapon_xp_curve.py logic, §6) into TypeScript as `scripts/generate-xp-curves.ts` for future rebalancing, but ship the already-generated JSON tables as the runtime source of truth.
 5. **Backend: entities & migrations.** Implement every entity from §4 with TypeORM decorators, generate the initial migration, verify it runs cleanly against the dockerized Postgres.
 6. **Backend: auth module.** Registration (incl. CPF validation/hashing), email verification, login (incl. single-session + lockout), refresh, password reset — per §15.
-7. **Backend: character module.** Character creation on first login, attribute allocation endpoint, equipment endpoints (with slot-combination validation from §5.3), weapon proficiency tracking.
+7. **Backend: character module.** Character creation on first login, attribute allocation endpoint, equipment endpoints (with slot-combination validation from §5.3), eight-category Mastery tracking and skill-point allocation.
 8. **Backend: gambit module.** CRUD for the 3 pages, full server-side validation (§8.4), active-page switching with the mid-battle guard (§8.1).
 9. **Backend: battle module + gateway.** Wire the shared battle engine into the real flow: map:enter → build 5-deep queue → BullMQ scheduled resolution → crash recovery on boot (§7.4–§7.6). This is the most complex phase — budget real time for it, and lean on the §19.1 snapshot tests plus the new §19.4 integration tests to verify correctness.
 10. **Backend: inventory, equipment drops, market, mail, warehouse, vendor.** §10, §12–§14. Pay special attention to the transactional locking rules in §15.5.
@@ -1314,15 +1306,15 @@ These 7 files are the complete static game data and ship in `apps/api/src/data/`
 | `items.json` | 30 monster parts, 15 consumables, 51 equipment pieces |
 | `npc_vendor.json` | The town vendor's fixed sell stock + buy-rate config |
 | `gambit_catalog.json` | The full curated condition/action catalog, page/line limits, HP/SP band thresholds, an example page |
-| `skill_trees.json` | All 49 weapon skills (7 types × 7 tiers) + 3 monster-only skills + base attack-gauge ticks per weapon |
+| `skill_trees.json` | 16 current player Mastery skills (8 categories × 2 nodes) + monster-only skills and legacy attack timing metadata |
 | `char_xp_curve.json` | Precomputed character level 1–98 XP table (§6.2) |
-| `weapon_xp_curve.json` | Precomputed weapon proficiency level 1–50 XP table (§6.5) |
+| `weapon_xp_curve.json` | Legacy proficiency table retained for migration/reference only; not the Mastery threshold source |
 
 Load all seven at boot, validate their shape, and fail fast on mismatch (§18.2 philosophy applies here too — a malformed data file should crash the boot, not silently degrade).
 
 ### Grind synchronization follow-up
-- A Town request during an active battle sets `pendingMapTransition` to `map_town`; the character leaves map presence immediately, no future encounter may start, and the active battle finalizes the transition to Town.
-- Character, Inventory, and Battle frontend synchronization must prevent stale HTTP loads from overwriting newer realtime authoritative state.
+- A Town request made during an active battle is deferred server-side through `Character.pendingMapTransition = { destinationMapId: 'map_town', reason: 'town_request' }`; future queued battles are cancelled, the active battle resolves normally, then the character transitions to `map_town` before any replacement battle is queued.
+- Frontend Character, Inventory, and Battle state loads must not allow an older HTTP response to overwrite newer authoritative state received through the realtime game channel.
 - Persisted Character HP/SP and Inventory quantities remain authoritative outside an active battle. During an ACTIVE battle, the Character Summary may use a read-only display projection from the immutable queued battle log plus `startAt`/`endAt`; this projection never writes to CharacterStore, InventoryStore, or the server and is abandoned immediately when the battle is no longer ACTIVE.
 - `battle:resolved` and the immediately following post-resolution `battle:queueUpdated` carry Character and complete Inventory from the same server state revision. This closes ordering races between their independent Redis pub/sub channels. Realtime snapshots with an older or equal revision are ignored, and HTTP responses that were in flight across a newer realtime update are discarded.
 - `GET /inventory` returns `{ items, stateVersion }`, allowing the frontend InventoryStore to reject an older HTTP snapshot relative to the accepted realtime Character revision.
@@ -1342,3 +1334,15 @@ A character's entry style is frozen from valid enabled Foe Gambit actions: Bow b
 Slow remains a reusable canonical status effect: -50 Move Speed for 20 seconds; reapplication refreshes that one status. Ice Bolt is distinct: Wailing Wraith has a melee basic attack usable only at distance 0, but stays stationary while its ranged magical Ice Bolt is legal. Ice Bolt costs 0 SP, has `baseCastTicks: 2`, `cooldownTicks: 1`, and `maxRange: 7` in `skill_trees.json`; that range includes the target's occupied position, so it reaches six empty spaces between positions 0 and 7. The Wraith's fallback attack Gambit line requires the `silence` status, so it cannot make basic attacks while Ice Bolt is legal. If silenced, Ice Bolt is illegal and the fallback approaches only while the player is not adjacent.
 
 Each successful Ice Bolt cast has a seeded 25% chance to apply the `freeze` status to the character (never to Wailing Wraith). Ice Bolt contains `applyStatus: "freeze"` and `statusChance: 0.25`; duration, stackability, maximum stacks, Move Speed penalty, and Attack Speed penalty are defined by canonical root `status_effects.json` and mirrored at `apps/frontend/public/data/status_effects.json`. Freeze currently has five-second per-stack duration, -25 Move Speed and -25 Attack Speed per stack, and a maximum of three active stacks (-75 Move Speed / -75 Attack Speed total). Attack Speed penalties are fixed rating-point subtractions that affect only basic Attack gauge refill, with the effective rating clamped to 0–800 and weapon interval clamped to 1–10 ticks; skill/action cast timing remains unchanged. Slow is a separate non-stackable, 20-second -50 Move Speed status whose reapplication refreshes its duration. Battle logs omit `range_blocked` lines and show completed movement with the actor's name and an arrow derived from the lane-position delta (`-->` when `toPosition > fromPosition`; `<--` when `toPosition < fromPosition`), so the direction stays correct even if the character and target swap sides. Freeze application is logged as `CharacterName is freezing (N)`. When a stackable status loses a stack but remains active, the log reports `CharacterName's freeze lessens (N)` with the new count; when any status reaches zero stacks or a non-stackable status expires, it reports `CharacterName's freeze ended` (using the actual status ID). Skill log entries in both the live Grind feed and Battle History include their resolved damage. The character summary shows one Freeze icon and a hover tooltip sourced from `status_effects.json` with stack count, total penalty and per-stack countdown refreshed in real time. The lane has no UI visualization; group combat, multi-target AoE, cross-lane movement and PvP/5x5 execution remain future work.
+
+## Hand equipment, Mastery, and learned skills
+
+The semantic equipment slots are `mainHand` (primary) and `offHand` (secondary), regardless of the character's persisted `dominantHand` (`right` or `left`). The client mirrors the visual slots for left-handed characters; combat and API slot names do not change. Primary one-handed weapons are Sword, Dagger, and Rod. Greatsword, Bow, and Staff occupy both hands. Dagger is the only secondary weapon; Shield and Rune are secondary equipment. Any secondary item requires a valid one-handed primary. Sword + Sword is forbidden; two Daggers are allowed. Catalogue slot and `twoHanded` metadata are authoritative. A two-handed equip returns a conflicting off-hand item to inventory. Secondary weapon ATK contributes at half value; its other attributes and effects remain full strength.
+
+Mastery has eight independent categories: Sword, Greatsword, Dagger, Bow, Staff, Rod, Shield, and Rune. New and migrated categories begin at level 0 and 0 XP with no allocated skill ranks. Mastery caps at level 10 and earned progression survives death. Each level grants one category skill point. Each category has two skill nodes: node one accepts five ranks, then node two opens for up to five ranks. The system supports per-skill maximum ranks from one through ten. Mastery rewards are calculated from executed actions and landed defensive actions recorded in the immutable battle snapshot, then applied once in the BattleService battle-resolution transaction. Defaults are 2 XP per two-handed offensive action, 1 XP per occupied one-handed hand per offensive action, and 1 XP for an equipped Shield or Rune per landed incoming action. A basic-attack miss earns no offensive XP.
+
+Current combat remains a single character versus one monster. Positional Mastery abilities use the shared eight-position battle lane and its canonical distance and movement APIs. The battle engine must not introduce a second range or movement model. Current single-target effects remain single-target; party support, AoE, and executable group combat require a separate approved change. Future PvE and PvP may support up to five combatants versus five combatants, with lane, targeting, movement, and area rules specified separately.
+
+The reserved future City respec price ladder is 100k, 200k, 300k, 400k, 500k, 1kk, 2kk, 3kk, 4kk, 5kk, 10kk, 20kk, 30kk, 40kk, and 50kk; later respecs remain capped at 50kk. No Town respec interface is part of this contract.
+
+Precision and Evasion use `79 + floor(total DEX / 3) + modifiers` and `99 + floor(total AGI / 3) + modifiers`. Bow Accuracy modifiers are -75, -74, and -73 for tiers 1, 2, and 3; hit chance is `clamp(100 + Precision - Evasion, 5, 95)`. The explicitly recorded milestone discrepancy remains open for a final design decision: with the stated formula, total DEX 225 and a tier-1 Bow yields Precision 79, while total DEX 228 yields 80. No discontinuous exception is authorized.

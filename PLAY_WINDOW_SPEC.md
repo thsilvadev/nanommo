@@ -326,7 +326,7 @@ Seven rows:
 - Dagger
 - Bow
 - Staff
-- Wand
+- Rod
 - Shield
 
 Each row:

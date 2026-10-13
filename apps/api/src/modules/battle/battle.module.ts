@@ -6,6 +6,7 @@ import { Character } from '../../database/entities/character.entity';
 import { MapKillCounter } from '../../database/entities/map-kill-counter.entity';
 import { GambitPage } from '../../database/entities/gambit-page.entity';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
+import { WeaponProficiency } from '../../database/entities/weapon-proficiency.entity';
 import { BattleController } from './battle.controller';
 import { BattleService } from './battle.service';
 import { BattleQueueProcessor } from './battle-queue.processor';
@@ -26,6 +27,7 @@ import { PresenceModule } from '../presence/presence.module';
       MapKillCounter,
       GambitPage,
       InventoryItem,
+      WeaponProficiency,
     ]),
     BullModule.registerQueue({
       name: 'battle-queue',

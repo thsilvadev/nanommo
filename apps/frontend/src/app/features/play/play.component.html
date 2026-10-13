@@ -11,7 +11,7 @@
     <div class="top-character" *ngIf="character.character() as c">
       <div class="avatar-mini">{{c.name.slice(0,1).toUpperCase()}}</div>
       <div><strong>{{c.name}}</strong><small>Lv. {{c.level}}</small></div>
-      <div class="xp-stack"><small>{{activeGambitTitle()}}</small>
+      <div class="xp-stack"><small>{{activeGambitTitle()}} <button *ngIf="activeGambitEquipmentWarning()" class="gambit-title-warning" type="button" title="Há gambits impossibilitados!" aria-label="Há gambits impossibilitados!" (click)="openUnavailableGambits($event)">⚠️</button></small>
         <div class="xp-mini" [title]="xpTitle()"><span [style.width.%]="xpWidth()"></span></div>
       </div>
       <div class="resource gold"><img src="/assets/ui/coin.svg" alt=""> {{c.gold | number}}</div>

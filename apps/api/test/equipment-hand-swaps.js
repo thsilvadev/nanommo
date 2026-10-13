@@ -2,8 +2,9 @@ const assert = require('node:assert/strict');
 const { EquipmentService } = require('../dist/apps/api/src/modules/equipment/equipment.service.js');
 
 const items = {
-  greatsword: { id: 'equip_greatsword_t1', type: 'equipment', slot: 'mainHand', weaponType: 'greatsword', fixedStats: { atk: 20 } },
-  sword: { id: 'equip_sword_t1', type: 'equipment', slot: 'mainHand', weaponType: 'sword', fixedStats: { atk: 8 } },
+  greatsword: { id: 'equip_greatsword_t1', type: 'equipment', slot: 'mainHand', weaponType: 'greatsword', twoHanded: true, fixedStats: { atk: 20 } },
+  sword: { id: 'equip_sword_t1', type: 'equipment', slot: 'mainHand', weaponType: 'sword', twoHanded: false, allowedOffHandTypes: ['dagger','shield','rune'], fixedStats: { atk: 8 } },
+  dagger: { id: 'equip_dagger_t1', type: 'equipment', slot: 'mainHand', weaponType: 'dagger', secondaryHand: true, twoHanded: false, allowedOffHandTypes: ['dagger','shield','rune'], fixedStats: { atk: 6 } },
   shield: { id: 'equip_shield_t1', type: 'equipment', slot: 'offHand', weaponType: 'shield', fixedStats: { def: 5 } },
 };
 
@@ -55,11 +56,12 @@ function makeHarness({ status = 'town', equipped = [], inventory = [] } = {}) {
     findOne: async () => character,
     save: async (row) => row,
   };
-  const queueRepo = { findOne: async () => status === 'grinding' ? { resolved: false, sequenceIndex: 0 } : null };
+  const queueRepo = { findOne: async () => status === 'grinding' ? { resolved: false, sequenceIndex: 0, startAt: new Date(Date.now() - 1000), endAt: new Date(Date.now() + 60000) } : null };
   const data = { getItemById: (id) => Object.values(items).find((x) => x.id === id) ?? null };
 
   const service = new EquipmentService(
     equipmentRepo, characterRepo, {}, inventoryRepo, queueRepo, data,
+    { runFutureCombatMutation: async (_characterId, mutate) => mutate() },
   );
 
   return { service, character, equipmentRows, inventoryRows };
@@ -71,10 +73,10 @@ function makeHarness({ status = 'town', equipped = [], inventory = [] } = {}) {
       equipped: [{ id: 'eq-gs', characterId: 'c1', slot: 'mainHand', itemId: items.greatsword.id, instanceData: null }],
       inventory: [{ id: 'inv-shield', characterId: 'c1', location: 'inventory', itemId: items.shield.id, slotIndex: 0, quantity: 1, instanceData: null }],
     });
-    await service.equipItem('c1', 'offHand', items.shield.id);
-    assert.equal(equipmentRows.some((x) => x.slot === 'mainHand'), false);
-    assert.equal(equipmentRows.find((x) => x.slot === 'offHand')?.itemId, items.shield.id);
-    assert.equal(inventoryRows.some((x) => x.itemId === items.greatsword.id), true);
+    await assert.rejects(service.equipItem('c1', 'offHand', items.shield.id));
+    assert.equal(equipmentRows.find((x) => x.slot === 'mainHand')?.itemId, items.greatsword.id);
+    assert.equal(equipmentRows.some((x) => x.slot === 'offHand'), false);
+    assert.equal(inventoryRows.some((x) => x.itemId === items.shield.id), true);
   }
 
   {
@@ -94,26 +96,54 @@ function makeHarness({ status = 'town', equipped = [], inventory = [] } = {}) {
       inventory: [{ id: 'inv-shield', characterId: 'c1', location: 'inventory', itemId: items.shield.id, slotIndex: 0, quantity: 1, instanceData: null }],
     });
     const result = await service.validateWeaponCombination('c1', undefined, items.shield.id);
-    assert.equal(result.valid, true);
+    assert.equal(result.valid, false);
+  }
+
+  {
+    const { service, equipmentRows, inventoryRows } = makeHarness({
+      equipped: [{ id: 'eq-sword', characterId: 'c1', slot: 'mainHand', itemId: items.sword.id, instanceData: null }],
+      inventory: [{ id: 'inv-dagger', characterId: 'c1', location: 'inventory', itemId: items.dagger.id, slotIndex: 0, quantity: 1, instanceData: null }],
+    });
+    await service.equipItem('c1', 'offHand', items.dagger.id);
+    assert.equal(equipmentRows.find((x) => x.slot === 'offHand')?.itemId, items.dagger.id);
+    assert.equal(inventoryRows.some((x) => x.itemId === items.dagger.id), false);
+  }
+
+  {
+    const { service } = makeHarness({
+      equipped: [{ id: 'eq-sword', characterId: 'c1', slot: 'mainHand', itemId: items.sword.id, instanceData: null }],
+      inventory: [{ id: 'inv-sword2', characterId: 'c1', location: 'inventory', itemId: items.sword.id, slotIndex: 0, quantity: 1, instanceData: null }],
+    });
+    await assert.rejects(service.equipItem('c1', 'offHand', items.sword.id));
   }
 
   {
     const { service, character, equipmentRows, inventoryRows } = makeHarness({
       status: 'grinding',
-      equipped: [{ id: 'eq-gs', characterId: 'c1', slot: 'mainHand', itemId: items.greatsword.id, instanceData: null }],
+      equipped: [{ id: 'eq-sword', characterId: 'c1', slot: 'mainHand', itemId: items.sword.id, instanceData: null }],
       inventory: [{ id: 'inv-shield', characterId: 'c1', location: 'inventory', itemId: items.shield.id, slotIndex: 0, quantity: 1, instanceData: null }],
     });
     await service.equipItem('c1', 'offHand', items.shield.id);
-    assert.equal(character.pendingEquipmentChanges.mainHand, null);
     assert.equal(character.pendingEquipmentChanges.offHand.itemId, items.shield.id);
-    assert.equal(equipmentRows.find((x) => x.slot === 'mainHand')?.itemId, items.greatsword.id);
+    assert.equal(equipmentRows.find((x) => x.slot === 'mainHand')?.itemId, items.sword.id);
     assert.equal(inventoryRows.some((x) => x.itemId === items.shield.id), false);
 
     await service.applyPendingEquipmentChanges('c1');
-    assert.equal(equipmentRows.some((x) => x.slot === 'mainHand'), false);
     assert.equal(equipmentRows.find((x) => x.slot === 'offHand')?.itemId, items.shield.id);
-    assert.equal(inventoryRows.some((x) => x.itemId === items.greatsword.id), true);
   }
 
-  console.log('equipment-hand-swaps: 12 assertions passed');
+  {
+    const { service } = makeHarness({
+      equipped: [
+        { id: 'eq-sword', characterId: 'c1', slot: 'mainHand', itemId: items.sword.id, instanceData: null },
+        { id: 'eq-dagger', characterId: 'c1', slot: 'offHand', itemId: items.dagger.id, instanceData: null },
+      ],
+    });
+    const stats = await service.calculateEquipmentStats('c1');
+    assert.equal(stats.weaponFixedAtk, 11, 'main hand 8 plus half of secondary Dagger ATK 6');
+    const derived = await service.calculateDerivedStats({ id: 'c1', level: 1, str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5 });
+    assert.equal(derived.atk, 21, 'derived ATK includes each weapon contribution exactly once');
+  }
+
+  console.log('equipment-hand-swaps: passed including staged swaps, pairing matrix and non-duplicated secondary ATK');
 })();

@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, Logger, ConflictExc
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem } from '@/database/entities';
-import { CharacterDto, Attribute, WeaponType, BattleEngine } from '@nanommo/shared';
+import { CharacterDto, Attribute, WeaponType, BattleEngine, effectiveWeaponAttack } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
 
@@ -42,6 +42,7 @@ export class CharacterService {
       maxSp: 0,
       weaponFixedAtk: 0,
       weaponFixedMatk: 0,
+      accuracyModifier: 0,
       statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 },
     };
     for (const row of equipped) {
@@ -51,10 +52,11 @@ export class CharacterService {
       equipment.mdefPercent += Number(item.fixedStats?.mdefPercent ?? 0);
       equipment.maxHp += Number(item.fixedStats?.maxHp ?? 0);
       equipment.maxSp += Number(item.fixedStats?.maxSp ?? 0);
-      if (row.slot === 'mainHand') {
-        equipment.weaponFixedAtk += Number(item.fixedStats?.atk ?? 0);
-        equipment.weaponFixedMatk += Number(item.fixedStats?.matk ?? 0);
+      if (row.slot === 'mainHand' || row.slot === 'offHand') {
+        equipment.weaponFixedAtk += effectiveWeaponAttack(item, row.slot);
+        if (row.slot === 'mainHand') equipment.weaponFixedMatk += Number(item.fixedStats?.matk ?? 0);
       }
+      if (item.weaponType === 'bow') equipment.accuracyModifier -= ({ 1: 75, 2: 74, 3: 73 } as Record<number, number>)[Number(item.tier)] ?? 75;
       for (const [key, value] of Object.entries(item.fixedStats?.statBonus ?? {})) {
         if (key in equipment.statBonus && typeof value === 'number') (equipment.statBonus as any)[key] += value;
       }
@@ -68,8 +70,9 @@ export class CharacterService {
     return equipment;
   }
 
-  async createCharacter(userId: string, name: string): Promise<CharacterDto> {
+  async createCharacter(userId: string, name: string, dominantHand: 'right' | 'left'): Promise<CharacterDto> {
     this.validateName(name);
+    if (dominantHand !== 'right' && dominantHand !== 'left') throw new BadRequestException('dominantHand must be right or left');
 
     const existing = await this.characterRepository.findOne({
       where: { userId },
@@ -94,6 +97,8 @@ export class CharacterService {
     const character = this.characterRepository.create({
       userId,
       name,
+      dominantHand,
+      knownItemIds: this.dataService.getNpcVendor()?.sellStock?.map((row: any) => row.itemId) ?? [],
       level: 1,
       xp: 0,
       unspentAttributePoints: 0,
@@ -139,16 +144,19 @@ export class CharacterService {
       WeaponType.DAGGER,
       WeaponType.BOW,
       WeaponType.STAFF,
-      WeaponType.WAND,
+      WeaponType.ROD,
       WeaponType.SHIELD,
+      'rune' as any,
     ];
 
     for (const weaponType of weaponTypes) {
       const proficiency = this.weaponProficiencyRepository.create({
         characterId: savedCharacter.id,
         weaponType,
-        level: 1,
+        level: 0,
         xp: 0,
+        spentSkillPoints: 0,
+        skillRanks: {},
       });
       await this.weaponProficiencyRepository.save(proficiency);
     }
@@ -186,11 +194,43 @@ export class CharacterService {
     });
   }
 
-  async getWeaponProficiencyByUserId(userId: string): Promise<Array<{ weaponType: WeaponType; level: number }>> {
+  async getWeaponProficiencyByUserId(userId: string): Promise<Array<{ weaponType: string; level: number; xp: number; spentSkillPoints: number; skillRanks: Record<string, number> }>> {
     const character = await this.getCharacterByUserId(userId);
     if (!character) throw new NotFoundException('Character not found');
     const rows = await this.weaponProficiencyRepository.find({ where: { characterId: character.id } });
-    return rows.map((row) => ({ weaponType: row.weaponType, level: row.level }));
+    return rows.map((row) => ({ weaponType: row.weaponType, level: row.level, xp: Number(row.xp), spentSkillPoints: row.spentSkillPoints, skillRanks: row.skillRanks ?? {} }));
+  }
+
+  async allocateMasterySkill(userId: string, category: string, skillId: string): Promise<{ category: string; level: number; xp: number; spentSkillPoints: number; skillRanks: Record<string, number> }> {
+    const character = await this.getCharacterByUserId(userId);
+    if (!character) throw new NotFoundException('Character not found');
+    const categorySkills = this.dataService.getSkillsForWeapon(category);
+    const skill = categorySkills.find((entry: any) => entry.id === skillId);
+    if (!skill || !['sword','greatsword','dagger','bow','staff','rod','shield','rune'].includes(category)) {
+      throw new BadRequestException('Unknown Mastery category or skill');
+    }
+    const maximum = Math.max(1, Math.min(10, Number(skill.maxRank ?? 5)));
+    // The entire rank mutation, including validation, is accepted at the shared
+    // future-combat boundary; active queue snapshots remain untouched.
+    return this.battleService.runFutureCombatMutation(character.id, async () => {
+      return this.weaponProficiencyRepository.manager.transaction(async (manager) => {
+        const repo = manager.getRepository(WeaponProficiency);
+        const fresh = await repo.findOne({ where: { characterId: character.id, weaponType: category }, lock: { mode: 'pessimistic_write' } });
+        if (!fresh) throw new NotFoundException('Mastery category not found');
+        const freshRanks = { ...(fresh.skillRanks ?? {}) };
+        const freshSpent = Number(fresh.spentSkillPoints ?? 0);
+        const rankTotal = Object.values(freshRanks).reduce((total, rank) => total + Math.max(0, Math.floor(Number(rank) || 0)), 0);
+        if (rankTotal !== freshSpent) throw new BadRequestException('Stored Mastery rank total is inconsistent');
+        if (freshSpent >= Number(fresh.level) || Number(freshRanks[skillId] ?? 0) >= maximum) throw new BadRequestException('No unspent Mastery points or skill is at maximum rank');
+        if (skill.prerequisite && Number(freshRanks[skill.prerequisite.skillId] ?? 0) < Number(skill.prerequisite.rank)) throw new BadRequestException('Skill prerequisite is not met');
+        if (skill.node !== 1 && Number(freshRanks[categorySkills[0]?.id] ?? 0) < 5) throw new BadRequestException('First node must reach rank 5 before this skill');
+        freshRanks[skillId] = Number(freshRanks[skillId] ?? 0) + 1;
+        fresh.skillRanks = freshRanks;
+        fresh.spentSkillPoints = freshSpent + 1;
+        const saved = await repo.save(fresh);
+        return { category, level: saved.level, xp: Number(saved.xp), spentSkillPoints: saved.spentSkillPoints, skillRanks: saved.skillRanks ?? {} };
+      });
+    });
   }
 
   async setAutoFeed(characterId: string, enabled: boolean): Promise<CharacterDto> {
@@ -312,6 +352,8 @@ export class CharacterService {
       id: character.id,
       userId: character.userId,
       name: character.name,
+      dominantHand: character.dominantHand ?? 'right',
+      knownItemIds: character.knownItemIds ?? [],
       level: character.level,
       xp: character.xp,
       xpToNext: this.dataService.getXpToNextLevel(character.level),

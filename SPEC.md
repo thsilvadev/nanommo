@@ -13,10 +13,10 @@
 3. Core Design Principles (determinism, server authority, seemless idle)
 4. Data Model (TypeORM entities)
 5. Attributes, Stats & Formulas
-6. Progression: Character XP & Weapon Proficiency
+6. Progression: Character XP & Mastery
 7. Battle Engine (tick simulation, action gauge, prediction queue)
 8. Gambit System
-9. Weapons & Skill Trees
+9. Mastery Skill Trees
 10. Items, Equipment & Inventory
 11. Maps, Encounter Queues & Drops
 12. Town: Vendor NPC, Warehouse, Chat
@@ -194,6 +194,8 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | id | uuid, PK | |
 | userId | uuid, FK → User, unique | 1:1 |
 | name | varchar(16) | denormalized copy of `User.username` |
+| dominantHand | varchar(5), default right | right/left; presentation only, never changes semantic hand API slots |
+| knownItemIds | jsonb, default [] | item IDs the character has seen/acquired; separate from inventory quantity |
 | level | int, default 1 | 1–99 |
 | xp | bigint, default 0 | current XP toward next level |
 | unspentAttributePoints | int, default 0 | |
@@ -214,16 +216,18 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 
 Character creation bootstrap (one time only): seed the starter pack with 50 `pot_hp_small` and 5 `food_bread`. Characters start **unarmed**; no `equip_sword_t1` or other weapon is granted or equipped at creation. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
 
-### 4.3 `WeaponProficiency`
+### 4.3 Mastery category progress (`weapon_proficiencies` legacy table)
 | field | type | notes |
 |---|---|---|
 | id | uuid, PK | |
 | characterId | uuid, FK | |
-| weaponType | enum(sword, greatsword, dagger, bow, staff, wand, shield) | |
-| level | int, default 1 | 1–50 |
-| xp | bigint, default 0 | |
+| weaponType | varchar(16) | one of `sword`, `greatsword`, `dagger`, `bow`, `staff`, `rod`, `shield`, `rune` |
+| level | int, default 0 | 0–10; derived from cumulative Mastery XP by the shared threshold table (§6.5) |
+| xp | bigint, default 0 | cumulative Mastery XP for this category |
+| spentSkillPoints | int, default 0 | ranks purchased in this category; must not exceed Mastery level |
+| skillRanks | jsonb, default `{}` | map from skill ID to allocated rank; ranks survive death |
 
-Unique index on `(characterId, weaponType)`. One row per weapon type is created lazily on first equip (or all 7 seeded at character creation — recommended, simpler).
+Unique index on `(characterId, weaponType)`. Character creation and the migration seed exactly one row for each of the eight categories at level 0, 0 XP, 0 spent points, and no learned ranks. The SQL table name remains `weapon_proficiencies` for compatibility; its legacy level-1-to-50 meaning is retired.
 
 ### 4.4 `InventoryItem` (also reused, with a `location` discriminator, for Warehouse)
 | field | type | notes |
@@ -417,29 +421,23 @@ isCrit = roll() < critChance%
 damage = isCrit ? damage * critMultiplier : damage
 ```
 
-### 5.3 Weapon type combat identity
+### 5.3 Hand equipment and weapon identity
 
-| Weapon | Slot(s) | Damage type | Legacy weapon timing metadata (ticks) | Notes |
-|---|---|---|---|---|
-| Sword | mainHand (1H) | melee | 6 | balanced; pairs with Shield or a second Sword/Dagger |
-| Greatsword | mainHand+offHand (2H) | melee | 10 | heaviest hit; occupies both hand slots |
-| Dagger | mainHand (1H) | melee | 4 | light melee; pairs with Shield, Sword, or a second Dagger |
-| Bow | mainHand+offHand (2H) | ranged physical | 7 | |
-| Staff | mainHand+offHand (2H) | ranged magic | 9 | highest MATK scaling |
-| Wand | mainHand+offHand (2H) | ranged magic + healing | 7 | only weapon with heal skills |
-| Shield | offHand only | — (utility) | n/a (no basic attack) | pairs with Sword or Dagger only |
+The eight canonical Mastery categories are Sword, Greatsword, Dagger, Bow, Staff, Rod, Shield, and Rune. Sword, Dagger, and Rod are one-handed primary weapons. Greatsword, Bow, and Staff occupy both hands. Dagger is the only weapon that may occupy either semantic hand; Shield and Rune are off-hand equipment. A secondary item requires a compatible one-handed primary. Dagger + Dagger and Sword/Rod + Dagger are legal; Sword + Sword is forbidden. Shield and Rune may pair with any one-handed primary. The item catalogue's slot, twoHanded, and allowedOffHandTypes metadata is the authoritative compatibility contract; do not maintain a second hard-coded weapon-name matrix.
 
-Valid main/off-hand combinations: `Sword+Shield`, `Sword+Sword`, `Sword+Dagger`, `Dagger+Shield`, `Dagger+Dagger`, or any of `Greatsword`/`Bow`/`Staff`/`Wand` alone (occupies both hand slots, `offHand` slot is locked/hidden in UI while equipped). Server validates this combination on every equip request — reject with a clear error code if illegal.
+The semantic slots remain mainHand (primary) and offHand (secondary), independent of a character's saved dominantHand (right or left). Dominant hand mirrors only the UI presentation; API names and combat semantics never change. A two-handed equip returns a conflicting secondary item to inventory. The server validates final hand combinations for every equip mutation.
 
-The table's weapon timing values remain legacy catalog metadata; the current character basic-Attack gauge interval is governed by the Attack Speed rating formula in §7.2, independently of weapon. The **basic Attack** gambit action still uses the mainHand weapon's damage type. **Skills** always use the **DEX-based cast gauge** regardless of weapon (see §7.2), and are only usable while their required `weaponType` is equipped in mainHand (or offHand for Shield skills).
+Main-hand weapon ATK contributes at 100%; secondary-hand weapon ATK contributes at 50%. Only the secondary weapon's ATK is reduced: attributes, defensive properties, and other bonuses/effects remain at full value. The equipped secondary weapon tooltip displays its original ATK struck through and the effective 50% contribution beside it, using the shared CatalogService tooltip path.
+
+Basic Attack's damage type comes from the main-hand item and timing uses the universal Attack Speed formula (§7.2), not legacy weapon timing metadata. Active skills require the relevant mastery rank, required equipment, sufficient SP, and a ready cooldown; active abilities do not roll Accuracy/Evasion or critical hits. Positional abilities consume the battle-distance-movement contract at the end of this document.
 
 ---
 
-## 6. Progression: Character XP & Weapon Proficiency
+## 6. Progression: Character XP & Mastery
 
 ### 6.1 Design intent
 
-Reaching character level 60 should take roughly **1 month of continuous idle grinding** (excluding time spent in town), and the **single step from level 59 to 60 alone** should account for roughly **half of that month** — i.e. the curve is dominated by its own tail, early levels fly by, the last stretch dominates. Beyond level 60 (cap 99), growth becomes deliberately near-impossible, framing 99 as an aspirational horizon rather than a realistic target. Weapon proficiency (separate resource, cap 50) should feel fast at first (level 10 in about a day) and become a true long-term commitment (level 50 in about a year).
+Reaching character level 60 should take roughly **1 month of continuous idle grinding** (excluding time spent in town), and the **single step from level 59 to 60 alone** should account for roughly **half of that month** — i.e. the curve is dominated by its own tail, early levels fly by, the last stretch dominates. Beyond level 60 (cap 99), growth becomes deliberately near-impossible, framing 99 as an aspirational horizon rather than a realistic target. Mastery is separate per category, starts at level 0, and is capped at level 10; skill points are earned by Mastery levels and spent on ranks.
 
 Both curves below were derived, not guessed: a small simulation (`packages/shared` should ship the generator script as `scripts/generate-xp-curves.ts` for future rebalancing) assumed **~20 effective idle-hours/day**, an **average battle length of 15s**, and an average XP-per-kill of `18 * monsterLevel^1.15` (this constant also drives `xpReward` in `monsters.json` — the two are the same formula, keep them in sync). Solving for these targets yields a clean **geometric doubling curve** up to level 60, then a steeper geometric tail to 99.
 
@@ -483,15 +481,15 @@ Two things this deliberately does *not* do, both settled as of 2026-09-28 (previ
 Implemented as written in `battle.service.ts:545-546`; verified by `apps/api/test-phase3-death.js` (level 10 → `floor(30 × 0.05) = 1`; level 20 seeded at 1 XP with `floor(73 × 0.05) = 3` → clamped to 0, level unchanged at 20).
 
 
-### 6.5 Weapon proficiency XP formula
+### 6.5 Mastery XP and levels
 
-```
-weaponXpToNextLevel(L) = round(5886.4477522292345 * 1.1508260363470009^(L-1))   // L = 1..50
-```
+Mastery XP is awarded transactionally when the authoritative BattleService resolves a battle, using only the immutable equipment snapshot and actions recorded by that battle. Defaults are 2 XP for a successful offensive action with a two-handed weapon; 1 XP for each occupied one-handed weapon hand per successful offensive action; and 1 defensive XP for each equipped Shield or Rune when an incoming enemy attack/ability is confirmed as landed. Two Daggers therefore credit 2 XP to Dagger per eligible offensive action. Basic-attack misses award no offensive XP. An action skipped because it is unlearned, unequipped, on cooldown, or lacks SP awards no XP. An incoming miss awards no defensive XP. A battle retry or duplicate delivery MUST NOT award the same Mastery XP twice.
 
-Also ships precomputed as `weapon_xp_curve.json` (§21) — load and index, do not recompute at runtime. Derived assuming ~600 weapon actions/hour (~1 action every 6s blended across weapon speeds) and 10 XP per action performed with that weapon (basic Attack **and** Skill actions both grant weapon XP; using a Skill does not grant less). Sanity checkpoints: level 10 at ~1 idle-day, level 50 at ~1 idle-year, smooth exponential in between.
+All eight categories (sword, greatsword, dagger, bow, staff, rod, shield, rune) begin at level 0, 0 XP, and no learned ranks. Mastery level is capped at 10 and earned XP/levels/ranks survive death. The canonical shared data source must define the threshold table; frontend/backend must not independently derive it. Balance is not considered complete until deterministic pacing tests demonstrate the approved checkpoints: one two-handed category reaches level 5 around character level 23; two one-handed categories each reach level 5 around character level 28; and around character level 50 the reference build reaches level 10 in one category or level 7 in each of two categories. The DEX/Bow milestone discrepancy described near the end of this document remains unresolved; do not add a special-case discontinuity without a design decision.
 
-**Important:** switching equipped weapon type does not lose progress — each `WeaponProficiency` row is permanent and independent. A character can raise all 7 weapon types over time, but only the currently-equipped weapon's skills are usable at any moment (§9).
+The provisional shared cumulative thresholds for Mastery levels 1–10 are 5, 10, 25, 50, 100, 500, 25,000, 35,000, 45,000, and 60,000 XP (level 0 starts at 0 XP). The deterministic calibration harness reads `char_xp_curve.json` cumulative XP, cycles monsters at or below the target character level in catalog level order, awards each kill `floor(monster.xpReward × 0.25)` to match the production Grind payout, and estimates successful attack actions as `ceil(monster HP / (5 × character level))`. It applies the documented two-handed/one-handed per-action XP to those estimated actions. This simplified equal-level attack-count proxy estimates 148 two-handed action XP at character level 23, 115 XP per one-handed category at level 28, and 61,968 XP for a two-handed category versus 30,984 XP for each one-handed category around level 50. The thresholds yield L23 two-handed Mastery 5, L28 Mastery 5 in each of two one-handed categories, L50 two-handed Mastery 10, and L50 Mastery 7 in each of two one-handed categories. The late thresholds intentionally contain a steep gap to meet these design checkpoints; treat it as provisional, not live-gameplay proof, until combat-stat simulation and live telemetry establish acceptable pacing. The DEX/Bow milestone remains open. Threshold changes belong only in the shared Mastery progression function/table.
+
+Four API environment settings control reward amounts and must be validated as non-negative integers at boot: MASTERY_XP_TWO_HANDED_ACTION=2, MASTERY_XP_ONE_HANDED_ACTION=1, MASTERY_XP_SHIELD_ON_HIT=1, and MASTERY_XP_RUNE_ON_HIT=1. Environment parsing belongs to the API, never the shared simulator.
 
 ---
 
@@ -643,33 +641,19 @@ On every `GambitPage` write:
 
 Reject the whole write with a 400 + field-level errors if any line fails validation — never silently drop invalid lines.
 
-### 8.5 Frontend requirements (greying out)
+### 8.5 Frontend availability
 
-Any gambit line whose action currently cannot fire (skill not unlocked at current weapon proficiency level, skill's weapon not equipped, referenced item has 0 quantity in inventory) renders visually greyed out in the editor, with a hover tooltip explaining precisely why (e.g. *"Requires Bow equipped"*, *"Requires Bow proficiency level 20 (currently 14)"*, *"0x Small HP Potion in inventory"*). This is purely a UI affordance — the line is still saved and will simply be skipped by the engine at runtime per §7.3 until the condition changes, exactly as it would in live play. See §17.5 for the editor's full UX spec.
+Gambit item choices show only item IDs known to the character; item quantity remains an independent execution-time check. A character's known-item list is seeded from William's canonical vendor stock and updated idempotently on authoritative acquisition. The active-skill picker shows learned active skills only; passive skills are never Gambit actions. A saved skill line can be temporarily unavailable when the required weapon is not equipped; the editor shows a warning icon and the agreed tooltip, and the runtime skips that action without rewarding Mastery XP. Grind's active Gambit title shows a warning only when the active page contains a skill line disabled by missing equipment, and clicking it opens that Gambit page.
 
 ---
 
-## 9. Weapons & Skill Trees
+## 9. Mastery Skill Trees
 
-Full data in `skill_trees.json` (§21) — 7 weapon types × 7 skills each (unlocked at weapon proficiency levels **1, 5, 10, 20, 30, 40, 50**), plus 3 monster-only skills.
+skill_trees.json is the canonical definition source for eight Mastery categories with exactly two current skills each (16 player skills total), plus the existing monster-only skills. Skill progression is purchased with Mastery points; the retired automatic unlock schedule at proficiency levels 1/5/10/20/30/40/50 does not apply.
 
-### 9.1 Rules
+Each category has node 1 and node 2. Node 1 accepts ranks 1–5. Node 2 is unavailable until node 1 is rank 5, then accepts ranks 1–5. Each category grants one point per Mastery level gained, for a maximum of ten points at Mastery 10. The data/validation contract must support per-skill maxRank from 1 through 10 even though current nodes use five ranks. A passive only operates while the source equipment is present in the immutable battle snapshot. An active skill is usable only when it is learned at rank 1 or greater, its required equipment is present, enough SP is available, and its cooldown is ready. Its Gambit line remains saveable but is unavailable when a requirement is not met.
 
-- A skill is **usable** only if: (a) its `weaponType` is currently equipped in the relevant slot (mainHand for all types except Shield, which checks offHand), **and** (b) `WeaponProficiency.level >= skill.unlockWeaponLevel` for that weapon type on this character.
-- Skills are **never** purchased, dropped, or learned individually — unlocking is 100% automatic and tied to proficiency level. This keeps the system simple and removes an entire economy surface (no "skill book" items needed).
-- Each weapon type's tree is thematically consistent (see `skill_trees.json` for exact effects): Sword and Greatsword are pure melee DPS with an execute/AoE progression; Dagger favors speed/multi-hit/bleed-poison; Bow favors precision/defense-pierce/marking; Staff is heavy elemental burst magic; **Wand is the only tree with heal/cure skills** (this is where the "Priest" archetype comes from — a character built INT/DEX wielding a Wand); Shield is a pure utility/mitigation tree usable alongside Sword or Dagger.
-- `spCost` and `cooldownTicks` scale up with `unlockWeaponLevel` (see formulas in the generation script referenced by the JSON) — higher-tier skills hit harder but are used more sparingly.
-
-### 9.2 Archetype ⇄ build mapping (for player-facing UI copy only — mechanically there are no classes)
-
-| Informal archetype | Typical attributes | Typical weapon(s) |
-|---|---|---|
-| Warrior | STR, VIT | Sword/Shield, Greatsword, Dagger/Dagger |
-| Archer | DEX, AGI | Bow |
-| Mage | INT, DEX | Staff |
-| Priest | INT, VIT | Wand |
-
-These labels appear in monster `favoredAgainstArchetypeLabel` fields (§11.3) purely as flavor/guidance text — the engine only ever reads `damageTakenMultiplier.{melee,ranged,magic}` and the monster's `sustainPressure` flag, never a hardcoded "archetype" enum on the character.
+The exact current effects, costs, cooldowns, status behavior, and position interactions for Swordsmanship/Power Strike, Brutality/Heavy Swing, Double Strike/Blinkstrike, Shield Bash/War Cry, Fire Ball/Fire Blast, Wisp Flow/Light of Heaven, Fearless Focus/Violent Shot, and Stored Essence/Magic Barrier are governed by the hand-equipment-mastery-skills OpenSpec change and the skill catalogue. Current combat remains one character versus one monster; do not implement party support, multi-target AoE, PvP, or 5v5 combat as part of this contract. Positional skills must reuse the shared battle-distance-movement API.
 
 ---
 
@@ -714,7 +698,7 @@ Equipment tooltips show the actual stats granted by the item instance (fixed sta
 - **Monster parts** (30): 2 per monster (`common`, `rare`). Sellable to the vendor (never usable as a potion), reserved for future crafting/quest hooks (fields present in schema, unused by any system in MVP — do not build crafting/quests, just don't break the schema by omitting the fields).
 - **Consumables** (8): HP potions (S/M/L), SP potions (S/M/L), Antidote, and Greater Elixir (rare drop, heals both pools). All consumables share `sellPriceToVendor: 7` gold as specified. Only the 6 basic potions + Antidote are sold by the town vendor (§12.1); Elixir is drop/market only.
 - **Foods** (7): food items whose `effect.type` is `food_buff`. Foods are stackable inventory items and are consumed manually outside battle or automatically by Auto Feed; they are not consumables and cannot be used by Gambits.
-- **Equipment** (51): 21 weapons (7 types × 3 tiers), 24 armor (head/body/cape × physical-or-magic variant × 3 tiers), 6 accessories (2 variants × 3 tiers), 6 shoes (2 elements × 3 tiers, chosen to match each map's monster elements — see §11).
+- **Equipment**: the static catalogue is authoritative for the complete set of weapon, armor, accessory, shoe, and Rune templates. The former fixed equipment count predates the Rod/Rune changes and must not be used as a schema constraint.
 
 ### 10.5 Foods (buffs) — detail
 
@@ -765,7 +749,7 @@ This is **mathematically identical** in outcome and reproducibility to a pre-gen
 
 ### 11.3 Monster archetype matchups
 
-Each monster in `monsters.json` carries a `damageTakenMultiplier: { melee, ranged, magic }` object. A value `> 1.0` means that damage type is **effective** (easier fight for that build); `< 1.0` means **resisted** (harder). Within each map, the 5 monsters are deliberately spread across: one favors melee (Warrior), one favors ranged physical (Archer), one favors magic (Mage), one is a `sustainPressure` fight that punishes low-healing builds regardless of damage type (favors Priest/Wand builds via its self-heal or poison pressure), and one is `balanced` (no clear weakness — the odd one out, and where two of the game's three "monster with an active ability" fights live: enrage/massive-damage, self-heal, and stun, one per map, never more than one ability-monster per map).
+Each monster in `monsters.json` carries a `damageTakenMultiplier: { melee, ranged, magic }` object. A value `> 1.0` means that damage type is **effective** (easier fight for that build); `< 1.0` means **resisted** (harder). Within each map, the 5 monsters are deliberately spread across: one favors melee (Warrior), one favors ranged physical (Archer), one favors magic (Mage), one is a `sustainPressure` fight that punishes low-healing builds regardless of damage type (favors Priest/Rod builds via its self-heal or poison pressure), and one is `balanced` (no clear weakness — the odd one out, and where two of the game's three "monster with an active ability" fights live: enrage/massive-damage, self-heal, and stun, one per map, never more than one ability-monster per map).
 
 ### 11.4 Encounter search time
 
@@ -818,7 +802,7 @@ Not-hungry branch: "I'm fine, prayer. Came to get blessed for battle." → "The 
 
 ### 12.1.3 Blacksmith Loren
 
-`blacksmith_loren` is a vendor NPC with ten visual slots. Its infinite stock contains the nine canonical T1 equipment pieces: sword, greatsword, dagger, bow, staff, wand, shield, physical body armor and magic body armor. Every T1 weapon in Loren's stock costs exactly 2,000 gold; body armor prices remain data-driven. Its greeting is data-driven from `npc_catalog.json`; vendor BUY/SELL remains authoritative.
+`blacksmith_loren` is a vendor NPC with ten visual slots. Its infinite stock contains the nine canonical T1 equipment pieces: sword, greatsword, dagger, bow, staff, rod, shield, physical body armor and magic body armor. Every T1 weapon in Loren's stock costs exactly 2,000 gold; body armor prices remain data-driven. Its greeting is data-driven from `npc_catalog.json`; vendor BUY/SELL remains authoritative.
 
 ### 12.1.4 Cecilia
 
@@ -1038,7 +1022,7 @@ The 50 inventory cells must fit without vertical scrolling at the intended deskt
 The left panel answers who the character is, what is equipped, HP/SP, active statuses,
 and derived combat stats.
 
-The right panel is a single large **Info Panel**. In Town it shows information about the currently selected object/item/map/character context. During Grind it shows the current grind state, monster information, consumable availability, XP progress and battle timing. Weapon proficiency is not a separate panel.
+The right panel is a single large **Info Panel**. In Town it shows information about the currently selected object/item/map/character context. During Grind it shows the current grind state, monster information, consumable availability, XP progress and battle timing. Mastery is not a separate Town panel.
 
 Exact component composition, dimensions, responsive behavior, visual tokens and states
 are defined in `PLAY_WINDOW_SPEC.md`.
@@ -1056,7 +1040,7 @@ The Stats section includes HP, SP, Attack, Magic ATK, Defense, Attack Speed, Cas
 2. **Gambits** — the full three-page Gambit editor.
 3. **Mastery** — weapon mastery workspace. The left side shows the selected weapon type and its mastery tree; the right side shows the weapon list/levels. The skill-tree container is intentionally present even before skills are implemented.
 
-On the Mastery tab, **Weapons** is the right-side list of weapon types (Sword, Greatsword, Dagger, Bow, Staff, Wand, Shield) with each type's level. The selected weapon type is highlighted and its Mastery is shown on the left. Do not show the old Equipment or Inventory panels on this tab.
+On the Mastery tab, **Weapons** is the right-side list of weapon types (Sword, Greatsword, Dagger, Bow, Staff, Rod, Shield) with each type's level. The selected weapon type is highlighted and its Mastery is shown on the left. Do not show the old Equipment or Inventory panels on this tab.
 
 Attribute allocation:
 - shows all six attributes;
@@ -1299,7 +1283,7 @@ Use these as literal, sequential prompts to your IDE's AI assistant, one at a ti
 4. **Backend: data loading.** Copy the 7 JSON files (§21) into `apps/api/src/data/`, write a boot-time loader that schema-validates them (zod) and exposes them via an injectable `GameDataService`. Also port the two curve-generator scripts (xp_curve.py / weapon_xp_curve.py logic, §6) into TypeScript as `scripts/generate-xp-curves.ts` for future rebalancing, but ship the already-generated JSON tables as the runtime source of truth.
 5. **Backend: entities & migrations.** Implement every entity from §4 with TypeORM decorators, generate the initial migration, verify it runs cleanly against the dockerized Postgres.
 6. **Backend: auth module.** Registration (incl. CPF validation/hashing), email verification, login (incl. single-session + lockout), refresh, password reset — per §15.
-7. **Backend: character module.** Character creation on first login, attribute allocation endpoint, equipment endpoints (with slot-combination validation from §5.3), weapon proficiency tracking.
+7. **Backend: character module.** Character creation on first login, attribute allocation endpoint, equipment endpoints (with slot-combination validation from §5.3), eight-category Mastery tracking and skill-point allocation.
 8. **Backend: gambit module.** CRUD for the 3 pages, full server-side validation (§8.4), active-page switching with the mid-battle guard (§8.1).
 9. **Backend: battle module + gateway.** Wire the shared battle engine into the real flow: map:enter → build 5-deep queue → BullMQ scheduled resolution → crash recovery on boot (§7.4–§7.6). This is the most complex phase — budget real time for it, and lean on the §19.1 snapshot tests plus the new §19.4 integration tests to verify correctness.
 10. **Backend: inventory, equipment drops, market, mail, warehouse, vendor.** §10, §12–§14. Pay special attention to the transactional locking rules in §15.5.
@@ -1322,9 +1306,9 @@ These 7 files are the complete static game data and ship in `apps/api/src/data/`
 | `items.json` | 30 monster parts, 15 consumables, 51 equipment pieces |
 | `npc_vendor.json` | The town vendor's fixed sell stock + buy-rate config |
 | `gambit_catalog.json` | The full curated condition/action catalog, page/line limits, HP/SP band thresholds, an example page |
-| `skill_trees.json` | All 49 weapon skills (7 types × 7 tiers) + 3 monster-only skills + base attack-gauge ticks per weapon |
+| `skill_trees.json` | 16 current player Mastery skills (8 categories × 2 nodes) + monster-only skills and legacy attack timing metadata |
 | `char_xp_curve.json` | Precomputed character level 1–98 XP table (§6.2) |
-| `weapon_xp_curve.json` | Precomputed weapon proficiency level 1–50 XP table (§6.5) |
+| `weapon_xp_curve.json` | Legacy proficiency table retained for migration/reference only; not the Mastery threshold source |
 
 Load all seven at boot, validate their shape, and fail fast on mismatch (§18.2 philosophy applies here too — a malformed data file should crash the boot, not silently degrade).
 
@@ -1350,3 +1334,15 @@ A character's entry style is frozen from valid enabled Foe Gambit actions: Bow b
 Slow remains a reusable canonical status effect: -50 Move Speed for 20 seconds; reapplication refreshes that one status. Ice Bolt is distinct: Wailing Wraith has a melee basic attack usable only at distance 0, but stays stationary while its ranged magical Ice Bolt is legal. Ice Bolt costs 0 SP, has `baseCastTicks: 2`, `cooldownTicks: 1`, and `maxRange: 7` in `skill_trees.json`; that range includes the target's occupied position, so it reaches six empty spaces between positions 0 and 7. The Wraith's fallback attack Gambit line requires the `silence` status, so it cannot make basic attacks while Ice Bolt is legal. If silenced, Ice Bolt is illegal and the fallback approaches only while the player is not adjacent.
 
 Each successful Ice Bolt cast has a seeded 25% chance to apply the `freeze` status to the character (never to Wailing Wraith). Ice Bolt contains `applyStatus: "freeze"` and `statusChance: 0.25`; duration, stackability, maximum stacks, Move Speed penalty, and Attack Speed penalty are defined by canonical root `status_effects.json` and mirrored at `apps/frontend/public/data/status_effects.json`. Freeze currently has five-second per-stack duration, -25 Move Speed and -25 Attack Speed per stack, and a maximum of three active stacks (-75 Move Speed / -75 Attack Speed total). Attack Speed penalties are fixed rating-point subtractions that affect only basic Attack gauge refill, with the effective rating clamped to 0–800 and weapon interval clamped to 1–10 ticks; skill/action cast timing remains unchanged. Slow is a separate non-stackable, 20-second -50 Move Speed status whose reapplication refreshes its duration. Battle logs omit `range_blocked` lines and show completed movement with the actor's name and an arrow derived from the lane-position delta (`-->` when `toPosition > fromPosition`; `<--` when `toPosition < fromPosition`), so the direction stays correct even if the character and target swap sides. Freeze application is logged as `CharacterName is freezing (N)`. When a stackable status loses a stack but remains active, the log reports `CharacterName's freeze lessens (N)` with the new count; when any status reaches zero stacks or a non-stackable status expires, it reports `CharacterName's freeze ended` (using the actual status ID). Skill log entries in both the live Grind feed and Battle History include their resolved damage. The character summary shows one Freeze icon and a hover tooltip sourced from `status_effects.json` with stack count, total penalty and per-stack countdown refreshed in real time. The lane has no UI visualization; group combat, multi-target AoE, cross-lane movement and PvP/5x5 execution remain future work.
+
+## Hand equipment, Mastery, and learned skills
+
+The semantic equipment slots are `mainHand` (primary) and `offHand` (secondary), regardless of the character's persisted `dominantHand` (`right` or `left`). The client mirrors the visual slots for left-handed characters; combat and API slot names do not change. Primary one-handed weapons are Sword, Dagger, and Rod. Greatsword, Bow, and Staff occupy both hands. Dagger is the only secondary weapon; Shield and Rune are secondary equipment. Any secondary item requires a valid one-handed primary. Sword + Sword is forbidden; two Daggers are allowed. Catalogue slot and `twoHanded` metadata are authoritative. A two-handed equip returns a conflicting off-hand item to inventory. Secondary weapon ATK contributes at half value; its other attributes and effects remain full strength.
+
+Mastery has eight independent categories: Sword, Greatsword, Dagger, Bow, Staff, Rod, Shield, and Rune. New and migrated categories begin at level 0 and 0 XP with no allocated skill ranks. Mastery caps at level 10 and earned progression survives death. Each level grants one category skill point. Each category has two skill nodes: node one accepts five ranks, then node two opens for up to five ranks. The system supports per-skill maximum ranks from one through ten. Mastery rewards are calculated from executed actions and landed defensive actions recorded in the immutable battle snapshot, then applied once in the BattleService battle-resolution transaction. Defaults are 2 XP per two-handed offensive action, 1 XP per occupied one-handed hand per offensive action, and 1 XP for an equipped Shield or Rune per landed incoming action. A basic-attack miss earns no offensive XP.
+
+Current combat remains a single character versus one monster. Positional Mastery abilities use the shared eight-position battle lane and its canonical distance and movement APIs. The battle engine must not introduce a second range or movement model. Current single-target effects remain single-target; party support, AoE, and executable group combat require a separate approved change. Future PvE and PvP may support up to five combatants versus five combatants, with lane, targeting, movement, and area rules specified separately.
+
+The reserved future City respec price ladder is 100k, 200k, 300k, 400k, 500k, 1kk, 2kk, 3kk, 4kk, 5kk, 10kk, 20kk, 30kk, 40kk, and 50kk; later respecs remain capped at 50kk. No Town respec interface is part of this contract.
+
+Precision and Evasion use `79 + floor(total DEX / 3) + modifiers` and `99 + floor(total AGI / 3) + modifiers`. Bow Accuracy modifiers are -75, -74, and -73 for tiers 1, 2, and 3; hit chance is `clamp(100 + Precision - Evasion, 5, 95)`. The explicitly recorded milestone discrepancy remains open for a final design decision: with the stated formula, total DEX 225 and a tier-1 Bow yields Precision 79, while total DEX 228 yields 80. No discontinuous exception is authorized.

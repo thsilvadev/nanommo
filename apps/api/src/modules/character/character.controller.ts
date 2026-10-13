@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request as ExpressRequest } from 'express';
 import { CharacterService } from './character.service';
@@ -23,7 +23,7 @@ export class CharacterController {
     if (!user || user.emailVerified !== true) {
       throw new ForbiddenException('Email must be verified before creating a character');
     }
-    return this.characterService.createCharacter(userId, dto.name);
+    return this.characterService.createCharacter(userId, dto.name, dto.dominantHand);
   }
 
   @Get()
@@ -36,6 +36,15 @@ export class CharacterController {
   @UseGuards(AuthGuard('jwt'))
   async getWeaponProficiency(@Request() req: ExpressRequest) {
     return this.characterService.getWeaponProficiencyByUserId((req.user as any).userId);
+  }
+
+  @Post('mastery/allocate')
+  @UseGuards(AuthGuard('jwt'))
+  async allocateMastery(@Request() req: ExpressRequest, @Body() body: { category: string; skillId: string }) {
+    if (!body || typeof body.category !== 'string' || typeof body.skillId !== 'string') {
+      throw new BadRequestException('category and skillId are required');
+    }
+    return this.characterService.allocateMasterySkill((req.user as any).userId, body.category, body.skillId);
   }
 
   @Post('auto-feed')

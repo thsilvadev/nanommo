@@ -7,6 +7,7 @@ export {
   rngForIndex,
 } from './prng';
 export * from './rewards';
+export * from './mastery-rewards';
 
 /** Effective food regeneration value: Diet level adds +1 per level. */
 export function effectiveFoodStatValue(catalogValue: number, dietLevel: number): number {
@@ -43,6 +44,8 @@ export interface CombatantSnapshot {
   attackSpeed?: number;
   /** Skills currently usable (unlocked + weapon equipped) - SPEC §9.1 */
   skills?: Record<string, any>;
+  /** Frozen slot/category metadata used only for transactional Mastery rewards. */
+  masteryEquipment?: Array<{ slot: 'mainHand' | 'offHand'; category: string; twoHanded: boolean }>;
   /** Skill defs, needed for spCost/baseCastTicks/cooldownTicks - SPEC §9 */
   skillDefs?: Record<string, any>;
   statusEffects?: any[];
@@ -665,6 +668,123 @@ export class BattleEngine {
       });
     };
 
+    const statusIdOf = (status: any) => String(status?.type ?? status?.id ?? '');
+    const hasStatus = (unit: CombatantSnapshot, statusId: string) =>
+      (unit.statusEffects ?? []).some((status: any) => statusIdOf(status) === statusId);
+    const countStatus = (unit: CombatantSnapshot, statusId: string) =>
+      (unit.statusEffects ?? []).filter((status: any) => statusIdOf(status) === statusId).length;
+
+    const applyStatus = (
+      target: CombatantSnapshot,
+      statusId: string,
+      sourceSkillId: string,
+      durationTicks?: number,
+      extra: Record<string, any> = {},
+      appliedBy: 'character' | 'monster' = 'character',
+    ): boolean => {
+      const definition = statusEffectDefs[statusId] ?? {};
+      const current = target.statusEffects ?? [];
+      const existing = current.filter((status: any) => statusIdOf(status) === statusId);
+      const stackable = definition.stackable === true;
+      const maxStacks = stackable ? Math.max(1, Number(definition.maxStacks ?? 1)) : 1;
+      if (stackable && existing.length >= maxStacks) return false;
+      if (!stackable && existing.length && definition.reapplication !== 'refresh') return false;
+
+      const remaining = stackable || !existing.length
+        ? current
+        : current.filter((status: any) => statusIdOf(status) !== statusId);
+      const resolvedDuration = durationTicks ?? Number(definition.statusDurationTicks ?? 0);
+      const instance: Record<string, any> = {
+        type: statusId,
+        appliedAtTick: tick,
+        sourceSkillId,
+        sourceActor: appliedBy,
+        ...extra,
+      };
+      if (resolvedDuration > 0) instance.expiresAtTick = tick + resolvedDuration;
+      target.statusEffects = [...remaining, instance];
+      record({
+        tick,
+        actor: appliedBy,
+        action: existing.length && definition.reapplication === 'refresh'
+          ? 'status_refreshed'
+          : stackable ? 'status_stack_applied' : 'status_applied',
+        status: statusId,
+        target: target === self ? 'character' : 'monster',
+        ...(stackable ? { stackCount: countStatus(target, statusId) } : {}),
+        ...(resolvedDuration > 0 ? { durationTicks: resolvedDuration, expiresAtTick: tick + resolvedDuration } : {}),
+        sourceSkillId,
+        statusStackable: stackable,
+      });
+      return true;
+    };
+
+    const effectiveDefense = (unit: CombatantSnapshot): number =>
+      Number(unit.def ?? 0) + (unit.statusEffects ?? []).reduce(
+        (total: number, status: any) => total + Math.max(0, Number(status.defBonus ?? 0)),
+        0,
+      );
+
+    const absorbMagicDamage = (
+      target: CombatantSnapshot,
+      damageType: string,
+      incomingDamage: number,
+    ): { damage: number; absorbed: number } => {
+      if (damageType !== 'magic' || incomingDamage <= 0) {
+        return { damage: Math.max(0, incomingDamage), absorbed: 0 };
+      }
+      const barrier = (target.statusEffects ?? []).find((status: any) => statusIdOf(status) === 'magic_barrier');
+      if (!barrier) return { damage: Math.max(0, incomingDamage), absorbed: 0 };
+      const remaining = Math.max(0, Number(barrier.absorbRemaining ?? 0));
+      const absorbed = Math.min(remaining, incomingDamage);
+      if (absorbed <= 0) return { damage: Math.max(0, incomingDamage), absorbed: 0 };
+      barrier.absorbRemaining = remaining - absorbed;
+      const targetLabel = target === self ? 'character' : 'monster';
+      record({
+        tick,
+        actor: targetLabel,
+        action: 'magic_barrier_absorbed',
+        target: targetLabel,
+        status: 'magic_barrier',
+        absorbed,
+        absorbRemaining: barrier.absorbRemaining,
+        sourceSkillId: barrier.sourceSkillId,
+      });
+      if (barrier.absorbRemaining <= 0) {
+        target.statusEffects = (target.statusEffects ?? []).filter((status: any) => status !== barrier);
+        record({ tick, actor: targetLabel, action: 'status_ended', status: 'magic_barrier', target: targetLabel, sourceSkillId: barrier.sourceSkillId });
+      }
+      return { damage: Math.max(0, incomingDamage - absorbed), absorbed };
+    };
+
+    const tickDamageStatuses = (unit: CombatantSnapshot) => {
+      for (const status of [...(unit.statusEffects ?? [])] as any[]) {
+        const interval = Math.max(0, Number(status.damageIntervalTicks ?? 0));
+        const dueAt = Number(status.nextDamageAtTick ?? Number.POSITIVE_INFINITY);
+        if (interval <= 0 || tick < dueAt || Number(status.damagePerTick ?? 0) <= 0) continue;
+        const damage = Math.max(0, Math.floor(Number(status.damagePerTick)));
+        unit.hp = Math.max(0, unit.hp - damage);
+        status.nextDamageAtTick = dueAt + interval;
+        record({
+          tick,
+          actor: status.sourceActor ?? (unit === self ? 'monster' : 'character'),
+          action: 'status_damage',
+          status: statusIdOf(status),
+          sourceSkillId: status.sourceSkillId,
+          target: unit === self ? 'character' : 'monster',
+          damage,
+          damageType: 'status',
+          hit: true,
+        });
+      }
+    };
+
+    const tryBrutalityDisarm = (damage: number) => {
+      const rank = Math.max(0, Number(self.skillDefs?.brutality?.masteryRank ?? 0));
+      if (rank <= 0 || damage <= 0 || foe.hp <= 0 || hasStatus(foe, 'disarm')) return;
+      if (rng.chance(0.01)) applyStatus(foe, 'disarm', 'brutality', 5, {}, 'character');
+    };
+
     // There is no duration/tick cap: a battle ends only when one combatant reaches 0 HP.
     while (self.hp > 0 && foe.hp > 0) {
       // Expire timed statuses before this tick's actions. Stackable statuses report each
@@ -703,6 +823,10 @@ export class BattleEngine {
         }
         unit.statusEffects = statuses.filter((status: any) => Number(status.expiresAtTick ?? Infinity) > tick);
       }
+      // Periodic damage is applied once per scheduled status tick, never as a new
+      // action; it therefore cannot mint extra Mastery action XP.
+      tickDamageStatuses(self);
+      tickDamageStatuses(foe);
       // Conditions like `every_n_ticks` are tick-indexed (SPEC §7.1)
       self.tick = tick;
       foe.tick = tick;
@@ -733,18 +857,31 @@ export class BattleEngine {
           } else if (choice && choice.action.id === 'attack') {
             self.movementIntent = false;
             self.movementIntentRange = undefined;
-            const hitChance = BattleEngine.calculateHitChance(self.accuracy, foe.evasion);
+            const distanceAtActionStart = distanceBetween();
+            const fearlessRank = Math.max(0, Number(self.skillDefs?.fearless_focus?.masteryRank ?? 0));
+            const precisionUsed = Number(self.accuracy) + distanceAtActionStart * fearlessRank;
+            const hitChance = BattleEngine.calculateHitChance(precisionUsed, foe.evasion);
             const landed = rng.chance(hitChance / 100);
             const crit = landed && rng.chance(self.critChance / 100);
-            const baseDamage = self.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
             const attackType = self.basicAttackDamageType ?? 'melee';
+            const fearlessDamageMultiplier = 1 + fearlessRank * distanceAtActionStart * 0.01;
+            const baseDamage = self.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1) * fearlessDamageMultiplier;
+            const daggerHands = (self.masteryEquipment ?? []).filter((hand) => hand.category === 'dagger').length;
+            const doubleStrikeRank = Math.max(0, Number(self.skillDefs?.double_strike?.masteryRank ?? 0));
+            const doubleStrikeChance = Math.min(1, daggerHands * doubleStrikeRank * 0.05);
+            const doubleStrikeTriggered = landed && doubleStrikeRank > 0 && daggerHands > 0 && rng.chance(doubleStrikeChance);
+            const componentCount = doubleStrikeTriggered ? 2 : 1;
+            const damageComponents: number[] = [];
             const mitigation = attackType === 'magic'
               ? BattleEngine.calculateMagicDamage(baseDamage, foe.mdefPercent)
-              : BattleEngine.calculatePhysicalDamage(baseDamage, foe.def);
+              : BattleEngine.calculatePhysicalDamage(baseDamage, effectiveDefense(foe));
             const finalDamage = mitigation * (attackType === 'ranged' ? rangedMult : attackType === 'magic' ? magicMult : meleeMult);
-            const damage = landed
-              ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
-              : 0;
+            for (let component = 0; component < componentCount; component += 1) {
+              damageComponents.push(landed
+                ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
+                : 0);
+            }
+            const damage = damageComponents.reduce((sum, value) => sum + value, 0);
             foe.hp = Math.max(0, foe.hp - damage);
 
             record({
@@ -753,10 +890,30 @@ export class BattleEngine {
               action: 'attack',
               target: 'monster',
               damage,
+              ...(doubleStrikeTriggered ? { damageComponents, doubleStrikeTriggered: true } : {}),
+              ...(fearlessRank > 0 ? { distanceAtActionStart, precisionUsed, fearlessDamageMultiplier } : {}),
               damageType: attackType,
               crit,
               hit: landed,
             });
+
+            const swordsmanshipRank = Math.max(0, Number(self.skillDefs?.swordsmanship?.masteryRank ?? 0));
+            if (landed && swordsmanshipRank > 0 && countStatus(foe, 'bleed') < 5 && rng.chance(0.01 * swordsmanshipRank)) {
+              applyStatus(
+                foe,
+                'bleed',
+                'swordsmanship',
+                undefined,
+                {
+                  damagePerTick: 5 * swordsmanshipRank,
+                  damageIntervalTicks: 5,
+                  nextDamageAtTick: tick + 5,
+                },
+                'character',
+              );
+            }
+            tryBrutalityDisarm(damage);
+
             self.attackLockTicks = BattleEngine.BASIC_ATTACK_CAST_TICKS;
           }
           // SPEC §7.3 step 5: no line qualifies -> wasted fire, gauge still resets
@@ -783,7 +940,9 @@ export class BattleEngine {
           const selectedSkillRange = selectedSkillDef.ranged === true
             ? Math.max(0, Number(selectedSkillDef.maxRange ?? 7) - 1)
             : Math.max(0, Number(selectedSkillDef.maxRange ?? 1) - 1);
-          const skillOutOfRange = choice?.action?.id === 'use_skill' && distanceBetween() > selectedSkillRange;
+          const selfTargetSkill = selectedSkillDef.target === 'self';
+          const blinkstrikeSkill = selectedSkillDef.effect?.type === 'blinkstrike';
+          const skillOutOfRange = choice?.action?.id === 'use_skill' && !selfTargetSkill && !blinkstrikeSkill && distanceBetween() > selectedSkillRange;
           if (skillOutOfRange) {
             self.movementIntent = true;
             self.movementIntentRange = selectedSkillRange;
@@ -883,45 +1042,134 @@ export class BattleEngine {
             } else if (action.id === 'use_skill') {
               const skillId = params.skillId ?? params.params?.skillId;
               const def = self.skillDefs?.[skillId] ?? {};
-              const spCost = Number(def.spCost ?? 0);
-              self.sp = Math.max(0, self.sp - spCost);
-              cooldowns[`skill:${skillId}`] = Number(def.cooldownTicks ?? 0);
-              self.castLockTicks = Number(def.baseCastTicks ?? 2);
-
+              const rank = Math.max(1, Number(def.masteryRank ?? 1));
               const effect = def.effect ?? {};
-              const mult = Number(effect.dmgMult ?? 1);
-              const isMagic = String(def.damageType ?? 'melee') === 'magic';
-              const archetypeMult = isMagic
-                ? magicMult
-                : (String(def.damageType ?? 'melee') === 'ranged' || selectedSkillRange > 0 ? rangedMult : meleeMult);
-              // Active abilities are guaranteed to connect; Accuracy/Evasion and crits
-              // apply only to basic attacks unless a skill explicitly opts in later.
-              const landed = true;
-              const crit = false;
-              const raw = (isMagic ? self.matk : self.atk) * mult * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
-              const finalDamage = (isMagic
-                ? BattleEngine.calculateMagicDamage(raw, foe.mdefPercent)
-                : BattleEngine.calculatePhysicalDamage(raw, foe.def)) * archetypeMult;
-              const damage = landed
-                ? Math.max(
-                    1,
-                    Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)),
-                  )
-                : 0;
-              foe.hp = Math.max(0, foe.hp - damage);
+              const spCost = Math.max(0, Number(def.spCost ?? 0));
+              const baseSpCost = Math.max(0, Number(def.baseSpCost ?? spCost));
+              self.sp = Math.max(0, self.sp - spCost);
+              cooldowns['skill:' + skillId] = Number(def.cooldownTicks ?? 0);
+              self.castLockTicks = Math.max(1, Number(def.baseCastTicks ?? 2));
 
-              record({
-                tick,
-                actor: 'character',
-                action: 'use_skill',
-                skillId,
-                target: 'monster',
-                damage,
-                damageType: String(def.damageType ?? 'melee'),
-                crit,
-                hit: landed,
-                spSpent: spCost,
-              });
+              const effectType = String(effect.type ?? '');
+              if (effectType === 'defense_buff') {
+                applyStatus(self, 'war_cry_def', skillId, Number(effect.durationTicks ?? 10), {
+                  defBonus: Number(effect.defBonus ?? 20),
+                }, 'character');
+                record({
+                  tick, actor: 'character', action: 'use_skill', skillId, target: 'character',
+                  damage: 0, hit: true, crit: false, spSpent: spCost, baseSpCost,
+                  statusApplied: 'war_cry_def', defBonus: Number(effect.defBonus ?? 20),
+                });
+              } else if (effectType === 'self_heal') {
+                const heal = Math.max(0, Number(effect.flatPerRank ?? 50) * rank
+                  + Math.floor(self.maxHp * Math.floor(Number(self.matk ?? 0) / Math.max(1, Number(effect.matkScaleDenominator ?? 20))) / 100));
+                const hpBefore = self.hp;
+                self.hp = Math.min(self.maxHp, self.hp + heal);
+                record({
+                  tick, actor: 'character', action: 'use_skill', skillId, target: 'character',
+                  healAmount: self.hp - hpBefore, hit: true, crit: false, spSpent: spCost, baseSpCost,
+                });
+              } else if (effectType === 'magic_barrier') {
+                const absorbAmount = Math.max(0, Number(effect.absorbPerRank ?? 100) * rank);
+                applyStatus(self, 'magic_barrier', skillId, Number(effect.durationTicks ?? 300), {
+                  absorbRemaining: absorbAmount,
+                }, 'character');
+                record({
+                  tick, actor: 'character', action: 'use_skill', skillId, target: 'character',
+                  damage: 0, hit: true, crit: false, spSpent: spCost, baseSpCost,
+                  barrierApplied: absorbAmount, durationTicks: Number(effect.durationTicks ?? 300),
+                });
+              } else {
+                if (effectType === 'blinkstrike') {
+                  const previousPosition: number = Number(self.position ?? 0);
+                  const targetPosition: number = Number(foe.position ?? 0);
+                  const direction: number = targetPosition > previousPosition ? 1 : -1;
+                  const inFrontPosition: number = targetPosition - direction;
+                  if (inFrontPosition >= 0 && inFrontPosition <= 7 && inFrontPosition !== targetPosition && previousPosition !== inFrontPosition) {
+                    const distanceBefore = distanceBetween();
+                    self.position = inFrontPosition;
+                    self.movementIntent = false;
+                    self.movementIntentRange = undefined;
+                    record({
+                      tick, actor: 'character', action: 'move', fromPosition: previousPosition,
+                      toPosition: inFrontPosition, spacesMoved: Math.abs(inFrontPosition - previousPosition),
+                      direction: inFrontPosition > previousPosition ? 'right' : 'left',
+                      distanceBefore, distanceAfter: distanceBetween(), reason: 'blinkstrike',
+                      sourceSkillId: skillId,
+                    });
+                  }
+                }
+
+                let raw = Number(self.atk ?? 0);
+                if (effectType === 'physical_damage') {
+                  raw = effect.multiplierPerRank === true
+                    ? Number(self.atk ?? 0) * rank
+                    : Number(self.atk ?? 0) + Number(effect.flatPerRank ?? 0) * rank;
+                } else if (effectType === 'physical_push') {
+                  raw = Number(effect.damagePerRank ?? 50) * rank;
+                } else if (effectType === 'magic_damage') {
+                  raw = Number(self.matk ?? 0) + Number(effect.flatPerRank ?? 0) * rank;
+                } else if (effectType === 'magic_damage_remaining_sp') {
+                  raw = Number(self.matk ?? 0) + Number(self.sp ?? 0);
+                } else if (effectType === 'blinkstrike') {
+                  raw = Number(self.atk ?? 0);
+                }
+
+                const damageType = String(def.damageType ?? (effectType.startsWith('magic_') ? 'magic' : 'melee'));
+                const isMagic = damageType === 'magic';
+                const mitigation = isMagic
+                  ? BattleEngine.calculateMagicDamage(raw, foe.mdefPercent)
+                  : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(foe));
+                const archetypeMultiplier = isMagic ? magicMult : damageType === 'ranged' ? rangedMult : meleeMult;
+                const finalDamage = mitigation * archetypeMultiplier;
+                const rolledDamage = Math.max(0, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)));
+                const barrierResult = absorbMagicDamage(foe, damageType, rolledDamage);
+                const damage = Math.max(0, barrierResult.damage);
+                foe.hp = Math.max(0, foe.hp - damage);
+
+                record({
+                  tick, actor: 'character', action: 'use_skill', skillId, target: 'monster',
+                  damage, damageAbsorbed: barrierResult.absorbed || undefined, damageType,
+                  crit: false, hit: true, spSpent: spCost, baseSpCost,
+                  ...(effectType === 'physical_push' ? { pushDistanceTarget: Number(effect.targetDistance ?? 6) } : {}),
+                });
+                tryBrutalityDisarm(damage);
+
+                const burnChance = Math.max(0, Math.min(1, Number(effect.burnChance ?? 0)));
+                if (burnChance > 0 && foe.hp > 0 && rng.chance(burnChance)) {
+                  const interval = Number(effect.burnIntervalTicks ?? 5);
+                  applyStatus(foe, 'burn', skillId, Number(effect.burnDurationTicks ?? 25), {
+                    damagePerTick: Number(self.matk ?? 0),
+                    damageIntervalTicks: interval,
+                    nextDamageAtTick: tick + interval,
+                  }, 'character');
+                }
+
+                if (effectType === 'physical_push' && foe.hp > 0) {
+                  const startingPosition = Number(foe.position ?? 0);
+                  const characterPosition = Number(self.position ?? 0);
+                  const awayDirection = startingPosition >= characterPosition ? 1 : -1;
+                  const targetDistance = Math.max(0, Number(effect.targetDistance ?? 6));
+                  const beforePushDistance = distanceBetween();
+                  // Move away using the established eight-position lane. Stop at the
+                  // requested empty-space distance or the lane edge, whichever comes first.
+                  while (distanceBetween() < targetDistance) {
+                    const nextPosition: number = Number(foe.position ?? 0) + awayDirection;
+                    if (nextPosition < 0 || nextPosition > 7 || nextPosition === Number(self.position)) break;
+                    foe.position = nextPosition;
+                  }
+                  if (Number(foe.position) !== startingPosition) {
+                    record({
+                      tick, actor: 'character', action: 'move', fromPosition: startingPosition,
+                      toPosition: Number(foe.position), spacesMoved: Math.abs(Number(foe.position) - startingPosition),
+                      direction: Number(foe.position) > startingPosition ? 'right' : 'left',
+                      distanceBefore: beforePushDistance, distanceAfter: distanceBetween(),
+                      reason: 'violent_shot_push', sourceSkillId: skillId,
+                      blockedByLaneEdge: distanceBetween() < targetDistance,
+                    });
+                  }
+                }
+              }
             } else if (action.id === 'defend') {
               self.defending = true;
               self.castLockTicks = 1;
@@ -947,9 +1195,20 @@ export class BattleEngine {
           {},
         );
 
-        if (choice && choice.action.id === 'attack' && distanceBetween() > Number(foe.basicAttackRange ?? 0)) {
+        const foeStunned = hasStatus(foe, 'stun');
+        const foeDisarmed = hasStatus(foe, 'disarm');
+        if (choice && choice.action.id === 'attack' && foeStunned) {
+          foe.movementIntent = false;
+          foe.movementIntentRange = undefined;
+          record({ tick, actor: 'monster', action: 'action_suppressed', reason: 'stun', target: 'character' });
+        } else if (choice && choice.action.id === 'attack' && distanceBetween() > Number(foe.basicAttackRange ?? 0)) {
+          // Disarm prevents the strike, not movement needed to reach melee range.
           foe.movementIntent = true;
           foe.movementIntentRange = Number(foe.basicAttackRange ?? 0);
+        } else if (choice && choice.action.id === 'attack' && foeDisarmed) {
+          foe.movementIntent = false;
+          foe.movementIntentRange = undefined;
+          record({ tick, actor: 'monster', action: 'action_suppressed', reason: 'disarm', target: 'character' });
         } else if (choice && choice.action.id === 'attack') {
           foe.movementIntent = false;
           foe.movementIntentRange = undefined;
@@ -961,27 +1220,30 @@ export class BattleEngine {
           const raw = (monsterAttackType === 'magic' ? foe.matk : foe.atk) * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
           let finalDamage = monsterAttackType === 'magic'
             ? BattleEngine.calculateMagicDamage(raw, self.mdefPercent)
-            : BattleEngine.calculatePhysicalDamage(raw, self.def);
+            : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
           // SPEC §8.3: defend reduces the next incoming hit by a flat 30%.
-          // This is a final damage modifier, so variance is applied after it.
           if (self.defending) {
             finalDamage *= 1 - BattleEngine.DEFEND_DAMAGE_REDUCTION;
             self.defending = false;
           }
-          const damage = landed
+          const rolledDamage = landed
             ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
             : 0;
+          const barrierResult = absorbMagicDamage(self, monsterAttackType, rolledDamage);
+          const damage = Math.max(0, barrierResult.damage);
+          const distanceAtActionStart = distanceBetween();
           self.hp = Math.max(0, self.hp - damage);
           record({
-            tick,
-            actor: 'monster',
-            action: 'attack',
-            target: 'character',
-            damage,
-            damageType: monsterAttackType,
-            crit,
-            hit: landed,
+            tick, actor: 'monster', action: 'attack', target: 'character',
+            damage, damageAbsorbed: barrierResult.absorbed || undefined,
+            damageType: monsterAttackType, crit, hit: landed, distanceAtActionStart,
           });
+
+          const shieldBashRank = Math.max(0, Number(self.skillDefs?.shield_bash?.masteryRank ?? 0));
+          if (landed && shieldBashRank > 0 && distanceAtActionStart === 0
+            && foe.hp > 0 && rng.chance(Math.min(1, 0.02 * shieldBashRank))) {
+            applyStatus(foe, 'stun', 'shield_bash', 5, {}, 'character');
+          }
         }
       }
 
@@ -1012,7 +1274,7 @@ export class BattleEngine {
         const monsterSkillRange = monsterSelectedSkillDef.ranged === true
           ? Math.max(0, Number(monsterSelectedSkillDef.maxRange ?? 7) - 1)
           : Math.max(0, Number(monsterSelectedSkillDef.maxRange ?? 1) - 1);
-        const monsterSkillOutOfRange = choice?.action?.id === 'use_skill' && distanceBetween() > monsterSkillRange;
+        const monsterSkillOutOfRange = choice?.action?.id === 'use_skill' && (hasStatus(foe, 'stun') || distanceBetween() > monsterSkillRange);
         if (monsterSkillOutOfRange) {
           foe.movementIntent = true;
           foe.movementIntentRange = monsterSkillRange;
@@ -1044,12 +1306,15 @@ export class BattleEngine {
             const raw =
               (String(def.damageType ?? 'melee') === 'magic' ? foe.matk : foe.atk) *
               Number(effect.dmgMult ?? 1);
-            const finalDamage = String(def.damageType ?? 'melee') === 'magic'
+            const monsterSkillDamageType = String(def.damageType ?? 'melee');
+            const finalDamage = monsterSkillDamageType === 'magic'
               ? BattleEngine.calculateMagicDamage(raw, self.mdefPercent)
-              : BattleEngine.calculatePhysicalDamage(raw, self.def);
-            const damage = landed
+              : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
+            const rolledDamage = landed
               ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
               : 0;
+            const barrierResult = absorbMagicDamage(self, monsterSkillDamageType, rolledDamage);
+            const damage = Math.max(0, barrierResult.damage);
             self.hp = Math.max(0, self.hp - damage);
             record({
               tick,
@@ -1058,7 +1323,8 @@ export class BattleEngine {
               skillId,
               target: 'character',
               damage,
-              damageType: String(def.damageType ?? 'melee'),
+              damageAbsorbed: barrierResult.absorbed || undefined,
+              damageType: monsterSkillDamageType,
               hit: landed,
             });
             if (landed && effect.applyStatus && statusEffectDefs[String(effect.applyStatus)]) {
@@ -1176,7 +1442,7 @@ export class BattleEngine {
         unit.moveSpeed = Math.max(0, baseSpeed - statusPenalty);
       }
       for (const [unit, target, actor] of [[self, foe, 'character'], [foe, self, 'monster']] as Array<[CombatantSnapshot, CombatantSnapshot, string]>) {
-        if (!unit.movementIntent || target.hp <= 0) { unit.movementIntent = false; continue; }
+        if (!unit.movementIntent || target.hp <= 0 || hasStatus(unit, 'stun')) { unit.movementIntent = false; continue; }
         const range = Number(unit.movementIntentRange ?? unit.basicAttackRange ?? 0);
         if (distanceBetween() <= range) { unit.movementIntent = false; unit.movementIntentRange = undefined; continue; }
         unit.movementGauge = Number(unit.movementGauge ?? 0) + Number(unit.moveSpeed ?? 0);

@@ -599,35 +599,35 @@
   "png128": "png/128/equip_staff_t3.png",
   "png256": "png/256/equip_staff_t3.png"
  },
- "equip_wand_t1": {
-  "name": "Worn Wand",
+ "equip_rod_t1": {
+  "name": "Worn Rod",
   "category": "equipment",
   "rarity": "common",
-  "svg": "svg/equipment/equip_wand_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_wand_t1.svg",
-  "png64": "png/64/equip_wand_t1.png",
-  "png128": "png/128/equip_wand_t1.png",
-  "png256": "png/256/equip_wand_t1.png"
+  "svg": "svg/equipment/equip_rod_t1.svg",
+  "svg_noframe": "svg-noframe/equipment/equip_rod_t1.svg",
+  "png64": "png/64/equip_rod_t1.png",
+  "png128": "png/128/equip_rod_t1.png",
+  "png256": "png/256/equip_rod_t1.png"
  },
- "equip_wand_t2": {
-  "name": "Reinforced Wand",
+ "equip_rod_t2": {
+  "name": "Reinforced Rod",
   "category": "equipment",
   "rarity": "rare",
-  "svg": "svg/equipment/equip_wand_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_wand_t2.svg",
-  "png64": "png/64/equip_wand_t2.png",
-  "png128": "png/128/equip_wand_t2.png",
-  "png256": "png/256/equip_wand_t2.png"
+  "svg": "svg/equipment/equip_rod_t2.svg",
+  "svg_noframe": "svg-noframe/equipment/equip_rod_t2.svg",
+  "png64": "png/64/equip_rod_t2.png",
+  "png128": "png/128/equip_rod_t2.png",
+  "png256": "png/256/equip_rod_t2.png"
  },
- "equip_wand_t3": {
-  "name": "Ancient Wand",
+ "equip_rod_t3": {
+  "name": "Ancient Rod",
   "category": "equipment",
   "rarity": "epic",
-  "svg": "svg/equipment/equip_wand_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_wand_t3.svg",
-  "png64": "png/64/equip_wand_t3.png",
-  "png128": "png/128/equip_wand_t3.png",
-  "png256": "png/256/equip_wand_t3.png"
+  "svg": "svg/equipment/equip_rod_t3.svg",
+  "svg_noframe": "svg-noframe/equipment/equip_rod_t3.svg",
+  "png64": "png/64/equip_rod_t3.png",
+  "png128": "png/128/equip_rod_t3.png",
+  "png256": "png/256/equip_rod_t3.png"
  },
  "equip_shield_t1": {
   "name": "Worn Shield",

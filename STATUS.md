@@ -1,5 +1,11 @@
 # NanoMMO — Implementation Status
 
+### Hand Equipment / Mastery follow-up (2026-10-13)
+
+Implemented the catalogue-driven hand compatibility matrix and two skills per category; added Mastery allocation, rank resolution, transactional XP/level advancement, and deterministic simulator coverage for the named positional skills. Gambit choices are filtered to known items and learned active skills. The shared XP thresholds currently satisfy the four requested anchors under a documented action-count proxy using the production per-kill `floor(xpReward × 0.25)` Grind payout; the late threshold gap is steep and remains provisional until combat simulation/live telemetry validates pacing. The root SPEC and its OpenSpec mirror match.
+
+Verification for this follow-up: shared, API and production frontend builds passed; `mastery-progression-ranks.test.js` passed with L23 two-handed M5, L28 one-handed M5/M5, and L50 two-handed M10 / one-handed M7/M7; `mastery-skill-simulator.test.js` passed; strict OpenSpec validation, `git diff --check`, and SPEC mirror comparison passed. Frontend emitted the existing CSS-budget and CommonJS warnings. No migration or deployment was performed. Still open: task 1.2's DEX decision, Mastery reward retry/idempotency integration and broader skill gates, migration preservation integration, visual/browser verification of the Gambit warnings/handedness, and live-combat pacing review. The prior summary's claims that thresholds/level advancement and positional effects were unimplemented are superseded by the latest follow-up below; unrelated historical status entries remain historical.
+
 ### Latest follow-up — CDK placeholder activation and drag tooltip lifecycle (2026-10-13)
 
 Corrected the remaining inventory/vendor slot expansion: `InventoryGrid` had written `cdkDragPreview` and `cdkDragPlaceholder` templates but had not imported the corresponding standalone CDK directives. Angular therefore did not activate those custom templates, and CDK could fall back to cloning the full draggable item (with its intrinsic dimensions). The component now imports both directives, so inventory drags use the icon-only preview and the intentionally hidden `item-drag-placeholder`; the existing VendorPanel imports its preview/placeholder directives and uses its hidden fixed-slot placeholder. This applies when dragging over the vendor and when returning to inventory.
@@ -1609,3 +1615,101 @@ The correction separates projected queue food from current persisted food: futur
 - `pnpm exec openspec validate grind-food-expiry-exit-regression --strict`: passed.
 - `node apps/api/test/map-presence-cleanup.test.js`: still fails in its existing direct `handleCharacterDeath()` test because the harness does not supply the now-required transaction `manager` (`Cannot read properties of undefined (reading 'getRepository')`). This failure is outside the changed food-expiry branch; no unrelated test/harness change was made to hide it.
 - No production deployment or live production mutation performed.
+
+### Hand equipment and Mastery implementation — 2026-10-13
+
+Implemented the foundational hand/Mastery slice for `hand-equipment-mastery-skills`:
+
+- Added catalogue-driven hand validation using `slot`, `twoHanded`, and explicit Dagger same-type pairing metadata. Sword + Sword is rejected; Daggers can occupy either hand; every secondary item requires a one-handed primary; two-handed equips clear a conflicting secondary item.
+- Secondary weapon ATK now contributes at 50%; other off-hand stats remain full. Bow tiers carry -75/-74/-73 Accuracy modifiers, and the shared formula remains Precision `79 + floor(DEX/3) + modifiers` and Evasion `99 + floor(AGI/3) + modifiers`.
+- Renamed active Wand identifiers, labels, data and icon paths to Rod; Rod remains a one-handed primary. Added explicit right/left dominant-hand creation choice and persistence field.
+- Added the eight zero-level Mastery categories and a migration that adds handedness/known-item columns, seeds William's item IDs, resets legacy proficiency progress, clears legacy Gambit actions while preserving page rows, and renames persisted Wand item references. Migration code was reviewed and compiled, but was not run against a database.
+- Added environment-configured Mastery XP defaults and deterministic reward calculation from the immutable battle equipment/action log, committed under `BattleService.resolveBattle()`'s existing locked transaction. BattleService remains the only owner of queue invalidation; active entries/jobs remain preserved while future entries are discarded after a supported equipment mutation.
+- Synchronized `SPEC.md` and `openspec/specs/SPEC.md`; updated `ARCHITECTURE.md` with reward, snapshot, movement ownership and 5v5 roadmap details.
+
+Verification run:
+
+- Shared, API, and production frontend builds passed. Frontend reported existing CSS budget and CommonJS warnings; no build errors.
+- `node apps/api/test/hand-equipment-mastery-contract.js` passed hand compatibility, secondary ATK, Rune tiers/slot, Bow Accuracy, baseline Accuracy, XP defaults/overrides/rejection, action XP/miss/self-target behavior, and active queue/job preservation assertions. Its Gateway mock was corrected after this summary was first recorded.
+- `node apps/api/test/equipment-hand-swaps.js` passed (12 legacy assertions plus added secondary Dagger equip and Sword+Sword rejection cases).
+- `node apps/api/test/known-item-acquisition.test.js` passed (4 assertions) for the new shared grant-knowledge hook and idempotent first acquisition.
+- `node apps/api/test/battle-distance-movement.test.js` passed.
+- `openspec validate hand-equipment-mastery-skills --strict` passed; `git diff --check` passed.
+- The queue-invalidation API integration script could not run because no backend was available at `localhost:3010`. No database was started, migrations were not executed, no browser visual verification was performed, and no production deployment was performed.
+
+Historical note: this paragraph described the first foundational Mastery slice and is superseded by the progression/effect implementation below. The current remaining work is transactional retry/duplicate reward integration, broader per-skill gate and SP/cooldown no-action tests, migration row-preservation integration, visual/browser verification, DEX sign-off, and live-combat pacing review for the intentionally steep provisional threshold table.
+
+**Open blocker:** do not resolve the documented DEX milestone discrepancy by special case. The selected formula gives Precision 79 at total DEX 225 with a T1 Bow and 80 at DEX 228. No authoritative repository decision changes this; tasks requiring a final milestone/balance decision remain unchecked. No live database or deployment was touched.
+
+#### Continued implementation follow-up — 2026-10-13
+
+- Restored the full root `SPEC.md` from its original tracked content and reapplied targeted hand/Mastery edits without deleting unrelated inventory, economy, authentication, gateway, frontend, infra, and test-design sections. Updated the contents list and replaced the obsolete equipment counts/49-skill legacy references. `SPEC.md` and `openspec/specs/SPEC.md` are identical (1,344 lines).
+- Fixed server equip slot validation so catalogue entries with `secondaryHand: true` (Dagger) can be equipped in `offHand`; the front-end drop-target/highlight predicate accepts the same catalogue metadata. Added a service regression for Sword + Dagger secondary equip and Sword + Sword rejection.
+- Fixed the Wand-to-Rod migration's JSON column names: `inventory_items` / `equipped_items` use `instanceData`, while Mail/Market use `itemInstanceData`. The migration was compiled/reviewed only; it remains unexecuted.
+- At this point in the work, battle snapshots already required an allocated Mastery rank and the matching equipped category, and Gambit choices were limited to learned active skills. The later Mastery progression follow-up below adds level promotion and the named active/passive/positional effect execution; exhaustive equipment/SP/cooldown gate coverage remains open.
+- Added off-hand effective ATK to the existing central item-tooltip path (original value struck through and half-value shown). Added line-level Gambit warnings and the conditional active-title warning/navigation when a learned active skill's required weapon is unequipped; responsive/browser visual behavior remains unverified.
+- Added an idempotent first-acquisition known-item hook to regular `InventoryService.addItem` grants, and handled battle drops in the existing battle transaction without overwriting the loaded Character state. This does not yet prove every conceivable item-grant path has been covered by integration tests.
+
+Additional verification after these follow-ups:
+- `node apps/api/test/hand-equipment-mastery-contract.js`: passed without the earlier Gateway mock warning.
+- `node apps/api/test/equipment-hand-swaps.js`: passed, including the added off-hand Dagger / Sword + Sword cases.
+- `node apps/api/test/known-item-acquisition.test.js`: passed (4 assertions).
+- `node apps/api/test/battle-distance-movement.test.js`: passed.
+- `pnpm --filter @nanommo/shared build` and `pnpm --filter @nanommo/api build`: passed.
+- `pnpm --filter @nanommo/frontend build`: passed after trimming nonessential CSS to stay under the strict Gambit stylesheet budget. Existing CSS budget warnings and the CommonJS warning remain non-blocking.
+- `npx openspec validate hand-equipment-mastery-skills --strict`, `git diff --check`, and the SPEC mirror comparison: passed.
+
+Historical snapshot: the following Mastery progression and rank resolution follow-up supersedes the earlier “thresholds/level promotion and positional simulator” items. Remaining gaps are retry/idempotency integration for Mastery XP, comprehensive equipment/SP/cooldown gate tests, migration preservation integration, visual/browser checks, the DEX decision, and live-combat pacing review. No special case was added; no database/migration execution or production deployment was performed.
+
+#### Mastery progression and rank resolution follow-up — 2026-10-13
+
+- Added the shared cumulative Mastery XP thresholds (levels 1–10: 5, 10, 25, 50, 100, 500, 25,000, 35,000, 45,000, 60,000 XP), a shared rank-scaled skill resolver, and level derivation capped at 10. `BattleService.applyMasteryRewards()` now updates XP and derived level in the existing battle-resolution transaction.
+- Added a deterministic pacing harness using `char_xp_curve.json` cumulative XP and catalog monster XP/HP. Its transparent equal-level attack-count proxy applies the production per-kill `floor(xpReward × 0.25)` Grind payout and estimates 148 XP at L23 for two-handed, 115 XP per one-handed category at L28, and 61,968 two-handed / 30,984 per one-handed category around L50. It asserts L23 M5, both L28 categories M5, L50 two-handed M10, and both L50 one-handed categories M7 at equal XP. This creates a steep late-game threshold gap; it is provisional proxy calibration, not live-gameplay proof, and needs combat-stat/live-play balance review.
+- Documented the thresholds and calibration method in root `SPEC.md`; synchronized `openspec/specs/SPEC.md` byte-for-byte. Marked tasks 5.2, 6.1, 6.2 and 6.5 complete based on direct pacing, allocation-service, catalog, and simulator coverage. DEX milestone discrepancy remains open and has no special-case logic.
+- Corrected the migration to preserve existing `dominantHand` and non-empty `knownItemIds`; starter item knowledge is seeded only where the list is empty. Migration remains unexecuted. Entity field audit confirmed JSON column names for inventory/equipment and mail/market.
+- Canonical and frontend skill catalogs now match. Rank tests cover Heavy Swing, Fire Ball, Fire Blast, Wisp Flow, Light of Heaven, Violent Shot, Magic Barrier costs and Light of Heaven/Blinkstrike cooldown arrays.
+- `node apps/api/test/mastery-allocation-service.test.js`: passed for Mastery 0/1/5/6/10, node prerequisites, rank/point caps, repeated allocation rejection and row locks.
+
+Verification on 2026-10-13:
+- `pnpm --filter @nanommo/shared build`: passed.
+- `pnpm --filter @nanommo/api build`: passed.
+- `pnpm --filter @nanommo/frontend build`: passed; existing CSS budget and CommonJS warnings remain non-blocking.
+- `node apps/api/test/hand-equipment-mastery-contract.js`: passed.
+- `node apps/api/test/known-item-acquisition.test.js`: passed (4 assertions).
+- `node apps/api/test/equipment-hand-swaps.js`: passed (12 assertions).
+- `node apps/api/test/battle-distance-movement.test.js`: passed.
+- `node apps/api/test/mastery-progression-ranks.test.js`: passed with the production per-kill `floor(xpReward × 0.25)` formula; proxy estimates 148 Mastery XP at L23 two-handed, 115 per one-handed category at L28, and 61,968 two-handed / 30,984 per one-handed category at L50; asserted levels are M5, M5/M5, and M10 or M7/M7 respectively.
+- `node apps/api/test/mastery-skill-simulator.test.js`: passed.
+- `npx openspec validate hand-equipment-mastery-skills --strict`: passed.
+- `git diff --check`: passed; SPEC mirror comparison passed.
+
+Still outstanding: comprehensive transactional retry/duplicate Mastery-award test; expanded per-skill wrong-equipment/rank-gate and cooldown/SP no-action/no-XP boundary tests; broader migration preservation/Rod-reference integration coverage; responsive/browser and live API/database verification; DEX milestone and final pacing balance review. Task 8.3 remains unchecked because the full relevant task suite and unresolved design review are not complete. No database/migration execution or deployment was performed.
+
+### Final continuation checkpoint — 2026-10-13
+
+Implemented and verified after the earlier foundational snapshot:
+
+- Added the shared cumulative Mastery thresholds (levels 1–10: 5, 10, 25, 50, 100, 500, 25,000, 35,000, 45,000, and 60,000 XP), a shared rank resolver, and transactional category-level advancement when BattleService awards Mastery XP. Threshold pacing is based on a transparent catalog/character-XP/action-count proxy; the sharp jump from level 6 to 7/8 remains provisional pending combat-stat simulation and live-play validation.
+- Added a direct allocation-service regression covering Mastery levels 0/1/5/6/10, node-one/rank-five prerequisite, point totals/max ranks, and pessimistic row-lock use. The category allocation API remains inside the BattleService-owned mutation boundary.
+- Added direct battle-snapshot gate coverage: learned active skills and passives appear only while their required category is equipped; passives appear in snapshot definitions but never in the Gambit active-action list.
+- Added/expanded deterministic simulator coverage for all ten active skills, the six passive skills, exact rank/cost/timing payloads, Bleed cap and DoT XP exclusion, Burn duration/refresh, War Cry DEF, Magic Barrier absorption, positional skill movement/push, no active-skill criticals, and same-seed/same-snapshot action and XP replay.
+- Extended Mastery reward contracts for a Double Strike event with two damage components still earning one action award, landed magic damage resolving to zero still granting exactly one defensive category award, and misses earning none. Shield and Rune defensive branches are both covered.
+- Off-hand ATK/derived stats are verified (primary full contribution, secondary half contribution, no double count); a direct 120 -> 60 helper case is covered in shared contract coverage. Catalog mirrors for the 16 current skill definitions, all six Rod/Rune item templates touched, and all six added Mastery status definitions were checked. Runtime catalog/source search found no remaining active Wand identifier; only legacy-to-Rod migration literals remain.
+- Strict OpenSpec validation, SPEC mirror comparison, and diff whitespace checks passed. Root SPEC and OpenSpec SPEC mirror are each 1,348 lines and byte-identical.
+
+Final builds/tests run:
+- pnpm --filter @nanommo/shared build
+- pnpm --filter @nanommo/api build
+- pnpm --filter @nanommo/frontend build (successful; existing CSS budget and CommonJS optimization warnings remain).
+- node apps/api/test/mastery-skill-simulator.test.js
+- node apps/api/test/mastery-progression-ranks.test.js
+- node apps/api/test/mastery-allocation-service.test.js
+- node apps/api/test/mastery-snapshot-equipment-gates.test.js
+- node apps/api/test/hand-equipment-mastery-contract.js
+- node apps/api/test/equipment-hand-swaps.js
+- node apps/api/test/known-item-acquisition.test.js
+- node apps/api/test/battle-distance-movement.test.js
+- npx openspec validate hand-equipment-mastery-skills --strict
+- git diff --check, byte-identical SPEC mirror, and targeted server/frontend catalog mirror checks.
+
+Still open and not represented as complete in OpenSpec: actual DB migration/data-preservation integration; transaction/retry-level Mastery reward idempotency integration; passive proc-rate calibration beyond deterministic seeded behavior; full two-handed/staged swap atomicity matrix; visual tooltip viewport and left-handed drag/drop browser verification; Gambit warning-present/absent browser checks; full Character/UI integration of learned passive stats; and live combat pacing/balance. The DEX milestone at total DEX 225/228 remains unresolved; no formula special-case was introduced. The migration was never executed, no database was changed by this task, and no production deployment was performed.

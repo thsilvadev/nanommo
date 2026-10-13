@@ -362,19 +362,19 @@
    "w": 128,
    "h": 128
   },
-  "equip_wand_t1": {
+  "equip_rod_t1": {
    "x": 0,
    "y": 640,
    "w": 128,
    "h": 128
   },
-  "equip_wand_t2": {
+  "equip_rod_t2": {
    "x": 128,
    "y": 640,
    "w": 128,
    "h": 128
   },
-  "equip_wand_t3": {
+  "equip_rod_t3": {
    "x": 256,
    "y": 640,
    "w": 128,

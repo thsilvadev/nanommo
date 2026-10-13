@@ -19,12 +19,17 @@ import { MailerModule } from './modules/mailer/mailer.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { DataModule } from './modules/data/data.module';
 import { GatewayModule } from './modules/gateway/gateway.module';
+import { getMasteryXpPolicy } from './config/mastery-xp-policy';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '../../.env',
+      validate: (env) => {
+        getMasteryXpPolicy(env);
+        return env;
+      },
     }),
     ThrottlerModule.forRoot([
       {

@@ -17,6 +17,53 @@
       "moveSpeedPenalty": 50,
       "maxStacks": 1,
       "reapplication": "refresh"
+    },
+    {
+      "id": "bleed",
+      "name": "Bleed",
+      "stackable": true,
+      "statusDurationTicks": 0,
+      "maxStacks": 5
+    },
+    {
+      "id": "burn",
+      "name": "Burn",
+      "stackable": false,
+      "statusDurationTicks": 25,
+      "maxStacks": 1,
+      "reapplication": "refresh"
+    },
+    {
+      "id": "stun",
+      "name": "Stun",
+      "stackable": false,
+      "statusDurationTicks": 5,
+      "maxStacks": 1,
+      "reapplication": "refresh"
+    },
+    {
+      "id": "disarm",
+      "name": "Disarm",
+      "stackable": false,
+      "statusDurationTicks": 5,
+      "maxStacks": 1,
+      "reapplication": "refresh"
+    },
+    {
+      "id": "war_cry_def",
+      "name": "War Cry",
+      "stackable": false,
+      "statusDurationTicks": 10,
+      "maxStacks": 1,
+      "reapplication": "refresh"
+    },
+    {
+      "id": "magic_barrier",
+      "name": "Magic Barrier",
+      "stackable": false,
+      "statusDurationTicks": 300,
+      "maxStacks": 1,
+      "reapplication": "refresh"
     }
   ]
 }

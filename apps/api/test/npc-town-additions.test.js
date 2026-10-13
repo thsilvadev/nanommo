@@ -41,7 +41,7 @@ async function run() {
 
   const stock = await service.getVendorStock('c1','blacksmith_loren');
   assert.deepStrictEqual(stock.map(x=>x.itemId), [
-    'equip_sword_t1','equip_greatsword_t1','equip_dagger_t1','equip_bow_t1','equip_staff_t1','equip_wand_t1','equip_shield_t1','equip_body_phys_t1','equip_body_magic_t1'
+    'equip_sword_t1','equip_greatsword_t1','equip_dagger_t1','equip_bow_t1','equip_staff_t1','equip_rod_t1','equip_shield_t1','equip_body_phys_t1','equip_body_magic_t1'
   ]);
   assert.strictEqual(stock.every(x=>x.infiniteStock), true);
   assert.strictEqual(stock.length, 9);
