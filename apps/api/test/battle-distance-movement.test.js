@@ -79,6 +79,25 @@ function run() {
   const second = BattleEngine.simulateBattle(character, meleeMonster, page, 'distance-determinism', { weaponBaseAttackTicks: 99 });
   assert.deepEqual(first.log, second.log, 'same snapshot and seed must replay identically');
 
+  // Base regen and the food bonus are separate snapshot fields. The engine adds
+  // the food bonus once, and only while the buff is active (SPEC §21 / §7.1).
+  const regenResult = BattleEngine.simulateBattle(
+    baselineCharacter({
+      hp: 100, maxHp: 1000, sp: 100, maxSp: 1000,
+      hpRegenPerTenTicks: 8, spRegenPerTenTicks: 2,
+      foodBuffTicksRemaining: 100, foodBuffItemId: 'food_bread',
+      foodBuffHpRegenPerTenTicks: 7, foodBuffSpRegenPerTenTicks: 4,
+    }),
+    { ...meleeMonster, id: 'regen-test-monster', hp: 100000, atk: 0, gambit: [] },
+    page,
+    'food-regen-is-added-once',
+    { weaponBaseAttackTicks: 99 },
+  );
+  const firstHpRegen = regenResult.log.events.find((event) => event.actor === 'character' && event.action === 'regen' && event.resource === 'HP');
+  const firstSpRegen = regenResult.log.events.find((event) => event.actor === 'character' && event.action === 'regen' && event.resource === 'MP');
+  assert.equal(firstHpRegen?.amount, 15, '8 base HP regen + 7 food HP regen equals 15, not 22');
+  assert.equal(firstSpRegen?.amount, 6, '2 base SP regen + 4 food SP regen is also added only once');
+
   const speedTestMonster = { ...meleeMonster, hp: 4, gambit: [] };
   const uninflictedSpeedResult = BattleEngine.simulateBattle(
     baselineCharacter({ atk: 1, hp: 50000, maxHp: 50000 }),

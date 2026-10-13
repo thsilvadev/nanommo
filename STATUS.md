@@ -1,5 +1,11 @@
 # NanoMMO — Implementation Status
 
+### Latest correction — Battle food regeneration double-count (2026-10-13)
+
+Fixed the battle snapshot so `hpRegenPerTenTicks` and `spRegenPerTenTicks` contain only the character's derived base regeneration. Active-food HP/SP bonuses remain in their dedicated `foodBuff*RegenPerTenTicks` fields; `BattleEngine` adds those bonuses once while the buff is active and stops adding them after expiry. This matches the SPEC rule that food regen is added on top of normal regeneration. It fixes the reported case from 22 HP per 10 ticks to 15 (8 base + 7 three-star bread) and prevents the corresponding SP bonus from being doubled as well.
+
+Added `apps/api/test/battle-food-regen.spec.js` for snapshot separation and expired-food behavior, and extended `apps/api/test/battle-distance-movement.test.js` to assert battle simulation regenerates exactly 15 HP and adds SP food regen only once. Verification: shared and API builds passed; focused Jest tests passed (3 suites, 9 tests, including the new regression); battle-distance-movement assertions passed; `git diff --check` passed. Existing precomputed `BattleQueueEntry` simulations are immutable and are not retroactively changed by this code fix. No production deployment or active-battle mutation was performed.
+
 ### Latest implementation session — Status Attack Speed penalties (2026-10-13)
 
 Implemented catalog-driven Attack Speed penalties in the shared battle engine and added the typed `StatusEffectDefinition` catalog contract in `packages/shared/src/types/index.ts` (exposed by the API's `DataService`). Character basic-Attack gauge refill now uses a universal 0–800 rating scale: effective Attack Speed 0 fills in 10 ticks, 800 or above fills in 1 tick. `attackSpeedPenaltyPerStack` and `attackSpeedPenalty` are fixed rating-point subtractions; the effective rating cannot go below 0. The gauge retains fractional progress while the refill rate is recalculated each eligible tick, so applying, stacking, or expiring a status affects future progress without clearing progress already earned. Skill/cast timing remains on the independent DEX-based gauge. Monster basic attacks keep their catalogued `atkSpeedTicks` baseline; an attack-speed penalty adds fractional delay without imposing the character's 10-tick cap.

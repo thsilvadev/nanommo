@@ -318,8 +318,10 @@ export class BattleService {
       hp: Math.max(1, Math.min(hp, derived.maxHp)),
       sp: Math.max(0, Math.min(sp, derived.maxSp)),
       ...derived,
-      hpRegenPerTenTicks: derived.hpRegenPerTenTicks + (foodActive ? Number(food.hpRegenPerTenTicks ?? 0) : 0),
-      spRegenPerTenTicks: derived.spRegenPerTenTicks + (foodActive ? Number(food.spRegenPerTenTicks ?? 0) : 0),
+      // Keep base regen separate from the active food buff: BattleEngine adds
+      // the food fields below while the buff is active, and stops when it expires.
+      hpRegenPerTenTicks: derived.hpRegenPerTenTicks,
+      spRegenPerTenTicks: derived.spRegenPerTenTicks,
       foodBuffTicksRemaining: foodTicks,
       foodBuffItemId: foodActive ? food.itemId : undefined,
       foodBuffHpRegenPerTenTicks: foodActive ? Number(food.hpRegenPerTenTicks ?? 0) : undefined,
