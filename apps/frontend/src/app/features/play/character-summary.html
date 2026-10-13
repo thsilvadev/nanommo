@@ -62,9 +62,10 @@
         <span class="freeze-count">{{freeze.stacks}}</span>
         <div class="item-tooltip freeze-tooltip">
           <strong>{{freeze.name}}</strong>
-          <span>Each stack reduces Move Speed by {{freeze.penaltyPerStack}} for {{freeze.durationSeconds}} seconds.</span>
+          <span>Each stack reduces Move Speed by {{freeze.penaltyPerStack}} and Attack Speed by {{freeze.attackSpeedPenaltyPerStack}} for {{freeze.durationSeconds}} seconds.</span>
           <span>Stacks: {{freeze.stacks}} / {{freeze.maxStacks}}</span>
           <span>Total Move Speed penalty: -{{freeze.penalty}}</span>
+          <span>Total Attack Speed penalty: -{{freeze.attackSpeedPenalty}}</span>
           <span *ngFor="let remaining of freeze.stackDurations; let i = index">Stack {{i + 1}} remaining: {{formatDuration(remaining)}}</span>
         </div>
       </div>

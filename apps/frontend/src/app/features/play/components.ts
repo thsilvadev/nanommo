@@ -35,10 +35,12 @@ export class CharacterSummary implements OnDestroy {
     if (now < startMs || now >= Date.parse(entry.endAt)) return null;
     const tick = Math.floor((now - startMs) / 1000);
     const definition: any = this.catalog.statusEffect('freeze') ?? {
-      name: 'Freeze', maxStacks: 5, moveSpeedPenaltyPerStack: 15, statusDurationTicks: 5,
+      name: 'Freeze', maxStacks: 3, moveSpeedPenaltyPerStack: 25,
+      attackSpeedPenaltyPerStack: 25, statusDurationTicks: 5,
     };
-    const maxStacks = Math.max(1, Number(definition.maxStacks ?? 5));
-    const penaltyPerStack = Math.max(0, Number(definition.moveSpeedPenaltyPerStack ?? 15));
+    const maxStacks = Math.max(1, Number(definition.maxStacks ?? 3));
+    const penaltyPerStack = Math.max(0, Number(definition.moveSpeedPenaltyPerStack ?? 25));
+    const attackSpeedPenaltyPerStack = Math.max(0, Number(definition.attackSpeedPenaltyPerStack ?? 25));
     const durationSeconds = Math.max(1, Number(definition.statusDurationTicks ?? 5));
     const effects: any[] = [];
     const initial = entry.log?.header?.characterSnapshot?.statusEffects ?? [];
@@ -62,8 +64,10 @@ export class CharacterSummary implements OnDestroy {
       stacks,
       maxStacks,
       penaltyPerStack,
+      attackSpeedPenaltyPerStack,
       durationSeconds,
       penalty: stacks * penaltyPerStack,
+      attackSpeedPenalty: stacks * attackSpeedPenaltyPerStack,
       stackDurations: remainingSeconds,
     };
   }

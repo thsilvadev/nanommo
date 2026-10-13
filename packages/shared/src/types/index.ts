@@ -133,12 +133,29 @@ export interface FoodBuff {
   expiresAt: Date;
 }
 
-// Status effects
+// Canonical status-effect catalog row from status_effects.json.
+export interface StatusEffectDefinition {
+  id: string;
+  name: string;
+  stackable: boolean;
+  statusDurationTicks: number;
+  maxStacks?: number;
+  moveSpeedPenalty?: number;
+  moveSpeedPenaltyPerStack?: number;
+  attackSpeedPenalty?: number;
+  attackSpeedPenaltyPerStack?: number;
+  reapplication?: 'refresh';
+}
+
+// Runtime status instance stored in a combat snapshot.
 export interface StatusEffect {
   type: string;
   appliedAtTick: number;
   expiresAtTick: number;
   sourceSkillId?: string;
+  /** Resolved per-instance modifiers copied from the canonical status definition. */
+  moveSpeedPenalty?: number;
+  attackSpeedPenalty?: number;
 }
 
 // Weapon Proficiency

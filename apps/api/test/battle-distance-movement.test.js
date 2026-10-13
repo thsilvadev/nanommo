@@ -31,6 +31,22 @@ function run() {
   }, {});
   assert.equal(derived.accuracy, 80);
   assert.equal(derived.evasion, 100);
+  assert.equal(BattleEngine.attackDurationTicks(0), 10, 'zero Attack Speed takes exactly 10 ticks to fill the basic-attack gauge');
+  assert.equal(BattleEngine.attackDurationTicks(800), 1, '800 Attack Speed reaches the one-tick cap');
+  assert.equal(BattleEngine.attackDurationTicks(1000), 1, 'Attack Speed above 800 is capped at maximum speed');
+  assert.equal(BattleEngine.attackDurationTicks(-100), 10, 'effective Attack Speed cannot fall below zero');
+  assert(
+    BattleEngine.attackDurationTicks(110) < BattleEngine.attackDurationTicks(85),
+    'a fixed 25-point penalty increases the effective basic-attack interval',
+  );
+  assert(
+    BattleEngine.attackDurationTicks(85) < BattleEngine.attackDurationTicks(60),
+    'each additional fixed 25-point penalty continues to increase the interval',
+  );
+  assert(
+    BattleEngine.attackDurationTicks(60) < BattleEngine.attackDurationTicks(35),
+    'three fixed 25-point penalties continue to increase the interval cumulatively',
+  );
 
   const previousCalibratedEvasion = {
     mon_slime: 98, mon_fieldbat: 101, mon_thornsprout: 101, mon_mudcrawler: 104,
@@ -62,6 +78,53 @@ function run() {
   const first = BattleEngine.simulateBattle(character, meleeMonster, page, 'distance-determinism', { weaponBaseAttackTicks: 99 });
   const second = BattleEngine.simulateBattle(character, meleeMonster, page, 'distance-determinism', { weaponBaseAttackTicks: 99 });
   assert.deepEqual(first.log, second.log, 'same snapshot and seed must replay identically');
+
+  const speedTestMonster = { ...meleeMonster, hp: 4, gambit: [] };
+  const uninflictedSpeedResult = BattleEngine.simulateBattle(
+    baselineCharacter({ atk: 1, hp: 50000, maxHp: 50000 }),
+    speedTestMonster,
+    page,
+    'attack-speed-without-freeze',
+    { weaponBaseAttackTicks: 6, statusEffectDefs },
+  );
+  const oneStackFreezeResult = BattleEngine.simulateBattle(
+    baselineCharacter({
+      atk: 1, hp: 50000, maxHp: 50000,
+      statusEffects: [{ type: 'freeze', appliedAtTick: 0, expiresAtTick: 100, moveSpeedPenalty: 25, attackSpeedPenalty: 25 }],
+    }),
+    speedTestMonster,
+    page,
+    'attack-speed-with-one-freeze-stack',
+    { weaponBaseAttackTicks: 6, statusEffectDefs },
+  );
+  const firstUnfrozenAttack = uninflictedSpeedResult.log.events.find((event) => event.actor === 'character' && event.action === 'attack');
+  const firstFrozenAttack = oneStackFreezeResult.log.events.find((event) => event.actor === 'character' && event.action === 'attack');
+  assert.equal(firstUnfrozenAttack?.tick, 8, 'rating 110 fills the basic-attack gauge using the universal 10-to-1 tick scale');
+  assert.equal(firstFrozenAttack?.tick, 9, 'one Freeze stack slows the first basic attack by one simulation tick at this baseline');
+
+  const castSpeedTestSkill = {
+    id: 'test_cast_attack_speed_independence', name: 'Cast Timing Test',
+    damageType: 'magic', ranged: true, maxRange: 7, spCost: 0,
+    baseCastTicks: 1, cooldownTicks: 999, effect: { dmgMult: 0.01 },
+  };
+  const castSpeedTestPage = { lines: [
+    { priority: 1, condition: { id: 'always' }, action: { id: 'use_skill', skillId: castSpeedTestSkill.id } },
+    { priority: 2, condition: { id: 'always' }, action: { id: 'attack' } },
+  ] };
+  const castTimingAtZeroAttackSpeed = BattleEngine.simulateBattle(
+    baselineCharacter({ attackSpeed: 0, skills: { [castSpeedTestSkill.id]: true }, skillDefs: { [castSpeedTestSkill.id]: castSpeedTestSkill }, hp: 50000, maxHp: 50000 }),
+    { ...meleeMonster, hp: 50000, gambit: [] }, castSpeedTestPage,
+    'cast-timing-independent-of-attack-speed', { weaponBaseAttackTicks: 6, statusEffectDefs },
+  );
+  const castTimingAtMaxAttackSpeed = BattleEngine.simulateBattle(
+    baselineCharacter({ attackSpeed: 800, skills: { [castSpeedTestSkill.id]: true }, skillDefs: { [castSpeedTestSkill.id]: castSpeedTestSkill }, hp: 50000, maxHp: 50000 }),
+    { ...meleeMonster, hp: 50000, gambit: [] }, castSpeedTestPage,
+    'cast-timing-independent-of-attack-speed', { weaponBaseAttackTicks: 6, statusEffectDefs },
+  );
+  const firstCastAtZeroAttackSpeed = castTimingAtZeroAttackSpeed.log.events.find((event) => event.actor === 'character' && event.action === 'use_skill');
+  const firstCastAtMaxAttackSpeed = castTimingAtMaxAttackSpeed.log.events.find((event) => event.actor === 'character' && event.action === 'use_skill');
+  assert.equal(firstCastAtZeroAttackSpeed?.tick, 7, 'the DEX-based cast gauge retains its existing initial timing at Attack Speed 0');
+  assert.equal(firstCastAtMaxAttackSpeed?.tick, firstCastAtZeroAttackSpeed?.tick, 'Attack Speed affects basic Attacks only, not skill cast gauge timing');
   assert.equal(first.log.header.characterSnapshot.position, 3);
   assert.equal(first.log.header.monsterSnapshot.position, 4);
 
@@ -123,7 +186,7 @@ function run() {
   );
   const firstCharacterMove = frozenMovement.log.events.find((event) => event.actor === 'character' && event.action === 'move');
   assert(firstCharacterMove, 'a frozen melee character still approaches when out of range');
-  assert.equal(firstCharacterMove.moveSpeed, 36, 'one Freeze stack reduces level-1 character Move Speed from 51 to 36');
+  assert.equal(firstCharacterMove.moveSpeed, 26, 'one Freeze stack reduces level-1 character Move Speed from 51 to 26');
   const level48Speed = BattleEngine.simulateBattle(
     baselineCharacter({ level: 48, hp: 50000, maxHp: 50000 }),
     { ...rangedMonster, hp: 50000 },
@@ -137,7 +200,7 @@ function run() {
   assert(iceBolt && iceBolt.damageType === 'magic' && iceBolt.ranged && iceBolt.maxRange === 7);
   assert.equal(iceBolt.spCost, 0);
   assert.equal(iceBolt.baseCastTicks, 2, 'preserve the latest two-tick Ice Bolt cast-time balance');
-  assert.equal(iceBolt.cooldownTicks, 0);
+  assert.equal(iceBolt.cooldownTicks, 1, 'preserve the current one-tick configured Ice Bolt cooldown');
   assert.equal(iceBolt.effect.applyStatus, 'freeze');
   assert.equal(iceBolt.effect.statusChance, 0.25, 'status chance remains configured on the skill');
   assert.equal(iceBolt.effect.statusDurationTicks, undefined, 'status duration belongs to status_effects.json');
@@ -152,8 +215,12 @@ function run() {
     stackable: statusEffectDefs.freeze.stackable,
     statusDurationTicks: statusEffectDefs.freeze.statusDurationTicks,
     moveSpeedPenaltyPerStack: statusEffectDefs.freeze.moveSpeedPenaltyPerStack,
+    attackSpeedPenaltyPerStack: statusEffectDefs.freeze.attackSpeedPenaltyPerStack,
     maxStacks: statusEffectDefs.freeze.maxStacks,
-  }, { stackable: true, statusDurationTicks: 5, moveSpeedPenaltyPerStack: 15, maxStacks: 5 });
+  }, {
+    stackable: true, statusDurationTicks: 5, moveSpeedPenaltyPerStack: 25,
+    attackSpeedPenaltyPerStack: 25, maxStacks: 3,
+  });
   assert.deepEqual(statusEffectDefs.slow && {
     stackable: statusEffectDefs.slow.stackable,
     statusDurationTicks: statusEffectDefs.slow.statusDurationTicks,
@@ -177,14 +244,15 @@ function run() {
   assert(!freezeResult.log.events.some((event) => event.actor === 'monster' && event.action === 'move'), 'Wailing Wraith stays stationary while Ice Bolt is usable');
   assert(freezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Ice Bolt can apply Freeze');
   for (const event of freezeResult.log.events.filter((item) => item.action === 'freeze_applied')) {
-    assert(event.stackCount >= 1 && event.stackCount <= 5);
+    assert(event.stackCount >= 1 && event.stackCount <= 3);
     assert.equal(event.expiresAtTick, event.tick + 5, 'each Freeze stack expires after five seconds');
-    assert.equal(event.moveSpeedPenalty, 15);
+    assert.equal(event.moveSpeedPenalty, 25);
+    assert.equal(event.attackSpeedPenalty, 25, 'each Freeze stack applies its canonical Attack Speed penalty');
   }
   assert(!freezeResult.log.events.some((event) => event.action === 'range_blocked'), 'range blocks are not log events');
 
   const timingResult = BattleEngine.simulateBattle(
-    baselineCharacter({ level: 48, agi: 100, hp: 50000, maxHp: 50000, atk: 1 }),
+    baselineCharacter({ level: 48, agi: 100, attackSpeed: (8 / 9) * 800, hp: 50000, maxHp: 50000, atk: 1 }),
     wraith,
     page,
     'distance-ice-bolt-and-first-move-timing',
@@ -205,15 +273,16 @@ function run() {
 
   const cappedFreezeCharacter = baselineCharacter({
     hp: 50000, maxHp: 50000, atk: 1,
-    statusEffects: Array.from({ length: 5 }, () => ({
-      type: 'freeze', appliedAtTick: 0, expiresAtTick: 99999, moveSpeedPenalty: 15,
+    statusEffects: Array.from({ length: 3 }, () => ({
+      type: 'freeze', appliedAtTick: 0, expiresAtTick: 99999, moveSpeedPenalty: 25,
+      attackSpeedPenalty: 25,
     })),
   });
   const cappedFreezeResult = BattleEngine.simulateBattle(
     cappedFreezeCharacter, wraith, page, 'distance-freeze-cap',
     { weaponBaseAttackTicks: 99, monsterSkillDefs, statusEffectDefs },
   );
-  assert(!cappedFreezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Freeze cannot exceed five active stacks');
+  assert(!cappedFreezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Freeze cannot exceed three active stacks');
 
   const slowSkill = {
     id: 'monster_skill_test_slow', name: 'Test Slow', damageType: 'magic',
@@ -243,8 +312,8 @@ function run() {
     maxHp: 50000,
     atk: 1,
     statusEffects: [
-      { type: 'freeze', appliedAtTick: 0, expiresAtTick: 2, moveSpeedPenalty: 15 },
-      { type: 'freeze', appliedAtTick: 0, expiresAtTick: 4, moveSpeedPenalty: 15 },
+      { type: 'freeze', appliedAtTick: 0, expiresAtTick: 2, moveSpeedPenalty: 25, attackSpeedPenalty: 25 },
+      { type: 'freeze', appliedAtTick: 0, expiresAtTick: 4, moveSpeedPenalty: 25, attackSpeedPenalty: 25 },
       { type: 'slow', appliedAtTick: 0, expiresAtTick: 5, moveSpeedPenalty: 50 },
     ],
   });

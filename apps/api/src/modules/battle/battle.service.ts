@@ -339,8 +339,8 @@ export class BattleService {
   }
 
   /**
-   * weaponBaseAttackTicks for the equipped weapon (SPEC §7.2). Falls back to
-   * the skill_trees.json average when the character is unarmed.
+   * Legacy weapon timing metadata from skill_trees.json. The current character
+   * basic-Attack interval is governed by the universal Attack Speed scale in §7.2.
    */
   private getWeaponBaseAttackTicks(weaponTypes: string[]): number {
     const table: Record<string, number> = this.dataService.getWeaponBaseAttackTicks();

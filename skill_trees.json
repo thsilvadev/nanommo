@@ -882,8 +882,8 @@
         "applyStatus": "freeze",
         "statusChance": 0.25
       },
-      "baseCastTicks": 3,
-      "cooldownTicks": 0,
+      "baseCastTicks": 2,
+      "cooldownTicks": 1,
       "spCost": 0
     }
   ]

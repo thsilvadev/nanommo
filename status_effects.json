@@ -6,6 +6,7 @@
       "stackable": true,
       "statusDurationTicks": 5,
       "moveSpeedPenaltyPerStack": 25,
+      "attackSpeedPenaltyPerStack": 25,
       "maxStacks": 3
     },
     {

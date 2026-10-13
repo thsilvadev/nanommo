@@ -1,4 +1,5 @@
 import { Mulberry32 } from './prng';
+import type { StatusEffectDefinition } from '../types';
 
 export {
   Mulberry32,
@@ -35,9 +36,11 @@ export interface CombatantSnapshot {
   spRegenPerTenTicks: number;
   /** Current tick index, needed by tick-indexed conditions (e.g. every_n_ticks) */
   tick?: number;
-  /** Raw attributes, needed for the gauge thresholds in SPEC §7.2 */
+  /** Raw attributes retained for attribute-driven secondary mechanics. */
   agi: number;
   dex: number;
+  /** Derived Attack Speed rating (0..800 effective range); applies only to basic attacks. */
+  attackSpeed?: number;
   /** Skills currently usable (unlocked + weapon equipped) - SPEC §9.1 */
   skills?: Record<string, any>;
   /** Skill defs, needed for spCost/baseCastTicks/cooldownTicks - SPEC §9 */
@@ -352,6 +355,9 @@ export class BattleEngine {
   static readonly CRIT_MULTIPLIER = 1.5;
   static readonly MIN_ATTACK_GAUGE = 2;
   static readonly MIN_CAST_GAUGE = 3;
+  static readonly MIN_ATTACK_DURATION_TICKS = 1;
+  static readonly MAX_ATTACK_DURATION_TICKS = 10;
+  static readonly MAX_ATTACK_SPEED = 800;
   static readonly MONSTER_CAST_GAUGE = 6;
   static readonly DEFEND_DAMAGE_REDUCTION = 0.3;
 
@@ -450,12 +456,22 @@ export class BattleEngine {
   }
 
   /**
-   * SPEC §7.2: attackGaugeThreshold = weaponBaseAttackTicks - floor(AGI * 0.04), min 2
+   * Convert the effective Attack Speed rating into the basic-attack interval.
+   * The scale is global and exact at both endpoints: 0 => 10 ticks, 800+ =>
+   * 1 tick. Fractional intervals are applied through gauge progress rather than
+   * rounded away. Skill/cast timing uses the independent DEX-based cast gauge.
    */
-  static attackGaugeThreshold(weaponBaseAttackTicks: number, agi: number): number {
+  static attackDurationTicks(attackSpeed: number): number {
+    const rawSpeed = Number(attackSpeed ?? 0);
+    const effectiveSpeed = Number.isFinite(rawSpeed)
+      ? Math.max(0, Math.min(BattleEngine.MAX_ATTACK_SPEED, rawSpeed))
+      : 0;
+    const duration = BattleEngine.MAX_ATTACK_DURATION_TICKS
+      - (effectiveSpeed / BattleEngine.MAX_ATTACK_SPEED)
+        * (BattleEngine.MAX_ATTACK_DURATION_TICKS - BattleEngine.MIN_ATTACK_DURATION_TICKS);
     return Math.max(
-      BattleEngine.MIN_ATTACK_GAUGE,
-      Math.floor(weaponBaseAttackTicks) - Math.floor(agi * 0.04),
+      BattleEngine.MIN_ATTACK_DURATION_TICKS,
+      Math.min(BattleEngine.MAX_ATTACK_DURATION_TICKS, duration),
     );
   }
 
@@ -489,7 +505,7 @@ export class BattleEngine {
    * @param gambitPage the character's ACTIVE GambitPage row
    * @param seed deterministic seed
    * @param options.inventory live item counts, mutated to reflect consumption
-   * @param options.weaponBaseAttackTicks from skill_trees.json for the equipped weapon
+   * @param options.weaponBaseAttackTicks legacy catalog metadata, retained for compatibility
    */
   static simulateBattle(
     characterSnapshot: CombatantSnapshot,
@@ -498,10 +514,11 @@ export class BattleEngine {
     seed: string,
     options: {
       inventory?: Record<string, number>;
+      /** Legacy catalog metadata. Character attack intervals now use the universal Attack Speed scale. */
       weaponBaseAttackTicks?: number;
       itemDefinitions?: Record<string, any>;
       monsterSkillDefs?: Record<string, any>;
-      statusEffectDefs?: Record<string, any>;
+      statusEffectDefs?: Record<string, Partial<StatusEffectDefinition>>;
       /** Absolute character timeline tick at which this battle starts. */
       regenTickOffset?: number;
     } = {},
@@ -524,7 +541,7 @@ export class BattleEngine {
     const normalizedGambitPage = GambitEvaluator.normalizeGambitPage(gambitPage);
     const monsterGambitPage = GambitEvaluator.normalizeGambitPage(monsterDefinition?.gambit);
     const monsterSkillDefs: Record<string, any> = options.monsterSkillDefs ?? {};
-    const statusEffectDefs: Record<string, any> = options.statusEffectDefs ?? {};
+    const statusEffectDefs: Record<string, Partial<StatusEffectDefinition>> = options.statusEffectDefs ?? {};
 
     const cooldowns: Record<string, number> = {};
 
@@ -585,17 +602,54 @@ export class BattleEngine {
     let monsterCastGauge = 0;
     let tick = 0;
 
-    const weaponBaseAttackTicks = options.weaponBaseAttackTicks ?? 6;
-    // SPEC §7.2 thresholds are driven by AGI / DEX, which the API folds into
-    // the snapshot alongside the already-derived combat stats.
-    const selfAttackThreshold = BattleEngine.attackGaugeThreshold(
-      weaponBaseAttackTicks,
-      self.agi,
-    );
     const selfCastThreshold = BattleEngine.castGaugeThreshold(self.dex);
     const monsterAttackThreshold = Math.max(
       BattleEngine.MIN_ATTACK_GAUGE,
       Number(monsterDefinition?.atkSpeedTicks ?? 6),
+    );
+
+    // Status definitions own the penalty values. A stackable status contributes
+    // its per-stack penalty for each active stack, bounded by its canonical cap.
+    const statusAttackSpeedPenalty = (unit: CombatantSnapshot): number => {
+      const counts = new Map<string, number>();
+      for (const status of unit.statusEffects ?? []) {
+        const id = String(status.type ?? status.id ?? '');
+        if (!id) continue;
+        counts.set(id, (counts.get(id) ?? 0) + 1);
+      }
+      let total = 0;
+      for (const [id, rawCount] of counts) {
+        const definition = statusEffectDefs[id] ?? {};
+        const stackable = definition.stackable === true;
+        const cap = stackable
+          ? Math.max(1, Math.floor(Number(definition.maxStacks ?? 1)))
+          : 1;
+        const count = Math.min(rawCount, cap);
+        const firstStatus = (unit.statusEffects ?? []).find(
+          (status: any) => String(status.type ?? status.id ?? '') === id,
+        );
+        const value = Number(stackable
+          ? definition.attackSpeedPenaltyPerStack ?? firstStatus?.attackSpeedPenalty ?? 0
+          : definition.attackSpeedPenalty ?? firstStatus?.attackSpeedPenalty ?? 0);
+        if (Number.isFinite(value) && value > 0) total += value * count;
+      }
+      return total;
+    };
+    const selfAttackDurationTicks = (): number => {
+      const effectiveSpeed = Math.max(
+        0,
+        Math.min(
+          BattleEngine.MAX_ATTACK_SPEED,
+          Number(self.attackSpeed ?? (100 + Math.floor(Number(self.agi ?? 5) * 2))) - statusAttackSpeedPenalty(self),
+        ),
+      );
+      return BattleEngine.attackDurationTicks(effectiveSpeed);
+    };
+    // Monsters retain their catalogued atkSpeedTicks baseline; the same point
+    // penalty adds the equivalent fractional delay to their basic-attack gauge.
+    const monsterAttackDurationTicks = (): number => Math.max(
+      BattleEngine.MIN_ATTACK_DURATION_TICKS,
+      monsterAttackThreshold + statusAttackSpeedPenalty(foe) * 9 / BattleEngine.MAX_ATTACK_SPEED,
     );
 
     const damageTakenMultiplier = monsterDefinition?.damageTakenMultiplier ?? {};
@@ -634,6 +688,7 @@ export class BattleEngine {
             status: statusId,
             sourceSkillId: status.sourceSkillId,
             moveSpeedPenalty: Number(status.moveSpeedPenalty ?? statusDef.moveSpeedPenaltyPerStack ?? statusDef.moveSpeedPenalty ?? 0),
+            attackSpeedPenalty: Number(status.attackSpeedPenalty ?? (statusDef.stackable === true ? statusDef.attackSpeedPenaltyPerStack : statusDef.attackSpeedPenalty) ?? 0),
             statusStackable: statusDef.stackable === true,
           };
           if (statusDef.stackable === true && remainingCount > 0) {
@@ -658,8 +713,10 @@ export class BattleEngine {
       // SPEC §7.2: while that gauge's action is resolving, the gauge is locked
       // at zero and refilling restarts once the action resolves.
       if ((self.attackLockTicks ?? 0) <= 0) {
-        attackGauge += 1;
-        if (attackGauge >= selfAttackThreshold) {
+        // Recompute every tick so status application/stack loss/expiry changes
+        // only the future refill rate while preserving already-earned progress.
+        attackGauge += 1 / selfAttackDurationTicks();
+        if (attackGauge >= 1) {
           attackGauge = 0;
           const choice = GambitEvaluator.evaluateGambitPage(
             normalizedGambitPage,
@@ -879,8 +936,8 @@ export class BattleEngine {
       }
 
       // ===== MONSTER: ATTACK GAUGE (its own gambit, §7.3) =====
-      monsterAttackGauge += 1;
-      if (monsterAttackGauge >= monsterAttackThreshold) {
+      monsterAttackGauge += 1 / monsterAttackDurationTicks();
+      if (monsterAttackGauge >= 1) {
         monsterAttackGauge = 0;
         const choice = GambitEvaluator.evaluateGambitPage(
           monsterGambitPage,
@@ -1038,12 +1095,18 @@ export class BattleEngine {
                       ? statusDef.moveSpeedPenaltyPerStack ?? 0
                       : statusDef.moveSpeedPenalty ?? 0,
                   ));
+                  const attackSpeedPenalty = Math.max(0, Number(
+                    stackable
+                      ? statusDef.attackSpeedPenaltyPerStack ?? 0
+                      : statusDef.attackSpeedPenalty ?? 0,
+                  ));
                   self.statusEffects = [...(self.statusEffects ?? []), {
                     type: statusId,
                     appliedAtTick: tick,
                     expiresAtTick: tick + durationTicks,
                     sourceSkillId: skillId,
                     moveSpeedPenalty,
+                    attackSpeedPenalty,
                   }];
                   const stackCount = (self.statusEffects ?? []).filter(
                     (status: any) => String(status.type ?? status.id ?? '') === statusId,
@@ -1061,6 +1124,7 @@ export class BattleEngine {
                     expiresAtTick: tick + durationTicks,
                     durationTicks,
                     moveSpeedPenalty,
+                    attackSpeedPenalty,
                     sourceSkillId: skillId,
                     statusStackable: stackable,
                   });

@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { StatusEffectDefinition } from '@nanommo/shared';
 
 @Injectable()
 export class DataService implements OnModuleInit {
@@ -65,7 +66,7 @@ export class DataService implements OnModuleInit {
     return this.skillTrees;
   }
 
-  getStatusEffects(): any[] {
+  getStatusEffects(): StatusEffectDefinition[] {
     return this.statusEffects?.statusEffects ?? [];
   }
 
