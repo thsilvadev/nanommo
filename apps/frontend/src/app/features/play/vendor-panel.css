@@ -51,6 +51,11 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
 }
+.vendor-grid.drop-target-active {
+  outline: 2px dashed #d0a552;
+  outline-offset: 3px;
+  background: #21170e22;
+}
 .vendor-slot {
   aspect-ratio: 1;
   border: 1px solid #493521;
@@ -94,10 +99,8 @@
   filter: drop-shadow(0 1px 2px #000);
 }
 .vendor-placeholder {
-  display: block;
-  width: 72px;
-  height: 72px;
-  opacity: 0;
+  /* Keep vendor stock slots fixed while a drag previews over the list. */
+  display: none !important;
 }
 .cdk-drag-preview {
   box-sizing: border-box;

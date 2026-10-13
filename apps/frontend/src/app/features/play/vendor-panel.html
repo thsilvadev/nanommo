@@ -5,7 +5,8 @@
 
     <ng-container *ngIf="npc.types.includes('vendor')">
       <p class="vendor-greeting">{{npc.greeting || 'Hello, adventurer!'}}</p>
-      <div id="vendor-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid">
+      <div id="vendor-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid"
+          [class.drop-target-active]="shouldHighlightDropTarget()">
         <div *ngFor="let slot of slots" class="vendor-slot" [class.filled]="stockAt(slot)">
           <div *ngIf="stockAt(slot) as item" cdkDrag [cdkDragData]="dragData(item)" class="vendor-item">
             <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon">

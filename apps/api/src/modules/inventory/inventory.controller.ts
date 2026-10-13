@@ -24,6 +24,50 @@ export class InventoryController {
     };
   }
 
+  private async getConsistentInventorySnapshot(characterId: string) {
+    // Inventory and Character are changed together. Re-read until the revision is
+    // stable around the inventory query so a concurrent battle/mutation cannot
+    // pair new Character state with an older set of item slots.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const character = await this.characterService.getCharacterDtoById(characterId);
+      if (!character) throw new BadRequestException('Character not found');
+      const items = await this.inventoryService.getInventory(characterId);
+      const persistedCharacter = await this.characterService.getCharacterById(characterId);
+      if (persistedCharacter?.stateVersion === character.stateVersion) {
+        return { items, character, stateVersion: character.stateVersion };
+      }
+    }
+    throw new BadRequestException('Inventory changed; reload and retry');
+  }
+
+  /** Move an existing inventory item to a visual slot, swapping when occupied. */
+  @Put('slot')
+  async moveItemToSlot(
+    @Request() req: any,
+    @Body() body: { itemId: string; targetSlotIndex: number },
+  ) {
+    const userId = req.user.userId;
+    const character = await this.characterService.getCharacterByUserId(userId);
+    await this.inventoryService.moveItemToSlot(
+      character.id,
+      body.itemId,
+      Number(body.targetSlotIndex),
+    );
+    return this.getConsistentInventorySnapshot(character.id);
+  }
+
+  /** Sort by item type/name and compact all items into consecutive slots. */
+  @Put('sort')
+  async sortInventory(
+    @Request() req: any,
+    @Body() body: { itemIds: string[] },
+  ) {
+    const userId = req.user.userId;
+    const character = await this.characterService.getCharacterByUserId(userId);
+    await this.inventoryService.sortInventory(character.id, body.itemIds);
+    return this.getConsistentInventorySnapshot(character.id);
+  }
+
   /**
    * Get warehouse items for character
    */

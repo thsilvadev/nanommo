@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, OnDestroy, effect, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
@@ -169,7 +169,15 @@ export class MapBoard implements OnDestroy {
 
 @Component({ selector: 'app-inventory-grid', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, TooltipPositionDirective], templateUrl: './inventory-grid.html', styleUrl: './inventory-grid.css' })
 export class InventoryGrid implements OnDestroy {
-  readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly battle = inject(BattleStore); readonly vendor = inject(VendorStore); slots = Array.from({ length: 50 }, (_, i) => i); readonly characterSlotIds = ['character-slot-head', 'character-slot-body', 'character-slot-mainHand', 'character-slot-offHand', 'character-slot-shoes', 'character-slot-cape', 'character-slot-accessoryLeft', 'character-slot-accessoryRight']; readonly vendorDropListIds = ['vendor-drop-list']; readonly now = signal(Date.now()); private readonly timer = setInterval(() => this.now.set(Date.now()), 250);
+  readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly battle = inject(BattleStore); readonly vendor = inject(VendorStore);
+  slots = Array.from({ length: 50 }, (_, i) => i);
+  readonly characterSlotIds = ['character-slot-head', 'character-slot-body', 'character-slot-mainHand', 'character-slot-offHand', 'character-slot-shoes', 'character-slot-cape', 'character-slot-accessoryLeft', 'character-slot-accessoryRight'];
+  readonly vendorDropListIds = ['vendor-drop-list'];
+  readonly now = signal(Date.now());
+  readonly highlightedSlot = signal<number | null>(null);
+  readonly sorting = signal(false);
+  readonly sortError = signal<string | null>(null);
+  private readonly timer = setInterval(() => this.now.set(Date.now()), 250);
   item(i: number) { return this.inventory.items().find(x => x.slotIndex === i) }
   itemTitle(i: any) { return this.catalog.item(i.itemId)?.name ?? i.itemId }
   itemDefinition(i: any) { return this.catalog.item(i.itemId) }
@@ -179,9 +187,64 @@ export class InventoryGrid implements OnDestroy {
   glyph(i: any) { return this.catalog.itemIcon(i.itemId) }
   elapsedTick() { const b = this.battle.active(); if (!b) return -1; return Math.max(0, Math.floor((this.now() - Date.parse(b.startAt)) / 1000)) }
   displayQuantity(it: any) { return Number(it.quantity ?? 0) }
-  onDragStart(ev: CdkDragStart<any>) { this.inventory.beginDrag(ev.source.data.itemId) }
-  onDragEnd() { this.inventory.endDrag() }
-  dropInventory(ev: CdkDragDrop<any>) { const data = ev.item.data; if (data?.source === 'equipment') void this.inventory.unequip(data.slot); else if (data?.source === 'vendor') void this.vendor.openBuy(data.stock) }
+  onDragStart(ev: CdkDragStart<any>) { this.inventory.beginDrag(ev.source.data.itemId); this.sortError.set(null) }
+  onDragEnd() { this.inventory.endDrag(); this.highlightedSlot.set(null) }
+
+  @HostListener('document:pointermove', ['$event'])
+  onPointerMove(event: PointerEvent) {
+    if (!this.inventory.draggedItemId()) { this.highlightedSlot.set(null); return; }
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('.inv-slot[data-slot-index]');
+    const grid = document.getElementById('inventory-drop-list');
+    this.highlightedSlot.set(target && grid?.contains(target) ? Number(target.dataset['slotIndex']) : null);
+  }
+
+  private slotAtPoint(x: number, y: number): number | null {
+    const target = document.elementFromPoint(x, y)?.closest<HTMLElement>('.inv-slot[data-slot-index]');
+    const grid = document.getElementById('inventory-drop-list');
+    if (!target || !grid?.contains(target)) return null;
+    const slot = Number(target.dataset['slotIndex']);
+    return Number.isInteger(slot) && slot >= 0 && slot < 50 ? slot : null;
+  }
+
+  async sortInventory() {
+    if (this.sorting()) return;
+    this.sorting.set(true);
+    this.sortError.set(null);
+    const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
+    const ordered = [...this.inventory.items()].sort((a, b) => {
+      const typeA = String(this.catalog.item(a.itemId)?.type ?? 'unknown');
+      const typeB = String(this.catalog.item(b.itemId)?.type ?? 'unknown');
+      return typeA.localeCompare(typeB, 'en', { sensitivity: 'base' })
+        || collator.compare(this.itemTitle(a), this.itemTitle(b))
+        || a.itemId.localeCompare(b.itemId)
+        || a.id.localeCompare(b.id);
+    });
+    try {
+      await this.inventory.sortInventory(ordered.map(item => item.id));
+    } catch (error: any) {
+      this.sortError.set(error?.error?.message ?? 'Unable to sort inventory');
+    } finally {
+      this.sorting.set(false);
+    }
+  }
+
+  async dropInventory(ev: CdkDragDrop<any>) {
+    const data = ev.item.data;
+    try {
+      if (data?.source === 'inventory') {
+        const targetSlot = this.slotAtPoint(ev.dropPoint.x, ev.dropPoint.y);
+        if (targetSlot !== null && data.id) await this.inventory.moveItemToSlot(data.id, targetSlot);
+      } else if (data?.source === 'equipment') {
+        await this.inventory.unequip(data.slot);
+      } else if (data?.source === 'vendor') {
+        await this.vendor.openBuy(data.stock);
+      }
+    } catch (error: any) {
+      this.sortError.set(error?.error?.message ?? 'Unable to move inventory item');
+    } finally {
+      this.onDragEnd();
+    }
+  }
   accessorySlot() { const equipped = this.inventory.equipment(); return equipped.some(x => x.slot === 'accessoryLeft') ? 'accessoryRight' : 'accessoryLeft' }
   async doubleClick(it: any) { const d: any = this.catalog.item(it.itemId); if (d?.type === 'consumable' || d?.type === 'food') { try { await this.inventory.useConsumable(it.itemId) } catch { } } else if (d?.type === 'equipment' && d.slot) { const slot = d.slot === 'accessory' ? this.accessorySlot() : d.slot; try { await this.inventory.equip(slot, it.itemId) } catch { } } }
   dragData(it: any) { return { source: 'inventory', ...it } }
@@ -195,7 +258,14 @@ export class VendorPanel {
   stockAt(slot: number) { return this.vendor.stock().find(x => x.slotIndex === slot); }
   itemTierClass(itemId: string) { const tier = Number((this.catalog.item(itemId) as any)?.tier ?? 0); return tier >= 2 && tier <= 5 ? 'tier-' + tier : ''; }
   dragData(item: VendorStockItem) { return { source: 'vendor', vendorId: this.vendor.selectedNpcId(), itemId: item.itemId, stock: item }; }
-  drop(ev: CdkDragDrop<any>) { const data = ev.item.data; if (data?.source === 'inventory') void this.vendor.openSell(data.itemId); }
+  shouldHighlightDropTarget() {
+    return this.inventory.draggedItemId() !== null && !!this.vendor.selectedNpc()?.types.includes('vendor');
+  }
+  drop(ev: CdkDragDrop<any>) {
+    const data = ev.item.data;
+    if (data?.source === 'inventory') void this.vendor.openSell(data.itemId);
+    this.inventory.endDrag();
+  }
 }
 
 @Component({ selector: 'app-battle-progress', standalone: true, imports: [CommonModule], templateUrl: './battle-progress.html', styleUrl: './battle-progress.css' })

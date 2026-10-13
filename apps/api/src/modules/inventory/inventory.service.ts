@@ -78,6 +78,136 @@ export class InventoryService {
   }
 
   /**
+   * Move one persisted inventory row into a visual slot. Occupied targets swap;
+   * empty targets leave the source slot empty. Character is locked first so this
+   * layout revision is causally ordered with battle-resolution snapshots.
+   */
+  async moveItemToSlot(
+    characterId: string,
+    inventoryItemId: string,
+    targetSlotIndex: number,
+  ): Promise<{ items: InventoryItem[]; stateVersion: number; lastSeenAt: Date }> {
+    if (!Number.isInteger(targetSlotIndex) || targetSlotIndex < 0 || targetSlotIndex >= 50) {
+      throw new BadRequestException('Target slot must be between 0 and 49');
+    }
+
+    return this.inventoryItemRepo.manager.transaction(async (manager) => {
+      const characterRepo = manager.getRepository(Character);
+      const character = await characterRepo.findOne({
+        where: { id: characterId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!character) throw new NotFoundException('Character not found');
+
+      const repo = manager.getRepository(InventoryItem);
+      const rows = await repo.find({
+        where: { characterId, location: 'inventory' },
+        order: { slotIndex: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const source = rows.find((row) => row.id === inventoryItemId);
+      if (!source) throw new NotFoundException('Inventory item not found');
+
+      if (source.slotIndex !== targetSlotIndex) {
+        const sourceSlotIndex = source.slotIndex;
+        const target = rows.find((row) => row.slotIndex === targetSlotIndex);
+        if (target) {
+          // Use a guaranteed-free transient index to respect the unique slot constraint.
+          source.slotIndex = Math.max(50, ...rows.map((row) => row.slotIndex + 1));
+          await repo.save(source);
+          target.slotIndex = sourceSlotIndex;
+          await repo.save(target);
+          source.slotIndex = targetSlotIndex;
+          await repo.save(source);
+        } else {
+          source.slotIndex = targetSlotIndex;
+          await repo.save(source);
+        }
+        character.lastSeenAt = new Date();
+        const savedCharacter = await characterRepo.save(character);
+        character.stateVersion = savedCharacter.stateVersion;
+        character.lastSeenAt = savedCharacter.lastSeenAt;
+      }
+
+      return {
+        items: await repo.find({
+          where: { characterId, location: 'inventory' },
+          order: { slotIndex: 'ASC' },
+        }),
+        stateVersion: character.stateVersion,
+        lastSeenAt: character.lastSeenAt,
+      };
+    });
+  }
+
+  /**
+   * Persist the complete inventory order supplied by the client. The submitted IDs
+   * must exactly match the current inventory to prevent stale requests from losing rows.
+   * Slots are staged above the 0–49 range before compact indexes are assigned.
+   */
+  async sortInventory(
+    characterId: string,
+    orderedItemIds: string[],
+  ): Promise<{ items: InventoryItem[]; stateVersion: number; lastSeenAt: Date }> {
+    if (!Array.isArray(orderedItemIds) || orderedItemIds.length > 50
+      || orderedItemIds.some((id) => typeof id !== 'string' || !id)
+      || new Set(orderedItemIds).size !== orderedItemIds.length) {
+      throw new BadRequestException('Invalid inventory order');
+    }
+
+    return this.inventoryItemRepo.manager.transaction(async (manager) => {
+      const characterRepo = manager.getRepository(Character);
+      const character = await characterRepo.findOne({
+        where: { id: characterId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!character) throw new NotFoundException('Character not found');
+
+      const repo = manager.getRepository(InventoryItem);
+      const rows = await repo.find({
+        where: { characterId, location: 'inventory' },
+        order: { slotIndex: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const rowById = new Map(rows.map((row) => [row.id, row]));
+      if (orderedItemIds.length !== rows.length || rows.some((row) => !orderedItemIds.includes(row.id))
+        || orderedItemIds.some((id) => !rowById.has(id))) {
+        throw new BadRequestException('Inventory changed; reload and retry sorting');
+      }
+
+      const alreadyCompact = orderedItemIds.every((id, index) => {
+        const row = rowById.get(id);
+        return row?.slotIndex === index;
+      });
+
+      if (!alreadyCompact) {
+        for (const row of rows) row.slotIndex += 50;
+        await repo.save(rows);
+
+        orderedItemIds.forEach((id, index) => {
+          const row = rowById.get(id)!;
+          row.slotIndex = index;
+        });
+        await repo.save(orderedItemIds.map((id) => rowById.get(id)!));
+
+        character.lastSeenAt = new Date();
+        const savedCharacter = await characterRepo.save(character);
+        character.stateVersion = savedCharacter.stateVersion;
+        character.lastSeenAt = savedCharacter.lastSeenAt;
+      }
+
+      return {
+        items: await repo.find({
+          where: { characterId, location: 'inventory' },
+          order: { slotIndex: 'ASC' },
+        }),
+        stateVersion: character.stateVersion,
+        lastSeenAt: character.lastSeenAt,
+      };
+    });
+  }
+
+  /**
    * Check if location has free slots
    */
   private async getFreeSlots(

@@ -1,9 +1,17 @@
 <section class="panel inventory">
-    <div class="panel-title"><span>Inventory</span></div>
+    <div class="panel-title">
+        <span>Inventory</span>
+        <button type="button" class="inventory-sort-button" aria-label="Sort inventory by type and name"
+            title="Sort inventory" [disabled]="sorting()" (click)="sortInventory()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M4 11h7M4 16h4M18 4v15m-4-4 4 4 4-4" /></svg>
+        </button>
+    </div>
+    <small *ngIf="sortError()" class="inventory-error">{{sortError()}}</small>
     <div id="inventory-drop-list" cdkDropList cdkDropListSortingDisabled
         [cdkDropListConnectedTo]="characterSlotIds.concat(vendorDropListIds)"
         (cdkDropListDropped)="dropInventory($event)" class="inv-grid">
-        <div *ngFor="let i of slots" class="inv-slot">
+        <div *ngFor="let i of slots" class="inv-slot" [attr.data-slot-index]="i"
+            [class.drop-target]="highlightedSlot() === i">
             <div *ngIf="item(i) as it" cdkDrag [cdkDragData]="dragData(it)" (cdkDragStarted)="onDragStart($event)"
                 (cdkDragEnded)="onDragEnd()" class="item" [ngClass]="itemTierClass(it)" (dblclick)="doubleClick(it)">
                 <img class="item-icon" [src]="glyph(it)" [alt]="itemTitle(it)"><b

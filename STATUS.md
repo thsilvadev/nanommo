@@ -1,5 +1,14 @@
 # NanoMMO — Implementation Status
 
+### Latest implementation session — Inventory sorting and drag/drop stabilization (2026-10-13)
+
+Added persistent inventory-slot moves and sorting to the authenticated API. Dragging an inventory row onto an occupied slot swaps positions; dropping on an empty slot moves it there without compacting the rest of the inventory. The Sort button orders rows by catalog item type, then localized display name with deterministic tie-breakers; the server stores the supplied order compactly from slot 0 without merging/splitting stacks.
+
+The shared `InventoryGrid` used by Grind and Character now exposes the Sort control, tracks the slot under the pointer during a drag, and applies complete server-returned Inventory + Character snapshots with revision checks. CDK source placeholders for inventory and vendor stock are hidden so they cannot contribute their 72px preview dimensions to slot tracks. The selected vendor drop-list receives a dashed outline during an item drag; the outline does not affect layout, and existing sell/buy confirmation flows remain intact.
+
+Verification: API build passed; focused Jest regression `test/inventory-layout.spec.js` passed (4 tests for occupied-slot swaps, moves to empty slots, compact order persistence, and invalid requests); production frontend build passed with existing CSS-budget/CommonJS warnings; `git diff --check` passed. Browser-level drag/drop visual verification was not performed. No production deployment.
+
+
 ### Latest correction — Battle food regeneration double-count (2026-10-13)
 
 Fixed the battle snapshot so `hpRegenPerTenTicks` and `spRegenPerTenTicks` contain only the character's derived base regeneration. Active-food HP/SP bonuses remain in their dedicated `foodBuff*RegenPerTenTicks` fields; `BattleEngine` adds those bonuses once while the buff is active and stops adding them after expiry. This matches the SPEC rule that food regen is added on top of normal regeneration. It fixes the reported case from 22 HP per 10 ticks to 15 (8 base + 7 three-star bread) and prevents the corresponding SP bonus from being doubled as well.

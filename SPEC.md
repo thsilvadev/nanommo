@@ -683,6 +683,18 @@ Full catalog in `items.json` (§21): 30 monster parts, 15 consumables, 51 equipm
 - Warehouse (town only): **10 slots**, same stacking rules. Moving an item between inventory ⇄ warehouse is instant and free, blocked only if the destination has no room (no partial-stack splitting required for MVP — moving a full stack moves the whole stack; if the target stack has room, merge instead of consuming a new slot).
 - Gold cap: **1,000,000,000,000** (`numeric(15,0)` column, application-level clamp).
 
+#### Inventory layout, sorting and drag/drop
+
+The same InventoryGrid component is used on /play/grind and /play/character?tab=character; the two screens must share these rules and must not implement separate inventory behavior.
+
+- The Inventory title row uses space-between alignment and contains a Sort control.
+- Sort orders catalog item types alphabetically, then each type's items by catalog display name using Brazilian Portuguese, case-insensitive and numeric-aware comparison. itemId and inventory-row ID break ties deterministically. The server persists the resulting row order in slotIndex, assigns occupied items consecutively from slot 0, and leaves all remaining cells empty; it does not merge or split item stacks.
+- Dragging an inventory item over another inventory cell highlights only the cell under the pointer. A drop onto an occupied cell swaps the two rows' slotIndex values; a drop onto an empty cell moves the dragged row there and leaves its original cell empty. Dropping outside a valid destination does not change inventory order.
+- Inventory slot wrappers define the fixed grid geometry. A CDK drag placeholder must not contribute intrinsic width/height to grid tracks. Dragging over the vendor must not resize the vendor drop-list or move its stock slots.
+- When an NPC with the vendor capability is selected, dragging any inventory item over the vendor drop-list highlights the whole drop-list with a dashed outline. The highlight is visual only and must not alter layout. Dropping an inventory item still opens the existing quantity/confirmation modal; the sale happens only after confirmation.
+- Inventory moves and sorts are authoritative server mutations. The UI applies the returned complete Inventory and Character revision; a layout change must not mutate or rebuild the active battle snapshot or alter item quantity/equipment behavior.
+
+
 ### 10.2 Equipment slots
 
 `head, body, mainHand, offHand, shoes, cape, accessoryLeft, accessoryRight`. Weapon/offHand legality is enforced per §5.3.

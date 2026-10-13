@@ -9,11 +9,47 @@
 }
 .panel-title {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 8px;
   color: #b99759;
   font: 22px Arial;
   letter-spacing: 1.5px;
   margin-bottom: 8px;
+}
+.inventory-sort-button {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 30px;
+  padding: 4px;
+  border: 1px solid #493521;
+  background: #100c09;
+  color: #b99759;
+  cursor: pointer;
+}
+.inventory-sort-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.inventory-sort-button:hover:not(:disabled) {
+  border-color: #b99759;
+  color: #e0c28a;
+}
+.inventory-sort-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.inventory-error {
+  color: #d18a77;
+  font: 14px Arial;
+  margin: -3px 0 6px;
 }
 .inv-grid {
   display: grid;
@@ -37,6 +73,11 @@
 }
 .inv-slot:hover {
   border-color: #8b6a3b;
+}
+.inv-slot.drop-target {
+  border-color: #d0a552;
+  box-shadow: inset 0 0 0 2px #d0a55266, 0 0 6px #d0a55244;
+  background: #21170e;
 }
 .item {
   height: 100%;
@@ -69,7 +110,11 @@
   object-fit: contain;
   filter: drop-shadow(0 1px 2px #000);
 }
-.item-drag-placeholder,
+.item-drag-placeholder {
+  /* Keep the fixed slot wrapper as the layout anchor; the dragged item's placeholder
+     must not contribute its preview's intrinsic size to the inventory grid tracks. */
+  display: none !important;
+}
 .equip-drag-placeholder {
   display: block;
   width: 72px;
