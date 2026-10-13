@@ -800,18 +800,8 @@
         }
       ],
       "gambit": [
-        {
+                {
           "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "use_skill",
-            "skillId": "monster_skill_ice_bolt"
-          }
-        },
-        {
-          "priority": 2,
           "condition": {
             "type": "self_has_status",
             "status": "silence"
@@ -819,7 +809,18 @@
           "action": {
             "type": "attack"
           }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_ice_bolt"
+          }
         }
+
       ],
       "moveSpeedBase": 56,
       "combatStyle": "ranged",

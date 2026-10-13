@@ -7,7 +7,7 @@ import { Character } from '../../database/entities/character.entity';
 import { WeaponProficiency } from '../../database/entities/weapon-proficiency.entity';
 import { BattleQueueEntry } from '../../database/entities/battle-queue-entry.entity';
 import { DataService } from '../data/data.service';
-import { BattleEngine, effectiveWeaponAttack, validateHandLoadout } from '@nanommo/shared';
+import { BattleEngine, effectiveWeaponAttack, validateHandLoadout, sumAttributeBonuses, applyAttributeBonuses } from '@nanommo/shared';
 import { BattleService } from '../battle/battle.service';
 
 export interface EquipmentStats {
@@ -189,15 +189,8 @@ export class EquipmentService {
    */
   async calculateDerivedStats(character: Character): Promise<DerivedStats> {
     const equipStats = await this.calculateEquipmentStats(character.id);
-    const attrs = {
-      str: character.str + (equipStats.statBonus.STR || 0),
-      agi: character.agi + (equipStats.statBonus.AGI || 0),
-      dex: character.dex + (equipStats.statBonus.DEX || 0),
-      vit: character.vit + (equipStats.statBonus.VIT || 0),
-      int: character.int + (equipStats.statBonus.INT || 0),
-      sor: character.sor + (equipStats.statBonus.SOR || 0),
-    };
-    return BattleEngine.calculateDerivedStats(character.level, attrs, equipStats);
+    const attributes = applyAttributeBonuses(character, sumAttributeBonuses(equipStats.statBonus));
+    return BattleEngine.calculateDerivedStats(character.level, attributes, equipStats);
   }
 
   /**

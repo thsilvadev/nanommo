@@ -1,6 +1,7 @@
 export * from './enums';
 export * from './types';
 export * from './dto';
+export * from './attributes';
 export * from './battle-engine';
 export * from './equipment/hands';
 export const TOWN_MAP_ID = 'map_town' as const;

@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, Logger, ConflictExc
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem } from '@/database/entities';
-import { CharacterDto, Attribute, WeaponType, BattleEngine, effectiveWeaponAttack } from '@nanommo/shared';
+import { CharacterDto, Attribute, WeaponType, BattleEngine, effectiveWeaponAttack, sumAttributeBonuses, applyAttributeBonuses, masteryPassiveAttributeBonuses, type AttributeBonuses } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
 
@@ -68,6 +68,42 @@ export class CharacterService {
     }
     equipment.mdefPercent = Math.min(100, Math.max(0, equipment.mdefPercent));
     return equipment;
+  }
+
+  /**
+   * Learned skill definitions for the character's equipped weapon
+   * categories — the same equipped-weapon gate BattleService applies
+   * when building immutable combat snapshots.
+   */
+  private async buildLearnedSkillDefs(characterId: string, equipped: EquippedItem[]): Promise<Record<string, any>> {
+    const weaponTypes: string[] = [];
+    for (const row of equipped) {
+      if (row.slot !== 'mainHand' && row.slot !== 'offHand') continue;
+      const def = this.dataService.getItemById(row.itemId);
+      if (def?.weaponType && !weaponTypes.includes(def.weaponType)) weaponTypes.push(def.weaponType);
+    }
+    if (weaponTypes.length === 0) return {};
+    const proficiencyRows = await this.weaponProficiencyRepository.find({ where: { characterId } });
+    const skillDefs: Record<string, any> = {};
+    for (const weaponType of weaponTypes) {
+      const ranks = proficiencyRows.find((row) => row.weaponType === weaponType)?.skillRanks ?? {};
+      for (const skill of this.dataService.getSkillsForWeapon(weaponType)) {
+        const rank = Math.max(0, Math.floor(Number(ranks[skill.id] ?? 0)));
+        if (rank < 1) continue;
+        skillDefs[skill.id] = { ...skill, masteryRank: rank };
+      }
+    }
+    return skillDefs;
+  }
+
+  /**
+   * The authoritative non-base attribute contribution (SPEC §17):
+   * every modifier source — equipment stat bonuses plus learned
+   * mastery passives — aggregated into one total bonus.
+   */
+  private async buildTotalAttributeBonuses(characterId: string, equipped: EquippedItem[], equipmentStatBonus: Record<string, number>): Promise<AttributeBonuses> {
+    const skillDefs = await this.buildLearnedSkillDefs(characterId, equipped);
+    return sumAttributeBonuses(equipmentStatBonus, masteryPassiveAttributeBonuses(skillDefs));
   }
 
   async createCharacter(userId: string, name: string, dominantHand: 'right' | 'left'): Promise<CharacterDto> {
@@ -287,14 +323,8 @@ export class CharacterService {
   async getDerivedStatsForCharacter(character: Character): Promise<{ maxHp: number; maxSp: number }> {
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
     const equipment = this.buildEquipmentStats(equipped);
-    const attrs = {
-      str: character.str + equipment.statBonus.STR,
-      agi: character.agi + equipment.statBonus.AGI,
-      dex: character.dex + equipment.statBonus.DEX,
-      vit: character.vit + equipment.statBonus.VIT,
-      int: character.int + equipment.statBonus.INT,
-      sor: character.sor + equipment.statBonus.SOR,
-    };
+    const attributeBonuses = await this.buildTotalAttributeBonuses(character.id, equipped, equipment.statBonus);
+    const attrs = applyAttributeBonuses(character, attributeBonuses);
     const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
     return { maxHp: derived.maxHp, maxSp: derived.maxSp };
   }
@@ -311,14 +341,8 @@ export class CharacterService {
 
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
     const equipment = this.buildEquipmentStats(equipped);
-    const attrs = {
-      str: character.str + equipment.statBonus.STR,
-      agi: character.agi + equipment.statBonus.AGI,
-      dex: character.dex + equipment.statBonus.DEX,
-      vit: character.vit + equipment.statBonus.VIT,
-      int: character.int + equipment.statBonus.INT,
-      sor: character.sor + equipment.statBonus.SOR,
-    };
+    const attributeBonuses = await this.buildTotalAttributeBonuses(character.id, equipped, equipment.statBonus);
+    const attrs = applyAttributeBonuses(character, attributeBonuses);
     const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
     const foodActive = character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() > now;
     const foodHpRegen = foodActive ? Number(character.activeFoodBuff?.hpRegenPerTenTicks ?? 0) : 0;
@@ -339,14 +363,8 @@ export class CharacterService {
     const activeDiet = character.diet;
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
     const equipment = this.buildEquipmentStats(equipped);
-    const attrs = {
-      str: character.str + equipment.statBonus.STR,
-      agi: character.agi + equipment.statBonus.AGI,
-      dex: character.dex + equipment.statBonus.DEX,
-      vit: character.vit + equipment.statBonus.VIT,
-      int: character.int + equipment.statBonus.INT,
-      sor: character.sor + equipment.statBonus.SOR,
-    };
+    const attributeBonuses = await this.buildTotalAttributeBonuses(character.id, equipped, equipment.statBonus);
+    const attrs = applyAttributeBonuses(character, attributeBonuses);
     const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
     return {
       id: character.id,
@@ -365,12 +383,12 @@ export class CharacterService {
       int: character.int,
       sor: character.sor,
       attributeBonuses: {
-        STR: equipment.statBonus.STR,
-        AGI: equipment.statBonus.AGI,
-        DEX: equipment.statBonus.DEX,
-        VIT: equipment.statBonus.VIT,
-        INT: equipment.statBonus.INT,
-        SOR: equipment.statBonus.SOR,
+        STR: attributeBonuses.STR,
+        AGI: attributeBonuses.AGI,
+        DEX: attributeBonuses.DEX,
+        VIT: attributeBonuses.VIT,
+        INT: attributeBonuses.INT,
+        SOR: attributeBonuses.SOR,
       },
       gold: Number(character.gold),
       hpCurrent: character.hpCurrent,

@@ -14,7 +14,11 @@ import {
   calculateMasteryXpAwards,
   masteryLevelForXp,
   resolveRankScaledSkill,
+  sumAttributeBonuses,
+  applyAttributeBonuses,
+  masteryPassiveAttributeBonuses,
   type CombatantSnapshot,
+  type AttributeBonuses,
 } from '@nanommo/shared';
 import { effectiveFoodStatValue, TOWN_MAP_ID } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
@@ -313,16 +317,16 @@ export class BattleService {
     const { equipmentStats, skills, skillDefs, weaponTypes, masteryEquipment } =
       loadout ?? (await this.loadCombatantLoadout(character.id));
 
+    // Canonical combat attributes (SPEC §5.2): base attributes plus
+    // every modifier source — equipment stat bonuses and learned
+    // mastery passives — aggregated into one total bonus.
+    const attributeBonuses: AttributeBonuses = sumAttributeBonuses(
+      equipmentStats.statBonus,
+      masteryPassiveAttributeBonuses(skillDefs),
+    );
     const derived = BattleEngine.calculateDerivedStats(
       character.level,
-      {
-        str: character.str + (equipmentStats.statBonus.STR || 0) + 6 * Math.max(0, Number(skillDefs.brutality?.masteryRank ?? 0)),
-        agi: character.agi + (equipmentStats.statBonus.AGI || 0),
-        dex: character.dex + (equipmentStats.statBonus.DEX || 0),
-        vit: character.vit + (equipmentStats.statBonus.VIT || 0),
-        int: character.int + (equipmentStats.statBonus.INT || 0),
-        sor: character.sor + (equipmentStats.statBonus.SOR || 0),
-      },
+      applyAttributeBonuses(character, attributeBonuses),
       {
         def: equipmentStats.def,
         mdefPercent: equipmentStats.mdefPercent,
@@ -860,14 +864,14 @@ export class BattleService {
       if (leveledUp) {
         // Both derived-stat snapshots use this transaction's authoritative loadout.
         const equipmentStats = await this.equipmentService.calculateEquipmentStats(character.id, manager);
-        const attributes = {
-          str: character.str + (equipmentStats.statBonus.STR || 0),
-          agi: character.agi + (equipmentStats.statBonus.AGI || 0),
-          dex: character.dex + (equipmentStats.statBonus.DEX || 0),
-          vit: character.vit + (equipmentStats.statBonus.VIT || 0),
-          int: character.int + (equipmentStats.statBonus.INT || 0),
-          sor: character.sor + (equipmentStats.statBonus.SOR || 0),
-        };
+        const { skillDefs } = await this.buildSkillAvailability(character.id);
+        // Same attribute state the battles were simulated against (SPEC §6.3):
+        // base attributes plus the aggregated equipment and mastery-passive bonus.
+        const attributeBonuses: AttributeBonuses = sumAttributeBonuses(
+          equipmentStats.statBonus,
+          masteryPassiveAttributeBonuses(skillDefs),
+        );
+        const attributes = applyAttributeBonuses(character, attributeBonuses);
         const equipment = {
           def: equipmentStats.def,
           mdefPercent: equipmentStats.mdefPercent,
