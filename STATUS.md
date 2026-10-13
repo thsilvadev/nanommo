@@ -1,6 +1,15 @@
 # NanoMMO — Implementation Status
 
-### Latest implementation session — Inventory sorting and drag/drop stabilization (2026-10-13)
+### Latest follow-up — CDK placeholder activation and drag tooltip lifecycle (2026-10-13)
+
+Corrected the remaining inventory/vendor slot expansion: `InventoryGrid` had written `cdkDragPreview` and `cdkDragPlaceholder` templates but had not imported the corresponding standalone CDK directives. Angular therefore did not activate those custom templates, and CDK could fall back to cloning the full draggable item (with its intrinsic dimensions). The component now imports both directives, so inventory drags use the icon-only preview and the intentionally hidden `item-drag-placeholder`; the existing VendorPanel imports its preview/placeholder directives and uses its hidden fixed-slot placeholder. This applies when dragging over the vendor and when returning to inventory.
+
+Added a shared document drag lifecycle event for Inventory, equipment, and Vendor drags. Every floating item tooltip now hides immediately and stops its live-content timer at drag start, refuses to reopen while dragging, and is only eligible to appear on a subsequent pointer-enter after drag end. No MutationObserver or continuous tooltip-positioning observer was introduced.
+
+Verification: API build passed; inventory-layout Jest regression passed (4/4); production frontend build passed with existing CSS-budget/CommonJS warnings; `git diff --check` passed. Real-browser visual verification remains outstanding; no production deployment.
+
+
+### Inventory sorting and drag/drop stabilization (2026-10-13)
 
 Added persistent inventory-slot moves and sorting to the authenticated API. Dragging an inventory row onto an occupied slot swaps positions; dropping on an empty slot moves it there without compacting the rest of the inventory. The Sort button orders rows by catalog item type, then localized display name with deterministic tie-breakers; the server stores the supplied order compactly from slot 0 without merging/splitting stacks.
 

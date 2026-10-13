@@ -11,16 +11,27 @@ export class TooltipPositionDirective implements OnDestroy {
   private raf = 0;
   private pointer = { x: 0, y: 0 };
   private liveContentTimer: ReturnType<typeof setInterval> | null = null;
+  private enabled = true;
 
   private readonly onEnter = (e: PointerEvent) => {
+    if (!this.enabled) return;
     this.pointer = { x: e.clientX, y: e.clientY };
     this.show();
   };
   private readonly onMove = (e: PointerEvent) => {
+    if (!this.enabled) return;
     this.pointer = { x: e.clientX, y: e.clientY };
     this.position();
   };
   private readonly onLeave = () => this.hide();
+  private readonly onDragStart = () => {
+    this.enabled = false;
+    this.hide();
+  };
+  private readonly onDragEnd = () => {
+    // Do not reopen the tooltip automatically: the next pointerenter may show it.
+    this.enabled = true;
+  };
 
   constructor(element: ElementRef<HTMLElement>) {
     this.host = element.nativeElement;
@@ -29,9 +40,12 @@ export class TooltipPositionDirective implements OnDestroy {
     this.anchor.addEventListener('pointerenter', this.onEnter);
     this.anchor.addEventListener('pointermove', this.onMove);
     this.anchor.addEventListener('pointerleave', this.onLeave);
+    document.addEventListener('nm:drag-start', this.onDragStart);
+    document.addEventListener('nm:drag-end', this.onDragEnd);
   }
 
   private show() {
+    if (!this.enabled) return;
     const tooltip = this.host.classList.contains('diet-slot')
       ? this.host.querySelector('.diet-tooltip') as HTMLElement
       : this.host;
@@ -91,6 +105,8 @@ export class TooltipPositionDirective implements OnDestroy {
     this.anchor?.removeEventListener('pointerenter', this.onEnter);
     this.anchor?.removeEventListener('pointermove', this.onMove);
     this.anchor?.removeEventListener('pointerleave', this.onLeave);
+    document.removeEventListener('nm:drag-start', this.onDragStart);
+    document.removeEventListener('nm:drag-end', this.onDragEnd);
     if (this.raf) cancelAnimationFrame(this.raf);
     if (this.liveContentTimer) clearInterval(this.liveContentTimer);
     this.floating?.remove();

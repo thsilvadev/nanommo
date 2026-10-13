@@ -8,7 +8,8 @@
       <div id="vendor-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid"
           [class.drop-target-active]="shouldHighlightDropTarget()">
         <div *ngFor="let slot of slots" class="vendor-slot" [class.filled]="stockAt(slot)">
-          <div *ngIf="stockAt(slot) as item" cdkDrag [cdkDragData]="dragData(item)" class="vendor-item">
+          <div *ngIf="stockAt(slot) as item" cdkDrag [cdkDragData]="dragData(item)"
+              (cdkDragStarted)="onVendorDragStart(item)" (cdkDragEnded)="onVendorDragEnd()" class="vendor-item">
             <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon">
             <b>∞</b>
             <div class="item-tooltip"><strong [class]="itemTierClass(item.itemId)">{{vendor.itemName(item.itemId)}}</strong><span *ngFor="let line of catalog.itemTooltipLines(item.itemId)">{{line.label}}: {{line.value}}</span></div><small>{{item.buyPrice}} G</small>
