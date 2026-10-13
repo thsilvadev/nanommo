@@ -27,50 +27,48 @@ export class CharacterSummary implements OnDestroy {
   hpPct() { const c = this.character.character(); const hp = this.displayHp(); return c?.maxHp && hp !== null ? Math.max(0, Math.min(100, hp / c.maxHp * 100)) : 0 }
   spPct() { const c = this.character.character(); const sp = this.displaySp(); return c?.maxSp && sp !== null ? Math.max(0, Math.min(100, sp / c.maxSp * 100)) : 0 }
   statusLabel() { const s = this.character.character()?.status; return s === 'grinding' ? 'Grinding' : s === 'dead_pending_return' ? 'Dead — return pending' : 'In Town' }
-  freezeStatus() {
-    const entry: any = this.battle.active();
-    const now = this.battleDisplayNow();
-    if (!entry) return null;
+  activeStatusEffects(target: 'character' | 'monster' = 'character') {
+    const entry: any = this.battle.active(); const now = this.battleDisplayNow();
+    if (!entry) return [];
     const startMs = Date.parse(entry.startAt);
-    if (now < startMs || now >= Date.parse(entry.endAt)) return null;
+    if (now < startMs || now >= Date.parse(entry.endAt)) return [];
     const tick = Math.floor((now - startMs) / 1000);
-    const definition: any = this.catalog.statusEffect('freeze') ?? {
-      name: 'Freeze', maxStacks: 3, moveSpeedPenaltyPerStack: 25,
-      attackSpeedPenaltyPerStack: 25, statusDurationTicks: 5,
-    };
-    const maxStacks = Math.max(1, Number(definition.maxStacks ?? 3));
-    const penaltyPerStack = Math.max(0, Number(definition.moveSpeedPenaltyPerStack ?? 25));
-    const attackSpeedPenaltyPerStack = Math.max(0, Number(definition.attackSpeedPenaltyPerStack ?? 25));
-    const durationSeconds = Math.max(1, Number(definition.statusDurationTicks ?? 5));
-    const effects: any[] = [];
-    const initial = entry.log?.header?.characterSnapshot?.statusEffects ?? [];
-    for (const status of initial) {
-      if ((status.type ?? status.id) === 'freeze' && Number(status.expiresAtTick ?? -1) > tick) effects.push(status);
+    const snapshot = target === 'character' ? entry.log?.header?.characterSnapshot : entry.log?.header?.monsterSnapshot;
+    const active = new Map<string, any[]>();
+    for (const status of snapshot?.statusEffects ?? []) {
+      const id = String(status.type ?? status.id ?? '');
+      if (!id || Number(status.expiresAtTick ?? Infinity) <= tick) continue;
+      const list = active.get(id) ?? []; list.push(status); active.set(id, list);
     }
     const events = Array.isArray(entry.log?.events) ? entry.log.events : [];
     for (const event of events) {
       if (Number(event.tick ?? 0) > tick) break;
-      if (event.action === 'freeze_applied' && Number(event.expiresAtTick ?? -1) > tick) {
-        effects.push({ type: 'freeze', expiresAtTick: Number(event.expiresAtTick) });
+      if (event.target !== target) continue;
+      const id = String(event.status ?? event.statusApplied ?? ''); if (!id) continue;
+      const list = active.get(id) ?? [];
+      if (['status_applied','status_stack_applied','status_refreshed','freeze_applied'].includes(String(event.action))) {
+        const expiresAtTick = Number(event.expiresAtTick ?? (Number(event.tick ?? 0) + Number(event.durationTicks ?? 0)));
+        if (expiresAtTick > tick) {
+          const instance = { type:id, expiresAtTick, sourceSkillId:event.sourceSkillId };
+          if (event.action === 'status_refreshed') active.set(id, [instance]);
+          else if (!list.some((x:any)=>Number(x.expiresAtTick)===expiresAtTick)) active.set(id,[...list,instance]);
+        }
+      } else if (event.action === 'status_ended') active.delete(id);
+      else if (event.action === 'status_stack_lessened') {
+        const count = Math.max(0, Number(event.remainingStacks ?? event.stackCount ?? list.length - 1));
+        active.set(id, list.slice(0,count));
       }
     }
-    const active = effects.filter(status => startMs + Number(status.expiresAtTick) * 1000 > now);
-    if (!active.length) return null;
-    const remainingSeconds = active
-      .map(status => Math.max(0, Math.ceil((startMs + Number(status.expiresAtTick) * 1000 - now) / 1000)));
-    const stacks = Math.min(maxStacks, active.length);
-    return {
-      name: String(definition.name ?? 'Freeze'),
-      stacks,
-      maxStacks,
-      penaltyPerStack,
-      attackSpeedPenaltyPerStack,
-      durationSeconds,
-      penalty: stacks * penaltyPerStack,
-      attackSpeedPenalty: stacks * attackSpeedPenaltyPerStack,
-      stackDurations: remainingSeconds,
-    };
+    return [...active.entries()].map(([id, stacks]) => {
+      const def:any = this.catalog.statusEffect(id) ?? {name:id, maxStacks:1};
+      const durations = stacks.map(status => Math.max(0, Math.ceil((startMs + Number(status.expiresAtTick ?? tick) * 1000 - now) / 1000)));
+      const movePenalty = Number(def.moveSpeedPenaltyPerStack ?? def.moveSpeedPenalty ?? 0);
+      const attackPenalty = Number(def.attackSpeedPenaltyPerStack ?? def.attackSpeedPenalty ?? 0);
+      return { id, name:String(def.name ?? id.replace(/_/g,' ')), stacks:stacks.length, maxStacks:Number(def.maxStacks ?? 1), durations, remaining:Math.max(0,...durations), movePenalty, attackPenalty, tooltip:`${String(def.name ?? id)} · ${stacks.length}/${Number(def.maxStacks ?? 1)} stacks · ${Math.max(0,...durations)}s remaining${movePenalty ? ` · Move Speed -${movePenalty * stacks.length}` : ''}${attackPenalty ? ` · Attack Speed -${attackPenalty * stacks.length}` : ''}` };
+    }).filter(status => status.stacks > 0 && status.remaining > 0);
   }
+  freezeStatus() { return this.activeStatusEffects('character').find(status => status.id === 'freeze') ?? null; }
+
   itemName(slot: string) { const e = this.equipped(slot); return e ? (this.catalog.item(e.itemId)?.name ?? e.itemId) : '' }
   itemDefinition(slot: string) { const e = this.equipped(slot); return e ? this.catalog.item(e.itemId) : null }
   itemTooltipLines(slot: string) { const e = this.equipped(slot); return e ? this.catalog.itemTooltipLines(e.itemId, e.instanceData, slot) : [] }
@@ -288,7 +286,7 @@ export class VendorPanel {
 @Component({ selector: 'app-battle-progress', standalone: true, imports: [CommonModule], templateUrl: './battle-progress.html', styleUrl: './battle-progress.css' })
 export class BattleProgress implements OnDestroy { @Input() entry!: any; readonly now = signal(Date.now()); private readonly timer = setInterval(() => this.now.set(Date.now()), 250); progress() { const s = Date.parse(this.entry.startAt), e = Date.parse(this.entry.endAt); return Math.max(0, Math.min(100, (this.now() - s) / Math.max(1, e - s) * 100)) } remaining() { const sec = Math.max(0, Math.ceil((Date.parse(this.entry.endAt) - this.now()) / 1000)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') } ngOnDestroy() { clearInterval(this.timer) } }
 
-@Component({ selector: 'app-grind-info', standalone: true, imports: [CommonModule, BattleProgress, VendorPanel], templateUrl: './grind-info.html', styleUrl: './grind-info.css' })
+@Component({ selector: 'app-grind-info', standalone: true, imports: [CommonModule, BattleProgress, VendorPanel], templateUrl: './grind-info.html', styleUrl: './grind-info.css', styles:[`.foe-mana{height:8px;background:#10131c;border:1px solid #294c70;margin-top:3px}.foe-mana i{display:block;height:100%;background:#3e91df}.mana-label{margin-top:5px}.status-icons,.skill-icons{display:flex;gap:5px;flex-wrap:wrap}.status-icon,.monster-skill-icon{position:relative;width:34px;height:34px;display:grid;place-items:center}.status-icon img,.monster-skill-icon img{width:30px;height:30px;object-fit:contain}.status-icon .item-tooltip{display:none;position:absolute;z-index:30;bottom:100%;left:0;min-width:150px}.status-icon:hover .item-tooltip,.status-icon:focus .item-tooltip{display:flex}.status-icon b{position:absolute;right:-3px;bottom:-3px;font-size:10px}.monster-skill-icon .item-tooltip{display:none}.monster-skill-icon:hover .item-tooltip,.monster-skill-icon:focus .item-tooltip{display:flex;position:absolute;z-index:20;bottom:100%;left:0;min-width:150px}`] })
 export class GrindInfo implements OnDestroy {
   readonly battle = inject(BattleStore);
   readonly character = inject(CharacterStore);
@@ -301,7 +299,21 @@ export class GrindInfo implements OnDestroy {
   isSearching(entry: any) { return Date.now() < Date.parse(entry.startAt) }
   searchEntry(entry: any) { return { startAt: entry.log?.searchStartAt ?? new Date(Date.parse(entry.startAt) - 2000).toISOString(), endAt: entry.startAt } }
   monsterSnapshot(entry: any) { return (entry.log as any)?.header?.monsterSnapshot ?? {} }
-  monsterStatusEffects(entry: any) { return this.monsterSnapshot(entry).statusEffects ?? [] }
+  monsterStatusEffects(entry: any) {
+    const now=this.now(); const start=Date.parse(entry.startAt); if(now<start||now>=Date.parse(entry.endAt)) return [];
+    const tick=Math.floor((now-start)/1000); const active=new Map<string,any[]>();
+    for(const st of this.monsterSnapshot(entry).statusEffects??[]){const id=String(st.type??st.id??'');if(id&&Number(st.expiresAtTick??Infinity)>tick){const a=active.get(id)??[];a.push(st);active.set(id,a)}}
+    for(const e of this.events(entry)){if(Number(e.tick??0)>tick)break;if(e.target!=='monster')continue;const id=String(e.status??e.statusApplied??'');if(!id)continue;const a=active.get(id)??[];
+      if(['status_applied','status_stack_applied','status_refreshed','freeze_applied'].includes(String(e.action))){const expires=Number(e.expiresAtTick??(Number(e.tick??0)+Number(e.durationTicks??0)));if(expires>tick){const st={type:id,expiresAtTick:expires};active.set(id,e.action==='status_refreshed'?[st]:[...a.filter(x=>Number(x.expiresAtTick)!==expires),st])}}
+      else if(e.action==='status_ended')active.delete(id);else if(e.action==='status_stack_lessened')active.set(id,a.slice(0,Math.max(0,Number(e.remainingStacks??e.stackCount??a.length-1))));
+    }
+    return [...active.entries()].map(([id,stacks])=>({id,type:id,stacks:stacks.length,expiresAtTick:Math.max(...stacks.map(x=>Number(x.expiresAtTick??tick))),name:this.catalog.statusEffect(id)?.name??id,tooltip:`${this.catalog.statusEffect(id)?.name??id} · ${stacks.length} stack(s)`})).filter(x=>x.stacks>0&&x.expiresAtTick>tick);
+  }
+  monsterSp(entry:any){return Number(this.lastEvent(entry)?.spRemaining?.monster??this.monsterSnapshot(entry).sp??0)}
+  monsterMaxSp(entry:any){return Number(this.monsterSnapshot(entry).maxSp??0)}
+  monsterSkills(entry:any){const m:any=this.monster(entry.monsterId);const ids=new Set<string>();for(const line of m?.gambit??[]){const a=line?.action??{};const id=String(a.skillId??a.params?.skillId??'');if((a.type==='use_skill'||a.id==='use_skill')&&id)ids.add(id)}return [...ids].map(id=>this.catalog.skills().find((s:any)=>s.id===id)).filter(Boolean)}
+  skillTooltip(skill:any){return `${skill.name} · ${Number(skill.spCost??0)} SP · ${Number(skill.baseCastTicks??0)} cast ticks · ${Number(skill.cooldownTicks??0)} cooldown · ${skill.effect?.type??''}`}
+  skillIcon(skill:any){return '/assets/ui/skill-icons/'+skill.id+'.svg'}
   monsterStats(entry: any) { const m = this.monsterSnapshot(entry); return [{ label: 'ATK', value: m.atk }, { label: 'MATK', value: m.matk }, { label: 'DEF', value: m.def }, { label: 'MDEF', value: m.mdefPercent + '%' }, { label: 'ACC', value: m.accuracy }, { label: 'EVA', value: m.evasion }, { label: 'CRIT', value: m.critChance + '%' }] }
 
   isTown() { const c = this.character.character(); return !!c && c.currentMapId === TOWN_MAP_ID }
@@ -340,12 +352,14 @@ export class GrindInfo implements OnDestroy {
       return `${actor} moved ( ${spaces} ) ${arrow}`;
     }
     const actor = e.actor === 'character' ? playerName : monsterName;
+    const target = e.target === 'character' ? playerName : e.target === 'monster' ? monsterName : actor;
     const status = String(e.status ?? 'status').replace(/_/g, ' ').toLowerCase();
-    if (e.action === 'freeze_applied') return `${actor} is freezing (${Number(e.stackCount ?? 1)})`;
-    if (e.action === 'status_stack_applied') return `${actor} gained ${status} (${Number(e.stackCount ?? 1)})`;
-    if (e.action === 'status_stack_lessened') return `${actor}'s ${status} lessens (${Number(e.stackCount ?? 0)})`;
-    if (e.action === 'status_ended' || e.action === 'status_expired') return `${actor}'s ${status} ended`;
-    if (e.action === 'status_applied') return status === 'slow' ? `${actor} is slowed` : `${actor} is affected by ${status}`;
+    if (e.action === 'status_damage') return `${target} takes ${Number(e.damage ?? 0)} pure ${status} damage`;
+    if (e.action === 'freeze_applied') return `${target} is freezing (${Number(e.stackCount ?? 1)})`;
+    if (e.action === 'status_stack_applied') return `${target} gains ${status} from ${actor} (${Number(e.stackCount ?? 1)})`;
+    if (e.action === 'status_stack_lessened') return `${target}'s ${status} lessens (${Number(e.remainingStacks ?? e.stackCount ?? 0)})`;
+    if (e.action === 'status_ended' || e.action === 'status_expired') return `${target}'s ${status} ended`;
+    if (e.action === 'status_applied' || e.action === 'status_refreshed') return `${actor} applies ${status} to ${target}`;
     if (e.action === 'attack') { const critical = e.crit ? ' CRITICAL!' : ''; return actor + ' attacks for ' + Number(e.damage ?? 0) + critical; }
     if (e.action === 'regen') return 'You regenerated ' + Number(e.amount ?? 0) + ' ' + String(e.resource ?? 'HP') + '.';
     if (e.action === 'use_item') return (e.actor === 'character' ? playerName + ' uses ' : monsterName + ' uses ') + String(e.itemId ?? 'item').replaceAll('_', ' ');

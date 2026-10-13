@@ -23,7 +23,11 @@
       "name": "Bleed",
       "stackable": true,
       "statusDurationTicks": 0,
-      "maxStacks": 5
+      "maxStacks": 5,
+      "damagePerStack": 5,
+      "damageIntervalTicks": 5,
+      "procChancePerRank": 0.01,
+      "damageType": "pure"
     },
     {
       "id": "burn",
@@ -53,7 +57,7 @@
       "id": "war_cry_def",
       "name": "War Cry",
       "stackable": false,
-      "statusDurationTicks": 10,
+      "statusDurationTicks": 15,
       "maxStacks": 1,
       "reapplication": "refresh"
     },

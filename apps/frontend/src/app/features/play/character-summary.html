@@ -57,17 +57,10 @@
   <div class="status-reserve" aria-label="Status effects">
     <span>STATUS</span>
     <div class="status-effects">
-      <div *ngIf="freezeStatus() as freeze" class="status-effect-icon" tabindex="0" aria-label="Freeze status">
-        <img src="/assets/ui/freeze.svg" alt="Freeze">
-        <span class="freeze-count">{{freeze.stacks}}</span>
-        <div class="item-tooltip freeze-tooltip">
-          <strong>{{freeze.name}}</strong>
-          <span>Each stack reduces Move Speed by {{freeze.penaltyPerStack}} and Attack Speed by {{freeze.attackSpeedPenaltyPerStack}} for {{freeze.durationSeconds}} seconds.</span>
-          <span>Stacks: {{freeze.stacks}} / {{freeze.maxStacks}}</span>
-          <span>Total Move Speed penalty: -{{freeze.penalty}}</span>
-          <span>Total Attack Speed penalty: -{{freeze.attackSpeedPenalty}}</span>
-          <span *ngFor="let remaining of freeze.stackDurations; let i = index">Stack {{i + 1}} remaining: {{formatDuration(remaining)}}</span>
-        </div>
+      <div *ngFor="let status of activeStatusEffects('character')" class="status-effect-icon" tabindex="0" [attr.aria-label]="status.name + ' status'" [attr.data-tooltip]="status.tooltip">
+        <img [src]="'/assets/ui/status/' + status.id + '.svg'" [alt]="status.name">
+        <span class="freeze-count">{{status.stacks}}</span>
+        <div class="item-tooltip freeze-tooltip"><strong>{{status.name}}</strong><span>Stacks: {{status.stacks}} / {{status.maxStacks}}</span><span>Remaining: {{formatDuration(status.remaining)}}</span><span *ngIf="status.movePenalty">Move Speed penalty: -{{status.movePenalty * status.stacks}}</span><span *ngIf="status.attackPenalty">Attack Speed penalty: -{{status.attackPenalty * status.stacks}}</span></div>
       </div>
     </div>
   </div>

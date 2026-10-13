@@ -237,35 +237,55 @@ export class CharacterService {
     return rows.map((row) => ({ weaponType: row.weaponType, level: row.level, xp: Number(row.xp), spentSkillPoints: row.spentSkillPoints, skillRanks: row.skillRanks ?? {} }));
   }
 
-  async allocateMasterySkill(userId: string, category: string, skillId: string): Promise<{ category: string; level: number; xp: number; spentSkillPoints: number; skillRanks: Record<string, number> }> {
+  async applyMasteryRanks(userId: string, category: string, targetRanks: Record<string, number>): Promise<{ category: string; level: number; xp: number; spentSkillPoints: number; skillRanks: Record<string, number> }> {
     const character = await this.getCharacterByUserId(userId);
     if (!character) throw new NotFoundException('Character not found');
-    const categorySkills = this.dataService.getSkillsForWeapon(category);
-    const skill = categorySkills.find((entry: any) => entry.id === skillId);
-    if (!skill || !['sword','greatsword','dagger','bow','staff','rod','shield','rune'].includes(category)) {
-      throw new BadRequestException('Unknown Mastery category or skill');
+    if (!targetRanks || typeof targetRanks !== 'object' || Array.isArray(targetRanks)) throw new BadRequestException('targetRanks must be an object');
+    const skills = this.dataService.getSkillsForWeapon(category).filter((entry: any) => !entry.hidden && !entry.deprecated);
+    if (!['sword','greatsword','dagger','bow','staff','rod','shield','rune'].includes(category)) throw new BadRequestException('Unknown Mastery category');
+    const allowed = new Map(skills.map((skill: any) => [skill.id, skill]));
+    const ranks: Record<string, number> = {};
+    for (const [id, value] of Object.entries(targetRanks)) {
+      const skill: any = allowed.get(id); const rank = Number(value);
+      if (!skill || !Number.isInteger(rank) || rank < 0 || rank > Number(skill.maxRank ?? 5)) throw new BadRequestException(`Invalid target rank for ${id}`);
+      if (rank > 0) ranks[id] = rank;
     }
-    const maximum = Math.max(1, Math.min(10, Number(skill.maxRank ?? 5)));
-    // The entire rank mutation, including validation, is accepted at the shared
-    // future-combat boundary; active queue snapshots remain untouched.
-    return this.battleService.runFutureCombatMutation(character.id, async () => {
-      return this.weaponProficiencyRepository.manager.transaction(async (manager) => {
-        const repo = manager.getRepository(WeaponProficiency);
-        const fresh = await repo.findOne({ where: { characterId: character.id, weaponType: category }, lock: { mode: 'pessimistic_write' } });
-        if (!fresh) throw new NotFoundException('Mastery category not found');
-        const freshRanks = { ...(fresh.skillRanks ?? {}) };
-        const freshSpent = Number(fresh.spentSkillPoints ?? 0);
-        const rankTotal = Object.values(freshRanks).reduce((total, rank) => total + Math.max(0, Math.floor(Number(rank) || 0)), 0);
-        if (rankTotal !== freshSpent) throw new BadRequestException('Stored Mastery rank total is inconsistent');
-        if (freshSpent >= Number(fresh.level) || Number(freshRanks[skillId] ?? 0) >= maximum) throw new BadRequestException('No unspent Mastery points or skill is at maximum rank');
-        if (skill.prerequisite && Number(freshRanks[skill.prerequisite.skillId] ?? 0) < Number(skill.prerequisite.rank)) throw new BadRequestException('Skill prerequisite is not met');
-        if (skill.node !== 1 && Number(freshRanks[categorySkills[0]?.id] ?? 0) < 5) throw new BadRequestException('First node must reach rank 5 before this skill');
-        freshRanks[skillId] = Number(freshRanks[skillId] ?? 0) + 1;
-        fresh.skillRanks = freshRanks;
-        fresh.spentSkillPoints = freshSpent + 1;
-        const saved = await repo.save(fresh);
-        return { category, level: saved.level, xp: Number(saved.xp), spentSkillPoints: saved.spentSkillPoints, skillRanks: saved.skillRanks ?? {} };
-      });
+    const spent = Object.values(ranks).reduce((sum, rank) => sum + rank, 0);
+    return this.battleService.runFutureCombatMutation(character.id, async () => this.weaponProficiencyRepository.manager.transaction(async (manager) => {
+      const repo = manager.getRepository(WeaponProficiency);
+      const row = await repo.findOne({ where: { characterId: character.id, weaponType: category }, lock: { mode: 'pessimistic_write' } });
+      if (!row) throw new NotFoundException('Mastery category not found');
+      if (spent > Number(row.level)) throw new BadRequestException('Target ranks exceed available Mastery points');
+      const first = skills.find((skill: any) => skill.node === 1);
+      for (const [id, rank] of Object.entries(ranks)) {
+        const skill: any = allowed.get(id);
+        if (skill.prerequisite && Number(ranks[skill.prerequisite.skillId] ?? 0) < Number(skill.prerequisite.rank)) throw new BadRequestException(`Prerequisite not met for ${id}`);
+        if (skill.node !== 1 && Number(ranks[first?.id ?? ''] ?? 0) < 5) throw new BadRequestException(`First node must reach rank 5 before ${id}`);
+      }
+      row.skillRanks = ranks; row.spentSkillPoints = spent;
+      const saved = await repo.save(row);
+      return { category, level: saved.level, xp: Number(saved.xp), spentSkillPoints: saved.spentSkillPoints, skillRanks: saved.skillRanks ?? {} };
+    }));
+  }
+
+  async resetMasteryForCharacterName(characterName: string): Promise<{ characterName: string; categoriesReset: number; preservedProgress: true }> {
+    const matches = await this.characterRepository.find({ where: { name: characterName }, take: 2 });
+    if (matches.length === 0) throw new NotFoundException('Character not found');
+    if (matches.length > 1) throw new BadRequestException('Character name is ambiguous; no data was changed');
+    const character = matches[0];
+    return this.weaponProficiencyRepository.manager.transaction(async (manager) => {
+      const repo = manager.getRepository(WeaponProficiency);
+      const rows = await repo.find({ where: { characterId: character.id }, lock: { mode: 'pessimistic_write' } });
+      const categories = ['sword', 'greatsword', 'dagger', 'bow', 'staff', 'rod', 'shield', 'rune'];
+      const existing = new Set(rows.map((row) => row.weaponType));
+      for (const category of categories) {
+        if (existing.has(category)) continue;
+        rows.push(repo.create({ characterId: character.id, weaponType: category, level: 0, xp: 0, skillRanks: {}, spentSkillPoints: 0 }));
+      }
+      for (const row of rows) { row.skillRanks = {}; row.spentSkillPoints = 0; }
+      await repo.save(rows);
+      this.logger.warn(`Mastery tree reset for ${character.name}; XP and levels preserved`);
+      return { characterName: character.name, categoriesReset: rows.length, preservedProgress: true as const };
     });
   }
 

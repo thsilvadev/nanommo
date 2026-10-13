@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException, BadRequestException, Param } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request as ExpressRequest } from 'express';
 import { CharacterService } from './character.service';
@@ -38,14 +38,15 @@ export class CharacterController {
     return this.characterService.getWeaponProficiencyByUserId((req.user as any).userId);
   }
 
-  @Post('mastery/allocate')
+  @Post('mastery/apply')
   @UseGuards(AuthGuard('jwt'))
-  async allocateMastery(@Request() req: ExpressRequest, @Body() body: { category: string; skillId: string }) {
-    if (!body || typeof body.category !== 'string' || typeof body.skillId !== 'string') {
-      throw new BadRequestException('category and skillId are required');
+  async applyMastery(@Request() req: ExpressRequest, @Body() body: { category: string; targetRanks: Record<string, number> }) {
+    if (!body || typeof body.category !== 'string' || !body.targetRanks || typeof body.targetRanks !== 'object') {
+      throw new BadRequestException('category and targetRanks are required');
     }
-    return this.characterService.allocateMasterySkill((req.user as any).userId, body.category, body.skillId);
+    return this.characterService.applyMasteryRanks((req.user as any).userId, body.category, body.targetRanks);
   }
+
 
   @Post('auto-feed')
   @UseGuards(AuthGuard('jwt'))
@@ -61,5 +62,19 @@ export class CharacterController {
     const character = await this.characterService.getCharacterByUserId((req.user as any).userId);
     if (!character) throw new Error('Character not found');
     return this.characterService.spendAttributePoints(character.id, dto.attributes);
+  }
+}
+
+/** Explicit development/admin cheat, intentionally outside the /characters REST namespace. */
+@Controller()
+export class MasteryResetCheatController {
+  constructor(private readonly characterService: CharacterService) {}
+
+  @Post('reset-skilltree/:characterName')
+  @UseGuards(AuthGuard('jwt'))
+  async resetSkillTree(@Request() req: ExpressRequest, @Param('characterName') characterName: string) {
+    if (process.env.NODE_ENV === 'production' && (req.user as any).role !== 'admin') throw new ForbiddenException('Skill-tree reset is restricted to development or administrators');
+    if (!characterName || characterName.trim() !== characterName) throw new BadRequestException('Provide one exact character name');
+    return this.characterService.resetMasteryForCharacterName(characterName);
   }
 }

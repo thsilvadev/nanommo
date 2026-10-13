@@ -95,8 +95,8 @@
           "rank": 5
         },
         "spCost": 10,
-        "description": "10\u201330 SP; ATK \u00d7 rank; 15 second cooldown.",
-        "effectDescription": "10\u201330 SP; ATK \u00d7 rank; 15 second cooldown.",
+        "description": "10–30 SP; ATK × rank; 15 second cooldown.",
+        "effectDescription": "10–30 SP; ATK × rank; 15 second cooldown.",
         "requiresWeaponEquipped": "greatsword",
         "spCostByRank": [
           10,
@@ -215,8 +215,8 @@
           "rank": 5
         },
         "spCost": 20,
-        "description": "20\u2013100 SP; 50 damage per rank; pushes target to distance 6.",
-        "effectDescription": "20\u2013100 SP; 50 damage per rank; pushes target to distance 6.",
+        "description": "20–100 SP; 50 damage per rank; pushes target to distance 6.",
+        "effectDescription": "20–100 SP; 50 damage per rank; pushes target to distance 6.",
         "requiresWeaponEquipped": "bow",
         "spCostByRank": [
           20,
@@ -307,7 +307,7 @@
     "rod": [
       {
         "id": "wisp_flow",
-        "name": "Wisp Flow",
+        "name": "Light Wisp",
         "weaponType": "rod",
         "category": "rod",
         "kind": "active",
@@ -315,8 +315,8 @@
         "maxRank": 5,
         "prerequisite": null,
         "spCost": 5,
-        "description": "5 SP per rank; MATK + remaining SP after cost; 2 second cast.",
-        "effectDescription": "5 SP per rank; MATK + remaining SP after cost; 2 second cast.",
+        "description": "5 SP per rank; MATK + 25 × rank + floor(current SP before cost / 5); 2 second cast.",
+        "effectDescription": "5 SP per rank; MATK + 25 × rank + floor(current SP before cost / 5); 2 second cast.",
         "requiresWeaponEquipped": "rod",
         "spCostPerRank": 5,
         "baseCastTicks": 2,
@@ -326,8 +326,8 @@
         "maxRange": 7,
         "damageType": "magic",
         "effect": {
-          "type": "magic_damage_remaining_sp",
-          "base": "matk_plus_remaining_sp"
+          "type": "magic_damage_light_wisp",
+          "base": "matk_plus_rank_and_pre_cost_sp"
         }
       },
       {
@@ -400,23 +400,23 @@
           "rank": 5
         },
         "spCost": 50,
-        "description": "50 SP; +20 DEF for 10 seconds; 30 second cooldown.",
-        "effectDescription": "50 SP; +20 DEF for 10 seconds; 30 second cooldown.",
+        "description": "50 SP; +10 DEF per rank for 15 seconds; 30 second cooldown.",
+        "effectDescription": "50 SP; +10 DEF per rank for 15 seconds; 30 second cooldown.",
         "requiresWeaponEquipped": "shield",
         "baseCastTicks": 2,
         "cooldownTicks": 30,
         "target": "self",
         "effect": {
           "type": "defense_buff",
-          "defBonus": 20,
-          "durationTicks": 10
+          "defBonusPerRank": 10,
+          "durationTicks": 15
         }
       }
     ],
     "rune": [
       {
-        "id": "stored_essence",
-        "name": "Stored Essence",
+        "id": "arcane_dynamo",
+        "name": "Arcane Dynamo",
         "weaponType": "rune",
         "category": "rune",
         "kind": "passive",
@@ -424,15 +424,14 @@
         "maxRank": 5,
         "prerequisite": null,
         "spCost": 0,
-        "description": "Reduces final SP cost by 5% per rank, minimum 1.",
-        "effectDescription": "Reduces final SP cost by 5% per rank, minimum 1.",
+        "description": "Refund 2 SP per rank after each successful basic attack or active skill.",
+        "effectDescription": "Refund 2 SP per rank after each successful basic attack or active skill.",
         "requiresWeaponEquipped": "rune",
         "baseCastTicks": 0,
         "cooldownTicks": 0,
         "effect": {
-          "type": "sp_cost_reduction_passive",
-          "reductionPerRank": 0.05,
-          "minimumCost": 1
+          "type": "arcane_dynamo_passive",
+          "spRefundPerRank": 2
         }
       },
       {
@@ -444,7 +443,7 @@
         "node": 2,
         "maxRank": 5,
         "prerequisite": {
-          "skillId": "stored_essence",
+          "skillId": "arcane_dynamo",
           "rank": 5
         },
         "spCost": 50,
@@ -472,7 +471,8 @@
         "dmgMult": 3
       },
       "baseCastTicks": 4,
-      "cooldownTicks": 999
+      "cooldownTicks": 999,
+      "spCost": 30
     },
     {
       "id": "monster_skill_self_heal",
@@ -482,7 +482,8 @@
         "healPercentMaxHp": 0.25
       },
       "baseCastTicks": 3,
-      "cooldownTicks": 10
+      "cooldownTicks": 10,
+      "spCost": 15
     },
     {
       "id": "monster_skill_stun",
@@ -493,7 +494,8 @@
         "applyStatus": "stun"
       },
       "baseCastTicks": 4,
-      "cooldownTicks": 999
+      "cooldownTicks": 999,
+      "spCost": 30
     },
     {
       "id": "monster_skill_ice_bolt",
@@ -508,7 +510,32 @@
       },
       "baseCastTicks": 2,
       "cooldownTicks": 1,
-      "spCost": 0
+      "spCost": 10
+    }
+  ],
+  "legacySkills": [
+    {
+      "id": "stored_essence",
+      "name": "Stored Essence (Legacy)",
+      "weaponType": "rune",
+      "category": "rune",
+      "kind": "passive",
+      "node": 0,
+      "maxRank": 5,
+      "prerequisite": null,
+      "spCost": 0,
+      "hidden": true,
+      "deprecated": true,
+      "description": "Deprecated legacy skill; unavailable for new allocation.",
+      "effectDescription": "Deprecated legacy skill; unavailable for new allocation.",
+      "requiresWeaponEquipped": "rune",
+      "baseCastTicks": 0,
+      "cooldownTicks": 0,
+      "effect": {
+        "type": "sp_cost_reduction_passive",
+        "reductionPerRank": 0.05,
+        "minimumCost": 1
+      }
     }
   ]
 }

@@ -144,6 +144,10 @@ export interface StatusEffectDefinition {
   moveSpeedPenaltyPerStack?: number;
   attackSpeedPenalty?: number;
   attackSpeedPenaltyPerStack?: number;
+  damagePerStack?: number;
+  damageIntervalTicks?: number;
+  procChancePerRank?: number;
+  damageType?: 'pure' | 'status';
   reapplication?: 'refresh';
 }
 

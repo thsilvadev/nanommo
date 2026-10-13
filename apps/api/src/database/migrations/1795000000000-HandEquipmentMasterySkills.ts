@@ -14,14 +14,20 @@ export class HandEquipmentMasterySkills1795000000000 implements MigrationInterfa
     await queryRunner.query(`ALTER TABLE weapon_proficiencies ADD COLUMN IF NOT EXISTS "spentSkillPoints" integer NOT NULL DEFAULT 0`);
     await queryRunner.query(`ALTER TABLE weapon_proficiencies ADD COLUMN IF NOT EXISTS "skillRanks" jsonb NOT NULL DEFAULT '{}'::jsonb`);
 
-    // Replace the obsolete seven-category level-1 schema with the eight
-    // level-0 Mastery categories (this reset is explicitly part of the change).
-    await queryRunner.query(`DELETE FROM weapon_proficiencies`);
+    // Preserve every existing category row, its identity, XP and level. The
+    // legacy wand category is renamed to rod; new categories are added only for
+    // characters that do not already have them. The separate refinement
+    // migration clears allocated ranks/points without resetting progression.
+    await queryRunner.query(`UPDATE weapon_proficiencies SET "weaponType" = 'rod' WHERE "weaponType" = 'wand'`);
     await queryRunner.query(`
       INSERT INTO weapon_proficiencies (id, "characterId", "weaponType", level, xp, "spentSkillPoints", "skillRanks")
       SELECT gen_random_uuid(), c.id, category, 0, 0, 0, '{}'::jsonb
       FROM characters c
       CROSS JOIN unnest(ARRAY['sword','greatsword','dagger','bow','staff','rod','shield','rune']::varchar[]) category
+      WHERE NOT EXISTS (
+        SELECT 1 FROM weapon_proficiencies wp
+        WHERE wp."characterId" = c.id AND wp."weaponType" = category
+      )
     `);
 
     await queryRunner.query(`

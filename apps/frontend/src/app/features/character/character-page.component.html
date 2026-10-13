@@ -57,14 +57,16 @@
             </div>
             <div class="skill-tree">
                 <div *ngFor="let skill of masterySkills();let i=index" class="skill-node"
-                    [class.unlocked]="skillRank(skill)>0" [class.locked]="!canAllocate(skill)&&skillRank(skill)===0">
-                    <small>NODE {{i+1}} · {{skill.kind|uppercase}}</small><b>{{skill.name}}</b><span>Rank
-                        {{skillRank(skill)}} / {{skill.maxRank}}</span>
-                    <p>{{skill.effectDescription}}</p><button (click)="allocate(skill)"
-                        [disabled]="saving()||!canAllocate(skill)">{{skillRank(skill)>0?'Raise Rank':'Learn
-                        Skill'}}</button>
+                    [class.unlocked]="persistedSkillRank(skill)>0" [class.pending]="skillRank(skill)>persistedSkillRank(skill)" [class.locked]="!canAllocate(skill)&&skillRank(skill)===0">
+                    <button class="skill-icon" type="button" [attr.aria-label]="skill.name + ', rank ' + skillRank(skill) + ' of ' + skill.maxRank" [attr.data-tooltip]="skill.name + ': ' + skill.effectDescription" (click)="stageMastery(skill)" [attr.aria-disabled]="saving()||!canAllocate(skill)">
+                        <img [src]="skillIcon(skill)" alt="">
+                    </button>
+                    <span class="item-tooltip mastery-tooltip"><strong>{{skill.name}}</strong><span>{{skill.effectDescription}}</span><span>Rank {{skillRank(skill)}} / {{skill.maxRank}}</span><span *ngIf="skill.prerequisite">Requires {{skill.prerequisite.skillId}} rank {{skill.prerequisite.rank}}</span></span>
+                    <b>{{skill.name}}</b><span [class.pending-rank]="skillRank(skill)>persistedSkillRank(skill)">Rank {{skillRank(skill)}} / {{skill.maxRank}}</span>
+                    <small *ngIf="skill.prerequisite">Requires {{skill.prerequisite.skillId}} rank {{skill.prerequisite.rank}}</small>
                 </div>
             </div>
+            <div class="alloc-actions mastery-actions"><button (click)="resetMasteryDraft()" [disabled]="saving()||!hasMasteryDraft()">Reset</button><button class="gold-btn" (click)="applyMastery()" [disabled]="saving()||!hasMasteryDraft()">{{saving()?'Applying...':'Apply'}}</button></div>
             <p *ngIf="error()" class="error">{{error()}}</p>
         </section>
         <section class="sheet-panel weapons-panel">

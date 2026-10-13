@@ -217,7 +217,7 @@ function run() {
 
   const iceBolt = skillTree.monsterSkills.find((skill) => skill.id === 'monster_skill_ice_bolt');
   assert(iceBolt && iceBolt.damageType === 'magic' && iceBolt.ranged && iceBolt.maxRange === 7);
-  assert.equal(iceBolt.spCost, 0);
+  assert.equal(iceBolt.spCost, 10);
   assert.equal(iceBolt.baseCastTicks, 2, 'preserve the latest two-tick Ice Bolt cast-time balance');
   assert.equal(iceBolt.cooldownTicks, 1, 'preserve the current one-tick configured Ice Bolt cooldown');
   assert.equal(iceBolt.effect.applyStatus, 'freeze');
@@ -259,7 +259,7 @@ function run() {
   assert(iceEvents.length > 0, 'Wailing Wraith uses Ice Bolt');
   assert(iceEvents.every((event) => Number.isFinite(event.damage) && event.damage > 0), 'Ice Bolt battle events include the resolved damage for live and history logs');
   assert.equal(iceEvents[0].tick, 2, 'tick 0 is the initial instant, so a two-tick Ice Bolt first resolves at tick 2');
-  assert(iceEvents.every((event, index) => index === 0 || event.tick - iceEvents[index - 1].tick === 2), 'zero-cooldown Ice Bolt repeats at its two-tick interval after the first cast');
+  assert.deepEqual(iceEvents.slice(0, 4).map((event) => event.tick), [2, 6, 10, 14], 'Ice Bolt cooldown blocks the next tick and cast time starts only after cooldown expires');
   assert(!freezeResult.log.events.some((event) => event.actor === 'monster' && event.action === 'move'), 'Wailing Wraith stays stationary while Ice Bolt is usable');
   assert(freezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Ice Bolt can apply Freeze');
   for (const event of freezeResult.log.events.filter((item) => item.action === 'freeze_applied')) {
@@ -282,10 +282,10 @@ function run() {
   assert.equal(firstTimedIceBolt?.tick, 2, 'first two-tick Ice Bolt resolves at T2');
   assert.equal(firstTimedCharacterMove?.tick, 2, 'character movement gauge accrued from the initial intent and first movement resolves at T2');
 
-  assert.equal(wraith.gambit[0].action.skillId, 'monster_skill_ice_bolt');
-  assert.equal(wraith.gambit[1].action.type, 'attack');
-  assert.equal(wraith.gambit[1].condition.type, 'self_has_status');
-  assert.equal(wraith.gambit[1].condition.status, 'silence');
+  assert.equal(wraith.gambit[0].action.type, 'attack');
+  assert.equal(wraith.gambit[0].condition.type, 'self_has_status');
+  assert.equal(wraith.gambit[0].condition.status, 'silence');
+  assert.equal(wraith.gambit[1].action.skillId, 'monster_skill_ice_bolt');
   assert(!freezeResult.log.events.some((event) => event.actor === 'monster' && event.action === 'attack'), 'Wailing Wraith does not basic-attack while Ice Bolt is usable');
   assert.equal(wraith.basicAttackDamageType, 'melee');
   assert.equal(wraith.basicAttackRange, 0);

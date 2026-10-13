@@ -21,13 +21,13 @@
         <div class="hp-block">
           <div class="hp-label"><b>{{monsterHp(b)}} / {{monsterMaxHp(b)}}</b></div>
           <div class="foe-hp"><i [style.width.%]="percent(monsterHp(b),monsterMaxHp(b))"></i></div>
+          <div class="hp-label mana-label"><b>{{monsterSp(b)}} / {{monsterMaxSp(b)}} SP</b></div>
+          <div class="foe-mana"><i [style.width.%]="percent(monsterSp(b),monsterMaxSp(b))"></i></div>
         </div>
 
         <div class="monster-status">
           <div class="section-label">STATUS EFFECTS</div>
-          <div *ngFor="let effect of monsterStatusEffects(b)" class="status-effect"><span>{{effect.type ||
-              effect.id}}</span><small *ngIf="effect.expiresAtTick !== undefined">until
-              T{{effect.expiresAtTick}}</small></div>
+          <div class="status-icons"><div *ngFor="let effect of monsterStatusEffects(b)" class="status-effect status-icon" tabindex="0"><img [src]="'/assets/ui/status/' + effect.id + '.svg'" [alt]="effect.name"><b>{{effect.stacks}}</b><span class="item-tooltip"><strong>{{effect.name}}</strong><small>{{effect.tooltip}}</small><small>Expires at T{{effect.expiresAtTick}}</small></span></div></div>
         </div>
 
         <div class="monster-stats">
@@ -39,6 +39,7 @@
           <div *ngFor="let e of recentEvents(b)" class="event"><small>T{{e.tick}}</small><span>{{eventText(e)}}</span>
           </div>
         </div>
+        <div class="monster-skills" *ngIf="monsterSkills(b).length"><div class="section-label">SKILLS</div><div class="skill-icons"><div *ngFor="let skill of monsterSkills(b)" class="monster-skill-icon" tabindex="0" [attr.data-tooltip]="skillTooltip(skill)"><img [src]="skillIcon(skill)" [alt]="skill.name"><span class="item-tooltip"><b>{{skill.name}}</b><small>{{skillTooltip(skill)}}</small></span></div></div></div>
       </ng-template>
     </ng-container>
     <div *ngIf="!battle.active()" class="idle-state"><strong>{{foodLabel()==='HUNGRY'?'HUNGRY':'SEARCHING FOR

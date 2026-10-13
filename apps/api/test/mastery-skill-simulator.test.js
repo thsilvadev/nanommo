@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, '../../..');
 const skillCatalog = JSON.parse(fs.readFileSync(path.join(root, 'skill_trees.json'), 'utf8'));
 const statusCatalog = JSON.parse(fs.readFileSync(path.join(root, 'status_effects.json'), 'utf8'));
 const statusEffectDefs = Object.fromEntries(statusCatalog.statusEffects.map((x) => [x.id, x]));
-const skillsById = Object.fromEntries(Object.values(skillCatalog.trees).flat().map((skill) => [skill.id, skill]));
+const skillsById = Object.fromEntries([...Object.values(skillCatalog.trees).flat(), ...(skillCatalog.legacySkills ?? [])].map((skill) => [skill.id, skill]));
 
 function rankedDefinition(id, rank = 1, storedEssenceRank = 0) {
   const original = skillsById[id];
@@ -141,7 +141,7 @@ function run() {
   assert(wispHit, 'Wisp Flow executes');
   assert.equal(wispHit.baseSpCost, 5);
   assert.equal(wispHit.spSpent, 5);
-  assert(wispHit.damage >= 99000 && wispHit.damage <= 101100, 'Wisp Flow damage uses MATK plus SP remaining after payment');
+  assert(wispHit.damage >= 59400 && wispHit.damage <= 60650, 'Light Wisp uses MATK + 25 × rank + floor(pre-cost SP / 5)');
 
   const fire = runActiveSkill('fire_blast', { atk: 100000, matk: 50000, monster: { hp: 140000 } });
   const fireHit = fire.result.log.events.find((e) => e.action === 'use_skill' && e.skillId === 'fire_blast');
@@ -198,8 +198,8 @@ function run() {
   const warHit = war.result.log.events.find((e) => e.action === 'use_skill' && e.skillId === 'war_cry');
   assert(warHit && warHit.target === 'character' && warHit.spSpent === 50, 'War Cry is self-targeted and costs 50 SP');
   assert.equal(war.skill.cooldownTicks, 30);
-  assert(war.result.log.events.some((e) => e.statusApplied === 'war_cry_def' && e.defBonus === 20), 'War Cry exposes the DEF buff');
-  assert(war.result.log.events.some((e) => e.action === 'status_applied' && e.status === 'war_cry_def' && e.durationTicks === 10), 'War Cry lasts 10 seconds');
+  assert(war.result.log.events.some((e) => e.statusApplied === 'war_cry_def' && e.defBonus === 10), 'War Cry exposes the DEF buff');
+  assert(war.result.log.events.some((e) => e.action === 'status_applied' && e.status === 'war_cry_def' && e.durationTicks === 15), 'War Cry lasts 10 seconds');
 
   const heal = runActiveSkill('light_of_heaven', { hp: 100, maxHp: 1000, matk: 0, monster: { hp: 100000 } });
   const healHit = heal.result.log.events.find((e) => e.action === 'use_skill' && e.skillId === 'light_of_heaven');

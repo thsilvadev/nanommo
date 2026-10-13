@@ -72,6 +72,8 @@ export interface CombatantSnapshot {
   defending?: boolean;
   element?: string | null;
   characterName?: string;
+  /** Distinguishes player-only rules such as Disarm from monster behavior. */
+  isPlayerCharacter?: boolean;
   combatStyle?: 'melee' | 'ranged';
   position?: number;
   basicAttackDamageType?: 'melee' | 'ranged' | 'magic';
@@ -222,7 +224,8 @@ export class GambitEvaluator {
 
     switch (id) {
       case 'attack':
-        return self.hp > 0 && self.maxHp > 0;
+        return self.hp > 0 && self.maxHp > 0
+          && !(self.isPlayerCharacter === true && (self.statusEffects ?? []).some((status: any) => ['disarm', 'disarmed'].includes(String(status.type ?? status.id ?? '').toLowerCase())));
 
       case 'use_skill': {
         const skillId = params.skillId;
@@ -402,9 +405,9 @@ export class BattleEngine {
     return {
       level,
       hp: Number(monsterDefinition?.hp ?? 1),
-      sp: 0,
+      sp: Number(monsterDefinition?.maxSp ?? (['Venom Viper', 'Wailing Wraith'].includes(String(monsterDefinition?.name ?? '')) ? 80 : 60)),
       maxHp: Number(monsterDefinition?.hp ?? 1),
-      maxSp: 0,
+      maxSp: Number(monsterDefinition?.maxSp ?? (['Venom Viper', 'Wailing Wraith'].includes(String(monsterDefinition?.name ?? '')) ? 80 : 60)),
       atk: Number(monsterDefinition?.atk ?? 1),
       matk: Number(monsterDefinition?.matk ?? 1),
       def: Number(monsterDefinition?.def ?? 0),
@@ -413,7 +416,7 @@ export class BattleEngine {
       evasion: Number(monsterDefinition?.evasion ?? 0),
       critChance: Number(monsterDefinition?.critChance ?? 1),
       hpRegenPerTenTicks: 0,
-      spRegenPerTenTicks: 0,
+      spRegenPerTenTicks: Number(monsterDefinition?.spRegenPerTenTicks ?? 2),
       agi: Number(monsterDefinition?.agi ?? 0),
       dex: Number(monsterDefinition?.dex ?? 0),
       statusEffects: [...(monsterDefinition?.statusEffects ?? [])],
@@ -550,6 +553,7 @@ export class BattleEngine {
 
     const self: CombatantSnapshot = {
       ...characterSnapshot,
+      isPlayerCharacter: true,
       hp: Math.min(
         characterSnapshot.hp,
         characterSnapshot.maxHp,
@@ -571,6 +575,7 @@ export class BattleEngine {
 
     const foe: CombatantSnapshot = {
       ...BattleEngine.buildMonsterSnapshot(monsterDefinition),
+      isPlayerCharacter: false,
       cooldowns: foeCooldowns,
       statusEffects: [...(monsterDefinition?.statusEffects ?? [])],
       // Monster skills are all available to the monster; its own gambit decides
@@ -603,6 +608,7 @@ export class BattleEngine {
     let castGauge = 0;
     let monsterAttackGauge = 0;
     let monsterCastGauge = 0;
+    let lastMonsterSkillId: string | null = null;
     let tick = 0;
 
     const selfCastThreshold = BattleEngine.castGaugeThreshold(self.dex);
@@ -664,7 +670,7 @@ export class BattleEngine {
       events.push({
         ...event,
         hpRemaining: { character: self.hp, monster: foe.hp },
-        spRemaining: { character: self.sp },
+        spRemaining: { character: self.sp, monster: foe.sp },
       });
     };
 
@@ -773,7 +779,8 @@ export class BattleEngine {
           sourceSkillId: status.sourceSkillId,
           target: unit === self ? 'character' : 'monster',
           damage,
-          damageType: 'status',
+          damageType: String(status.damageType ?? (statusIdOf(status) === 'bleed' ? 'pure' : 'status')),
+          ignoresDefense: status.damageType === 'pure' || statusIdOf(status) === 'bleed',
           hit: true,
         });
       }
@@ -805,6 +812,7 @@ export class BattleEngine {
           const common = {
             tick,
             actor,
+            target: unit === self ? 'character' : 'monster',
             status: statusId,
             sourceSkillId: status.sourceSkillId,
             moveSpeedPenalty: Number(status.moveSpeedPenalty ?? statusDef.moveSpeedPenaltyPerStack ?? statusDef.moveSpeedPenalty ?? 0),
@@ -831,6 +839,7 @@ export class BattleEngine {
       self.tick = tick;
       foe.tick = tick;
       BattleEngine.tickCooldowns(cooldowns);
+      const monsterCooldownsExpiring = new Set(Object.keys(foeCooldowns).filter((key) => Number(foeCooldowns[key]) === 1));
       BattleEngine.tickCooldowns(foeCooldowns);
 
       // ===== CHARACTER: ATTACK GAUGE =====
@@ -898,21 +907,31 @@ export class BattleEngine {
             });
 
             const swordsmanshipRank = Math.max(0, Number(self.skillDefs?.swordsmanship?.masteryRank ?? 0));
-            if (landed && swordsmanshipRank > 0 && countStatus(foe, 'bleed') < 5 && rng.chance(0.01 * swordsmanshipRank)) {
+            const bleedDefinition = statusEffectDefs.bleed ?? {};
+            const bleedMaxStacks = Math.max(1, Number(bleedDefinition.maxStacks ?? 5));
+            const bleedIntervalTicks = Math.max(1, Number(bleedDefinition.damageIntervalTicks ?? 5));
+            if (landed && swordsmanshipRank > 0 && countStatus(foe, 'bleed') < bleedMaxStacks && rng.chance(Number(bleedDefinition.procChancePerRank ?? 0.01) * swordsmanshipRank)) {
               applyStatus(
                 foe,
                 'bleed',
                 'swordsmanship',
                 undefined,
                 {
-                  damagePerTick: 5 * swordsmanshipRank,
-                  damageIntervalTicks: 5,
-                  nextDamageAtTick: tick + 5,
+                  damagePerTick: Number(bleedDefinition.damagePerStack ?? 5) * swordsmanshipRank,
+                  damageIntervalTicks: bleedIntervalTicks,
+                  damageType: String(bleedDefinition.damageType ?? 'pure'),
+                  nextDamageAtTick: tick + bleedIntervalTicks,
                 },
                 'character',
               );
             }
             tryBrutalityDisarm(damage);
+            const arcaneDynamoRank = Math.max(0, Number(self.skillDefs?.arcane_dynamo?.masteryRank ?? 0));
+            if (landed && arcaneDynamoRank > 0) {
+              const beforeRefund = self.sp;
+              self.sp = Math.min(self.maxSp, self.sp + 2 * arcaneDynamoRank);
+              if (self.sp > beforeRefund) record({ tick, actor: 'character', action: 'sp_refund', sourceSkillId: 'arcane_dynamo', target: 'character', spRestored: self.sp - beforeRefund });
+            }
 
             self.attackLockTicks = BattleEngine.BASIC_ATTACK_CAST_TICKS;
           }
@@ -1046,20 +1065,31 @@ export class BattleEngine {
               const effect = def.effect ?? {};
               const spCost = Math.max(0, Number(def.spCost ?? 0));
               const baseSpCost = Math.max(0, Number(def.baseSpCost ?? spCost));
+              const spBeforeSkillCost = self.sp;
               self.sp = Math.max(0, self.sp - spCost);
-              cooldowns['skill:' + skillId] = Number(def.cooldownTicks ?? 0);
+              cooldowns['skill:' + skillId] = Number(def.cooldownTicks ?? 0) + (Number(def.cooldownTicks ?? 0) > 0 ? 1 : 0);
               self.castLockTicks = Math.max(1, Number(def.baseCastTicks ?? 2));
 
               const effectType = String(effect.type ?? '');
+              const refundArcaneDynamo = () => {
+                const passiveRank = Math.max(0, Number(self.skillDefs?.arcane_dynamo?.masteryRank ?? 0));
+                if (passiveRank <= 0) return;
+                const beforeRefund = self.sp;
+                self.sp = Math.min(self.maxSp, self.sp + 2 * passiveRank);
+                if (self.sp > beforeRefund) record({ tick, actor: 'character', action: 'sp_refund', sourceSkillId: 'arcane_dynamo', target: 'character', spRestored: self.sp - beforeRefund });
+              };
               if (effectType === 'defense_buff') {
                 applyStatus(self, 'war_cry_def', skillId, Number(effect.durationTicks ?? 10), {
-                  defBonus: Number(effect.defBonus ?? 20),
+                  defBonus: Number(effect.defBonusPerRank ?? 10) * rank,
                 }, 'character');
                 record({
                   tick, actor: 'character', action: 'use_skill', skillId, target: 'character',
                   damage: 0, hit: true, crit: false, spSpent: spCost, baseSpCost,
-                  statusApplied: 'war_cry_def', defBonus: Number(effect.defBonus ?? 20),
+                  statusApplied: 'war_cry_def', defBonus: Number(effect.defBonusPerRank ?? 10) * rank,
                 });
+              } else if (effectType === 'arcane_dynamo_passive') {
+                // Passive only; it does not itself create an action or consume SP.
+                record({ tick, actor: 'character', action: 'use_skill', skillId, target: 'character', damage: 0, hit: true, spSpent: spCost, baseSpCost });
               } else if (effectType === 'self_heal') {
                 const heal = Math.max(0, Number(effect.flatPerRank ?? 50) * rank
                   + Math.floor(self.maxHp * Math.floor(Number(self.matk ?? 0) / Math.max(1, Number(effect.matkScaleDenominator ?? 20))) / 100));
@@ -1111,6 +1141,8 @@ export class BattleEngine {
                   raw = Number(self.matk ?? 0) + Number(effect.flatPerRank ?? 0) * rank;
                 } else if (effectType === 'magic_damage_remaining_sp') {
                   raw = Number(self.matk ?? 0) + Number(self.sp ?? 0);
+                } else if (effectType === 'magic_damage_light_wisp') {
+                  raw = Number(self.matk ?? 0) + 25 * rank + Math.floor(spBeforeSkillCost / 5);
                 } else if (effectType === 'blinkstrike') {
                   raw = Number(self.atk ?? 0);
                 }
@@ -1170,6 +1202,7 @@ export class BattleEngine {
                   }
                 }
               }
+              refundArcaneDynamo();
             } else if (action.id === 'defend') {
               self.defending = true;
               self.castLockTicks = 1;
@@ -1261,10 +1294,14 @@ export class BattleEngine {
       const monsterCastThreshold = pendingMonsterCastChoice?.action?.id === 'use_skill' && pendingMonsterSkillDef.ranged === true
         ? Math.max(1, Math.floor(Number(pendingMonsterSkillDef.baseCastTicks ?? BattleEngine.MONSTER_CAST_GAUGE)))
         : BattleEngine.MONSTER_CAST_GAUGE;
-      // Tick 0 is the initial battle instant, not one elapsed second. Start
-      // accruing monster cast time at tick 1 so a two-tick skill first lands at T2,
-      // then repeats every two ticks when its cooldown is zero.
-      if (tick > 0) monsterCastGauge += 1;
+      // Cooldown is sequential with cast time: ticks while the last skill is
+      // blocked, including the tick on which its cooldown reaches zero, do not
+      // charge the next cast. For a 2-tick cast / 1-tick cooldown this yields
+      // resolutions at T2, T6, T10... rather than T2, T4, T6...
+      const lastMonsterCooldownKey = lastMonsterSkillId ? `skill:${lastMonsterSkillId}` : '';
+      const lastMonsterSkillCooling = !!lastMonsterCooldownKey && Number(foeCooldowns[lastMonsterCooldownKey] ?? 0) > 0;
+      const cooldownEndedThisTick = !!lastMonsterCooldownKey && monsterCooldownsExpiring.has(lastMonsterCooldownKey);
+      if (tick > 0 && !lastMonsterSkillCooling && !cooldownEndedThisTick) monsterCastGauge += 1;
       if (monsterCastGauge >= monsterCastThreshold) {
         monsterCastGauge = 0;
         const choice = pendingMonsterCastChoice;
@@ -1281,10 +1318,13 @@ export class BattleEngine {
         }
         if (choice && choice.action.id === 'use_skill' && !monsterSkillOutOfRange) {
           const skillId = choice.action.skillId ?? choice.action.params?.skillId;
-          const def: any = monsterSkillDefs[skillId] ?? {};
+          lastMonsterSkillId = String(skillId);
+          const def: any = monsterSkillDefs[skillId] ?? {}
           foe.movementIntent = false;
           foe.movementIntentRange = undefined;
-          foeCooldowns[`skill:${skillId}`] = Number(def.cooldownTicks ?? 0);
+          foeCooldowns[`skill:${skillId}`] = Number(def.cooldownTicks ?? 0) + (Number(def.cooldownTicks ?? 0) > 0 ? 1 : 0);
+          const spCost = Math.max(0, Number(def.spCost ?? 0));
+          foe.sp = Math.max(0, foe.sp - spCost);
           const effect = def.effect ?? {};
           const healAmount = Number(
             effect.healAmount ?? (effect.healPercentMaxHp ? foe.maxHp * Number(effect.healPercentMaxHp) : 0),
@@ -1411,6 +1451,11 @@ export class BattleEngine {
       }
       // A combatant at 0 HP is out of the fight: regen must not resurrect it
       // (otherwise a lethal hit is undone by the same tick's housekeeping).
+      if (foe.hp > 0 && (tick + 1) % 10 === 0) {
+        const beforeMonsterSpRegen = foe.sp;
+        foe.sp = Math.min(foe.maxSp, foe.sp + Number(foe.spRegenPerTenTicks ?? 2));
+        if (foe.sp > beforeMonsterSpRegen) record({ tick, actor: 'monster', action: 'sp_regen', target: 'monster', resource: 'SP', amount: foe.sp - beforeMonsterSpRegen });
+      }
       if (self.hp > 0 && (regenTickOffset + tick + 1) % 10 === 0) {
         const foodHpRegen = (self.foodBuffTicksRemaining ?? 0) > 0 ? Number(self.foodBuffHpRegenPerTenTicks ?? 0) : 0;
         const foodSpRegen = (self.foodBuffTicksRemaining ?? 0) > 0 ? Number(self.foodBuffSpRegenPerTenTicks ?? 0) : 0;
@@ -1442,10 +1487,10 @@ export class BattleEngine {
         unit.moveSpeed = Math.max(0, baseSpeed - statusPenalty);
       }
       for (const [unit, target, actor] of [[self, foe, 'character'], [foe, self, 'monster']] as Array<[CombatantSnapshot, CombatantSnapshot, string]>) {
+        if (tick > 0) unit.movementGauge = Number(unit.movementGauge ?? 0) + Number(unit.moveSpeed ?? 0);
         if (!unit.movementIntent || target.hp <= 0 || hasStatus(unit, 'stun')) { unit.movementIntent = false; continue; }
         const range = Number(unit.movementIntentRange ?? unit.basicAttackRange ?? 0);
         if (distanceBetween() <= range) { unit.movementIntent = false; unit.movementIntentRange = undefined; continue; }
-        unit.movementGauge = Number(unit.movementGauge ?? 0) + Number(unit.moveSpeed ?? 0);
         if (Number(unit.movementGauge) >= 100) {
           unit.movementGauge = Number(unit.movementGauge) - 100;
           const fromPosition = Number(unit.position ?? 0);
