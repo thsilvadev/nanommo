@@ -145,9 +145,9 @@
         }
       ],
       "moveSpeedBase": 62,
-      "combatStyle": "ranged",
-      "basicAttackDamageType": "ranged",
-      "basicAttackRange": 6
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0
     },
     {
       "id": "mon_thornsprout",
