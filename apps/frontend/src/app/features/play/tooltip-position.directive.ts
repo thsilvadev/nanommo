@@ -1,7 +1,7 @@
 import { Directive, ElementRef, OnDestroy } from '@angular/core';
 
 @Directive({
-  selector: '.item-tooltip:not(.diet-tooltip):not(.status-tooltip), .diet-slot, .status-effect-icon',
+  selector: '.item-tooltip:not(.diet-tooltip):not(.status-tooltip), .diet-slot, .status-icon',
   standalone: true,
 })
 export class TooltipPositionDirective implements OnDestroy {
@@ -47,8 +47,8 @@ export class TooltipPositionDirective implements OnDestroy {
 
   constructor(element: ElementRef<HTMLElement>) {
     this.host = element.nativeElement;
-    this.anchor = this.host.classList.contains('diet-slot') || this.host.classList.contains('status-effect-icon')
-      ? this.host 
+    this.anchor = this.host.classList.contains('diet-slot') || this.host.classList.contains('status-icon')
+      ? this.host
       : this.host.parentElement as HTMLElement;
     if (!this.anchor) return;
     this.anchor.addEventListener('pointerenter', this.onEnter);
@@ -65,8 +65,8 @@ export class TooltipPositionDirective implements OnDestroy {
     let tooltip: HTMLElement | null = null;
     if (this.host.classList.contains('diet-slot')) {
       tooltip = this.host.querySelector('.diet-tooltip') as HTMLElement;
-    } else if (this.host.classList.contains('status-effect-icon')) {
-      tooltip = this.host.querySelector('.item-tooltip') as HTMLElement;
+    } else if (this.host.classList.contains('status-icon')) {
+      tooltip = this.host.querySelector('.status-tooltip') as HTMLElement;
     } else {
       tooltip = this.host;
     }

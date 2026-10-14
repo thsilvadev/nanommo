@@ -60,7 +60,7 @@
       <div *ngFor="let status of activeStatusEffects('character')" class="status-effect-icon" tabindex="0" [attr.aria-label]="status.name + ' status'">
         <img [src]="'/assets/ui/status/' + status.id + '.svg'" [alt]="status.name">
         <span class="freeze-count">{{status.stacks}}</span>
-        <div class="item-tooltip status-tooltip"><strong>{{status.name}}</strong><span>Stacks: {{status.stacks}} / {{status.maxStacks}}</span><span>Remaining: {{formatDuration(status.remaining)}}</span><span *ngIf="status.movePenalty">Move Speed penalty: -{{status.movePenalty * status.stacks}}</span><span *ngIf="status.attackPenalty">Attack Speed penalty: -{{status.attackPenalty * status.stacks}}</span></div>
+        <div class="status-tooltip"><strong>{{status.name}}</strong><span>Stacks: {{status.stacks}} / {{status.maxStacks}}</span><span>Remaining: {{formatDuration(status.remaining)}}</span><span *ngIf="status.movePenalty">Move Speed penalty: -{{status.movePenalty * status.stacks}}</span><span *ngIf="status.attackPenalty">Attack Speed penalty: -{{status.attackPenalty * status.stacks}}</span></div>
       </div>
     </div>
   </div>

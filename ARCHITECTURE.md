@@ -591,3 +591,10 @@ Approach intent is a movement decision, not an action resolution. The engine ref
 ## Live status presentation and SP event copy — 2026-10-14
 
 The Grind panel owns live presentation for in-progress combat events. Monster `sp_regen` is displayed as `{monsterName} regenerates {amount} SP.` in that live feed only; the Battle History formatter remains unchanged. Monster icons are derived from the immutable initial snapshot plus `target: 'monster'` timeline events evaluated against the display clock. Keep `item-tooltip` off the icon wrapper because the global CSS hides that class's element; tooltip content belongs in a child node. For Character status tooltips, only the `.status-effect-icon` anchor should own `TooltipPositionDirective`; excluding nested `.status-tooltip` nodes from the directive selector avoids duplicate handlers fighting over the same floating overlay. The UI remains a read-only projection of battle log/timestamps, not a second combat state authority.
+
+
+## Status-event ownership, no-expiry effects and tooltip ownership — 2026-10-14
+
+When a monster skill applies a status to the player, immutable log data uses `actor: 'monster'`, `target: 'character'`. Presentation must not confuse the source with the status owner. Status effects with no `expiresAtTick` and no positive `durationTicks` are untimed effects; the live timeline must keep them active until explicit removal or battle end, rather than deriving a fake expiry at the application tick. This applies to Bleed (`statusDurationTicks: 0`).
+
+Character status tooltip markup must omit `.item-tooltip` when using direct hover/focus CSS, because that global class is forcibly hidden. For the scrollable Grind panel, use `TooltipPositionDirective` on `.status-icon` and clone its child `.status-tooltip` into the document overlay; do not attach the same directive to the nested tooltip content. This produces one lifecycle owner and avoids both clipping and competing hide/show handlers.

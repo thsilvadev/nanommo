@@ -347,7 +347,8 @@ function run() {
     { weaponBaseAttackTicks: 6, monsterSkillDefs: { ...monsterSkillDefs, [slowSkill.id]: slowSkill }, statusEffectDefs },
   );
   const slowApplied = slowResult.log.events.find((event) => event.action === 'status_applied' && event.status === 'slow');
-  assert(slowApplied && slowApplied.actor === 'character', 'Slow remains a status effect applied to the player');
+  assert(slowApplied && slowApplied.actor === 'monster', 'the monster is the source when it applies a status to the player');
+  assert.equal(slowApplied.target, 'character', 'the status belongs to the player when cast by the monster');
   assert.equal(slowApplied.durationTicks, 20);
   assert(slowResult.log.events.some((event) => event.action === 'status_ended' && event.status === 'slow' && event.tick === 21), 'Slow expires 20 ticks after its first application at T1');
   assert(!slowResult.log.events.some((event) => event.action === 'status_expired'), 'new logs do not emit generic status_expired events');

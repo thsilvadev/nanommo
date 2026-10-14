@@ -1495,7 +1495,7 @@ export class BattleEngine {
                     : 'status_applied';
                   record({
                     tick,
-                    actor: 'character',
+                    actor: 'monster',
                     action,
                     status: statusId,
                     target: 'character',

@@ -257,7 +257,7 @@ function run() {
   }
   assert(doubleStrike, 'Double Strike creates two same-tick components in one action event');
 
-  let bleedApplied = false;
+  let bleedApplied = null;
   for (let i = 0; i < 100 && !bleedApplied; i++) {
     const skill = rankedDefinition('swordsmanship', 5);
     const snapshot = character({
@@ -265,9 +265,11 @@ function run() {
       skills: {}, skillDefs: { swordsmanship: skill },
     });
     const attempt = simulate(snapshot, monster({ hp: 100000 }), page(null), 'bleed-' + i);
-    bleedApplied = attempt.log.events.some((e) => e.action === 'status_stack_applied' && e.status === 'bleed');
+    bleedApplied = attempt.log.events.find((e) => e.action === 'status_stack_applied' && e.status === 'bleed') ?? null;
   }
   assert(bleedApplied, 'Swordsmanship deterministically applies a Bleed stack across seeded cases');
+  assert.equal(bleedApplied.durationTicks, undefined, 'Bleed has no timed expiry; the live status icon must remain active until explicitly removed');
+  assert.equal(bleedApplied.expiresAtTick, undefined, 'an indefinite Bleed application does not invent an expiry tick');
 
   let cappedBleed = null;
   const existingBleedStacks = Array.from({ length: 4 }, (_, i) => ({
