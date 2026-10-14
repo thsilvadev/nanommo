@@ -68,6 +68,7 @@ export class CharacterSummary implements OnDestroy {
       return { id, name:String(def.name ?? id.replace(/_/g,' ')), stacks:stacks.length, maxStacks:Number(def.maxStacks ?? 1), durations, remaining:Math.max(0,...durations), movePenalty, attackPenalty, tooltip:`${String(def.name ?? id)} · ${stacks.length}/${Number(def.maxStacks ?? 1)} stacks · ${Math.max(0,...durations)}s remaining${movePenalty ? ` · Move Speed -${movePenalty * stacks.length}` : ''}${attackPenalty ? ` · Attack Speed -${attackPenalty * stacks.length}` : ''}` };
     }).filter(status => status.stacks > 0 && status.remaining > 0);
   }
+  trackStatusEffect(_index: number, status: { id: string }) { return status.id; }
   freezeStatus() { return this.activeStatusEffects('character').find(status => status.id === 'freeze') ?? null; }
 
   itemName(slot: string) { const e = this.equipped(slot); return e ? (this.catalog.item(e.itemId)?.name ?? e.itemId) : '' }
@@ -317,6 +318,7 @@ export class GrindInfo implements OnDestroy {
       return {id,type:id,stacks:stacks.length,expiresAtTick,expiryLabel,maxStacks:Number(def.maxStacks??1),remaining,name:String(def.name??id.replace(/_/g,' ')),tooltip:`${String(def.name??id)} · ${stacks.length}/${Number(def.maxStacks??1)} stacks · ${remainingLabel}`};
     }).filter(x=>x.stacks>0&&x.remaining>0);
   }
+  trackMonsterStatusEffect(_index: number, effect: { id: string }) { return effect.id; }
   monsterSp(entry:any){return Number(this.lastEvent(entry)?.spRemaining?.monster??this.monsterSnapshot(entry).sp??0)}
   monsterMaxSp(entry:any){return Number(this.monsterSnapshot(entry).maxSp??0)}
   monsterSkills(entry:any){const m:any=this.monster(entry.monsterId);const ids=new Set<string>();for(const line of m?.gambit??[]){const a=line?.action??{};const id=String(a.skillId??a.params?.skillId??'');if((a.type==='use_skill'||a.id==='use_skill')&&id)ids.add(id)}return [...ids].map(id=>this.catalog.skills().find((s:any)=>s.id===id)).filter(Boolean)}
