@@ -1,7 +1,7 @@
 import { Directive, ElementRef, OnDestroy } from '@angular/core';
 
 @Directive({
-  selector: '.item-tooltip:not(.diet-tooltip), .diet-slot',
+  selector: '.item-tooltip:not(.diet-tooltip), .diet-slot, .status-effect-icon',
   standalone: true,
 })
 export class TooltipPositionDirective implements OnDestroy {
@@ -60,13 +60,18 @@ export class TooltipPositionDirective implements OnDestroy {
 
   private show() {
     if (!this.enabled) return;
-    const tooltip = this.host.classList.contains('diet-slot')
-      ? this.host.querySelector('.diet-tooltip') as HTMLElement
-      : this.host;
+    let tooltip: HTMLElement | null = null;
+    if (this.host.classList.contains('diet-slot')) {
+      tooltip = this.host.querySelector('.diet-tooltip') as HTMLElement;
+    } else if (this.host.classList.contains('status-effect-icon')) {
+      tooltip = this.host.querySelector('.item-tooltip') as HTMLElement;
+    } else {
+      tooltip = this.host;
+    }
     if (!tooltip) return;
     if (!this.floating) {
       this.floating = tooltip.cloneNode(true) as HTMLElement;
-      this.floating.classList.remove('item-tooltip');
+      this.floating.classList.remove('item-tooltip', 'status-tooltip');
       this.floating.classList.add('nm-floating-tooltip');
       this.floating.removeAttribute('style');
       document.body.appendChild(this.floating);
@@ -77,7 +82,7 @@ export class TooltipPositionDirective implements OnDestroy {
     if (!this.liveContentTimer) {
       this.liveContentTimer = setInterval(() => {
         if (!this.floating || this.floating.style.display === 'none') return;
-        this.floating.innerHTML = tooltip.innerHTML;
+        this.floating.innerHTML = tooltip?.innerHTML || '';
         this.position();
       }, 250);
     }

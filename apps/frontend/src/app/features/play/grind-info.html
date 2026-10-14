@@ -27,7 +27,7 @@
 
         <div class="monster-status">
           <div class="section-label">STATUS EFFECTS</div>
-          <div class="status-icons"><div *ngFor="let effect of monsterStatusEffects(b)" class="status-effect status-icon" tabindex="0" [attr.data-tooltip]="effect.tooltip"><img [src]="'/assets/ui/status/' + effect.id + '.svg'" [alt]="effect.name"><b>{{effect.stacks}}</b><span class="status-tooltip"><strong>{{effect.name}}</strong><small>{{effect.tooltip}}</small><small>Expires at T{{effect.expiresAtTick}}</small></span></div></div>
+          <div class="status-icons"><div *ngFor="let effect of monsterStatusEffects(b)" class="status-effect status-icon item-tooltip" tabindex="0"><img [src]="'/assets/ui/status/' + effect.id + '.svg'" [alt]="effect.name"><b>{{effect.stacks}}</b><span class="status-tooltip"><strong>{{effect.name}}</strong><small>{{effect.tooltip}}</small><small>Expires at T{{effect.expiresAtTick}}</small></span></div></div>
         </div>
 
         <div class="monster-stats">
