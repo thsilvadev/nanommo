@@ -1,5 +1,18 @@
 # NanoMMO — Implementation Status
 
+### Handoff — `diet-unique-food-streak-rotation` OpenSpec proposal (2026-10-14)
+
+**Implementation session — shared transition and legacy repair implemented; verification in progress.**
+
+The Diet defect was structural, not merely visual. `buildDietStateAfterFoodConsumption()` previously appended repeats without deduplication. It now normalizes unique retained IDs, computes a retained food's next level before eviction, advances a full window by evicting its oldest entry, and preserves digestion lockouts separately from streak levels. Auto Feed re-normalizes each pass and checks `dietLevels.lastDigestUntil`; battle-resolution reconciliation uses the same transition helper. A one-time `1797000000000-DietUniqueFoodStreakRotation` migration repairs existing duplicate JSON without changing Inventory quantities. `BattleService.applyResolvedFoodState()` uses the same helper, while projected queue state and the frontend depend on the resulting Diet/dietLevels values.
+
+The existing documentation also conflicts: the original `diet-auto-feed` design describes permanent per-food levels; `diet-autofeed-streak-fixes` defines retained-window streaks but still appends duplicates; the canonical food section described levels as permanent. Root `SPEC.md` and `openspec/specs/SPEC.md` now agree on the new target contract, and the older streak-fixes proposal is explicitly marked superseded for the repeat/slot semantics.
+
+Approved target semantics: at most three unique food IDs, oldest left/newest right; consuming a retained food moves it to the right and increments its level up to 3; a full Diet drops its oldest entry on every successful meal, even if the selected food is the newest entry; a food that is absent when consumed starts at level 0. An evicted food loses its streak but must retain any still-future `lastDigestUntil`, so evicting it cannot bypass digestion. Legacy duplicates need deterministic normalization preserving the highest retained level and safe latest digestion boundary, without consuming Inventory.
+
+OpenSpec artifacts: `openspec/changes/diet-unique-food-streak-rotation/`. API build and focused diet regression passed after the transition changes; expanded rotation/legacy normalization assertions are included in `apps/api/test/diet-autofeed-streak-fixes.spec.js`. Verification completed: `pnpm --filter @nanommo/api build`, `node apps/api/test/diet-autofeed-streak-fixes.spec.js`, `pnpm exec openspec validate diet-unique-food-streak-rotation --strict`, `git diff --check`, `pnpm --filter @nanommo/shared build`, and `pnpm --filter @nanommo/frontend build --configuration production` all passed. Frontend emitted existing CSS-budget/CommonJS warnings only. Migration has been added but not executed against any database. No production deployment.
+
+
 ### Handoff — `refining-hand-equipment-mastery-skills` discovery (2026-10-13)
 
 ### Finalized user decisions — proposal must use these (2026-10-13)
@@ -1226,7 +1239,7 @@ This intentionally duplicates a small amount of realtime payload data. The dupli
 
 - Created OpenSpec change `diet-auto-feed` with proposal, design, spec and implementation tasks. Strict OpenSpec validation passes.
 - Character now persists `diet` (up to three ordered food entries), `dietLevels` (per-food level + last digestion boundary) and authoritative `autoFeed`.
-- Food consumption is centralized on a transactional backend path with Character/Inventory row locks. It shifts the three Diet slots, prevents repeating a food while its prior digestion is active, and increases permanent Diet stars only after completed digestion, capped at ★★★.
+- Food consumption is centralized on a transactional backend path with Character/Inventory row locks. The original version shifted the three Diet slots, prevented repeating a food while its prior digestion was active, and described stars as permanent per-food levels capped at ★★★. **Historical wording/semantics superseded on 2026-10-14 by `diet-unique-food-streak-rotation`; implementation of the clarified unique-slot streak behavior is still pending.**
 - The shared battle engine now carries tick-based per-food digestion state, so generic `use_item` food actions cannot consume the same food twice while it is still digesting inside the pre-simulated queue.
 - Auto Feed is evaluated server-side during battle resolution before a future encounter would cross the food-expiry boundary. When an eligible Diet food exists in Inventory, it is consumed and the unresolved queue is rebuilt from the new authoritative state. No frontend timer/polling decides gameplay continuity.
 - Manual food use remains the existing generic consumable action; frontend refreshes authoritative Character + Inventory after manual use.

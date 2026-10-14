@@ -48,3 +48,8 @@ No client timer changes gameplay state. Existing boundary refresh behavior may r
 Existing characters with an old permanent dietLevels map are normalized against their current diet entries. Levels for foods absent from the three retained slots are discarded on the next authoritative food-state mutation.
 
 No inventory schema change is required.
+
+
+## Superseded repeat-slot semantics — 2026-10-14
+
+This design's append-on-repeat step and duplicate-entry assumption are superseded by `diet-unique-food-streak-rotation`. Keep this file as a historical record of the prior implementation; do not use its repeat transition as the current contract. The current contract de-duplicates the selected food, moves it to the newest slot, and evicts the oldest slot on every consumption when Diet was full at transition start.

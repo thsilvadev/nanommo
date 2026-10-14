@@ -6,32 +6,70 @@ import { Character } from '../../database/entities/character.entity';
 import { DataService } from '../data/data.service';
 import { effectiveFoodStatValue } from '@nanommo/shared';
 
+export type DietEntry = { itemId: string; consumedAt: string; digestUntil: string; dietLevel: number };
+export type DietLevelState = Record<string, { level: number; lastDigestUntil: string }>;
+
+/** Canonicalize legacy duplicate entries without changing inventory or digestion eligibility. */
+export function normalizeDietState(
+  currentDiet: DietEntry[] | null | undefined,
+  currentLevels: DietLevelState | null | undefined = {},
+): { diet: DietEntry[]; dietLevels: DietLevelState } {
+  const levels = currentLevels ?? {};
+  const source = Array.isArray(currentDiet) ? currentDiet : [];
+  const byId = new Map<string, DietEntry>();
+  for (const raw of source) {
+    if (!raw?.itemId) continue;
+    const old = byId.get(raw.itemId);
+    const oldTime = old ? Date.parse(old.consumedAt) || 0 : -1;
+    const newTime = Date.parse(raw.consumedAt) || 0;
+    const maxLevel = Math.max(0, Math.min(3, Number(raw.dietLevel ?? 0)), old?.dietLevel ?? 0);
+    const latestDigest = [raw.digestUntil, old?.digestUntil].filter(Boolean).sort((a, b) => (Date.parse(b) || 0) - (Date.parse(a) || 0))[0] ?? raw.digestUntil;
+    if (!old || newTime >= oldTime) byId.set(raw.itemId, { ...raw, digestUntil: latestDigest, dietLevel: maxLevel });
+    else { old.dietLevel = maxLevel; old.digestUntil = latestDigest; }
+  }
+  const diet = [...byId.values()].sort((a, b) => (Date.parse(a.consumedAt) || 0) - (Date.parse(b.consumedAt) || 0)).slice(-3);
+  const retained = new Set(diet.map((entry) => entry.itemId));
+  const dietLevels: DietLevelState = {};
+  for (const [id, state] of Object.entries(levels)) {
+    const digest = state?.lastDigestUntil;
+    if (digest) dietLevels[id] = { level: retained.has(id) ? Math.max(0, Math.min(3, Number(state.level ?? 0))) : 0, lastDigestUntil: digest };
+  }
+  for (const entry of diet) {
+    const prior = dietLevels[entry.itemId];
+    const digest = [entry.digestUntil, prior?.lastDigestUntil].filter(Boolean).sort((a,b) => (Date.parse(b)||0)-(Date.parse(a)||0))[0] ?? entry.digestUntil;
+    entry.digestUntil = digest;
+    entry.dietLevel = Math.max(0, Math.min(3, Number(entry.dietLevel ?? 0), 3), Number(prior?.level ?? 0));
+    dietLevels[entry.itemId] = { level: entry.dietLevel, lastDigestUntil: digest };
+  }
+  return { diet, dietLevels };
+}
+
 export function buildDietStateAfterFoodConsumption(
-  currentDiet: Array<{ itemId: string; consumedAt: string; digestUntil: string; dietLevel: number }>,
-  itemId: string,
-  consumedAt: string,
-  digestUntil: string,
-): {
-  diet: Array<{ itemId: string; consumedAt: string; digestUntil: string; dietLevel: number }>;
-  dietLevels: Record<string, { level: number; lastDigestUntil: string }>;
-  nextLevel: number;
-} {
-  const diet = Array.isArray(currentDiet) ? currentDiet.slice() : [];
-  const previousEntry = [...diet].reverse().find((entry) => entry.itemId === itemId);
-  const nextLevel = previousEntry
-    ? Math.min(3, Math.max(0, Number(previousEntry.dietLevel ?? 0)) + 1)
-    : 0;
-  const nextDiet = [...diet.slice(-2), { itemId, consumedAt, digestUntil, dietLevel: nextLevel }];
-  return {
-    diet: nextDiet,
-    dietLevels: Object.fromEntries(
-      nextDiet.map((entry) => [
-        entry.itemId,
-        { level: Math.max(0, Math.min(3, Number(entry.dietLevel ?? 0))), lastDigestUntil: entry.digestUntil },
-      ]),
-    ),
-    nextLevel,
-  };
+  currentDiet: DietEntry[], itemId: string, consumedAt: string, digestUntil: string,
+  currentLevels: DietLevelState = {},
+): { diet: DietEntry[]; dietLevels: DietLevelState; nextLevel: number } {
+  const normalized = normalizeDietState(currentDiet, currentLevels);
+  const retainedEntry = normalized.diet.find((entry) => entry.itemId === itemId);
+  const nextLevel = retainedEntry ? Math.min(3, Math.max(0, Number(retainedEntry.dietLevel ?? 0)) + 1) : 0;
+  let entries = normalized.diet.slice();
+  if (entries.length === 3) {
+    const evicted = entries.shift()!;
+    if (evicted.itemId !== itemId) normalized.dietLevels[evicted.itemId] = {
+      level: 0,
+      ...(normalized.dietLevels[evicted.itemId]?.lastDigestUntil ? { lastDigestUntil: normalized.dietLevels[evicted.itemId].lastDigestUntil } : { lastDigestUntil: evicted.digestUntil }),
+    };
+  }
+  entries = entries.filter((entry) => entry.itemId !== itemId);
+  entries.push({ itemId, consumedAt, digestUntil, dietLevel: nextLevel });
+  const next = normalizeDietState(entries, {
+    ...normalized.dietLevels,
+    [itemId]: { level: nextLevel, lastDigestUntil: digestUntil },
+  });
+  // Consumption is authoritative for this item's digestion boundary.
+  next.dietLevels[itemId] = { level: nextLevel, lastDigestUntil: digestUntil };
+  const selected = next.diet.find((entry) => entry.itemId === itemId);
+  if (selected) selected.digestUntil = digestUntil;
+  return { ...next, nextLevel };
 }
 
 @Injectable()
@@ -485,14 +523,16 @@ export class InventoryService {
       }
 
       const now = Date.now();
-      const diet = Array.isArray(character.diet) ? character.diet.slice() : [];
-      const previousEntry = [...diet].reverse().find((entry) => entry.itemId === itemId);
-      const previousDigestUntil = previousEntry?.digestUntil ? Date.parse(previousEntry.digestUntil) : 0;
+      const normalizedDiet = normalizeDietState(character.diet, character.dietLevels);
+      const diet = normalizedDiet.diet;
+      character.diet = normalizedDiet.diet;
+      character.dietLevels = normalizedDiet.dietLevels;
+      const previousDigestUntil = Date.parse(character.dietLevels?.[itemId]?.lastDigestUntil ?? '') || 0;
       if (previousDigestUntil > now) throw new BadRequestException('Food is still digesting');
 
       const consumedAt = new Date(now).toISOString();
       const digestUntil = new Date(now + Number(item.effect?.durationSeconds ?? 0) * 1000).toISOString();
-      const dietState = buildDietStateAfterFoodConsumption(diet, itemId, consumedAt, digestUntil);
+      const dietState = buildDietStateAfterFoodConsumption(diet, itemId, consumedAt, digestUntil, character.dietLevels);
 
       if (stack) {
         stack.quantity -= 1;

@@ -23,7 +23,7 @@ import {
 import { effectiveFoodStatValue, TOWN_MAP_ID } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 import { CharacterService } from '../character/character.service';
-import { InventoryService, buildDietStateAfterFoodConsumption } from '../inventory/inventory.service';
+import { InventoryService, buildDietStateAfterFoodConsumption, normalizeDietState } from '../inventory/inventory.service';
 import { EquipmentService } from '../equipment/equipment.service';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
@@ -1151,21 +1151,20 @@ export class BattleService {
     // Diet on every pass. This naturally preserves FIFO rotation and the rule that
     // the same food cannot be consumed again while it is still digesting.
     for (let pass = 0; pass < 3; pass++) {
-      const diet = Array.isArray(character.diet) ? character.diet : [];
+      const normalized = normalizeDietState(character.diet, character.dietLevels);
+      character.diet = normalized.diet;
+      character.dietLevels = normalized.dietLevels;
+      const diet = normalized.diet;
       let consumedThisPass = false;
 
       for (const entry of diet) {
         const itemId = entry?.itemId;
         if (!itemId) continue;
-        // Repeated foods intentionally occupy multiple Diet slots. Eligibility
-        // follows the latest retained occurrence, exactly as consumeFood() does.
-        const latestEntry = [...diet].reverse().find((candidate) => candidate?.itemId === itemId);
-        if (entry !== latestEntry) continue;
 
         const definition = this.dataService.getItemById(itemId);
         if (definition?.type !== 'food' || definition.effect?.type !== 'food_buff') continue;
 
-        const digestUntil = entry?.digestUntil ? Date.parse(entry.digestUntil) : 0;
+        const digestUntil = Date.parse(character.dietLevels?.[itemId]?.lastDigestUntil ?? entry?.digestUntil ?? '') || 0;
         if (digestUntil > now) continue;
 
         if ((await this.inventoryService.getItemCount(character.id, itemId, manager)) <= 0) continue;
@@ -1193,8 +1192,9 @@ export class BattleService {
 
   private applyResolvedFoodState(character: Character, battle: BattleQueueEntry): void {
     const events = Array.isArray(battle.log?.events) ? battle.log.events : [];
-    let diet = Array.isArray(character.diet) ? character.diet.slice() : [];
-    const dietLevels = character.dietLevels ?? {};
+    const normalizedDiet = normalizeDietState(character.diet, character.dietLevels);
+    let diet = normalizedDiet.diet;
+    let dietLevels = normalizedDiet.dietLevels;
     let lastFoodUse: { event: any; def: any; dietLevel: number } | null = null;
 
     for (const event of events) {
@@ -1204,27 +1204,23 @@ export class BattleService {
 
       const usedAt = new Date(battle.startAt).getTime() + Number(event.tick ?? 0) * MS_PER_TICK;
       const digestUntil = new Date(usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_TICK).toISOString();
-      const previousEntry = [...diet].reverse().find((entry) => entry.itemId === event.itemId);
-      const previousDigestUntil = previousEntry?.digestUntil ? Date.parse(previousEntry.digestUntil) : 0;
-      if (previousEntry && previousDigestUntil > usedAt) continue;
+      const previousDigestUntil = Date.parse(dietLevels[event.itemId]?.lastDigestUntil ?? '') || 0;
+      if (previousDigestUntil > usedAt) continue;
 
       const dietState = buildDietStateAfterFoodConsumption(
         diet,
         event.itemId,
         new Date(usedAt).toISOString(),
         digestUntil,
+        dietLevels,
       );
       diet = dietState.diet;
+      dietLevels = dietState.dietLevels;
       lastFoodUse = { event, def, dietLevel: dietState.nextLevel };
     }
 
     character.diet = diet;
-    character.dietLevels = Object.fromEntries(
-      diet.map((entry) => [
-        entry.itemId,
-        { level: Math.max(0, Math.min(3, Number(entry.dietLevel ?? 0))), lastDigestUntil: entry.digestUntil },
-      ]),
-    );
+    character.dietLevels = dietLevels;
 
     if (lastFoodUse) {
       const usedAt = new Date(battle.startAt).getTime() + Number(lastFoodUse.event.tick ?? 0) * MS_PER_TICK;

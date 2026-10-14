@@ -243,6 +243,11 @@ for each tick:
 
 Diet mastery is part of the authoritative food-buff calculation. The shared `effectiveFoodStatValue(catalogValue, dietLevel)` helper is the single formula used when food is consumed manually or by Auto Feed, when the deterministic battle engine resolves `use_item`, when battle resolution reconstructs `activeFoodBuff`, and when the frontend renders the Diet tooltip. The engine receives persisted per-food Diet levels in its combat snapshot; item definitions remain raw catalog data so levels are not baked into shared definitions.
 
+### Diet unique-window and streak ownership — `diet-unique-food-streak-rotation` (2026-10-14)
+
+The OpenSpec change `diet-unique-food-streak-rotation` defines `Character.diet` as a three-entry, unique-`itemId` recency window. A repeated food is removed from its old slot and appended at the right without duplication. When the window is full, every successful meal evicts the oldest entry before the selected food is appended. A selected food's next level is computed before eviction so eating the oldest retained food does not erase its own streak. Eviction resets that food's level, but any future `lastDigestUntil` must survive outside the visible window to enforce the digestion lockout. The API now uses a shared deterministic normalizer/transition helper for manual consumption, Auto Feed eligibility and battle-resolution food reconciliation; queue snapshots consume the normalized `dietLevels` projection. A one-time migration repairs legacy duplicate JSON without touching inventory. NPC-granted food, if introduced as a separate gameplay path, must call the same `consumeFood` transition rather than write Diet state independently.
+
+
 ## Authoritative Resource Synchronization
 
 Character HP/SP and Inventory quantities have two distinct frontend concerns:

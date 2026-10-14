@@ -20,3 +20,8 @@ The existing Diet implementation keeps food mastery in a permanent per-food map 
 ### Modified Capabilities
 
 - diet-auto-feed: correct Diet streak semantics and server-authoritative Auto Feed boundary handling.
+
+
+## Superseded contract note — 2026-10-14
+
+The original change established retained three-slot streaks but its append-on-repeat transition allowed duplicate food IDs and did not define the full-window recency behavior. Those details are superseded by `diet-unique-food-streak-rotation`, which is now the authoritative proposal for unique Diet entries, oldest-slot eviction, and preserving digestion lockout after streak eviction. The task checkmarks above record the historical implementation/verification of the earlier change, not compliance with the newly clarified contract.

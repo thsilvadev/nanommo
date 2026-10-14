@@ -57,3 +57,8 @@ Delete self_hungry from the shared enum/catalog, backend validation and frontend
 ## Compatibility and migration
 
 Existing characters with null Diet fields normalize to empty diet, empty dietLevels and autoFeed=false. Existing activeFoodBuff remains valid and must be reconciled into Diet state on first authoritative load or mutation where necessary. No inventory migration is required.
+
+
+## Superseded Diet-streak semantics — 2026-10-14
+
+The permanent-level and append-without-deduplication assumptions in this original design are historical. The current target is `diet-unique-food-streak-rotation`: levels are retained-window streaks, Diet item IDs are unique, and digestion lockout can outlive slot eviction.

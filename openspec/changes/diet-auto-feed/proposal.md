@@ -22,3 +22,8 @@ NanoMMO already has server-authoritative food buffs, manual consumable use, and 
 - No new food item category or parallel inventory model.
 - No weapon XP/progression.
 - No production deployment.
+
+
+## Superseded Diet-streak semantics — 2026-10-14
+
+This proposal records the original Diet/Auto Feed implementation plan. Its references to permanent per-food Diet levels and append-on-consumption behavior are historical and are superseded for streak/slot semantics by `diet-autofeed-streak-fixes`, then refined by `diet-unique-food-streak-rotation`. Use the current canonical SPEC and newer change for the authoritative unique-slot, eviction and digestion-lockout rules.

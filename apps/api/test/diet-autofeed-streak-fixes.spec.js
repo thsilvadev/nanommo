@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const { BadRequestException } = require('@nestjs/common');
 
-const { buildDietStateAfterFoodConsumption } =
+const { buildDietStateAfterFoodConsumption, normalizeDietState } =
   require('../dist/apps/api/src/modules/inventory/inventory.service.js');
 const {
   BattleService,
@@ -32,7 +32,7 @@ async function run() {
   ];
   r = buildDietStateAfterFoodConsumption(diet, 'fish', at(10), at(370));
   assert.deepEqual(r.diet.map((x) => x.itemId), ['meat', 'carrot', 'fish']);
-  assert.equal(r.dietLevels.bread, undefined);
+  assert.equal(r.dietLevels.bread.level, 0);
 
   r = buildDietStateAfterFoodConsumption(r.diet, 'bread', at(370), at(730));
   assert.equal(r.nextLevel, 0);
@@ -44,6 +44,37 @@ async function run() {
   r = buildDietStateAfterFoodConsumption(diet, 'carrot', at(10), at(370));
   assert.equal(r.diet.find((x) => x.itemId === 'bread').dietLevel, 2);
   assert.equal(r.dietLevels.bread.level, 2);
+
+
+  // Unique-slot rotation examples: repeats move right, increment only retained streaks,
+  // and a full window always evicts the oldest entry before appending.
+  const entry = (itemId, dietLevel = 0, n = 0, digest = 1) => ({ itemId, dietLevel, consumedAt: at(n), digestUntil: at(digest) });
+  r = buildDietStateAfterFoodConsumption([entry('bread', 3), entry('cheese', 1, 2)], 'bread', at(10), at(370), {
+    bread: { level: 3, lastDigestUntil: at(1) }, cheese: { level: 1, lastDigestUntil: at(3) },
+  });
+  assert.deepEqual(r.diet.map((x) => [x.itemId, x.dietLevel]), [['cheese', 1], ['bread', 3]]);
+  r = buildDietStateAfterFoodConsumption([entry('cheese', 0), entry('bread', 3, 2)], 'cheese', at(10), at(370), {
+    cheese: { level: 0, lastDigestUntil: at(1) }, bread: { level: 3, lastDigestUntil: at(3) },
+  });
+  assert.deepEqual(r.diet.map((x) => [x.itemId, x.dietLevel]), [['bread', 3], ['cheese', 1]]);
+  r = buildDietStateAfterFoodConsumption([entry('bread', 3), entry('cheese', 1, 2), entry('meat', 0, 3)], 'cheese', at(10), at(370), {
+    bread: { level: 3, lastDigestUntil: at(1) }, cheese: { level: 1, lastDigestUntil: at(3) }, meat: { level: 0, lastDigestUntil: at(4) },
+  });
+  assert.deepEqual(r.diet.map((x) => [x.itemId, x.dietLevel]), [['meat', 0], ['cheese', 2]]);
+  assert.equal(r.dietLevels.bread.level, 0);
+  assert.equal(r.dietLevels.bread.lastDigestUntil, at(1));
+  r = buildDietStateAfterFoodConsumption([entry('bread', 3), entry('cheese', 1, 2), entry('meat', 0, 3)], 'bread', at(10), at(370), {
+    bread: { level: 3, lastDigestUntil: at(1) }, cheese: { level: 1, lastDigestUntil: at(3) }, meat: { level: 0, lastDigestUntil: at(4) },
+  });
+  assert.deepEqual(r.diet.map((x) => [x.itemId, x.dietLevel]), [['cheese', 1], ['meat', 0], ['bread', 3]]);
+
+  const repaired = normalizeDietState([
+    entry('bread', 1, 1, 4), entry('cheese', 0, 2, 3), entry('bread', 3, 5, 7), entry('meat', 1, 6, 8),
+  ], { bread: { level: 3, lastDigestUntil: at(20) }, cheese: { level: 0, lastDigestUntil: at(3) } });
+  assert.deepEqual(repaired.diet.map((x) => x.itemId), ['cheese', 'bread', 'meat']);
+  assert.equal(repaired.diet.find((x) => x.itemId === 'bread').dietLevel, 3);
+  assert.equal(repaired.dietLevels.bread.lastDigestUntil, at(20));
+  assert.equal(repaired.dietLevels.cheese.level, 0);
 
   const food = (id) => ({
     id, type: 'food',
