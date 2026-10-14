@@ -298,6 +298,41 @@ export class BattleService {
     return { equipmentStats, skills, skillDefs, weaponTypes, masteryEquipment };
   }
 
+  /** Return every food whose own digestion/buff boundary is still in the future. */
+  private getActiveDietFoodBuffs(character: Character, atTime: number): Array<{ itemId: string; hpRegenPerTenTicks: number; spRegenPerTenTicks: number; expiresAt: string }> {
+    const diet = Array.isArray((character as any).diet) ? (character as any).diet : [];
+    const active = diet.flatMap((entry: any) => {
+      const expiresAt = String(entry?.digestUntil ?? '');
+      const expiry = Date.parse(expiresAt);
+      if (!entry?.itemId || !Number.isFinite(expiry) || expiry <= atTime) return [];
+      const definition = this.dataService.getItemById(String(entry.itemId));
+      if (definition?.effect?.type !== 'food_buff') return [];
+      const level = Math.max(0, Math.min(3, Number(entry.dietLevel ?? 0)));
+      return [{
+        itemId: String(entry.itemId),
+        hpRegenPerTenTicks: effectiveFoodStatValue(definition.effect.hpRegenPerTenTicks, level),
+        spRegenPerTenTicks: effectiveFoodStatValue(definition.effect.spRegenPerTenTicks, level),
+        expiresAt,
+      }];
+    });
+    if (active.length) return active;
+
+    // Backward compatibility for older rows where activeFoodBuff exists but Diet
+    // was not persisted/populated. Do not add it a second time when Diet has rows.
+    const legacy = (character as any).activeFoodBuff;
+    const legacyExpiry = legacy?.expiresAt ? Date.parse(String(legacy.expiresAt)) : 0;
+    return legacy && legacyExpiry > atTime ? [{
+      itemId: String(legacy.itemId ?? ''),
+      hpRegenPerTenTicks: Number(legacy.hpRegenPerTenTicks ?? 0),
+      spRegenPerTenTicks: Number(legacy.spRegenPerTenTicks ?? 0),
+      expiresAt: new Date(legacyExpiry).toISOString(),
+    }] : [];
+  }
+
+  private latestFoodExpiry(foods: Array<{ expiresAt: string | Date }>): number {
+    return Math.max(0, ...foods.map((food) => Date.parse(String(food.expiresAt))).filter(Number.isFinite));
+  }
+
   /**
    * Build the real combatant snapshot handed to BattleEngine.simulateBattle().
    * Equipment bonuses, weapon proficiency and live inventory are all included.
@@ -310,7 +345,7 @@ export class BattleService {
     hp: number,
     sp: number,
     atTime: number = Date.now(),
-    foodOverride: any = character.activeFoodBuff,
+    foodOverride: any = undefined,
     loadout?: Awaited<ReturnType<BattleService['loadCombatantLoadout']>>,
     foodDigestOverride?: Record<string, number>,
   ): Promise<CombatantSnapshot> {
@@ -336,10 +371,21 @@ export class BattleService {
       },
     );
 
-    const food = foodOverride;
-    const foodExpiry = food?.expiresAt ? new Date(food.expiresAt).getTime() : 0;
-    const foodActive = foodExpiry > atTime;
-    const foodTicks = foodActive ? Math.max(0, Math.ceil((foodExpiry - atTime) / MS_PER_TICK)) : 0;
+    const foodCandidates: any[] = foodOverride === undefined
+      ? this.getActiveDietFoodBuffs(character, atTime)
+      : Array.isArray(foodOverride) ? foodOverride : foodOverride ? [foodOverride] : [];
+    const activeFoodBuffs = foodCandidates
+      .map((food: any) => ({ ...food, expiryAtMs: food?.expiresAt ? Date.parse(String(food.expiresAt)) : 0 }))
+      .filter((food: any) => Number.isFinite(food.expiryAtMs) && food.expiryAtMs > atTime)
+      .sort((a: any, b: any) => a.expiryAtMs - b.expiryAtMs);
+    const latestFood = activeFoodBuffs[activeFoodBuffs.length - 1];
+    const foodBuffStates = activeFoodBuffs.map((food: any) => ({
+      itemId: String(food.itemId),
+      hpRegenPerTenTicks: Number(food.hpRegenPerTenTicks ?? 0),
+      spRegenPerTenTicks: Number(food.spRegenPerTenTicks ?? 0),
+      remainingTicks: Math.max(0, Math.ceil((food.expiryAtMs - atTime) / MS_PER_TICK)),
+    }));
+    const foodTicks = Math.max(0, ...foodBuffStates.map((food) => food.remainingTicks));
     return {
       characterName: character.name,
       level: character.level,
@@ -351,9 +397,10 @@ export class BattleService {
       hpRegenPerTenTicks: derived.hpRegenPerTenTicks,
       spRegenPerTenTicks: derived.spRegenPerTenTicks,
       foodBuffTicksRemaining: foodTicks,
-      foodBuffItemId: foodActive ? food.itemId : undefined,
-      foodBuffHpRegenPerTenTicks: foodActive ? Number(food.hpRegenPerTenTicks ?? 0) : undefined,
-      foodBuffSpRegenPerTenTicks: foodActive ? Number(food.spRegenPerTenTicks ?? 0) : undefined,
+      foodBuffItemId: latestFood ? String(latestFood.itemId) : undefined,
+      foodBuffHpRegenPerTenTicks: latestFood ? Number(latestFood.hpRegenPerTenTicks ?? 0) : undefined,
+      foodBuffSpRegenPerTenTicks: latestFood ? Number(latestFood.spRegenPerTenTicks ?? 0) : undefined,
+      foodBuffs: foodBuffStates,
       dietLevelByFood: Object.fromEntries(Object.entries(character.dietLevels ?? {}).map(([itemId, value]) => [itemId, Math.max(0, Math.min(3, Number(value.level ?? 0)))])),
       foodDigestRemainingTicksByItem: foodDigestOverride ?? Object.fromEntries(
         Object.entries(character.dietLevels ?? {}).map(([itemId, value]) => {
@@ -412,8 +459,11 @@ export class BattleService {
       return currentQueue; // Already at target depth
     }
 
-    let projectedFoodBuff = character.activeFoodBuff;
-    let projectedFoodExpiresAt = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
+    let projectedFoodBuffs = this.getActiveDietFoodBuffs(character, Date.now());
+    let projectedFoodExpiresAt = this.latestFoodExpiry(projectedFoodBuffs);
+    const projectedDietLevelByFood: Record<string, number> = Object.fromEntries(
+      Object.entries(character.dietLevels ?? {}).map(([itemId, value]: [string, any]) => [itemId, Math.max(0, Math.min(3, Number(value.level ?? 0))) ]),
+    );
     let projectedFoodDigestUntil: Record<string, number> = Object.fromEntries(
       Object.entries(character.dietLevels ?? {}).map(([itemId, value]) => [itemId, Date.parse(value.lastDigestUntil)]),
     );
@@ -444,26 +494,32 @@ export class BattleService {
     }
 
     const projectFoodFromQueue = (entries: BattleQueueEntry[]) => {
-      for (const pending of entries.sort((a, b) => a.sequenceIndex - b.sequenceIndex)) {
+      for (const pending of entries.slice().sort((a, b) => a.sequenceIndex - b.sequenceIndex)) {
         for (const event of Array.isArray(pending.log?.events) ? pending.log.events : []) {
           if (event?.action !== 'use_item') continue;
           const def = this.dataService.getItemById(event.itemId);
           if (def?.effect?.type !== 'food_buff') continue;
           const usedAt = new Date(pending.startAt).getTime() + Number(event.tick ?? 0) * MS_PER_TICK;
-          projectedFoodBuff = {
-            itemId: event.itemId,
-            hpRegenPerTenTicks: Number(def.effect?.hpRegenPerTenTicks ?? 0),
-            spRegenPerTenTicks: Number(def.effect?.spRegenPerTenTicks ?? 0),
-            expiresAt: new Date(usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_TICK).toISOString(),
-          };
+          const digestUntil = Number(projectedFoodDigestUntil[String(event.itemId)] ?? 0);
+          if (digestUntil > usedAt) continue;
+          const itemId = String(event.itemId);
+          const hadLevel = Object.prototype.hasOwnProperty.call(projectedDietLevelByFood, itemId);
+          const currentLevel = Math.max(0, Math.min(3, Number(projectedDietLevelByFood[itemId] ?? 0)));
+          const nextLevel = hadLevel ? Math.min(3, currentLevel + 1) : 0;
+          const expiry = usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_TICK;
+          projectedFoodBuffs = [
+            ...projectedFoodBuffs.filter((food) => food.itemId !== itemId && Date.parse(String(food.expiresAt)) > usedAt),
+            { itemId, hpRegenPerTenTicks: effectiveFoodStatValue(def.effect?.hpRegenPerTenTicks, nextLevel), spRegenPerTenTicks: effectiveFoodStatValue(def.effect?.spRegenPerTenTicks, nextLevel), expiresAt: new Date(expiry).toISOString() },
+          ];
+          projectedFoodDigestUntil[itemId] = expiry;
+          projectedDietLevelByFood[itemId] = nextLevel;
         }
-        if (projectedFoodBuff?.expiresAt && new Date(projectedFoodBuff.expiresAt).getTime() <= new Date(pending.endAt).getTime()) {
-          projectedFoodBuff = null;
-        }
+        const pendingEnd = new Date(pending.endAt).getTime();
+        projectedFoodBuffs = projectedFoodBuffs.filter((food) => Date.parse(String(food.expiresAt)) > pendingEnd);
       }
     };
     projectFoodFromQueue(currentQueue);
-    projectedFoodExpiresAt = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
+    projectedFoodExpiresAt = this.latestFoodExpiry(projectedFoodBuffs);
     if (!projectedFoodExpiresAt || projectedFoodExpiresAt <= Date.now()) {
       const now = Date.now();
       const activeBattle = currentQueue.find(
@@ -475,9 +531,7 @@ export class BattleService {
         // added; it is not the Character's current food state. A projected buff
         // can expire during a future queued battle while the persisted buff is
         // still valid now. Never turn that prediction into an early Town exit.
-        const actualFoodExpiresAt = character.activeFoodBuff?.expiresAt
-          ? Date.parse(String(character.activeFoodBuff.expiresAt))
-          : 0;
+        const actualFoodExpiresAt = this.latestFoodExpiry(this.getActiveDietFoodBuffs(character, now));
         if (actualFoodExpiresAt > now) return currentQueue;
 
         // If queue generation itself reaches the real exhaustion boundary before
@@ -577,7 +631,7 @@ export class BattleService {
         chainHp,
         chainSp,
         nextStartTime.getTime(),
-        projectedFoodBuff,
+        projectedFoodBuffs,
         loadout,
         Object.fromEntries(
           Object.entries(projectedFoodDigestUntil).map(([itemId, expiresAt]) => [
@@ -593,9 +647,6 @@ export class BattleService {
       if (elapsedRegenPeriods > 0 && chainHp > 0) {
         const hpPerPeriod = Number(snapshot.hpRegenPerTenTicks ?? 0);
         const spPerPeriod = Number(snapshot.spRegenPerTenTicks ?? 0);
-        const foodExpiry = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
-        const foodHpPerPeriod = Number(projectedFoodBuff?.hpRegenPerTenTicks ?? 0);
-        const foodSpPerPeriod = Number(projectedFoodBuff?.spRegenPerTenTicks ?? 0);
         let hpGain = 0;
         let spGain = 0;
         const firstBoundary = Math.floor(fromTick / 10) + 1;
@@ -604,9 +655,11 @@ export class BattleService {
           const boundaryAt = regenAnchor + boundaryTick * MS_PER_TICK;
           hpGain += hpPerPeriod;
           spGain += spPerPeriod;
-          if (foodExpiry > boundaryAt) {
-            hpGain += foodHpPerPeriod;
-            spGain += foodSpPerPeriod;
+          for (const food of projectedFoodBuffs) {
+            if (Date.parse(String(food.expiresAt)) > boundaryAt) {
+              hpGain += Number(food.hpRegenPerTenTicks ?? 0);
+              spGain += Number(food.spRegenPerTenTicks ?? 0);
+            }
           }
         }
         chainHp = Math.min(snapshot.maxHp, chainHp + hpGain);
@@ -668,17 +721,15 @@ export class BattleService {
         const usedAt = nextStartTime.getTime() + Number(event.tick ?? 0) * MS_PER_TICK;
         projectedFoodDigestUntil[event.itemId] = usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_TICK;
       }
-      if (simulation.foodBuffAfter) {
-        projectedFoodBuff = {
-          itemId: simulation.foodBuffAfter.itemId,
-          hpRegenPerTenTicks: simulation.foodBuffAfter.hpRegenPerTenTicks,
-          spRegenPerTenTicks: simulation.foodBuffAfter.spRegenPerTenTicks,
-          expiresAt: new Date(battleEndTime + simulation.foodBuffAfter.remainingTicks * MS_PER_TICK).toISOString(),
-        };
-      } else if ((snapshot.foodBuffTicksRemaining ?? 0) <= simulation.durationTicks) {
-        projectedFoodBuff = null;
-      }
-      projectedFoodExpiresAt = projectedFoodBuff?.expiresAt ? new Date(projectedFoodBuff.expiresAt).getTime() : 0;
+      projectedFoodBuffs = (simulation.foodBuffsAfter ?? (simulation.foodBuffAfter ? [simulation.foodBuffAfter] : []))
+        .filter((food: any) => Number(food.remainingTicks ?? 0) > 0)
+        .map((food: any) => ({
+          itemId: String(food.itemId),
+          hpRegenPerTenTicks: Number(food.hpRegenPerTenTicks ?? 0),
+          spRegenPerTenTicks: Number(food.spRegenPerTenTicks ?? 0),
+          expiresAt: new Date(battleEndTime + Number(food.remainingTicks) * MS_PER_TICK).toISOString(),
+        }));
+      projectedFoodExpiresAt = this.latestFoodExpiry(projectedFoodBuffs);
 
       // ---- Rewards: xp from xpReward, gold rolled from goldReward.min/max,
       //      drops from monsters.json chances (SPEC §11.5) - only on a win.
@@ -746,9 +797,7 @@ export class BattleService {
 
     const liveQueue = [...currentQueue, ...newBattles];
     if (liveQueue.length === 0 && blockedByFoodExpiryBeforeNextStart) {
-      const actualFoodExpiresAt = character.activeFoodBuff?.expiresAt
-        ? Date.parse(String(character.activeFoodBuff.expiresAt))
-        : 0;
+      const actualFoodExpiresAt = this.latestFoodExpiry(this.getActiveDietFoodBuffs(character, Date.now()));
       if (actualFoodExpiresAt > 0) {
         // No battle can legally start before the current buff expires, so there
         // is no battle-resolution job to revisit the boundary. Reuse the
@@ -932,9 +981,10 @@ export class BattleService {
       const killCounter = await this.incrementKillCounter(character.id, battle.mapId, battle.monsterId, manager);
       const previousMapId = character.currentMapId;
       const returningToTown = character.pendingMapTransition?.destinationMapId === TOWN_MAP_ID;
-      const foodExpiresAt = character.activeFoodBuff?.expiresAt
-        ? new Date(character.activeFoodBuff.expiresAt).getTime()
-        : 0;
+      const foodExpiresAt = Math.max(
+        character.activeFoodBuff?.expiresAt ? Date.parse(String(character.activeFoodBuff.expiresAt)) : 0,
+        ...((Array.isArray((character as any).diet) ? (character as any).diet : []).map((entry: any) => Date.parse(String(entry.digestUntil ?? ''))).filter(Number.isFinite)),
+      );
       const hungryAfterBattle = !foodExpiresAt || foodExpiresAt <= Date.now();
       const routedToTown = returningToTown || hungryAfterBattle;
 
@@ -1145,7 +1195,7 @@ export class BattleService {
     const events = Array.isArray(battle.log?.events) ? battle.log.events : [];
     let diet = Array.isArray(character.diet) ? character.diet.slice() : [];
     const dietLevels = character.dietLevels ?? {};
-    let lastFoodUse: { event: any; def: any } | null = null;
+    let lastFoodUse: { event: any; def: any; dietLevel: number } | null = null;
 
     for (const event of events) {
       if (event?.action !== 'use_item') continue;
@@ -1165,7 +1215,7 @@ export class BattleService {
         digestUntil,
       );
       diet = dietState.diet;
-      lastFoodUse = { event, def };
+      lastFoodUse = { event, def, dietLevel: dietState.nextLevel };
     }
 
     character.diet = diet;
@@ -1180,8 +1230,8 @@ export class BattleService {
       const usedAt = new Date(battle.startAt).getTime() + Number(lastFoodUse.event.tick ?? 0) * MS_PER_TICK;
       character.activeFoodBuff = {
         itemId: lastFoodUse.def.id,
-        hpRegenPerTenTicks: effectiveFoodStatValue(lastFoodUse.def.effect?.hpRegenPerTenTicks, Number(dietLevels[lastFoodUse.event.itemId]?.level ?? 0)),
-        spRegenPerTenTicks: effectiveFoodStatValue(lastFoodUse.def.effect?.spRegenPerTenTicks, Number(dietLevels[lastFoodUse.event.itemId]?.level ?? 0)),
+        hpRegenPerTenTicks: effectiveFoodStatValue(lastFoodUse.def.effect?.hpRegenPerTenTicks, lastFoodUse.dietLevel),
+        spRegenPerTenTicks: effectiveFoodStatValue(lastFoodUse.def.effect?.spRegenPerTenTicks, lastFoodUse.dietLevel),
         expiresAt: new Date(usedAt + Number(lastFoodUse.def.effect?.durationSeconds ?? 0) * MS_PER_TICK).toISOString(),
       };
     } else if (character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() <= Date.now()) {

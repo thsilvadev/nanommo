@@ -5,9 +5,9 @@
         </div>
         <div class="sheet-level">LEVEL {{character.character()?.level||'—'}} · {{character.character()?.status}}</div>
     </header>
-    <nav class="sheet-tabs"><button [class.active]="tab==='character'"
-            (click)="setTab('character')">Character</button><button [class.active]="tab==='gambits'"
-            (click)="setTab('gambits')">Gambits</button><button [class.active]="tab==='mastery'"
+    <nav class="sheet-tabs"><button type="button" [class.active]="tab==='character'"
+            (click)="setTab('character')">Character</button><button type="button" [class.active]="tab==='gambits'"
+            (click)="setTab('gambits')">Gambits</button><button type="button" [class.active]="tab==='mastery'"
             (click)="setTab('mastery')">Mastery</button></nav>
     <div *ngIf="tab==='character'" class="character-grid">
         <section class="sheet-panel inventory-panel"><app-inventory-grid /></section>
@@ -60,17 +60,16 @@
                     <button class="skill-icon" type="button" [attr.aria-label]="skill.name + ', rank ' + skillRank(skill) + ' of ' + skill.maxRank" [attr.data-tooltip]="skill.name + ': ' + skill.effectDescription" (click)="stageMastery(skill)" [attr.aria-disabled]="saving()||!canAllocate(skill)">
                         <img [src]="skillIcon(skill)" alt="">
                     </button>
-                    <div class="mastery-tooltip" role="tooltip"><strong>{{skill.name}}</strong><span class="mastery-tooltip-description" [innerHTML]="skillDescriptionHtml(skill)"></span><span>Type: <b>{{skill.kind === 'passive' ? 'Passive' : 'Active'}}</b></span><span>Rank: <b>{{skillRank(skill)}}</b> / <b>{{skill.maxRank}}</b></span><span *ngIf="skill.baseCastTicks">Cast: <b>{{skill.baseCastTicks}} ticks</b></span><span *ngIf="skill.cooldownTicks">Cooldown: <b>{{skill.cooldownTicks}} ticks</b></span><span *ngIf="skill.prerequisite">Requires <b>{{skillName(skill.prerequisite.skillId)}}</b> rank <b>{{skill.prerequisite.rank}}</b></span></div>
+                    <div class="item-tooltip mastery-tooltip" role="tooltip"><strong>{{skill.name}}</strong><span class="mastery-tooltip-description" [innerHTML]="skillDescriptionHtml(skill)"></span><span>Type: <b>{{skill.kind === 'passive' ? 'Passive' : 'Active'}}</b></span><span>Rank: <b>{{skillRank(skill)}}</b> / <b>{{skill.maxRank}}</b></span><span *ngIf="skill.baseCastTicks">Cast: <b>{{skill.baseCastTicks}} ticks</b></span><span *ngIf="skill.cooldownTicks">Cooldown: <b>{{skill.cooldownTicks}} ticks</b></span><span *ngIf="skill.prerequisite">Requires <b>{{skillName(skill.prerequisite.skillId)}}</b> rank <b>{{skill.prerequisite.rank}}</b></span></div>
                     <b>{{skill.name}}</b><span [class.pending-rank]="skillRank(skill)>persistedSkillRank(skill)">Rank {{skillRank(skill)}} / {{skill.maxRank}}</span>
-                    <small *ngIf="skill.prerequisite">Requires {{skill.prerequisite.skillId}} rank {{skill.prerequisite.rank}}</small>
                 </div>
             </div>
             <div class="alloc-actions mastery-actions"><button (click)="resetMasteryDraft()" [disabled]="saving()||!hasMasteryDraft()">Reset</button><button class="gold-btn" (click)="applyMastery()" [disabled]="saving()||!hasMasteryDraft()">{{saving()?'Applying...':'Apply'}}</button></div>
             <p *ngIf="error()" class="error">{{error()}}</p>
         </section>
         <section class="sheet-panel weapons-panel">
-            <h2>Weapons</h2><button *ngFor="let row of weaponRows()" class="weapon-row"
-                [class.selected]="selectedWeapon()===row[0]" (click)="selectWeapon(row[0])"><img
+            <h2>Weapons</h2><button type="button" *ngFor="let row of weaponRows()" class="weapon-row"
+                [class.selected]="selectedWeapon()===row[0]" (pointerdown)="selectWeapon(row[0])" (click)="selectWeapon(row[0])" [attr.aria-pressed]="selectedWeapon()===row[0]"><img
                     [src]="row[0]==='shield'?'/assets/ui/shield.svg':'/assets/ui/weapon.svg'"
                     alt=""><span>{{row[1]}}</span><b>Lv {{weaponLevels()[row[0]] || 0}}</b></button>
         </section>

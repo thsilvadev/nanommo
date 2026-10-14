@@ -54,6 +54,8 @@ export interface CombatantSnapshot {
   foodBuffItemId?: string;
   foodBuffHpRegenPerTenTicks?: number;
   foodBuffSpRegenPerTenTicks?: number;
+  /** Every independently digesting food contributes its regen until its own expiry. */
+  foodBuffs?: Array<{ itemId: string; hpRegenPerTenTicks: number; spRegenPerTenTicks: number; remainingTicks: number }>;
   /** Remaining digestion ticks per food item; prevents repeat consumption while digesting. */
   foodDigestRemainingTicksByItem?: Record<string, number>;
   /** Persisted Diet level per food; absent means the food has never been consumed. */
@@ -537,6 +539,7 @@ export class BattleEngine {
     inventoryAfter: Record<string, number>;
     itemsConsumed: Array<{ itemId: string; quantity: number }>;
     foodBuffAfter?: { itemId: string; hpRegenPerTenTicks: number; spRegenPerTenTicks: number; remainingTicks: number };
+    foodBuffsAfter: Array<{ itemId: string; hpRegenPerTenTicks: number; spRegenPerTenTicks: number; remainingTicks: number }>;
   } {
     const rng = new Mulberry32(seed);
     const inventory: Record<string, number> = { ...(options.inventory ?? {}) };
@@ -568,6 +571,9 @@ export class BattleEngine {
       foodBuffItemId: characterSnapshot.foodBuffItemId,
       foodBuffHpRegenPerTenTicks: characterSnapshot.foodBuffHpRegenPerTenTicks,
       foodBuffSpRegenPerTenTicks: characterSnapshot.foodBuffSpRegenPerTenTicks,
+      foodBuffs: Array.isArray(characterSnapshot.foodBuffs)
+        ? characterSnapshot.foodBuffs.map((buff: any) => ({ ...buff, remainingTicks: Math.max(0, Number(buff.remainingTicks ?? 0)) })).filter((buff: any) => buff.remainingTicks > 0)
+        : (Number(characterSnapshot.foodBuffTicksRemaining ?? 0) > 0 && characterSnapshot.foodBuffItemId ? [{ itemId: String(characterSnapshot.foodBuffItemId), hpRegenPerTenTicks: Number(characterSnapshot.foodBuffHpRegenPerTenTicks ?? 0), spRegenPerTenTicks: Number(characterSnapshot.foodBuffSpRegenPerTenTicks ?? 0), remainingTicks: Number(characterSnapshot.foodBuffTicksRemaining) }] : []),
       foodDigestRemainingTicksByItem: { ...(characterSnapshot.foodDigestRemainingTicksByItem ?? {}) },
     };
 
@@ -792,6 +798,64 @@ export class BattleEngine {
       if (rng.chance(0.01)) applyStatus(foe, 'disarm', 'brutality', 5, {}, 'character');
     };
 
+    /**
+     * Approach is movement intent, not an attack/cast execution. Resolve the
+     * currently legal target action for each gauge every tick so a distant
+     * character starts walking immediately rather than waiting for the next
+     * attack/cast gauge fire. If no target action is legal, clear stale intent.
+     */
+    const refreshApproachIntent = (
+      unit: CombatantSnapshot,
+      target: CombatantSnapshot,
+      page: any,
+      unitInventory: Record<string, number>,
+      unitItemDefinitions: Record<string, any>,
+    ) => {
+      const choices = [
+        GambitEvaluator.evaluateGambitPage(page, 'attack', unit, target, unitInventory, unitItemDefinitions),
+        GambitEvaluator.evaluateGambitPage(page, 'cast', unit, target, unitInventory, unitItemDefinitions),
+      ].filter(Boolean) as Array<{ action: any; line: any }>;
+      const neededRanges: number[] = [];
+      let hasTargetActionInRange = false;
+
+      for (const choice of choices) {
+        const action = choice.action;
+        if (action.id === 'attack') {
+          const range = Math.max(0, Number(unit.basicAttackRange ?? 0));
+          if (distanceBetween() <= range) hasTargetActionInRange = true;
+          else neededRanges.push(range);
+          continue;
+        }
+        if (action.id !== 'use_skill') continue;
+        const skillId = String(action.skillId ?? action.params?.skillId ?? '');
+        const definition: any = unit.skillDefs?.[skillId] ?? unit.skills?.[skillId] ?? {};
+        const effectType = String(definition.effect?.type ?? '');
+        if (definition.target === 'self' || ['self_heal', 'defense_buff', 'magic_barrier', 'arcane_dynamo_passive'].includes(effectType)) {
+          continue;
+        }
+        // Blinkstrike is itself the approach movement and may execute at any distance.
+        if (effectType === 'blinkstrike') {
+          hasTargetActionInRange = true;
+          continue;
+        }
+        const range = definition.ranged === true
+          ? Math.max(0, Number(definition.maxRange ?? 7) - 1)
+          : Math.max(0, Number(definition.maxRange ?? 1) - 1);
+        if (distanceBetween() <= range) hasTargetActionInRange = true;
+        else neededRanges.push(range);
+      }
+
+      if (hasTargetActionInRange || neededRanges.length === 0 || target.hp <= 0 || hasStatus(unit, 'stun')) {
+        unit.movementIntent = false;
+        unit.movementIntentRange = undefined;
+        return;
+      }
+      unit.movementIntent = true;
+      // Approach only as far as the most permissive presently legal target action needs.
+      unit.movementIntentRange = Math.max(...neededRanges);
+    };
+
+
     // There is no duration/tick cap: a battle ends only when one combatant reaches 0 HP.
     while (self.hp > 0 && foe.hp > 0) {
       // Expire timed statuses before this tick's actions. Stackable statuses report each
@@ -1013,19 +1077,28 @@ export class BattleEngine {
                   spGain: self.sp - before,
                 });
               } else if (effectType === 'food_buff') {
-                self.foodBuffTicksRemaining = Number(def.effect?.durationSeconds ?? 0);
+                const foodDurationTicks = Math.max(0, Number(def.effect?.durationSeconds ?? 0));
                 self.foodDigestRemainingTicksByItem = {
                   ...(self.foodDigestRemainingTicksByItem ?? {}),
-                  [itemId]: self.foodBuffTicksRemaining,
+                  [itemId]: foodDurationTicks,
                 };
-                self.foodBuffItemId = itemId;
                 const dietLevels = self.dietLevelByFood ?? {};
                 const hasConsumedBefore = Object.prototype.hasOwnProperty.call(dietLevels, itemId);
                 const currentDietLevel = Math.max(0, Math.min(3, Number(dietLevels[itemId] ?? 0)));
                 const nextDietLevel = hasConsumedBefore ? Math.min(3, currentDietLevel + 1) : 0;
                 self.dietLevelByFood = { ...dietLevels, [itemId]: nextDietLevel };
-                self.foodBuffHpRegenPerTenTicks = effectiveFoodStatValue(def.effect?.hpRegenPerTenTicks, nextDietLevel);
-                self.foodBuffSpRegenPerTenTicks = effectiveFoodStatValue(def.effect?.spRegenPerTenTicks, nextDietLevel);
+                const newFoodBuff = {
+                  itemId: String(itemId),
+                  hpRegenPerTenTicks: effectiveFoodStatValue(def.effect?.hpRegenPerTenTicks, nextDietLevel),
+                  spRegenPerTenTicks: effectiveFoodStatValue(def.effect?.spRegenPerTenTicks, nextDietLevel),
+                  remainingTicks: foodDurationTicks,
+                };
+                self.foodBuffs = [...(self.foodBuffs ?? []).filter((buff: any) => buff.itemId !== itemId), newFoodBuff];
+                // Keep the legacy singular fields synchronized to the most recently eaten item.
+                self.foodBuffTicksRemaining = foodDurationTicks;
+                self.foodBuffItemId = String(itemId);
+                self.foodBuffHpRegenPerTenTicks = newFoodBuff.hpRegenPerTenTicks;
+                self.foodBuffSpRegenPerTenTicks = newFoodBuff.spRegenPerTenTicks;
                 record({
                   tick,
                   actor: 'character',
@@ -1444,7 +1517,8 @@ export class BattleEngine {
       // ===== TICK HOUSEKEEPING =====
       if ((self.attackLockTicks ?? 0) > 0) self.attackLockTicks = (self.attackLockTicks as number) - 1;
       if ((self.castLockTicks ?? 0) > 0) self.castLockTicks = (self.castLockTicks as number) - 1;
-      if ((self.foodBuffTicksRemaining ?? 0) > 0) self.foodBuffTicksRemaining = Math.max(0, (self.foodBuffTicksRemaining as number) - 1);
+      self.foodBuffs = (self.foodBuffs ?? []).map((buff: any) => ({ ...buff, remainingTicks: Math.max(0, Number(buff.remainingTicks ?? 0) - 1) })).filter((buff: any) => buff.remainingTicks > 0);
+      self.foodBuffTicksRemaining = Math.max(0, ...(self.foodBuffs ?? []).map((buff: any) => Number(buff.remainingTicks ?? 0)));
       for (const itemId of Object.keys(self.foodDigestRemainingTicksByItem ?? {})) {
         const remaining = self.foodDigestRemainingTicksByItem?.[itemId] ?? 0;
         if (remaining > 0) self.foodDigestRemainingTicksByItem![itemId] = Math.max(0, remaining - 1);
@@ -1457,8 +1531,9 @@ export class BattleEngine {
         if (foe.sp > beforeMonsterSpRegen) record({ tick, actor: 'monster', action: 'sp_regen', target: 'monster', resource: 'SP', amount: foe.sp - beforeMonsterSpRegen });
       }
       if (self.hp > 0 && (regenTickOffset + tick + 1) % 10 === 0) {
-        const foodHpRegen = (self.foodBuffTicksRemaining ?? 0) > 0 ? Number(self.foodBuffHpRegenPerTenTicks ?? 0) : 0;
-        const foodSpRegen = (self.foodBuffTicksRemaining ?? 0) > 0 ? Number(self.foodBuffSpRegenPerTenTicks ?? 0) : 0;
+        const activeFoodBuffs = (self.foodBuffs ?? []).filter((buff: any) => Number(buff.remainingTicks ?? 0) > 0);
+        const foodHpRegen = activeFoodBuffs.reduce((sum: number, buff: any) => sum + Number(buff.hpRegenPerTenTicks ?? 0), 0);
+        const foodSpRegen = activeFoodBuffs.reduce((sum: number, buff: any) => sum + Number(buff.spRegenPerTenTicks ?? 0), 0);
         const hpBefore = self.hp;
         const spBefore = self.sp;
         self.hp = Math.min(self.maxHp, self.hp + self.hpRegenPerTenTicks + foodHpRegen);
@@ -1486,6 +1561,8 @@ export class BattleEngine {
         const baseSpeed = Number(unit.moveSpeedBase ?? unit.moveSpeed ?? 0);
         unit.moveSpeed = Math.max(0, baseSpeed - statusPenalty);
       }
+      refreshApproachIntent(self, foe, normalizedGambitPage, inventory, itemDefinitions);
+      refreshApproachIntent(foe, self, monsterGambitPage, {}, {});
       for (const [unit, target, actor] of [[self, foe, 'character'], [foe, self, 'monster']] as Array<[CombatantSnapshot, CombatantSnapshot, string]>) {
         if (tick > 0) unit.movementGauge = Number(unit.movementGauge ?? 0) + Number(unit.moveSpeed ?? 0);
         if (!unit.movementIntent || target.hp <= 0 || hasStatus(unit, 'stun')) { unit.movementIntent = false; continue; }
@@ -1528,14 +1605,10 @@ export class BattleEngine {
       spAfter: self.sp,
       inventoryAfter: inventory,
       itemsConsumed,
-      foodBuffAfter: (self.foodBuffTicksRemaining ?? 0) > 0 && self.foodBuffItemId
-        ? {
-            itemId: self.foodBuffItemId,
-            hpRegenPerTenTicks: Number(self.foodBuffHpRegenPerTenTicks ?? 0),
-            spRegenPerTenTicks: Number(self.foodBuffSpRegenPerTenTicks ?? 0),
-            remainingTicks: self.foodBuffTicksRemaining ?? 0,
-          }
+      foodBuffAfter: (self.foodBuffs ?? []).length > 0
+        ? [...(self.foodBuffs ?? [])].sort((a: any, b: any) => Number(b.remainingTicks ?? 0) - Number(a.remainingTicks ?? 0))[0]
         : undefined,
+      foodBuffsAfter: (self.foodBuffs ?? []).map((buff: any) => ({ ...buff })),
     };
   }
 }

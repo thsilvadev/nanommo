@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Put, UseGuards, Request, Body, Param, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, UseGuards, Request, Body, Param, Query, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { CharacterService } from '../character/character.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { BattleService } from '../battle/battle.service';
 
 @Controller('inventory')
 @UseGuards(JwtAuthGuard)
@@ -9,6 +10,7 @@ export class InventoryController {
   constructor(
     private readonly inventoryService: InventoryService,
     private readonly characterService: CharacterService,
+    @Inject(forwardRef(() => BattleService)) private readonly battleService: BattleService,
   ) {}
 
   /**
@@ -114,7 +116,9 @@ export class InventoryController {
   async useConsumable(@Request() req: any, @Body() body: { itemId: string }) {
     const userId = req.user.userId;
     const character = await this.characterService.getCharacterByUserId(userId);
-    await this.inventoryService.useConsumable(character.id, body.itemId);
+    await this.battleService.runFutureCombatMutation(character.id, () =>
+      this.inventoryService.useConsumable(character.id, body.itemId),
+    );
     const characterAfter = await this.characterService.getCharacterDtoById(character.id);
     if (!characterAfter) throw new BadRequestException('Character not found');
     return {

@@ -282,6 +282,33 @@ function run() {
   assert.equal(firstTimedIceBolt?.tick, 2, 'first two-tick Ice Bolt resolves at T2');
   assert.equal(firstTimedCharacterMove?.tick, 2, 'character movement gauge accrued from the initial intent and first movement resolves at T2');
 
+  // Approach intent is evaluated every tick independently from the skill's cast gauge.
+  // With DEX 80 the old implementation waited for the four-tick cast gauge before
+  // beginning to move; a legal out-of-range skill must now start approach at T0 so
+  // 60 Move Speed fills enough gauge to move at T2.
+  const approachSkill = {
+    id: 'approach_timing_test_skill', name: 'Approach Timing Test', category: 'sword', kind: 'active',
+    spCost: 0, baseCastTicks: 1, cooldownTicks: 999, ranged: false, maxRange: 1,
+    effect: { type: 'physical_damage', dmgMult: 0.01 },
+  };
+  const approachPage = { lines: [
+    { priority: 1, conditions: [{ id: 'always' }], action: { id: 'use_skill', skillId: approachSkill.id } },
+    { priority: 2, conditions: [{ id: 'always' }], action: { id: 'attack' } },
+  ] };
+  const approachTiming = BattleEngine.simulateBattle(
+    baselineCharacter({
+      hp: 50000, maxHp: 50000, sp: 100, maxSp: 100, dex: 80, attackSpeed: 0,
+      combatStyle: 'ranged', basicAttackDamageType: 'ranged', moveSpeedBase: 60, moveSpeed: 60,
+      skills: { [approachSkill.id]: approachSkill }, skillDefs: { [approachSkill.id]: approachSkill },
+    }),
+    { ...meleeMonster, id: 'approach-timing-dummy', hp: 50000, atk: 0, moveSpeedBase: 0, gambit: [] },
+    approachPage,
+    'movement-intent-precedes-cast-gauge',
+    { weaponBaseAttackTicks: 99 },
+  );
+  const firstPromptApproachMove = approachTiming.log.events.find((event) => event.actor === 'character' && event.action === 'move');
+  assert.equal(firstPromptApproachMove?.tick, 2, 'approach movement starts before the T4 cast gauge action would otherwise select it');
+
   assert.equal(wraith.gambit[0].action.type, 'attack');
   assert.equal(wraith.gambit[0].condition.type, 'self_has_status');
   assert.equal(wraith.gambit[0].condition.status, 'silence');

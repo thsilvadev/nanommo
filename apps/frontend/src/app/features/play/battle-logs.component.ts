@@ -41,8 +41,8 @@ export class BattleLogsComponent {
     if(event?.action==='status_stack_lessened') return target+"'s "+status+' lessens ('+Number(event.remainingStacks??event.stackCount??0)+')';
     if(event?.action==='status_ended'||event?.action==='status_expired') return target+"'s "+status+' ended';
     if(event?.action==='status_applied'||event?.action==='status_refreshed') return actor+' applies '+status+' to '+target;
-    if(event?.action==='regen') return actor+' regenerated '+Number(event.amount??0)+' '+String(event.resource??'HP')+'.';
-    if(event?.action==='sp_regen') return actor+' regenerated '+Number(event.amount??0)+' SP.';
+    if(event?.action==='regen') return actor+' regenerated +'+Number(event.amount??0)+' '+String(event.resource??'HP')+'.';
+    if(event?.action==='sp_regen') return actor+' regenerated +'+Number(event.amount??0)+' SP.';
     if(event?.action==='attack') return actor+' attack'+(event.crit?' — CRITICAL HIT':'')+(event.damage!=null?' for '+event.damage+' damage':'')+'.';
     if(event?.action==='use_skill'){
       const skill=event.skillId==='monster_skill_ice_bolt'?'Ice Bolt':String(event.skillId??'a skill').replace(/_/g,' ');

@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, Logger, ConflictExc
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem } from '@/database/entities';
-import { CharacterDto, Attribute, WeaponType, BattleEngine, effectiveWeaponAttack, sumAttributeBonuses, applyAttributeBonuses, masteryPassiveAttributeBonuses, type AttributeBonuses } from '@nanommo/shared';
+import { CharacterDto, Attribute, WeaponType, BattleEngine, effectiveWeaponAttack, sumAttributeBonuses, applyAttributeBonuses, masteryPassiveAttributeBonuses, type AttributeBonuses, effectiveFoodStatValue } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
 
@@ -349,6 +349,33 @@ export class CharacterService {
     return { maxHp: derived.maxHp, maxSp: derived.maxSp };
   }
 
+  /** Sum every food whose own digestion window is active at the requested instant. */
+  private getFoodRegenAt(character: Character, atTime: number): { hp: number; sp: number; count: number; expiresAt: number } {
+    const diet = Array.isArray((character as any).diet) ? (character as any).diet : [];
+    let hp = 0; let sp = 0; let count = 0; let expiresAt = 0;
+    for (const entry of diet) {
+      const itemExpiry = Date.parse(String(entry?.digestUntil ?? ''));
+      if (!entry?.itemId || !Number.isFinite(itemExpiry) || itemExpiry <= atTime) continue;
+      const definition = this.dataService.getItemById(String(entry.itemId));
+      if (definition?.effect?.type !== 'food_buff') continue;
+      const level = Math.max(0, Math.min(3, Number(entry.dietLevel ?? 0)));
+      hp += effectiveFoodStatValue(definition.effect.hpRegenPerTenTicks, level);
+      sp += effectiveFoodStatValue(definition.effect.spRegenPerTenTicks, level);
+      count += 1;
+      expiresAt = Math.max(expiresAt, itemExpiry);
+    }
+    // Older rows can have an activeFoodBuff without a corresponding Diet row.
+    const legacy = (character as any).activeFoodBuff;
+    const legacyExpiry = legacy?.expiresAt ? Date.parse(String(legacy.expiresAt)) : 0;
+    if (count === 0 && legacy && Number.isFinite(legacyExpiry) && legacyExpiry > atTime) {
+      hp = Number(legacy.hpRegenPerTenTicks ?? 0);
+      sp = Number(legacy.spRegenPerTenTicks ?? 0);
+      count = 1;
+      expiresAt = legacyExpiry;
+    }
+    return { hp, sp, count, expiresAt };
+  }
+
   private async applyTownRegeneration(character: Character): Promise<void> {
     if (character.status !== 'town') return;
 
@@ -356,7 +383,6 @@ export class CharacterService {
     const last = character.lastSeenAt?.getTime?.() ?? now;
     const elapsedTicks = Math.max(0, Math.floor((now - last) / 1000));
     const tenTickPeriods = Math.floor(elapsedTicks / 10);
-
     if (tenTickPeriods <= 0) return;
 
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
@@ -364,13 +390,19 @@ export class CharacterService {
     const attributeBonuses = await this.buildTotalAttributeBonuses(character.id, equipped, equipment.statBonus);
     const attrs = applyAttributeBonuses(character, attributeBonuses);
     const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
-    const foodActive = character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() > now;
-    const foodHpRegen = foodActive ? Number(character.activeFoodBuff?.hpRegenPerTenTicks ?? 0) : 0;
-    const foodSpRegen = foodActive ? Number(character.activeFoodBuff?.spRegenPerTenTicks ?? 0) : 0;
-
-    character.hpCurrent = Math.min(derived.maxHp, character.hpCurrent + tenTickPeriods * (derived.hpRegenPerTenTicks + foodHpRegen));
-    character.spCurrent = Math.min(derived.maxSp, character.spCurrent + tenTickPeriods * (derived.spRegenPerTenTicks + foodSpRegen));
-    if (!foodActive && character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() <= now) {
+    let hpGain = 0;
+    let spGain = 0;
+    // Food slots can expire at different instants. Evaluate each 10-tick boundary
+    // independently, so one food stops contributing without removing the others.
+    for (let period = 1; period <= tenTickPeriods; period += 1) {
+      const boundaryAt = last + period * 10_000;
+      const food = this.getFoodRegenAt(character, boundaryAt);
+      hpGain += derived.hpRegenPerTenTicks + food.hp;
+      spGain += derived.spRegenPerTenTicks + food.sp;
+    }
+    character.hpCurrent = Math.min(derived.maxHp, character.hpCurrent + hpGain);
+    character.spCurrent = Math.min(derived.maxSp, character.spCurrent + spGain);
+    if (character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() <= now) {
       character.activeFoodBuff = null;
     }
     character.lastSeenAt = new Date(last + tenTickPeriods * 10_000);
@@ -381,6 +413,7 @@ export class CharacterService {
     if (!Array.isArray(character.diet)) character.diet = [];
     if (!character.dietLevels) character.dietLevels = {};
     const activeDiet = character.diet;
+    const foodState = this.getFoodRegenAt(character, Date.now());
     const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
     const equipment = this.buildEquipmentStats(equipped);
     const attributeBonuses = await this.buildTotalAttributeBonuses(character.id, equipped, equipment.statBonus);
@@ -425,8 +458,8 @@ export class CharacterService {
       hpRegenPerTenTicks: derived.hpRegenPerTenTicks,
       spRegenPerTenTicks: derived.spRegenPerTenTicks,
       criticalChance: derived.critChance,
-      hungry: !character.activeFoodBuff?.expiresAt || new Date(character.activeFoodBuff.expiresAt).getTime() <= Date.now(),
-      foodBuffExpiresAt: character.activeFoodBuff?.expiresAt ? new Date(character.activeFoodBuff.expiresAt) : undefined,
+      hungry: foodState.count <= 0,
+      foodBuffExpiresAt: foodState.expiresAt > 0 ? new Date(foodState.expiresAt) : undefined,
       diet: activeDiet,
       dietLevels: character.dietLevels ?? {},
       autoFeed: character.autoFeed === true,

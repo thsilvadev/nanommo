@@ -7,9 +7,10 @@ import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { Character } from '../../database/entities/character.entity';
 import { DataModule } from '../data/data.module';
 import { CharacterModule } from '../character/character.module';
+import { BattleModule } from '../battle/battle.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([InventoryItem, Character]), DataModule, forwardRef(() => CharacterModule)],
+  imports: [TypeOrmModule.forFeature([InventoryItem, Character]), DataModule, forwardRef(() => CharacterModule), forwardRef(() => BattleModule)],
   controllers: [InventoryController, DevCheatController],
   providers: [InventoryService],
   exports: [InventoryService],

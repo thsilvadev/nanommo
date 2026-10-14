@@ -24,6 +24,18 @@ export class TooltipPositionDirective implements OnDestroy {
     this.position();
   };
   private readonly onLeave = () => this.hide();
+  private readonly onFocusIn = (e: FocusEvent) => {
+    if (!this.enabled) return;
+    const target = e.target instanceof HTMLElement ? e.target : this.anchor;
+    const rect = target.getBoundingClientRect();
+    this.pointer = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    this.show();
+  };
+  private readonly onFocusOut = (e: FocusEvent) => {
+    const next = e.relatedTarget;
+    if (next instanceof Node && this.anchor.contains(next)) return;
+    this.hide();
+  };
   private readonly onDragStart = () => {
     this.enabled = false;
     this.hide();
@@ -40,6 +52,8 @@ export class TooltipPositionDirective implements OnDestroy {
     this.anchor.addEventListener('pointerenter', this.onEnter);
     this.anchor.addEventListener('pointermove', this.onMove);
     this.anchor.addEventListener('pointerleave', this.onLeave);
+    this.anchor.addEventListener('focusin', this.onFocusIn);
+    this.anchor.addEventListener('focusout', this.onFocusOut);
     document.addEventListener('nm:drag-start', this.onDragStart);
     document.addEventListener('nm:drag-end', this.onDragEnd);
   }
@@ -105,6 +119,8 @@ export class TooltipPositionDirective implements OnDestroy {
     this.anchor?.removeEventListener('pointerenter', this.onEnter);
     this.anchor?.removeEventListener('pointermove', this.onMove);
     this.anchor?.removeEventListener('pointerleave', this.onLeave);
+    this.anchor?.removeEventListener('focusin', this.onFocusIn);
+    this.anchor?.removeEventListener('focusout', this.onFocusOut);
     document.removeEventListener('nm:drag-start', this.onDragStart);
     document.removeEventListener('nm:drag-end', this.onDragEnd);
     if (this.raf) cancelAnimationFrame(this.raf);
