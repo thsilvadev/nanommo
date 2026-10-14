@@ -47,7 +47,9 @@ export class TooltipPositionDirective implements OnDestroy {
 
   constructor(element: ElementRef<HTMLElement>) {
     this.host = element.nativeElement;
-    this.anchor = this.host.classList.contains('diet-slot') ? this.host : this.host.parentElement as HTMLElement;
+    this.anchor = this.host.classList.contains('diet-slot') || this.host.classList.contains('status-effect-icon')
+      ? this.host 
+      : this.host.parentElement as HTMLElement;
     if (!this.anchor) return;
     this.anchor.addEventListener('pointerenter', this.onEnter);
     this.anchor.addEventListener('pointermove', this.onMove);
