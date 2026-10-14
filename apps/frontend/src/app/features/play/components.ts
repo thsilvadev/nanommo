@@ -358,6 +358,7 @@ export class GrindInfo implements OnDestroy {
     }
     const actor = e.actor === 'character' ? playerName : monsterName;
     const target = e.target === 'character' ? playerName : e.target === 'monster' ? monsterName : actor;
+    if (e.action === 'sp_regen') return `${monsterName} regenerates ${Number(e.amount ?? 0)} SP.`;
     const status = String(e.status ?? 'status').replace(/_/g, ' ').toLowerCase();
     if (e.action === 'status_damage') return `${target} takes ${Number(e.damage ?? 0)} pure ${status} damage`;
     if (e.action === 'freeze_applied') return `${target} is freezing (${Number(e.stackCount ?? 1)})`;

@@ -1,7 +1,7 @@
 import { Directive, ElementRef, OnDestroy } from '@angular/core';
 
 @Directive({
-  selector: '.item-tooltip:not(.diet-tooltip), .diet-slot, .status-effect-icon',
+  selector: '.item-tooltip:not(.diet-tooltip):not(.status-tooltip), .diet-slot, .status-effect-icon',
   standalone: true,
 })
 export class TooltipPositionDirective implements OnDestroy {
