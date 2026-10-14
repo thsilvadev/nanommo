@@ -307,7 +307,12 @@ export class GrindInfo implements OnDestroy {
       if(['status_applied','status_stack_applied','status_refreshed','freeze_applied'].includes(String(e.action))){const expires=Number(e.expiresAtTick??(Number(e.tick??0)+Number(e.durationTicks??0)));if(expires>tick){const st={type:id,expiresAtTick:expires};active.set(id,e.action==='status_refreshed'?[st]:[...a.filter(x=>Number(x.expiresAtTick)!==expires),st])}}
       else if(e.action==='status_ended')active.delete(id);else if(e.action==='status_stack_lessened')active.set(id,a.slice(0,Math.max(0,Number(e.remainingStacks??e.stackCount??a.length-1))));
     }
-    return [...active.entries()].map(([id,stacks])=>({id,type:id,stacks:stacks.length,expiresAtTick:Math.max(...stacks.map(x=>Number(x.expiresAtTick??tick))),name:this.catalog.statusEffect(id)?.name??id,tooltip:`${this.catalog.statusEffect(id)?.name??id} · ${stacks.length} stack(s)`})).filter(x=>x.stacks>0&&x.expiresAtTick>tick);
+    return [...active.entries()].map(([id,stacks])=>{
+      const def:any=this.catalog.statusEffect(id)??{name:id,maxStacks:1};
+      const expiresAtTick=Math.max(...stacks.map(x=>Number(x.expiresAtTick??tick)));
+      const remaining=Math.max(0,expiresAtTick-tick);
+      return {id,type:id,stacks:stacks.length,expiresAtTick,maxStacks:Number(def.maxStacks??1),remaining,name:String(def.name??id.replace(/_/g,' ')),tooltip:`${String(def.name??id)} · ${stacks.length}/${Number(def.maxStacks??1)} stacks · ${remaining}s remaining`};
+    }).filter(x=>x.stacks>0&&x.remaining>0);
   }
   monsterSp(entry:any){return Number(this.lastEvent(entry)?.spRemaining?.monster??this.monsterSnapshot(entry).sp??0)}
   monsterMaxSp(entry:any){return Number(this.monsterSnapshot(entry).maxSp??0)}
@@ -361,7 +366,10 @@ export class GrindInfo implements OnDestroy {
     if (e.action === 'status_ended' || e.action === 'status_expired') return `${target}'s ${status} ended`;
     if (e.action === 'status_applied' || e.action === 'status_refreshed') return `${actor} applies ${status} to ${target}`;
     if (e.action === 'attack') { const critical = e.crit ? ' CRITICAL!' : ''; return actor + ' attacks for ' + Number(e.damage ?? 0) + critical; }
-    if (e.action === 'regen') return `${actor} regenerated ${Number(e.amount ?? 0)} ${String(e.resource ?? 'HP')}.`;
+    if (e.action === 'regen') {
+      const resource = String(e.resource ?? 'HP').replace(/_regen$/, '').toUpperCase() || 'HP';
+      return `${actor} regenerated ${Number(e.amount ?? 0)} ${resource}.`;
+    }
     if (e.action === 'use_item') return (e.actor === 'character' ? playerName + ' uses ' : monsterName + ' uses ') + String(e.itemId ?? 'item').replaceAll('_', ' ');
     if (e.action === 'use_skill') {
       const skill = String(e.skillId ?? 'skill') === 'monster_skill_ice_bolt' ? 'Ice Bolt' : String(e.skillId ?? 'skill').replaceAll('_', ' ');
