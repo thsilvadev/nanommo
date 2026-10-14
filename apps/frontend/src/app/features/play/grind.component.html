@@ -3,7 +3,7 @@
     <div class="active-gambit">
       <div class="active-gambit-title">Active Gambit</div>
       <select
-        [value]="character.character()?.activeGambitPageId || ''"
+        [value]="activeGambitId()"
         [disabled]="loading() || !gambits().length"
         (change)="selectGambit($any($event.target).value)"
         aria-label="Active Gambit">

@@ -1,24 +1,43 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ApiService } from '../../core/api.service';
 import { CharacterStore } from '../../core/game.store';
 import { GambitPage } from '../../core/game.models';
 import { MapBoard, InventoryGrid } from './components';
 @Component({selector:'app-grind',standalone:true,imports:[CommonModule,MapBoard,InventoryGrid],templateUrl:'./grind.component.html',styleUrl:'./grind.component.css'})
-export class GrindComponent {
+export class GrindComponent implements OnInit {
   readonly api=inject(ApiService);
   readonly character=inject(CharacterStore);
   readonly gambits=signal<GambitPage[]>([]);
   readonly loading=signal(false);
   readonly error=signal<string|null>(null);
   readonly huntMode=signal<'hunting'|'defensive'|'fleeing'>('hunting');
+  
+  readonly activeGambitId=computed(()=>{
+    const activeId=this.character.character()?.activeGambitPageId;
+    const gambitList=this.gambits();
+    if(gambitList.length===0)return'';
+    if(activeId&&gambitList.some(g=>g.id===activeId)){
+      return activeId;
+    }
+    const defaultGambit=gambitList.find(g=>g.slotIndex===0);
+    return defaultGambit?.id||gambitList[0]?.id||'';
+  });
 
-  constructor(){void this.loadGambits();}
+  ngOnInit(){void this.loadGambits();}
 
   async loadGambits(){
     try{
       const pages=await this.api.get<GambitPage[]>('/gambits').toPromise()??[];
       this.gambits.set(pages);
+      const activeId=this.character.character()?.activeGambitPageId;
+      const isValid=activeId&&pages.some(p=>p.id===activeId);
+      if(!isValid&&pages.length>0){
+        const defaultPage=pages.find(p=>p.slotIndex===0);
+        if(defaultPage){
+          await this.selectGambit(defaultPage.id);
+        }
+      }
     }catch{
       this.error.set('Unable to load Gambits');
     }
