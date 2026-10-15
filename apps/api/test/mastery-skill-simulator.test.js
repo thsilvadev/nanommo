@@ -118,11 +118,53 @@ function run() {
   const heavy = runActiveSkill('heavy_swing', { rank: 2, atk: 100000, monster: { hp: 150000 } });
   const heavyHit = heavy.result.log.events.find((e) => e.action === 'use_skill' && e.skillId === 'heavy_swing');
   assert(heavyHit, 'Heavy Swing executes');
-  assert.equal(heavyHit.baseSpCost, 15, 'Heavy Swing uses rank-based SP cost');
-  assert.equal(heavyHit.spSpent, 15);
-  assert.equal(heavy.skill.cooldownTicks, 15);
+  assert.equal(heavyHit.baseSpCost, 35, 'Heavy Swing uses the configured rank-based SP cost');
+  assert.equal(heavyHit.spSpent, 35);
+  assert.equal(heavy.skill.cooldownTicks, 25);
   assert.equal(heavyHit.crit, false);
-  assert(heavyHit.damage > 198000 && heavyHit.damage < 202100, 'Heavy Swing multiplies physical ATK by rank');
+  assert(heavyHit.damage > 108900 && heavyHit.damage < 111200, 'rank 2 Heavy Swing deals (ATK × 1.1) + (20 × rank), before mitigation/variance');
+
+  const heavyDisarm = heavy.result.log.events.find((e) => e.action === 'status_applied' && e.status === 'disarm' && e.sourceSkillId === 'heavy_swing');
+  assert(heavyDisarm, 'Heavy Swing always applies Disarm to a surviving target');
+  assert.equal(heavyDisarm.durationTicks, 6, 'rank 2 Heavy Swing disarms for six ticks');
+  for (let rank = 1; rank <= 5; rank++) {
+    const rankedHeavy = runActiveSkill('heavy_swing', {
+      rank, atk: 100000, monster: { hp: 250000 }, seed: 'heavy-disarm-rank-' + rank,
+    });
+    const applied = rankedHeavy.result.log.events.find((e) => e.action === 'status_applied' && e.status === 'disarm' && e.sourceSkillId === 'heavy_swing');
+    assert(applied, 'Heavy Swing rank ' + rank + ' applies Disarm');
+    assert.equal(applied.durationTicks, rank * 3, 'Heavy Swing rank ' + rank + ' has rank-scaled Disarm duration');
+  }
+
+  const approachHeavy = rankedDefinition('heavy_swing', 5);
+  const approachBrutality = rankedDefinition('brutality', 5);
+  const approachCharacter = character({
+    hp: 500000, maxHp: 500000, atk: 100, dex: 100, attackSpeed: 800,
+    combatStyle: 'melee', basicAttackDamageType: 'melee', basicAttackRange: 0,
+    masteryEquipment: [equipped('greatsword', 'mainHand', true)],
+    skills: { heavy_swing: approachHeavy },
+    skillDefs: { heavy_swing: approachHeavy, brutality: approachBrutality },
+  });
+  const heavyFirstPage = { lines: [
+    { priority: 1, conditions: [{ id: 'always' }], action: { id: 'use_skill', params: { skillId: 'heavy_swing' } } },
+    { priority: 2, conditions: [{ id: 'always' }], action: { id: 'attack' } },
+  ] };
+  const approachHeavyResult = simulate(
+    approachCharacter,
+    monster({ id: 'ranged-approach-target', hp: 100000, combatStyle: 'ranged', basicAttackDamageType: 'ranged', basicAttackRange: 6, moveSpeedBase: 0 }),
+    heavyFirstPage,
+    'heavy-swing-approach-priority',
+  );
+  const firstHeavy = approachHeavyResult.log.events.find((e) => e.actor === 'character' && e.action === 'use_skill' && e.skillId === 'heavy_swing');
+  const firstBasicAttack = approachHeavyResult.log.events.find((e) => e.actor === 'character' && e.action === 'attack');
+  assert(firstHeavy, 'Heavy Swing resolves after the melee character approaches a ranged target');
+  assert(firstBasicAttack && firstBasicAttack.tick > firstHeavy.tick,
+    'basic Attack must begin after Heavy Swing; the two actions cannot resolve in the same tick');
+  assert(!approachHeavyResult.log.events.some((e) =>
+    e.actor === 'character' && e.action === 'attack' && e.distanceAtActionStart === 0 && e.tick <= firstHeavy.tick),
+    'the character does not basic-attack on arrival before the first ready Heavy Swing');
+  const moveToMelee = approachHeavyResult.log.events.find((e) => e.actor === 'character' && e.action === 'move' && e.toPosition === 6);
+  assert(moveToMelee && moveToMelee.tick <= firstHeavy.tick, 'the character reaches melee range before Heavy Swing resolves');
 
   const fireball = runActiveSkill('fire_ball', { atk: 100000, matk: 50000, monster: { hp: 140000 } });
   const fireballHit = fireball.result.log.events.find((e) => e.action === 'use_skill' && e.skillId === 'fire_ball');
@@ -233,17 +275,14 @@ function run() {
   assert.equal(focusAttack.fearlessDamageMultiplier, 1.18, 'Fearless Focus applies one percent damage per rank and empty space');
   assert.equal(focusAttack.precisionUsed, 518, 'Fearless Focus adds rank times distance to the hit roll');
 
-  let brutalityDisarm = false;
-  for (let i = 0; i < 100 && !brutalityDisarm; i++) {
-    const passive = rankedDefinition('brutality', 1);
-    const snapshot = character({
-      atk: 5000, masteryEquipment: [equipped('greatsword', 'mainHand', true)],
-      skills: {}, skillDefs: { brutality: passive },
-    });
-    const attempt = simulate(snapshot, monster({ hp: 50000 }), page(null), 'disarm-' + i);
-    brutalityDisarm = attempt.log.events.some((e) => e.action === 'status_applied' && e.status === 'disarm' && e.sourceSkillId === 'brutality');
-  }
-  assert(brutalityDisarm, 'Brutality can disarm an enemy on a successful damage event');
+  const brutalityOnly = rankedDefinition('brutality', 5);
+  const brutalitySnapshot = character({
+    atk: 100, masteryEquipment: [equipped('greatsword', 'mainHand', true)],
+    skills: {}, skillDefs: { brutality: brutalityOnly },
+  });
+  const brutalityOnlyResult = simulate(brutalitySnapshot, monster({ hp: 1000 }), page(null), 'brutality-is-str-only');
+  assert(!brutalityOnlyResult.log.events.some((e) => e.status === 'disarm' && e.sourceSkillId === 'brutality'),
+    'Brutality only contributes its STR passive and never attempts Disarm');
 
   let doubleStrike = false;
   for (let i = 0; i < 80 && !doubleStrike; i++) {

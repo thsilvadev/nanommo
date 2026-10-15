@@ -792,12 +792,6 @@ export class BattleEngine {
       }
     };
 
-    const tryBrutalityDisarm = (damage: number) => {
-      const rank = Math.max(0, Number(self.skillDefs?.brutality?.masteryRank ?? 0));
-      if (rank <= 0 || damage <= 0 || foe.hp <= 0 || hasStatus(foe, 'disarm')) return;
-      if (rng.chance(0.01)) applyStatus(foe, 'disarm', 'brutality', 5, {}, 'character');
-    };
-
     /**
      * Approach is movement intent, not an attack/cast execution. Resolve the
      * currently legal target action for each gauge every tick so a distant
@@ -906,10 +900,31 @@ export class BattleEngine {
       const monsterCooldownsExpiring = new Set(Object.keys(foeCooldowns).filter((key) => Number(foeCooldowns[key]) === 1));
       BattleEngine.tickCooldowns(foeCooldowns);
 
+      // Evaluate this tick's cast choice before processing the basic-attack
+      // gauge. A selected, ready skill in range owns the tick, so a basic
+      // attack cannot resolve before/alongside it. Its Attack gauge restarts
+      // after the skill action rather than firing on the same tick.
+      const characterCastChoice = GambitEvaluator.evaluateGambitPage(
+        normalizedGambitPage, 'cast', self, foe, inventory, itemDefinitions,
+      );
+      const prioritySkillId = characterCastChoice?.action?.skillId ?? characterCastChoice?.action?.params?.skillId;
+      const prioritySkillDef = prioritySkillId ? (self.skillDefs?.[prioritySkillId] ?? {}) : {};
+      const prioritySkillRange = prioritySkillDef.ranged === true
+        ? Math.max(0, Number(prioritySkillDef.maxRange ?? 7) - 1)
+        : Math.max(0, Number(prioritySkillDef.maxRange ?? 1) - 1);
+      const prioritySkillSelfTarget = prioritySkillDef.target === 'self';
+      const prioritySkillBlinkstrike = prioritySkillDef.effect?.type === 'blinkstrike';
+      const characterSkillHasCastPriority = (self.castLockTicks ?? 0) <= 0
+        && characterCastChoice?.action?.id === 'use_skill'
+        && (prioritySkillSelfTarget || prioritySkillBlinkstrike || distanceBetween() <= prioritySkillRange);
+
       // ===== CHARACTER: ATTACK GAUGE =====
       // SPEC §7.2: while that gauge's action is resolving, the gauge is locked
       // at zero and refilling restarts once the action resolves.
-      if ((self.attackLockTicks ?? 0) <= 0) {
+      if (characterSkillHasCastPriority) {
+        // Do not let Attack resolve on the same tick as the selected skill.
+        attackGauge = 0;
+      } else if ((self.attackLockTicks ?? 0) <= 0) {
         // Recompute every tick so status application/stack loss/expiry changes
         // only the future refill rate while preserving already-earned progress.
         attackGauge += 1 / selfAttackDurationTicks();
@@ -989,7 +1004,6 @@ export class BattleEngine {
                 'character',
               );
             }
-            tryBrutalityDisarm(damage);
             const arcaneDynamoRank = Math.max(0, Number(self.skillDefs?.arcane_dynamo?.masteryRank ?? 0));
             if (landed && arcaneDynamoRank > 0) {
               const beforeRefund = self.sp;
@@ -1008,14 +1022,14 @@ export class BattleEngine {
         castGauge += 1;
         if (castGauge >= selfCastThreshold) {
           castGauge = 0;
-          const choice = GambitEvaluator.evaluateGambitPage(
-            normalizedGambitPage,
-            'cast',
-            self,
-            foe,
-            inventory,
-            itemDefinitions,
-          );
+          // If the skill was not granted exclusive priority before Attack,
+          // re-evaluate after Attack resolves: passives such as Arcane Dynamo
+          // can change SP and therefore alter cast-gauge legality on this tick.
+          const choice = characterSkillHasCastPriority
+            ? characterCastChoice
+            : GambitEvaluator.evaluateGambitPage(
+              normalizedGambitPage, 'cast', self, foe, inventory, itemDefinitions,
+            );
 
           const selectedSkillId = choice?.action?.skillId ?? choice?.action?.params?.skillId;
           const selectedSkillDef = selectedSkillId ? (self.skillDefs?.[selectedSkillId] ?? {}) : {};
@@ -1207,7 +1221,8 @@ export class BattleEngine {
                 if (effectType === 'physical_damage') {
                   raw = effect.multiplierPerRank === true
                     ? Number(self.atk ?? 0) * rank
-                    : Number(self.atk ?? 0) + Number(effect.flatPerRank ?? 0) * rank;
+                    : Number(self.atk ?? 0) * Number(effect.atkMultiplier ?? 1)
+                      + Number(effect.flatPerRank ?? 0) * rank;
                 } else if (effectType === 'physical_push') {
                   raw = Number(effect.damagePerRank ?? 50) * rank;
                 } else if (effectType === 'magic_damage') {
@@ -1238,7 +1253,36 @@ export class BattleEngine {
                   crit: false, hit: true, spSpent: spCost, baseSpCost,
                   ...(effectType === 'physical_push' ? { pushDistanceTarget: Number(effect.targetDistance ?? 6) } : {}),
                 });
-                tryBrutalityDisarm(damage);
+
+                const appliedStatusId = String(effect.applyStatus ?? '');
+                if (appliedStatusId && foe.hp > 0 && statusEffectDefs[appliedStatusId]) {
+                  const statusDefinition = statusEffectDefs[appliedStatusId] ?? {};
+                  const existingStatuses = (foe.statusEffects ?? []).filter(
+                    (status: any) => statusIdOf(status) === appliedStatusId,
+                  );
+                  const stackable = statusDefinition.stackable === true;
+                  const maxStacks = stackable ? Math.max(1, Math.floor(Number(statusDefinition.maxStacks ?? 1))) : 1;
+                  const canApply = stackable
+                    ? existingStatuses.length < maxStacks
+                    : existingStatuses.length === 0 || statusDefinition.reapplication === 'refresh';
+                  if (canApply) {
+                    const statusChance = Math.max(0, Math.min(1, Number(effect.statusChance ?? 1)));
+                    if (statusChance >= 1 || rng.chance(statusChance)) {
+                      const durationByRank = effect.statusDurationTicksByRank;
+                      const configuredDuration = Array.isArray(durationByRank)
+                        ? durationByRank[Math.min(rank, durationByRank.length) - 1]
+                        : effect.statusDurationTicks;
+                      applyStatus(
+                        foe,
+                        appliedStatusId,
+                        skillId,
+                        configuredDuration === undefined ? undefined : Math.floor(Number(configuredDuration)),
+                        {},
+                        'character',
+                      );
+                    }
+                  }
+                }
 
                 const burnChance = Math.max(0, Math.min(1, Number(effect.burnChance ?? 0)));
                 if (burnChance > 0 && foe.hp > 0 && rng.chance(burnChance)) {

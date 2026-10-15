@@ -30,7 +30,7 @@ const resolved = (id, rank) => {
   assert.ok(skill, `skill ${id} exists`);
   return resolveRankScaledSkill(skill, rank);
 };
-assert.deepEqual([1,2,3,4,5].map((rank) => resolved('heavy_swing', rank).spCost), [10,15,20,25,30]);
+assert.deepEqual([1,2,3,4,5].map((rank) => resolved('heavy_swing', rank).spCost), [30,35,40,45,50]);
 for (const [id, perRank] of [['fire_ball',10],['fire_blast',100],['wisp_flow',5],['light_of_heaven',20],['magic_barrier',50]]) {
   assert.deepEqual([1,2,3,4,5].map((rank) => resolved(id,rank).spCost), [1,2,3,4,5].map((rank) => perRank*rank));
 }

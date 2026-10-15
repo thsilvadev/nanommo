@@ -70,16 +70,14 @@
         "maxRank": 5,
         "prerequisite": null,
         "spCost": 0,
-        "description": "+6 STR per rank; damage events have a 1% disarm chance.",
-        "effectDescription": "+6 STR per rank; damage events have a 1% disarm chance.",
+        "description": "+6 STR per rank.",
+        "effectDescription": "+6 STR per rank.",
         "requiresWeaponEquipped": "greatsword",
         "baseCastTicks": 0,
         "cooldownTicks": 0,
         "effect": {
           "type": "brutality_passive",
-          "strPerRank": 6,
-          "disarmChance": 0.01,
-          "disarmDurationTicks": 5
+          "strPerRank": 6
         }
       },
       {
@@ -95,22 +93,26 @@
           "rank": 5
         },
         "spCost": 10,
-        "description": "10–30 SP; ATK × rank; 15 second cooldown.",
-        "effectDescription": "10–30 SP; ATK × rank; 15 second cooldown.",
+        "description": "30–50 SP by rank; (ATK × 1.1) + (20 × rank) physical damage; Disarm for 3/6/9/12/15 seconds by rank; 25 second cooldown.",
+        "effectDescription": "30–50 SP by rank; (ATK × 1.1) + (20 × rank) physical damage; Disarm for 3/6/9/12/15 seconds by rank; 25 second cooldown.",
         "requiresWeaponEquipped": "greatsword",
         "spCostByRank": [
-          10,
-          15,
-          20,
-          25,
-          30
+          30,
+          35,
+          40,
+          45,
+          50
         ],
         "baseCastTicks": 2,
-        "cooldownTicks": 15,
+        "cooldownTicks": 25,
         "effect": {
           "type": "physical_damage",
           "base": "atk",
-          "multiplierPerRank": true
+          "atkMultiplier": 1.1,
+          "flatPerRank": 20,
+          "applyStatus": "disarm",
+          "statusChance": 1,
+          "statusDurationTicksByRank": [3, 6, 9, 12, 15]
         },
         "target": "monster"
       }
