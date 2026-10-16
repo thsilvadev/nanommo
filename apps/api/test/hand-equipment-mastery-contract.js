@@ -42,8 +42,8 @@ assert.deepEqual(
   ['equip_bow_t1', 'equip_bow_t2', 'equip_bow_t3'].map((id) => item(id).fixedStats.accuracyModifier),
   [-75, -74, -73],
 );
-assert.equal(BattleEngine.calculateDerivedStats(1, { str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5 }, {}).accuracy, 80);
-assert.equal(BattleEngine.calculateDerivedStats(1, { str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5 }, { accuracyModifier: -75 }).accuracy, 5);
+assert.equal(BattleEngine.calculateDerivedStats(1, { str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5 }, {}).accuracy, 80);
+assert.equal(BattleEngine.calculateDerivedStats(1, { str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5 }, { accuracyModifier: -75 }).accuracy, 5);
 
 const policy = { twoHandedAction: 2, oneHandedAction: 1, shieldOnHit: 1, runeOnHit: 1 };
 assert.deepEqual(getMasteryXpPolicy({}), policy);

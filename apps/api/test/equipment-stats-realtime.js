@@ -11,7 +11,7 @@ const equippedRows = [
   { characterId: 'c1', slot: 'accessoryLeft', itemId: ring.id, instanceData: { rolledAttribute: 'SOR', rolledValue: 4 } },
 ];
 const repo = { find: async () => equippedRows, findOne: async () => null, save: async x => x, create: x => x, delete: async () => {} };
-const character = { id: 'c1', level: 1, str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5, status: 'town', pendingEquipmentChanges: null, lastSeenAt: new Date() };
+const character = { id: 'c1', level: 1, str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5, status: 'town', pendingEquipmentChanges: null, lastSeenAt: new Date() };
 const characterRepo = { findOne: async () => character, save: async x => x };
 const inventoryRepo = { findOne: async () => ({ id: 'inv-ring', characterId: 'c1', location: 'inventory', itemId: ring.id, slotIndex: 0, quantity: 1, instanceData: { rolledAttribute: 'SOR', rolledValue: 4 } }), delete: async () => {}, find: async () => [], save: async x => x, create: x => x };
 const queueRepo = { findOne: async () => null };

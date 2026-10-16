@@ -8,12 +8,12 @@
     </div>
     <div class="map-art">
         <div class="grid-overlay"></div>
-        <div class="town-center" role="button" tabindex="0" [attr.aria-label]="'Return to '+(townMap?.name || 'Town')" (click)="enterTown()"
+        <div class="town-center" role="button" tabindex="0" [style.gridColumn]="(townMap?.coordinates?.x ?? 0) + 1" [style.gridRow]="(townMap?.coordinates?.y ?? 0) + 1" [attr.aria-label]="'Return to '+(townMap?.name || 'Town')" (click)="enterTown()"
             (keydown.enter)="enterTown()" (keydown.space)="enterTown()"><img src="/assets/ui/map.svg" alt=""><b>{{townMap?.name || 'Town'}}</b>
-        </div><button type="button" *ngFor="let tile of grindMaps" class="map-tile"
+        </div><button type="button" *ngFor="let tile of grindMaps" class="map-tile" [style.gridColumn]="(tile.coordinates?.x ?? 0) + 1" [style.gridRow]="(tile.coordinates?.y ?? 0) + 1"
             [class.selected]="tile.id===selected() || tile.id===character.character()?.currentMapId"
-            [class.locked]="tile.unlockLevel>level()" (click)="select(tile); enter(tile.id)"
-            [attr.aria-disabled]="tile.unlockLevel>level()" [disabled]="tile.unlockLevel>level()"
+            [class.locked]="tile.isClickable === false || tile.unlockLevel>level()" (click)="select(tile); enter(tile.id)"
+            [attr.aria-disabled]="tile.isClickable === false || tile.unlockLevel>level()" [disabled]="tile.isClickable === false || tile.unlockLevel>level()"
             (keydown.enter)="enter(tile.id)" (keydown.space)="enter(tile.id)"><img src="/assets/ui/map.svg"
                 alt=""><b>{{tile.name}}</b><small>Lv {{tile.unlockLevel}}</small></button>
     </div>

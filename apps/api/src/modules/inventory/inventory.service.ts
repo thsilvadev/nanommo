@@ -619,7 +619,7 @@ export class InventoryService {
       maxSp += Number(item?.fixedStats?.maxSp ?? 0);
     }
     const stats = BattleEngine.calculateDerivedStats(character.level, {
-      str: character.str, agi: character.agi, dex: character.dex, vit: character.vit, int: character.int, sor: character.sor,
+      str: character.str, agi: character.agi, dex: character.dex, vit: character.vit, int: character.int, luk: character.luk,
     }, { maxHp, maxSp });
     return { maxHp: stats.maxHp, maxSp: stats.maxSp };
   }

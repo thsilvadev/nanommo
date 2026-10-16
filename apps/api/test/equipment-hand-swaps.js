@@ -141,7 +141,7 @@ function makeHarness({ status = 'town', equipped = [], inventory = [] } = {}) {
     });
     const stats = await service.calculateEquipmentStats('c1');
     assert.equal(stats.weaponFixedAtk, 11, 'main hand 8 plus half of secondary Dagger ATK 6');
-    const derived = await service.calculateDerivedStats({ id: 'c1', level: 1, str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5 });
+    const derived = await service.calculateDerivedStats({ id: 'c1', level: 1, str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5 });
     assert.equal(derived.atk, 21, 'derived ATK includes each weapon contribution exactly once');
   }
 

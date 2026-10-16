@@ -1,0 +1,188 @@
+{
+  "maps": [
+    {
+      "id": "map_town",
+      "name": "Town",
+      "coordinates": {
+        "x": 0,
+        "y": 0
+      },
+      "isClickable": true,
+      "type": "town",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 0,
+      "monsters": [],
+      "unlockLevel": 1,
+      "isTown": true
+    },
+    {
+      "id": "map_lv_1",
+      "name": "lv. 1",
+      "coordinates": {
+        "x": 0,
+        "y": 1
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": true,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_slime",
+          "presenceRate": 33.33
+        },
+        {
+          "monsterId": "mon_fieldbat",
+          "presenceRate": 33.33
+        },
+        {
+          "monsterId": "mon_thornsprout",
+          "presenceRate": 33.34
+        }
+      ],
+      "unlockLevel": 1
+    },
+    {
+      "id": "map_lv_6",
+      "name": "lv. 6",
+      "coordinates": {
+        "x": 0,
+        "y": 2
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_mudcrawler",
+          "presenceRate": 33.33
+        },
+        {
+          "monsterId": "mon_direwolf",
+          "presenceRate": 33.33
+        },
+        {
+          "monsterId": "mon_cindergolem",
+          "presenceRate": 33.34
+        }
+      ],
+      "unlockLevel": 6
+    },
+    {
+      "id": "map_lv_11",
+      "name": "lv. 11",
+      "coordinates": {
+        "x": 0,
+        "y": 3
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_sandscorpion",
+          "presenceRate": 25.0
+        },
+        {
+          "monsterId": "mon_mirageStalker",
+          "presenceRate": 25.0
+        },
+        {
+          "monsterId": "mon_mudflatcrocodile",
+          "presenceRate": 25.0
+        },
+        {
+          "monsterId": "mon_gravelhorn",
+          "presenceRate": 25.0
+        }
+      ],
+      "unlockLevel": 11
+    },
+    {
+      "id": "map_lv_16",
+      "name": "lv. 16",
+      "coordinates": {
+        "x": 0,
+        "y": 4
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_ridgebreaker",
+          "presenceRate": 50.0
+        },
+        {
+          "monsterId": "mon_saltfangcrab",
+          "presenceRate": 50.0
+        }
+      ],
+      "unlockLevel": 16
+    },
+    {
+      "id": "map_lv_21",
+      "name": "lv. 21",
+      "coordinates": {
+        "x": 0,
+        "y": 5
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_duneraider",
+          "presenceRate": 25.0
+        },
+        {
+          "monsterId": "mon_venomviper",
+          "presenceRate": 25.0
+        },
+        {
+          "monsterId": "mon_bandit",
+          "presenceRate": 25.0
+        },
+        {
+          "monsterId": "mon_needlebackstalker",
+          "presenceRate": 25.0
+        }
+      ],
+      "unlockLevel": 21
+    },
+    {
+      "id": "map_lv_26",
+      "name": "lv. 26",
+      "coordinates": {
+        "x": 0,
+        "y": 6
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_giantmosquito",
+          "presenceRate": 50.0
+        },
+        {
+          "monsterId": "mon_rootboundbrute",
+          "presenceRate": 50.0
+        }
+      ],
+      "unlockLevel": 26
+    }
+  ]
+}

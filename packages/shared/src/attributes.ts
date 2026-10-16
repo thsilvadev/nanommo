@@ -6,7 +6,7 @@
  * passives, and any future buff/debuff — into one value. Sources are
  * plain partial maps, so new contributors plug in without edits here.
  */
-export type AttributeKey = 'STR' | 'AGI' | 'DEX' | 'VIT' | 'INT' | 'SOR';
+export type AttributeKey = 'STR' | 'AGI' | 'DEX' | 'VIT' | 'INT' | 'LUK';
 
 export type AttributeBonuses = Record<AttributeKey, number>;
 
@@ -16,13 +16,13 @@ export type BaseAttributes = {
   dex: number;
   vit: number;
   int: number;
-  sor: number;
+  luk: number;
 };
 
-export const ATTRIBUTE_KEYS: readonly AttributeKey[] = ['STR', 'AGI', 'DEX', 'VIT', 'INT', 'SOR'];
+export const ATTRIBUTE_KEYS: readonly AttributeKey[] = ['STR', 'AGI', 'DEX', 'VIT', 'INT', 'LUK'];
 
 export function emptyAttributeBonuses(): AttributeBonuses {
-  return { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 };
+  return { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, LUK: 0 };
 }
 
 /**
@@ -54,7 +54,7 @@ export function applyAttributeBonuses(
     dex: Number(base.dex ?? 0) + bonus.DEX,
     vit: Number(base.vit ?? 0) + bonus.VIT,
     int: Number(base.int ?? 0) + bonus.INT,
-    sor: Number(base.sor ?? 0) + bonus.SOR,
+    luk: Number(base.luk ?? 0) + bonus.LUK,
   };
 }
 

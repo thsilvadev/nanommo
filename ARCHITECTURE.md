@@ -1,3 +1,9 @@
+### Monster catalogue / map ownership overhaul (2026-10-16)
+
+Maps.json is the canonical source for map topology, map metadata, and weighted monster presence. Monsters.json contains species only; each map roster references monsterId and presenceRate. Town is map_town at (0,0); six grind maps map_lv_1 through map_lv_26 occupy (0,1) through (0,6). Root and frontend public catalogue copies must remain synchronized. Legacy character locations are migrated by character level, while active battle snapshots and historical battle logs are immutable.
+
+The shared attribute key is LUK/luk (not SOR/sor). Data migration preserves character values and renames equipment bonus keys without changing their numeric values. Damage matchups are declarative data; skill elements are explicit. saveButtLuck is an opt-in, non-player-facing skill property that reduces a chance by up to 10 percentage points based on the target total LUK.
+
 # NanoMMO - Architecture & Design Decisions
 
 ### Hand Equipment / Mastery application follow-up (2026-10-13)
@@ -528,7 +534,7 @@ Inventory, equipment and vendor stock use the same item presentation and central
 
 ### Tooltip safety boundary
 
-The current tooltip implementation uses pointer events and a document-level floating clone positioned relative to the cursor/viewport. A previous MutationObserver-per-tooltip implementation caused severe Firefox CPU/UI freezes and had to be removed. Do not reintroduce MutationObserver-driven tooltip positioning or container-local tooltip elements that can be clipped by overflow.
+The current tooltip implementation uses pointer events and a document-level floating clone positioned relative to the curluk/viewport. A previous MutationObserver-per-tooltip implementation caused severe Firefox CPU/UI freezes and had to be removed. Do not reintroduce MutationObserver-driven tooltip positioning or container-local tooltip elements that can be clipped by overflow.
 
 ### Desktop/mobile isolation
 
@@ -555,7 +561,7 @@ Monster catalog metadata is explicit and mirrored in the frontend public catalog
 
 Inventory ordering is a persisted part of `InventoryItem.slotIndex`, not a local-only visual reorder. The shared Angular `InventoryGrid` is used by both Grind and the Character tab, so controls and drop behavior belong there rather than in route-specific copies.
 
-The authenticated inventory API owns two layout mutations: moving a row to a target slot and sorting a complete inventory row-ID order. A move to an occupied slot swaps the two rows. A move to an empty slot leaves the source slot empty. Sorting validates that the request contains each current inventory row exactly once, then compacts occupied slots from index 0 without merging or splitting stacks. Both operations lock the Character before locking inventory rows and save the Character to advance its `stateVersion`; the client applies the returned Inventory + Character snapshot through its revision-aware stores. This prevents an older in-flight GET/realtime snapshot from casually replacing a newer accepted layout.
+The authenticated inventory API owns two layout mutations: moving a row to a target slot and lukting a complete inventory row-ID order. A move to an occupied slot swaps the two rows. A move to an empty slot leaves the source slot empty. Sorting validates that the request contains each current inventory row exactly once, then compacts occupied slots from index 0 without merging or splitting stacks. Both operations lock the Character before locking inventory rows and save the Character to advance its `stateVersion`; the client applies the returned Inventory + Character snapshot through its revision-aware stores. This prevents an older in-flight GET/realtime snapshot from casually replacing a newer accepted layout.
 
 The database constraint `UNIQUE(characterId, location, slotIndex)` means row swaps and compaction must not assign a destination before freeing/staging the conflicting index. Use a temporary index outside the user-facing range, then persist final indexes in a second step inside the same transaction. Do not leave temporary indexes committed.
 

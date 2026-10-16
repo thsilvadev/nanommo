@@ -51,8 +51,8 @@ export class Character {
   @Column({ type: 'int', default: 5 })
   int!: number;
 
-  @Column({ type: 'int', default: 5 })
-  sor!: number;
+  @Column({ name: 'luk', type: 'int', default: 5 })
+  luk!: number;
 
   @Column({ type: 'numeric', precision: 15, scale: 0, default: 0 })
   gold!: number;

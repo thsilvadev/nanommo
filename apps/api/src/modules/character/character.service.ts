@@ -43,7 +43,7 @@ export class CharacterService {
       weaponFixedAtk: 0,
       weaponFixedMatk: 0,
       accuracyModifier: 0,
-      statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, SOR: 0 },
+      statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, LUK: 0 },
     };
     for (const row of equipped) {
       const item = this.dataService.getItemById(row.itemId);
@@ -127,7 +127,7 @@ export class CharacterService {
     }
 
     const baseStats = BattleEngine.calculateDerivedStats(1, {
-      str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5,
+      str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5,
     }, {});
 
     const character = this.characterRepository.create({
@@ -143,7 +143,7 @@ export class CharacterService {
       dex: 5,
       vit: 5,
       int: 5,
-      sor: 5,
+      luk: 5,
       gold: 0,
       hpCurrent: baseStats.maxHp,
       spCurrent: baseStats.maxSp,
@@ -317,7 +317,7 @@ export class CharacterService {
     if (attributes.dex) character.dex += attributes.dex;
     if (attributes.vit) character.vit += attributes.vit;
     if (attributes.int) character.int += attributes.int;
-    if (attributes.sor) character.sor += attributes.sor;
+    if (attributes.luk) character.luk += attributes.luk;
 
     character.unspentAttributePoints -= totalToSpend;
 
@@ -434,14 +434,14 @@ export class CharacterService {
       dex: character.dex,
       vit: character.vit,
       int: character.int,
-      sor: character.sor,
+      luk: character.luk,
       attributeBonuses: {
         STR: attributeBonuses.STR,
         AGI: attributeBonuses.AGI,
         DEX: attributeBonuses.DEX,
         VIT: attributeBonuses.VIT,
         INT: attributeBonuses.INT,
-        SOR: attributeBonuses.SOR,
+        LUK: attributeBonuses.LUK,
       },
       gold: Number(character.gold),
       hpCurrent: character.hpCurrent,

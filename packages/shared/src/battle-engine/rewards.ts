@@ -112,6 +112,12 @@ export function resolveDrops(
   items: ItemsCatalog,
   killIndex: number,
 ): ResolvedDrop[] {
+  // Existing queued battles keep their immutable legacy mapId. Resolve only the
+  // reward pool to the monster's new level band without rewriting that snapshot.
+  const legacyMap = ['map_green_grounds', 'map_menace', 'map_ruins'].includes(mapId);
+  const level = Math.max(1, Number(monster?.level ?? 1));
+  const levelMapId = level <= 5 ? 'map_lv_1' : level <= 10 ? 'map_lv_6' : level <= 15 ? 'map_lv_11' : level <= 20 ? 'map_lv_16' : level <= 25 ? 'map_lv_21' : 'map_lv_26';
+  const effectiveMapId = legacyMap ? levelMapId : mapId;
   const drops: ResolvedDrop[] = [];
   const entries: any[] = Array.isArray(monster?.drops) ? monster.drops : [];
   const monsterId = monster?.id ?? 'unknown_monster';
@@ -135,7 +141,7 @@ export function resolveDrops(
 
     if (itemId.startsWith(EQUIPMENT_POOL_SENTINEL_PREFIX) && itemId.endsWith(EQUIPMENT_POOL_SENTINEL_SUFFIX)) {
       const pickRng = rngForIndex(`${monsterId}:${killIndex}:${entryIndex}:equipment`, 0);
-      const equip = resolveEquipmentPool(items, mapId, pickRng);
+      const equip = resolveEquipmentPool(items, effectiveMapId, pickRng);
       if (!equip) return;
       const instanceData = rollEquipmentInstance(equip, pickRng);
       drops.push({

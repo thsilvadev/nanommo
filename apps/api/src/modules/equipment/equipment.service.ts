@@ -24,7 +24,7 @@ export interface EquipmentStats {
     DEX?: number;
     VIT?: number;
     INT?: number;
-    SOR?: number;
+    LUK?: number;
   };
 }
 
@@ -132,7 +132,7 @@ export class EquipmentService {
         DEX: 0,
         VIT: 0,
         INT: 0,
-        SOR: 0,
+        LUK: 0,
       },
     };
 

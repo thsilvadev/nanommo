@@ -589,7 +589,7 @@ async function getCharacterRow(charId) {
  * before HP/SP regen refills the pools.
  */
 async function setCharacterAttributes(charId, attributes) {
-  const cols = ['str', 'agi', 'dex', 'vit', 'int', 'sor'];
+  const cols = ['str', 'agi', 'dex', 'vit', 'int', 'luk'];
   const sets = [];
   const params = [charId];
   for (const col of cols) {
@@ -911,7 +911,7 @@ function attributesOf(row) {
     dex: Number(row.dex),
     vit: Number(row.vit),
     int: Number(row.int),
-    sor: Number(row.sor),
+    luk: Number(row.luk),
   };
 }
 
@@ -944,7 +944,7 @@ function attributesWithEquipment(attributes, equipmentStats) {
     dex: attributes.dex + Number(bonus.DEX ?? 0),
     vit: attributes.vit + Number(bonus.VIT ?? 0),
     int: attributes.int + Number(bonus.INT ?? 0),
-    sor: attributes.sor + Number(bonus.SOR ?? 0),
+    luk: attributes.luk + Number(bonus.SOR ?? 0),
   };
 }
 

@@ -509,6 +509,414 @@
         "future_crafting",
         "future_quests"
       ]
+    },
+    {
+      "id": "part_mudflatcrocodile_common",
+      "name": "Mudflat Crocodile Common Part",
+      "type": "monster_part",
+      "tier": 2,
+      "description": "A common material harvested from Mudflat Crocodile.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_mudflatcrocodile"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 24,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_mudflatcrocodile_rare",
+      "name": "Mudflat Crocodile Rare Part",
+      "type": "monster_part",
+      "tier": 2,
+      "description": "A rare material harvested from Mudflat Crocodile.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_mudflatcrocodile"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 240,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_bandit_common",
+      "name": "Bandit Common Part",
+      "type": "monster_part",
+      "tier": 3,
+      "description": "A common material harvested from Bandit.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_bandit"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 50,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_bandit_rare",
+      "name": "Bandit Rare Part",
+      "type": "monster_part",
+      "tier": 3,
+      "description": "A rare material harvested from Bandit.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_bandit"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 500,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_kwaioua_ranger_common",
+      "name": "Kwaiouá Ranger Common Part",
+      "type": "monster_part",
+      "tier": 4,
+      "description": "A common material harvested from Kwaiouá Ranger.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_kwaiouaranger"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 66,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_kwaioua_ranger_rare",
+      "name": "Kwaiouá Ranger Rare Part",
+      "type": "monster_part",
+      "tier": 4,
+      "description": "A rare material harvested from Kwaiouá Ranger.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_kwaiouaranger"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 660,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_sacredforestguardian_common",
+      "name": "Sacred Forest Guardian Common Part",
+      "type": "monster_part",
+      "tier": 5,
+      "description": "A common material harvested from Sacred Forest Guardian.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_sacredforestguardian"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 100,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_sacredforestguardian_rare",
+      "name": "Sacred Forest Guardian Rare Part",
+      "type": "monster_part",
+      "tier": 5,
+      "description": "A rare material harvested from Sacred Forest Guardian.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_sacredforestguardian"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 1000,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_gravelhorn_common",
+      "name": "Gravelhorn Common Part",
+      "type": "monster_part",
+      "tier": 2,
+      "description": "A common material harvested from Gravelhorn.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_gravelhorn"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 22,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_gravelhorn_rare",
+      "name": "Gravelhorn Rare Part",
+      "type": "monster_part",
+      "tier": 2,
+      "description": "A rare material harvested from Gravelhorn.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_gravelhorn"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 220,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_ridgebreaker_common",
+      "name": "Ridgebreaker Common Part",
+      "type": "monster_part",
+      "tier": 2,
+      "description": "A common material harvested from Ridgebreaker.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_ridgebreaker"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 36,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_ridgebreaker_rare",
+      "name": "Ridgebreaker Rare Part",
+      "type": "monster_part",
+      "tier": 2,
+      "description": "A rare material harvested from Ridgebreaker.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_ridgebreaker"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 360,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_saltfangcrab_common",
+      "name": "Saltfang Crab Common Part",
+      "type": "monster_part",
+      "tier": 2,
+      "description": "A common material harvested from Saltfang Crab.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_saltfangcrab"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 36,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_saltfangcrab_rare",
+      "name": "Saltfang Crab Rare Part",
+      "type": "monster_part",
+      "tier": 2,
+      "description": "A rare material harvested from Saltfang Crab.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_saltfangcrab"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 360,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_needlebackstalker_common",
+      "name": "Needleback Stalker Common Part",
+      "type": "monster_part",
+      "tier": 3,
+      "description": "A common material harvested from Needleback Stalker.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_needlebackstalker"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 42,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_needlebackstalker_rare",
+      "name": "Needleback Stalker Rare Part",
+      "type": "monster_part",
+      "tier": 3,
+      "description": "A rare material harvested from Needleback Stalker.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_needlebackstalker"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 420,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_giantmosquito_common",
+      "name": "Giant Mosquito Common Part",
+      "type": "monster_part",
+      "tier": 3,
+      "description": "A common material harvested from Giant Mosquito.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_giantmosquito"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 54,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_giantmosquito_rare",
+      "name": "Giant Mosquito Rare Part",
+      "type": "monster_part",
+      "tier": 3,
+      "description": "A rare material harvested from Giant Mosquito.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_giantmosquito"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 540,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_rootboundbrute_common",
+      "name": "Rootbound Brute Common Part",
+      "type": "monster_part",
+      "tier": 3,
+      "description": "A common material harvested from Rootbound Brute.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_rootboundbrute"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 58,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_rootboundbrute_rare",
+      "name": "Rootbound Brute Rare Part",
+      "type": "monster_part",
+      "tier": 3,
+      "description": "A rare material harvested from Rootbound Brute.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_rootboundbrute"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 580,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_moonleafarcanist_common",
+      "name": "Moonleaf Arcanist Common Part",
+      "type": "monster_part",
+      "tier": 5,
+      "description": "A common material harvested from Moonleaf Arcanist.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_moonleafarcanist"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 82,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_moonleafarcanist_rare",
+      "name": "Moonleaf Arcanist Rare Part",
+      "type": "monster_part",
+      "tier": 5,
+      "description": "A rare material harvested from Moonleaf Arcanist.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_moonleafarcanist"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 820,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_aramaianwarden_common",
+      "name": "Aramaian Warden Common Part",
+      "type": "monster_part",
+      "tier": 5,
+      "description": "A common material harvested from Aramaian Warden.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_aramaianwarden"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 110,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_aramaianwarden_rare",
+      "name": "Aramaian Warden Rare Part",
+      "type": "monster_part",
+      "tier": 5,
+      "description": "A rare material harvested from Aramaian Warden.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_aramaianwarden"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 1100,
+      "usableFor": [
+        "market_trade"
+      ]
     }
   ],
   "consumables": [
@@ -761,13 +1169,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1800,
       "marketBasePrice": 4500,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ],
       "allowedOffHandTypes": [
         "dagger",
@@ -797,13 +1206,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4680,
       "marketBasePrice": 11700,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ],
       "allowedOffHandTypes": [
         "dagger",
@@ -833,13 +1243,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 8640,
       "marketBasePrice": 21600,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ],
       "allowedOffHandTypes": [
         "dagger",
@@ -869,13 +1280,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 2300,
       "marketBasePrice": 5750,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -900,13 +1312,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 5980,
       "marketBasePrice": 14950,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -931,13 +1344,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 11040,
       "marketBasePrice": 27600,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -962,13 +1376,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1800,
       "marketBasePrice": 4500,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ],
       "secondaryHand": true,
       "sameTypePairingAllowed": true,
@@ -1000,13 +1415,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4680,
       "marketBasePrice": 11700,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ],
       "secondaryHand": true,
       "sameTypePairingAllowed": true,
@@ -1038,13 +1454,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 8640,
       "marketBasePrice": 21600,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ],
       "secondaryHand": true,
       "sameTypePairingAllowed": true,
@@ -1077,13 +1494,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1800,
       "marketBasePrice": 4500,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -1109,13 +1527,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4680,
       "marketBasePrice": 11700,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -1141,13 +1560,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 8640,
       "marketBasePrice": 21600,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -1172,13 +1592,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1800,
       "marketBasePrice": 4500,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -1203,13 +1624,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4680,
       "marketBasePrice": 11700,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -1234,13 +1656,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 8640,
       "marketBasePrice": 21600,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -1265,13 +1688,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1800,
       "marketBasePrice": 4500,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ],
       "allowedOffHandTypes": [
         "dagger",
@@ -1301,13 +1725,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4680,
       "marketBasePrice": 11700,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ],
       "allowedOffHandTypes": [
         "dagger",
@@ -1337,13 +1762,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 8640,
       "marketBasePrice": 21600,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ],
       "allowedOffHandTypes": [
         "dagger",
@@ -1373,13 +1799,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1800,
       "marketBasePrice": 4500,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -1404,13 +1831,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4680,
       "marketBasePrice": 11700,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -1435,13 +1863,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 8640,
       "marketBasePrice": 21600,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -1467,13 +1896,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1800,
       "marketBasePrice": 4500,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -1499,13 +1929,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4680,
       "marketBasePrice": 11700,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -1531,13 +1962,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 8640,
       "marketBasePrice": 21600,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -1564,13 +1996,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1600,
       "marketBasePrice": 4000,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -1597,13 +2030,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1600,
       "marketBasePrice": 4000,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -1630,13 +2064,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4160,
       "marketBasePrice": 10400,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -1663,13 +2098,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4160,
       "marketBasePrice": 10400,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -1696,13 +2132,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 7680,
       "marketBasePrice": 19200,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -1729,13 +2166,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 7680,
       "marketBasePrice": 19200,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -1762,13 +2200,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1600,
       "marketBasePrice": 4000,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -1795,13 +2234,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1600,
       "marketBasePrice": 4000,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -1828,13 +2268,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4160,
       "marketBasePrice": 10400,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -1861,13 +2302,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4160,
       "marketBasePrice": 10400,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -1894,13 +2336,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 7680,
       "marketBasePrice": 19200,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -1927,13 +2370,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 7680,
       "marketBasePrice": 19200,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -1960,13 +2404,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1600,
       "marketBasePrice": 4000,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -1993,13 +2438,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1600,
       "marketBasePrice": 4000,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -2026,13 +2472,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4160,
       "marketBasePrice": 10400,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -2059,13 +2506,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 4160,
       "marketBasePrice": 10400,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -2092,13 +2540,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 7680,
       "marketBasePrice": 19200,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -2125,13 +2574,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 7680,
       "marketBasePrice": 19200,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -2143,7 +2593,7 @@
       "tier": 1,
       "fixedStats": {
         "statBonus": {
-          "SOR": 2
+          "LUK": 5
         }
       },
       "randomRollOnDrop": {
@@ -2156,13 +2606,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1200,
       "marketBasePrice": 3000,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -2187,13 +2638,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 1200,
       "marketBasePrice": 3000,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -2205,7 +2657,7 @@
       "tier": 2,
       "fixedStats": {
         "statBonus": {
-          "SOR": 4
+          "LUK": 10
         }
       },
       "randomRollOnDrop": {
@@ -2218,13 +2670,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 3120,
       "marketBasePrice": 7800,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -2249,13 +2702,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 3120,
       "marketBasePrice": 7800,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -2267,7 +2721,7 @@
       "tier": 3,
       "fixedStats": {
         "statBonus": {
-          "SOR": 6
+          "LUK": 15
         }
       },
       "randomRollOnDrop": {
@@ -2280,13 +2734,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 5760,
       "marketBasePrice": 14400,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -2311,13 +2766,14 @@
           "DEX",
           "VIT",
           "INT",
-          "SOR"
+          "LUK"
         ]
       },
       "sellPriceToVendor": 5760,
       "marketBasePrice": 14400,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -2331,12 +2787,14 @@
         "elementalImmunity": "earth"
       },
       "randomRollOnDrop": {
-        "enabled": false
+        "enabled": false,
+        "attributesPool": []
       },
       "sellPriceToVendor": 1400,
       "marketBasePrice": 3500,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -2350,12 +2808,14 @@
         "elementalImmunity": "water"
       },
       "randomRollOnDrop": {
-        "enabled": false
+        "enabled": false,
+        "attributesPool": []
       },
       "sellPriceToVendor": 1400,
       "marketBasePrice": 3500,
       "dropPool": [
-        "map_green_grounds"
+        "map_lv_1",
+        "map_lv_6"
       ]
     },
     {
@@ -2369,12 +2829,14 @@
         "elementalImmunity": "fire"
       },
       "randomRollOnDrop": {
-        "enabled": false
+        "enabled": false,
+        "attributesPool": []
       },
       "sellPriceToVendor": 3640,
       "marketBasePrice": 9100,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -2388,12 +2850,14 @@
         "elementalImmunity": "shadow"
       },
       "randomRollOnDrop": {
-        "enabled": false
+        "enabled": false,
+        "attributesPool": []
       },
       "sellPriceToVendor": 3640,
       "marketBasePrice": 9100,
       "dropPool": [
-        "map_menace"
+        "map_lv_11",
+        "map_lv_16"
       ]
     },
     {
@@ -2407,12 +2871,14 @@
         "elementalImmunity": "wind"
       },
       "randomRollOnDrop": {
-        "enabled": false
+        "enabled": false,
+        "attributesPool": []
       },
       "sellPriceToVendor": 6720,
       "marketBasePrice": 16800,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     },
     {
@@ -2426,12 +2892,14 @@
         "elementalImmunity": "holy"
       },
       "randomRollOnDrop": {
-        "enabled": false
+        "enabled": false,
+        "attributesPool": []
       },
       "sellPriceToVendor": 6720,
       "marketBasePrice": 16800,
       "dropPool": [
-        "map_ruins"
+        "map_lv_21",
+        "map_lv_26"
       ]
     }
   ]

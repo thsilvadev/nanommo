@@ -4,7 +4,7 @@ export enum Attribute {
   DEX = 'dex',
   VIT = 'vit',
   INT = 'int',
-  SOR = 'sor',
+  LUK = 'luk',
 }
 
 export enum WeaponType {

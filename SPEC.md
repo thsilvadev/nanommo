@@ -199,7 +199,7 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | level | int, default 1 | 1–99 |
 | xp | bigint, default 0 | current XP toward next level |
 | unspentAttributePoints | int, default 0 | |
-| str / agi / dex / vit / int / sor | int, default 5 each | base 5 |
+| str / agi / dex / vit / int / luk | int, default 5 each | base 5 |
 | gold | bigint (numeric(15,0)), default 0 | cap 1,000,000,000,000 |
 | hpCurrent | int | persisted so grind can resume mid-HP |
 | spCurrent | int | |
@@ -248,11 +248,11 @@ Unique index on `(characterId, weaponType)`. Character creation and the migratio
 |---|---|---|
 | id | uuid, PK | |
 | characterId | uuid, FK, unique with `slot` | |
-| slot | enum(head, body, mainHand, offHand, shoes, cape, accessoryLeft, accessoryRight) | |
+| slot | enum(head, body, mainHand, offHand, shoes, cape, acceslukyLeft, acceslukyRight) | |
 | itemId | varchar | |
 | instanceData | jsonb, nullable | `{ rolledAttribute, rolledValue }` or elemental immunity for shoes (static, no roll) |
 
-Catalog equipment with `slot: accessory` is compatible with either persisted `accessoryLeft` or `accessoryRight`; the persisted EquippedItem always stores the explicit left/right slot.
+Catalog equipment with `slot: accesluky` is compatible with either persisted `acceslukyLeft` or `acceslukyRight`; the persisted EquippedItem always stores the explicit left/right slot.
 
 ### 4.6 `GambitPage`
 | field | type | notes |
@@ -369,7 +369,7 @@ These formulas were designed after the shape of Ragnarok Online (soft-cap DEF fo
 | DEX (Destreza) | Accuracy, Cast Speed (ticks to fill the **Skill** action gauge) |
 | VIT (Vitalidade) | Max HP, HP regen |
 | INT (Inteligência) | Max SP, SP regen, Magic ATK |
-| SOR (Sorte) | Crit Chance |
+| LUK (Sorte) | Crit Chance |
 
 ### 5.2 Derived stat formulas
 
@@ -386,7 +386,7 @@ evasion = 99 + floor(AGI / 3)
 accuracy = 79 + floor(DEX / 3) + equipmentAccuracyModifier + passiveAccuracyModifier
 hpRegenPerTenTicks = 1 + floor(VIT / 2)
 spRegenPerTenTicks = 1 + floor(INT / 2)
-critChance% = floor(SOR * 0.3 * 10) / 10
+critChance% = floor(LUK * 0.3 * 10) / 10
 
 Attack Speed and Cast Speed are displayed as ratings where higher is faster. Attack Speed affects only the character's basic Attack gauge: active status penalties are subtracted from the rating, then the effective value is clamped to 0–800 and converted to a 10-to-1-tick refill interval in §7.2. Attack Speed does not change skill/item/defend timing; the cast gauge remains based on DEX. Regeneration is recovered once every 10 ticks because one tick is one second.
 
@@ -470,7 +470,7 @@ A single XP resolution SHALL consume every XP threshold crossed by the awarded X
 
 ### 6.3.1 Attribute allocation and future-battle safety
 
-Spending unspent STR/AGI/DEX/VIT/INT/SOR points is a combat-state mutation because those attributes feed derived combat statistics. The server validates the complete spend before persisting it. If an unresolved `BattleQueueEntry` is currently in flight (`startAt <= now < endAt`), the request is still accepted: the Character attributes are updated, the active battle entry/job remain unchanged, and only stale future entries after that active battle are invalidated. The future chain is rebuilt from the persisted post-spend Character state after the active battle resolves. When no battle is in flight, the successful spend immediately invalidates the unresolved future chain through the same BattleService-owned discard/cancel/rebuild boundary used by level-up, equipment and food mutations.
+Spending unspent STR/AGI/DEX/VIT/INT/LUK points is a combat-state mutation because those attributes feed derived combat statistics. The server validates the complete spend before persisting it. If an unresolved `BattleQueueEntry` is currently in flight (`startAt <= now < endAt`), the request is still accepted: the Character attributes are updated, the active battle entry/job remain unchanged, and only stale future entries after that active battle are invalidated. The future chain is rebuilt from the persisted post-spend Character state after the active battle resolves. When no battle is in flight, the successful spend immediately invalidates the unresolved future chain through the same BattleService-owned discard/cancel/rebuild boundary used by level-up, equipment and food mutations.
 
 ### 6.4 XP loss on death
 
@@ -704,7 +704,7 @@ Full catalog in `items.json` (§21): 30 monster parts, 15 consumables, 51 equipm
 - Warehouse (town only): **10 slots**, same stacking rules. Moving an item between inventory ⇄ warehouse is instant and free, blocked only if the destination has no room (no partial-stack splitting required for MVP — moving a full stack moves the whole stack; if the target stack has room, merge instead of consuming a new slot).
 - Gold cap: **1,000,000,000,000** (`numeric(15,0)` column, application-level clamp).
 
-#### Inventory layout, sorting and drag/drop
+#### Inventory layout, lukting and drag/drop
 
 The same InventoryGrid component is used on /play/grind and /play/character?tab=character; the two screens must share these rules and must not implement separate inventory behavior.
 
@@ -714,18 +714,18 @@ The same InventoryGrid component is used on /play/grind and /play/character?tab=
 - Inventory slot wrappers define the fixed grid geometry. A CDK drag placeholder must not contribute intrinsic width/height to grid tracks. Dragging over the vendor must not resize the vendor drop-list or move its stock slots.
 - The `InventoryGrid` standalone component must import `CdkDragPreview` and `CdkDragPlaceholder`; merely writing their template elements without importing those directives leaves the CDK defaults active. Drag-start/end events hide and suspend all floating item tooltips; the tooltip cannot reopen until a subsequent pointer-enter after the drag ends.
 - When an NPC with the vendor capability is selected, dragging any inventory item over the vendor drop-list highlights the whole drop-list with a dashed outline. The highlight is visual only and must not alter layout. Dropping an inventory item still opens the existing quantity/confirmation modal; the sale happens only after confirmation.
-- Inventory moves and sorts are authoritative server mutations. The UI applies the returned complete Inventory and Character revision; a layout change must not mutate or rebuild the active battle snapshot or alter item quantity/equipment behavior.
+- Inventory moves and lukts are authoritative server mutations. The UI applies the returned complete Inventory and Character revision; a layout change must not mutate or rebuild the active battle snapshot or alter item quantity/equipment behavior.
 
 
 ### 10.2 Equipment slots
 
-`head, body, mainHand, offHand, shoes, cape, accessoryLeft, accessoryRight`. Weapon/offHand legality is enforced per §5.3.
+`head, body, mainHand, offHand, shoes, cape, acceslukyLeft, acceslukyRight`. Weapon/offHand legality is enforced per §5.3.
 
 ### 10.3 Equipment stat rolls
 
 Every equipment item **template** in `items.json` defines:
 - `fixedStats` — permanent, identical on every drop of that template (e.g. all "Reinforced Chestplate" always give `def: 18, statBonus: {VIT: 2, STR: 1}`). This is what makes a template a Tank piece vs. a Mage piece.
-- `randomRollOnDrop` — for all slots **except shoes**: at the moment of drop, roll **one** random attribute from `[STR, AGI, DEX, VIT, INT, SOR]` and a random integer **1–6** bonus to it. This roll is generated once, server-side, using the deterministic per-character PRNG stream (§11.2, same mechanism as monster/drop selection — not a separate `Math.random()`), and stored permanently in `InventoryItem.instanceData` / `EquippedItem.instanceData` as `{ rolledAttribute, rolledValue }`. It never changes again — "eternal" as specified.
+- `randomRollOnDrop` — for all slots **except shoes**: at the moment of drop, roll **one** random attribute from `[STR, AGI, DEX, VIT, INT, LUK]` and a random integer **1–6** bonus to it. This roll is generated once, server-side, using the deterministic per-character PRNG stream (§11.2, same mechanism as monster/drop selection — not a separate `Math.random()`), and stored permanently in `InventoryItem.instanceData` / `EquippedItem.instanceData` as `{ rolledAttribute, rolledValue }`. It never changes again — "eternal" as specified.
 - Shoes (`equip_shoes_*`) never roll — their single fixed effect is `elementalImmunity: <element>` (full immunity to that element's status/bonus-damage interactions, per confirmed design; no move-speed effect in MVP).
 
 Equipment tooltips show the actual stats granted by the item instance (fixed stats plus its rolled Attribute, when present). Roll-generation metadata, vendor/economic fields and stack metadata are not presented as granted stats.
@@ -735,7 +735,7 @@ Equipment tooltips show the actual stats granted by the item instance (fixed sta
 - **Monster parts** (30): 2 per monster (`common`, `rare`). Sellable to the vendor (never usable as a potion), reserved for future crafting/quest hooks (fields present in schema, unused by any system in MVP — do not build crafting/quests, just don't break the schema by omitting the fields).
 - **Consumables** (8): HP potions (S/M/L), SP potions (S/M/L), Antidote, and Greater Elixir (rare drop, heals both pools). All consumables share `sellPriceToVendor: 7` gold as specified. Only the 6 basic potions + Antidote are sold by the town vendor (§12.1); Elixir is drop/market only.
 - **Foods** (7): food items whose `effect.type` is `food_buff`. Foods are stackable inventory items and are consumed manually outside battle or automatically by Auto Feed; they are not consumables and cannot be used by Gambits.
-- **Equipment**: the static catalogue is authoritative for the complete set of weapon, armor, accessory, shoe, and Rune templates. The former fixed equipment count predates the Rod/Rune changes and must not be used as a schema constraint.
+- **Equipment**: the static catalogue is authoritative for the complete set of weapon, armor, accesluky, shoe, and Rune templates. The former fixed equipment count predates the Rod/Rune changes and must not be used as a schema constraint.
 
 ### 10.5 Foods (buffs) — detail
 
@@ -851,7 +851,7 @@ Not-hungry branch: "I'm fine, prayer. Came to get blessed for battle." → "The 
 
 ### 12.1.4 Cecilia
 
-`cecilia` is a quest NPC. Her server-authoritative exchange requires 3 `part_slime_common`, 1 `part_cindergolem_common` and 1 `part_venomviper_common`, and rewards exactly 1 canonical `equip_accessory_sor_t1` (Worn Lucky Ring). The inventory condition is evaluated when the offer node is returned, so the hand-over choice is available immediately on the first conversation when all materials are already owned. The exchange locks/revalidates Town status and inventory and removes/adds all items atomically.
+`cecilia` is a quest NPC. Her server-authoritative exchange requires 3 `part_slime_common`, 1 `part_cindergolem_common` and 1 `part_venomviper_common`, and rewards exactly 1 canonical `equip_accesluky_luk_t1` (Worn Lucky Ring). The inventory condition is evaluated when the offer node is returned, so the hand-over choice is available immediately on the first conversation when all materials are already owned. The exchange locks/revalidates Town status and inventory and removes/adds all items atomically.
 
 ### 12.2 Warehouse
 
@@ -1430,3 +1430,10 @@ The Character summary and Grind monster-status lists are recomputed from a displ
 - **Heavy Swing** deals physical raw damage `(ATK × 1.1) + (20 × rank)`; the normal physical defense, archetype modifier, and direct-damage variance still apply. It applies the canonical `disarm` status with 100% chance when the target survives the hit. Duration is rank 1–5: 3, 6, 9, 12, and 15 battle ticks (one tick is one second). Status ownership, refresh behavior, and expiration logging remain governed by `status_effects.json` and the shared `applyStatus` path.
 - The independent Attack and Cast gauges must not let a selected, ready, in-range active skill resolve alongside a basic Attack on the same tick. When a cast-gauge `use_skill` action is selected and in range, it takes action priority for that tick; the basic Attack gauge is held/reset. Once the skill resolves and its normal cast/cooldown lockout makes it unavailable, basic Attack gauge progress resumes. The same legal-action and lane-distance rules still drive approach movement: a melee skill establishes approach while out of range, but upon arrival the selected skill resolves first, without a same-tick basic Attack.
 - Canonical `skill_trees.json` and `apps/frontend/public/data/skill_trees.json` must agree on these definitions. Heavy Swing's pre-existing local balance settings are preserved: SP cost by rank is 30/35/40/45/50 and cooldown is 25 ticks.
+
+
+## Monster and map catalogue ownership (2026-10-16)
+
+`maps.json` is the canonical source of map topology and encounter presence. It contains Town at coordinates (0,0) and six grind maps named only `lv. 1`, `lv. 6`, `lv. 11`, `lv. 16`, `lv. 21`, and `lv. 26`, at (0,1) through (0,6). Each map declares `coordinates`, `isClickable`, `type`, `is_town_border`, `description`, `monsters_quantity`, and `monsters`, where each roster entry references a monster ID and its percentage presence rate. `monsters.json` defines species only and SHALL NOT own a map reference. Every monster of level 1–30 belongs to exactly one of the six non-overlapping level bands; monsters above level 30 remain unassigned for future maps.
+
+Standard monster `xpReward` is `round(round(18 * level^1.15) * 0.75)`; Thornsprout is the exception at `round(round(18 * 5^1.15) * 0.30)`. This does not change the character XP curve or global `GRIND_XP_RATE`. The shared attribute is LUK/luk. Element and weapon-category damage-taken multipliers, special skill chance properties, and monster materials are catalogue data; the server validates map rosters and weights at boot.

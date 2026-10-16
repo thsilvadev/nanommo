@@ -7,7 +7,7 @@ const items = require('../../../items.json');
 const allItems = [...(items.consumables || []), ...(items.equipment || []), ...(items.monsterParts || [])];
 const itemById = id => allItems.find(x => x.id === id);
 
-function harness(rows, character = { id:'c1', status:'town', currentMapId:'map_town', pendingMapTransition:null, hpCurrent:1, spCurrent:1, str:5, agi:5, dex:5, vit:5, int:5, sor:5 }) {
+function harness(rows, character = { id:'c1', status:'town', currentMapId:'map_town', pendingMapTransition:null, hpCurrent:1, spCurrent:1, str:5, agi:5, dex:5, vit:5, int:5, luk:5 }) {
   const charRepo = { findOne: async () => character, save: async x => x };
   const invRepo = {
     find: async () => rows,

@@ -11,7 +11,7 @@ const statusEffectDefs = Object.fromEntries(statusEffectsData.statusEffects.map(
 
 function baselineCharacter(overrides = {}) {
   const derived = BattleEngine.calculateDerivedStats(1, {
-    str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5,
+    str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5,
   }, {});
   return {
     ...derived,
@@ -27,7 +27,7 @@ function run() {
   assert.equal(BattleEngine.calculateHitChance(-100, 100), 5);
   assert.equal(BattleEngine.calculateHitChance(200, 0), 95);
   const derived = BattleEngine.calculateDerivedStats(1, {
-    str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5,
+    str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5,
   }, {});
   assert.equal(derived.accuracy, 80);
   assert.equal(derived.evasion, 100);
@@ -48,23 +48,19 @@ function run() {
     'three fixed 25-point penalties continue to increase the interval cumulatively',
   );
 
-  const previousCalibratedEvasion = {
-    mon_slime: 98, mon_fieldbat: 101, mon_thornsprout: 101, mon_mudcrawler: 104,
-    mon_direwolf: 110, mon_sandscorpion: 113, mon_duneraider: 116, mon_cindergolem: 119,
-    mon_venomviper: 125, mon_mirageStalker: 125, mon_brokensentinel: 128, mon_wraith: 134,
-    mon_arcanewisp: 137, mon_boneknight: 140, mon_ruinsguardian: 143,
-  };
   for (const monster of monstersData.monsters) {
     assert(['melee', 'ranged'].includes(monster.combatStyle), `combatStyle: ${monster.id}`);
-    assert(Number.isFinite(monster.moveSpeedBase) && monster.moveSpeedBase > 0, `moveSpeedBase: ${monster.id}`);
+    assert(Number.isFinite(monster.moveSpeedBase) && (monster.id === 'mon_thornsprout' ? monster.moveSpeedBase === 0 : monster.moveSpeedBase > 0), `moveSpeedBase: ${monster.id}`);
     assert(['melee', 'ranged', 'magic'].includes(monster.basicAttackDamageType), `basicAttackDamageType: ${monster.id}`);
     assert(Number.isFinite(monster.basicAttackRange), `basicAttackRange: ${monster.id}`);
-    if (monster.id === 'mon_wraith') {
-      assert.equal(monster.evasion, 101, 'preserve the user-balanced Wailing Wraith Evasion');
-    } else {
-      assert.equal(monster.evasion, Math.round(previousCalibratedEvasion[monster.id] * 0.9), `Evasion -10%: ${monster.id}`);
-    }
+    assert(Number.isFinite(monster.evasion) && monster.evasion >= 0, `evasion: ${monster.id}`);
+    assert(Number.isFinite(monster.xpReward) && monster.xpReward > 0, `xpReward: ${monster.id}`);
   }
+  const thorn = monstersData.monsters.find(monster => monster.id === 'mon_thornsprout');
+  assert.equal(thorn.level, 5);
+  assert.equal(thorn.canMove, false);
+  assert.equal(thorn.elementalDamageTakenMultiplier.fire, 2);
+
 
   const meleeMonster = {
     id: 'test_melee', level: 1, hp: 1000, atk: 1, matk: 1, def: 0,
@@ -217,9 +213,9 @@ function run() {
 
   const iceBolt = skillTree.monsterSkills.find((skill) => skill.id === 'monster_skill_ice_bolt');
   assert(iceBolt && iceBolt.damageType === 'magic' && iceBolt.ranged && iceBolt.maxRange === 7);
-  assert.equal(iceBolt.spCost, 10);
+  assert.equal(iceBolt.spCost, 0, 'Ice Bolt costs no SP');
   assert.equal(iceBolt.baseCastTicks, 2, 'preserve the latest two-tick Ice Bolt cast-time balance');
-  assert.equal(iceBolt.cooldownTicks, 1, 'preserve the current one-tick configured Ice Bolt cooldown');
+  assert.equal(iceBolt.cooldownTicks, 0, 'Ice Bolt has no cooldown');
   assert.equal(iceBolt.effect.applyStatus, 'freeze');
   assert.equal(iceBolt.effect.statusChance, 0.25, 'status chance remains configured on the skill');
   assert.equal(iceBolt.effect.statusDurationTicks, undefined, 'status duration belongs to status_effects.json');
@@ -259,7 +255,7 @@ function run() {
   assert(iceEvents.length > 0, 'Wailing Wraith uses Ice Bolt');
   assert(iceEvents.every((event) => Number.isFinite(event.damage) && event.damage > 0), 'Ice Bolt battle events include the resolved damage for live and history logs');
   assert.equal(iceEvents[0].tick, 2, 'tick 0 is the initial instant, so a two-tick Ice Bolt first resolves at tick 2');
-  assert.deepEqual(iceEvents.slice(0, 4).map((event) => event.tick), [2, 6, 10, 14], 'Ice Bolt cooldown blocks the next tick and cast time starts only after cooldown expires');
+  assert.deepEqual(iceEvents.slice(0, 4).map((event) => event.tick), [2, 4, 6, 8], 'free Ice Bolt repeats as soon as its two-tick cast completes');
   assert(!freezeResult.log.events.some((event) => event.actor === 'monster' && event.action === 'move'), 'Wailing Wraith stays stationary while Ice Bolt is usable');
   assert(freezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Ice Bolt can apply Freeze');
   for (const event of freezeResult.log.events.filter((item) => item.action === 'freeze_applied')) {

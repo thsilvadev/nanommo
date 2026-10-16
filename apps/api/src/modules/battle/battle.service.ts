@@ -413,6 +413,7 @@ export class BattleService {
       masteryEquipment,
       statusEffects: character.statusEffects ?? [],
       equippedWeaponTypes: weaponTypes,
+      luk: Number((character as any).luk ?? 5) + Number(attributeBonuses.LUK ?? 0),
     } as CombatantSnapshot;
   }
 

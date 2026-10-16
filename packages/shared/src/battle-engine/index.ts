@@ -40,6 +40,8 @@ export interface CombatantSnapshot {
   /** Raw attributes retained for attribute-driven secondary mechanics. */
   agi: number;
   dex: number;
+  luk?: number;
+  equippedWeaponTypes?: string[];
   /** Derived Attack Speed rating (0..800 effective range); applies only to basic attacks. */
   attackSpeed?: number;
   /** Skills currently usable (unlocked + weapon equipped) - SPEC §9.1 */
@@ -227,7 +229,7 @@ export class GambitEvaluator {
     switch (id) {
       case 'attack':
         return self.hp > 0 && self.maxHp > 0
-          && !(self.isPlayerCharacter === true && (self.statusEffects ?? []).some((status: any) => ['disarm', 'disarmed'].includes(String(status.type ?? status.id ?? '').toLowerCase())));
+          && !((self.statusEffects ?? []).some((status: any) => ['disarm', 'disarmed'].includes(String(status.type ?? status.id ?? '').toLowerCase())));
 
       case 'use_skill': {
         const skillId = params.skillId;
@@ -378,7 +380,7 @@ export class BattleEngine {
     const dex = Number(attributes['dex'] ?? 5);
     const vit = Number(attributes['vit'] ?? 5);
     const int = Number(attributes['int'] ?? 5);
-    const sor = Number(attributes['sor'] ?? 5);
+    const luk = Number(attributes['luk'] ?? 5);
     const maxHp = Math.floor(50 + vit * 18 + Number(equipment?.maxHp ?? 0));
     const maxSp = Math.floor(20 + int * 8 + Number(equipment?.maxSp ?? 0));
     const atk = Math.floor(str * 2 + Number(equipment?.weaponFixedAtk ?? 0));
@@ -392,9 +394,9 @@ export class BattleEngine {
     const accuracy = 79 + Math.floor(dex / 3) + Number(equipment?.accuracyModifier ?? 0);
     const hpRegenPerTenTicks = 1 + Math.floor(vit / 2);
     const spRegenPerTenTicks = 1 + Math.floor(int / 2);
-    const critChance = 1 + Math.floor(sor * 0.3 * 10) / 10;
+    const critChance = 1 + Math.floor(luk * 0.3 * 10) / 10;
     return { maxHp, maxSp, atk, matk, def, mdefPercent, accuracy, evasion, critChance,
-      attackSpeed, castSpeed, hpRegenPerTenTicks, spRegenPerTenTicks, agi, dex, level };
+      attackSpeed, castSpeed, hpRegenPerTenTicks, spRegenPerTenTicks, agi, dex, luk, level };
   }
 
   /**
@@ -662,15 +664,27 @@ export class BattleEngine {
     };
     // Monsters retain their catalogued atkSpeedTicks baseline; the same point
     // penalty adds the equivalent fractional delay to their basic-attack gauge.
-    const monsterAttackDurationTicks = (): number => Math.max(
-      BattleEngine.MIN_ATTACK_DURATION_TICKS,
-      monsterAttackThreshold + statusAttackSpeedPenalty(foe) * 9 / BattleEngine.MAX_ATTACK_SPEED,
-    );
+    const monsterAttackDurationTicks = (): number => {
+      const rage = (foe.statusEffects ?? []).some((status: any) => statusIdOf(status) === 'rage');
+      return Math.max(BattleEngine.MIN_ATTACK_DURATION_TICKS, (monsterAttackThreshold + statusAttackSpeedPenalty(foe) * 9 / BattleEngine.MAX_ATTACK_SPEED) / (rage ? 2 : 1));
+    };
 
     const damageTakenMultiplier = monsterDefinition?.damageTakenMultiplier ?? {};
     const meleeMult = Number(damageTakenMultiplier.melee ?? 1);
     const rangedMult = Number(damageTakenMultiplier.ranged ?? 1);
     const magicMult = Number(damageTakenMultiplier.magic ?? 1);
+    const elementalDamageMultiplier = (element: any): number => {
+      if (!element) return 1;
+      const configured = Number(monsterDefinition?.elementalDamageTakenMultiplier?.[String(element)]);
+      if (Number.isFinite(configured) && configured >= 0) return configured;
+      const weaponless = monsterDefinition?.elementalResistances ?? [];
+      return Array.isArray(weaponless) && weaponless.includes(String(element)) ? 0.5 : 1;
+    };
+    const weaponCategoryMultiplier = (category: any): number => {
+      const key = String(category ?? '');
+      const value = Number(monsterDefinition?.weaponCategoryDamageTakenMultiplier?.[key]);
+      return Number.isFinite(value) && value >= 0 ? value : 1;
+    };
 
     const record = (event: any) => {
       events.push({
@@ -681,6 +695,8 @@ export class BattleEngine {
     };
 
     const statusIdOf = (status: any) => String(status?.type ?? status?.id ?? '');
+    const chanceAfterSaveButtLuck = (baseChance: number, targetLuk: number, enabled: boolean): number =>
+      Math.max(0, Math.min(1, baseChance) - (enabled ? Math.min(10, Math.max(0, targetLuk)) / 100 : 0));
     const hasStatus = (unit: CombatantSnapshot, statusId: string) =>
       (unit.statusEffects ?? []).some((status: any) => statusIdOf(status) === statusId);
     const countStatus = (unit: CombatantSnapshot, statusId: string) =>
@@ -728,6 +744,9 @@ export class BattleEngine {
         sourceSkillId,
         statusStackable: stackable,
       });
+      if (target === foe && statusId === 'disarm' && monsterDefinition?.id === 'mon_brokensentinel') {
+        applyStatus(foe, 'physical_reflection', 'monster_skill_physical_reflection', 15, { reflectPercent: 30 }, 'monster');
+      }
       return true;
     };
 
@@ -736,6 +755,22 @@ export class BattleEngine {
         (total: number, status: any) => total + Math.max(0, Number(status.defBonus ?? 0)),
         0,
       );
+    const effectiveAttack = (unit: CombatantSnapshot): number =>
+      Number(unit.atk ?? 0) + (unit.statusEffects ?? []).reduce((total: number, status: any) => total + Number(status.atkBonus ?? 0), 0);
+
+    const reflectMonsterDamage = (damage: number, damageType: string): void => {
+      if (damage <= 0 || self.hp <= 0) return;
+      const statusId = damageType === 'magic' ? 'magic_reflection' : 'physical_reflection';
+      const status = (foe.statusEffects ?? []).find((entry: any) => statusIdOf(entry) === statusId);
+      if (!status) return;
+      const raw = damage * Math.max(0, Number(status.reflectPercent ?? 30)) / 100;
+      const mitigated = damageType === 'magic'
+        ? BattleEngine.calculateMagicDamage(raw, self.mdefPercent)
+        : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
+      const reflected = Math.max(0, Math.floor(mitigated));
+      self.hp = Math.max(0, self.hp - reflected);
+      record({ tick, actor: 'monster', action: 'damage_reflected', sourceSkillId: status.sourceSkillId, target: 'character', damage: reflected, damageType, hit: true, nonRecursive: true });
+    };
 
     const absorbMagicDamage = (
       target: CombatantSnapshot,
@@ -774,7 +809,8 @@ export class BattleEngine {
         const interval = Math.max(0, Number(status.damageIntervalTicks ?? 0));
         const dueAt = Number(status.nextDamageAtTick ?? Number.POSITIVE_INFINITY);
         if (interval <= 0 || tick < dueAt || Number(status.damagePerTick ?? 0) <= 0) continue;
-        const damage = Math.max(0, Math.floor(Number(status.damagePerTick)));
+        const rawDamage = Math.max(0, Math.floor(Number(status.damagePerTick)));
+        const damage = status.damageType === 'magic' ? Math.floor(BattleEngine.calculateMagicDamage(rawDamage, unit.mdefPercent)) : rawDamage;
         unit.hp = Math.max(0, unit.hp - damage);
         status.nextDamageAtTick = dueAt + interval;
         record({
@@ -963,7 +999,8 @@ export class BattleEngine {
             const mitigation = attackType === 'magic'
               ? BattleEngine.calculateMagicDamage(baseDamage, foe.mdefPercent)
               : BattleEngine.calculatePhysicalDamage(baseDamage, effectiveDefense(foe));
-            const finalDamage = mitigation * (attackType === 'ranged' ? rangedMult : attackType === 'magic' ? magicMult : meleeMult);
+            const weaponCategory = (self.equippedWeaponTypes ?? []).find((type: string) => !['shield', 'rune'].includes(type));
+            const finalDamage = mitigation * (attackType === 'ranged' ? rangedMult : attackType === 'magic' ? magicMult : meleeMult) * weaponCategoryMultiplier(weaponCategory);
             for (let component = 0; component < componentCount; component += 1) {
               damageComponents.push(landed
                 ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
@@ -1241,7 +1278,9 @@ export class BattleEngine {
                   ? BattleEngine.calculateMagicDamage(raw, foe.mdefPercent)
                   : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(foe));
                 const archetypeMultiplier = isMagic ? magicMult : damageType === 'ranged' ? rangedMult : meleeMult;
-                const finalDamage = mitigation * archetypeMultiplier;
+                const elementMultiplier = elementalDamageMultiplier(def.element);
+                const weaponCategory = (self.equippedWeaponTypes ?? []).find((type: string) => !['shield', 'rune'].includes(type));
+                const finalDamage = mitigation * archetypeMultiplier * elementMultiplier * weaponCategoryMultiplier(weaponCategory);
                 const rolledDamage = Math.max(0, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)));
                 const barrierResult = absorbMagicDamage(foe, damageType, rolledDamage);
                 const damage = Math.max(0, barrierResult.damage);
@@ -1254,6 +1293,10 @@ export class BattleEngine {
                   ...(effectType === 'physical_push' ? { pushDistanceTarget: Number(effect.targetDistance ?? 6) } : {}),
                 });
 
+                if (monsterDefinition?.id === 'mon_ruinsguardian' && foe.hp > 0) {
+                  applyStatus(foe, 'prowess', 'monster_skill_prowess', 20, { atkBonus: 10, defBonus: 10 }, 'monster');
+                }
+                reflectMonsterDamage(damage, damageType);
                 const appliedStatusId = String(effect.applyStatus ?? '');
                 if (appliedStatusId && foe.hp > 0 && statusEffectDefs[appliedStatusId]) {
                   const statusDefinition = statusEffectDefs[appliedStatusId] ?? {};
@@ -1266,7 +1309,8 @@ export class BattleEngine {
                     ? existingStatuses.length < maxStacks
                     : existingStatuses.length === 0 || statusDefinition.reapplication === 'refresh';
                   if (canApply) {
-                    const statusChance = Math.max(0, Math.min(1, Number(effect.statusChance ?? 1)));
+                    const baseStatusChance = Math.max(0, Math.min(1, Number(effect.statusChance ?? 1)));
+                    const statusChance = chanceAfterSaveButtLuck(baseStatusChance, Number(foe.luk ?? 0), effect.saveButtLuck === true);
                     if (statusChance >= 1 || rng.chance(statusChance)) {
                       const durationByRank = effect.statusDurationTicksByRank;
                       const configuredDuration = Array.isArray(durationByRank)
@@ -1367,7 +1411,7 @@ export class BattleEngine {
           );
           const crit = landed && rng.chance(foe.critChance / 100);
           const monsterAttackType = foe.basicAttackDamageType ?? 'melee';
-          const raw = (monsterAttackType === 'magic' ? foe.matk : foe.atk) * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
+          const raw = (monsterAttackType === 'magic' ? foe.matk : effectiveAttack(foe)) * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
           let finalDamage = monsterAttackType === 'magic'
             ? BattleEngine.calculateMagicDamage(raw, self.mdefPercent)
             : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
@@ -1422,6 +1466,12 @@ export class BattleEngine {
       if (monsterCastGauge >= monsterCastThreshold) {
         monsterCastGauge = 0;
         const choice = pendingMonsterCastChoice;
+        const reflectionSkillId = monsterDefinition?.id === 'mon_arcanewisp' ? 'monster_skill_arcane_surge' : null;
+        const reflectionSkillCost = reflectionSkillId ? Number(monsterSkillDefs[reflectionSkillId]?.spCost ?? 60) : Number.POSITIVE_INFINITY;
+        if (reflectionSkillId && Number(foe.sp ?? 0) < reflectionSkillCost
+          && Number(foeCooldowns[`skill:${reflectionSkillId}`] ?? 0) <= 0 && !hasStatus(foe, 'silence')) {
+          applyStatus(foe, 'magic_reflection', 'monster_skill_magic_reflection', 15, { reflectPercent: 30 }, 'monster');
+        }
         const monsterSelectedSkillId = choice?.action?.skillId ?? choice?.action?.params?.skillId;
         const monsterSelectedSkillDef: any = monsterSelectedSkillId ? (monsterSkillDefs[monsterSelectedSkillId] ?? {}) : {};
         // Ranged skill maxRange includes the target's space; distanceBetween() counts empty spaces.
@@ -1443,10 +1493,37 @@ export class BattleEngine {
           const spCost = Math.max(0, Number(def.spCost ?? 0));
           foe.sp = Math.max(0, foe.sp - spCost);
           const effect = def.effect ?? {};
+          if (skillId === 'monster_skill_rage') {
+            foe.statusEffects = (foe.statusEffects ?? []).filter((status: any) => {
+              const statusId = String(status.type ?? status.id ?? '');
+              return (statusEffectDefs[statusId] as any)?.polarity !== 'debuff';
+            });
+            applyStatus(foe, 'rage', skillId, Number(effect.durationTicks ?? 15), { atkBonus: Number(effect.atk ?? 20) }, 'monster');
+            record({ tick, actor: 'monster', action: 'use_skill', skillId, target: 'monster', damage: 0, hit: true, spSpent: spCost });
+          } else if (skillId === 'monster_skill_pickpocket') {
+            const chance = chanceAfterSaveButtLuck(Number(effect.chance ?? 0.1), Number(self.luk ?? 0), effect.saveButtLuck === true);
+            const eligible = Object.keys(inventory).filter((itemId) => {
+              const definition = itemDefinitions[itemId];
+              return Number(inventory[itemId] ?? 0) > 0 && definition?.type !== 'food' && definition?.effect?.type !== 'food_buff';
+            }).sort();
+            if (eligible.length > 0 && rng.chance(chance)) {
+              const itemId = rng.pick(eligible);
+              const definition = itemDefinitions[itemId] ?? {};
+              const quantity = Math.min(Number(inventory[itemId] ?? 0), Math.max(1, Number(definition.maxStack ?? inventory[itemId])));
+              inventory[itemId] = Math.max(0, Number(inventory[itemId] ?? 0) - quantity);
+              const prior = itemsConsumed.find((item) => item.itemId === itemId);
+              if (prior) prior.quantity += quantity; else itemsConsumed.push({ itemId, quantity });
+              record({ tick, actor: 'monster', action: 'item_stolen', skillId, target: 'character', itemId, quantity, permanent: true, hit: true, spSpent: spCost });
+            } else {
+              record({ tick, actor: 'monster', action: 'pickpocket_failed', skillId, target: 'character', hit: true, spSpent: spCost });
+            }
+          }
           const healAmount = Number(
             effect.healAmount ?? (effect.healPercentMaxHp ? foe.maxHp * Number(effect.healPercentMaxHp) : 0),
           );
-          if (healAmount > 0) {
+          if (skillId === 'monster_skill_pickpocket') {
+            // Pickpocket resolves its own inventory event and does no direct damage.
+          } else if (healAmount > 0) {
             const before = foe.hp;
             foe.hp = Math.min(foe.maxHp, foe.hp + healAmount);
             record({
@@ -1457,11 +1534,11 @@ export class BattleEngine {
               target: 'monster',
               healAmount: foe.hp - before,
             });
-          } else {
+          } else if (skillId !== 'monster_skill_rage') {
             // Monster active skills follow the same guaranteed-hit/no-crit contract.
             const landed = true;
             const raw =
-              (String(def.damageType ?? 'melee') === 'magic' ? foe.matk : foe.atk) *
+              (String(def.damageType ?? 'melee') === 'magic' ? foe.matk : effectiveAttack(foe)) *
               Number(effect.dmgMult ?? 1);
             const monsterSkillDamageType = String(def.damageType ?? 'melee');
             const finalDamage = monsterSkillDamageType === 'magic'
@@ -1500,7 +1577,8 @@ export class BattleEngine {
 
               // Do not roll or consume RNG for a status that cannot be applied.
               if (canApply) {
-                const statusChance = Math.max(0, Math.min(1, Number(effect.statusChance ?? 1)));
+                const baseStatusChance = Math.max(0, Math.min(1, Number(effect.statusChance ?? 1)));
+                const statusChance = chanceAfterSaveButtLuck(baseStatusChance, Number(self.luk ?? 0), effect.saveButtLuck === true);
                 // Preserve the seeded RNG stream for guaranteed status applications.
                 const statusRollSucceeded = statusChance >= 1 || rng.chance(statusChance);
                 if (statusRollSucceeded) {
@@ -1526,10 +1604,13 @@ export class BattleEngine {
                   self.statusEffects = [...(self.statusEffects ?? []), {
                     type: statusId,
                     appliedAtTick: tick,
-                    expiresAtTick: tick + durationTicks,
+                    expiresAtTick: tick + (statusId === 'poison' ? Number(effect.durationTicks ?? 25) : statusId === 'bleed' ? Number(effect.durationTicks ?? 20) : durationTicks),
                     sourceSkillId: skillId,
+                    sourceActor: 'monster',
                     moveSpeedPenalty,
                     attackSpeedPenalty,
+                    ...(statusId === 'poison' ? { damagePerTick: Math.floor(Number(foe.matk ?? 0) * 0.5), damageIntervalTicks: Number(effect.damageIntervalTicks ?? 5), nextDamageAtTick: tick + Number(effect.damageIntervalTicks ?? 5), damageType: 'magic' } : {}),
+                    ...(statusId === 'bleed' ? { damagePerTick: Number(statusDef.damagePerStack ?? 5), damageIntervalTicks: Number(statusDef.damageIntervalTicks ?? 5), nextDamageAtTick: tick + Number(statusDef.damageIntervalTicks ?? 5), damageType: 'pure' } : {}),
                   }];
                   const stackCount = (self.statusEffects ?? []).filter(
                     (status: any) => String(status.type ?? status.id ?? '') === statusId,

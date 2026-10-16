@@ -112,7 +112,13 @@
           "flatPerRank": 20,
           "applyStatus": "disarm",
           "statusChance": 1,
-          "statusDurationTicksByRank": [3, 6, 9, 12, 15]
+          "statusDurationTicksByRank": [
+            3,
+            6,
+            9,
+            12,
+            15
+          ]
         },
         "target": "monster"
       }
@@ -270,7 +276,8 @@
           "burnDurationTicks": 25,
           "burnIntervalTicks": 5,
           "burnDamage": "source_matk"
-        }
+        },
+        "element": "fire"
       },
       {
         "id": "fire_blast",
@@ -303,7 +310,8 @@
           "burnDurationTicks": 25,
           "burnIntervalTicks": 5,
           "burnDamage": "source_matk"
-        }
+        },
+        "element": "fire"
       }
     ],
     "rod": [
@@ -330,7 +338,8 @@
         "effect": {
           "type": "magic_damage_light_wisp",
           "base": "matk_plus_rank_and_pre_cost_sp"
-        }
+        },
+        "element": "light"
       },
       {
         "id": "light_of_heaven",
@@ -363,7 +372,8 @@
           "type": "self_heal",
           "flatPerRank": 50,
           "matkScaleDenominator": 20
-        }
+        },
+        "element": "light"
       }
     ],
     "shield": [
@@ -511,8 +521,181 @@
         "statusChance": 0.25
       },
       "baseCastTicks": 2,
-      "cooldownTicks": 1,
-      "spCost": 10
+      "cooldownTicks": 0,
+      "spCost": 0
+    },
+    {
+      "id": "monster_skill_pickpocket",
+      "name": "Pickpocket",
+      "kind": "active",
+      "target": "foe",
+      "spCost": 60,
+      "cooldownTicks": 20,
+      "effects": [
+        {
+          "type": "steal_consumable_stack",
+          "chance": 0.1,
+          "targetHpBelowPercent": 20,
+          "saveButtLuck": true,
+          "excludeItemType": "food"
+        }
+      ],
+      "effect": {
+        "type": "pickpocket",
+        "chance": 0.1,
+        "saveButtLuck": true,
+        "targetHpBelowPercent": 20,
+        "excludeItemType": "food"
+      },
+      "damageType": "melee"
+    },
+    {
+      "id": "monster_skill_poison_sting",
+      "name": "Poison Sting",
+      "kind": "active",
+      "target": "foe",
+      "spCost": 20,
+      "cooldownTicks": 10,
+      "effects": [
+        {
+          "type": "apply_status",
+          "status": "poison",
+          "chance": 0.5,
+          "saveButtLuck": true,
+          "durationTicks": 25,
+          "tickInterval": 5,
+          "damageFormula": "floor(sourceMatk * 0.5)",
+          "damageType": "magic"
+        }
+      ],
+      "effect": {
+        "type": "apply_status",
+        "applyStatus": "poison",
+        "statusChance": 0.5,
+        "saveButtLuck": true,
+        "durationTicks": 25,
+        "damageIntervalTicks": 5
+      },
+      "damageType": "magic"
+    },
+    {
+      "id": "monster_skill_prowess",
+      "name": "Prowess",
+      "kind": "passive",
+      "target": "self",
+      "effects": [
+        {
+          "type": "stack_on_foe_active_skill",
+          "status": "prowess",
+          "maxStacks": 5,
+          "durationTicks": 20,
+          "atkPerStack": 10,
+          "defPerStack": 10
+        }
+      ]
+    },
+    {
+      "id": "monster_skill_physical_reflection",
+      "name": "Physical Reflection",
+      "kind": "passive",
+      "target": "self",
+      "effects": [
+        {
+          "type": "reflect_when_disarmed",
+          "status": "physical_reflection",
+          "durationTicks": 15,
+          "reflectPercent": 30,
+          "damageType": "physical"
+        }
+      ]
+    },
+    {
+      "id": "monster_skill_magic_reflection",
+      "name": "Magic Reflection",
+      "kind": "passive",
+      "target": "self",
+      "effects": [
+        {
+          "type": "reflect_when_skill_illegal_for_sp",
+          "skillId": "monster_skill_ice_bolt",
+          "status": "magic_reflection",
+          "durationTicks": 15,
+          "reflectPercent": 30,
+          "damageType": "magic"
+        }
+      ]
+    },
+    {
+      "id": "monster_skill_rage",
+      "name": "Rage",
+      "kind": "active",
+      "target": "self",
+      "spCost": 0,
+      "cooldownTicks": 15,
+      "effects": [
+        {
+          "type": "cleanse_debuffs"
+        },
+        {
+          "type": "stat_buff",
+          "atk": 20,
+          "attackSpeedMultiplier": 2,
+          "durationTicks": 15
+        }
+      ],
+      "effect": {
+        "type": "rage",
+        "atk": 20,
+        "attackSpeedMultiplier": 2,
+        "durationTicks": 15,
+        "cleanseDebuffs": true
+      }
+    },
+    {
+      "id": "monster_skill_opening_spear",
+      "name": "Opening Spear",
+      "kind": "active",
+      "target": "foe",
+      "spCost": 0,
+      "cooldownTicks": 9999,
+      "effects": [
+        {
+          "type": "damage",
+          "damageType": "melee",
+          "atkMultiplier": 2.0
+        },
+        {
+          "type": "apply_status",
+          "status": "bleed",
+          "chance": 0.5,
+          "stacks": 1,
+          "durationTicks": 20
+        }
+      ],
+      "effect": {
+        "type": "physical_damage",
+        "dmgMult": 2.0,
+        "applyStatus": "bleed",
+        "statusChance": 0.5,
+        "durationTicks": 20
+      },
+      "damageType": "melee"
+    },
+    {
+      "id": "monster_skill_arcane_surge",
+      "name": "Arcane Surge",
+      "kind": "active",
+      "target": "foe",
+      "spCost": 60,
+      "cooldownTicks": 10,
+      "baseCastTicks": 3,
+      "ranged": true,
+      "maxRange": 7,
+      "damageType": "magic",
+      "effect": {
+        "type": "magic_damage",
+        "dmgMult": 2.0
+      }
     }
   ],
   "legacySkills": [

@@ -32,7 +32,7 @@ describe('battle food regeneration snapshot', () => {
     dex: 5,
     vit: 14,
     int: 5,
-    sor: 5,
+    luk: 5,
     statusEffects: [],
     dietLevels: {},
     activeFoodBuff: {

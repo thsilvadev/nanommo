@@ -27,12 +27,8 @@ export class MapService {
    * Get all available maps
    */
   async getMaps(): Promise<any[]> {
-    const data = this.dataService.getMonsters();
-    if (!data?.maps || !Array.isArray(data.maps)) return [];
-
-    // The canonical map catalog lives in monsters.json.maps.
-    // Return every configured map so the UI can show locked and unlocked maps.
-    return data.maps;
+    // Map topology and monster-presence weights have their own canonical catalogue.
+    return this.dataService.getMaps();
   }
 
   /**
@@ -210,10 +206,13 @@ export class MapService {
     const allMaps = await this.getMaps();
     
     // Recommended maps are grindable maps only; Town is a physical location, not a grind target.
-    return allMaps.filter(map => {
-      if (map.isTown || map.id === TOWN_MAP_ID) return false;
-      const minLevel = (map.unlockLevel || 1);
-      const maxLevel = Math.min(minLevel + 10, 99);
+    const grindMaps = allMaps.filter(map => map.type === 'grind' && map.id !== TOWN_MAP_ID)
+      .sort((a, b) => Number(a.unlockLevel ?? 1) - Number(b.unlockLevel ?? 1));
+    return grindMaps.filter((map, index) => {
+      const minLevel = Number(map.unlockLevel ?? 1);
+      const maxLevel = index + 1 < grindMaps.length
+        ? Number(grindMaps[index + 1].unlockLevel ?? 99) - 1
+        : 99;
       return character.level >= minLevel && character.level <= maxLevel;
     });
   }

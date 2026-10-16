@@ -7,7 +7,8 @@
       "statusDurationTicks": 5,
       "moveSpeedPenaltyPerStack": 25,
       "attackSpeedPenaltyPerStack": 25,
-      "maxStacks": 3
+      "maxStacks": 3,
+      "polarity": "debuff"
     },
     {
       "id": "slow",
@@ -16,7 +17,8 @@
       "statusDurationTicks": 20,
       "moveSpeedPenalty": 50,
       "maxStacks": 1,
-      "reapplication": "refresh"
+      "reapplication": "refresh",
+      "polarity": "debuff"
     },
     {
       "id": "bleed",
@@ -27,7 +29,8 @@
       "damagePerStack": 5,
       "damageIntervalTicks": 5,
       "procChancePerRank": 0.01,
-      "damageType": "pure"
+      "damageType": "pure",
+      "polarity": "debuff"
     },
     {
       "id": "burn",
@@ -35,7 +38,8 @@
       "stackable": false,
       "statusDurationTicks": 25,
       "maxStacks": 1,
-      "reapplication": "refresh"
+      "reapplication": "refresh",
+      "polarity": "debuff"
     },
     {
       "id": "stun",
@@ -43,7 +47,8 @@
       "stackable": false,
       "statusDurationTicks": 5,
       "maxStacks": 1,
-      "reapplication": "refresh"
+      "reapplication": "refresh",
+      "polarity": "debuff"
     },
     {
       "id": "disarm",
@@ -51,7 +56,8 @@
       "stackable": false,
       "statusDurationTicks": 5,
       "maxStacks": 1,
-      "reapplication": "refresh"
+      "reapplication": "refresh",
+      "polarity": "debuff"
     },
     {
       "id": "war_cry_def",
@@ -59,7 +65,8 @@
       "stackable": false,
       "statusDurationTicks": 15,
       "maxStacks": 1,
-      "reapplication": "refresh"
+      "reapplication": "refresh",
+      "polarity": "buff"
     },
     {
       "id": "magic_barrier",
@@ -67,7 +74,57 @@
       "stackable": false,
       "statusDurationTicks": 300,
       "maxStacks": 1,
-      "reapplication": "refresh"
+      "reapplication": "refresh",
+      "polarity": "buff"
+    },
+    {
+      "id": "poison",
+      "name": "Poison",
+      "stackable": false,
+      "statusDurationTicks": 15,
+      "maxStacks": 1,
+      "polarity": "debuff"
+    },
+    {
+      "id": "prowess",
+      "name": "Prowess",
+      "stackable": true,
+      "statusDurationTicks": 20,
+      "maxStacks": 5,
+      "polarity": "buff"
+    },
+    {
+      "id": "physical_reflection",
+      "name": "Physical Reflection",
+      "stackable": false,
+      "statusDurationTicks": 15,
+      "maxStacks": 1,
+      "polarity": "buff"
+    },
+    {
+      "id": "magic_reflection",
+      "name": "Magic Reflection",
+      "stackable": false,
+      "statusDurationTicks": 15,
+      "maxStacks": 1,
+      "polarity": "buff"
+    },
+    {
+      "id": "rage",
+      "name": "Rage",
+      "stackable": false,
+      "statusDurationTicks": 15,
+      "maxStacks": 1,
+      "polarity": "buff"
+    },
+    {
+      "id": "silence",
+      "name": "Silence",
+      "stackable": false,
+      "statusDurationTicks": 5,
+      "maxStacks": 1,
+      "reapplication": "refresh",
+      "polarity": "debuff"
     }
   ]
 }

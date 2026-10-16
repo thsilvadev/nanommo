@@ -9,7 +9,7 @@ import { Character } from './game.models';
 function fakeCharacter(name = 'Tester'): Character {
   return {
     id: 'char-1', userId: 'user-1', name, level: 1, xp: 0, xpToNext: 10,
-    unspentAttributePoints: 0, str: 5, agi: 5, dex: 5, vit: 5, int: 5, sor: 5,
+    unspentAttributePoints: 0, str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5,
     attributeBonuses: {}, gold: 0, hpCurrent: 100, spCurrent: 50, maxHp: 100, maxSp: 50,
     attack: 10, magicAttack: 0, defense: 0, attackSpeed: 1, castSpeed: 1, evasion: 5,
     accuracy: 5, hpRegenPerTenTicks: 3, spRegenPerTenTicks: 3, criticalChance: 1,

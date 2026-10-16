@@ -1,41 +1,17 @@
 {
-  "maps": [
-    {
-      "id": "map_town",
-      "name": "Town",
-      "unlockLevel": 1,
-      "isTown": true
-    },
-    {
-      "id": "map_green_grounds",
-      "name": "Green Grounds",
-      "unlockLevel": 1
-    },
-    {
-      "id": "map_menace",
-      "name": "Menace",
-      "unlockLevel": 8
-    },
-    {
-      "id": "map_ruins",
-      "name": "Ruins",
-      "unlockLevel": 15
-    }
-  ],
   "monsters": [
     {
       "id": "mon_slime",
       "name": "Slime",
-      "map": "map_green_grounds",
       "level": 1,
       "hp": 65,
       "atk": 9,
       "matk": 6,
       "def": 1,
       "mdefPercent": 0,
-      "accuracy": 80,
-      "evasion": 88,
-      "critChance": 3.1,
+      "accuracy": 85,
+      "evasion": 89,
+      "critChance": 3.4,
       "atkSpeedTicks": 7,
       "element": null,
       "elementalResistances": [],
@@ -48,7 +24,7 @@
       },
       "sustainPressure": false,
       "ability": null,
-      "xpReward": 18,
+      "xpReward": 14,
       "designNote": "Soft-bodied and slow; folds instantly under raw physical hits but its jelly absorbs some magic.",
       "drops": [
         {
@@ -86,21 +62,27 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "weaponCategoryDamageTakenMultiplier": {
+        "sword": 1.2,
+        "dagger": 1.2,
+        "bow": 1.0,
+        "staff": 0.8,
+        "rod": 0.8
+      }
     },
     {
       "id": "mon_fieldbat",
       "name": "Field Bat",
-      "map": "map_green_grounds",
       "level": 2,
-      "hp": 94,
-      "atk": 11,
-      "matk": 8,
-      "def": 3,
+      "hp": 162,
+      "atk": 15,
+      "matk": 10,
+      "def": 2,
       "mdefPercent": 0,
-      "accuracy": 81,
-      "evasion": 91,
-      "critChance": 3.3,
+      "accuracy": 88,
+      "evasion": 105,
+      "critChance": 3.6,
       "atkSpeedTicks": 5,
       "element": null,
       "elementalResistances": [],
@@ -113,7 +95,7 @@
       },
       "sustainPressure": false,
       "ability": null,
-      "xpReward": 40,
+      "xpReward": 30,
       "designNote": "Erratic flight pattern rewards precise ranged shots; melee users struggle to land hits.",
       "drops": [
         {
@@ -155,17 +137,16 @@
     },
     {
       "id": "mon_thornsprout",
-      "name": "Thorn Sprout",
-      "map": "map_green_grounds",
-      "level": 3,
-      "hp": 128,
-      "atk": 14,
-      "matk": 11,
-      "def": 4,
+      "name": "Thornsprout",
+      "level": 5,
+      "hp": 544,
+      "atk": 29,
+      "matk": 19,
+      "def": 7,
       "mdefPercent": 0,
-      "accuracy": 82,
-      "evasion": 91,
-      "critChance": 3.5,
+      "accuracy": 93,
+      "evasion": 100,
+      "critChance": 3.9,
       "atkSpeedTicks": 6,
       "element": "earth",
       "elementalResistances": [
@@ -175,12 +156,12 @@
       "favoredAgainstArchetypeLabel": "Mage (ranged magic)",
       "damageTakenMultiplier": {
         "melee": 1.0,
-        "ranged": 0.7,
-        "magic": 1.3
+        "ranged": 1.0,
+        "magic": 1.0
       },
       "sustainPressure": false,
       "ability": null,
-      "xpReward": 64,
+      "xpReward": 34,
       "designNote": "Bark-like hide shrugs off arrows but burns easily under spellfire.",
       "drops": [
         {
@@ -213,26 +194,29 @@
           }
         }
       ],
-      "moveSpeedBase": 45,
+      "moveSpeedBase": 0,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "canMove": false,
+      "elementalDamageTakenMultiplier": {
+        "fire": 2.0
+      }
     },
     {
       "id": "mon_mudcrawler",
-      "name": "Mud Crawler",
-      "map": "map_green_grounds",
-      "level": 4,
-      "hp": 164,
-      "atk": 16,
-      "matk": 13,
+      "name": "Mudcrawler",
+      "level": 7,
+      "hp": 848,
+      "atk": 37,
+      "matk": 24,
       "def": 6,
-      "mdefPercent": 0,
-      "accuracy": 82,
-      "evasion": 94,
-      "critChance": 3.6,
+      "mdefPercent": 55,
+      "accuracy": 95,
+      "evasion": 103,
+      "critChance": 4.0,
       "atkSpeedTicks": 8,
       "element": "water",
       "elementalResistances": [
@@ -247,7 +231,7 @@
       },
       "sustainPressure": true,
       "ability": null,
-      "xpReward": 89,
+      "xpReward": 127,
       "designNote": "Regenerates slowly from the wet soil every few ticks; short bursts don't finish it off, but sustained pressure does.",
       "drops": [
         {
@@ -289,18 +273,17 @@
     },
     {
       "id": "mon_direwolf",
-      "name": "Dire Wolf Alpha",
-      "map": "map_green_grounds",
-      "level": 6,
-      "hp": 247,
-      "atk": 22,
-      "matk": 17,
-      "def": 8,
+      "name": "Dire Wolf",
+      "level": 9,
+      "hp": 1182,
+      "atk": 44,
+      "matk": 29,
+      "def": 7,
       "mdefPercent": 0,
-      "accuracy": 84,
-      "evasion": 99,
-      "critChance": 3.9,
-      "atkSpeedTicks": 4,
+      "accuracy": 97,
+      "evasion": 105,
+      "critChance": 4.2,
+      "atkSpeedTicks": 3,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -312,7 +295,7 @@
       },
       "sustainPressure": false,
       "ability": "enrage_massive_damage",
-      "xpReward": 141,
+      "xpReward": 169,
       "designNote": "Pack leader; below 30% HP it lets out a howl and unleashes a single devastating strike.",
       "drops": [
         {
@@ -366,16 +349,15 @@
     {
       "id": "mon_sandscorpion",
       "name": "Sand Scorpion",
-      "map": "map_menace",
-      "level": 7,
-      "hp": 294,
-      "atk": 24,
-      "matk": 19,
-      "def": 10,
+      "level": 14,
+      "hp": 2117,
+      "atk": 60,
+      "matk": 40,
+      "def": 31,
       "mdefPercent": 0,
-      "accuracy": 84,
-      "evasion": 102,
-      "critChance": 4.0,
+      "accuracy": 100,
+      "evasion": 109,
+      "critChance": 4.4,
       "atkSpeedTicks": 7,
       "element": "earth",
       "elementalResistances": [
@@ -390,7 +372,7 @@
       },
       "sustainPressure": false,
       "ability": null,
-      "xpReward": 169,
+      "xpReward": 280,
       "designNote": "Thick carapace resists blades, but its exposed underside is an easy magic target.",
       "drops": [
         {
@@ -428,21 +410,28 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "weaponCategoryDamageTakenMultiplier": {
+        "sword": 0.7,
+        "greatsword": 0.7,
+        "dagger": 0.75,
+        "bow": 1.0,
+        "staff": 1.2,
+        "rod": 1.2
+      }
     },
     {
       "id": "mon_duneraider",
       "name": "Dune Raider",
-      "map": "map_menace",
-      "level": 9,
-      "hp": 395,
-      "atk": 29,
-      "matk": 24,
-      "def": 13,
+      "level": 23,
+      "hp": 4078,
+      "atk": 86,
+      "matk": 57,
+      "def": 15,
       "mdefPercent": 0,
-      "accuracy": 85,
-      "evasion": 104,
-      "critChance": 4.3,
+      "accuracy": 118,
+      "evasion": 138,
+      "critChance": 4.6,
       "atkSpeedTicks": 5,
       "element": null,
       "elementalResistances": [],
@@ -455,7 +444,7 @@
       },
       "sustainPressure": false,
       "ability": null,
-      "xpReward": 225,
+      "xpReward": 497,
       "designNote": "A nimble desert bandit that dodges arrows on reflex but can't avoid a sword up close... or a fireball.",
       "drops": [
         {
@@ -498,16 +487,15 @@
     {
       "id": "mon_cindergolem",
       "name": "Cinder Golem",
-      "map": "map_menace",
       "level": 10,
-      "hp": 449,
-      "atk": 32,
-      "matk": 26,
-      "def": 14,
+      "hp": 1358,
+      "atk": 47,
+      "matk": 31,
+      "def": 8,
       "mdefPercent": 0,
-      "accuracy": 86,
-      "evasion": 107,
-      "critChance": 4.5,
+      "accuracy": 97,
+      "evasion": 106,
+      "critChance": 4.2,
       "atkSpeedTicks": 9,
       "element": "fire",
       "elementalResistances": [
@@ -522,7 +510,7 @@
       },
       "sustainPressure": false,
       "ability": null,
-      "xpReward": 254,
+      "xpReward": 190,
       "designNote": "Molten rock body is naturally resistant to fire and physical blows alike, but its cracked core is vulnerable to raw spellpower.",
       "drops": [
         {
@@ -565,16 +553,15 @@
     {
       "id": "mon_venomviper",
       "name": "Venom Viper",
-      "map": "map_menace",
-      "level": 12,
-      "hp": 567,
-      "atk": 37,
-      "matk": 30,
-      "def": 17,
+      "level": 25,
+      "hp": 4552,
+      "atk": 91,
+      "matk": 61,
+      "def": 16,
       "mdefPercent": 0,
-      "accuracy": 86,
-      "evasion": 113,
-      "critChance": 4.8,
+      "accuracy": 104,
+      "evasion": 115,
+      "critChance": 4.6,
       "atkSpeedTicks": 6,
       "element": "shadow",
       "elementalResistances": [
@@ -589,7 +576,7 @@
       },
       "sustainPressure": true,
       "ability": "self_heal",
-      "xpReward": 314,
+      "xpReward": 547,
       "designNote": "Coils and regenerates its poison glands mid-fight; only sustained healing keeps pace with its bite.",
       "drops": [
         {
@@ -616,11 +603,11 @@
           "priority": 1,
           "condition": {
             "type": "self_hp_below_percent",
-            "value": 50
+            "value": 80
           },
           "action": {
             "type": "use_skill",
-            "skillId": "monster_skill_self_heal"
+            "skillId": "monster_skill_poison_sting"
           }
         },
         {
@@ -643,16 +630,15 @@
     {
       "id": "mon_mirageStalker",
       "name": "Mirage Stalker",
-      "map": "map_menace",
       "level": 13,
-      "hp": 630,
-      "atk": 40,
-      "matk": 33,
-      "def": 18,
+      "hp": 1920,
+      "atk": 57,
+      "matk": 38,
+      "def": 9,
       "mdefPercent": 0,
-      "accuracy": 87,
-      "evasion": 113,
-      "critChance": 5.0,
+      "accuracy": 99,
+      "evasion": 109,
+      "critChance": 4.3,
       "atkSpeedTicks": 5,
       "element": "wind",
       "elementalResistances": [
@@ -667,7 +653,7 @@
       },
       "sustainPressure": false,
       "ability": null,
-      "xpReward": 344,
+      "xpReward": 258,
       "designNote": "A desert predator with no clear weakness, hitting hard from stealth.",
       "drops": [
         {
@@ -710,15 +696,14 @@
     {
       "id": "mon_brokensentinel",
       "name": "Broken Sentinel",
-      "map": "map_ruins",
-      "level": 14,
-      "hp": 695,
-      "atk": 42,
-      "matk": 35,
-      "def": 20,
+      "level": 68,
+      "hp": 17054,
+      "atk": 188,
+      "matk": 125,
+      "def": 63,
       "mdefPercent": 0,
-      "accuracy": 88,
-      "evasion": 115,
+      "accuracy": 111,
+      "evasion": 125,
       "critChance": 5.1,
       "atkSpeedTicks": 8,
       "element": null,
@@ -726,13 +711,13 @@
       "favoredAgainstArchetype": "warrior",
       "favoredAgainstArchetypeLabel": "Warrior (melee)",
       "damageTakenMultiplier": {
-        "melee": 1.3,
+        "melee": 0.8,
         "ranged": 1.0,
-        "magic": 0.7
+        "magic": 1.2
       },
       "sustainPressure": false,
       "ability": null,
-      "xpReward": 374,
+      "xpReward": 1729,
       "designNote": "Ancient stone construct, armored against blades but its rune-core is exposed to magic.",
       "drops": [
         {
@@ -770,21 +755,28 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "weaponCategoryDamageTakenMultiplier": {
+        "sword": 0.7,
+        "greatsword": 0.65,
+        "dagger": 0.8,
+        "bow": 1.0,
+        "staff": 1.3,
+        "rod": 1.25
+      }
     },
     {
       "id": "mon_wraith",
       "name": "Wailing Wraith",
-      "map": "map_ruins",
-      "level": 16,
-      "hp": 833,
-      "atk": 48,
-      "matk": 39,
-      "def": 22,
+      "level": 73,
+      "hp": 18728,
+      "atk": 198,
+      "matk": 238,
+      "def": 37,
       "mdefPercent": 0,
-      "accuracy": 89,
-      "evasion": 101,
-      "critChance": 5.4,
+      "accuracy": 111,
+      "evasion": 125,
+      "critChance": 5.2,
       "atkSpeedTicks": 4,
       "element": "shadow",
       "elementalResistances": [
@@ -799,7 +791,7 @@
       },
       "sustainPressure": false,
       "ability": null,
-      "xpReward": 437,
+      "xpReward": 1876,
       "designNote": "A fast incorporeal spirit that phases through slow melee swings but can't avoid a well-aimed shot.",
       "drops": [
         {
@@ -853,16 +845,15 @@
     {
       "id": "mon_arcanewisp",
       "name": "Arcane Wisp",
-      "map": "map_ruins",
-      "level": 17,
-      "hp": 906,
-      "atk": 50,
-      "matk": 41,
-      "def": 24,
-      "mdefPercent": 0,
-      "accuracy": 90,
-      "evasion": 123,
-      "critChance": 5.5,
+      "level": 45,
+      "hp": 9889,
+      "atk": 139,
+      "matk": 284,
+      "def": 18,
+      "mdefPercent": 60,
+      "accuracy": 108,
+      "evasion": 121,
+      "critChance": 4.9,
       "atkSpeedTicks": 6,
       "element": "holy",
       "elementalResistances": [
@@ -877,7 +868,7 @@
       },
       "sustainPressure": false,
       "ability": null,
-      "xpReward": 468,
+      "xpReward": 1076,
       "designNote": "Pure magical energy resists spells but is snuffed out easily by physical force.",
       "drops": [
         {
@@ -906,6 +897,16 @@
             "type": "always"
           },
           "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_arcane_surge"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
             "type": "attack"
           }
         }
@@ -915,21 +916,28 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "weaponCategoryDamageTakenMultiplier": {
+        "sword": 1.2,
+        "greatsword": 1.2,
+        "dagger": 1.1,
+        "bow": 1.0,
+        "staff": 0.7,
+        "rod": 0.7
+      }
     },
     {
       "id": "mon_boneknight",
       "name": "Bone Knight",
-      "map": "map_ruins",
-      "level": 19,
-      "hp": 1059,
-      "atk": 55,
-      "matk": 46,
-      "def": 27,
+      "level": 62,
+      "hp": 18870,
+      "atk": 229,
+      "matk": 117,
+      "def": 33,
       "mdefPercent": 0,
-      "accuracy": 90,
-      "evasion": 126,
-      "critChance": 5.8,
+      "accuracy": 110,
+      "evasion": 124,
+      "critChance": 5.1,
       "atkSpeedTicks": 7,
       "element": null,
       "elementalResistances": [],
@@ -942,7 +950,7 @@
       },
       "sustainPressure": true,
       "ability": "self_heal",
-      "xpReward": 532,
+      "xpReward": 1555,
       "designNote": "Undead guardian bound by old rites; it knits its bones back together unless burned down fast and kept down.",
       "drops": [
         {
@@ -996,16 +1004,15 @@
     {
       "id": "mon_ruinsguardian",
       "name": "Ruins Guardian",
-      "map": "map_ruins",
-      "level": 20,
-      "hp": 1139,
-      "atk": 58,
-      "matk": 48,
-      "def": 28,
+      "level": 58,
+      "hp": 17971,
+      "atk": 167,
+      "matk": 112,
+      "def": 43,
       "mdefPercent": 0,
-      "accuracy": 91,
-      "evasion": 129,
-      "critChance": 6.0,
+      "accuracy": 109,
+      "evasion": 123,
+      "critChance": 5.1,
       "atkSpeedTicks": 6,
       "element": null,
       "elementalResistances": [],
@@ -1018,7 +1025,7 @@
       },
       "sustainPressure": false,
       "ability": "stun",
-      "xpReward": 564,
+      "xpReward": 1440,
       "designNote": "The ruins' final ward; periodically slams the ground, stunning its target for a moment.",
       "drops": [
         {
@@ -1063,6 +1070,817 @@
         }
       ],
       "moveSpeedBase": 35,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_mudflatcrocodile",
+      "name": "Mudflat Crocodile",
+      "level": 12,
+      "hp": 1728,
+      "atk": 81,
+      "matk": 36,
+      "def": 9,
+      "mdefPercent": 0,
+      "accuracy": 99,
+      "evasion": 108,
+      "critChance": 4.3,
+      "atkSpeedTicks": 9,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1.0,
+        "ranged": 1.0,
+        "magic": 1.0
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 236,
+      "designNote": "Mudflat Crocodile: crocodile role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_mudflatcrocodile_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_mudflatcrocodile_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_menace_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 25,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_bandit",
+      "name": "Bandit",
+      "level": 25,
+      "hp": 4552,
+      "atk": 91,
+      "matk": 61,
+      "def": 16,
+      "mdefPercent": 0,
+      "accuracy": 104,
+      "evasion": 115,
+      "critChance": 4.6,
+      "atkSpeedTicks": 5,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1.0,
+        "ranged": 1.0,
+        "magic": 1.0
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 547,
+      "designNote": "Bandit: bandit role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_bandit_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_bandit_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "foe_hp_below_percent",
+            "value": 20
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_pickpocket"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 60,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 80,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_kwaiouaranger",
+      "name": "Kwaiouá Ranger",
+      "level": 33,
+      "hp": 6567,
+      "atk": 112,
+      "matk": 74,
+      "def": 20,
+      "mdefPercent": 0,
+      "accuracy": 105,
+      "evasion": 130,
+      "critChance": 4.8,
+      "atkSpeedTicks": 4,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1.0,
+        "ranged": 1.2,
+        "magic": 0.9
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 753,
+      "designNote": "Kwaiouá Ranger: ranger role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_kwaioua_ranger_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_kwaioua_ranger_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "self_hp_below_percent",
+            "value": 10
+          },
+          "action": {
+            "type": "flee",
+            "disabled": true,
+            "note": "Future FLEE mechanic; currently not executable"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 60,
+      "combatStyle": "ranged",
+      "basicAttackDamageType": "ranged",
+      "basicAttackRange": 6,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_sacredforestguardian",
+      "name": "Sacred Forest Guardian",
+      "level": 50,
+      "hp": 14774,
+      "atk": 150,
+      "matk": 100,
+      "def": 38,
+      "mdefPercent": 0,
+      "accuracy": 108,
+      "evasion": 122,
+      "critChance": 5.0,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 0.8,
+        "ranged": 1.0,
+        "magic": 1.1
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 1214,
+      "designNote": "Sacred Forest Guardian: guardian role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_sacredforestguardian_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_sacredforestguardian_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_opening_spear"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 45,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_gravelhorn",
+      "name": "Gravelhorn",
+      "level": 11,
+      "hp": 1540,
+      "atk": 51,
+      "matk": 34,
+      "def": 14,
+      "mdefPercent": 0,
+      "accuracy": 98,
+      "evasion": 107,
+      "critChance": 4.3,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 0.7,
+        "ranged": 1.0,
+        "magic": 1.3
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 213,
+      "designNote": "Gravelhorn: armored role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_gravelhorn_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_gravelhorn_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_menace_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 45,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_ridgebreaker",
+      "name": "Ridgebreaker",
+      "level": 18,
+      "hp": 3688,
+      "atk": 94,
+      "matk": 48,
+      "def": 12,
+      "mdefPercent": 0,
+      "accuracy": 101,
+      "evasion": 112,
+      "critChance": 4.5,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 0.8,
+        "ranged": 1.1,
+        "magic": 1.2
+      },
+      "sustainPressure": true,
+      "ability": null,
+      "xpReward": 375,
+      "designNote": "Ridgebreaker: heavy role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_ridgebreaker_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_ridgebreaker_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_menace_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 45,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_saltfangcrab",
+      "name": "Saltfang Crab",
+      "level": 18,
+      "hp": 2950,
+      "atk": 72,
+      "matk": 48,
+      "def": 22,
+      "mdefPercent": 0,
+      "accuracy": 101,
+      "evasion": 112,
+      "critChance": 4.5,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 0.6,
+        "ranged": 1.0,
+        "magic": 1.4
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 375,
+      "designNote": "Saltfang Crab: armored role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_saltfangcrab_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_saltfangcrab_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_menace_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 45,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_needlebackstalker",
+      "name": "Needleback Stalker",
+      "level": 21,
+      "hp": 3616,
+      "atk": 81,
+      "matk": 54,
+      "def": 14,
+      "mdefPercent": 0,
+      "accuracy": 102,
+      "evasion": 125,
+      "critChance": 4.6,
+      "atkSpeedTicks": 5,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1.2,
+        "ranged": 0.65,
+        "magic": 1.0
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 448,
+      "designNote": "Needleback Stalker: evasive role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_needlebackstalker_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_needlebackstalker_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 60,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_giantmosquito",
+      "name": "Giant Mosquito",
+      "level": 27,
+      "hp": 5039,
+      "atk": 97,
+      "matk": 64,
+      "def": 17,
+      "mdefPercent": 0,
+      "accuracy": 104,
+      "evasion": 128,
+      "critChance": 4.7,
+      "atkSpeedTicks": 4,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1.0,
+        "ranged": 0.7,
+        "magic": 1.2
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 598,
+      "designNote": "Giant Mosquito: evasive role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_giantmosquito_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_giantmosquito_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 60,
+      "combatStyle": "ranged",
+      "basicAttackDamageType": "ranged",
+      "basicAttackRange": 6,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_rootboundbrute",
+      "name": "Rootbound Brute",
+      "level": 29,
+      "hp": 6921,
+      "atk": 133,
+      "matk": 68,
+      "def": 18,
+      "mdefPercent": 0,
+      "accuracy": 105,
+      "evasion": 116,
+      "critChance": 4.7,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 0.8,
+        "ranged": 1.1,
+        "magic": 1.2
+      },
+      "sustainPressure": true,
+      "ability": null,
+      "xpReward": 649,
+      "designNote": "Rootbound Brute: heavy role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_rootboundbrute_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_rootboundbrute_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_rage"
+          }
+        }
+      ],
+      "moveSpeedBase": 45,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_moonleafarcanist",
+      "name": "Moonleaf Arcanist",
+      "level": 41,
+      "hp": 8746,
+      "atk": 130,
+      "matk": 266,
+      "def": 16,
+      "mdefPercent": 55,
+      "accuracy": 107,
+      "evasion": 120,
+      "critChance": 4.9,
+      "atkSpeedTicks": 4,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1.2,
+        "ranged": 1.0,
+        "magic": 0.7
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 966,
+      "designNote": "Moonleaf Arcanist: caster role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_moonleafarcanist_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_moonleafarcanist_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 60,
+      "combatStyle": "ranged",
+      "basicAttackDamageType": "ranged",
+      "basicAttackRange": 6,
+      "maxSp": 80,
+      "spRegenPerTenTicks": 2
+    },
+    {
+      "id": "mon_aramaianwarden",
+      "name": "Aramaian Warden",
+      "level": 55,
+      "hp": 16754,
+      "atk": 161,
+      "matk": 107,
+      "def": 42,
+      "mdefPercent": 0,
+      "accuracy": 109,
+      "evasion": 123,
+      "critChance": 5.0,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 0.8,
+        "ranged": 1.1,
+        "magic": 1.2
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 1354,
+      "designNote": "Aramaian Warden: guardian role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_aramaianwarden_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_aramaianwarden_rare",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 45,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,

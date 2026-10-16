@@ -55,7 +55,7 @@ export class CharacterDto {
   dex!: number;
   vit!: number;
   int!: number;
-  sor!: number;
+  luk!: number;
   attributeBonuses!: Record<string, number>;
   gold!: number;
   hpCurrent!: number;
