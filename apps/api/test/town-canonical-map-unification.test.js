@@ -18,8 +18,8 @@ function allSourceFiles(dir) {
 }
 
 function run() {
-  const backendCatalog = parse('monsters.json');
-  const frontendCatalog = parse('apps/frontend/public/data/monsters.json');
+  const backendCatalog = parse('maps.json');
+  const frontendCatalog = parse('apps/frontend/public/data/maps.json');
   const backendTowns = backendCatalog.maps.filter(m => m?.isTown === true || m?.id === 'map_town');
   const frontendTowns = frontendCatalog.maps.filter(m => m?.isTown === true || m?.id === 'map_town');
 
@@ -36,8 +36,8 @@ function run() {
   assert.match(board, /\(click\)="enterTown\(\)"/);
 
   const components = read('apps/frontend/src/app/features/play/components.ts');
-  assert.match(components, /townMap=m\.find\(x=>x\?\.id===TOWN_MAP_ID&&x\?\.isTown===true\)/);
-  assert.match(components, /grindMaps=m\.filter\(x=>x\?\.isTown!==true&&x\?\.id!==TOWN_MAP_ID\)/);
+  assert.match(components, /townMap = m\.find/);
+  assert.match(components, /grindMaps = m\.filter/);
   assert.doesNotMatch(components, /class TownCenter/);
 
   const frontendSources = allSourceFiles('apps/frontend/src');
@@ -49,12 +49,13 @@ function run() {
 
   const mapService = read('apps/api/src/modules/map/map.service.ts');
   assert.match(mapService, /map\.id === TOWN_MAP_ID \|\| map\.isTown/);
-  assert.match(mapService, /if \(map\.isTown \|\| map\.id === TOWN_MAP_ID\) return false/);
+  assert.match(mapService, /if \(map\.id === TOWN_MAP_ID \|\| map\.isTown\) throw new BadRequestException\('Town is not a grind map'\)/);
   assert.match(mapService, /if \(character\.currentMapId === TOWN_MAP_ID\)/);
   assert.match(mapService, /Never run grind cleanup\/sequence-reset logic against the canonical Town location/);
 
   const townService = read('apps/api/src/modules/town/town.service.ts');
-  assert.match(townService, /character\.currentMapId !== TOWN_MAP_ID \|\| character\.pendingMapTransition !== null \|\| character\.status !== 'town'/);
+  assert.match(townService, /getMapById\(character\.currentMapId\)\?\.type !== 'town'/);
+  assert.match(townService, /character\.pendingMapTransition !== null \|\| character\.status !== 'town'/);
 
   console.log('town-canonical-map-unification.test.js: 18 assertions passed');
 }

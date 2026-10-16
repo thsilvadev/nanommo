@@ -76,7 +76,7 @@ export class TownService {
       lock: { mode: 'pessimistic_write' },
     });
     if (!character) throw new NotFoundException('Character not found');
-    if (character.currentMapId !== TOWN_MAP_ID || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('Vendor transactions are only available in Town');
+    if (this.dataService.getMapById(character.currentMapId)?.type !== 'town' || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('Town transactions are only available in Town');
     return character;
   }
 
@@ -224,22 +224,24 @@ export class TownService {
   private async assertTown(characterId: string): Promise<Character> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
-    if (character.currentMapId !== TOWN_MAP_ID || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
+    if (this.dataService.getMapById(character.currentMapId)?.type !== 'town' || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
     return character;
   }
 
   private npcPublic(npc: any) {
     const types = Array.isArray(npc.types) ? npc.types : [];
-    return { id: npc.id, name: npc.name, location: npc.location, types, greeting: npc.greeting ?? npc.vendor?.greeting };
+    return { id: npc.id, name: npc.name, location: npc.location, types, greeting: npc.greeting ?? npc.vendor?.greeting, monologue: npc.monologue };
   }
 
   async getTownNPCs(characterId: string) {
-    await this.assertTown(characterId);
-    const william = this.vendor();
-    return [
-      { id: william.id, name: william.name, location: william.location, types: ['vendor'], greeting: this.dataService.getNpcVendor()?.greeting },
-      ...this.npcCatalog().map((npc: any) => this.npcPublic(npc)),
-    ].filter((npc, index, all) => all.findIndex(x => x.id === npc.id) === index);
+    const character = await this.assertTown(characterId);
+    const map = this.dataService.getMapById(character.currentMapId);
+    const ids: string[] = Array.isArray(map?.npcIds) ? map.npcIds : (character.currentMapId === TOWN_MAP_ID ? ['william', ...this.npcCatalog().map((npc: any) => npc.id)] : []);
+    return ids.map(id => {
+      if (id === 'william') { const william = this.vendor(); return { id: william.id, name: william.name, location: william.location, types: ['vendor'], greeting: this.dataService.getNpcVendor()?.greeting }; }
+      const npc = this.npcCatalog().find((entry: any) => entry.id === id && entry.location === 'town');
+      return npc ? this.npcPublic(npc) : null;
+    }).filter(Boolean);
   }
 
   private questNode(npc: any, nodeId?: string) {
@@ -312,7 +314,7 @@ export class TownService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!character) throw new NotFoundException('Character not found');
-      if (character.currentMapId !== TOWN_MAP_ID || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
+      if (this.dataService.getMapById(character.currentMapId)?.type !== 'town' || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
 
       const node = this.questNode(npc, nodeId);
       const choice = (node.choices ?? []).find((x: any) => x.id === choiceId);
@@ -347,9 +349,13 @@ export class TownService {
     return { npcId: npc.id, types: npc.types, name: npc.name };
   }
 
-  async getWarehouse(characterId: string): Promise<InventoryItem[]> { return this.inventoryRepo.find({ where: { characterId, location: 'warehouse' }, order: { slotIndex: 'ASC' } }); }
-  async getWarehouseCapacity(characterId: string) { const used = await this.inventoryRepo.count({ where: { characterId, location: 'warehouse' } }); return { used, max: 10 }; }
-  async depositToWarehouse(_characterId: string, _itemId: string, _quantity: number) { throw new BadRequestException('Warehouse transfer is not implemented in this change'); }
-  async withdrawFromWarehouse(_characterId: string, _itemId: string, _quantity: number) { throw new BadRequestException('Warehouse transfer is not implemented in this change'); }
+  async getWarehouse(characterId: string): Promise<InventoryItem[]> { await this.assertTown(characterId); return this.inventoryRepo.find({ where: { characterId, location: 'warehouse' }, order: { slotIndex: 'ASC' } }); }
+  async getWarehouseCapacity(characterId: string) { await this.assertTown(characterId); const used = await this.inventoryRepo.count({ where: { characterId, location: 'warehouse' } }); return { used, max: 10 }; }
+  async depositToWarehouse(characterId: string, itemId: string, quantity: number) { await this.assertTown(characterId); return this.inventoryService.transferToWarehouse(characterId, itemId, quantity); }
+  async withdrawFromWarehouse(characterId: string, itemId: string, quantity: number) { await this.assertTown(characterId); return this.inventoryService.transferFromWarehouse(characterId, itemId, quantity); }
+  async transferWarehouseRow(characterId: string, rowId: string, direction: 'deposit' | 'withdraw') {
+    await this.assertTown(characterId);
+    return this.inventoryService.transferInventoryRow(characterId, rowId, direction === 'deposit' ? 'inventory' : 'warehouse', direction === 'deposit' ? 'warehouse' : 'inventory');
+  }
   async getTownNews() { return []; }
 }

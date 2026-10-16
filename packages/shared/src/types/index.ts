@@ -179,8 +179,8 @@ export interface XpCurveEntry {
   estDaysAtThisLevel: number;
 }
 
-export type NpcCapabilityType = 'vendor' | 'quest';
-export interface TownNpc { id: string; name: string; location: 'town'; types: NpcCapabilityType[]; greeting?: string; }
+export type NpcCapabilityType = 'vendor' | 'quest' | 'storage';
+export interface TownNpc { id: string; name: string; location: 'town'; types: NpcCapabilityType[]; greeting?: string; monologue?: string; }
 export interface VendorNpc extends TownNpc { types: ['vendor']; }
 export interface QuestNpc extends TownNpc { types: ['quest']; }
 export interface NpcDialogueChoice { id: string; text: string; nextNodeId?: string; }

@@ -50,13 +50,14 @@ import { getMasteryXpPolicy } from './config/mastery-xp-policy';
       username: process.env.DB_USER || 'nanommo',
       password: process.env.DB_PASSWORD || 'nanommo_dev_password',
       database: process.env.DB_NAME || 'nanommo',
-      // Schema changes are migration-driven. Running synchronize before migrations can
-      // attempt NOT NULL changes before legacy rows are normalized by the migration.
+      // Schema changes are explicitly migration-driven. Do NOT auto-run migrations
+      // during API startup: all API/Bull consumers must be stopped and migration
+      // history audited before an operator runs db:migrate.
       synchronize: false,
       logging: process.env.DB_LOGGING === 'true',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
-      migrationsRun: true,
+      migrationsRun: false,
     }),
     PassportModule,
     AuthModule,

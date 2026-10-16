@@ -909,6 +909,8 @@ export class BattleEngine {
             target: unit === self ? 'character' : 'monster',
             status: statusId,
             sourceSkillId: status.sourceSkillId,
+            expiredAtTick: status.expiresAtTick,
+            expiredAppliedAtTick: status.appliedAtTick,
             moveSpeedPenalty: Number(status.moveSpeedPenalty ?? statusDef.moveSpeedPenaltyPerStack ?? statusDef.moveSpeedPenalty ?? 0),
             attackSpeedPenalty: Number(status.attackSpeedPenalty ?? (statusDef.stackable === true ? statusDef.attackSpeedPenaltyPerStack : statusDef.attackSpeedPenalty) ?? 0),
             statusStackable: statusDef.stackable === true,
@@ -1739,3 +1741,6 @@ export class BattleEngine {
 }
 
 export default BattleEngine;
+
+export { projectStatusTimeline } from './status-timeline';
+export type { ProjectedStatusStack } from './status-timeline';

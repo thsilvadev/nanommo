@@ -451,6 +451,11 @@ export class BattleService {
     if (!character) throw new NotFoundException('Character not found');
 
     if (character.pendingMapTransition) return this.getBattleQueue(characterId, 100);
+    if (character.status !== 'grinding' || !character.currentMapId || this.dataService.getMapById(character.currentMapId)?.type !== 'grind') {
+      const existing = await this.getBattleQueue(characterId, 100);
+      if (existing.length === 0 && publishQueueEvent) await this.safePublishQueueUpdated(characterId, []);
+      return existing.filter(entry => entry.mapId === character.currentMapId);
+    }
     if (!character.currentMapId) {
       throw new BadRequestException('Character is not on a map');
     }
@@ -944,31 +949,9 @@ export class BattleService {
       const equipmentChanged = await this.equipmentService.applyPendingEquipmentChanges(character.id, manager);
       await characterRepo.save(character);
 
-      // Drops are part of the same transaction as rewards. Preserve the existing
-      // overflow policy: if both inventory and warehouse are full, log and keep
-      // resolving other drops rather than aborting the battle.
-      if (Array.isArray(battle.drops) && battle.drops.length > 0) {
-        for (const drop of battle.drops) {
-          try {
-            await this.inventoryService.addItem(
-              character.id,
-              drop.itemId,
-              drop.quantity ?? 1,
-              'inventory',
-              drop.instanceData,
-              manager,
-            );
-            const knownItems = Array.isArray(character.knownItemIds) ? character.knownItemIds : [];
-            if (!knownItems.includes(drop.itemId)) character.knownItemIds = [...knownItems, drop.itemId];
-          } catch (error) {
-            this.logger.warn(
-              `Failed to add drop ${drop.itemId} to ${character.id}: ${
-                error instanceof Error ? error.message : 'unknown'
-              }`,
-            );
-          }
-        }
-      }
+      // A failed capacity check discards only that drop; independent loot and
+      // the battle's remaining payout continue through this same transaction.
+      await this.grantBattleDropsBestEffort(character, battle, manager);
 
       // Keep Character + Inventory under one final Character revision.
       await characterRepo.save(character);
@@ -1117,6 +1100,24 @@ export class BattleService {
         `mapKillCount=${result.killCounter.mapKillCount} perMonster=${result.battle.monsterId}:${result.killCounter.perMonsterCount}`,
     );
     return true;
+  }
+
+  private async grantBattleDropsBestEffort(character: Character, battle: BattleQueueEntry, manager: EntityManager): Promise<void> {
+    if (!Array.isArray(battle.drops) || battle.drops.length === 0) return;
+    for (const drop of battle.drops) {
+      try {
+        const quantity = Number(drop.quantity ?? 1);
+        if (!(await this.inventoryService.canFitInventoryDrop(character.id, drop.itemId, quantity, manager))) {
+          this.logger.warn(`Discarded battle drop character=${character.id} battle=${battle.id} item=${drop.itemId} quantity=${quantity}: Inventory capacity insufficient`);
+          continue;
+        }
+        await this.inventoryService.addItem(character.id, drop.itemId, quantity, 'inventory', drop.instanceData, manager);
+        const knownItems = Array.isArray(character.knownItemIds) ? character.knownItemIds : [];
+        if (!knownItems.includes(drop.itemId)) character.knownItemIds = [...knownItems, drop.itemId];
+      } catch (error) {
+        this.logger.warn(`Failed to add drop ${drop.itemId} to ${character.id}: ${error instanceof Error ? error.message : 'unknown'}`);
+      }
+    }
   }
 
   private async applyMasteryRewards(battle: BattleQueueEntry, manager: EntityManager): Promise<void> {

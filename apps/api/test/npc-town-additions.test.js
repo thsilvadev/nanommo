@@ -20,6 +20,7 @@ function harness(rows, character = { id:'c1', status:'town', currentMapId:'map_t
   charRepo.manager = { transaction: async fn => fn(manager) };
   const data = {
     getNpcCatalog: () => catalog,
+    getMapById: id => id === 'map_town' ? { id, type: 'town' } : { id, type: 'grind' },
     getNpcVendor: () => ({ id:'william', name:'William', type:'vendor', location:'town', buysAnyItem:true, buyRatePercent:40, sellStock:[] }),
     getItemById: itemById,
   };
@@ -38,6 +39,7 @@ async function run() {
   const npcs = await service.getTownNPCs('c1');
   assert.ok(npcs.some(n=>n.id==='blacksmith_loren' && n.types.includes('vendor')));
   assert.ok(npcs.some(n=>n.id==='cecilia' && n.types.includes('quest')));
+  assert.ok(npcs.some(n=>n.id==='storage' && n.types.includes('storage') && n.monologue==="You know I have a name, right? But you'll keep calling me Storage anyway."));
 
   const stock = await service.getVendorStock('c1','blacksmith_loren');
   assert.deepStrictEqual(stock.map(x=>x.itemId), [
@@ -75,6 +77,6 @@ async function run() {
   character.currentMapId='map_town'; character.pendingMapTransition={destinationMapId:'map_town',reason:'town_request'};
   await assert.rejects(()=>service.getNpcDialogue('c1','cecilia'),/only available in Town/);
 
-  console.log('Town NPC additions: 14 assertions passed');
+  console.log('Town NPC additions: 15 assertions passed');
 }
 run().catch(error => { console.error(error); process.exit(1); });

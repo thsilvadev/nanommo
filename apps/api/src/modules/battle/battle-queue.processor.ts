@@ -3,6 +3,7 @@ import { Job } from 'bull';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { BattleService } from './battle.service';
 import { CharacterService } from '../character/character.service';
+import { BattleQueueGateService } from './battle-queue-gate.service';
 
 /**
  * BattleQueueProcessor - Handles delayed battle resolution via BullMQ
@@ -16,6 +17,7 @@ export class BattleQueueProcessor {
   constructor(
     private battleService: BattleService,
     private characterService: CharacterService,
+    private readonly queueGate: BattleQueueGateService,
   ) {}
 
   /**
@@ -27,6 +29,7 @@ export class BattleQueueProcessor {
     const { battleId } = job.data;
 
     try {
+      await this.queueGate.assertReadyForProcessing();
       this.logger.debug(`Resolving battle ${battleId}`);
 
       // Resolve the battle (apply XP, gold, drops, level-ups, death handling).
@@ -97,6 +100,10 @@ export class BattleQueueProcessor {
     const { characterId } = job.data;
 
     try {
+      await this.queueGate.assertReadyForProcessing();
+      const character = await this.characterService.getCharacterById(characterId);
+      const queueable = character?.status === 'grinding' && !!character.currentMapId && !character.pendingMapTransition;
+      if (!queueable) return { success: true, characterId, skipped: true, reason: 'Character is not eligible to queue Grind battles' };
       this.logger.debug(`Queueing battles for character ${characterId}`);
 
       await this.battleService.queueBattles(characterId, 5);

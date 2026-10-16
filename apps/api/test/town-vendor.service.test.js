@@ -28,6 +28,7 @@ function harness(character, rows=[]) {
   const characterRepo = { findOne:async()=>state.character, manager:{transaction:async(fn)=>fn(manager)} };
   const inventoryRepo = { find: async(opts)=>state.rows.filter(r=>r.characterId===opts.where.characterId && r.location===opts.where.location), count: async(opts)=>state.rows.filter(r=>r.characterId===opts.where.characterId && r.location===opts.where.location).length };
   const data = {
+    getMapById:(id)=>id==='map_town'?{id,type:'town'}:{id,type:'grind'},
     getNpcVendor:()=>({id:'william',name:'William',type:'vendor',location:'town',buysAnyItem:true,buyRatePercent:40,sellStock:[{itemId:'pot_hp_small',price:15,infiniteStock:true},{itemId:'pot_hp_medium',price:40,infiniteStock:true}]}),
     getItemById:(id)=>items[id]||null,
   };
@@ -58,12 +59,14 @@ async function run(){
   ({service,state}=harness({id:'c2',status:'grinding',currentMapId:'map_green_grounds',pendingMapTransition:null,gold:100},[{id:'i1',characterId:'c2',location:'inventory',slotIndex:0,itemId:'pot_hp_small',quantity:2}]));
   await assert.rejects(()=>service.sellToVendor('c2','william','pot_hp_small',1),/only available in Town/);
   await assert.rejects(()=>service.getVendorStock('c2','william'),/only available in Town/);
+  await assert.rejects(()=>service.getWarehouse('c2'),/only available in Town/);
+  await assert.rejects(()=>service.getWarehouseCapacity('c2'),/only available in Town/);
   assert.equal(state.rows[0].quantity,2);
 
   ({service,state}=harness({id:'c3',status:'town',currentMapId:'map_town',pendingMapTransition:null,gold:100},Array.from({length:50},(_,i)=>({id:'i'+i,characterId:'c3',location:'inventory',slotIndex:i,itemId:'other',quantity:1}))));
   await assert.rejects(()=>service.buyFromVendor('c3','william','pot_hp_small',1),/Inventory is full/);
   assert.equal(state.character.gold,100);
 
-  console.log('town-vendor.service.test.js: 11 assertions passed');
+  console.log('town-vendor.service.test.js: 13 assertions passed');
 }
 run().catch(err=>{console.error(err);process.exit(1);});

@@ -98,6 +98,7 @@ export class InventoryService {
    * Get all warehouse items for a character
    */
   async getWarehouse(characterId: string): Promise<InventoryItem[]> {
+    await this.assertTownStorageAccess(characterId);
     return this.inventoryItemRepo.find({
       where: { characterId, location: 'warehouse' },
       order: { slotIndex: 'ASC' },
@@ -107,6 +108,13 @@ export class InventoryService {
   /**
    * Get inventory item count for a specific item
    */
+  async assertTownStorageAccess(characterId: string): Promise<void> {
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character) throw new NotFoundException('Character not found');
+    const map = this.dataService.getMapById(character.currentMapId);
+    if (map?.type !== 'town' || character.status !== 'town' || character.pendingMapTransition !== null) throw new BadRequestException('Warehouse is only available while settled in Town');
+  }
+
   async getItemCount(characterId: string, itemId: string, manager?: EntityManager): Promise<number> {
     const repo = manager?.getRepository(InventoryItem) ?? this.inventoryItemRepo;
     const stacks = await repo.find({
@@ -287,8 +295,7 @@ export class InventoryService {
   }
 
   /**
-   * Add item(s) to inventory or warehouse with automatic stacking
-   * Falls back to warehouse if inventory is full
+   * Add item(s) only to the explicitly requested location.
    */
   async addItem(
     characterId: string,
@@ -298,6 +305,8 @@ export class InventoryService {
     instanceData?: any,
     manager?: EntityManager,
   ): Promise<InventoryItem> {
+    if (location !== 'inventory') throw new BadRequestException('Warehouse items can only be created by an explicit Storage transfer');
+    if (!Number.isInteger(quantity) || quantity <= 0) throw new BadRequestException('Quantity must be a positive integer');
     const inventoryRepo = manager?.getRepository(InventoryItem) ?? this.inventoryItemRepo;
     const item = this.dataService.getItemById(itemId);
     if (!item) throw new NotFoundException(`Item ${itemId} not found`);
@@ -332,14 +341,7 @@ export class InventoryService {
       const freeSlots = await this.getFreeSlots(characterId, location, manager);
 
       if (freeSlots === 0) {
-        // Inventory full, try warehouse fallback
-        if (location === 'inventory') {
-          this.logger.debug(
-            `Inventory full for character ${characterId}, falling back to warehouse`,
-          );
-          return this.addItem(characterId, itemId, remaining, 'warehouse', instanceData, manager);
-        }
-        throw new BadRequestException('Inventory and warehouse full');
+        throw new BadRequestException(location === 'inventory' ? 'Inventory is full' : 'Warehouse is full');
       }
 
       // Split remaining into stacks if needed
@@ -447,56 +449,75 @@ export class InventoryService {
    * Move item between inventory and warehouse
    */
   async transferItem(
-    characterId: string,
-    itemId: string,
-    quantity: number,
-    fromLocation: 'inventory' | 'warehouse',
-    toLocation: 'inventory' | 'warehouse',
+    characterId: string, itemId: string, quantity: number,
+    fromLocation: 'inventory' | 'warehouse', toLocation: 'inventory' | 'warehouse',
   ): Promise<InventoryItem> {
-    if (fromLocation === toLocation) {
-      throw new BadRequestException('Source and destination must be different');
-    }
-
-    // Get item from source location
-    const sourceItem = await this.inventoryItemRepo.findOne({
-      where: { characterId, itemId, location: fromLocation },
+    return this.inventoryItemRepo.manager.transaction(async manager => {
+      const characterRepo = manager.getRepository(Character);
+      const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character) throw new NotFoundException('Character not found');
+      const map = this.dataService.getMapById(character.currentMapId);
+      if (map?.type !== 'town' || character.status !== 'town' || character.pendingMapTransition !== null) throw new BadRequestException('Warehouse is only available while settled in Town');
+      const repo = manager.getRepository(InventoryItem);
+      const candidates = await repo.find({ where: { characterId, itemId, location: fromLocation }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
+      const matching = candidates.filter(row => Number(row.quantity) === quantity);
+      if (matching.length !== 1) throw new BadRequestException(matching.length > 1 ? 'Ambiguous source stack; use the row-ID transfer endpoint' : 'Transfer must move one complete stack; reload and retry');
+      return this.transferLockedRow(manager, matching[0], toLocation);
     });
-
-    if (!sourceItem || sourceItem.quantity < quantity) {
-      throw new BadRequestException('Insufficient quantity in source location');
-    }
-
-    // Remove from source
-    sourceItem.quantity -= quantity;
-    if (sourceItem.quantity === 0) {
-      await this.inventoryItemRepo.remove(sourceItem);
-    } else {
-      await this.inventoryItemRepo.save(sourceItem);
-    }
-
-    // Add to destination
-    return this.addItem(characterId, itemId, quantity, toLocation, sourceItem.instanceData);
   }
 
-  /**
-   * Transfer item to warehouse (convenience method)
-   */
-  async transferToWarehouse(
-    characterId: string,
-    itemId: string,
-    quantity: number,
-  ): Promise<InventoryItem> {
+  async transferInventoryRow(characterId: string, sourceRowId: string, fromLocation: 'inventory' | 'warehouse', toLocation: 'inventory' | 'warehouse'): Promise<InventoryItem> {
+    if (fromLocation === toLocation) throw new BadRequestException('Source and destination must be different');
+    return this.inventoryItemRepo.manager.transaction(async manager => {
+      const characterRepo = manager.getRepository(Character);
+      const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character) throw new NotFoundException('Character not found');
+      const map = this.dataService.getMapById(character.currentMapId);
+      if (map?.type !== 'town' || character.status !== 'town' || character.pendingMapTransition !== null) throw new BadRequestException('Warehouse is only available while settled in Town');
+      const repo = manager.getRepository(InventoryItem);
+      const source = await repo.findOne({ where: { id: sourceRowId, characterId, location: fromLocation }, lock: { mode: 'pessimistic_write' } });
+      if (!source) throw new NotFoundException('Source stack not found at expected location');
+      return this.transferLockedRow(manager, source, toLocation);
+    });
+  }
+
+  private async transferLockedRow(manager: EntityManager, source: InventoryItem, toLocation: 'inventory' | 'warehouse'): Promise<InventoryItem> {
+    const repo = manager.getRepository(InventoryItem);
+    const item = this.dataService.getItemById(source.itemId);
+    if (!item) throw new NotFoundException('Item definition not found');
+    const stackable = item.stackable === true && Number(item.maxStack ?? 1) > 1;
+    const maxStack = Math.max(1, Math.floor(Number(item.maxStack ?? 1)));
+    if (!Number.isInteger(Number(source.quantity)) || Number(source.quantity) < 1 || (!stackable && Number(source.quantity) !== 1) || (stackable && Number(source.quantity) > maxStack)) {
+      throw new BadRequestException('Source stack violates the item stacking rules');
+    }
+    const maxSlots = toLocation === 'inventory' ? 50 : 10;
+    if (!Number.isInteger(Number(source.slotIndex)) || source.slotIndex < 0 || source.slotIndex >= (source.location === 'inventory' ? 50 : 10)) {
+      throw new BadRequestException('Source stack has an invalid slot index; reload and retry');
+    }
+    const destRows = await repo.find({ where: { characterId: source.characterId, location: toLocation }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
+    const used = new Set<number>();
+    for (const row of destRows) {
+      const index = Number(row.slotIndex);
+      if (!Number.isInteger(index) || index < 0 || index >= maxSlots || used.has(index)) {
+        throw new BadRequestException('Destination slot layout is invalid; reload and retry');
+      }
+      used.add(index);
+    }
+    if (stackable) {
+      const merge = destRows.find(row => row.itemId === source.itemId && JSON.stringify(row.instanceData ?? null) === JSON.stringify(source.instanceData ?? null) && Number(row.quantity) >= 1 && Number(row.quantity) + Number(source.quantity) <= maxStack);
+      if (merge) { merge.quantity += source.quantity; await repo.save(merge); await repo.remove(source); return merge; }
+    }
+    const slot = Array.from({ length: maxSlots }, (_, i) => i).find(i => !used.has(i));
+    if (slot === undefined) throw new BadRequestException(toLocation === 'inventory' ? 'Inventory is full' : 'Warehouse is full');
+    source.location = toLocation; source.slotIndex = slot;
+    return repo.save(source);
+  }
+
+  async transferToWarehouse(characterId: string, itemId: string, quantity: number): Promise<InventoryItem> {
     return this.transferItem(characterId, itemId, quantity, 'inventory', 'warehouse');
   }
 
-  /**
-   * Transfer item from warehouse (convenience method)
-   */
-  async transferFromWarehouse(
-    characterId: string,
-    itemId: string,
-    quantity: number,
-  ): Promise<InventoryItem> {
+  async transferFromWarehouse(characterId: string, itemId: string, quantity: number): Promise<InventoryItem> {
     return this.transferItem(characterId, itemId, quantity, 'warehouse', 'inventory');
   }
 
@@ -808,6 +829,25 @@ export class InventoryService {
     );
 
     return totalGold;
+  }
+
+  /** Preflight an entire battle drop before any inventory stack is mutated. */
+  async canFitInventoryDrop(characterId: string, itemId: string, quantity: number, manager: EntityManager): Promise<boolean> {
+    if (!Number.isInteger(quantity) || quantity <= 0) return false;
+    const item = this.dataService.getItemById(itemId);
+    if (!item) return false;
+    const repo = manager.getRepository(InventoryItem);
+    const rows = await repo.find({ where: { characterId, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
+    const freeSlots = Math.max(0, 50 - rows.length);
+    if (!item.stackable || Number(item.maxStack ?? 1) <= 1) return quantity <= freeSlots;
+    let remaining = quantity;
+    const maxStack = Number(item.maxStack);
+    for (const row of rows) {
+      if (row.itemId !== itemId) continue;
+      remaining -= Math.max(0, maxStack - Number(row.quantity));
+      if (remaining <= 0) return true;
+    }
+    return Math.ceil(remaining / maxStack) <= freeSlots;
   }
 
   /**

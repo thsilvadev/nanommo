@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "validate:ui-assets": "node scripts/validate-ui-assets.mjs",
+    "verify:map-board": "node scripts/verify-map-board-layout.mjs"
   },
   "private": true,
   "dependencies": {

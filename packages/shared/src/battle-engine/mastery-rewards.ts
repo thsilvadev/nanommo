@@ -8,7 +8,7 @@ export interface MasteryXpPolicy {
 export type MasteryXpAward = Record<string, number>;
 
 /** Cumulative XP threshold by Mastery level: index 0 is level 0, indices 1–10 are levels 1–10. */
-export const MASTERY_LEVEL_XP_THRESHOLDS = [0, 5, 10, 25, 50, 100, 500, 25_000, 35_000, 45_000, 60_000] as const;
+export const MASTERY_LEVEL_XP_THRESHOLDS = [0, 5, 10, 25, 50, 100, 500, 20_000, 35_000, 45_000, 60_000] as const;
 
 /** Derive the authoritative level from cumulative XP; Mastery is capped at 10. */
 export function masteryLevelForXp(xp: number): number {
@@ -19,6 +19,36 @@ export function masteryLevelForXp(xp: number): number {
     level = i;
   }
   return Math.min(10, level);
+}
+
+export interface MasteryXpProgress {
+  totalXp: number;
+  level: number;
+  xpIntoLevel: number;
+  xpToNextLevel: number;
+  nextLevelAtXp: number | null;
+}
+
+/** Canonical UI projection from cumulative XP; progress is relative to the current level. */
+export function masteryProgressForXp(xp: number): MasteryXpProgress {
+  const totalXp = Math.max(0, Math.floor(Number(xp) || 0));
+  const level = masteryLevelForXp(totalXp);
+  const currentThreshold = MASTERY_LEVEL_XP_THRESHOLDS[level];
+  const nextLevelAtXp = level >= 10 ? null : MASTERY_LEVEL_XP_THRESHOLDS[level + 1];
+  return {
+    totalXp,
+    level,
+    xpIntoLevel: Math.max(0, totalXp - currentThreshold),
+    xpToNextLevel: nextLevelAtXp === null ? 0 : nextLevelAtXp - currentThreshold,
+    nextLevelAtXp,
+  };
+}
+
+/** Skill points are derived from earned level, never trusted from a stale stored level. */
+export function availableMasterySkillPoints(levelValue: number, spentValue: number): number {
+  const level = Math.max(0, Math.min(10, Math.floor(Number(levelValue) || 0)));
+  const spent = Math.max(0, Math.floor(Number(spentValue) || 0));
+  return Math.max(0, level - spent);
 }
 
 /** Resolve rank-dependent active-skill costs and cooldowns at snapshot time. */

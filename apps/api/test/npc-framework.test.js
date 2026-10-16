@@ -20,6 +20,7 @@ function harness(character, rows) {
   charRepo.manager = { transaction: async fn => fn(manager) };
   return new TownService(charRepo, invRepo, {
     getNpcCatalog: () => catalog,
+    getMapById: id => id === 'map_town' ? { id, type: 'town' } : { id, type: 'grind' },
     getNpcVendor: () => ({ id:'william', name:'William', type:'vendor', location:'town', buysAnyItem:true, buyRatePercent:40, sellStock:[] }),
     getItemById: itemById,
   }, { consumeFood: async () => { character.activeFoodBuff={ itemId:'food_bread', expiresAt:new Date(Date.now()+3600000).toISOString(), hpRegenPerTenTicks:4, spRegenPerTenTicks:1 }; return character; } }, { getDerivedStatsForCharacter: async () => ({ maxHp:100, maxSp:50 }) });

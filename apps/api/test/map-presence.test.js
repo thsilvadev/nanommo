@@ -8,10 +8,14 @@ const hashes = new Map();
 const published = [];
 
 const redis = {
-  hset: async (key, id, timestamp) => {
+  hset: async (key, ...args) => {
     if (!hashes.has(key)) hashes.set(key, new Map());
-    hashes.get(key).set(id, String(timestamp));
+    const pairs = args.length === 1 && args[0] && typeof args[0] === 'object' ? Object.entries(args[0]).flat() : args;
+    for (let i=0;i<pairs.length;i+=2) hashes.get(key).set(String(pairs[i]), String(pairs[i+1]));
   },
+  del: async (...keys) => { let n=0; for (const key of keys) if (hashes.delete(key)) n++; return n; },
+  scan: async (cursor, _match, pattern) => { const keys=[...hashes.keys()].filter(key=>key.startsWith(pattern.replace('*',''))); return ['0',keys]; },
+  get: async () => 'open',
   hgetall: async key => Object.fromEntries(hashes.get(key) || []),
   hget: async (key, id) => hashes.get(key)?.get(id) ?? null,
   hdel: async (key, id) => { hashes.get(key)?.delete(id); },
@@ -66,9 +70,14 @@ const presence = new MapPresenceService(characterRepo, redis);
   assert.equal(JSON.parse(published.filter(x => x.channel === 'gateway:map:presence').at(-1).message).playersOnMap, 0);
 
   hashes.get('map:players:map_2').delete('c');
-  await presence.reconcileAuthoritativePresence();
+  hashes.set('map:players:map_deleted', new Map([['orphan', String(Date.now())]]));
+  await presence.reconcileAllPresenceOrThrow();
   assert.equal(hashes.get('map:players:map_2').has('c'), true);
-  assert.equal(JSON.parse(published.filter(x => x.channel === 'gateway:map:presence').at(-1).message).playersOnMap, 2);
+  assert.equal(hashes.has('map:players:map_deleted'), false, 'stale Redis-only map membership is deleted');
+  assert.equal(hashes.has('map:players:map_1'), false, 'pending-transition characters do not remain in the Grind presence hash');
+  const map2Publication = published.filter(x => x.channel === 'gateway:map:presence').findLast(x => JSON.parse(x.message).mapId === 'map_2');
+  assert.ok(map2Publication, 'authoritative count is published for the rebuilt map');
+  assert.equal(JSON.parse(map2Publication.message).playersOnMap, 2);
 
   const source = fs.readFileSync(
     'apps/api/src/modules/battle/battle-queue.processor.ts',

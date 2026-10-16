@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
 import { VendorStore } from '../../core/vendor.store';
-import { VendorStockItem, effectiveFoodStatValue, TOWN_MAP_ID } from '@nanommo/shared';
+import { VendorStockItem, effectiveFoodStatValue, TOWN_MAP_ID, projectStatusTimeline } from '@nanommo/shared';
 import { GameSocketService } from '../../core/game.socket.service';
 import { ApiService } from '../../core/api.service';
 import { TooltipPositionDirective } from './tooltip-position.directive';
@@ -34,38 +34,15 @@ export class CharacterSummary implements OnDestroy {
     if (now < startMs || now >= Date.parse(entry.endAt)) return [];
     const tick = Math.floor((now - startMs) / 1000);
     const snapshot = target === 'character' ? entry.log?.header?.characterSnapshot : entry.log?.header?.monsterSnapshot;
-    const active = new Map<string, any[]>();
-    for (const status of snapshot?.statusEffects ?? []) {
-      const id = String(status.type ?? status.id ?? '');
-      if (!id || Number(status.expiresAtTick ?? Infinity) <= tick) continue;
-      const list = active.get(id) ?? []; list.push({ ...status, expiresAtTick: Number(status.expiresAtTick ?? Infinity) }); active.set(id, list);
-    }
-    const events = Array.isArray(entry.log?.events) ? entry.log.events : [];
-    for (const event of events) {
-      if (Number(event.tick ?? 0) > tick) break;
-      if (event.target !== target) continue;
-      const id = String(event.status ?? event.statusApplied ?? ''); if (!id) continue;
-      const list = active.get(id) ?? [];
-      if (['status_applied','status_stack_applied','status_refreshed','freeze_applied'].includes(String(event.action))) {
-        const durationTicks = Number(event.durationTicks ?? 0);
-        const expiresAtTick = event.expiresAtTick != null ? Number(event.expiresAtTick) : (durationTicks > 0 ? Number(event.tick ?? 0) + durationTicks : Number.POSITIVE_INFINITY);
-        if (expiresAtTick > tick) {
-          const instance = { type:id, expiresAtTick, sourceSkillId:event.sourceSkillId };
-          if (event.action === 'status_refreshed') active.set(id, [instance]);
-          else if (!list.some((x:any)=>Number(x.expiresAtTick)===expiresAtTick)) active.set(id,[...list,instance]);
-        }
-      } else if (event.action === 'status_ended') active.delete(id);
-      else if (event.action === 'status_stack_lessened') {
-        const count = Math.max(0, Number(event.remainingStacks ?? event.stackCount ?? list.length - 1));
-        active.set(id, list.slice(0,count));
-      }
-    }
+    const active = projectStatusTimeline(snapshot?.statusEffects, entry.log?.events, target, tick);
     return [...active.entries()].map(([id, stacks]) => {
-      const def:any = this.catalog.statusEffect(id) ?? {name:id, maxStacks:1};
-      const durations = stacks.map(status => Math.max(0, Math.ceil((startMs + Number(status.expiresAtTick ?? tick) * 1000 - now) / 1000)));
+      const def: any = this.catalog.statusEffect(id) ?? {name:id, maxStacks:1};
+      const durations = stacks.map(status => Number.isFinite(status.expiresAtTick) ? Math.max(0, Math.ceil((startMs + status.expiresAtTick * 1000 - now) / 1000)) : Number.POSITIVE_INFINITY);
+      const remaining = Math.max(0, ...durations);
       const movePenalty = Number(def.moveSpeedPenaltyPerStack ?? def.moveSpeedPenalty ?? 0);
       const attackPenalty = Number(def.attackSpeedPenaltyPerStack ?? def.attackSpeedPenalty ?? 0);
-      return { id, name:String(def.name ?? id.replace(/_/g,' ')), stacks:stacks.length, maxStacks:Number(def.maxStacks ?? 1), durations, remaining:Math.max(0,...durations), movePenalty, attackPenalty, tooltip:`${String(def.name ?? id)} · ${stacks.length}/${Number(def.maxStacks ?? 1)} stacks · ${Math.max(0,...durations)}s remaining${movePenalty ? ` · Move Speed -${movePenalty * stacks.length}` : ''}${attackPenalty ? ` · Attack Speed -${attackPenalty * stacks.length}` : ''}` };
+      const timeLabel = Number.isFinite(remaining) ? `${remaining}s remaining` : 'until removed';
+      return { id, name:String(def.name ?? id.replace(/_/g,' ')), stacks:stacks.length, maxStacks:Number(def.maxStacks ?? 1), durations, remaining, movePenalty, attackPenalty, tooltip:`${String(def.name ?? id)} · ${stacks.length}/${Number(def.maxStacks ?? 1)} stacks · ${timeLabel}${movePenalty ? ` · Move Speed -${movePenalty * stacks.length}` : ''}${attackPenalty ? ` · Attack Speed -${attackPenalty * stacks.length}` : ''}` };
     }).filter(status => status.stacks > 0 && status.remaining > 0);
   }
   trackStatusEffect(_index: number, status: { id: string }) { return status.id; }
@@ -173,6 +150,7 @@ export class InventoryGrid implements OnDestroy {
   slots = Array.from({ length: 50 }, (_, i) => i);
   readonly characterSlotIds = ['character-slot-head', 'character-slot-body', 'character-slot-mainHand', 'character-slot-offHand', 'character-slot-shoes', 'character-slot-cape', 'character-slot-accessoryLeft', 'character-slot-accessoryRight'];
   readonly vendorDropListIds = ['vendor-drop-list'];
+  readonly storageDropListIds = ['storage-drop-list'];
   readonly now = signal(Date.now());
   readonly highlightedSlot = signal<number | null>(null);
   readonly sorting = signal(false);
@@ -246,6 +224,8 @@ export class InventoryGrid implements OnDestroy {
         await this.inventory.unequip(data.slot);
       } else if (data?.source === 'vendor') {
         await this.vendor.openBuy(data.stock);
+      } else if (data?.source === 'warehouse' && data.id && this.vendor.selectedNpc()?.types.includes('storage')) {
+        await this.vendor.transferWarehouseRow(data.id, 'withdraw');
       }
     } catch (error: any) {
       this.sortError.set(error?.error?.message ?? 'Unable to move inventory item');
@@ -254,7 +234,7 @@ export class InventoryGrid implements OnDestroy {
     }
   }
   accessorySlot() { const equipped = this.inventory.equipment(); return equipped.some(x => x.slot === 'accessoryLeft') ? 'accessoryRight' : 'accessoryLeft' }
-  async doubleClick(it: any) { const d: any = this.catalog.item(it.itemId); if (d?.type === 'consumable' || d?.type === 'food') { try { await this.inventory.useConsumable(it.itemId) } catch { } } else if (d?.type === 'equipment' && d.slot) { const slot = d.slot === 'accessory' ? this.accessorySlot() : d.slot; try { await this.inventory.equip(slot, it.itemId) } catch { } } }
+  async doubleClick(it: any) { if (this.vendor.selectedNpc()?.types.includes('storage')) { await this.vendor.transferWarehouseRow(it.id, 'deposit'); return; } const d: any = this.catalog.item(it.itemId); if (d?.type === 'consumable' || d?.type === 'food') { try { await this.inventory.useConsumable(it.itemId) } catch { } } else if (d?.type === 'equipment' && d.slot) { const slot = d.slot === 'accessory' ? this.accessorySlot() : d.slot; try { await this.inventory.equip(slot, it.itemId) } catch { } } }
   dragData(it: any) { return { source: 'inventory', ...it } }
   ngOnDestroy() { clearInterval(this.timer) }
 }
@@ -262,14 +242,18 @@ export class InventoryGrid implements OnDestroy {
 @Component({ selector: 'app-vendor-panel', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './vendor-panel.html', styleUrl: './vendor-panel.css' })
 export class VendorPanel {
   readonly vendor = inject(VendorStore); readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly slots = Array.from({ length: 10 }, (_, i) => i);
+  readonly storageDropListIds = ['storage-drop-list'];
   constructor() { void this.vendor.load(); }
   stockAt(slot: number) { return this.vendor.stock().find(x => x.slotIndex === slot); }
+  warehouseAt(slot:number) { return this.vendor.warehouse().find(x=>x.slotIndex===slot); }
+  warehouseDragData(row:any) { return { source:'warehouse', ...row }; }
+  async doubleClickWarehouse(row:any) { await this.vendor.transferWarehouseRow(row.id,'withdraw'); }
   itemTierClass(itemId: string) { const tier = Number((this.catalog.item(itemId) as any)?.tier ?? 0); return tier >= 2 && tier <= 5 ? 'tier-' + tier : ''; }
   dragData(item: VendorStockItem) { return { source: 'vendor', vendorId: this.vendor.selectedNpcId(), itemId: item.itemId, stock: item }; }
   shouldHighlightDropTarget() {
-    return this.inventory.draggedItemId() !== null && !!this.vendor.selectedNpc()?.types.includes('vendor');
+    return this.inventory.draggedItemId() !== null && !!this.vendor.selectedNpc()?.types.some(type=>type==='vendor'||type==='storage');
   }
-  onVendorDragStart(item: VendorStockItem) {
+  onVendorDragStart(item: { itemId: string }) {
     this.inventory.beginDrag(item.itemId);
     document.dispatchEvent(new Event('nm:drag-start'));
   }
@@ -279,7 +263,7 @@ export class VendorPanel {
   }
   drop(ev: CdkDragDrop<any>) {
     const data = ev.item.data;
-    if (data?.source === 'inventory') void this.vendor.openSell(data.itemId);
+    if (data?.source === 'inventory') { if (this.vendor.selectedNpc()?.types.includes('storage') && data.id) void this.vendor.transferWarehouseRow(data.id,'deposit'); else if (this.vendor.selectedNpc()?.types.includes('vendor')) void this.vendor.openSell(data.itemId, Number(data.quantity)); }
     this.inventory.endDrag();
     document.dispatchEvent(new Event('nm:drag-end'));
   }
@@ -303,12 +287,8 @@ export class GrindInfo implements OnDestroy {
   monsterSnapshot(entry: any) { return (entry.log as any)?.header?.monsterSnapshot ?? {} }
   monsterStatusEffects(entry: any) {
     const now=this.now(); const start=Date.parse(entry.startAt); if(now<start||now>=Date.parse(entry.endAt)) return [];
-    const tick=Math.floor((now-start)/1000); const active=new Map<string,any[]>();
-    for(const st of this.monsterSnapshot(entry).statusEffects??[]){const id=String(st.type??st.id??'');const expires=Number(st.expiresAtTick??Infinity);if(id&&expires>tick){const a=active.get(id)??[];a.push({...st,expiresAtTick:expires});active.set(id,a)}}
-    for(const e of this.events(entry)){if(Number(e.tick??0)>tick)break;if(e.target!=='monster')continue;const id=String(e.status??e.statusApplied??'');if(!id)continue;const a=active.get(id)??[];
-      if(['status_applied','status_stack_applied','status_refreshed','freeze_applied'].includes(String(e.action))){const durationTicks=Number(e.durationTicks??0);const expires=e.expiresAtTick!=null?Number(e.expiresAtTick):(durationTicks>0?Number(e.tick??0)+durationTicks:Number.POSITIVE_INFINITY);if(expires>tick){const st={type:id,expiresAtTick:expires};active.set(id,e.action==='status_refreshed'?[st]:[...a.filter(x=>Number(x.expiresAtTick)!==expires),st])}}
-      else if(e.action==='status_ended')active.delete(id);else if(e.action==='status_stack_lessened')active.set(id,a.slice(0,Math.max(0,Number(e.remainingStacks??e.stackCount??a.length-1))));
-    }
+    const tick=Math.floor((now-start)/1000);
+    const active=projectStatusTimeline(this.monsterSnapshot(entry).statusEffects, this.events(entry), 'monster', tick);
     return [...active.entries()].map(([id,stacks])=>{
       const def:any=this.catalog.statusEffect(id)??{name:id,maxStacks:1};
       const expiresAtTick=Math.max(...stacks.map(x=>Number(x.expiresAtTick??tick)));

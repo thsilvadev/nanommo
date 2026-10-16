@@ -12,9 +12,12 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
-    "db:migrate": "typeorm migration:run -d src/database/data-source.ts",
+    "db:migrate": "pnpm exec nest build && node dist/apps/api/src/maintenance/run-migrations.js",
     "db:drop": "typeorm schema:drop -d src/database/data-source.ts",
-    "db:seed": "ts-node src/database/seeders/seed.ts"
+    "db:seed": "ts-node src/database/seeders/seed.ts",
+    "reconcile:battle-queue": "node dist/apps/api/src/maintenance/reconcile-battle-queue.js",
+    "db:migration:show": "pnpm exec nest build && node dist/apps/api/src/maintenance/show-migrations.js",
+    "db:migration:baseline": "pnpm exec nest build && node dist/apps/api/src/maintenance/record-migration-baseline.js"
   },
   "dependencies": {
     "@nanommo/shared": "workspace:*",

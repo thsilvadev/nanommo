@@ -14,14 +14,21 @@
       "monsters_quantity": 0,
       "monsters": [],
       "unlockLevel": 1,
-      "isTown": true
+      "isTown": true,
+      "npcIds": [
+        "william",
+        "father_marcelus",
+        "blacksmith_loren",
+        "cecilia",
+        "storage"
+      ]
     },
     {
       "id": "map_lv_1",
       "name": "lv. 1",
       "coordinates": {
-        "x": 0,
-        "y": 1
+        "x": 1,
+        "y": 0
       },
       "isClickable": true,
       "type": "grind",
@@ -48,8 +55,8 @@
       "id": "map_lv_6",
       "name": "lv. 6",
       "coordinates": {
-        "x": 0,
-        "y": 2
+        "x": 2,
+        "y": 0
       },
       "isClickable": true,
       "type": "grind",
@@ -76,8 +83,8 @@
       "id": "map_lv_11",
       "name": "lv. 11",
       "coordinates": {
-        "x": 0,
-        "y": 3
+        "x": 3,
+        "y": 0
       },
       "isClickable": true,
       "type": "grind",
@@ -87,19 +94,19 @@
       "monsters": [
         {
           "monsterId": "mon_sandscorpion",
-          "presenceRate": 25.0
+          "presenceRate": 25
         },
         {
           "monsterId": "mon_mirageStalker",
-          "presenceRate": 25.0
+          "presenceRate": 25
         },
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 25.0
+          "presenceRate": 25
         },
         {
           "monsterId": "mon_gravelhorn",
-          "presenceRate": 25.0
+          "presenceRate": 25
         }
       ],
       "unlockLevel": 11
@@ -108,8 +115,8 @@
       "id": "map_lv_16",
       "name": "lv. 16",
       "coordinates": {
-        "x": 0,
-        "y": 4
+        "x": 4,
+        "y": 0
       },
       "isClickable": true,
       "type": "grind",
@@ -119,11 +126,11 @@
       "monsters": [
         {
           "monsterId": "mon_ridgebreaker",
-          "presenceRate": 50.0
+          "presenceRate": 50
         },
         {
           "monsterId": "mon_saltfangcrab",
-          "presenceRate": 50.0
+          "presenceRate": 50
         }
       ],
       "unlockLevel": 16
@@ -132,8 +139,8 @@
       "id": "map_lv_21",
       "name": "lv. 21",
       "coordinates": {
-        "x": 0,
-        "y": 5
+        "x": 5,
+        "y": 0
       },
       "isClickable": true,
       "type": "grind",
@@ -143,19 +150,19 @@
       "monsters": [
         {
           "monsterId": "mon_duneraider",
-          "presenceRate": 25.0
+          "presenceRate": 25
         },
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 25.0
+          "presenceRate": 25
         },
         {
           "monsterId": "mon_bandit",
-          "presenceRate": 25.0
+          "presenceRate": 25
         },
         {
           "monsterId": "mon_needlebackstalker",
-          "presenceRate": 25.0
+          "presenceRate": 25
         }
       ],
       "unlockLevel": 21
@@ -164,8 +171,8 @@
       "id": "map_lv_26",
       "name": "lv. 26",
       "coordinates": {
-        "x": 0,
-        "y": 6
+        "x": 6,
+        "y": 0
       },
       "isClickable": true,
       "type": "grind",
@@ -175,11 +182,11 @@
       "monsters": [
         {
           "monsterId": "mon_giantmosquito",
-          "presenceRate": 50.0
+          "presenceRate": 50
         },
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 50.0
+          "presenceRate": 50
         }
       ],
       "unlockLevel": 26

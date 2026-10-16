@@ -6,9 +6,9 @@ import { BattleStore, CharacterStore, InventoryStore } from './game.store';
 import { GameSocketService } from './game.socket.service';
 
 const character = (hp: number, sp: number): Character => ({
-  id: 'char-1', userId: 'user-1', name: 'Tester', level: 1, xp: 0, xpToNext: 10,
-  unspentAttributePoints: 0, str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5,
-  gold: 0, hpCurrent: hp, spCurrent: sp, maxHp: 100, maxSp: 50, attack: 10,
+  id: 'char-1', userId: 'user-1', name: 'Tester', dominantHand: 'right', level: 1, xp: 0, xpToNext: 10,
+  unspentAttributePoints: 0, attributeBonuses: {}, str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5,
+  gold: 0, hpCurrent: hp, spCurrent: sp, maxHp: 100, maxSp: 50, attack: 10, magicAttack: 0,
   defense: 0, attackSpeed: 1, castSpeed: 1, evasion: 5, accuracy: 5,
   hpRegenPerTenTicks: 3, spRegenPerTenTicks: 3, criticalChance: 1,
   hungry: false, foodBuffExpiresAt: new Date(Date.now()+3600000).toISOString(), diet: [], dietLevels: {}, autoFeed: false, status: 'grinding', currentMapId: 'map_lv_1',

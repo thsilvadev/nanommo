@@ -51,8 +51,7 @@
             <div class="mastery-title">
                 <div><small>MASTERY</small>
                     <h2>{{weaponRows()[selectedWeaponIndex()][1]}}</h2>
-                </div><span>LEVEL {{weaponLevels()[selectedWeapon()] || 0}} · XP {{getXpAtCurrentLevel()}}/ {{getXpToNextLevel()}} · POINTS
-                    {{(weaponLevels()[selectedWeapon()]||0)-(masteryRows()[selectedWeapon()]?.spentSkillPoints||0)}}</span>
+                </div><span [attr.title]="'Total cumulative XP: ' + getTotalMasteryXp()">LEVEL {{masteryLevel()}} · XP {{getXpAtCurrentLevel()}} / {{getXpToNextLevel()}} · POINTS {{availableMasteryPoints()}}</span>
             </div>
             <div class="skill-tree">
                 <div *ngFor="let skill of masterySkills();let i=index" class="skill-node"

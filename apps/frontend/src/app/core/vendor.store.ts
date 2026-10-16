@@ -6,6 +6,15 @@ import { TownNpc, VendorStockItem, VendorQuote, NpcDialogueState } from '@nanomm
 
 export interface VendorModal { mode:'buy'|'sell'; itemId:string; quantity:number; maxQuantity:number; unitPrice:number; }
 
+/** Maximum amount selectable when selling the Inventory row that was dragged. */
+export function sellModalMaxQuantity(ownedQuantity:number, selectedStackQuantity:number|undefined, stackable:boolean):number {
+  if (!stackable) return 1;
+  const owned = Math.max(0, Math.trunc(Number(ownedQuantity) || 0));
+  const selected = Number.isFinite(Number(selectedStackQuantity)) && Number(selectedStackQuantity) > 0
+    ? Math.trunc(Number(selectedStackQuantity)) : owned;
+  return Math.max(0, Math.min(owned, selected));
+}
+
 @Injectable({providedIn:'root'})
 export class VendorStore {
   private readonly api=inject(ApiService);
@@ -16,6 +25,7 @@ export class VendorStore {
   readonly dialogue=signal<NpcDialogueState|null>(null);
   readonly selectedNpcId=signal('william');
   readonly stock=signal<VendorStockItem[]>([]);
+  readonly warehouse=signal<import('./game.models').InventoryItem[]>([]);
   readonly modal=signal<VendorModal|null>(null);
   readonly error=signal<string|null>(null);
   readonly busy=signal(false);
@@ -36,12 +46,24 @@ export class VendorStore {
     if(!npc)return;
     if(npc.types.includes('vendor')) await this.loadStock();
     if(npc.types.includes('quest')) await this.loadDialogue();
+    if(npc.types.includes('storage')) await this.loadWarehouse();
   }
   async loadStock(){
     const id=this.selectedNpcId();
     if(!id)return;
     try{this.stock.set(await this.api.get<VendorStockItem[]>('/town/vendor/'+id+'/stock').toPromise()??[]);}
     catch(e:any){this.error.set(e?.error?.message??'Unable to load vendor stock');}
+  }
+  async loadWarehouse(){
+    if(!this.selectedNpc()?.types.includes('storage')) { this.warehouse.set([]); return; }
+    try { this.warehouse.set(await this.api.get<import('./game.models').InventoryItem[]>('/town/warehouse/contents').toPromise() ?? []); }
+    catch(e:any) { this.error.set(e?.error?.message ?? 'Unable to load Storage'); }
+  }
+  async transferWarehouseRow(rowId:string, direction:'deposit'|'withdraw'){
+    if(this.busy()) return; this.busy.set(true); this.error.set(null);
+    try { await this.api.post('/town/warehouse/transfer',{rowId,direction}).toPromise(); await Promise.all([this.inventory.load(),this.loadWarehouse(),this.character.load()]); }
+    catch(e:any) { this.error.set(e?.error?.message ?? 'Storage transfer rejected'); await Promise.all([this.inventory.load(),this.loadWarehouse()]); }
+    finally { this.busy.set(false); }
   }
   async loadDialogue(){
     const id=this.selectedNpcId();
@@ -73,7 +95,7 @@ export class VendorStore {
     for(const row of items.filter(x=>x.itemId===itemId)) room+=Math.max(0,Number(def.maxStack??1)-row.quantity);
     return room;
   }
-  async openSell(itemId:string){
+  async openSell(itemId:string, selectedStackQuantity?:number){
     this.error.set(null);
     const owned=this.totalOwned(itemId);
     if(owned<=0)return;
@@ -81,7 +103,9 @@ export class VendorStore {
       const q=await this.api.get<VendorQuote>('/town/vendor/'+this.selectedNpcId()+'/quote/'+itemId).toPromise();
       const unit=Number(q?.sellPrice??0);
       if(unit<=0){this.error.set('This vendor cannot buy this item');return;}
-      const max=q?.stackable?owned:1;
+      // Selling from a dragged stack scopes the modal to that stack, not the
+      // sum of every matching item across the whole Inventory.
+      const max=sellModalMaxQuantity(owned,selectedStackQuantity,!!q?.stackable);
       this.modal.set({mode:'sell',itemId,quantity:1,maxQuantity:max,unitPrice:unit});
     }catch(e:any){this.error.set(e?.error?.message??'Unable to price item');}
   }

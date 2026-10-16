@@ -1,7 +1,21 @@
-<section class="vendor-panel" aria-label="Town Vendor">
+<section class="vendor-panel" aria-label="Town NPC">
   <div class="npc-select"><label for="town-npc-select">Talk to:</label><select id="town-npc-select" aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)"><option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{npc.name}}</option></select></div>
   <ng-container *ngIf="vendor.selectedNpc() as npc">
     <div class="vendor-title"><strong>{{npc.name}}</strong><span>{{npc.types.join(' / ') | uppercase}}</span></div>
+
+    <ng-container *ngIf="npc.types.includes('storage')">
+      <p class="vendor-greeting">{{npc.monologue}}</p>
+      <div id="storage-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid storage-grid" [class.drop-target-active]="shouldHighlightDropTarget()">
+        <div *ngFor="let slot of slots" class="vendor-slot" [class.filled]="warehouseAt(slot)">
+          <div *ngIf="warehouseAt(slot) as item" cdkDrag [cdkDragData]="warehouseDragData(item)" (cdkDragStarted)="onVendorDragStart(item)" (cdkDragEnded)="onVendorDragEnd()" (dblclick)="doubleClickWarehouse(item)" class="vendor-item">
+            <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon"><b *ngIf="item.quantity>1">{{item.quantity}}</b>
+            <div class="item-tooltip"><strong>{{vendor.itemName(item.itemId)}}</strong><span *ngFor="let line of catalog.itemTooltipLines(item.itemId,item.instanceData)">{{line.label}}: {{line.value}}</span></div>
+            <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)"></ng-template><ng-template cdkDragPlaceholder><span class="vendor-placeholder"></span></ng-template>
+          </div>
+        </div>
+      </div>
+      <small class="storage-hint">10 slots · Double-click to withdraw · Drag to Inventory to withdraw</small>
+    </ng-container>
 
     <ng-container *ngIf="npc.types.includes('vendor')">
       <p class="vendor-greeting">{{npc.greeting || 'Hello, adventurer!'}}</p>

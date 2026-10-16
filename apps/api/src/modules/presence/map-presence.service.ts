@@ -25,6 +25,8 @@ export class MapPresenceService implements OnModuleInit, OnModuleDestroy {
   private readonly channel = 'gateway:map:presence';
   private readonly transitionChannel = 'gateway:map:transition';
   private reconciliationTimer: NodeJS.Timeout | null = null;
+  private startupReconciled = false;
+  private reconciliationInProgress: Promise<void> | null = null;
 
   constructor(
     @InjectRepository(Character)
@@ -34,9 +36,10 @@ export class MapPresenceService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
-    void this.reconcileAuthoritativePresence();
+    // Startup reconciliation is sequenced by BattleRecoveryService while the
+    // BattleQueueGateService keeps all workers closed. Periodic repair cannot race it.
     this.reconciliationTimer = setInterval(() => {
-      void this.reconcileAuthoritativePresence();
+      if (this.startupReconciled) void this.reconcileAuthoritativePresence();
     }, this.reconciliationIntervalMs);
   }
 
@@ -120,36 +123,71 @@ export class MapPresenceService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Safety-net reconciliation, not the realtime trigger.
-   * Normal map transitions call syncCharacter immediately. Reconciliation repairs
-   * missed writes/crashes and disconnected grinders without using battle timing.
+   * Full authoritative rebuild used by startup recovery and periodic repair.
+   * Removes stale Redis-only memberships and excludes every pending transition.
+   * Throws on Redis/DB failure so startup cannot open the worker gate on bad presence.
    */
-  async reconcileAuthoritativePresence(): Promise<void> {
-    try {
+  async reconcileAllPresenceOrThrow(): Promise<void> {
+    if (this.reconciliationInProgress) return this.reconciliationInProgress;
+    const run = async () => {
       const characters = await this.characterRepo.find({ select: ['id', 'currentMapId', 'pendingMapTransition'] });
-
-      const mapMembers = new Map<string, string[]>();
+      const desired = new Map<string, string[]>();
       for (const character of characters) {
-        if (!character.currentMapId) continue;
-        const members = mapMembers.get(character.currentMapId) ?? [];
-        members.push(character.id);
-        mapMembers.set(character.currentMapId, members);
+        const mapId = this.getActiveMapId(character as Pick<Character, 'currentMapId' | 'pendingMapTransition'>);
+        if (!mapId) continue;
+        const ids = desired.get(mapId) ?? [];
+        ids.push(character.id);
+        desired.set(mapId, ids);
       }
 
-      for (const [mapId, characterIds] of mapMembers) {
-        const before = await this.getPlayersOnMap(mapId);
-        for (const characterId of characterIds) {
-          await this.addPlayerToMap(characterId, mapId);
-        }
-        const after = await this.getPlayersOnMap(mapId);
-        if (after !== before) {
-          await this.publishMapPresence(mapId);
+      const existingKeys = new Set<string>();
+      let cursor = '0';
+      do {
+        const [next, keys] = await this.redis.scan(cursor, 'MATCH', 'map:players:*', 'COUNT', 500);
+        cursor = next;
+        for (const key of keys) existingKeys.add(key);
+      } while (cursor !== '0');
+
+      const oldCounts = new Map<string, number>();
+      const allMapIds = new Set<string>();
+      for (const key of existingKeys) {
+        const mapId = key.slice('map:players:'.length);
+        allMapIds.add(mapId);
+        oldCounts.set(mapId, await this.redis.hlen(key));
+      }
+      for (const mapId of desired.keys()) allMapIds.add(mapId);
+
+      if (existingKeys.size) await this.redis.del(...existingKeys);
+      const timestamp = Date.now();
+      for (const [mapId, ids] of desired) {
+        const key = 'map:players:' + mapId;
+        if (!ids.length) continue;
+        const fields: string[] = [];
+        for (const id of ids) fields.push(id, String(timestamp));
+        await this.redis.hset(key, ...fields);
+      }
+
+      for (const mapId of allMapIds) {
+        const nextCount = desired.get(mapId)?.length ?? 0;
+        if (oldCounts.get(mapId) !== nextCount) {
+          await this.redis.publish(this.channel, JSON.stringify({ mapId, playersOnMap: nextCount }));
         }
       }
-    } catch (error) {
-      this.logger.warn(
-        'Map presence reconciliation failed: ' + (error instanceof Error ? error.message : String(error)),
-      );
+      this.logger.log(`Authoritative map presence rebuilt: ${characters.length} characters, ${desired.size} active map(s), ${existingKeys.size} stale/current Redis key(s) replaced`);
+    };
+    this.reconciliationInProgress = run();
+    try { await this.reconciliationInProgress; }
+    finally { this.reconciliationInProgress = null; }
+  }
+
+  /** Enable periodic repair only after queue recovery and job reconciliation have succeeded. */
+  enablePeriodicReconciliation(): void { this.startupReconciled = true; }
+
+  /** Periodic safety net. Startup uses reconcileAllPresenceOrThrow directly. */
+  async reconcileAuthoritativePresence(): Promise<void> {
+    try { await this.reconcileAllPresenceOrThrow(); }
+    catch (error) {
+      this.logger.warn('Map presence reconciliation failed: ' + (error instanceof Error ? error.message : String(error)));
     }
   }
 

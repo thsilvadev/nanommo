@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const read = (p) => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8'));
+const maps = read('maps.json');
+const publicMaps = read('apps/frontend/public/data/maps.json');
+const npcs = read('npc_catalog.json').npcs;
+const publicNpcCatalog = fs.existsSync(path.join(root, 'apps/frontend/public/data/npc_catalog.json')) ? read('apps/frontend/public/data/npc_catalog.json').npcs : null;
+assert.deepEqual(publicMaps, maps, 'frontend map catalogue must exactly mirror root maps.json');
+const towns = maps.maps.filter((map) => map.type === 'town');
+assert.ok(towns.length >= 1, 'at least one canonical type=town map is required');
+const storage = npcs.filter((npc) => npc.id === 'storage');
+assert.equal(storage.length, 1, 'exactly one canonical Storage NPC must exist');
+assert.equal(storage[0].name, 'Storage');
+assert.equal(storage[0].location, 'town');
+assert.deepEqual(storage[0].types, ['storage']);
+assert.equal(storage[0].monologue, "You know I have a name, right? But you'll keep calling me Storage anyway.");
+for (const map of towns) assert.ok(Array.isArray(map.npcIds) && map.npcIds.includes('storage'), `Town map ${map.id} must reference storage`);
+const expected = ['map_town','map_lv_1','map_lv_6','map_lv_11','map_lv_16','map_lv_21','map_lv_26'];
+assert.deepEqual(maps.maps.map((map) => map.id), expected, 'current map catalogue must be Town followed by six grind maps');
+for (let i=0;i<maps.maps.length;i++) assert.deepEqual(maps.maps[i].coordinates, { x:i, y:0 }, `${maps.maps[i].id} must occupy x=${i}, y=0`);
+if (publicNpcCatalog) assert.deepEqual(publicNpcCatalog, npcs, 'frontend NPC catalogue must exactly mirror root npc_catalog.json');
+console.log(`storage/map catalogue validation: passed (${towns.length} Town map(s), one Storage NPC, ${maps.maps.length} ordered maps)`);

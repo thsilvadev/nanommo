@@ -60,6 +60,39 @@ export class DataService implements OnModuleInit {
         }
       }
     }
+    // Town NPC placement is catalog-owned, not hardcoded in the frontend. A
+    // future Town map must declare the same canonical Storage ID and resolve every
+    // referenced NPC. William lives in npc_vendor.json; quest/Storage IDs live in
+    // npc_catalog.json.
+    const npcRows = Array.isArray(this.npcCatalog?.npcs) ? this.npcCatalog.npcs : [];
+    const npcIds = new Set<string>();
+    for (const npc of npcRows) {
+      if (!npc?.id || npcIds.has(npc.id)) throw new Error(`Duplicate or missing NPC ID: ${npc?.id}`);
+      npcIds.add(npc.id);
+    }
+    const vendorId = String(this.npcVendor?.id ?? '');
+    if (!vendorId || npcIds.has(vendorId)) throw new Error(`Duplicate or missing standalone Vendor NPC ID: ${vendorId}`);
+    const validNpcIds = new Set([...npcIds, vendorId]);
+    const storageRows = npcRows.filter((npc: any) => npc.id === 'storage');
+    const storageMonologue = "You know I have a name, right? But you'll keep calling me Storage anyway.";
+    if (storageRows.length !== 1 || storageRows[0].name !== 'Storage' || storageRows[0].location !== 'town' ||
+      !Array.isArray(storageRows[0].types) || storageRows[0].types.length !== 1 || storageRows[0].types[0] !== 'storage' ||
+      storageRows[0].monologue !== storageMonologue) {
+      throw new Error('npc_catalog.json must define exactly one canonical Storage NPC with the approved name, town location, storage-only capability and exact monologue');
+    }
+    const townMaps = maps.filter((map: any) => map?.type === 'town');
+    if (townMaps.length === 0) throw new Error('maps.json must define at least one map with type=town');
+    for (const map of maps) {
+      if (map.npcIds !== undefined && !Array.isArray(map.npcIds)) throw new Error(`Map ${map.id} npcIds must be an array when provided`);
+      const seenNpcIds = new Set<string>();
+      for (const npcId of (Array.isArray(map.npcIds) ? map.npcIds : [])) {
+        if (seenNpcIds.has(npcId)) throw new Error(`Map ${map.id} duplicates NPC reference ${npcId}`);
+        if (!validNpcIds.has(npcId)) throw new Error(`Map ${map.id} references missing NPC ${npcId}`);
+        seenNpcIds.add(npcId);
+      }
+      if (map.type === 'town' && !seenNpcIds.has('storage')) throw new Error(`Town map ${map.id} must reference canonical Storage NPC`);
+    }
+
     const mapIds = new Set<string>();
     const coordinates = new Set<string>();
     for (const map of maps) {

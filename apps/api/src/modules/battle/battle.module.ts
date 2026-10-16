@@ -11,6 +11,7 @@ import { BattleController } from './battle.controller';
 import { BattleService } from './battle.service';
 import { BattleQueueProcessor } from './battle-queue.processor';
 import { BattleRecoveryService } from './battle-recovery.service';
+import { BattleQueueGateService } from './battle-queue-gate.service';
 import { DataModule } from '../data/data.module';
 import { CharacterModule } from '../character/character.module';
 import { InventoryModule } from '../inventory/inventory.module';
@@ -47,7 +48,9 @@ import { PresenceModule } from '../presence/presence.module';
     PresenceModule,
   ],
   controllers: [BattleController],
-  providers: [BattleService, BattleQueueProcessor, BattleRecoveryService, GatewayService],
+  // Maintenance-only Nest context never registers Bull consumers. The recovery
+  // service still runs after migrations, but no delayed job can execute in that process.
+  providers: [BattleService, ...(process.env.BATTLE_QUEUE_MAINTENANCE_ONLY === 'true' ? [] : [BattleQueueProcessor]), BattleRecoveryService, BattleQueueGateService, GatewayService],
   exports: [BattleService, GatewayService],
 })
 export class BattleModule {}

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards, Request, Body, Param, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, Request, Body, Param, NotFoundException, BadRequestException } from '@nestjs/common';
 import { TownService } from './town.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CharacterService } from '../character/character.service';
@@ -44,6 +44,11 @@ export class TownController {
   async depositToWarehouse(@Request() req: any, @Body() body: { itemId: string; quantity: number }) { return this.townService.depositToWarehouse(await this.characterId(req), body.itemId, body.quantity); }
   @Post('warehouse/withdraw')
   async withdrawFromWarehouse(@Request() req: any, @Body() body: { itemId: string; quantity: number }) { return this.townService.withdrawFromWarehouse(await this.characterId(req), body.itemId, body.quantity); }
+  @Post('warehouse/transfer')
+  async transferWarehouseRow(@Request() req: any, @Body() body: { rowId: string; direction: 'deposit' | 'withdraw' }) {
+    if (!body?.rowId || !['deposit', 'withdraw'].includes(body.direction)) throw new BadRequestException('A source row and valid transfer direction are required');
+    return this.townService.transferWarehouseRow(await this.characterId(req), body.rowId, body.direction);
+  }
 
   @Get('npcs')
   async getTownNPCs(@Request() req: any) { return this.townService.getTownNPCs(await this.characterId(req)); }

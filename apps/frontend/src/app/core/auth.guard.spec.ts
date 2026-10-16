@@ -8,12 +8,12 @@ import { Character } from './game.models';
 
 function fakeCharacter(name = 'Tester'): Character {
   return {
-    id: 'char-1', userId: 'user-1', name, level: 1, xp: 0, xpToNext: 10,
+    id: 'char-1', userId: 'user-1', name, dominantHand: 'right', level: 1, xp: 0, xpToNext: 10,
     unspentAttributePoints: 0, str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5,
     attributeBonuses: {}, gold: 0, hpCurrent: 100, spCurrent: 50, maxHp: 100, maxSp: 50,
     attack: 10, magicAttack: 0, defense: 0, attackSpeed: 1, castSpeed: 1, evasion: 5,
     accuracy: 5, hpRegenPerTenTicks: 3, spRegenPerTenTicks: 3, criticalChance: 1,
-    hungry: false, diet: [], dietLevels: {}, autoFeed: false, status: 'town',
+    hungry: false, diet: [], dietLevels: {}, autoFeed: false, status: 'town', currentMapId: 'map_town',
     lastSeenAt: new Date().toISOString(), createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(), stateVersion: 1,
   } as Character;
@@ -27,8 +27,14 @@ describe('auth guards', () => {
 
   beforeEach(() => {
     createdTrees = [];
-    authStore = jasmine.createSpyObj<AuthStore>('AuthStore', ['routeAfterLogin']);
-    characterStore = jasmine.createSpyObj<CharacterStore>('CharacterStore', ['load']);
+    authStore = {
+      isAuthenticated: jasmine.createSpy('isAuthenticated'),
+      userPayload: jasmine.createSpy('userPayload').and.returnValue({ emailVerified: true }),
+    } as unknown as jasmine.SpyObj<AuthStore>;
+    characterStore = {
+      character: jasmine.createSpy('character'),
+      load: jasmine.createSpy('load'),
+    } as unknown as jasmine.SpyObj<CharacterStore>;
     router = jasmine.createSpyObj<Router>('Router', ['createUrlTree']);
     router.createUrlTree.and.callFake((commands: any[]) => {
       const tree = { __commands: commands } as unknown as UrlTree;
@@ -46,7 +52,7 @@ describe('auth guards', () => {
   });
 
   function runGuard(guard: any): Promise<any> {
-    const result = guard({}, { url: '/play' });
+    const result = TestBed.runInInjectionContext(() => guard({}, { url: '/play' }));
     if (result instanceof Promise) return result;
     if (result && typeof (result as any).subscribe === 'function') {
       return (result as any).toPromise();
@@ -130,12 +136,12 @@ describe('auth guards', () => {
   describe('authGuard', () => {
     it('allows authenticated users', () => {
       (authStore.isAuthenticated as any) = () => true;
-      expect(authGuard({} as any, { url: '/play' } as any)).toBe(true);
+      expect(TestBed.runInInjectionContext(() => authGuard({} as any, { url: '/play' } as any))).toBe(true);
     });
 
     it('redirects unauthenticated users to /login', () => {
       (authStore.isAuthenticated as any) = () => false;
-      const result = authGuard({} as any, { url: '/play' } as any);
+      const result = TestBed.runInInjectionContext(() => authGuard({} as any, { url: '/play' } as any));
       expect(createdTrees).toContain(JSON.stringify(['/login']));
     });
   });
