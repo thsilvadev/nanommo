@@ -109,10 +109,10 @@ export class InventoryService {
    */
   async getItemCount(characterId: string, itemId: string, manager?: EntityManager): Promise<number> {
     const repo = manager?.getRepository(InventoryItem) ?? this.inventoryItemRepo;
-    const item = await repo.findOne({
-      where: { characterId, itemId },
+    const stacks = await repo.find({
+      where: { characterId, itemId, location: 'inventory' },
     });
-    return item?.quantity ?? 0;
+    return stacks.reduce((total, stack) => total + Math.max(0, Number(stack.quantity) || 0), 0);
   }
 
   /**
@@ -420,7 +420,8 @@ export class InventoryService {
 
     // Find and remove from stacks
     const items = await inventoryRepo.find({
-      where: { characterId, itemId },
+      where: { characterId, itemId, location: 'inventory' },
+      order: { slotIndex: 'ASC' },
     });
 
     for (const item of items) {

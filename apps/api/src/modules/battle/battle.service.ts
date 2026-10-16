@@ -1174,9 +1174,12 @@ export class BattleService {
         try {
           updated = await this.inventoryService.consumeFood(character.id, itemId, manager);
         } catch (error) {
-          // A concurrent/just-refreshed digestion timestamp is a normal lost
+          // A concurrent inventory/digestion change is a normal lost
           // eligibility race, not a battle-resolution failure. Try another food.
-          if (error instanceof BadRequestException && error.message === 'Food is still digesting') continue;
+          if (
+            error instanceof BadRequestException &&
+            ['Food is still digesting', 'Insufficient item quantity'].includes(error.message)
+          ) continue;
           throw error;
         }
         Object.assign(character, updated);
