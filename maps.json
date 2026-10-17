@@ -38,11 +38,11 @@
       "monsters": [
         {
           "monsterId": "mon_slime",
-          "presenceRate": 33.33
+          "presenceRate": 66.33
         },
         {
           "monsterId": "mon_fieldbat",
-          "presenceRate": 33.33
+          "presenceRate": 33.67
         }
       ],
       "unlockLevel": 1
@@ -62,7 +62,7 @@
       "monsters": [
         {
           "monsterId": "mon_thornsprout",
-          "presenceRate": 33.34
+          "presenceRate": 30
         },
         {
           "monsterId": "mon_mudcrawler",
@@ -70,11 +70,11 @@
         },
         {
           "monsterId": "mon_direwolf",
-          "presenceRate": 33.33
+          "presenceRate": 13.33
         },
         {
           "monsterId": "mon_cindergolem",
-          "presenceRate": 33.34
+          "presenceRate": 23.34
         }
       ],
       "unlockLevel": 6
