@@ -1,0 +1,48 @@
+{
+  "id": "william",
+  "name": "William",
+  "location": "town",
+  "buysAnyItem": true,
+  "buyRatePercent": 40,
+  "buyRateNote": "Pays 40% of the item's marketBasePrice (see items.json). Purchased items are destroyed immediately — the vendor's sell stock below is fixed and infinite, independent of what players sell to it.",
+  "sellStock": [
+    {
+      "itemId": "pot_hp_small",
+      "price": 15,
+      "infiniteStock": true
+    },
+    {
+      "itemId": "pot_hp_medium",
+      "price": 40,
+      "infiniteStock": true
+    },
+    {
+      "itemId": "pot_hp_large",
+      "price": 90,
+      "infiniteStock": true
+    },
+    {
+      "itemId": "pot_sp_small",
+      "price": 15,
+      "infiniteStock": true
+    },
+    {
+      "itemId": "pot_sp_medium",
+      "price": 40,
+      "infiniteStock": true
+    },
+    {
+      "itemId": "pot_sp_large",
+      "price": 90,
+      "infiniteStock": true
+    },
+    {
+      "itemId": "antidote",
+      "price": 100,
+      "infiniteStock": true
+    }
+  ],
+  "type": "vendor",
+  "slotCount": 10,
+  "greeting": "Hello, adventurer! How can I help you? Wanna buy goods or sell me your loot? Just drag’n’drop items"
+}

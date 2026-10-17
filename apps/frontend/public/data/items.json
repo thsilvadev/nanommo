@@ -925,14 +925,14 @@
       "name": "Small HP Potion",
       "effect": {
         "type": "heal_hp",
-        "amount": 60
+        "amount": 70
       },
       "vendorSells": true,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
-      "cooldownInSeconds": 5
+      "cooldownInSeconds": 10
     },
     {
       "id": "pot_hp_medium",
@@ -945,8 +945,8 @@
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7,
-      "cooldownInSeconds": 5
+      "sellPriceToVendor": 20,
+      "cooldownInSeconds": 10
     },
     {
       "id": "pot_hp_large",
@@ -959,8 +959,8 @@
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7,
-      "cooldownInSeconds": 5
+      "sellPriceToVendor": 45,
+      "cooldownInSeconds": 10
     },
     {
       "id": "pot_sp_small",
@@ -974,7 +974,7 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
-      "cooldownInSeconds": 5
+      "cooldownInSeconds": 10
     },
     {
       "id": "pot_sp_medium",
@@ -987,8 +987,8 @@
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7,
-      "cooldownInSeconds": 5
+      "sellPriceToVendor": 20,
+      "cooldownInSeconds": 10
     },
     {
       "id": "pot_sp_large",
@@ -1001,8 +1001,8 @@
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7,
-      "cooldownInSeconds": 5
+      "sellPriceToVendor": 45,
+      "cooldownInSeconds": 10
     },
     {
       "id": "antidote",
@@ -1015,8 +1015,8 @@
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7,
-      "cooldownInSeconds": 5
+      "sellPriceToVendor": 50,
+      "cooldownInSeconds": 10
     },
     {
       "id": "elixir_greater",
@@ -1030,8 +1030,8 @@
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 7,
-      "cooldownInSeconds": 5
+      "sellPriceToVendor": 500,
+      "cooldownInSeconds": 10
     },
     {
       "id": "food_bread",

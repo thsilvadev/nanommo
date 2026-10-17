@@ -207,7 +207,7 @@
         "effect": {
           "type": "fearless_focus_passive",
           "damagePerSpacePerRank": 0.01,
-          "accuracyPerSpacePerRank": 3
+          "accuracyPerSpacePerRank": 5
         }
       },
       {
@@ -630,7 +630,7 @@
       "name": "Rage",
       "kind": "active",
       "target": "self",
-      "spCost": 0,
+      "spCost": 50,
       "cooldownTicks": 15,
       "effects": [
         {
