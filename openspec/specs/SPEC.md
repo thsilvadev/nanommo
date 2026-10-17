@@ -1138,6 +1138,10 @@ to obtain icons.
 
 The active Grind panel centers the foe name/level, current battle/tick line, and one transparent creature sprite vertically in that order. Each catalogue monster has its own image under apps/frontend/assets/monsters/<monsterId>.svg, keyed by the stable monster ID rather than its display name; artwork is interpreted from the monster name and designNote. Standard sprite canvas is 167×199 px with a transparent background, rendered below the small battle line instead of the generic target icon. This is presentation only and must not alter battle state, sizing of the HP/SP bars, or encounter selection.
 
+### 17.11 Town NPC portraits and selection reset
+
+In the Town context of the Grind Info panel, each selected NPC has a dedicated transparent pixel-art portrait under `apps/frontend/assets/npcs/<npcId>.png`, on a 167×199 px canvas. Portraits appear centered above the NPC name/capability header and only while that NPC is selected. The NPC selector's initial option is `Choose NPC to interact`; an empty selection is valid and must not be replaced automatically by William or the first entry. Every time Town context mounts after returning from Grind, reset selected NPC ID, dialogue, Vendor stock, Warehouse view, modal, and error state to the default. Async stock/dialogue/warehouse responses must be ignored if they belong to an NPC that is no longer selected.
+
 See `FRONTEND_SPEC.md` and `PLAY_WINDOW_SPEC.md` for the route-by-route implementation
 contract, states, component boundaries and responsive behavior.
 

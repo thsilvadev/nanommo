@@ -1,5 +1,12 @@
 # NanoMMO — Implementation Status
 
+### Town NPC art + neutral selection state (2026-10-17)
+
+Installed five transparent 167×199 PNG portraits under `apps/frontend/assets/npcs/`: William, Father Marcelus, Blacksmith Loren (female blacksmith), Cecilia, and Storage (with a large chest in front). The updated package was validated against its SHA-256 manifest; every asset has the expected dimensions and real alpha transparency. Grind Info's Town selector and store start empty rather than defaulting to William, show “Choose NPC to interact”, reset NPC-specific dialogue/stock/warehouse/modal/error state whenever Town is re-entered, and ignore late async responses for NPCs that are no longer selected. The selected portrait is rendered centered above the NPC title.
+
+Validation: `pnpm --filter @nanommo/frontend build --configuration production` passed. Confirmed all five PNGs are copied to the production distribution byte-for-byte and `git diff --check` passes. Angular/Karma test bundle compilation succeeds, but browser tests cannot run on this machine because the ChromeHeadless binary is not installed. No backend/gameplay changes or deployment.
+
+
 ### Grind monster artwork — original sheet crops installed (2026-10-17)
 
 The initial simplified SVG approximations were replaced with the user-approved art packaged in project/nanommo-real-monster-art-overrides.zip. All 27 files at apps/frontend/assets/monsters/<monsterId>.svg now embed the matching original pixel-art crop as a transparent WebP data image on the same 167×199 canvas. The existing /assets/monsters/<id>.svg URL and centered Grind foe layout remain unchanged. Validation confirmed every canonical monster ID has exactly one sprite, each payload decodes as a transparent 167×199 WebP, the production build passes, and all 27 output assets byte-match their source versions. Previous SVGs are backed up outside the repository at /tmp/nanommo-old-monster-sprites-1792220411. No gameplay or backend changes and no deployment performed.

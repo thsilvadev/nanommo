@@ -142,6 +142,11 @@ enabled toggle, unavailable actions visible but greyed out, and field-level vali
 Structural hub for Vendor, Warehouse, Market, and Mail. Until backend workflows exist,
 use structural placeholders rather than inventing final workflows.
 
+### 5.1 Town NPC selector and portraits
+
+The shared Town context inside the Grind Info panel starts with a neutral select option labelled `Choose NPC to interact`; it must not default to William. Returning from Grind to Town remounts the Town NPC panel and resets the selection, dialogue, stock/warehouse data, and modal/error state. Once selected, the current NPC's transparent pixel-art portrait (167×199) appears centered above the NPC title; no portrait or capability panel is shown while selection is empty. Ignore late async responses from an NPC that is no longer selected.
+
+
 ---
 
 ## 6. Auth routes

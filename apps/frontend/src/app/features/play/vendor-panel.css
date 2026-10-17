@@ -24,6 +24,22 @@
   cursor: pointer;
   min-height: var(--nm-control-h);
 }
+.npc-profile {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 2px auto 8px;
+  width: 100%;
+  min-height: 0;
+}
+.npc-portrait {
+  display: block;
+  width: 167px;
+  height: 199px;
+  max-width: 100%;
+  object-fit: contain;
+  margin: 0 auto;
+}
 .vendor-title {
   display: flex;
   justify-content: space-between;

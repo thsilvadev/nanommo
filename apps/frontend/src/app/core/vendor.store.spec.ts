@@ -1,4 +1,5 @@
-import { sellModalMaxQuantity } from './vendor.store';
+import { computed, signal } from '@angular/core';
+import { VendorStore, sellModalMaxQuantity } from './vendor.store';
 
 describe('Vendor sell modal stack-scoped quantity', () => {
   it('limits All to the dragged stack instead of aggregating matching stacks', () => {
@@ -16,5 +17,82 @@ describe('Vendor sell modal stack-scoped quantity', () => {
 
   it('preserves aggregate maximum when no selected stack quantity is supplied', () => {
     expect(sellModalMaxQuantity(80, undefined, true)).toBe(80);
+  });
+});
+
+
+describe('Town NPC selection state', () => {
+  function makeStore() {
+    const store: any = Object.create(VendorStore.prototype);
+    store.api = {
+      get: jasmine.createSpy('get').and.returnValue({
+        toPromise: () => Promise.resolve([
+          { id: 'william', name: 'William', location: 'town', types: ['vendor'] },
+          { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['quest'] },
+          { id: 'blacksmith_loren', name: 'Blacksmith Loren', location: 'town', types: ['vendor'] },
+          { id: 'cecilia', name: 'Cecilia', location: 'town', types: ['quest'] },
+          { id: 'storage', name: 'Storage', location: 'town', types: ['storage'] },
+        ]),
+      }),
+    };
+    store.character = {};
+    store.inventory = {};
+    store.catalog = {};
+    store.npcs = signal<any[]>([
+      { id: 'william', name: 'William', location: 'town', types: ['vendor'] },
+      { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['quest'] },
+      { id: 'blacksmith_loren', name: 'Blacksmith Loren', location: 'town', types: ['vendor'] },
+      { id: 'cecilia', name: 'Cecilia', location: 'town', types: ['quest'] },
+      { id: 'storage', name: 'Storage', location: 'town', types: ['storage'] },
+    ]);
+    store.dialogue = signal<any>(null);
+    store.selectedNpcId = signal('');
+    store.stock = signal<any[]>([]);
+    store.warehouse = signal<any[]>([]);
+    store.modal = signal<any>(null);
+    store.error = signal<any>(null);
+    store.busy = signal(false);
+    store.selectedNpc = computed(() => store.npcs().find((npc: any) => npc.id === store.selectedNpcId()) ?? null);
+    return store;
+  }
+
+  it('does not automatically select the first NPC after loading the catalogue', async () => {
+    const store = makeStore();
+    await store.load();
+    expect(store.selectedNpcId()).toBe('');
+    expect(store.selectedNpc()).toBeNull();
+    expect(store.stock()).toEqual([]);
+    expect(store.dialogue()).toBeNull();
+  });
+
+  it('resets NPC-specific panel state when Town is entered again', () => {
+    const store = makeStore();
+    store.selectedNpcId.set('william');
+    store.stock.set([{ itemId: 'pot_hp_small' }]);
+    store.warehouse.set([{ itemId: 'equip_sword_t1' }]);
+    store.dialogue.set({ npcId: 'william', npcText: 'stale' });
+    store.modal.set({ mode: 'buy', itemId: 'pot_hp_small', quantity: 1, maxQuantity: 1, unitPrice: 10 });
+    store.error.set('stale error');
+
+    store.resetForTownEntry();
+
+    expect(store.selectedNpcId()).toBe('');
+    expect(store.stock()).toEqual([]);
+    expect(store.warehouse()).toEqual([]);
+    expect(store.dialogue()).toBeNull();
+    expect(store.modal()).toBeNull();
+    expect(store.error()).toBeNull();
+  });
+
+  it('ignores a stock response that arrives after a different NPC was selected', async () => {
+    const store = makeStore();
+    let resolveStock: (value: any[]) => void = () => {};
+    store.api.get.and.returnValue({ toPromise: () => new Promise(resolve => { resolveStock = resolve; }) });
+    store.selectedNpcId.set('william');
+    const pending = store.loadStock('william');
+    store.selectedNpcId.set('cecilia');
+    resolveStock([{ itemId: 'pot_hp_small' }]);
+    await pending;
+    expect(store.stock()).toEqual([]);
   });
 });

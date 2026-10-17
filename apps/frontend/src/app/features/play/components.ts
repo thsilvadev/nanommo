@@ -243,7 +243,8 @@ export class InventoryGrid implements OnDestroy {
 export class VendorPanel {
   readonly vendor = inject(VendorStore); readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly slots = Array.from({ length: 10 }, (_, i) => i);
   readonly storageDropListIds = ['storage-drop-list'];
-  constructor() { void this.vendor.load(); }
+  constructor() { this.vendor.resetForTownEntry(); void this.vendor.load(); }
+  npcPortrait(id: string) { return '/assets/npcs/' + id + '.png'; }
   stockAt(slot: number) { return this.vendor.stock().find(x => x.slotIndex === slot); }
   warehouseAt(slot:number) { return this.vendor.warehouse().find(x=>x.slotIndex===slot); }
   warehouseDragData(row:any) { return { source:'warehouse', ...row }; }
