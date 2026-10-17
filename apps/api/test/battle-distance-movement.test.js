@@ -57,7 +57,7 @@ function run() {
     assert(Number.isFinite(monster.xpReward) && monster.xpReward > 0, `xpReward: ${monster.id}`);
   }
   const thorn = monstersData.monsters.find(monster => monster.id === 'mon_thornsprout');
-  assert.equal(thorn.level, 5);
+  assert.equal(thorn.level, 6);
   assert.equal(thorn.canMove, false);
   assert.equal(thorn.elementalDamageTakenMultiplier.fire, 2);
 
@@ -392,6 +392,19 @@ function run() {
   assert(!silenceResult.log.events.some((event) => event.actor === 'monster' && event.action === 'use_skill'), 'silenced Wraith cannot cast Ice Bolt');
   assert(silenceResult.log.events.some((event) => event.actor === 'monster' && event.action === 'attack'), 'silenced Wraith falls back to its normal attack');
   assert(silenceResult.log.events.some((event) => event.actor === 'monster' && event.action === 'move'), 'silenced Wraith approaches when not adjacent');
+  
+  // Test that Thornsprout (canMove: false) never moves
+  const thornsprout = monstersData.monsters.find(m => m.id === 'mon_thornsprout');
+  const thornsproutBattle = BattleEngine.simulateBattle(
+    baselineCharacter({ hp: 1000, maxHp: 1000, atk: 50, moveSpeedBase: 0 }),
+    thornsprout,
+    page,
+    'thornsprout-cannot-move',
+    { weaponBaseAttackTicks: 99 },
+  );
+  const thornsproutMoveEvents = thornsproutBattle.log.events.filter((event) => event.actor === 'monster' && event.action === 'move');
+  assert.equal(thornsproutMoveEvents.length, 0, 'Thornsprout (canMove: false) should never move during combat');
+  
   console.log('battle-distance-movement: focused assertions passed');
 }
 

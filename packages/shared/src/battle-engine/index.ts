@@ -87,6 +87,7 @@ export interface CombatantSnapshot {
   movementGauge?: number;
   movementIntent?: boolean;
   movementIntentRange?: number;
+  canMove?: boolean;
 }
 
 export type GambitGaugeType = 'attack' | 'cast';
@@ -430,6 +431,7 @@ export class BattleEngine {
       basicAttackRange: Number(monsterDefinition?.basicAttackRange ?? 0),
       moveSpeedBase: Number(monsterDefinition?.moveSpeedBase ?? 50) + level - 1,
       moveSpeed: Number(monsterDefinition?.moveSpeedBase ?? 50) + level - 1,
+      canMove: monsterDefinition?.canMove !== false,
     };
   }
 
@@ -1692,7 +1694,7 @@ export class BattleEngine {
       refreshApproachIntent(foe, self, monsterGambitPage, {}, {});
       for (const [unit, target, actor] of [[self, foe, 'character'], [foe, self, 'monster']] as Array<[CombatantSnapshot, CombatantSnapshot, string]>) {
         if (tick > 0) unit.movementGauge = Number(unit.movementGauge ?? 0) + Number(unit.moveSpeed ?? 0);
-        if (!unit.movementIntent || target.hp <= 0 || hasStatus(unit, 'stun')) { unit.movementIntent = false; continue; }
+        if (!unit.movementIntent || target.hp <= 0 || hasStatus(unit, 'stun') || unit.canMove === false) { unit.movementIntent = false; continue; }
         const range = Number(unit.movementIntentRange ?? unit.basicAttackRange ?? 0);
         if (distanceBetween() <= range) { unit.movementIntent = false; unit.movementIntentRange = undefined; continue; }
         if (Number(unit.movementGauge) >= 100) {
