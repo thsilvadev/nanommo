@@ -1,8 +1,8 @@
 # NanoMMO — Implementation Status
 
-### Grind monster sprite artwork (2026-10-16)
+### Grind monster artwork — original sheet crops installed (2026-10-17)
 
-Replaced the generic target icon in the active Grind foe header with a dedicated transparent SVG sprite for each of the 27 canonical monsters. Sprites are keyed by stable monster ID at apps/frontend/assets/monsters/<monsterId>.svg, use a 167×199 px canvas, and follow the name/designNote with a consistent fantasy pixel-art direction. The foe header is now a centered vertical stack: name/level, battle number and elapsed tick, then artwork. No combat behavior or backend data changed; no deployment performed.
+The initial simplified SVG approximations were replaced with the user-approved art packaged in project/nanommo-real-monster-art-overrides.zip. All 27 files at apps/frontend/assets/monsters/<monsterId>.svg now embed the matching original pixel-art crop as a transparent WebP data image on the same 167×199 canvas. The existing /assets/monsters/<id>.svg URL and centered Grind foe layout remain unchanged. Validation confirmed every canonical monster ID has exactly one sprite, each payload decodes as a transparent 167×199 WebP, the production build passes, and all 27 output assets byte-match their source versions. Previous SVGs are backed up outside the repository at /tmp/nanommo-old-monster-sprites-1792220411. No gameplay or backend changes and no deployment performed.
 
 
 ### Battle resolution stall — Auto Feed inventory scope (2026-10-16)
