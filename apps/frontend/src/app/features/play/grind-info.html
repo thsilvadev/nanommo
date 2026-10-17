@@ -45,9 +45,10 @@
     <div *ngIf="!battle.active()" class="idle-state"><strong>{{foodLabel()==='HUNGRY'?'HUNGRY':'SEARCHING FOR
         MONSTER'}}</strong><small>Waiting for the authoritative encounter queue.</small></div>
     <div class="session-drops">
-      <div class="section-label">DROPS THIS SESSION</div>
-      <div *ngFor="let it of sessionDrops()" class="consumable"><img [src]="sessionDropIcon(it)"
-          [alt]="sessionDropName(it)"><b>{{it.quantity}}</b><small>{{sessionDropName(it)}}</small></div>
+      <div class="section-label">SESSION LOOT</div>
+      <div *ngFor="let it of sessionDrops()" class="session-loot-item" [attr.title]="sessionDropName(it)">
+        <img [src]="sessionDropIcon(it)" [alt]="sessionDropName(it)"><b>{{it.quantity}}</b>
+      </div>
     </div>
   </ng-template>
 </section>

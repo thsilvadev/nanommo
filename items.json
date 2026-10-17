@@ -1355,6 +1355,28 @@
       ]
     },
     {
+      "id": "equip_knife",
+      "name": "Knife",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "dagger",
+      "twoHanded": false,
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "atk": 8
+      },
+      "sellPriceToVendor": 0,
+      "marketBasePrice": 0,
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
+      ],
+      "secondaryHand": true,
+      "sameTypePairingAllowed": true
+    },
+    {
       "id": "equip_dagger_t1",
       "name": "Worn Dagger",
       "type": "equipment",

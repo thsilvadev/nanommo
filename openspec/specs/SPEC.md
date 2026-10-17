@@ -217,7 +217,7 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | regenAnchorAt | timestamptz, nullable | stable origin for the character's continuous 10-tick regeneration timeline |
 | createdAt / updatedAt | timestamptz | |
 
-Character creation bootstrap (one time only): seed the starter pack with 50 `pot_hp_small` and 5 `food_bread`. Characters start **unarmed**; no `equip_sword_t1` or other weapon is granted or equipped at creation. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
+Character creation bootstrap (one time only): seed the starter pack with 50 `pot_hp_small` and 5 `food_bread`. Characters start with a `Knife` (`equip_knife`, dagger, +8 ATK) equipped in `mainHand`; it is a dedicated starter item and is not added to inventory. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
 
 ### 4.3 Mastery category progress (`weapon_proficiencies` legacy table)
 | field | type | notes |
@@ -390,7 +390,7 @@ critChance% = floor(LUK * 0.3 * 10) / 10
 
 Attack Speed and Cast Speed are displayed as ratings where higher is faster. Attack Speed affects only the character's basic Attack gauge: active status penalties are subtracted from the rating, then the effective value is clamped to 0–800 and converted to a 10-to-1-tick refill interval in §7.2. Attack Speed does not change skill/item/defend timing; the cast gauge remains based on DEX. Regeneration is recovered once every 10 ticks because one tick is one second.
 
-At level 1 with all six attributes at 5 and the starter sword's +8 ATK:
+At level 1 with all six attributes at 5 and the starter Knife's +8 ATK:
 
 ATK 18 | MATK 10 | DEF 0 | Max HP 140 | Max SP 60
 Attack Speed 110 | Cast Speed 110
@@ -1428,7 +1428,7 @@ The Character summary and Grind monster-status lists are recomputed from a displ
 
 `maps.json` is the canonical source of map topology and encounter presence. It contains Town at coordinates (0,0) and six grind maps named only `lv. 1`, `lv. 6`, `lv. 11`, `lv. 16`, `lv. 21`, and `lv. 26`, at (1,0) through (6,0). Each map declares `coordinates`, `isClickable`, `type`, `is_town_border`, `description`, `monsters_quantity`, and `monsters`, where each roster entry references a monster ID and its percentage presence rate. `monsters.json` defines species only and SHALL NOT own a map reference. Every monster of level 1–30 belongs to exactly one of the six non-overlapping level bands; monsters above level 30 remain unassigned for future maps.
 
-Standard monster `xpReward` is `round(round(18 * level^1.15) * 0.75)`; Thornsprout is the exception at `round(round(18 * 5^1.15) * 0.30)`. This does not change the character XP curve or global `GRIND_XP_RATE`. The shared attribute is LUK/luk. Element and weapon-category damage-taken multipliers, special skill chance properties, and monster materials are catalogue data; the server validates map rosters and weights at boot.
+Standard monster `xpReward` is `round(round(18 * level^1.15) * 0.75)`; Thornsprout is the exception at `round(round(18 * 5^1.15) * 0.30)`. Current balance override: all monster HP values are halved (rounded to the nearest integer, minimum 1), and monsters of levels 1–6 receive +30% `xpReward` (rounded to the nearest integer). This does not change the character XP curve or global `GRIND_XP_RATE`. The shared attribute is LUK/luk. Element and weapon-category damage-taken multipliers, special skill chance properties, and monster materials are catalogue data; the server validates map rosters and weights at boot.
 
 
 ## Storage, map board, drop-capacity and high-level monster HP corrections — 2026-10-16

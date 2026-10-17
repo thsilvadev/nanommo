@@ -157,6 +157,16 @@ export class CharacterService {
 
     const savedCharacter = await this.characterRepository.save(character);
 
+    // Every new character starts with the canonical starter Knife equipped.
+    // Dagger is one-handed and uses the semantic mainHand slot regardless of
+    // the character's dominant-hand presentation preference.
+    await this.equippedItemRepository.save(this.equippedItemRepository.create({
+      characterId: savedCharacter.id,
+      slot: 'mainHand',
+      itemId: 'equip_knife',
+      instanceData: null,
+    }));
+
     await this.inventoryItemRepository.save([
       this.inventoryItemRepository.create({
         characterId: savedCharacter.id,
