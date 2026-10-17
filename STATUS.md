@@ -1,5 +1,10 @@
 # NanoMMO — Implementation Status
 
+### Grind monster sprite artwork (2026-10-16)
+
+Replaced the generic target icon in the active Grind foe header with a dedicated transparent SVG sprite for each of the 27 canonical monsters. Sprites are keyed by stable monster ID at apps/frontend/assets/monsters/<monsterId>.svg, use a 167×199 px canvas, and follow the name/designNote with a consistent fantasy pixel-art direction. The foe header is now a centered vertical stack: name/level, battle number and elapsed tick, then artwork. No combat behavior or backend data changed; no deployment performed.
+
+
 ### Battle resolution stall — Auto Feed inventory scope (2026-10-16)
 
 Investigated the reported offline Grind stall where the client showed a monster at 0 HP but the character neither advanced to another encounter nor returned to Town. The resolver runs Auto Feed inside the same transaction as battle payout. `InventoryService.getItemCount()` previously used an unrestricted `findOne({ characterId, itemId })`, so a food stack stored only in Warehouse could falsely satisfy the Auto Feed inventory check. `consumeFood()` then searched only `location = inventory`, found no stack and threw `Insufficient item quantity`. The transaction rolled back, leaving the battle unresolved with its precomputed 0-HP monster snapshot; Bull retries then hit the same failure, explaining the persistent dead-looking battle. This is a code-path match for the reported error; production DB rows were not inspected, so the exact character/battle row has not been independently confirmed.

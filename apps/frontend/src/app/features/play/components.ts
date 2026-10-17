@@ -310,6 +310,7 @@ export class GrindInfo implements OnDestroy {
   activeGambitTitle() { return this.character.character()?.activeGambitPageId ? 'Configured' : 'Not configured' }
   xpText() { const c = this.character.character(); return c ? `${c.xp} / ${c.xpToNext}` : '—' }
   monster(id: string) { return this.catalog.monster(id) }
+  monsterSprite(id: string) { return '/assets/monsters/' + id + '.svg'; }
   consumableItems() { return this.inventory.items().filter(x => this.catalog.item(x.itemId)?.type === 'consumable').slice(0, 3) } displayQuantity(it: any) { return Number(it.quantity ?? 0) }
   elapsedTicks(entry: any) { const start = Date.parse(entry.startAt); const duration = Number(entry.log?.durationTicks ?? Math.max(1, (Date.parse(entry.endAt) - start) / 1000)); return Math.max(0, Math.min(duration, Math.floor((this.now() - start) / 1000))) }
   events(entry: any) { return Array.isArray(entry.log?.events) ? entry.log.events : [] }

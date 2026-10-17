@@ -14,9 +14,10 @@
       </ng-container>
       <ng-template #activeBattle>
         <div class="foe">
-          <div class="foe-icon"><img src="/assets/ui/target.svg" alt=""></div>
-          <div><strong>{{monster(b.monsterId)?.name||b.monsterId}}  Lv.{{monsterLevel(b)}}</strong><small>Battle #{{b.sequenceIndex+1}} ·
-              {{elapsedTicks(b)}}s</small></div>
+          <strong>{{monster(b.monsterId)?.name||b.monsterId}} Lv.{{monsterLevel(b)}}</strong>
+          <small>Battle #{{b.sequenceIndex+1}} · {{elapsedTicks(b)}}s</small>
+          <img class="foe-sprite" [src]="monsterSprite(b.monsterId)"
+            [alt]="monster(b.monsterId)?.name||b.monsterId" width="167" height="199">
         </div>
         <div class="hp-block">
           <div class="hp-label"><b>{{monsterHp(b)}} / {{monsterMaxHp(b)}}</b></div>

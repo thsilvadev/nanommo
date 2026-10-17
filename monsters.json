@@ -29,7 +29,7 @@
       "drops": [
         {
           "itemId": "part_slime_common",
-          "chance": 0.3
+          "chance": 0.7
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -100,7 +100,7 @@
       "drops": [
         {
           "itemId": "part_fieldbat_common",
-          "chance": 0.3
+          "chance": 0.5
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -166,7 +166,7 @@
       "drops": [
         {
           "itemId": "part_thornsprout_common",
-          "chance": 0.3
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",

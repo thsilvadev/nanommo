@@ -1134,6 +1134,10 @@ to obtain icons.
 
 ### 17.9 Detailed screen specification
 
+### 17.10 Grind monster artwork
+
+The active Grind panel centers the foe name/level, current battle/tick line, and one transparent creature sprite vertically in that order. Each catalogue monster has its own image under apps/frontend/assets/monsters/<monsterId>.svg, keyed by the stable monster ID rather than its display name; artwork is interpreted from the monster name and designNote. Standard sprite canvas is 167×199 px with a transparent background, rendered below the small battle line instead of the generic target icon. This is presentation only and must not alter battle state, sizing of the HP/SP bars, or encounter selection.
+
 See `FRONTEND_SPEC.md` and `PLAY_WINDOW_SPEC.md` for the route-by-route implementation
 contract, states, component boundaries and responsive behavior.
 

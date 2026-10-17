@@ -33,30 +33,33 @@
 }
 .foe {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
   align-items: center;
-}
-.foe-icon {
-  width: 36px;
-  height: 36px;
-  border: 1px solid #553b25;
-  display: grid;
-  place-items: center;
-}
-.foe-icon img {
-  width: 20px;
-  filter: brightness(0) invert(1);
+  gap: 2px;
+  text-align: center;
+  padding-top: 4px;
 }
 .foe strong {
   display: block;
   color: #dfcfb3;
   font: 24px Georgia;
+  line-height: 1.15;
 }
 .foe small {
   display: block;
   color: #7b6a56;
   font: 16px Arial;
-  margin-top: 2px;
+  line-height: 1.2;
+}
+.foe-sprite {
+  display: block;
+  width: 167px;
+  height: 199px;
+  max-width: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  margin: 3px auto 0;
+  flex: 0 0 auto;
 }
 .hp-block {
   margin-top: 9px;
