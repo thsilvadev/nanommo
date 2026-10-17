@@ -43,10 +43,6 @@
         {
           "monsterId": "mon_fieldbat",
           "presenceRate": 33.33
-        },
-        {
-          "monsterId": "mon_thornsprout",
-          "presenceRate": 33.34
         }
       ],
       "unlockLevel": 1
@@ -64,6 +60,10 @@
       "description": null,
       "monsters_quantity": 100,
       "monsters": [
+        {
+          "monsterId": "mon_thornsprout",
+          "presenceRate": 33.34
+        },
         {
           "monsterId": "mon_mudcrawler",
           "presenceRate": 33.33
