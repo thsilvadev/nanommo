@@ -207,7 +207,7 @@
         "effect": {
           "type": "fearless_focus_passive",
           "damagePerSpacePerRank": 0.01,
-          "accuracyPerSpacePerRank": 1
+          "accuracyPerSpacePerRank": 5
         }
       },
       {
