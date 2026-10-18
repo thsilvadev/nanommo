@@ -62,7 +62,7 @@
       "monsters": [
         {
           "monsterId": "mon_thornsprout",
-          "presenceRate": 30
+          "presenceRate": 53.34
         },
         {
           "monsterId": "mon_mudcrawler",
@@ -71,10 +71,6 @@
         {
           "monsterId": "mon_direwolf",
           "presenceRate": 13.33
-        },
-        {
-          "monsterId": "mon_cindergolem",
-          "presenceRate": 23.34
         }
       ],
       "unlockLevel": 6

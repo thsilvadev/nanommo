@@ -234,7 +234,7 @@
           100
         ],
         "baseCastTicks": 2,
-        "cooldownTicks": 15,
+        "cooldownTicks": 25,
         "target": "monster",
         "ranged": true,
         "maxRange": 7,
