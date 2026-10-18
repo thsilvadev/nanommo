@@ -964,18 +964,28 @@ export class BattleService {
 
       const killCounter = await this.incrementKillCounter(character.id, battle.mapId, battle.monsterId, manager);
       const previousMapId = character.currentMapId;
-      const returningToTown = character.pendingMapTransition?.destinationMapId === TOWN_MAP_ID;
+      const requestedDestinationId = character.pendingMapTransition?.destinationMapId;
+      const requestedDestination = requestedDestinationId ? this.dataService.getMapById(requestedDestinationId) : null;
+      const returningToTown = requestedDestination?.type === 'town';
       const foodExpiresAt = Math.max(
         character.activeFoodBuff?.expiresAt ? Date.parse(String(character.activeFoodBuff.expiresAt)) : 0,
         ...((Array.isArray((character as any).diet) ? (character as any).diet : []).map((entry: any) => Date.parse(String(entry.digestUntil ?? ''))).filter(Number.isFinite)),
       );
       const hungryAfterBattle = !foodExpiresAt || foodExpiresAt <= Date.now();
       const routedToTown = returningToTown || hungryAfterBattle;
-
-      if (routedToTown) {
+      const pendingDestination = requestedDestination && (requestedDestination.type === 'town' || requestedDestination.type === 'grind') ? requestedDestination : null;
+      if (pendingDestination && !hungryAfterBattle) {
+        character.currentMapId = pendingDestination.id;
+        character.status = pendingDestination.type === 'town' ? 'town' : 'grinding';
+        character.pendingMapTransition = null;
+        character.discoveredMapIds = Array.from(new Set([...(character.discoveredMapIds ?? [TOWN_MAP_ID]), pendingDestination.id]));
+        character.lastSeenAt = new Date();
+        await characterRepo.save(character);
+      } else if (routedToTown) {
         character.pendingMapTransition = null;
         character.currentMapId = TOWN_MAP_ID;
         character.status = 'town';
+        character.discoveredMapIds = Array.from(new Set([...(character.discoveredMapIds ?? [TOWN_MAP_ID]), TOWN_MAP_ID]));
         character.lastSeenAt = new Date();
         await characterRepo.save(character);
       }
@@ -993,7 +1003,7 @@ export class BattleService {
       // derived stats; applying pending equipment changes changes the loadout.
       // Remove them in this same transaction, then rebuild the fresh chain after
       // commit. If the transaction fails, both the battle and its old queue stay.
-      if (character.status === 'town' || autoFed || leveledUp || equipmentChanged) {
+      if (character.status === 'town' || autoFed || leveledUp || equipmentChanged || !!pendingDestination) {
         const unresolved = await queueRepo.find({ where: { characterId: character.id, resolved: false } });
         discardedBattleIds = unresolved.map((entry) => entry.id);
         if (discardedBattleIds.length) await queueRepo.delete({ id: In(discardedBattleIds) });
@@ -1060,7 +1070,7 @@ export class BattleService {
     // incremented, so the new chain cannot replay the kill just resolved.
     try {
       if (result.character.status !== 'town') {
-        if (result.autoFed || result.leveledUp || result.equipmentChanged) {
+        if (result.autoFed || result.leveledUp || result.equipmentChanged || result.character.pendingMapTransition == null && result.character.currentMapId !== result.battle.mapId) {
           await this.invalidateAndRebuildFutureCombatQueue(result.character.id);
         } else if (result.character.currentMapId && result.character.status === 'grinding') {
           await this.queueBattles(result.character.id, this.QUEUE_DEPTH_TARGET, false);

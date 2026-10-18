@@ -1,19 +1,18 @@
 <section class="panel map-panel">
-    <div class="map-art">
-        <div class="grid-overlay"></div>
-        <div class="map-head">
-            <h1>Currently in: {{mapName()}}</h1>
-            <div class="map-meta"><span *ngIf="character.character()?.currentMapId">Players in map: {{playersInMap()}}</span></div>
-        </div>
-        <div class="town-center" role="button" tabindex="0" [style.gridColumn]="(townMap?.coordinates?.x ?? 0) + 1" [style.gridRow]="(townMap?.coordinates?.y ?? 0) + 2" [attr.aria-label]="'Return to '+(townMap?.name || 'Town')" (click)="enterTown()"
-            (keydown.enter)="enterTown()" (keydown.space)="enterTown()"><img src="/assets/ui/map.svg" alt=""><b>{{townMap?.name || 'Town'}}</b>
-        </div><button type="button" *ngFor="let tile of grindMaps" class="map-tile" [style.gridColumn]="(tile.coordinates?.x ?? 0) + 1" [style.gridRow]="(tile.coordinates?.y ?? 0) + 2"
-            [class.selected]="tile.id===selected() || tile.id===character.character()?.currentMapId"
-            [class.locked]="tile.isClickable === false || tile.unlockLevel>level()" (click)="select(tile); enter(tile.id)"
-            [attr.aria-disabled]="tile.isClickable === false || tile.unlockLevel>level()" [disabled]="tile.isClickable === false || tile.unlockLevel>level()"
-            (keydown.enter)="enter(tile.id)" (keydown.space)="enter(tile.id)"><img src="/assets/ui/map.svg"
-                alt=""><b>{{tile.name}}</b><small>Lv {{tile.unlockLevel}}</small></button>
+  <div class="map-head">
+    <h1>Currently in: {{mapName()}}</h1>
+    <div class="map-meta"><span *ngIf="character.character()?.currentMapId">Players in map: {{playersInMap()}}</span></div>
+  </div>
+  <div #viewport class="viewport" role="application" aria-label="World map. Drag to explore and select a revealed location." (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp($event)" (pointercancel)="onPointerCancel($event)" (lostpointercapture)="onPointerCancel($event)">
+    <div class="world" [style.transform]="'translate3d('+(-cameraX())+'px,'+(-cameraY())+'px,0)'">
+      <img class="world-art" src="/assets/maps/map-background.png" alt="" draggable="false">
+      <ng-container *ngFor="let cell of cells; trackBy: trackCell">
+        <div class="fog-cell" *ngIf="!isRevealed(cell.x,cell.y)" [style.left.px]="cell.col*153" [style.top.px]="cell.row*153" aria-hidden="true"></div>
+      </ng-container>
+      <button *ngFor="let tile of maps; trackBy: trackMap" type="button" class="map-tile" [style.left.px]="gridColumn(tile)*153" [style.top.px]="gridRow(tile)*153" [class.current]="tile.id===character.character()?.currentMapId" [attr.aria-label]="tile.name" [attr.title]="tile.name" [disabled]="!isRevealed(tile.coordinates.x,tile.coordinates.y) || tile.isClickable===false" (click)="onTileClick($event,tile)"></button>
+      <img *ngIf="currentMap() as current" class="location-pin" src="/assets/maps/pinpoint.png" alt="Current location" [style.left.px]="gridColumn(current)*153+76.5" [style.top.px]="gridRow(current)*153+76.5">
     </div>
-    <p *ngIf="townReturnPending()" class="map-feedback">Waiting for battle to end to move...</p>
-    <p *ngIf="error()" class="map-error">{{error()}}</p>
+  </div>
+  <p *ngIf="townReturnPending()" class="map-feedback">Waiting for battle to end to move...</p>
+  <p *ngIf="error()" class="map-error">{{error()}}</p>
 </section>

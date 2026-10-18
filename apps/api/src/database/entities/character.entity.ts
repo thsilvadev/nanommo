@@ -66,6 +66,9 @@ export class Character {
   @Column({ type: 'varchar', default: 'map_town' })
   currentMapId!: string;
 
+  @Column({ type: 'jsonb', default: '[\"map_town\"]' })
+  discoveredMapIds!: string[];
+
   @Column({ type: 'enum', enum: ['town', 'grinding', 'dead_pending_return'], default: 'town' })
   status!: string;
 

@@ -2,7 +2,7 @@
   "maps": [
     {
       "id": "map_town",
-      "name": "Town",
+      "name": "Sierra-Village",
       "coordinates": {
         "x": 0,
         "y": 0
@@ -13,7 +13,7 @@
       "description": null,
       "monsters_quantity": 0,
       "monsters": [],
-      "unlockLevel": 1,
+      "unlockLevel": 0,
       "isTown": true,
       "npcIds": [
         "william",
@@ -24,10 +24,10 @@
       ]
     },
     {
-      "id": "map_lv_1",
-      "name": "lv. 1",
+      "id": "map_green_grounds_0",
+      "name": "Green-Grounds_0",
       "coordinates": {
-        "x": 1,
+        "x": -1,
         "y": 0
       },
       "isClickable": true,
@@ -38,20 +38,22 @@
       "monsters": [
         {
           "monsterId": "mon_slime",
-          "presenceRate": 66.33
+          "presenceRate": 70
         },
         {
           "monsterId": "mon_fieldbat",
-          "presenceRate": 33.67
+          "presenceRate": 30
         }
       ],
-      "unlockLevel": 1
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 1
     },
     {
-      "id": "map_lv_6",
-      "name": "lv. 6",
+      "id": "map_green_grounds_1",
+      "name": "Green-Grounds_1",
       "coordinates": {
-        "x": 2,
+        "x": -2,
         "y": 0
       },
       "isClickable": true,
@@ -61,26 +63,909 @@
       "monsters_quantity": 100,
       "monsters": [
         {
+          "monsterId": "mon_fieldbat",
+          "presenceRate": 20
+        },
+        {
           "monsterId": "mon_thornsprout",
-          "presenceRate": 53.34
+          "presenceRate": 80
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 1
+    },
+    {
+      "id": "map_green_grounds_3",
+      "name": "Green-Grounds_3",
+      "coordinates": {
+        "x": -2,
+        "y": 1
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_direwolf",
+          "presenceRate": 20
         },
         {
           "monsterId": "mon_mudcrawler",
-          "presenceRate": 33.33
+          "presenceRate": 80
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 5
+    },
+    {
+      "id": "map_green_grounds_4",
+      "name": "Green-Grounds_4",
+      "coordinates": {
+        "x": 0,
+        "y": -1
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": true,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_slime",
+          "presenceRate": 50
+        },
+        {
+          "monsterId": "mon_fieldbat",
+          "presenceRate": 50
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 1
+    },
+    {
+      "id": "map_green_grounds_5",
+      "name": "Green-Grounds_5",
+      "coordinates": {
+        "x": 0,
+        "y": -2
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_fieldbat",
+          "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_mudcrawler",
+          "presenceRate": 80
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 1
+    },
+    {
+      "id": "map_green_grounds_6",
+      "name": "Green-Grounds_6",
+      "coordinates": {
+        "x": -1,
+        "y": -2
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": true,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_mudcrawler",
+          "presenceRate": 95
+        },
+        {
+          "monsterId": "mon_thornsprout",
+          "presenceRate": 5
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 5
+    },
+    {
+      "id": "map_outpost",
+      "name": "Outpost",
+      "coordinates": {
+        "x": -2,
+        "y": -2
+      },
+      "isClickable": true,
+      "type": "town",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 0,
+      "monsters": [],
+      "unlockLevel": 0,
+      "isTown": true,
+      "npcIds": [
+        "storage"
+      ]
+    },
+    {
+      "id": "map_gods_bridge",
+      "name": "God's Bridge",
+      "coordinates": {
+        "x": -2,
+        "y": -3
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": true,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_mudflatcrocodile",
+          "presenceRate": 100
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 10
+    },
+    {
+      "id": "map_ipora_beach_0",
+      "name": "Iporá-Beach_0",
+      "coordinates": {
+        "x": -3,
+        "y": -3
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_mudflatcrocodile",
+          "presenceRate": 70
+        },
+        {
+          "monsterId": "mon_sandscorpion",
+          "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_thornsprout",
+          "presenceRate": 10
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 10
+    },
+    {
+      "id": "map_ipora_beach_1",
+      "name": "Iporá-Beach_1",
+      "coordinates": {
+        "x": -2,
+        "y": -4
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_mudflatcrocodile",
+          "presenceRate": 50
+        },
+        {
+          "monsterId": "mon_sandscorpion",
+          "presenceRate": 50
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 10
+    },
+    {
+      "id": "map_kwaioua_forest_0",
+      "name": "Kwaiouá-Forest_0",
+      "coordinates": {
+        "x": -4,
+        "y": -3
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_venomviper",
+          "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_mudflatcrocodile",
+          "presenceRate": 50
+        },
+        {
+          "monsterId": "mon_mudcrawler",
+          "presenceRate": 30
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 20
+    },
+    {
+      "id": "map_kwaioua_forest_1",
+      "name": "Kwaiouá-Forest_1",
+      "coordinates": {
+        "x": -4,
+        "y": -4
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_venomviper",
+          "presenceRate": 60
+        },
+        {
+          "monsterId": "mon_mudflatcrocodile",
+          "presenceRate": 40
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 20
+    },
+    {
+      "id": "map_kwaioua_forest_2",
+      "name": "Kwaiouá-Forest_2",
+      "coordinates": {
+        "x": -3,
+        "y": -4
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_venomviper",
+          "presenceRate": 40
+        },
+        {
+          "monsterId": "mon_mudflatcrocodile",
+          "presenceRate": 60
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 20
+    },
+    {
+      "id": "map_kwaioua_forest_3",
+      "name": "Kwaiouá-Forest_3",
+      "coordinates": {
+        "x": -2,
+        "y": -5
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_venomviper",
+          "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_mudflatcrocodile",
+          "presenceRate": 70
+        },
+        {
+          "monsterId": "mon_thornsprout",
+          "presenceRate": 10
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 20
+    },
+    {
+      "id": "map_kwaioua_forest_6",
+      "name": "Kwaiouá-Forest_6",
+      "coordinates": {
+        "x": -5,
+        "y": -3
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_arcanewisp",
+          "presenceRate": 32
+        },
+        {
+          "monsterId": "mon_kwaiouaranger",
+          "presenceRate": 32
+        },
+        {
+          "monsterId": "mon_venomviper",
+          "presenceRate": 16
+        },
+        {
+          "monsterId": "mon_rootboundbrute",
+          "presenceRate": 20
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 40
+    },
+    {
+      "id": "map_kwaioua_forest_7",
+      "name": "Kwaiouá-Forest_7",
+      "coordinates": {
+        "x": -4,
+        "y": -2
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_arcanewisp",
+          "presenceRate": 32
+        },
+        {
+          "monsterId": "mon_kwaiouaranger",
+          "presenceRate": 24
+        },
+        {
+          "monsterId": "mon_venomviper",
+          "presenceRate": 16
+        },
+        {
+          "monsterId": "mon_thornsprout",
+          "presenceRate": 8
+        },
+        {
+          "monsterId": "mon_rootboundbrute",
+          "presenceRate": 20
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 40
+    },
+    {
+      "id": "map_kwaioua_forest_4",
+      "name": "Kwaiouá-Forest_4",
+      "coordinates": {
+        "x": -6,
+        "y": -3
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_rootboundbrute",
+          "presenceRate": 50
+        },
+        {
+          "monsterId": "mon_venomviper",
+          "presenceRate": 30
+        },
+        {
+          "monsterId": "mon_mudflatcrocodile",
+          "presenceRate": 20
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 30
+    },
+    {
+      "id": "map_kwaioua_forest_5",
+      "name": "Kwaiouá-Forest_5",
+      "coordinates": {
+        "x": -6,
+        "y": -4
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_rootboundbrute",
+          "presenceRate": 45
+        },
+        {
+          "monsterId": "mon_venomviper",
+          "presenceRate": 35
+        },
+        {
+          "monsterId": "mon_mudflatcrocodile",
+          "presenceRate": 20
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 30
+    },
+    {
+      "id": "map_kwaioua_taba",
+      "name": "Kwaiouá-Taba",
+      "coordinates": {
+        "x": -5,
+        "y": -4
+      },
+      "isClickable": true,
+      "type": "town",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 0,
+      "monsters": [],
+      "unlockLevel": 0,
+      "isTown": true,
+      "npcIds": [
+        "storage"
+      ]
+    },
+    {
+      "id": "map_caete_0",
+      "name": "Caetê_0",
+      "coordinates": {
+        "x": -6,
+        "y": -5
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_rootboundbrute",
+          "presenceRate": 10
+        },
+        {
+          "monsterId": "mon_moonleafarcanist",
+          "presenceRate": 35
+        },
+        {
+          "monsterId": "mon_sacredforestguardian",
+          "presenceRate": 35
+        },
+        {
+          "monsterId": "mon_aramaianwarden",
+          "presenceRate": 20
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 40
+    },
+    {
+      "id": "map_caete_1",
+      "name": "Caetê_1",
+      "coordinates": {
+        "x": -6,
+        "y": -6
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_sacredforestguardian",
+          "presenceRate": 35
+        },
+        {
+          "monsterId": "mon_moonleafarcanist",
+          "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_aramaianwarden",
+          "presenceRate": 45
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 50
+    },
+    {
+      "id": "map_caete_2",
+      "name": "Caetê_2",
+      "coordinates": {
+        "x": -5,
+        "y": -5
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_sacredforestguardian",
+          "presenceRate": 40
+        },
+        {
+          "monsterId": "mon_moonleafarcanist",
+          "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_aramaianwarden",
+          "presenceRate": 40
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 50
+    },
+    {
+      "id": "map_caete_3",
+      "name": "Caetê_3",
+      "coordinates": {
+        "x": -4,
+        "y": -5
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_rootboundbrute",
+          "presenceRate": 15
+        },
+        {
+          "monsterId": "mon_moonleafarcanist",
+          "presenceRate": 40
+        },
+        {
+          "monsterId": "mon_sacredforestguardian",
+          "presenceRate": 30
+        },
+        {
+          "monsterId": "mon_aramaianwarden",
+          "presenceRate": 15
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 40
+    },
+    {
+      "id": "map_caete_4",
+      "name": "Caetê_4",
+      "coordinates": {
+        "x": -3,
+        "y": -5
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_rootboundbrute",
+          "presenceRate": 100
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 30
+    },
+    {
+      "id": "map_caete_5",
+      "name": "Caetê_5",
+      "coordinates": {
+        "x": -3,
+        "y": -6
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_rootboundbrute",
+          "presenceRate": 100
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 30
+    },
+    {
+      "id": "map_caete_6",
+      "name": "Caetê_6",
+      "coordinates": {
+        "x": -4,
+        "y": -6
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_sacredforestguardian",
+          "presenceRate": 50
+        },
+        {
+          "monsterId": "mon_aramaianwarden",
+          "presenceRate": 50
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 50
+    },
+    {
+      "id": "map_caete_7",
+      "name": "Caetê_7",
+      "coordinates": {
+        "x": -2,
+        "y": -6
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_rootboundbrute",
+          "presenceRate": 100
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 30
+    },
+    {
+      "id": "map_aramaia_city",
+      "name": "Aramaia-City",
+      "coordinates": {
+        "x": -5,
+        "y": -6
+      },
+      "isClickable": true,
+      "type": "town",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 0,
+      "monsters": [],
+      "unlockLevel": 0,
+      "isTown": true,
+      "npcIds": [
+        "storage"
+      ]
+    },
+    {
+      "id": "map_forest_ruins_0",
+      "name": "Forest_Ruins_0",
+      "coordinates": {
+        "x": -5,
+        "y": -2
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_brokensentinel",
+          "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_ruinsguardian",
+          "presenceRate": 15
+        },
+        {
+          "monsterId": "mon_boneknight",
+          "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_arcanewisp",
+          "presenceRate": 10
+        },
+        {
+          "monsterId": "mon_wraith",
+          "presenceRate": 25
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 60
+    },
+    {
+      "id": "map_forest_ruins_1",
+      "name": "Forest_Ruins_1",
+      "coordinates": {
+        "x": -5,
+        "y": -1
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_brokensentinel",
+          "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_ruinsguardian",
+          "presenceRate": 15
+        },
+        {
+          "monsterId": "mon_boneknight",
+          "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_arcanewisp",
+          "presenceRate": 15
+        },
+        {
+          "monsterId": "mon_wraith",
+          "presenceRate": 25
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 60
+    },
+    {
+      "id": "map_forest_ruins_2",
+      "name": "Forest_Ruins_2",
+      "coordinates": {
+        "x": -6,
+        "y": -1
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_brokensentinel",
+          "presenceRate": 30
+        },
+        {
+          "monsterId": "mon_ruinsguardian",
+          "presenceRate": 10
+        },
+        {
+          "monsterId": "mon_boneknight",
+          "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_arcanewisp",
+          "presenceRate": 10
+        },
+        {
+          "monsterId": "mon_wraith",
+          "presenceRate": 25
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 60
+    },
+    {
+      "id": "map_forest_ruins_3",
+      "name": "Forest_Ruins_3",
+      "coordinates": {
+        "x": -6,
+        "y": -2
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_brokensentinel",
+          "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_boneknight",
+          "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_arcanewisp",
+          "presenceRate": 15
+        },
+        {
+          "monsterId": "mon_wraith",
+          "presenceRate": 35
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 70
+    },
+    {
+      "id": "map_menace_hills_0",
+      "name": "Menace-Hills_0",
+      "coordinates": {
+        "x": -2,
+        "y": 2
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_sandscorpion",
+          "presenceRate": 30
+        },
+        {
+          "monsterId": "mon_gravelhorn",
+          "presenceRate": 30
+        },
+        {
+          "monsterId": "mon_mudcrawler",
+          "presenceRate": 20
         },
         {
           "monsterId": "mon_direwolf",
-          "presenceRate": 13.33
+          "presenceRate": 20
         }
       ],
-      "unlockLevel": 6
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 10
     },
     {
-      "id": "map_lv_11",
-      "name": "lv. 11",
+      "id": "map_menace_hills_1",
+      "name": "Menace-Hills_1",
       "coordinates": {
-        "x": 3,
-        "y": 0
+        "x": -3,
+        "y": 2
       },
       "isClickable": true,
       "type": "grind",
@@ -93,26 +978,62 @@
           "presenceRate": 25
         },
         {
-          "monsterId": "mon_mirageStalker",
-          "presenceRate": 25
+          "monsterId": "mon_gravelhorn",
+          "presenceRate": 35
         },
         {
-          "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 25
+          "monsterId": "mon_mudcrawler",
+          "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_direwolf",
+          "presenceRate": 20
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 10
+    },
+    {
+      "id": "map_menace_hills_2",
+      "name": "Menace-Hills_2",
+      "coordinates": {
+        "x": -4,
+        "y": 2
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_sandscorpion",
+          "presenceRate": 35
         },
         {
           "monsterId": "mon_gravelhorn",
           "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_mudcrawler",
+          "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_direwolf",
+          "presenceRate": 20
         }
       ],
-      "unlockLevel": 11
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 10
     },
     {
-      "id": "map_lv_16",
-      "name": "lv. 16",
+      "id": "map_menace_hills_3",
+      "name": "Menace-Hills_3",
       "coordinates": {
-        "x": 4,
-        "y": 0
+        "x": -4,
+        "y": 3
       },
       "isClickable": true,
       "type": "grind",
@@ -121,22 +1042,32 @@
       "monsters_quantity": 100,
       "monsters": [
         {
-          "monsterId": "mon_ridgebreaker",
-          "presenceRate": 50
+          "monsterId": "mon_sandscorpion",
+          "presenceRate": 40
         },
         {
-          "monsterId": "mon_saltfangcrab",
-          "presenceRate": 50
+          "monsterId": "mon_gravelhorn",
+          "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_mudcrawler",
+          "presenceRate": 15
+        },
+        {
+          "monsterId": "mon_direwolf",
+          "presenceRate": 20
         }
       ],
-      "unlockLevel": 16
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 10
     },
     {
-      "id": "map_lv_21",
-      "name": "lv. 21",
+      "id": "map_wastelands_0",
+      "name": "Wastelands_0",
       "coordinates": {
-        "x": 5,
-        "y": 0
+        "x": -5,
+        "y": 3
       },
       "isClickable": true,
       "type": "grind",
@@ -144,31 +1075,33 @@
       "description": null,
       "monsters_quantity": 100,
       "monsters": [
-        {
-          "monsterId": "mon_duneraider",
-          "presenceRate": 25
-        },
-        {
-          "monsterId": "mon_venomviper",
-          "presenceRate": 25
-        },
         {
           "monsterId": "mon_bandit",
           "presenceRate": 25
         },
         {
+          "monsterId": "mon_ridgebreaker",
+          "presenceRate": 25
+        },
+        {
           "monsterId": "mon_needlebackstalker",
+          "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_giantmosquito",
           "presenceRate": 25
         }
       ],
-      "unlockLevel": 21
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 20
     },
     {
-      "id": "map_lv_26",
-      "name": "lv. 26",
+      "id": "map_wastelands_1",
+      "name": "Wastelands_1",
       "coordinates": {
-        "x": 6,
-        "y": 0
+        "x": -5,
+        "y": 4
       },
       "isClickable": true,
       "type": "grind",
@@ -177,15 +1110,78 @@
       "monsters_quantity": 100,
       "monsters": [
         {
-          "monsterId": "mon_giantmosquito",
-          "presenceRate": 50
+          "monsterId": "mon_bandit",
+          "presenceRate": 35
         },
         {
-          "monsterId": "mon_rootboundbrute",
-          "presenceRate": 50
+          "monsterId": "mon_ridgebreaker",
+          "presenceRate": 15
+        },
+        {
+          "monsterId": "mon_needlebackstalker",
+          "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_giantmosquito",
+          "presenceRate": 25
         }
       ],
-      "unlockLevel": 26
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 25
+    },
+    {
+      "id": "map_wastelands_2",
+      "name": "Wastelands_2",
+      "coordinates": {
+        "x": -5,
+        "y": 5
+      },
+      "isClickable": true,
+      "type": "grind",
+      "is_town_border": true,
+      "description": null,
+      "monsters_quantity": 100,
+      "monsters": [
+        {
+          "monsterId": "mon_bandit",
+          "presenceRate": 30
+        },
+        {
+          "monsterId": "mon_ridgebreaker",
+          "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_needlebackstalker",
+          "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_giantmosquito",
+          "presenceRate": 20
+        }
+      ],
+      "unlockLevel": 0,
+      "isTown": false,
+      "recommendedLevel": 20
+    },
+    {
+      "id": "map_emperial_capital_caelum",
+      "name": "Emperial-Capital-Caelum",
+      "coordinates": {
+        "x": -6,
+        "y": 5
+      },
+      "isClickable": true,
+      "type": "town",
+      "is_town_border": false,
+      "description": null,
+      "monsters_quantity": 0,
+      "monsters": [],
+      "unlockLevel": 0,
+      "isTown": true,
+      "npcIds": [
+        "storage"
+      ]
     }
   ]
 }

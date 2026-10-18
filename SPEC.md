@@ -761,6 +761,15 @@ Each map is one global room (no instancing). All players grinding the same map s
 
 The canonical map record owns its weighted monster roster and may declare `npcIds`. Every map with `type: "town"` references the same canonical Storage NPC ID; it must not duplicate the NPC definition. Map and NPC IDs are validated at boot or by the repository catalogue validator.
 
+
+### Definitive world map and exploration (2026-10-18)
+
+The canonical `maps.json` catalogue now defines the first 41-location world: Sierra-Village (`map_town`), four additional Town destinations and 36 grind maps. Root `maps.json` is authoritative and `apps/frontend/public/data/maps.json` is its mirror. Every location has `unlockLevel: 0`; `recommendedLevel` is advisory only. Grid coordinates map to zero-based world cells as `column = x + 7`, `row = 6 - y` (equivalently one-based column `x + 8`, row `7 - y`). The world is 15×13 cells, each 153px, at native 2295×1989 artwork size inside a fixed 761×660 viewport. Cells have no gaps, and revealed clickable locations use a transparent overlay with an inset 1px near-white border.
+
+Each Character stores `discoveredMapIds`; new characters start with Sierra-Village discovered. A discovered map reveals itself and the four cardinal neighbor cells. Arrival persists the destination ID; the reveal set is derived from canonical coordinates and never stores a per-cell bitmap. The pinpoint follows authoritative `currentMapId`. Town destinations are peaceful and use Town-type checks for access; grind entry keeps email verification and the existing hungry/food gate but has no level gate. Requests during a live battle preserve its snapshot/job and commit the requested destination only after resolution. Plain Return to Town still targets Sierra-Village.
+
+Migration `1799200000000-DefinitiveWorldMapViewport` adds discovery and remaps legacy `map_lv_*` locations by character level. It is forward-only and must follow the existing stopped-consumer/read-only migration-history audit and queue/presence reconciliation procedure. No migration, live database mutation or deployment was performed in the implementation session. `node scripts/validate-world-map.js` validates the 41 map records, map mirror, grid bounds, zero level gates, Town Storage, roster weights/species references and asset byte integrity. Browser verification and migration integration against an audited database remain rollout checks.
+
 ### 11.2 Deterministic monster & drop selection (no giant arrays)
 
 Rejecting the original "pre-generate an explicit array of 10,000" idea in favor of an **equivalent, storage-free** approach (confirmed as the preferred direction):

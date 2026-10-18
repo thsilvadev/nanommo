@@ -31,158 +31,66 @@ export class MapService {
     return this.dataService.getMaps();
   }
 
-  /**
-   * Enter a map and start battles
-   */
-  async enterMap(characterId: string, mapId: string): Promise<void> {
-    const character = await this.characterRepo.findOne({
-      where: { id: characterId },
-      relations: ['user'],
-    });
-    if (!character) throw new NotFoundException('Character not found');
-
-    // Check email verification gate (§15.1)
-    const user = await this.userRepo.findOne({ where: { id: character.userId } });
-    if (user?.emailVerified !== true) {
-      throw new BadRequestException('EMAIL_NOT_VERIFIED');
+  /** Enter any revealed map; Town is peaceful and grind access is never level-gated. */
+  async enterMap(characterId: string, mapId: string): Promise<any> {
+    const character = await this.characterRepo.findOne({where:{id:characterId},relations:['user']});
+    if(!character) throw new NotFoundException('Character not found');
+    const map=this.dataService.getMapById(mapId);
+    if(!map||map.isClickable===false) throw new BadRequestException('Map not found');
+    if(map.type==='grind') {
+      const user=await this.userRepo.findOne({where:{id:character.userId}});
+      if(user?.emailVerified!==true) throw new BadRequestException('EMAIL_NOT_VERIFIED');
     }
-
-    const map = this.dataService.getMapById(mapId);
-    if (!map) throw new BadRequestException('Map not found');
-    if (map.id === TOWN_MAP_ID || map.isTown) throw new BadRequestException('Town is not a grind map');
-
-    const previousMapId = character.currentMapId;
-
-    const foodBuff = character.activeFoodBuff;
-    if (!foodBuff?.expiresAt || new Date(foodBuff.expiresAt).getTime() <= Date.now()) {
-      throw new BadRequestException('Town Guard: Your hungry! Eat something or go cleanse your sins for a change.');
+    const discovered=Array.isArray(character.discoveredMapIds)?character.discoveredMapIds:[TOWN_MAP_ID];
+    const discoveredMaps=discovered.map(id=>this.dataService.getMapById(id)).filter(Boolean);
+    const revealed=discoveredMaps.some((known:any)=>Math.abs(Number(known.coordinates.x)-Number(map.coordinates.x))+Math.abs(Number(known.coordinates.y)-Number(map.coordinates.y))<=1);
+    if(!revealed) throw new BadRequestException('Map has not been revealed');
+    const previousMapId=character.currentMapId;
+    const queue=await this.battleService.getBattleQueue(characterId,100);
+    const now=Date.now();
+    const active=queue.find(entry=>Date.parse(String(entry.startAt))<=now&&now<Date.parse(String(entry.endAt)));
+    if(map.type==='town') {
+      if(active) {
+        character.pendingMapTransition={destinationMapId:mapId,reason:'town_request'} as any;
+        character.status='town';
+        await this.characterRepo.save(character);
+        if(previousMapId) await this.mapPresenceService.syncCharacter(characterId,previousMapId);
+        try { await this.battleService.cancelPendingBattlesAfter(characterId,active.id); } catch(error) { this.logger.warn(`Could not trim future queue after Town request: ${error instanceof Error?error.message:String(error)}`); }
+        return {deferred:true,battleId:active.id,character:{id:character.id,status:character.status,currentMapId:character.currentMapId,pendingMapTransition:character.pendingMapTransition,discoveredMapIds:character.discoveredMapIds}};
+      }
+      character.currentMapId=mapId; character.status='town'; character.pendingMapTransition=null; character.lastSeenAt=new Date();
+      character.discoveredMapIds=Array.from(new Set([...discovered,mapId])); await this.characterRepo.save(character);
+      if(previousMapId) await this.mapPresenceService.syncCharacter(characterId,previousMapId);
+      try { await this.battleService.cancelPendingBattles(characterId); } catch(error) { this.logger.warn(`Could not cancel queue after Town entry: ${error instanceof Error?error.message:String(error)}`); }
+      if(previousMapId&&previousMapId!==mapId) await this.battleService.resetEncounterSequence(characterId,previousMapId,'left map');
+      return {deferred:false,character:{id:character.id,status:character.status,currentMapId:character.currentMapId,discoveredMapIds:character.discoveredMapIds}};
     }
-
-    // Validate level requirement
-    if (character.level < (map.unlockLevel || 1)) {
-      throw new BadRequestException(
-        `This map requires level ${map.unlockLevel}. You are level ${character.level}`,
-      );
+    if(map.type!=='grind') throw new BadRequestException('Invalid map type');
+    const foodBuff=character.activeFoodBuff;
+    if(!foodBuff?.expiresAt||new Date(foodBuff.expiresAt).getTime()<=Date.now()) throw new BadRequestException('Town Guard: Your hungry! Eat something or go cleanse your sins for a change.');
+    if(active) {
+      // The active battle snapshot/job is immutable. Persist only the future destination;
+      // the resolver commits it after the active battle ends.
+      character.pendingMapTransition={destinationMapId:mapId,reason:'town_request'} as any;
+      await this.characterRepo.save(character);
+      await this.battleService.cancelPendingBattlesAfter(characterId,active.id);
+      return {deferred:true,battleId:active.id,character:{id:character.id,status:character.status,currentMapId:character.currentMapId,pendingMapTransition:character.pendingMapTransition,discoveredMapIds:character.discoveredMapIds}};
     }
-
-    // Update character status
-    character.currentMapId = mapId;
-    character.status = 'grinding';
-    character.pendingMapTransition = null;
-    character.lastSeenAt = new Date();
+    character.discoveredMapIds=Array.from(new Set([...discovered,mapId]));
+    character.currentMapId=mapId; character.status='grinding'; character.pendingMapTransition=null; character.lastSeenAt=new Date();
     await this.characterRepo.save(character);
-    await this.mapPresenceService.syncCharacter(characterId, previousMapId);
-
-    // Queue initial battles
-    await this.battleService.queueBattles(characterId, 5);
-
+    if(previousMapId) await this.mapPresenceService.syncCharacter(characterId,previousMapId);
+    await this.battleService.cancelPendingBattles(characterId);
+    await this.battleService.queueBattles(characterId,5);
     this.logger.debug(`Character ${characterId} entered map ${mapId}`);
+    return {deferred:false,character:{id:character.id,status:character.status,currentMapId:character.currentMapId,discoveredMapIds:character.discoveredMapIds}};
   }
 
-  /**
-   * Leave current map
-   */
-  async leaveMap(characterId: string): Promise<{ deferred: boolean; battleId?: string; character: Pick<Character, 'id' | 'status' | 'currentMapId' | 'lastSeenAt'> }> {
-    const character = await this.characterRepo.findOne({
-      where: { id: characterId },
-    });
-    if (!character) throw new NotFoundException('Character not found');
-
-    // Idempotent defense-in-depth: Town is a real map, but it is not a grind map.
-    // Never run grind cleanup/sequence-reset logic against the canonical Town location.
-    if (character.currentMapId === TOWN_MAP_ID) {
-      return {
-        deferred: false,
-        character: {
-          id: character.id,
-          status: character.status,
-          currentMapId: character.currentMapId,
-          lastSeenAt: character.lastSeenAt,
-        },
-      };
-    }
-
-    const mapId = character.currentMapId;
-    const activeBattle = (await this.battleService.getBattleQueue(characterId, 100))
-      .find((entry) => Date.parse(entry.startAt.toString()) <= Date.now() &&
-        Date.now() < Date.parse(entry.endAt.toString()));
-
-    // If a battle is already running, keep that battle authoritative but mark the
-    // character as Town immediately and discard only future queued battles. This
-    // prevents the queue from starting another encounter before the requested Town
-    // return is finalized.
-    if (activeBattle) {
-      // Register the return request first. The active battle remains authoritative
-      // and must resolve before Town is entered.
-      character.pendingMapTransition = { destinationMapId: TOWN_MAP_ID, reason: 'town_request' };
-      await this.characterRepo.save(character);
-
-      if (mapId) {
-        await this.mapPresenceService.syncCharacter(characterId, mapId);
-      }
-
-      // Cancelling future entries is an optimization/safety cleanup. The persistent
-      // flag is the authoritative guard, so a cleanup failure must never turn a
-      // valid Town request into a 500 response. The resolving battle will discard
-      // any entries that remain after it moves the character to Town.
-      try {
-        await this.battleService.cancelPendingBattlesAfter(characterId, activeBattle.id);
-      } catch (error) {
-        this.logger.warn(
-          `Could not cancel future battles for Town return ${characterId}: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-      return {
-        deferred: true,
-        battleId: activeBattle.id,
-        character: {
-          id: character.id,
-          status: character.status,
-          currentMapId: character.currentMapId,
-          lastSeenAt: character.lastSeenAt,
-        },
-      };
-    }
-
-    character.pendingMapTransition = null;
-    // null, not undefined: TypeORM skips undefined columns on save
-    character.currentMapId = TOWN_MAP_ID;
-    character.status = 'town';
-    character.lastSeenAt = new Date();
-    await this.characterRepo.save(character);
-
-    if (mapId) {
-      await this.mapPresenceService.syncCharacter(characterId, mapId);
-    }
-
-    try {
-      await this.battleService.cancelPendingBattles(characterId);
-    } catch (error) {
-      this.logger.warn(
-        `Could not cancel queued battles after immediate Town return ${characterId}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    }
-
-    // Coming back must not replay the run that just ended: the map's encounter
-    // sequence is rolled over here exactly as it is on a death (SPEC §11.2).
-    if (mapId) {
-      await this.battleService.resetEncounterSequence(characterId, mapId, 'left map');
-    }
-
-    this.logger.debug(`Character ${characterId} left their map`);
-    return {
-      deferred: false,
-      character: {
-        id: character.id,
-        status: character.status,
-        currentMapId: character.currentMapId,
-        lastSeenAt: character.lastSeenAt,
-      },
-    };
+  async leaveMap(characterId: string): Promise<any> {
+    const character=await this.characterRepo.findOne({where:{id:characterId}});
+    if(!character) throw new NotFoundException('Character not found');
+    if(this.dataService.getMapById(character.currentMapId)?.type==='town') return {deferred:false,character:{id:character.id,status:'town',currentMapId:character.currentMapId,lastSeenAt:character.lastSeenAt}};
+    return this.enterMap(characterId,TOWN_MAP_ID);
   }
 
   /**
@@ -203,18 +111,9 @@ export class MapService {
     });
     if (!character) throw new NotFoundException('Character not found');
 
-    const allMaps = await this.getMaps();
-    
-    // Recommended maps are grindable maps only; Town is a physical location, not a grind target.
-    const grindMaps = allMaps.filter(map => map.type === 'grind' && map.id !== TOWN_MAP_ID)
-      .sort((a, b) => Number(a.unlockLevel ?? 1) - Number(b.unlockLevel ?? 1));
-    return grindMaps.filter((map, index) => {
-      const minLevel = Number(map.unlockLevel ?? 1);
-      const maxLevel = index + 1 < grindMaps.length
-        ? Number(grindMaps[index + 1].unlockLevel ?? 99) - 1
-        : 99;
-      return character.level >= minLevel && character.level <= maxLevel;
-    });
+    return (await this.getMaps()).filter(map => map.type === 'grind' && map.id !== TOWN_MAP_ID)
+      .filter(map => Number(map.recommendedLevel ?? 1) <= Number(character.level) + 5)
+      .sort((a,b)=>Math.abs(Number(a.recommendedLevel??1)-character.level)-Math.abs(Number(b.recommendedLevel??1)-character.level)).slice(0,5);
   }
 
   async incrementKillCounter(characterId: string, monsterId: string): Promise<number> {

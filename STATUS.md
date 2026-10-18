@@ -1,3 +1,9 @@
+### Implementation — `definitive-world-map-viewport` (2026-10-18)
+
+Implemented the 41-location canonical world catalogue and frontend mirror, all `unlockLevel: 0`, recommended-level advisory metadata, native 2295×1989 map artwork and pinpoint assets, a fixed 761×660 viewport with contiguous 153px cells, mouse/touch pointer panning and drag-click suppression, current-location pin, per-character discovery persistence/reveal projection, Town/grind map entry separation, multi-Town destinations and forward-only migration `1799200000000-DefinitiveWorldMapViewport`. Added `scripts/validate-world-map.js`.
+
+Validation: OpenSpec strict validation, the focused world-map validator, shared/API builds and frontend production build passed. The existing monster catalogue validator still fails on a pre-existing root/frontend `skill_trees.json` mismatch (`violent_shot.cooldownTicks` 25 vs 15); this unrelated catalogue difference was not overwritten. Production build emitted existing CSS-budget and CommonJS warnings. No browser visual test, database migration, live DB mutation or deployment was performed. Migration integration, real pointer/viewport review and active-battle transition verification remain rollout checks.
+
 # NanoMMO — Implementation Status
 
 ### Town NPC art + neutral selection state (2026-10-17)

@@ -78,6 +78,7 @@ export class CharacterDto {
   dietLevels!: Record<string, { level: number; lastDigestUntil: string }>;
   autoFeed!: boolean;
   currentMapId!: string;
+  discoveredMapIds!: string[];
   status!: string;
   activeGambitPageId?: string;
   lastSeenAt!: Date;

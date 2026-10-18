@@ -70,78 +70,37 @@ export class CharacterSummary implements OnDestroy {
 @Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule], templateUrl: './map-board.html', styleUrl: './map-board.css' })
 export class MapBoard implements OnDestroy {
   readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService);
-  maps: any[] = []; grindMaps: any[] = []; townMap: any = null; selected = signal<string | null>(null); error = signal<string | null>(null); readonly townReturnPending = signal(false); private readonly returnToTownBattleId = signal<string | null>(null); private townPoll: ReturnType<typeof setInterval> | null = null; private townPollBusy = false;
+  maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:7-Math.floor(i/15)}));
+  readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly townReturnPending = signal(false);
+  readonly cameraX = signal(0); readonly cameraY = signal(0); private discovered = new Set<string>();
+  private drag: {id:number; startX:number; startY:number; cameraX:number; cameraY:number; moved:boolean}|null = null; private suppressClickUntil = 0; private lastCenteredMapId: string|null = null;
+  private readonly worldWidth=2295; private readonly worldHeight=1989; private readonly viewportWidth=761; private readonly viewportHeight=660;
+  private readonly returnToTownBattleId = signal<string|null>(null); private townPoll: ReturnType<typeof setInterval>|null=null; private townPollBusy=false;
   constructor() {
-    effect(() => {
-      const targetId = this.returnToTownBattleId();
-      if (!targetId || this.battle.lastResolved()?.entryId !== targetId) return;
-      this.returnToTownBattleId.set(null);
-      this.townReturnPending.set(false);
-      void Promise.all([this.character.load(), this.battle.load()]);
-    });
-    this.api.get<any[]>('/maps').subscribe({ next: m => { this.maps = m; this.townMap = m.find(x => x?.id === TOWN_MAP_ID && x?.isTown === true) ?? null; this.grindMaps = m.filter(x => x?.isTown !== true && x?.id !== TOWN_MAP_ID) }, error: e => this.error.set(e?.error?.message ?? 'Unable to load maps') });
+    effect(()=>{const targetId=this.returnToTownBattleId();if(!targetId||this.battle.lastResolved()?.entryId!==targetId)return;this.returnToTownBattleId.set(null);this.townReturnPending.set(false);void Promise.all([this.character.load(),this.battle.load()]);});
+    this.api.get<any[]>('/maps').subscribe({next:m=>{this.maps=m;this.rebuildDiscovery();this.centerOnCurrentMap();},error:e=>this.error.set(e?.error?.message??'Unable to load maps')});
+    effect(()=>{const c=this.character.character();if(!c)return;this.rebuildDiscovery(c.discoveredMapIds);this.centerOnCurrentMap();});
   }
-  mapName() { return this.maps.find(m => m.id === this.character.character()?.currentMapId)?.name || 'Town' }
-  playersInMap() { const current = this.character.character()?.currentMapId; return current && this.battle.mapPresence()?.mapId === current ? this.battle.mapPresence()?.playersOnMap ?? 0 : 0 }
-  level() { return this.character.character()?.level ?? 1 }
-  select(t: any) { if (t.unlockLevel <= this.level()) this.selected.set(t.id) }
-  enter(id: string) { const map = this.maps.find(m => m.id === id); if (!map || map.unlockLevel > this.level()) return; this.error.set(null); this.api.post(`/maps/${id}/enter`, {}).subscribe({ next: async () => { this.battle.beginGrindSession(); this.townReturnPending.set(false); await this.character.load(); try { await this.socket.emit('map:syncPresence', { mapId: id }) } catch { } }, error: e => this.error.set(e?.error?.message ?? 'Map entry rejected by server') }) }
-  enterTown() {
-    const current = this.character.character();
-    if (current?.currentMapId === TOWN_MAP_ID) {
-      this.character.applyPatch({ status: 'town', currentMapId: TOWN_MAP_ID });
-      this.townReturnPending.set(false);
-      this.returnToTownBattleId.set(null);
-      this.stopTownPoll();
-      return;
-    }
-    this.error.set(null);
-    const active = this.battle.active();
-    const isActive = !!active && Date.now() >= Date.parse(active.startAt) && Date.now() < Date.parse(active.endAt);
-    if (isActive) this.townReturnPending.set(true);
-    this.api.post<any>('/maps/leave', {}).subscribe({
-      next: async result => {
-        this.character.applyPatch(result?.character ?? {});
-        if (result?.deferred) {
-          this.returnToTownBattleId.set(result.battleId ?? active?.id ?? null);
-          this.townReturnPending.set(true);
-          this.startTownPoll();
-          return;
-        }
-        this.returnToTownBattleId.set(null);
-        this.townReturnPending.set(false);
-        this.stopTownPoll();
-        await Promise.all([this.character.load(), this.battle.load()]);
-      },
-      error: e => {
-        this.townReturnPending.set(false);
-        this.returnToTownBattleId.set(null);
-        this.error.set(e?.error?.message ?? 'Unable to return to Town');
-        void this.character.load();
-        void this.battle.load();
-      },
-    });
-  }
-  private startTownPoll() {
-    this.stopTownPoll();
-    this.townPoll = setInterval(() => {
-      if (this.townPollBusy) return;
-      this.townPollBusy = true;
-      void this.character.load().finally(() => {
-        this.townPollBusy = false;
-        const c = this.character.character();
-        if (c?.currentMapId === TOWN_MAP_ID) {
-          this.townReturnPending.set(false);
-          this.returnToTownBattleId.set(null);
-          this.stopTownPoll();
-          void this.battle.load();
-        }
-      });
-    }, 1000);
-  }
-  private stopTownPoll() { if (this.townPoll !== null) { clearInterval(this.townPoll); this.townPoll = null; } }
-  ngOnDestroy() { this.stopTownPoll(); }
-
+  private key(x:number,y:number){return `${x},${y}`}
+  private rebuildDiscovery(ids?:string[]){const c=this.character.character();this.discovered=new Set(Array.isArray(ids??c?.discoveredMapIds)?(ids??c?.discoveredMapIds??[]):[TOWN_MAP_ID]);if(!this.discovered.size)this.discovered.add(TOWN_MAP_ID)}
+  trackMap(_i:number,m:any){return m.id} trackCell(_i:number,c:any){return `${c.x},${c.y}`}
+  gridColumn(map:any){return Number(map?.coordinates?.x??0)+7} gridRow(map:any){return 6-Number(map?.coordinates?.y??0)}
+  currentMap(){return this.maps.find(m=>m.id===this.character.character()?.currentMapId)??this.maps.find(m=>m.id===TOWN_MAP_ID)??null}
+  mapName(){return this.currentMap()?.name??'Unknown'}
+  playersInMap(){const id=this.character.character()?.currentMapId;return id&&this.battle.mapPresence()?.mapId===id?this.battle.mapPresence()?.playersOnMap??0:0}
+  isRevealed(x:number,y:number){if(!this.discovered.size)return x===0&&y===0;for(const id of this.discovered){const m=this.maps.find(v=>v.id===id);if(!m)continue;const dx=Math.abs(Number(m.coordinates.x)-x),dy=Math.abs(Number(m.coordinates.y)-y);if(dx+dy<=1)return true;}return false}
+  private centerOnCurrentMap(){const m=this.currentMap();if(!m||this.lastCenteredMapId===m.id)return;this.lastCenteredMapId=m.id;this.cameraX.set(Math.max(0,Math.min(this.worldWidth-this.viewportWidth,this.gridColumn(m)*153+76.5-this.viewportWidth/2)));this.cameraY.set(Math.max(0,Math.min(this.worldHeight-this.viewportHeight,this.gridRow(m)*153+76.5-this.viewportHeight/2)))}
+  onPointerDown(e:PointerEvent){if(e.button!==0&&e.pointerType==='mouse')return;this.drag={id:e.pointerId,startX:e.clientX,startY:e.clientY,cameraX:this.cameraX(),cameraY:this.cameraY(),moved:false};(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)}
+  onPointerMove(e:PointerEvent){const d=this.drag;if(!d||d.id!==e.pointerId)return;const dx=e.clientX-d.startX,dy=e.clientY-d.startY;if(Math.abs(dx)+Math.abs(dy)>5)d.moved=true;if(!d.moved)return;this.cameraX.set(Math.max(0,Math.min(this.worldWidth-this.viewportWidth,d.cameraX-dx)));this.cameraY.set(Math.max(0,Math.min(this.worldHeight-this.viewportHeight,d.cameraY-dy)))}
+  onPointerUp(e:PointerEvent){const d=this.drag;if(!d||d.id!==e.pointerId)return;if(d.moved)this.suppressClickUntil=Date.now()+250;this.drag=null;if((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId))(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)}
+  onPointerCancel(e:PointerEvent){if(this.drag?.id===e.pointerId)this.drag=null}
+  onTileClick(e:MouseEvent,tile:any){if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}if(!this.isRevealed(tile.coordinates.x,tile.coordinates.y))return;this.selected.set(tile.id);if(tile.type==='town')this.enterTownMap(tile.id);else this.enter(tile.id)}
+  enter(id:string){const map=this.maps.find(m=>m.id===id);if(!map||map.type!=='grind')return;this.error.set(null);this.api.post<any>(`/maps/${id}/enter`,{}).subscribe({next:async result=>{this.townReturnPending.set(false);await this.character.load();this.rebuildDiscovery();this.centerOnCurrentMap();if(!result?.deferred){this.battle.beginGrindSession();try{await this.socket.emit('map:syncPresence',{mapId:id})}catch{}}},error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
+  enterTownMap(id:string){const current=this.character.character();if(!current||current.currentMapId===id&&current.status==='town')return;this.error.set(null);this.api.post<any>(`/maps/${id}/enter`,{}).subscribe({next:async result=>{this.character.applyPatch(result?.character??{});if(result?.deferred){this.returnToTownBattleId.set(result.battleId??this.battle.active()?.id??null);this.townReturnPending.set(true);this.startTownPoll();return;}this.townReturnPending.set(false);this.stopTownPoll();await Promise.all([this.character.load(),this.battle.load()]);this.rebuildDiscovery();this.centerOnCurrentMap()},error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
+  enterTown(){this.enterTownMap(TOWN_MAP_ID)}
+  private startTownPoll(){this.stopTownPoll();this.townPoll=setInterval(()=>{if(this.townPollBusy)return;this.townPollBusy=true;void this.character.load().finally(()=>{this.townPollBusy=false;const c=this.character.character();if(c?.currentMapId===this.returnToTownBattleId()||c?.currentMapId===TOWN_MAP_ID&&c?.status==='town'){this.townReturnPending.set(false);this.returnToTownBattleId.set(null);this.stopTownPoll();void this.battle.load();this.rebuildDiscovery();this.centerOnCurrentMap()}})},1000)}
+  private stopTownPoll(){if(this.townPoll!==null){clearInterval(this.townPoll);this.townPoll=null}}
+  ngOnDestroy(){this.stopTownPoll()}
 }
 
 @Component({ selector: 'app-inventory-grid', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './inventory-grid.html', styleUrl: './inventory-grid.css' })
@@ -307,7 +266,7 @@ export class GrindInfo implements OnDestroy {
   skillIcon(skill:any){return '/assets/ui/skill-icons/'+skill.id+'.svg'}
   monsterStats(entry: any) { const m = this.monsterSnapshot(entry); return [{ label: 'ATK', value: m.atk }, { label: 'MATK', value: m.matk }, { label: 'DEF', value: m.def }, { label: 'MDEF', value: m.mdefPercent + '%' }, { label: 'ACC', value: m.accuracy }, { label: 'EVA', value: m.evasion }, { label: 'CRIT', value: m.critChance + '%' }] }
 
-  isTown() { const c = this.character.character(); return !!c && c.currentMapId === TOWN_MAP_ID }
+  isTown() { const c = this.character.character(); return !!c && c.status === 'town' }
   activeGambitTitle() { return this.character.character()?.activeGambitPageId ? 'Configured' : 'Not configured' }
   xpText() { const c = this.character.character(); return c ? `${c.xp} / ${c.xpToNext}` : '—' }
   monster(id: string) { return this.catalog.monster(id) }
