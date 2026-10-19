@@ -1503,8 +1503,7 @@
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
-        "atk": 9,
-        "accuracyModifier": -75
+        "atk": 9
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1536,8 +1535,7 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "atk": 20,
-        "accuracyModifier": -74
+        "atk": 20
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1569,8 +1567,7 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "atk": 36,
-        "accuracyModifier": -73
+        "atk": 36
       },
       "randomRollOnDrop": {
         "enabled": true,

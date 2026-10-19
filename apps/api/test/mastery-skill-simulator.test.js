@@ -234,7 +234,7 @@ function run() {
   assert(violent.result.log.events.some((e) => e.action === 'move' && e.reason === 'violent_shot_push'), 'Violent Shot logs the push with the existing lane API');
   assert(violentHit && violentHit.spSpent === 20 && violentHit.damageType === 'ranged' && violentHit.crit === false, 'Violent Shot spends SP, uses ranged physical damage and cannot crit');
   assert(violentHit.damage >= 49 && violentHit.damage <= 51, 'Violent Shot deals 50 physical damage per rank');
-  assert.equal(violent.skill.cooldownTicks, 15);
+  assert.equal(violent.skill.cooldownTicks, 25, 'Violent Shot cooldown follows the canonical root skill catalogue');
 
   const war = runActiveSkill('war_cry', { hp: 1000, maxHp: 5000, monster: { hp: 100000 } });
   const warHit = war.result.log.events.find((e) => e.action === 'use_skill' && e.skillId === 'war_cry');
@@ -272,8 +272,9 @@ function run() {
   const focusResult = simulate(focusSnapshot, monster({ hp: 75000 }), page(null), 'focus-distance');
   const focusAttack = focusResult.log.events.find((e) => e.action === 'attack' && e.actor === 'character');
   assert(focusAttack && focusAttack.distanceAtActionStart === 6, 'Fearless Focus reads the start-of-action empty-space distance');
-  assert.equal(focusAttack.fearlessDamageMultiplier, 1.18, 'Fearless Focus applies one percent damage per rank and empty space');
-  assert.equal(focusAttack.precisionUsed, 518, 'Fearless Focus adds rank times distance to the hit roll');
+  assert.equal(focusAttack.precisionUsed, 545, 'Rank 3 adds 15 Precision from rank plus 30 from six empty spaces');
+  assert(focusAttack.damage >= 99000 && focusAttack.damage <= 101000,
+    'Fearless Focus no longer multiplies damage; only the existing direct-damage variance applies');
 
   const brutalityOnly = rankedDefinition('brutality', 5);
   const brutalitySnapshot = character({

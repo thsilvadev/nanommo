@@ -18,6 +18,7 @@ export interface EquipmentStats {
   weaponFixedAtk: number;
   weaponFixedMatk: number;
   accuracyModifier: number;
+  accuracyMultiplier: number;
   statBonus: {
     STR?: number;
     AGI?: number;
@@ -126,6 +127,7 @@ export class EquipmentService {
       weaponFixedAtk: 0,
       weaponFixedMatk: 0,
       accuracyModifier: 0,
+      accuracyMultiplier: 1,
       statBonus: {
         STR: 0,
         AGI: 0,
@@ -173,9 +175,7 @@ export class EquipmentService {
           stats.weaponFixedMatk += Number(itemDef.fixedStats?.matk ?? 0);
         }
       }
-      if (itemDef.weaponType === 'bow') {
-        stats.accuracyModifier -= ({ 1: 75, 2: 74, 3: 73 } as Record<number, number>)[Number(itemDef.tier)] ?? 75;
-      }
+      if (itemDef.weaponType === 'bow') stats.accuracyMultiplier *= 0.5;
     }
 
     // Clamp MDEF% to 0-100 range

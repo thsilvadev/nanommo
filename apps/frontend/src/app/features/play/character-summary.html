@@ -11,7 +11,7 @@
             (cdkDragEnded)="onEquipmentDragEnd()" (dblclick)="unequip(slot.key)" class="equip-drag"><img
               [src]="catalog.itemIcon(eq.itemId)" [alt]="catalog.item(eq.itemId)?.name||eq.itemId">
             <div class="item-tooltip"><strong [class]="itemTierClass(slot.key)">{{itemName(slot.key)}}</strong><span
-                *ngFor="let line of itemTooltipLines(slot.key)"><ng-container *ngIf="line.originalValue !== undefined; else normalEquipLine">{{line.label}}: <del>{{line.originalValue}}</del> {{line.value}}</ng-container><ng-template #normalEquipLine>{{line.label}}: {{line.value}}</ng-template></span></div><ng-template
+                *ngFor="let line of itemTooltipLines(slot.key)" [class.tooltip-warning]="line.warning"><ng-container *ngIf="line.originalValue !== undefined; else normalEquipLine">{{line.label}}: <del>{{line.originalValue}}</del> {{line.value}}</ng-container><ng-template #normalEquipLine>{{line.label ? line.label + ': ' : ''}}{{line.value}}</ng-template></span></div><ng-template
               cdkDragPreview><img class="drag-preview-icon" [src]="catalog.itemIcon(eq.itemId)"
                 [alt]="catalog.item(eq.itemId)?.name||eq.itemId"></ng-template><ng-template cdkDragPlaceholder><span
                 class="equip-drag-placeholder"></span></ng-template>
@@ -33,7 +33,7 @@
             (cdkDragEnded)="onEquipmentDragEnd()" (dblclick)="unequip(slot.key)" class="equip-drag"><img
               [src]="catalog.itemIcon(eq.itemId)" [alt]="catalog.item(eq.itemId)?.name||eq.itemId">
             <div class="item-tooltip"><strong [class]="itemTierClass(slot.key)">{{itemName(slot.key)}}</strong><span
-                *ngFor="let line of itemTooltipLines(slot.key)"><ng-container *ngIf="line.originalValue !== undefined; else normalEquipLine">{{line.label}}: <del>{{line.originalValue}}</del> {{line.value}}</ng-container><ng-template #normalEquipLine>{{line.label}}: {{line.value}}</ng-template></span></div><ng-template
+                *ngFor="let line of itemTooltipLines(slot.key)" [class.tooltip-warning]="line.warning"><ng-container *ngIf="line.originalValue !== undefined; else normalEquipLine">{{line.label}}: <del>{{line.originalValue}}</del> {{line.value}}</ng-container><ng-template #normalEquipLine>{{line.label ? line.label + ': ' : ''}}{{line.value}}</ng-template></span></div><ng-template
               cdkDragPreview><img class="drag-preview-icon" [src]="catalog.itemIcon(eq.itemId)"
                 [alt]="catalog.item(eq.itemId)?.name||eq.itemId"></ng-template><ng-template cdkDragPlaceholder><span
                 class="equip-drag-placeholder"></span></ng-template>

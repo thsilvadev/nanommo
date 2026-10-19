@@ -9,7 +9,11 @@ export class CatalogService {
  item(id:string){return this.items().find(x=>x.id===id);}
  itemTooltipLines(itemId:string,instanceData?:any,equippedSlot?:string){
   const d:any=this.item(itemId);if(!d)return [];
-  if(d.type==='equipment')return this.equipmentStatLines(itemId,instanceData,equippedSlot);
+  if(d.type==='equipment'){
+   const lines=this.equipmentStatLines(itemId,instanceData,equippedSlot);
+   if(String(d.weaponType??'').toLowerCase()==='bow')lines.push({label:'',value:'Bows reduce precision by a half',warning:true});
+   return lines;
+  }
   const hidden=d.type==='consumable'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor']):d.type==='monster_part'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();
   const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;
   return visible.filter(k=>k!=='id'&&k!=='name'&&!hidden.has(k)&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k==='effect'?'Effect':k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:k==='effect'?this.formatItemEffect(d[k]):typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}));

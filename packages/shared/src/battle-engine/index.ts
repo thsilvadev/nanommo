@@ -392,7 +392,9 @@ export class BattleEngine {
     const castSpeed = 100 + Math.floor(dex * 2);
     // Canonical Precision/Evasion scale (SPEC §5.2): starting DEX/AGI 5 => 80/100.
     const evasion = 99 + Math.floor(agi / 3);
-    const accuracy = 79 + Math.floor(dex / 3) + Number(equipment?.accuracyModifier ?? 0);
+    const accuracyBeforeWeaponPenalty = 79 + Math.floor(dex / 3) + Number(equipment?.accuracyModifier ?? 0);
+    const accuracyMultiplier = Math.max(0, Number(equipment?.accuracyMultiplier ?? 1));
+    const accuracy = Math.floor(accuracyBeforeWeaponPenalty * accuracyMultiplier);
     const hpRegenPerTenTicks = 1 + Math.floor(vit / 2);
     const spRegenPerTenTicks = 1 + Math.floor(int / 2);
     const critChance = 1 + Math.floor(luk * 0.3 * 10) / 10;
@@ -986,14 +988,19 @@ export class BattleEngine {
             self.movementIntent = false;
             self.movementIntentRange = undefined;
             const distanceAtActionStart = distanceBetween();
-            const fearlessRank = Math.max(0, Number(self.skillDefs?.fearless_focus?.masteryRank ?? 0));
-            const precisionUsed = Number(self.accuracy) + distanceAtActionStart * fearlessRank;
+            const fearlessSkill = self.skillDefs?.fearless_focus;
+            const fearlessRank = Math.max(0, Number(fearlessSkill?.masteryRank ?? 0));
+            const fearlessEffect = fearlessSkill?.effect ?? {};
+            const fearlessPrecisionPerRank = Math.max(0, Number(fearlessEffect.accuracyPerRank ?? 5));
+            const fearlessPrecisionPerSpace = Math.max(0, Number(fearlessEffect.accuracyPerSpace ?? 5));
+            const precisionUsed = Number(self.accuracy)
+              + fearlessRank * fearlessPrecisionPerRank
+              + distanceAtActionStart * fearlessPrecisionPerSpace;
             const hitChance = BattleEngine.calculateHitChance(precisionUsed, foe.evasion);
             const landed = rng.chance(hitChance / 100);
             const crit = landed && rng.chance(self.critChance / 100);
             const attackType = self.basicAttackDamageType ?? 'melee';
-            const fearlessDamageMultiplier = 1 + fearlessRank * distanceAtActionStart * 0.01;
-            const baseDamage = self.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1) * fearlessDamageMultiplier;
+            const baseDamage = self.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
             const daggerHands = (self.masteryEquipment ?? []).filter((hand) => hand.category === 'dagger').length;
             const doubleStrikeRank = Math.max(0, Number(self.skillDefs?.double_strike?.masteryRank ?? 0));
             const doubleStrikeChance = Math.min(1, daggerHands * doubleStrikeRank * 0.05);
@@ -1020,7 +1027,7 @@ export class BattleEngine {
               target: 'monster',
               damage,
               ...(doubleStrikeTriggered ? { damageComponents, doubleStrikeTriggered: true } : {}),
-              ...(fearlessRank > 0 ? { distanceAtActionStart, precisionUsed, fearlessDamageMultiplier } : {}),
+              ...(fearlessRank > 0 ? { distanceAtActionStart, precisionUsed } : {}),
               damageType: attackType,
               crit,
               hit: landed,

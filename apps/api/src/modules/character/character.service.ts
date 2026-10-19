@@ -43,6 +43,7 @@ export class CharacterService {
       weaponFixedAtk: 0,
       weaponFixedMatk: 0,
       accuracyModifier: 0,
+      accuracyMultiplier: 1,
       statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, LUK: 0 },
     };
     for (const row of equipped) {
@@ -56,7 +57,7 @@ export class CharacterService {
         equipment.weaponFixedAtk += effectiveWeaponAttack(item, row.slot);
         if (row.slot === 'mainHand') equipment.weaponFixedMatk += Number(item.fixedStats?.matk ?? 0);
       }
-      if (item.weaponType === 'bow') equipment.accuracyModifier -= ({ 1: 75, 2: 74, 3: 73 } as Record<number, number>)[Number(item.tier)] ?? 75;
+      if (item.weaponType === 'bow') equipment.accuracyMultiplier *= 0.5;
       for (const [key, value] of Object.entries(item.fixedStats?.statBonus ?? {})) {
         if (key in equipment.statBonus && typeof value === 'number') (equipment.statBonus as any)[key] += value;
       }

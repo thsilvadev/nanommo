@@ -368,6 +368,7 @@ export class BattleService {
         weaponFixedAtk: equipmentStats.weaponFixedAtk,
         weaponFixedMatk: equipmentStats.weaponFixedMatk,
         accuracyModifier: equipmentStats.accuracyModifier,
+        accuracyMultiplier: equipmentStats.accuracyMultiplier,
       },
     );
 

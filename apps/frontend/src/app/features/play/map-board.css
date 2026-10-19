@@ -126,6 +126,7 @@
   pointer-events: none;
   z-index: 3;
   animation: bounce 5s infinite;
+}
 
 @keyframes bounce {
   0%, 100% {
@@ -134,7 +135,6 @@
   50% {
     transform: translate(-50%, -50%) translateY(-10px);
   }
-}
 }
 .map-feedback {
   margin: 6px 4px 0;

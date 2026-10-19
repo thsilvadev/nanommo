@@ -17,7 +17,7 @@
                 <img class="item-icon" [src]="glyph(it)" [alt]="itemTitle(it)"><b
                     *ngIf="displayQuantity(it)>1">{{displayQuantity(it)}}</b>
                 <div class="item-tooltip"><strong>{{itemTitle(it)}}</strong><span
-                        *ngFor="let line of itemTooltipLines(it)">{{line.label}}: {{line.value}}</span></div>
+                        *ngFor="let line of itemTooltipLines(it)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></div>
                 <ng-template cdkDragPreview><img class="drag-preview-icon" [src]="glyph(it)"
                         [alt]="itemTitle(it)"></ng-template><ng-template cdkDragPlaceholder><span
                         class="item-drag-placeholder"></span></ng-template>

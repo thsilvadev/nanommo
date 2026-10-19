@@ -10,7 +10,7 @@
         <div *ngFor="let slot of slots" class="vendor-slot" [class.filled]="warehouseAt(slot)">
           <div *ngIf="warehouseAt(slot) as item" cdkDrag [cdkDragData]="warehouseDragData(item)" (cdkDragStarted)="onVendorDragStart(item)" (cdkDragEnded)="onVendorDragEnd()" (dblclick)="doubleClickWarehouse(item)" class="vendor-item">
             <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon"><b *ngIf="item.quantity>1">{{item.quantity}}</b>
-            <div class="item-tooltip"><strong>{{vendor.itemName(item.itemId)}}</strong><span *ngFor="let line of catalog.itemTooltipLines(item.itemId,item.instanceData)">{{line.label}}: {{line.value}}</span></div>
+            <div class="item-tooltip"><strong>{{vendor.itemName(item.itemId)}}</strong><span *ngFor="let line of catalog.itemTooltipLines(item.itemId,item.instanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></div>
             <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)"></ng-template><ng-template cdkDragPlaceholder><span class="vendor-placeholder"></span></ng-template>
           </div>
         </div>
@@ -27,7 +27,7 @@
               (cdkDragStarted)="onVendorDragStart(item)" (cdkDragEnded)="onVendorDragEnd()" class="vendor-item">
             <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon">
             <b>∞</b>
-            <div class="item-tooltip"><strong [class]="itemTierClass(item.itemId)">{{vendor.itemName(item.itemId)}}</strong><span *ngFor="let line of catalog.itemTooltipLines(item.itemId)">{{line.label}}: {{line.value}}</span></div><small>{{item.buyPrice}} G</small>
+            <div class="item-tooltip"><strong [class]="itemTierClass(item.itemId)">{{vendor.itemName(item.itemId)}}</strong><span *ngFor="let line of catalog.itemTooltipLines(item.itemId)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></div><small>{{item.buyPrice}} G</small>
             <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)"></ng-template>
             <ng-template cdkDragPlaceholder><span class="vendor-placeholder"></span></ng-template>
           </div>

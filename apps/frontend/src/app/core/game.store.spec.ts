@@ -104,6 +104,57 @@ describe('realtime resource synchronization', () => {
     expect(store.items()[0].quantity).toBe(16);
   });
 
+  it('does not let an older in-flight queue GET overwrite a newer realtime queue update', async () => {
+    const oldResponse = new Subject<any[]>();
+    api.get.and.returnValue(oldResponse.asObservable() as any);
+    const characterStore = TestBed.inject(CharacterStore);
+    const inventoryStore = TestBed.inject(InventoryStore);
+    const battleStore = TestBed.inject(BattleStore);
+    battleStore.bindEvents(characterStore, inventoryStore);
+    const load = battleStore.load();
+
+    const nextBattle = {
+      id: 'battle-next', characterId: 'char-1', sequenceIndex: 2,
+      mapId: 'map_lv_1', monsterId: 'mon_slime',
+      startAt: new Date(Date.now() + 2000).toISOString(), endAt: new Date(Date.now() + 10000).toISOString(),
+      outcome: 'win', log: {}, xpGain: 10, goldGain: 0, drops: [], itemsConsumed: [],
+      hpAfter: 30, spAfter: 15, resolved: false, seedUsed: 'seed-next',
+    };
+    gameSocketEvents.get('battle:queueUpdated')!.next({entries: [nextBattle]});
+    oldResponse.next([{
+      ...nextBattle, id: 'battle-dead-field-bat', sequenceIndex: 1, monsterId: 'mon_fieldbat',
+      startAt: new Date(Date.now() - 10000).toISOString(), endAt: new Date(Date.now() - 1).toISOString(),
+      log: {durationTicks: 10, header: {monsterSnapshot: {hp: 81}}, events: [{tick: 10, action: 'attack', hpRemaining: {monster: 0}}]},
+    }]);
+    oldResponse.complete();
+    await load;
+    expect(battleStore.active()?.id).toBe('battle-next');
+  });
+
+  it('removes a battle from the visible queue as soon as battle:resolved arrives and ignores stale re-adds', () => {
+    const characterStore = TestBed.inject(CharacterStore);
+    const inventoryStore = TestBed.inject(InventoryStore);
+    const battleStore = TestBed.inject(BattleStore);
+    battleStore.bindEvents(characterStore, inventoryStore);
+    const dead = {
+      id: 'battle-dead', characterId: 'char-1', sequenceIndex: 1,
+      mapId: 'map_lv_1', monsterId: 'mon_fieldbat',
+      startAt: new Date(Date.now() - 10000).toISOString(), endAt: new Date(Date.now() - 1).toISOString(),
+      outcome: 'win', log: {}, xpGain: 10, goldGain: 0, drops: [], itemsConsumed: [],
+      hpAfter: 40, spAfter: 15, resolved: false, seedUsed: 'old',
+    };
+    const next = {...dead, id: 'battle-next', sequenceIndex: 2, monsterId: 'mon_slime',
+      startAt: new Date(Date.now() + 2000).toISOString(), endAt: new Date(Date.now() + 10000).toISOString()};
+    gameSocketEvents.get('battle:queueUpdated')!.next({entries: [dead, next]});
+    gameSocketEvents.get('battle:resolved')!.next({
+      entryId: 'battle-dead', outcome: 'win', xpGain: 10, goldGain: 0, drops: [],
+      stateRevision: 2, characterAfter: character(40, 15), inventoryAfter: [item(1)],
+    });
+    expect(battleStore.active()?.id).toBe('battle-next');
+    gameSocketEvents.get('battle:queueUpdated')!.next({entries: [dead, next]});
+    expect(battleStore.active()?.id).toBe('battle-next');
+  });
+
   it('applies the authoritative Character and Inventory snapshot from queueUpdated before searching', () => {
     const characterStore = TestBed.inject(CharacterStore);
     const inventoryStore = TestBed.inject(InventoryStore);

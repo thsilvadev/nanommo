@@ -38,12 +38,11 @@ const runeTiers = [1, 2, 3].map((tier) => item(`equip_rune_t${tier}`));
 assert.deepEqual(runeTiers.map((r) => r.fixedStats.def), [2, 5, 10]);
 assert.deepEqual(runeTiers.map((r) => r.fixedStats.mdefPercent), [10, 20, 35]);
 assert.ok(runeTiers.every((r) => r.slot === 'offHand'));
-assert.deepEqual(
-  ['equip_bow_t1', 'equip_bow_t2', 'equip_bow_t3'].map((id) => item(id).fixedStats.accuracyModifier),
-  [-75, -74, -73],
-);
+assert.ok(['equip_bow_t1', 'equip_bow_t2', 'equip_bow_t3'].every((id) => !Object.hasOwn(item(id).fixedStats, 'accuracyModifier')),
+  'bows no longer carry tier-specific absolute Accuracy penalties');
 assert.equal(BattleEngine.calculateDerivedStats(1, { str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5 }, {}).accuracy, 80);
-assert.equal(BattleEngine.calculateDerivedStats(1, { str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5 }, { accuracyModifier: -75 }).accuracy, 5);
+assert.equal(BattleEngine.calculateDerivedStats(1, { str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5 }, { accuracyMultiplier: 0.5 }).accuracy, 40);
+assert.equal(BattleEngine.calculateDerivedStats(22, { str: 5, agi: 5, dex: 105, vit: 5, int: 5, luk: 5 }, { accuracyMultiplier: 0.5 }).accuracy, 57);
 
 const policy = { twoHandedAction: 2, oneHandedAction: 1, shieldOnHit: 1, runeOnHit: 1 };
 assert.deepEqual(getMasteryXpPolicy({}), policy);

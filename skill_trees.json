@@ -199,15 +199,15 @@
         "maxRank": 5,
         "prerequisite": null,
         "spCost": 0,
-        "description": "Per empty space, +1% damage and +5 Precision per rank.",
-        "effectDescription": "Per empty space, +1% damage and +5 Precision per rank.",
+        "description": "Adds +5 Precision per rank and +5 Precision per empty space. Does not increase damage.",
+        "effectDescription": "Adds +5 Precision per rank and +5 Precision per empty space. Does not increase damage.",
         "requiresWeaponEquipped": "bow",
         "baseCastTicks": 0,
         "cooldownTicks": 0,
         "effect": {
           "type": "fearless_focus_passive",
-          "damagePerSpacePerRank": 0.01,
-          "accuracyPerSpacePerRank": 5
+          "accuracyPerRank": 5,
+          "accuracyPerSpace": 5
         }
       },
       {
