@@ -15,7 +15,10 @@ export class GrindComponent implements OnInit {
   
   readonly activeGambitId=computed(()=>{
     const activeId=this.character.character()?.activeGambitPageId;
-    return activeId||'';
+    const gambitList=this.gambits();
+    if(!activeId||gambitList.length===0)return'';
+    const found=gambitList.find(g=>g.id===activeId);
+    return found?activeId:'';
   });
 
   ngOnInit(){void this.loadGambits();}

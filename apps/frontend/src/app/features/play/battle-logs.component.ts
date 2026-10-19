@@ -19,7 +19,7 @@ export class BattleLogsComponent {
   close(){this.selected.set(null);this.detailError.set(null);}
   formatDate(value:string){return new Date(value).toLocaleString([], {dateStyle:'medium',timeStyle:'short'});}
   formatDuration(start:string,end:string){const seconds=Math.max(0,Math.round((Date.parse(end)-Date.parse(start))/1000));return seconds<60?seconds+'s':Math.floor(seconds/60)+'m '+seconds%60+'s';}
-  displayEvents(battle:BattleLogDetail){return (battle.log?.events??[]).filter((event:any)=>event?.action!=='range_blocked');}
+  displayEvents(battle:BattleLogDetail){return (battle.log?.events??[]).filter((event:any)=>event?.action!=='range_blocked'&&!(event?.action==='use_skill'&&event?.target==='character'&&Number(event?.damage??0)===0&&Boolean(event?.statusApplied)));}
   eventText(event:any){
     const log:any=this.selected()?.log;
     const playerName=String(log?.header?.characterSnapshot?.characterName??this.character.character()?.name??'Character');
