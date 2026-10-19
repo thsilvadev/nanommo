@@ -138,7 +138,7 @@ function run() {
   );
   const firstCastAtZeroAttackSpeed = castTimingAtZeroAttackSpeed.log.events.find((event) => event.actor === 'character' && event.action === 'use_skill');
   const firstCastAtMaxAttackSpeed = castTimingAtMaxAttackSpeed.log.events.find((event) => event.actor === 'character' && event.action === 'use_skill');
-  assert.equal(firstCastAtZeroAttackSpeed?.tick, 7, 'the DEX-based cast gauge retains its existing initial timing at Attack Speed 0');
+  assert.equal(firstCastAtZeroAttackSpeed?.tick, 1, 'the one-tick skill resolves at T1 after immediate Cast intent, independent of Attack Speed');
   assert.equal(firstCastAtMaxAttackSpeed?.tick, firstCastAtZeroAttackSpeed?.tick, 'Attack Speed affects basic Attacks only, not skill cast gauge timing');
   assert.equal(first.log.header.characterSnapshot.position, 3);
   assert.equal(first.log.header.monsterSnapshot.position, 4);

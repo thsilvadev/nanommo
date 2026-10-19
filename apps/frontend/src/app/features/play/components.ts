@@ -290,7 +290,7 @@ export class GrindInfo implements OnDestroy {
   monsterMaxHp(entry: any) { return Number(entry.log?.header?.monsterSnapshot?.maxHp ?? entry.log?.header?.monsterSnapshot?.hp ?? 0) }
   monsterLevel(entry: any) { return Number(this.monsterSnapshot(entry).level ?? 0) }
   percent(v: number, max: number) { return max > 0 ? Math.max(0, Math.min(100, v / max * 100)) : 0 }
-  recentEvents(entry: any) { const tick = this.elapsedTicks(entry); return this.events(entry).filter((e: any) => e.action !== 'range_blocked' && Number(e.tick ?? 0) <= tick).slice(-4).reverse() }
+  recentEvents(entry: any) { const tick = this.elapsedTicks(entry); return this.events(entry).filter((e: any) => e.action !== 'range_blocked' && e.action !== 'action_suppressed' && Number(e.tick ?? 0) <= tick).slice(-4).reverse() }
   eventText(e: any) {
     if (e.action === 'range_blocked') return '';
     const playerName = this.character.character()?.name ?? 'Character';
@@ -319,6 +319,7 @@ export class GrindInfo implements OnDestroy {
     if (e.action === 'freeze_applied') return `${target} is freezing (${Number(e.stackCount ?? 1)})`;
     if (e.action === 'status_stack_applied') return `${target} gains ${status} from ${actor} (${Number(e.stackCount ?? 1)})`;
     if (e.action === 'status_stack_lessened') return `${target}'s ${status} lessens (${Number(e.remainingStacks ?? e.stackCount ?? 0)})`;
+    if ((e.sourceSkillId === 'shield_bash' || e.passiveProc === true) && status === 'stun') return `${target} is stunned by Shield Bash.`;
     if (e.action === 'status_ended' || e.action === 'status_expired') return `${target}'s ${status} ended`;
     if (e.action === 'status_applied' || e.action === 'status_refreshed') return `${actor} applies ${status} to ${target}`;
     if (e.action === 'attack') { 

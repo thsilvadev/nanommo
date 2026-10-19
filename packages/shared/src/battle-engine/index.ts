@@ -370,15 +370,17 @@ export class BattleEngine {
   static readonly BASE_CAST_TICKS = 8;
   static readonly BASIC_ATTACK_CAST_TICKS = 2;
   static readonly POTION_COOLDOWN = 5;
-  static readonly DEF_SOFT_CAP = 300;
   static readonly CRIT_MULTIPLIER = 1.5;
   static readonly MIN_ATTACK_GAUGE = 2;
   static readonly MIN_CAST_GAUGE = 3;
   static readonly MIN_ATTACK_DURATION_TICKS = 1;
   static readonly MAX_ATTACK_DURATION_TICKS = 10;
   static readonly MAX_ATTACK_SPEED = 800;
-  static readonly MONSTER_CAST_GAUGE = 6;
+  static readonly DEFAULT_MONSTER_CAST_TICKS = 6;
   static readonly DEFEND_DAMAGE_REDUCTION = 0.3;
+  static readonly DEF_FLAT_REDUCTION_PER_POINT = 0.225;
+  static readonly DEF_RELATIVE_SCALE = 250;
+  static readonly MIN_PHYSICAL_DAMAGE_MULTIPLIER = 0.01;
 
   /**
    * Calculate derived stats from base attributes and equipment (SPEC §5)
@@ -446,10 +448,16 @@ export class BattleEngine {
   }
 
   /**
-   * Calculate physical damage after mitigation (soft-capped DEF, SPEC §7.8)
+   * Hybrid physical mitigation: DEF subtracts a flat component and also scales
+   * with incoming damage through diminishing-return percentage mitigation.
+   * Keep at least 10% of the raw hit so armor cannot fully negate physical hits.
    */
   static calculatePhysicalDamage(rawDamage: number, def: number): number {
-    return rawDamage * (1 - def / (def + BattleEngine.DEF_SOFT_CAP));
+    const raw = Math.max(0, Number(rawDamage) || 0);
+    const armor = Math.max(0, Number(def) || 0);
+    const flatReduction = armor * BattleEngine.DEF_FLAT_REDUCTION_PER_POINT;
+    const relativeReduction = raw * armor / (armor + BattleEngine.DEF_RELATIVE_SCALE);
+    return Math.max(raw * BattleEngine.MIN_PHYSICAL_DAMAGE_MULTIPLIER, raw - flatReduction - relativeReduction);
   }
 
   /**
@@ -474,14 +482,15 @@ export class BattleEngine {
    * Calculate hit chance given accuracy and evasion
    */
   static calculateHitChance(accuracy: number, evasion: number): number {
-    return Math.max(0, Math.min(100, 100 + accuracy - evasion));
+    return Math.max(5, Math.min(95, 100 + accuracy - evasion));
   }
 
   /**
    * Convert the effective Attack Speed rating into the basic-attack interval.
    * The scale is global and exact at both endpoints: 0 => 10 ticks, 800+ =>
    * 1 tick. Fractional intervals are applied through gauge progress rather than
-   * rounded away. Skill/cast timing uses the independent DEX-based cast gauge.
+   * rounded away. Character skills use CTR-based pending casts; non-skill Cast
+   * actions retain their gauge, and monster skills use catalogued cast ticks.
    */
   static attackDurationTicks(attackSpeed: number): number {
     const rawSpeed = Number(attackSpeed ?? 0);
@@ -627,8 +636,7 @@ export class BattleEngine {
     let attackGauge = 0;
     let castGauge = 0;
     let monsterAttackGauge = 0;
-    let monsterCastGauge = 0;
-    let lastMonsterSkillId: string | null = null;
+    let pendingMonsterCast: { skillId: string; castStartedAtTick: number; resolutionTick: number } | null = null;
     let pendingCharacterCast: { skillId: string; castStartedAtTick: number; resolutionTick: number } | null = null;
     let tick = 0;
 
@@ -756,6 +764,7 @@ export class BattleEngine {
         ...(resolvedDuration > 0 ? { durationTicks: resolvedDuration, expiresAtTick: tick + resolvedDuration } : {}),
         sourceSkillId,
         statusStackable: stackable,
+        ...(sourceSkillId === 'shield_bash' ? { passiveProc: true } : {}),
       });
       if (target === foe && statusId === 'disarm' && monsterDefinition?.id === 'mon_brokensentinel') {
         applyStatus(foe, 'physical_reflection', 'monster_skill_physical_reflection', 15, { reflectPercent: 30 }, 'monster');
@@ -1131,7 +1140,6 @@ export class BattleEngine {
       self.tick = tick;
       foe.tick = tick;
       BattleEngine.tickCooldowns(cooldowns);
-      const monsterCooldownsExpiring = new Set(Object.keys(foeCooldowns).filter((key) => Number(foeCooldowns[key]) === 1));
       BattleEngine.tickCooldowns(foeCooldowns);
 
       // Character skills use an intent/resolution state machine, not the legacy
@@ -1432,9 +1440,74 @@ export class BattleEngine {
         }
       }
 
+      // Monster skill intent is evaluated every tick. A selected skill starts a
+      // deterministic pending cast immediately; baseCastTicks describes elapsed
+      // cast time, not a gauge threshold. Missing durations retain the old
+      // six-tick default. An accepted cast is not replaced or interrupted.
+      let monsterSkillActsThisTick = false;
+      let monsterSkillToResolve: string | null = null;
+      if (pendingMonsterCast) {
+        monsterSkillActsThisTick = true;
+        monsterAttackGauge = 0;
+        if (pendingMonsterCast.resolutionTick <= tick) {
+          monsterSkillToResolve = pendingMonsterCast.skillId;
+          pendingMonsterCast = null;
+        }
+      } else if (foe.hp > 0 && self.hp > 0) {
+        const monsterCastChoice = GambitEvaluator.evaluateGambitPage(
+          monsterGambitPage, 'cast', foe, self, {},
+        );
+        const candidateId = monsterCastChoice?.action?.skillId ?? monsterCastChoice?.action?.params?.skillId;
+        const candidateDef: any = candidateId ? (monsterSkillDefs[candidateId] ?? {}) : {};
+        if (monsterCastChoice?.action?.id === 'use_skill' && candidateId) {
+          const candidateEffect: any = candidateDef.effect ?? {};
+          const selfTarget = candidateDef.target === 'self'
+            || Number(candidateEffect.healPercentMaxHp ?? 0) > 0
+            || candidateId === 'monster_skill_self_heal';
+          const targetRange = candidateDef.ranged === true
+            ? Math.max(0, Number(candidateDef.maxRange ?? 7) - 1)
+            : Math.max(0, Number(candidateDef.maxRange ?? 1) - 1);
+          const skillOutOfRange = hasStatus(foe, 'stun')
+            || (!selfTarget && distanceBetween() > targetRange);
+          if (skillOutOfRange) {
+            foe.movementIntent = true;
+            foe.movementIntentRange = targetRange;
+          } else {
+            foe.movementIntent = false;
+            foe.movementIntentRange = undefined;
+            const configuredDuration = candidateDef.baseCastTicks == null
+              ? BattleEngine.DEFAULT_MONSTER_CAST_TICKS
+              : Number(candidateDef.baseCastTicks);
+            const castTicks = Number.isFinite(configuredDuration)
+              ? Math.max(0, Math.floor(configuredDuration))
+              : BattleEngine.DEFAULT_MONSTER_CAST_TICKS;
+            monsterAttackGauge = 0;
+            monsterSkillActsThisTick = true;
+            if (castTicks === 0) {
+              monsterSkillToResolve = String(candidateId);
+            } else {
+              pendingMonsterCast = {
+                skillId: String(candidateId),
+                castStartedAtTick: tick,
+                resolutionTick: tick + castTicks,
+              };
+            }
+          }
+        } else if (monsterDefinition?.id === 'mon_arcanewisp') {
+          // Preserve Arcane Wisp's resource reaction without routing it through
+          // an additional cast action: it gains reflection when Surge is unaffordable.
+          const surgeCost = Number(monsterSkillDefs.monster_skill_arcane_surge?.spCost ?? 60);
+          if (Number(foe.sp ?? 0) < surgeCost
+            && Number(foeCooldowns['skill:monster_skill_arcane_surge'] ?? 0) <= 0
+            && !hasStatus(foe, 'silence') && !hasStatus(foe, 'magic_reflection')) {
+            applyStatus(foe, 'magic_reflection', 'monster_skill_magic_reflection', 15, { reflectPercent: 30 }, 'monster');
+          }
+        }
+      }
+
       // ===== MONSTER: ATTACK GAUGE (its own gambit, §7.3) =====
-      monsterAttackGauge += 1 / monsterAttackDurationTicks();
-      if (monsterAttackGauge >= 1) {
+      if (!monsterSkillActsThisTick) monsterAttackGauge += 1 / monsterAttackDurationTicks();
+      if (!monsterSkillActsThisTick && monsterAttackGauge >= 1) {
         monsterAttackGauge = 0;
         const choice = GambitEvaluator.evaluateGambitPage(
           monsterGambitPage,
@@ -1449,7 +1522,6 @@ export class BattleEngine {
         if (choice && choice.action.id === 'attack' && foeStunned) {
           foe.movementIntent = false;
           foe.movementIntentRange = undefined;
-          record({ tick, actor: 'monster', action: 'action_suppressed', reason: 'stun', target: 'character' });
         } else if (choice && choice.action.id === 'attack' && distanceBetween() > Number(foe.basicAttackRange ?? 0)) {
           // Disarm prevents the strike, not movement needed to reach melee range.
           foe.movementIntent = true;
@@ -1457,7 +1529,6 @@ export class BattleEngine {
         } else if (choice && choice.action.id === 'attack' && foeDisarmed) {
           foe.movementIntent = false;
           foe.movementIntentRange = undefined;
-          record({ tick, actor: 'monster', action: 'action_suppressed', reason: 'disarm', target: 'character' });
         } else if (choice && choice.action.id === 'attack') {
           foe.movementIntent = false;
           foe.movementIntentRange = undefined;
@@ -1496,83 +1567,42 @@ export class BattleEngine {
         }
       }
 
-      // Monster cast gauge: ranged spells may define their cast time in the skill catalog.
-      // Other existing monster casts retain the legacy six-tick threshold.
-      const pendingMonsterCastChoice = GambitEvaluator.evaluateGambitPage(
-        monsterGambitPage,
-        'cast',
-        foe,
-        self,
-        {},
-      );
-      const pendingMonsterSkillId = pendingMonsterCastChoice?.action?.skillId ?? pendingMonsterCastChoice?.action?.params?.skillId;
-      const pendingMonsterSkillDef: any = pendingMonsterSkillId ? (monsterSkillDefs[pendingMonsterSkillId] ?? {}) : {};
-      const monsterCastThreshold = pendingMonsterCastChoice?.action?.id === 'use_skill' && pendingMonsterSkillDef.ranged === true
-        ? Math.max(1, Math.floor(Number(pendingMonsterSkillDef.baseCastTicks ?? BattleEngine.MONSTER_CAST_GAUGE)))
-        : BattleEngine.MONSTER_CAST_GAUGE;
-      // Cooldown is sequential with cast time: ticks while the last skill is
-      // blocked, including the tick on which its cooldown reaches zero, do not
-      // charge the next cast. For a 2-tick cast / 1-tick cooldown this yields
-      // resolutions at T2, T6, T10... rather than T2, T4, T6...
-      const lastMonsterCooldownKey = lastMonsterSkillId ? `skill:${lastMonsterSkillId}` : '';
-      const lastMonsterSkillCooling = !!lastMonsterCooldownKey && Number(foeCooldowns[lastMonsterCooldownKey] ?? 0) > 0;
-      const cooldownEndedThisTick = !!lastMonsterCooldownKey && monsterCooldownsExpiring.has(lastMonsterCooldownKey);
-      if (tick > 0 && !lastMonsterSkillCooling && !cooldownEndedThisTick) monsterCastGauge += 1;
-      if (monsterCastGauge >= monsterCastThreshold) {
-        monsterCastGauge = 0;
-        const choice = pendingMonsterCastChoice;
-        const reflectionSkillId = monsterDefinition?.id === 'mon_arcanewisp' ? 'monster_skill_arcane_surge' : null;
-        const reflectionSkillCost = reflectionSkillId ? Number(monsterSkillDefs[reflectionSkillId]?.spCost ?? 60) : Number.POSITIVE_INFINITY;
-        if (reflectionSkillId && Number(foe.sp ?? 0) < reflectionSkillCost
-          && Number(foeCooldowns[`skill:${reflectionSkillId}`] ?? 0) <= 0 && !hasStatus(foe, 'silence')) {
-          applyStatus(foe, 'magic_reflection', 'monster_skill_magic_reflection', 15, { reflectPercent: 30 }, 'monster');
-        }
-        const monsterSelectedSkillId = choice?.action?.skillId ?? choice?.action?.params?.skillId;
-        const monsterSelectedSkillDef: any = monsterSelectedSkillId ? (monsterSkillDefs[monsterSelectedSkillId] ?? {}) : {};
-        // Ranged skill maxRange includes the target's space; distanceBetween() counts empty spaces.
-        const monsterSkillRange = monsterSelectedSkillDef.ranged === true
-          ? Math.max(0, Number(monsterSelectedSkillDef.maxRange ?? 7) - 1)
-          : Math.max(0, Number(monsterSelectedSkillDef.maxRange ?? 1) - 1);
-        const monsterSkillOutOfRange = choice?.action?.id === 'use_skill' && (hasStatus(foe, 'stun') || distanceBetween() > monsterSkillRange);
-        if (monsterSkillOutOfRange) {
-          foe.movementIntent = true;
-          foe.movementIntentRange = monsterSkillRange;
-        }
-        if (choice && choice.action.id === 'use_skill' && !monsterSkillOutOfRange) {
-          const skillId = choice.action.skillId ?? choice.action.params?.skillId;
-          lastMonsterSkillId = String(skillId);
-          const def: any = monsterSkillDefs[skillId] ?? {}
-          foe.movementIntent = false;
-          foe.movementIntentRange = undefined;
-          foeCooldowns[`skill:${skillId}`] = Number(def.cooldownTicks ?? 0) + (Number(def.cooldownTicks ?? 0) > 0 ? 1 : 0);
-          const spCost = Math.max(0, Number(def.spCost ?? 0));
-          foe.sp = Math.max(0, foe.sp - spCost);
-          const effect = def.effect ?? {};
-          if (skillId === 'monster_skill_rage') {
-            foe.statusEffects = (foe.statusEffects ?? []).filter((status: any) => {
-              const statusId = String(status.type ?? status.id ?? '');
-              return (statusEffectDefs[statusId] as any)?.polarity !== 'debuff';
-            });
-            applyStatus(foe, 'rage', skillId, Number(effect.durationTicks ?? 15), { atkBonus: Number(effect.atk ?? 20) }, 'monster');
-            record({ tick, actor: 'monster', action: 'use_skill', skillId, target: 'monster', damage: 0, hit: true, spSpent: spCost });
-          } else if (skillId === 'monster_skill_pickpocket') {
-            const chance = chanceAfterSaveButtLuck(Number(effect.chance ?? 0.1), Number(self.luk ?? 0), effect.saveButtLuck === true);
-            const eligible = Object.keys(inventory).filter((itemId) => {
-              const definition = itemDefinitions[itemId];
-              return Number(inventory[itemId] ?? 0) > 0 && definition?.type !== 'food' && definition?.effect?.type !== 'food_buff';
-            }).sort();
-            if (eligible.length > 0 && rng.chance(chance)) {
-              const itemId = rng.pick(eligible);
-              const definition = itemDefinitions[itemId] ?? {};
-              const quantity = Math.min(Number(inventory[itemId] ?? 0), Math.max(1, Number(definition.maxStack ?? inventory[itemId])));
-              inventory[itemId] = Math.max(0, Number(inventory[itemId] ?? 0) - quantity);
-              const prior = itemsConsumed.find((item) => item.itemId === itemId);
-              if (prior) prior.quantity += quantity; else itemsConsumed.push({ itemId, quantity });
-              record({ tick, actor: 'monster', action: 'item_stolen', skillId, target: 'character', itemId, quantity, permanent: true, hit: true, spSpent: spCost });
-            } else {
-              record({ tick, actor: 'monster', action: 'pickpocket_failed', skillId, target: 'character', hit: true, spSpent: spCost });
-            }
+      // Resolve only a previously accepted monster cast whose exact resolution tick has arrived.
+      if (monsterSkillToResolve) {
+        const skillId = monsterSkillToResolve;
+        const def: any = monsterSkillDefs[skillId] ?? {};
+        foe.movementIntent = false;
+        foe.movementIntentRange = undefined;
+        foeCooldowns[`skill:${skillId}`] = Number(def.cooldownTicks ?? 0)
+          + (Number(def.cooldownTicks ?? 0) > 0 ? 1 : 0);
+        const spCost = Math.max(0, Number(def.spCost ?? 0));
+        foe.sp = Math.max(0, foe.sp - spCost);
+        const effect = def.effect ?? {};
+        if (skillId === 'monster_skill_rage') {
+          foe.statusEffects = (foe.statusEffects ?? []).filter((status: any) => {
+            const statusId = String(status.type ?? status.id ?? '');
+            return (statusEffectDefs[statusId] as any)?.polarity !== 'debuff';
+          });
+          applyStatus(foe, 'rage', skillId, Number(effect.durationTicks ?? 15), { atkBonus: Number(effect.atk ?? 20) }, 'monster');
+          record({ tick, actor: 'monster', action: 'use_skill', skillId, target: 'monster', damage: 0, hit: true, spSpent: spCost });
+        } else if (skillId === 'monster_skill_pickpocket') {
+          const chance = chanceAfterSaveButtLuck(Number(effect.chance ?? 0.1), Number(self.luk ?? 0), effect.saveButtLuck === true);
+          const eligible = Object.keys(inventory).filter((itemId) => {
+            const definition = itemDefinitions[itemId];
+            return Number(inventory[itemId] ?? 0) > 0 && definition?.type !== 'food' && definition?.effect?.type !== 'food_buff';
+          }).sort();
+          if (eligible.length > 0 && rng.chance(chance)) {
+            const itemId = rng.pick(eligible);
+            const definition = itemDefinitions[itemId] ?? {};
+            const quantity = Math.min(Number(inventory[itemId] ?? 0), Math.max(1, Number(definition.maxStack ?? inventory[itemId])));
+            inventory[itemId] = Math.max(0, Number(inventory[itemId] ?? 0) - quantity);
+            const prior = itemsConsumed.find((item) => item.itemId === itemId);
+            if (prior) prior.quantity += quantity; else itemsConsumed.push({ itemId, quantity });
+            record({ tick, actor: 'monster', action: 'item_stolen', skillId, target: 'character', itemId, quantity, permanent: true, hit: true, spSpent: spCost });
+          } else {
+            record({ tick, actor: 'monster', action: 'pickpocket_failed', skillId, target: 'character', hit: true, spSpent: spCost });
           }
+        }
           const healAmount = Number(
             effect.healAmount ?? (effect.healPercentMaxHp ? foe.maxHp * Number(effect.healPercentMaxHp) : 0),
           );
@@ -1690,6 +1720,28 @@ export class BattleEngine {
                 }
               }
             }
+          }
+        }
+
+      // A zero-cooldown skill can begin its next cast at this resolution boundary;
+      // this preserves consecutive T2/T4/T6 timings without allowing a second
+      // effect to resolve on the same tick. Positive cooldowns block this chain.
+      if (monsterSkillToResolve && foe.hp > 0 && self.hp > 0
+        && Number(foeCooldowns[`skill:${monsterSkillToResolve}`] ?? 0) <= 0
+        && !hasStatus(foe, 'stun')) {
+        const nextChoice = GambitEvaluator.evaluateGambitPage(monsterGambitPage, 'cast', foe, self, {});
+        const nextSkillId = nextChoice?.action?.skillId ?? nextChoice?.action?.params?.skillId;
+        if (nextChoice?.action?.id === 'use_skill' && String(nextSkillId ?? '') === monsterSkillToResolve) {
+          const nextDef: any = monsterSkillDefs[monsterSkillToResolve] ?? {};
+          const selfTarget = nextDef.target === 'self' || Number(nextDef.effect?.healPercentMaxHp ?? 0) > 0
+            || monsterSkillToResolve === 'monster_skill_self_heal';
+          const range = nextDef.ranged === true
+            ? Math.max(0, Number(nextDef.maxRange ?? 7) - 1)
+            : Math.max(0, Number(nextDef.maxRange ?? 1) - 1);
+          const durationValue = nextDef.baseCastTicks == null ? BattleEngine.DEFAULT_MONSTER_CAST_TICKS : Number(nextDef.baseCastTicks);
+          const duration = Number.isFinite(durationValue) ? Math.max(0, Math.floor(durationValue)) : BattleEngine.DEFAULT_MONSTER_CAST_TICKS;
+          if ((selfTarget || distanceBetween() <= range) && duration > 0) {
+            pendingMonsterCast = { skillId: monsterSkillToResolve, castStartedAtTick: tick, resolutionTick: tick + duration };
           }
         }
       }

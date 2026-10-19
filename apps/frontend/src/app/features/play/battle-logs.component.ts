@@ -19,7 +19,7 @@ export class BattleLogsComponent {
   close(){this.selected.set(null);this.detailError.set(null);}
   formatDate(value:string){return new Date(value).toLocaleString([], {dateStyle:'medium',timeStyle:'short'});}
   formatDuration(start:string,end:string){const seconds=Math.max(0,Math.round((Date.parse(end)-Date.parse(start))/1000));return seconds<60?seconds+'s':Math.floor(seconds/60)+'m '+seconds%60+'s';}
-  displayEvents(battle:BattleLogDetail){return (battle.log?.events??[]).filter((event:any)=>event?.action!=='range_blocked'&&!(event?.action==='use_skill'&&event?.target==='character'&&Number(event?.damage??0)===0&&Boolean(event?.statusApplied)));}
+  displayEvents(battle:BattleLogDetail){return (battle.log?.events??[]).filter((event:any)=>event?.action!=='range_blocked'&&event?.action!=='action_suppressed'&&!(event?.action==='use_skill'&&event?.target==='character'&&Number(event?.damage??0)===0&&Boolean(event?.statusApplied)));}
   eventText(event:any){
     const log:any=this.selected()?.log;
     const playerName=String(log?.header?.characterSnapshot?.characterName??this.character.character()?.name??'Character');
@@ -39,6 +39,7 @@ export class BattleLogsComponent {
     if(event?.action==='freeze_applied') return target+' is freezing ('+Number(event.stackCount??1)+')';
     if(event?.action==='status_stack_applied') return target+' gains '+status+' from '+actor+' ('+Number(event.stackCount??1)+')';
     if(event?.action==='status_stack_lessened') return target+"'s "+status+' lessens ('+Number(event.remainingStacks??event.stackCount??0)+')';
+    if((event?.sourceSkillId==='shield_bash'||event?.passiveProc===true)&&status==='stun') return target+' is stunned by Shield Bash.';
     if(event?.action==='status_ended'||event?.action==='status_expired') return target+"'s "+status+' ended';
     if(event?.action==='status_applied'||event?.action==='status_refreshed') return actor+' applies '+status+' to '+target;
     if(event?.action==='regen') return actor+' regenerated +'+Number(event.amount??0)+' '+String(event.resource??'HP')+'.';
