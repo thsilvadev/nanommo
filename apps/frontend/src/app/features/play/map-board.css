@@ -8,23 +8,28 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   overflow: hidden;
 }
 .map-head {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 5;
   display: flex;
   justify-content: space-between;
   align-items: end;
   flex: 0 0 auto;
   background: transparent;
-  border-bottom: 1px solid #4b3521;
-  padding: 4px 4px 9px;
+  border-bottom: 0;
+  padding: 10px 14px;
   min-height: 54px;
+  pointer-events: none;
   box-sizing: border-box;
   gap: 12px;
 }
 .map-head h1 {
   font: 34px Georgia;
+  text-shadow: 0 2px 4px #000, 1px 1px 0 #000;
   color: #ddc9aa;
   margin: 4px 0 0;
 }
@@ -35,8 +40,9 @@
   text-align: right;
 }
 .map-meta > span:first-child {
-  font: 22px Arial;
-  color: #9b835f;
+  font: 18px Arial;
+  color: #d0b98f;
+  text-shadow: 0 2px 4px #000;
 }
 .viewport {
   width: 761px;
@@ -51,6 +57,7 @@
   background: #090909;
   touch-action: none;
   cursor: grab;
+  overscroll-behavior: contain;
   user-select: none;
 }
 .viewport:active {
@@ -95,6 +102,7 @@
   appearance: none;
   cursor: pointer;
   z-index: 2;
+  overflow: visible;
 }
 .map-tile:hover:not(:disabled),
 .map-tile:focus-visible {
@@ -150,3 +158,5 @@
     flex: 0 0 660px;
   }
 }
+
+.map-tooltip-content { display: none; }

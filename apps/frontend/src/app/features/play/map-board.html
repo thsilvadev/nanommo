@@ -1,15 +1,15 @@
 <section class="panel map-panel">
-  <div class="map-head">
-    <h1>Currently in: {{mapName()}}</h1>
-    <div class="map-meta"><span *ngIf="character.character()?.currentMapId">Players in map: {{playersInMap()}}</span></div>
-  </div>
-  <div #viewport class="viewport" role="application" aria-label="World map. Drag to explore and select a revealed location." (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp($event)" (pointercancel)="onPointerCancel($event)" (lostpointercapture)="onPointerCancel($event)">
-    <div class="world" [style.transform]="'translate3d('+(-cameraX())+'px,'+(-cameraY())+'px,0)'">
+  <div #viewport class="viewport" role="application" aria-label="World map. Drag to explore and select a revealed location." (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp($event)" (pointercancel)="onPointerCancel($event)" (lostpointercapture)="onPointerCancel($event)" (wheel)="onWheel($event)" (click)="onViewportClick($event)">
+    <div class="map-head">
+      <h1>Currently in: {{mapName()}}</h1>
+      <div class="map-meta"><span *ngIf="character.character()?.currentMapId">Players in map: {{playersInMap()}}</span></div>
+    </div>
+    <div class="world" [style.transform]="'translate3d('+(-cameraX()*zoom())+'px,'+(-cameraY()*zoom())+'px,0) scale('+zoom()+')'">
       <img class="world-art" src="/assets/maps/map-background.png" alt="" draggable="false">
       <ng-container *ngFor="let cell of cells; trackBy: trackCell">
         <div class="fog-cell" *ngIf="!isRevealed(cell.x,cell.y)" [style.left.px]="cell.col*153" [style.top.px]="cell.row*153" aria-hidden="true"></div>
       </ng-container>
-      <button *ngFor="let tile of maps; trackBy: trackMap" type="button" class="map-tile" [style.left.px]="gridColumn(tile)*153" [style.top.px]="gridRow(tile)*153" [class.current]="tile.id===character.character()?.currentMapId" [attr.aria-label]="tile.name" [attr.title]="tile.name" [disabled]="!isRevealed(tile.coordinates.x,tile.coordinates.y) || tile.isClickable===false" (click)="onTileClick($event,tile)"></button>
+      <button *ngFor="let tile of maps; trackBy: trackMap" type="button" class="map-tile" [style.left.px]="gridColumn(tile)*153" [style.top.px]="gridRow(tile)*153" [class.current]="tile.id===character.character()?.currentMapId" [attr.aria-label]="tile.name" [attr.data-map-id]="tile.id" [disabled]="!isRevealed(tile.coordinates.x,tile.coordinates.y) || tile.isClickable===false" (pointerenter)="showTileTooltip(tile,$event)" (pointermove)="moveTileTooltip($event)" (pointerleave)="hideTileTooltip()" (focus)="showTileTooltip(tile,$event)" (blur)="hideTileTooltip()"><span class="map-tooltip-content"><strong>{{tile.name}}</strong><small *ngIf="tile.type==='grind'">Recommended level: {{tile.recommendedLevel ?? 1}}</small><small *ngIf="tile.type==='town'">Town</small></span></button>
       <img *ngIf="currentMap() as current" class="location-pin" src="/assets/maps/pinpoint.svg" alt="Current location" [style.left.px]="gridColumn(current)*153+76.5" [style.top.px]="gridRow(current)*153+76.5">
     </div>
   </div>

@@ -25,7 +25,7 @@
     },
     {
       "id": "map_green_grounds_0",
-      "name": "Green-Grounds_0",
+      "name": "Green Grounds 0",
       "coordinates": {
         "x": -1,
         "y": 0
@@ -51,7 +51,7 @@
     },
     {
       "id": "map_green_grounds_1",
-      "name": "Green-Grounds_1",
+      "name": "Green Grounds 1",
       "coordinates": {
         "x": -2,
         "y": 0
@@ -77,7 +77,7 @@
     },
     {
       "id": "map_green_grounds_3",
-      "name": "Green-Grounds_3",
+      "name": "Green Grounds 3",
       "coordinates": {
         "x": -2,
         "y": 1
@@ -103,7 +103,7 @@
     },
     {
       "id": "map_green_grounds_4",
-      "name": "Green-Grounds_4",
+      "name": "Green Grounds 4",
       "coordinates": {
         "x": 0,
         "y": -1
@@ -129,7 +129,7 @@
     },
     {
       "id": "map_green_grounds_5",
-      "name": "Green-Grounds_5",
+      "name": "Green Grounds 5",
       "coordinates": {
         "x": 0,
         "y": -2
@@ -155,7 +155,7 @@
     },
     {
       "id": "map_green_grounds_6",
-      "name": "Green-Grounds_6",
+      "name": "Green Grounds 6",
       "coordinates": {
         "x": -1,
         "y": -2
@@ -222,7 +222,7 @@
     },
     {
       "id": "map_ipora_beach_0",
-      "name": "Iporá-Beach_0",
+      "name": "Iporá Beach 0",
       "coordinates": {
         "x": -3,
         "y": -3
@@ -252,7 +252,7 @@
     },
     {
       "id": "map_ipora_beach_1",
-      "name": "Iporá-Beach_1",
+      "name": "Iporá Beach 1",
       "coordinates": {
         "x": -2,
         "y": -4
@@ -278,7 +278,7 @@
     },
     {
       "id": "map_kwaioua_forest_0",
-      "name": "Kwaiouá-Forest_0",
+      "name": "Kwaiouá Forest 0",
       "coordinates": {
         "x": -4,
         "y": -3
@@ -308,7 +308,7 @@
     },
     {
       "id": "map_kwaioua_forest_1",
-      "name": "Kwaiouá-Forest_1",
+      "name": "Kwaiouá Forest 1",
       "coordinates": {
         "x": -4,
         "y": -4
@@ -334,7 +334,7 @@
     },
     {
       "id": "map_kwaioua_forest_2",
-      "name": "Kwaiouá-Forest_2",
+      "name": "Kwaiouá Forest 2",
       "coordinates": {
         "x": -3,
         "y": -4
@@ -360,7 +360,7 @@
     },
     {
       "id": "map_kwaioua_forest_3",
-      "name": "Kwaiouá-Forest_3",
+      "name": "Kwaiouá Forest 3",
       "coordinates": {
         "x": -2,
         "y": -5
@@ -390,7 +390,7 @@
     },
     {
       "id": "map_kwaioua_forest_6",
-      "name": "Kwaiouá-Forest_6",
+      "name": "Kwaiouá Forest 6",
       "coordinates": {
         "x": -5,
         "y": -3
@@ -424,7 +424,7 @@
     },
     {
       "id": "map_kwaioua_forest_7",
-      "name": "Kwaiouá-Forest_7",
+      "name": "Kwaiouá Forest 7",
       "coordinates": {
         "x": -4,
         "y": -2
@@ -462,7 +462,7 @@
     },
     {
       "id": "map_kwaioua_forest_4",
-      "name": "Kwaiouá-Forest_4",
+      "name": "Kwaiouá Forest 4",
       "coordinates": {
         "x": -6,
         "y": -3
@@ -492,7 +492,7 @@
     },
     {
       "id": "map_kwaioua_forest_5",
-      "name": "Kwaiouá-Forest_5",
+      "name": "Kwaiouá Forest 5",
       "coordinates": {
         "x": -6,
         "y": -4
@@ -522,7 +522,7 @@
     },
     {
       "id": "map_kwaioua_taba",
-      "name": "Kwaiouá-Taba",
+      "name": "Kwaiouá Taba",
       "coordinates": {
         "x": -5,
         "y": -4
@@ -541,7 +541,7 @@
     },
     {
       "id": "map_caete_0",
-      "name": "Caetê_0",
+      "name": "Caetê 0",
       "coordinates": {
         "x": -6,
         "y": -5
@@ -575,7 +575,7 @@
     },
     {
       "id": "map_caete_1",
-      "name": "Caetê_1",
+      "name": "Caetê 1",
       "coordinates": {
         "x": -6,
         "y": -6
@@ -605,7 +605,7 @@
     },
     {
       "id": "map_caete_2",
-      "name": "Caetê_2",
+      "name": "Caetê 2",
       "coordinates": {
         "x": -5,
         "y": -5
@@ -635,7 +635,7 @@
     },
     {
       "id": "map_caete_3",
-      "name": "Caetê_3",
+      "name": "Caetê 3",
       "coordinates": {
         "x": -4,
         "y": -5
@@ -669,7 +669,7 @@
     },
     {
       "id": "map_caete_4",
-      "name": "Caetê_4",
+      "name": "Caetê 4",
       "coordinates": {
         "x": -3,
         "y": -5
@@ -691,7 +691,7 @@
     },
     {
       "id": "map_caete_5",
-      "name": "Caetê_5",
+      "name": "Caetê 5",
       "coordinates": {
         "x": -3,
         "y": -6
@@ -713,7 +713,7 @@
     },
     {
       "id": "map_caete_6",
-      "name": "Caetê_6",
+      "name": "Caetê 6",
       "coordinates": {
         "x": -4,
         "y": -6
@@ -739,7 +739,7 @@
     },
     {
       "id": "map_caete_7",
-      "name": "Caetê_7",
+      "name": "Caetê 7",
       "coordinates": {
         "x": -2,
         "y": -6
@@ -780,7 +780,7 @@
     },
     {
       "id": "map_forest_ruins_0",
-      "name": "Forest_Ruins_0",
+      "name": "Forest Ruins 0",
       "coordinates": {
         "x": -5,
         "y": -2
@@ -818,7 +818,7 @@
     },
     {
       "id": "map_forest_ruins_1",
-      "name": "Forest_Ruins_1",
+      "name": "Forest Ruins 1",
       "coordinates": {
         "x": -5,
         "y": -1
@@ -856,7 +856,7 @@
     },
     {
       "id": "map_forest_ruins_2",
-      "name": "Forest_Ruins_2",
+      "name": "Forest Ruins 2",
       "coordinates": {
         "x": -6,
         "y": -1
@@ -894,7 +894,7 @@
     },
     {
       "id": "map_forest_ruins_3",
-      "name": "Forest_Ruins_3",
+      "name": "Forest Ruins 3",
       "coordinates": {
         "x": -6,
         "y": -2
@@ -928,7 +928,7 @@
     },
     {
       "id": "map_menace_hills_0",
-      "name": "Menace-Hills_0",
+      "name": "Menace Hills 0",
       "coordinates": {
         "x": -2,
         "y": 2
@@ -962,7 +962,7 @@
     },
     {
       "id": "map_menace_hills_1",
-      "name": "Menace-Hills_1",
+      "name": "Menace Hills 1",
       "coordinates": {
         "x": -3,
         "y": 2
@@ -996,7 +996,7 @@
     },
     {
       "id": "map_menace_hills_2",
-      "name": "Menace-Hills_2",
+      "name": "Menace Hills 2",
       "coordinates": {
         "x": -4,
         "y": 2
@@ -1030,7 +1030,7 @@
     },
     {
       "id": "map_menace_hills_3",
-      "name": "Menace-Hills_3",
+      "name": "Menace Hills 3",
       "coordinates": {
         "x": -4,
         "y": 3
@@ -1064,7 +1064,7 @@
     },
     {
       "id": "map_wastelands_0",
-      "name": "Wastelands_0",
+      "name": "Wastelands 0",
       "coordinates": {
         "x": -5,
         "y": 3
@@ -1098,7 +1098,7 @@
     },
     {
       "id": "map_wastelands_1",
-      "name": "Wastelands_1",
+      "name": "Wastelands 1",
       "coordinates": {
         "x": -5,
         "y": 4
@@ -1132,7 +1132,7 @@
     },
     {
       "id": "map_wastelands_2",
-      "name": "Wastelands_2",
+      "name": "Wastelands 2",
       "coordinates": {
         "x": -5,
         "y": 5
@@ -1166,7 +1166,7 @@
     },
     {
       "id": "map_emperial_capital_caelum",
-      "name": "Emperial-Capital-Caelum",
+      "name": "Imperial Capital Caelum",
       "coordinates": {
         "x": -6,
         "y": 5

@@ -41,7 +41,12 @@ export class MapService {
       const user=await this.userRepo.findOne({where:{id:character.userId}});
       if(user?.emailVerified!==true) throw new BadRequestException('EMAIL_NOT_VERIFIED');
     }
-    const discovered=Array.isArray(character.discoveredMapIds)?character.discoveredMapIds:[TOWN_MAP_ID];
+    const storedDiscovered=Array.isArray(character.discoveredMapIds)?character.discoveredMapIds:[TOWN_MAP_ID];
+    // Repair the known initial Town bootstrap if its only non-Town discovery is the unrelated Green Grounds 4.
+    const persistedDiscovered=character.currentMapId===TOWN_MAP_ID && storedDiscovered.every(id=>id===TOWN_MAP_ID||id==='map_green_grounds_4')
+      ? storedDiscovered.filter(id=>id!=='map_green_grounds_4') : storedDiscovered;
+    // Current location is authoritative even for characters bootstrapped by the legacy map migration.
+    const discovered=Array.from(new Set([...persistedDiscovered, character.currentMapId || TOWN_MAP_ID]));
     const discoveredMaps=discovered.map(id=>this.dataService.getMapById(id)).filter(Boolean);
     const revealed=discoveredMaps.some((known:any)=>Math.abs(Number(known.coordinates.x)-Number(map.coordinates.x))+Math.abs(Number(known.coordinates.y)-Number(map.coordinates.y))<=1);
     if(!revealed) throw new BadRequestException('Map has not been revealed');

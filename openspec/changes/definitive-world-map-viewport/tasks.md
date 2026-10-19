@@ -15,8 +15,8 @@
 
 ## 3. Pointer camera and drag-safe interaction
 
-- [ ] 3.1 Implement mouse and touch panning through a unified Pointer Events path with pointer capture, pointer deltas, a drag threshold and click suppression; verify a drag pans but does not enter a map accidentally.
-- [ ] 3.2 Clamp horizontal/vertical camera offsets to 0–1534px and 0–1329px and preserve the fixed 761×660 viewport; verify dragging toward every edge cannot expose outside-world space and does not scale the background or cells.
+- [ ] 3.1 Implement mouse and touch panning through a unified Pointer Events path without pointer capture on initial pointer-down, using pointer deltas, a drag threshold and click suppression; browser-verify a drag pans but does not enter a map accidentally.
+- [ ] 3.2 Clamp camera offsets to `worldWidth - viewportWidth/zoom` and `worldHeight - viewportHeight/zoom` while preserving the fixed 761×660 viewport; verify dragging at every zoom cannot expose outside-world space and only scales the world layer.
 
 ## 4. Persistent exploration veil
 
@@ -27,7 +27,7 @@
 ## 5. Multi-Town transitions and zero-level entry
 
 - [ ] 5.1 Refactor map-entry behavior by catalogue type: Town locations enter with Town status and no battles; grind locations retain email and Hungry/food eligibility but remove level gating entirely; verify all map records have `unlockLevel: 0` and test entering grind maps with characters at levels 1, mid-game and high level.
-- [ ] 5.2 Preserve `map_town` as Sierra-Village and support Outpost, Kwaiouá-Taba, Aramaia-City and Emperial-Capital-Caelum as exact Town destinations; keep the selected Town destination in pending transitions and preserve the active battle snapshot/job while deferring its final transition; verify each Town can be entered without queueing battles.
+- [ ] 5.2 Preserve `map_town` as Sierra-Village and support Outpost, Kwaiouá Taba, Ancient Aramaia City and Imperial Capital Caelum as exact Town destinations; keep the selected Town destination in pending transitions and preserve the active battle snapshot/job while deferring its final transition; verify each Town can be entered without queueing battles.
 - [ ] 5.3 Audit all single-`map_town` checks so only default return-to-Town behavior is fixed to Sierra-Village while Town access, presence and Vendor/Storage guards use the canonical current map type; verify Storage is present/usable on every Town map and blocked outside Town.
 - [ ] 5.4 Keep grind-map switching behind the existing safe future-queue mutation boundary; verify an active BattleQueueEntry, worker job and snapshot remain unchanged while only eligible future encounters are reconciled for the destination.
 
@@ -36,3 +36,13 @@
 - [ ] 6.1 Remap old `map_lv_*` IDs to valid new grind locations deterministically, preserve `map_town`, backfill discovery, and add migration tests for idempotence and character-level recommendation fallback; verify active/resolved battle snapshots and logs are never rewritten.
 - [ ] 6.2 Update `SPEC.md`, its `openspec/specs/SPEC.md` mirror and `ARCHITECTURE.md` with canonical world coordinates, discovery, multi-Town semantics, zero-level access, no-gap visual contract and queue/migration boundaries; update `STATUS.md` only after the implementation and validations actually pass.
 - [ ] 6.3 Run catalog/roster tests, discovery and transition tests, focused API tests, shared/API/frontend production builds, OpenSpec strict validation and `git diff --check`; verify the map viewport in a browser at desktop and touch-sized viewports without deploying or running database migrations against an unaudited live schema.
+
+## 7. Interaction and presentation follow-up (2026-10-19)
+
+- [x] 7.1 Preserve native map-tile click targeting by avoiding pointer capture on initial pointer-down; delegate clicks by stable map ID and suppress clicks only after an actual drag.
+- [x] 7.2 Normalize displayed map names into natural-language words and use the same canonical JSON in the frontend mirror.
+- [x] 7.3 Add cursor-anchored wheel zoom from 100% to 50% and adjust world-space panning/clamping at the active zoom.
+- [x] 7.4 Add an immediate dark/bronze tooltip mounted outside clipped ancestors, with prominent map name and smaller Recommended level subtitle.
+- [x] 7.5 Place the transparent 34px map header inside the fixed viewport and preserve the empty panel space below it.
+- [x] 7.6 Repair the known Town-only initial discovery bootstrap when its only unrelated entry is Green Grounds 4; include the authoritative current map in server discovery checks and return the service transition result from the controller.
+- [ ] 7.7 Browser-verify map entry/network requests, initial Town reveal, tooltip placement at viewport edges, header overlay, and zoom/pan at desktop and touch-sized viewport sizes.

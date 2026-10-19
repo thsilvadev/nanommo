@@ -39,8 +39,8 @@ export class MapController {
     if (!character) throw new BadRequestException('Character not found');
     
     // Note: email verification is checked inside mapService.enterMap() before other validations
-    await this.mapService.enterMap(character.id, mapId);
-    return { success: true, currentMapId: mapId, character: character.id };
+    const result = await this.mapService.enterMap(character.id, mapId);
+    return { success: true, ...result, currentMapId: result?.character?.currentMapId ?? mapId, character: result?.character ?? character.id };
   }
 
   /**
