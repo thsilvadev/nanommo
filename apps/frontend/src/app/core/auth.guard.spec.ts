@@ -11,7 +11,7 @@ function fakeCharacter(name = 'Tester'): Character {
     id: 'char-1', userId: 'user-1', name, dominantHand: 'right', level: 1, xp: 0, xpToNext: 10,
     unspentAttributePoints: 0, str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5,
     attributeBonuses: {}, gold: 0, hpCurrent: 100, spCurrent: 50, maxHp: 100, maxSp: 50,
-    attack: 10, magicAttack: 0, defense: 0, attackSpeed: 1, castSpeed: 1, evasion: 5,
+    attack: 10, magicAttack: 0, defense: 0, attackSpeed: 1, castTimeReduction: 10, evasion: 5,
     accuracy: 5, hpRegenPerTenTicks: 3, spRegenPerTenTicks: 3, criticalChance: 1,
     hungry: false, diet: [], dietLevels: {}, autoFeed: false, status: 'town', currentMapId: 'map_town',
     lastSeenAt: new Date().toISOString(), createdAt: new Date().toISOString(),

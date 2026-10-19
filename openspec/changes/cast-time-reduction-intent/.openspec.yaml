@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-10-19
+goal: Make character skills begin casting at T0 when legal and in range, resolve
+  after their effective cast time, and expose a coherent Cast Time Reduction
+  stat.

@@ -47,7 +47,7 @@ export class CharacterPageComponent implements OnInit {
     value(k: string) { const c = this.character.character() as any; return (c?.[k] ?? 0) + (this.pending()[k] ?? 0) }
     moveSpeed() { const level = Number(this.character.character()?.level ?? 0); return level > 0 ? 50 + level : '—' }
     attributeBonus(k: string) { const c = this.character.character() as any; const key = k.toUpperCase(); return Number(c?.attributeBonuses?.[key] ?? 0) }
-    attributeTooltip(k: string) { const tips: Record<string, string> = { str: 'STR increases Physical ATK.', agi: 'AGI increases Attack Speed and Evasion.', dex: 'DEX increases Accuracy and Cast Speed.', vit: 'VIT increases Max HP and HP Regen.', int: 'INT increases Max SP, SP Regen and Magic ATK.', luk: 'LUK increases Critical Chance.' }; return tips[k] ?? '' }
+    attributeTooltip(k: string) { const tips: Record<string, string> = { str: 'STR increases Physical ATK.', agi: 'AGI increases Attack Speed and Evasion.', dex: 'DEX increases Accuracy and Cast Time Reduction.', vit: 'VIT increases Max HP and HP Regen.', int: 'INT increases Max SP, SP Regen and Magic ATK.', luk: 'LUK increases Critical Chance.' }; return tips[k] ?? '' }
     delta(k: string) { return this.pending()[k] ?? 0 }
     change(k: string, n: number) { const points = Object.values(this.pending()).reduce((a, b) => a + b, 0); if (n > 0 && (this.character.character()?.unspentAttributePoints ?? 0) - points <= 0) return; const next = { ...this.pending(), [k]: (this.pending()[k] ?? 0) + n }; if (next[k] === 0) delete next[k]; this.pending.set(next) }
     reset() { this.pending.set({}); this.error.set(null) }

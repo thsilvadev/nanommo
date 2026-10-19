@@ -16,6 +16,14 @@ export function effectiveFoodStatValue(catalogValue: number, dietLevel: number):
   return value + level;
 }
 
+/** Normalize a catalog cast duration and apply DEX-derived Cast Time Reduction. */
+export function effectiveSkillCastTicks(baseCastTicks: unknown, castTimeReduction: number): number {
+  const providedBase = baseCastTicks === undefined || baseCastTicks === null ? 2 : Number(baseCastTicks);
+  const normalizedBase = Number.isFinite(providedBase) ? Math.max(0, Math.floor(providedBase)) : 2;
+  const ctr = Number.isFinite(Number(castTimeReduction)) ? Number(castTimeReduction) : 0;
+  return Math.max(0, Math.ceil(normalizedBase - ctr / 100));
+}
+
 /**
  * A combatant snapshot as seen by the gambit evaluator.
  * Kept structural (any) on purpose: the API builds it, the engine only reads it.
@@ -389,7 +397,7 @@ export class BattleEngine {
     const def = Math.floor(Number(equipment?.def ?? 0));
     const mdefPercent = Math.min(100, Math.max(0, Number(equipment?.mdefPercent ?? 0)));
     const attackSpeed = 100 + Math.floor(agi * 2);
-    const castSpeed = 100 + Math.floor(dex * 2);
+    const castTimeReduction = Math.floor(dex * 2);
     // Canonical Precision/Evasion scale (SPEC §5.2): starting DEX/AGI 5 => 80/100.
     const evasion = 99 + Math.floor(agi / 3);
     const accuracyBeforeWeaponPenalty = 79 + Math.floor(dex / 3) + Number(equipment?.accuracyModifier ?? 0);
@@ -399,7 +407,7 @@ export class BattleEngine {
     const spRegenPerTenTicks = 1 + Math.floor(int / 2);
     const critChance = 1 + Math.floor(luk * 0.3 * 10) / 10;
     return { maxHp, maxSp, atk, matk, def, mdefPercent, accuracy, evasion, critChance,
-      attackSpeed, castSpeed, hpRegenPerTenTicks, spRegenPerTenTicks, agi, dex, luk, level };
+      attackSpeed, castTimeReduction, hpRegenPerTenTicks, spRegenPerTenTicks, agi, dex, luk, level };
   }
 
   /**
@@ -621,6 +629,7 @@ export class BattleEngine {
     let monsterAttackGauge = 0;
     let monsterCastGauge = 0;
     let lastMonsterSkillId: string | null = null;
+    let pendingCharacterCast: { skillId: string; castStartedAtTick: number; resolutionTick: number } | null = null;
     let tick = 0;
 
     const selfCastThreshold = BattleEngine.castGaugeThreshold(self.dex);
@@ -890,311 +899,8 @@ export class BattleEngine {
     };
 
 
-    // There is no duration/tick cap: a battle ends only when one combatant reaches 0 HP.
-    while (self.hp > 0 && foe.hp > 0) {
-      // Expire timed statuses before this tick's actions. Stackable statuses report each
-      // lost stack; the final lost stack uses the same explicit "ended" event as other statuses.
-      for (const [unit, actor] of [[self, 'character'], [foe, 'monster']] as Array<[CombatantSnapshot, string]>) {
-        const statuses = unit.statusEffects ?? [];
-        const expired = statuses.filter((status: any) => Number(status.expiresAtTick ?? Infinity) <= tick);
-        const remainingByStatus = new Map<string, number>();
-        for (const status of statuses) {
-          const statusId = String(status.type ?? status.id ?? '');
-          remainingByStatus.set(statusId, (remainingByStatus.get(statusId) ?? 0) + 1);
-        }
-        for (const status of expired) {
-          const statusId = String(status.type ?? status.id ?? '');
-          const statusDef = statusEffectDefs[statusId] ?? {};
-          const remainingCount = Math.max(0, (remainingByStatus.get(statusId) ?? 1) - 1);
-          remainingByStatus.set(statusId, remainingCount);
-          const common = {
-            tick,
-            actor,
-            target: unit === self ? 'character' : 'monster',
-            status: statusId,
-            sourceSkillId: status.sourceSkillId,
-            expiredAtTick: status.expiresAtTick,
-            expiredAppliedAtTick: status.appliedAtTick,
-            moveSpeedPenalty: Number(status.moveSpeedPenalty ?? statusDef.moveSpeedPenaltyPerStack ?? statusDef.moveSpeedPenalty ?? 0),
-            attackSpeedPenalty: Number(status.attackSpeedPenalty ?? (statusDef.stackable === true ? statusDef.attackSpeedPenaltyPerStack : statusDef.attackSpeedPenalty) ?? 0),
-            statusStackable: statusDef.stackable === true,
-          };
-          if (statusDef.stackable === true && remainingCount > 0) {
-            record({ ...common, action: 'status_stack_lessened', stackCount: remainingCount });
-          } else {
-            record({
-              ...common,
-              action: 'status_ended',
-              ...(statusDef.stackable === true ? { stackCount: 0 } : {}),
-            });
-          }
-        }
-        unit.statusEffects = statuses.filter((status: any) => Number(status.expiresAtTick ?? Infinity) > tick);
-      }
-      // Periodic damage is applied once per scheduled status tick, never as a new
-      // action; it therefore cannot mint extra Mastery action XP.
-      tickDamageStatuses(self);
-      tickDamageStatuses(foe);
-      // Conditions like `every_n_ticks` are tick-indexed (SPEC §7.1)
-      self.tick = tick;
-      foe.tick = tick;
-      BattleEngine.tickCooldowns(cooldowns);
-      const monsterCooldownsExpiring = new Set(Object.keys(foeCooldowns).filter((key) => Number(foeCooldowns[key]) === 1));
-      BattleEngine.tickCooldowns(foeCooldowns);
-
-      // Evaluate this tick's cast choice before processing the basic-attack
-      // gauge. A selected, ready skill in range owns the tick, so a basic
-      // attack cannot resolve before/alongside it. Its Attack gauge restarts
-      // after the skill action rather than firing on the same tick.
-      const characterCastChoice = GambitEvaluator.evaluateGambitPage(
-        normalizedGambitPage, 'cast', self, foe, inventory, itemDefinitions,
-      );
-      const prioritySkillId = characterCastChoice?.action?.skillId ?? characterCastChoice?.action?.params?.skillId;
-      const prioritySkillDef = prioritySkillId ? (self.skillDefs?.[prioritySkillId] ?? {}) : {};
-      const prioritySkillRange = prioritySkillDef.ranged === true
-        ? Math.max(0, Number(prioritySkillDef.maxRange ?? 7) - 1)
-        : Math.max(0, Number(prioritySkillDef.maxRange ?? 1) - 1);
-      const prioritySkillSelfTarget = prioritySkillDef.target === 'self';
-      const prioritySkillBlinkstrike = prioritySkillDef.effect?.type === 'blinkstrike';
-      const characterSkillHasCastPriority = (self.castLockTicks ?? 0) <= 0
-        && characterCastChoice?.action?.id === 'use_skill'
-        && (prioritySkillSelfTarget || prioritySkillBlinkstrike || distanceBetween() <= prioritySkillRange);
-
-      // ===== CHARACTER: ATTACK GAUGE =====
-      // SPEC §7.2: while that gauge's action is resolving, the gauge is locked
-      // at zero and refilling restarts once the action resolves.
-      if (characterSkillHasCastPriority) {
-        // Do not let Attack resolve on the same tick as the selected skill.
-        attackGauge = 0;
-      } else if ((self.attackLockTicks ?? 0) <= 0) {
-        // Recompute every tick so status application/stack loss/expiry changes
-        // only the future refill rate while preserving already-earned progress.
-        attackGauge += 1 / selfAttackDurationTicks();
-        if (attackGauge >= 1) {
-          attackGauge = 0;
-          const choice = GambitEvaluator.evaluateGambitPage(
-            normalizedGambitPage,
-            'attack',
-            self,
-            foe,
-            inventory,
-            itemDefinitions,
-          );
-
-          if (choice && choice.action.id === 'attack' && distanceBetween() > Number(self.basicAttackRange ?? 0)) {
-            self.movementIntent = true;
-            self.movementIntentRange = Number(self.basicAttackRange ?? 0);
-          } else if (choice && choice.action.id === 'attack') {
-            self.movementIntent = false;
-            self.movementIntentRange = undefined;
-            const distanceAtActionStart = distanceBetween();
-            const fearlessSkill = self.skillDefs?.fearless_focus;
-            const fearlessRank = Math.max(0, Number(fearlessSkill?.masteryRank ?? 0));
-            const fearlessEffect = fearlessSkill?.effect ?? {};
-            const fearlessPrecisionPerRank = Math.max(0, Number(fearlessEffect.accuracyPerRank ?? 5));
-            const fearlessPrecisionPerSpace = Math.max(0, Number(fearlessEffect.accuracyPerSpace ?? 5));
-            const precisionUsed = Number(self.accuracy)
-              + fearlessRank * fearlessPrecisionPerRank
-              + distanceAtActionStart * fearlessPrecisionPerSpace;
-            const hitChance = BattleEngine.calculateHitChance(precisionUsed, foe.evasion);
-            const landed = rng.chance(hitChance / 100);
-            const crit = landed && rng.chance(self.critChance / 100);
-            const attackType = self.basicAttackDamageType ?? 'melee';
-            const baseDamage = self.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
-            const daggerHands = (self.masteryEquipment ?? []).filter((hand) => hand.category === 'dagger').length;
-            const doubleStrikeRank = Math.max(0, Number(self.skillDefs?.double_strike?.masteryRank ?? 0));
-            const doubleStrikeChance = Math.min(1, daggerHands * doubleStrikeRank * 0.05);
-            const doubleStrikeTriggered = landed && doubleStrikeRank > 0 && daggerHands > 0 && rng.chance(doubleStrikeChance);
-            const componentCount = doubleStrikeTriggered ? 2 : 1;
-            const damageComponents: number[] = [];
-            const mitigation = attackType === 'magic'
-              ? BattleEngine.calculateMagicDamage(baseDamage, foe.mdefPercent)
-              : BattleEngine.calculatePhysicalDamage(baseDamage, effectiveDefense(foe));
-            const weaponCategory = (self.equippedWeaponTypes ?? []).find((type: string) => !['shield', 'rune'].includes(type));
-            const finalDamage = mitigation * (attackType === 'ranged' ? rangedMult : attackType === 'magic' ? magicMult : meleeMult) * weaponCategoryMultiplier(weaponCategory);
-            for (let component = 0; component < componentCount; component += 1) {
-              damageComponents.push(landed
-                ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
-                : 0);
-            }
-            const damage = damageComponents.reduce((sum, value) => sum + value, 0);
-            foe.hp = Math.max(0, foe.hp - damage);
-
-            record({
-              tick,
-              actor: 'character',
-              action: 'attack',
-              target: 'monster',
-              damage,
-              ...(doubleStrikeTriggered ? { damageComponents, doubleStrikeTriggered: true } : {}),
-              ...(fearlessRank > 0 ? { distanceAtActionStart, precisionUsed } : {}),
-              damageType: attackType,
-              crit,
-              hit: landed,
-            });
-
-            const swordsmanshipRank = Math.max(0, Number(self.skillDefs?.swordsmanship?.masteryRank ?? 0));
-            const bleedDefinition = statusEffectDefs.bleed ?? {};
-            const bleedMaxStacks = Math.max(1, Number(bleedDefinition.maxStacks ?? 5));
-            const bleedIntervalTicks = Math.max(1, Number(bleedDefinition.damageIntervalTicks ?? 5));
-            if (landed && swordsmanshipRank > 0 && countStatus(foe, 'bleed') < bleedMaxStacks && rng.chance(Number(bleedDefinition.procChancePerRank ?? 0.01) * swordsmanshipRank)) {
-              applyStatus(
-                foe,
-                'bleed',
-                'swordsmanship',
-                undefined,
-                {
-                  damagePerTick: Number(bleedDefinition.damagePerStack ?? 5) * swordsmanshipRank,
-                  damageIntervalTicks: bleedIntervalTicks,
-                  damageType: String(bleedDefinition.damageType ?? 'pure'),
-                  nextDamageAtTick: tick + bleedIntervalTicks,
-                },
-                'character',
-              );
-            }
-            const arcaneDynamoRank = Math.max(0, Number(self.skillDefs?.arcane_dynamo?.masteryRank ?? 0));
-            if (landed && arcaneDynamoRank > 0) {
-              const beforeRefund = self.sp;
-              self.sp = Math.min(self.maxSp, self.sp + 2 * arcaneDynamoRank);
-              if (self.sp > beforeRefund) record({ tick, actor: 'character', action: 'sp_refund', sourceSkillId: 'arcane_dynamo', target: 'character', spRestored: self.sp - beforeRefund });
-            }
-
-            self.attackLockTicks = BattleEngine.BASIC_ATTACK_CAST_TICKS;
-          }
-          // SPEC §7.3 step 5: no line qualifies -> wasted fire, gauge still resets
-        }
-      }
-
-      // ===== CHARACTER: CAST GAUGE =====
-      if ((self.castLockTicks ?? 0) <= 0) {
-        castGauge += 1;
-        if (castGauge >= selfCastThreshold) {
-          castGauge = 0;
-          // If the skill was not granted exclusive priority before Attack,
-          // re-evaluate after Attack resolves: passives such as Arcane Dynamo
-          // can change SP and therefore alter cast-gauge legality on this tick.
-          const choice = characterSkillHasCastPriority
-            ? characterCastChoice
-            : GambitEvaluator.evaluateGambitPage(
-              normalizedGambitPage, 'cast', self, foe, inventory, itemDefinitions,
-            );
-
-          const selectedSkillId = choice?.action?.skillId ?? choice?.action?.params?.skillId;
-          const selectedSkillDef = selectedSkillId ? (self.skillDefs?.[selectedSkillId] ?? {}) : {};
-          // Ranged skill maxRange counts the target's occupied space; the lane distance API counts only empty spaces.
-          const selectedSkillRange = selectedSkillDef.ranged === true
-            ? Math.max(0, Number(selectedSkillDef.maxRange ?? 7) - 1)
-            : Math.max(0, Number(selectedSkillDef.maxRange ?? 1) - 1);
-          const selfTargetSkill = selectedSkillDef.target === 'self';
-          const blinkstrikeSkill = selectedSkillDef.effect?.type === 'blinkstrike';
-          const skillOutOfRange = choice?.action?.id === 'use_skill' && !selfTargetSkill && !blinkstrikeSkill && distanceBetween() > selectedSkillRange;
-          if (skillOutOfRange) {
-            self.movementIntent = true;
-            self.movementIntentRange = selectedSkillRange;
-          }
-          if (choice && !skillOutOfRange) {
-            const action = choice.action;
-            const params = (action as any);
-            if (action.id === 'use_skill') { self.movementIntent = false; self.movementIntentRange = undefined; }
-
-            if (action.id === 'use_item') {
-              const itemId = params.itemId ?? params.params?.itemId;
-              inventory[itemId] = Math.max(0, (inventory[itemId] ?? 0) - 1);
-              const existing = itemsConsumed.find((c) => c.itemId === itemId);
-              if (existing) existing.quantity += 1;
-              else itemsConsumed.push({ itemId, quantity: 1 });
-
-              // Potions share one 5-tick cooldown CATEGORY (SPEC §7.2)
-              const def = itemDefinitions[itemId] ?? {};
-              const effectType = String(def.effect?.type ?? '');
-              const isPotion = def.type === 'consumable' && ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType);
-              if (isPotion) {
-                cooldowns['item:potion'] = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? BattleEngine.POTION_COOLDOWN);
-              } else {
-                const cooldownTicks = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 0);
-                if (cooldownTicks > 0) cooldowns[`item:${itemId}`] = cooldownTicks;
-              }
-
-              const amount = Number(def.effect?.amount ?? 0);
-              if (effectType === 'heal_hp') {
-                const before = self.hp;
-                self.hp = Math.min(self.maxHp, self.hp + amount);
-                record({
-                  tick,
-                  actor: 'character',
-                  action: 'use_item',
-                  itemId,
-                  target: 'character',
-                  healAmount: self.hp - before,
-                });
-              } else if (effectType === 'heal_sp') {
-                const before = self.sp;
-                self.sp = Math.min(self.maxSp, self.sp + amount);
-                record({
-                  tick,
-                  actor: 'character',
-                  action: 'use_item',
-                  itemId,
-                  target: 'character',
-                  spGain: self.sp - before,
-                });
-              } else if (effectType === 'food_buff') {
-                const foodDurationTicks = Math.max(0, Number(def.effect?.durationSeconds ?? 0));
-                self.foodDigestRemainingTicksByItem = {
-                  ...(self.foodDigestRemainingTicksByItem ?? {}),
-                  [itemId]: foodDurationTicks,
-                };
-                const dietLevels = self.dietLevelByFood ?? {};
-                const hasConsumedBefore = Object.prototype.hasOwnProperty.call(dietLevels, itemId);
-                const currentDietLevel = Math.max(0, Math.min(3, Number(dietLevels[itemId] ?? 0)));
-                const nextDietLevel = hasConsumedBefore ? Math.min(3, currentDietLevel + 1) : 0;
-                self.dietLevelByFood = { ...dietLevels, [itemId]: nextDietLevel };
-                const newFoodBuff = {
-                  itemId: String(itemId),
-                  hpRegenPerTenTicks: effectiveFoodStatValue(def.effect?.hpRegenPerTenTicks, nextDietLevel),
-                  spRegenPerTenTicks: effectiveFoodStatValue(def.effect?.spRegenPerTenTicks, nextDietLevel),
-                  remainingTicks: foodDurationTicks,
-                };
-                self.foodBuffs = [...(self.foodBuffs ?? []).filter((buff: any) => buff.itemId !== itemId), newFoodBuff];
-                // Keep the legacy singular fields synchronized to the most recently eaten item.
-                self.foodBuffTicksRemaining = foodDurationTicks;
-                self.foodBuffItemId = String(itemId);
-                self.foodBuffHpRegenPerTenTicks = newFoodBuff.hpRegenPerTenTicks;
-                self.foodBuffSpRegenPerTenTicks = newFoodBuff.spRegenPerTenTicks;
-                record({
-                  tick,
-                  actor: 'character',
-                  action: 'use_item',
-                  itemId,
-                  target: 'character',
-                  foodBuffApplied: true,
-                  foodBuffTicksRemaining: self.foodBuffTicksRemaining,
-                });
-              } else if (effectType === 'cure_status' && def.effect?.status) {
-                self.statusEffects = (self.statusEffects ?? []).filter(
-                  (s: any) => (s.type ?? s.id) !== def.effect.status,
-                );
-                record({
-                  tick,
-                  actor: 'character',
-                  action: 'use_item',
-                  itemId,
-                  target: 'character',
-                  curedStatus: def.effect.status,
-                });
-              } else {
-                record({
-                  tick,
-                  actor: 'character',
-                  action: 'use_item',
-                  itemId,
-                  target: 'character',
-                });
-              }
-
-              self.castLockTicks = 1;
-            } else if (action.id === 'use_skill') {
-              const skillId = params.skillId ?? params.params?.skillId;
+    // Shared character-skill effect resolver. It runs only when an accepted cast reaches its resolution tick.
+    const resolveCharacterSkill = (skillId: string): void => {
               const def = self.skillDefs?.[skillId] ?? {};
               const rank = Math.max(1, Number(def.masteryRank ?? 1));
               const effect = def.effect ?? {};
@@ -1203,7 +909,6 @@ export class BattleEngine {
               const spBeforeSkillCost = self.sp;
               self.sp = Math.max(0, self.sp - spCost);
               cooldowns['skill:' + skillId] = Number(def.cooldownTicks ?? 0) + (Number(def.cooldownTicks ?? 0) > 0 ? 1 : 0);
-              self.castLockTicks = Math.max(1, Number(def.baseCastTicks ?? 2));
 
               const effectType = String(effect.type ?? '');
               const refundArcaneDynamo = () => {
@@ -1375,6 +1080,345 @@ export class BattleEngine {
                 }
               }
               refundArcaneDynamo();
+    };
+
+    // There is no duration/tick cap: a battle ends only when one combatant reaches 0 HP.
+    while (self.hp > 0 && foe.hp > 0) {
+      // Expire timed statuses before this tick's actions. Stackable statuses report each
+      // lost stack; the final lost stack uses the same explicit "ended" event as other statuses.
+      for (const [unit, actor] of [[self, 'character'], [foe, 'monster']] as Array<[CombatantSnapshot, string]>) {
+        const statuses = unit.statusEffects ?? [];
+        const expired = statuses.filter((status: any) => Number(status.expiresAtTick ?? Infinity) <= tick);
+        const remainingByStatus = new Map<string, number>();
+        for (const status of statuses) {
+          const statusId = String(status.type ?? status.id ?? '');
+          remainingByStatus.set(statusId, (remainingByStatus.get(statusId) ?? 0) + 1);
+        }
+        for (const status of expired) {
+          const statusId = String(status.type ?? status.id ?? '');
+          const statusDef = statusEffectDefs[statusId] ?? {};
+          const remainingCount = Math.max(0, (remainingByStatus.get(statusId) ?? 1) - 1);
+          remainingByStatus.set(statusId, remainingCount);
+          const common = {
+            tick,
+            actor,
+            target: unit === self ? 'character' : 'monster',
+            status: statusId,
+            sourceSkillId: status.sourceSkillId,
+            expiredAtTick: status.expiresAtTick,
+            expiredAppliedAtTick: status.appliedAtTick,
+            moveSpeedPenalty: Number(status.moveSpeedPenalty ?? statusDef.moveSpeedPenaltyPerStack ?? statusDef.moveSpeedPenalty ?? 0),
+            attackSpeedPenalty: Number(status.attackSpeedPenalty ?? (statusDef.stackable === true ? statusDef.attackSpeedPenaltyPerStack : statusDef.attackSpeedPenalty) ?? 0),
+            statusStackable: statusDef.stackable === true,
+          };
+          if (statusDef.stackable === true && remainingCount > 0) {
+            record({ ...common, action: 'status_stack_lessened', stackCount: remainingCount });
+          } else {
+            record({
+              ...common,
+              action: 'status_ended',
+              ...(statusDef.stackable === true ? { stackCount: 0 } : {}),
+            });
+          }
+        }
+        unit.statusEffects = statuses.filter((status: any) => Number(status.expiresAtTick ?? Infinity) > tick);
+      }
+      // Periodic damage is applied once per scheduled status tick, never as a new
+      // action; it therefore cannot mint extra Mastery action XP.
+      tickDamageStatuses(self);
+      tickDamageStatuses(foe);
+      // Conditions like `every_n_ticks` are tick-indexed (SPEC §7.1)
+      self.tick = tick;
+      foe.tick = tick;
+      BattleEngine.tickCooldowns(cooldowns);
+      const monsterCooldownsExpiring = new Set(Object.keys(foeCooldowns).filter((key) => Number(foeCooldowns[key]) === 1));
+      BattleEngine.tickCooldowns(foeCooldowns);
+
+      // Character skills use an intent/resolution state machine, not the legacy
+      // Cast gauge. Pending casts are immutable once accepted and resolve before
+      // this tick's monster action at their exact scheduled tick.
+      let characterCastChoice: { action: any; line: any } | null = null;
+      let characterSkillActsThisTick = false;
+      if (pendingCharacterCast) {
+        const pending = pendingCharacterCast;
+        if (pending.resolutionTick <= tick) {
+          pendingCharacterCast = null;
+          resolveCharacterSkill(pending.skillId);
+        }
+        // Both casting ticks and the resolution tick exclude all other
+        // character actions, and Cast gauge progress pauses with the cast.
+        characterSkillActsThisTick = true;
+      } else {
+        characterCastChoice = GambitEvaluator.evaluateGambitPage(
+          normalizedGambitPage, 'cast', self, foe, inventory, itemDefinitions,
+        );
+        if (characterCastChoice?.action?.id === 'use_skill' && (self.castLockTicks ?? 0) <= 0) {
+          const skillId = String(characterCastChoice.action.skillId ?? characterCastChoice.action.params?.skillId ?? '');
+          const skillDef: any = self.skillDefs?.[skillId] ?? {};
+          const effectType = String(skillDef.effect?.type ?? '');
+          const selfTargetSkill = skillDef.target === 'self'
+            || ['self_heal', 'defense_buff', 'magic_barrier', 'arcane_dynamo_passive'].includes(effectType);
+          const blinkstrikeSkill = effectType === 'blinkstrike';
+          const skillRange = skillDef.ranged === true
+            ? Math.max(0, Number(skillDef.maxRange ?? 7) - 1)
+            : Math.max(0, Number(skillDef.maxRange ?? 1) - 1);
+          const skillOutOfRange = !selfTargetSkill && !blinkstrikeSkill && distanceBetween() > skillRange;
+          if (skillOutOfRange) {
+            // Approach only; no pending cast, SP payment, or cooldown begins.
+            self.movementIntent = true;
+            self.movementIntentRange = skillRange;
+          } else {
+            self.movementIntent = false;
+            self.movementIntentRange = undefined;
+            const effectiveTicks = effectiveSkillCastTicks(skillDef.baseCastTicks, Math.floor(Number(self.dex ?? 5) * 2));
+            castGauge = 0;
+            characterSkillActsThisTick = true;
+            if (effectiveTicks === 0) {
+              resolveCharacterSkill(skillId);
+            } else {
+              pendingCharacterCast = {
+                skillId,
+                castStartedAtTick: tick,
+                resolutionTick: tick + effectiveTicks,
+              };
+            }
+          }
+        }
+      }
+
+      // ===== CHARACTER: ATTACK GAUGE =====
+      // SPEC §7.2: while that gauge's action is resolving, the gauge is locked
+      // at zero and refilling restarts once the action resolves.
+      if (characterSkillActsThisTick || pendingCharacterCast) {
+        // Do not let Attack resolve during a cast or on its start/resolution tick.
+        attackGauge = 0;
+      } else if ((self.attackLockTicks ?? 0) <= 0) {
+        // Recompute every tick so status application/stack loss/expiry changes
+        // only the future refill rate while preserving already-earned progress.
+        attackGauge += 1 / selfAttackDurationTicks();
+        if (attackGauge >= 1) {
+          attackGauge = 0;
+          const choice = GambitEvaluator.evaluateGambitPage(
+            normalizedGambitPage,
+            'attack',
+            self,
+            foe,
+            inventory,
+            itemDefinitions,
+          );
+
+          if (choice && choice.action.id === 'attack' && distanceBetween() > Number(self.basicAttackRange ?? 0)) {
+            self.movementIntent = true;
+            self.movementIntentRange = Number(self.basicAttackRange ?? 0);
+          } else if (choice && choice.action.id === 'attack') {
+            self.movementIntent = false;
+            self.movementIntentRange = undefined;
+            const distanceAtActionStart = distanceBetween();
+            const fearlessSkill = self.skillDefs?.fearless_focus;
+            const fearlessRank = Math.max(0, Number(fearlessSkill?.masteryRank ?? 0));
+            const fearlessEffect = fearlessSkill?.effect ?? {};
+            const fearlessPrecisionPerRank = Math.max(0, Number(fearlessEffect.accuracyPerRank ?? 5));
+            const fearlessPrecisionPerSpace = Math.max(0, Number(fearlessEffect.accuracyPerSpace ?? 5));
+            const precisionUsed = Number(self.accuracy)
+              + fearlessRank * fearlessPrecisionPerRank
+              + distanceAtActionStart * fearlessPrecisionPerSpace;
+            const hitChance = BattleEngine.calculateHitChance(precisionUsed, foe.evasion);
+            const landed = rng.chance(hitChance / 100);
+            const crit = landed && rng.chance(self.critChance / 100);
+            const attackType = self.basicAttackDamageType ?? 'melee';
+            const baseDamage = self.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
+            const daggerHands = (self.masteryEquipment ?? []).filter((hand) => hand.category === 'dagger').length;
+            const doubleStrikeRank = Math.max(0, Number(self.skillDefs?.double_strike?.masteryRank ?? 0));
+            const doubleStrikeChance = Math.min(1, daggerHands * doubleStrikeRank * 0.05);
+            const doubleStrikeTriggered = landed && doubleStrikeRank > 0 && daggerHands > 0 && rng.chance(doubleStrikeChance);
+            const componentCount = doubleStrikeTriggered ? 2 : 1;
+            const damageComponents: number[] = [];
+            const mitigation = attackType === 'magic'
+              ? BattleEngine.calculateMagicDamage(baseDamage, foe.mdefPercent)
+              : BattleEngine.calculatePhysicalDamage(baseDamage, effectiveDefense(foe));
+            const weaponCategory = (self.equippedWeaponTypes ?? []).find((type: string) => !['shield', 'rune'].includes(type));
+            const finalDamage = mitigation * (attackType === 'ranged' ? rangedMult : attackType === 'magic' ? magicMult : meleeMult) * weaponCategoryMultiplier(weaponCategory);
+            for (let component = 0; component < componentCount; component += 1) {
+              damageComponents.push(landed
+                ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
+                : 0);
+            }
+            const damage = damageComponents.reduce((sum, value) => sum + value, 0);
+            foe.hp = Math.max(0, foe.hp - damage);
+
+            record({
+              tick,
+              actor: 'character',
+              action: 'attack',
+              target: 'monster',
+              damage,
+              ...(doubleStrikeTriggered ? { damageComponents, doubleStrikeTriggered: true } : {}),
+              ...(fearlessRank > 0 ? { distanceAtActionStart, precisionUsed } : {}),
+              damageType: attackType,
+              crit,
+              hit: landed,
+            });
+
+            const swordsmanshipRank = Math.max(0, Number(self.skillDefs?.swordsmanship?.masteryRank ?? 0));
+            const bleedDefinition = statusEffectDefs.bleed ?? {};
+            const bleedMaxStacks = Math.max(1, Number(bleedDefinition.maxStacks ?? 5));
+            const bleedIntervalTicks = Math.max(1, Number(bleedDefinition.damageIntervalTicks ?? 5));
+            if (landed && swordsmanshipRank > 0 && countStatus(foe, 'bleed') < bleedMaxStacks && rng.chance(Number(bleedDefinition.procChancePerRank ?? 0.01) * swordsmanshipRank)) {
+              applyStatus(
+                foe,
+                'bleed',
+                'swordsmanship',
+                undefined,
+                {
+                  damagePerTick: Number(bleedDefinition.damagePerStack ?? 5) * swordsmanshipRank,
+                  damageIntervalTicks: bleedIntervalTicks,
+                  damageType: String(bleedDefinition.damageType ?? 'pure'),
+                  nextDamageAtTick: tick + bleedIntervalTicks,
+                },
+                'character',
+              );
+            }
+            const arcaneDynamoRank = Math.max(0, Number(self.skillDefs?.arcane_dynamo?.masteryRank ?? 0));
+            if (landed && arcaneDynamoRank > 0) {
+              const beforeRefund = self.sp;
+              self.sp = Math.min(self.maxSp, self.sp + 2 * arcaneDynamoRank);
+              if (self.sp > beforeRefund) record({ tick, actor: 'character', action: 'sp_refund', sourceSkillId: 'arcane_dynamo', target: 'character', spRestored: self.sp - beforeRefund });
+            }
+
+            self.attackLockTicks = BattleEngine.BASIC_ATTACK_CAST_TICKS;
+          }
+          // SPEC §7.3 step 5: no line qualifies -> wasted fire, gauge still resets
+        }
+      }
+
+      // ===== CHARACTER: CAST GAUGE =====
+      if (!characterSkillActsThisTick && !pendingCharacterCast && (self.castLockTicks ?? 0) <= 0) {
+        castGauge += 1;
+        if (castGauge >= selfCastThreshold) {
+          castGauge = 0;
+          // If the skill was not granted exclusive priority before Attack,
+          // re-evaluate after Attack resolves: passives such as Arcane Dynamo
+          // can change SP and therefore alter cast-gauge legality on this tick.
+          const choice = characterCastChoice?.action?.id === 'use_skill'
+            ? characterCastChoice
+            : GambitEvaluator.evaluateGambitPage(
+              normalizedGambitPage, 'cast', self, foe, inventory, itemDefinitions,
+            );
+
+          const selectedSkillId = choice?.action?.skillId ?? choice?.action?.params?.skillId;
+          const selectedSkillDef = selectedSkillId ? (self.skillDefs?.[selectedSkillId] ?? {}) : {};
+          // Ranged skill maxRange counts the target's occupied space; the lane distance API counts only empty spaces.
+          const selectedSkillRange = selectedSkillDef.ranged === true
+            ? Math.max(0, Number(selectedSkillDef.maxRange ?? 7) - 1)
+            : Math.max(0, Number(selectedSkillDef.maxRange ?? 1) - 1);
+          const selfTargetSkill = selectedSkillDef.target === 'self';
+          const blinkstrikeSkill = selectedSkillDef.effect?.type === 'blinkstrike';
+          const skillOutOfRange = choice?.action?.id === 'use_skill' && !selfTargetSkill && !blinkstrikeSkill && distanceBetween() > selectedSkillRange;
+          if (skillOutOfRange) {
+            self.movementIntent = true;
+            self.movementIntentRange = selectedSkillRange;
+          }
+          if (choice && !skillOutOfRange && choice.action.id !== 'use_skill') {
+            const action = choice.action;
+            const params = (action as any);
+            if (action.id === 'use_skill') { self.movementIntent = false; self.movementIntentRange = undefined; }
+
+            if (action.id === 'use_item') {
+              const itemId = params.itemId ?? params.params?.itemId;
+              inventory[itemId] = Math.max(0, (inventory[itemId] ?? 0) - 1);
+              const existing = itemsConsumed.find((c) => c.itemId === itemId);
+              if (existing) existing.quantity += 1;
+              else itemsConsumed.push({ itemId, quantity: 1 });
+
+              // Potions share one 5-tick cooldown CATEGORY (SPEC §7.2)
+              const def = itemDefinitions[itemId] ?? {};
+              const effectType = String(def.effect?.type ?? '');
+              const isPotion = def.type === 'consumable' && ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType);
+              if (isPotion) {
+                cooldowns['item:potion'] = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? BattleEngine.POTION_COOLDOWN);
+              } else {
+                const cooldownTicks = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 0);
+                if (cooldownTicks > 0) cooldowns[`item:${itemId}`] = cooldownTicks;
+              }
+
+              const amount = Number(def.effect?.amount ?? 0);
+              if (effectType === 'heal_hp') {
+                const before = self.hp;
+                self.hp = Math.min(self.maxHp, self.hp + amount);
+                record({
+                  tick,
+                  actor: 'character',
+                  action: 'use_item',
+                  itemId,
+                  target: 'character',
+                  healAmount: self.hp - before,
+                });
+              } else if (effectType === 'heal_sp') {
+                const before = self.sp;
+                self.sp = Math.min(self.maxSp, self.sp + amount);
+                record({
+                  tick,
+                  actor: 'character',
+                  action: 'use_item',
+                  itemId,
+                  target: 'character',
+                  spGain: self.sp - before,
+                });
+              } else if (effectType === 'food_buff') {
+                const foodDurationTicks = Math.max(0, Number(def.effect?.durationSeconds ?? 0));
+                self.foodDigestRemainingTicksByItem = {
+                  ...(self.foodDigestRemainingTicksByItem ?? {}),
+                  [itemId]: foodDurationTicks,
+                };
+                const dietLevels = self.dietLevelByFood ?? {};
+                const hasConsumedBefore = Object.prototype.hasOwnProperty.call(dietLevels, itemId);
+                const currentDietLevel = Math.max(0, Math.min(3, Number(dietLevels[itemId] ?? 0)));
+                const nextDietLevel = hasConsumedBefore ? Math.min(3, currentDietLevel + 1) : 0;
+                self.dietLevelByFood = { ...dietLevels, [itemId]: nextDietLevel };
+                const newFoodBuff = {
+                  itemId: String(itemId),
+                  hpRegenPerTenTicks: effectiveFoodStatValue(def.effect?.hpRegenPerTenTicks, nextDietLevel),
+                  spRegenPerTenTicks: effectiveFoodStatValue(def.effect?.spRegenPerTenTicks, nextDietLevel),
+                  remainingTicks: foodDurationTicks,
+                };
+                self.foodBuffs = [...(self.foodBuffs ?? []).filter((buff: any) => buff.itemId !== itemId), newFoodBuff];
+                // Keep the legacy singular fields synchronized to the most recently eaten item.
+                self.foodBuffTicksRemaining = foodDurationTicks;
+                self.foodBuffItemId = String(itemId);
+                self.foodBuffHpRegenPerTenTicks = newFoodBuff.hpRegenPerTenTicks;
+                self.foodBuffSpRegenPerTenTicks = newFoodBuff.spRegenPerTenTicks;
+                record({
+                  tick,
+                  actor: 'character',
+                  action: 'use_item',
+                  itemId,
+                  target: 'character',
+                  foodBuffApplied: true,
+                  foodBuffTicksRemaining: self.foodBuffTicksRemaining,
+                });
+              } else if (effectType === 'cure_status' && def.effect?.status) {
+                self.statusEffects = (self.statusEffects ?? []).filter(
+                  (s: any) => (s.type ?? s.id) !== def.effect.status,
+                );
+                record({
+                  tick,
+                  actor: 'character',
+                  action: 'use_item',
+                  itemId,
+                  target: 'character',
+                  curedStatus: def.effect.status,
+                });
+              } else {
+                record({
+                  tick,
+                  actor: 'character',
+                  action: 'use_item',
+                  itemId,
+                  target: 'character',
+                });
+              }
+
+              self.castLockTicks = 1;
             } else if (action.id === 'defend') {
               self.defending = true;
               self.castLockTicks = 1;

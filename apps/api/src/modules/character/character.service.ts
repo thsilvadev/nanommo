@@ -465,7 +465,7 @@ export class CharacterService {
       magicAttack: derived.matk,
       defense: derived.def,
       attackSpeed: derived.attackSpeed,
-      castSpeed: derived.castSpeed,
+      castTimeReduction: derived.castTimeReduction,
       evasion: derived.evasion,
       accuracy: derived.accuracy,
       hpRegenPerTenTicks: derived.hpRegenPerTenTicks,

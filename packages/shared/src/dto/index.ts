@@ -66,7 +66,7 @@ export class CharacterDto {
   magicAttack!: number;
   defense!: number;
   attackSpeed!: number;
-  castSpeed!: number;
+  castTimeReduction!: number;
   evasion!: number;
   accuracy!: number;
   hpRegenPerTenTicks!: number;

@@ -29,7 +29,7 @@ function character(overrides = {}) {
     characterName: 'MasteryTest', level: 1, hp: 5000, maxHp: 5000,
     sp: 50000, maxSp: 50000, atk: 50000, matk: 50000,
     def: 0, mdefPercent: 0, accuracy: 500, evasion: 0, critChance: 0,
-    agi: 5, dex: 100, attackSpeed: 0, castSpeed: 300,
+    agi: 5, dex: 100, attackSpeed: 0, castTimeReduction: 200,
     hpRegenPerTenTicks: 0, spRegenPerTenTicks: 0,
     combatStyle: 'melee', basicAttackDamageType: 'melee', basicAttackRange: 0,
     statusEffects: [], skills: {}, skillDefs: {}, masteryEquipment: [],
