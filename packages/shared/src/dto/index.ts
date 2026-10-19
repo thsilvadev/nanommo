@@ -78,6 +78,8 @@ export class CharacterDto {
   dietLevels!: Record<string, { level: number; lastDigestUntil: string }>;
   autoFeed!: boolean;
   currentMapId!: string;
+  savedTownMapId!: string | null;
+  pendingMapTransition?: { destinationMapId: string; reason: 'town_request' | 'map_request'; requestedAt?: string } | null;
   discoveredMapIds!: string[];
   status!: string;
   activeGambitPageId?: string;

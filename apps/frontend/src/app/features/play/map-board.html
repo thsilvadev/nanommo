@@ -9,10 +9,17 @@
       <ng-container *ngFor="let cell of cells; trackBy: trackCell">
         <div class="fog-cell" *ngIf="!isRevealed(cell.x,cell.y)" [style.left.px]="cell.col*153" [style.top.px]="cell.row*153" aria-hidden="true"></div>
       </ng-container>
-      <button *ngFor="let tile of maps; trackBy: trackMap" type="button" class="map-tile" [style.left.px]="gridColumn(tile)*153" [style.top.px]="gridRow(tile)*153" [class.current]="tile.id===character.character()?.currentMapId" [attr.aria-label]="tile.name" [attr.data-map-id]="tile.id" [disabled]="!isRevealed(tile.coordinates.x,tile.coordinates.y) || tile.isClickable===false" (pointerenter)="showTileTooltip(tile,$event)" (pointermove)="moveTileTooltip($event)" (pointerleave)="hideTileTooltip()" (focus)="showTileTooltip(tile,$event)" (blur)="hideTileTooltip()"><span class="map-tooltip-content"><strong>{{tile.name}}</strong><small *ngIf="tile.type==='grind'">Recommended level: {{tile.recommendedLevel ?? 1}}</small><small *ngIf="tile.type==='town'">Town</small></span></button>
+      <svg *ngIf="destinationRoute().length>1" class="destination-route" viewBox="0 0 2295 1989" preserveAspectRatio="none" aria-hidden="true">
+        <polyline [attr.points]="destinationRoutePoints()" />
+      </svg>
+      <button *ngFor="let tile of maps; trackBy: trackMap" type="button" class="map-tile" [style.left.px]="gridColumn(tile)*153" [style.top.px]="gridRow(tile)*153" [class.current]="tile.id===character.character()?.currentMapId" [class.destination]="tile.id===destinationMapId()" [attr.aria-label]="tile.name" [attr.data-map-id]="tile.id" [disabled]="!isRevealed(tile.coordinates.x,tile.coordinates.y) || tile.isClickable===false" (pointerenter)="showTileTooltip(tile,$event)" (pointermove)="moveTileTooltip($event)" (pointerleave)="hideTileTooltip()" (focus)="showTileTooltip(tile,$event)" (blur)="hideTileTooltip()">
+        <img *ngIf="tile.id===destinationMapId()" class="destination-pinpoint" src="/project/destination_pinpoint.png" alt="Destination">
+        <img *ngIf="tile.type==='town' && tile.id===character.character()?.savedTownMapId" class="town-waypoint" src="/project/T_waypoint.png" alt="Saved Town waypoint">
+        <span class="map-tooltip-content"><strong>{{tile.name}}</strong><small *ngIf="tile.type==='grind'">Recommended level: {{tile.recommendedLevel ?? 1}}</small><small *ngIf="tile.type==='town'">Town</small></span>
+      </button>
       <img *ngIf="currentMap() as current" class="location-pin" src="/assets/maps/pinpoint.svg" alt="Current location" [style.left.px]="gridColumn(current)*153+76.5" [style.top.px]="gridRow(current)*153+76.5">
     </div>
   </div>
-  <p *ngIf="townReturnPending()" class="map-feedback">Waiting for battle to end to move...</p>
+  <p *ngIf="mapTransitionPending()" class="map-feedback">waiting for battle to end to move...</p>
   <p *ngIf="error()" class="map-error">{{error()}}</p>
 </section>

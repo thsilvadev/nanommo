@@ -477,6 +477,8 @@ export class CharacterService {
       dietLevels: character.dietLevels ?? {},
       autoFeed: character.autoFeed === true,
       currentMapId: character.currentMapId,
+      savedTownMapId: character.savedTownMapId ?? null,
+      pendingMapTransition: character.pendingMapTransition ?? null,
       discoveredMapIds: Array.isArray(character.discoveredMapIds) ? character.discoveredMapIds : ['map_town'],
       status: character.status,
       activeGambitPageId: character.activeGambitPageId || undefined,

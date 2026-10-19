@@ -2,6 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Grind map destination marker and animated shortest-route preview. */
+.map-panel .destination-route {
+  position: absolute;
+  inset: 0;
+  width: 2295px;
+  height: 1989px;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 1;
+}
+.map-panel .destination-route polyline {
+  fill: none;
+  stroke: #e8c778;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 9 13;
+  animation: destination-dashes 0.8s linear infinite;
+  filter: drop-shadow(0 1px 3px #080603) drop-shadow(0 0 2px #e0b95b);
+}
+@keyframes destination-dashes { to { stroke-dashoffset: -44; } }
+.map-panel .destination-pinpoint, .map-panel .town-waypoint {
+  position: absolute;
+  pointer-events: none;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px #000d);
+}
+.map-panel .destination-pinpoint {
+  width: 49px;
+  height: 62px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -100%);
+  z-index: 4;
+}
+.map-panel .town-waypoint {
+  width: 52px;
+  height: 54px;
+  left: 68%;
+  top: 68%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+}
+.map-panel .map-tile.destination { box-shadow: inset 0 0 0 2px #d5b45e; }
+
+
+
 :root {
   --nm-bg: #0d0a08;
   --nm-surface: #17100c;

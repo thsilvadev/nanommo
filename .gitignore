@@ -24,3 +24,7 @@ packages/shared/src/**/*.js
 .turbo/
 pnpm-lock.yaml
 project/
+# Keep the two map waypoint overlays shipped by the frontend; the root project/ art source remains ignored.
+!apps/frontend/public/project/
+!apps/frontend/public/project/destination_pinpoint.png
+!apps/frontend/public/project/T_waypoint.png

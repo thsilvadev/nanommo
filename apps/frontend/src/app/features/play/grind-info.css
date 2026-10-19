@@ -22,6 +22,25 @@
 .panel-title .warn {
   color: #d5a47a;
 }
+
+.save-town-button {
+  margin-left: auto;
+  border: 1px solid #a98034;
+  background: linear-gradient(#d8b64f, #a87924);
+  color: #21170a;
+  padding: 3px 8px;
+  font: bold 13px Arial;
+  letter-spacing: .2px;
+  cursor: pointer;
+}
+.save-town-button:disabled { opacity: .65; cursor: wait; }
+.town-saved-label {
+  margin-left: auto;
+  color: #e2c66c;
+  font: bold 13px Arial;
+  letter-spacing: .2px;
+}
+.town-save-error { color: #d18a77; margin: -3px 0 5px; }
 .food-state {
   margin: -2px 0 8px;
   color: #9bb07c;

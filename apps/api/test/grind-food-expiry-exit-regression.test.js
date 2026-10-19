@@ -49,8 +49,10 @@ function makeHarness({ remainingMs, queuedEndOffsetMs, queuedStartOffsetMs }) {
   service.buildInventoryMap = async () => ({});
   service.discardUnresolvedBattles = async id => { discarded.push(id); };
   service.safePublishQueueUpdated = async (...args) => { published.push(args); };
-  service.dataService = { getItemById: () => null };
+  service.dataService = { getItemById: () => null, getMapById: id => ({ id, type: 'grind' }) };
   service.logger = { log() {}, warn() {}, debug() {}, error() {} };
+  let lockHeld = false;
+  service.redis = { set: async () => { if (lockHeld) return null; lockHeld = true; return 'OK'; }, eval: async script => { if (script.includes('del')) lockHeld = false; return 1; } };
   return { service, character, queued, presenceCalls, saved, published, discarded, now };
 }
 
@@ -97,8 +99,10 @@ async function testNoBattleStartsAfterExpiryDuringSearchGap() {
   h.service.dataService = {
     getMonstersInMap: () => [{ id: 'mon_slime' }],
     getMonsterSkills: () => [],
+    getStatusEffects: () => [],
     getItems: () => ({ consumables: [] }),
     getItemById: () => null,
+    getMapById: id => ({ id, type: id === 'map_town' ? 'town' : 'grind' }),
   };
   h.service.bullQueue = { add: async (...args) => { scheduled.push(args); } };
 

@@ -140,6 +140,7 @@
   margin: 6px 4px 0;
   color: #b99759;
   font: 20px Arial;
+  text-transform: lowercase;
 }
 .map-error {
   margin: 6px 4px 0;

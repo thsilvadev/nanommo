@@ -71,16 +71,29 @@ export class CharacterSummary implements OnDestroy {
 export class MapBoard implements OnDestroy {
   readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService);
   maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
-  readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly townReturnPending = signal(false);
+  readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly mapTransitionPending = signal(false); readonly destinationMapId = signal<string|null>(null); readonly routeOriginMapId = signal<string|null>(null);
   readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); private discovered = new Set<string>();
   private tooltipEl: HTMLElement|null = null; private tooltipPointer = {x:0,y:0};
+  private mapRequestSequence=0; private latestMapRequestSequence=0; private lastRequestedAt=0; private transitionOriginMapId:string|null=null;
+  private transitionPoll:ReturnType<typeof setInterval>|null=null; private transitionPollBusy=false;
   private drag: {id:number; startX:number; startY:number; cameraX:number; cameraY:number; moved:boolean}|null = null; private suppressClickUntil = 0; private lastCenteredMapId: string|null = null;
   private readonly worldWidth=2295; private readonly worldHeight=1989; private readonly viewportWidth=761; private readonly viewportHeight=660; private readonly zoomMin=.5; private readonly zoomMax=1;
-  private readonly returnToTownBattleId = signal<string|null>(null); private townPoll: ReturnType<typeof setInterval>|null=null; private townPollBusy=false;
   constructor() {
-    effect(()=>{const targetId=this.returnToTownBattleId();if(!targetId||this.battle.lastResolved()?.entryId!==targetId)return;this.returnToTownBattleId.set(null);this.townReturnPending.set(false);void Promise.all([this.character.load(),this.battle.load()]);});
     this.api.get<any[]>('/maps').subscribe({next:m=>{this.maps=m;this.rebuildDiscovery();this.centerOnCurrentMap();},error:e=>this.error.set(e?.error?.message??'Unable to load maps')});
-    effect(()=>{const c=this.character.character();if(!c)return;this.rebuildDiscovery(c.discoveredMapIds);this.centerOnCurrentMap();});
+    effect(()=>{
+      const c=this.character.character();
+      if(!c)return;
+      this.rebuildDiscovery(c.discoveredMapIds);
+      this.centerOnCurrentMap();
+      const pendingDestination=c.pendingMapTransition?.destinationMapId;
+      if(pendingDestination){
+        this.destinationMapId.set(pendingDestination);
+        if(!this.routeOriginMapId())this.routeOriginMapId.set(c.currentMapId);
+        this.transitionOriginMapId=c.currentMapId;
+        this.mapTransitionPending.set(true);
+        this.startTransitionPoll();
+      }
+    });
   }
   private key(x:number,y:number){return `${x},${y}`}
   private rebuildDiscovery(ids?:string[]){const c=this.character.character();this.discovered=new Set(Array.isArray(ids??c?.discoveredMapIds)?(ids??c?.discoveredMapIds??[]):[TOWN_MAP_ID]);if(!this.discovered.size)this.discovered.add(TOWN_MAP_ID);if(c?.currentMapId)this.discovered.add(c.currentMapId);if(c?.currentMapId===TOWN_MAP_ID&&[...this.discovered].every(id=>id===TOWN_MAP_ID||id==='map_green_grounds_4'))this.discovered.delete('map_green_grounds_4');}
@@ -104,12 +117,103 @@ export class MapBoard implements OnDestroy {
   hideTileTooltip(){this.hoveredMap.set(null);this.tooltipEl?.remove();this.tooltipEl=null}
   private renderTileTooltip(){const map=this.hoveredMap();this.tooltipEl?.remove();this.tooltipEl=null;if(!map)return;const el=document.createElement('div');el.className='nm-map-tooltip';el.style.cssText='position:fixed;z-index:10000;display:flex;flex-direction:column;gap:5px;min-width:190px;max-width:min(320px,calc(100vw - 20px));padding:12px 15px;background:linear-gradient(145deg,#21170f,#100b07);border:1px solid #a98750;box-shadow:0 6px 22px #000c,inset 0 0 0 1px #4b3521;color:#c9b79a;pointer-events:none;box-sizing:border-box;';const title=document.createElement('strong');title.textContent=map.name;title.style.cssText='color:#f0d9ac;font:bold 25px/1.05 Georgia,serif;letter-spacing:.4px;text-shadow:0 2px 3px #000;';el.appendChild(title);const sub=document.createElement('small');sub.textContent=map.type==='grind'?('Recommended level: '+(map.recommendedLevel??1)):'Town';sub.style.cssText='color:#b9a17a;font:12px/1.3 Arial,sans-serif;';el.appendChild(sub);document.body.appendChild(el);this.tooltipEl=el;this.positionTileTooltip()}
   private positionTileTooltip(){const el=this.tooltipEl;if(!el)return;const margin=10,gap=14;el.style.left='0px';el.style.top='0px';const r=el.getBoundingClientRect(),vw=document.documentElement.clientWidth,vh=document.documentElement.clientHeight;const x=this.tooltipPointer.x+gap+r.width<=vw-margin?this.tooltipPointer.x+gap:Math.max(margin,this.tooltipPointer.x-r.width-gap);const y=this.tooltipPointer.y+gap+r.height<=vh-margin?this.tooltipPointer.y+gap:Math.max(margin,this.tooltipPointer.y-r.height-gap);el.style.left=x+'px';el.style.top=y+'px'}
-  enter(id:string){const map=this.maps.find(m=>m.id===id);if(!map||map.type!=='grind')return;this.error.set(null);this.api.post<any>(`/maps/${id}/enter`,{}).subscribe({next:async result=>{this.townReturnPending.set(false);await this.character.load();this.rebuildDiscovery();this.centerOnCurrentMap();if(!result?.deferred){this.battle.beginGrindSession();try{await this.socket.emit('map:syncPresence',{mapId:id})}catch{}}},error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
-  enterTownMap(id:string){const current=this.character.character();if(!current||current.currentMapId===id&&current.status==='town')return;this.error.set(null);this.api.post<any>(`/maps/${id}/enter`,{}).subscribe({next:async result=>{this.character.applyPatch(result?.character??{});if(result?.deferred){this.returnToTownBattleId.set(result.battleId??this.battle.active()?.id??null);this.townReturnPending.set(true);this.startTownPoll();return;}this.townReturnPending.set(false);this.stopTownPoll();await Promise.all([this.character.load(),this.battle.load()]);this.rebuildDiscovery();this.centerOnCurrentMap()},error:e=>this.error.set(e?.error?.message??'Map entry rejected by server')})}
-  enterTown(){this.enterTownMap(TOWN_MAP_ID)}
-  private startTownPoll(){this.stopTownPoll();this.townPoll=setInterval(()=>{if(this.townPollBusy)return;this.townPollBusy=true;void this.character.load().finally(()=>{this.townPollBusy=false;const c=this.character.character();if(c?.currentMapId===this.returnToTownBattleId()||c?.currentMapId===TOWN_MAP_ID&&c?.status==='town'){this.townReturnPending.set(false);this.returnToTownBattleId.set(null);this.stopTownPoll();void this.battle.load();this.rebuildDiscovery();this.centerOnCurrentMap()}})},1000)}
-  private stopTownPoll(){if(this.townPoll!==null){clearInterval(this.townPoll);this.townPoll=null}}
-  ngOnDestroy(){this.stopTownPoll();this.hideTileTooltip()}
+  enter(id:string){this.requestMapTransition(id)}
+  enterTownMap(id:string){this.requestMapTransition(id)}
+  enterTown(){this.requestMapTransition(TOWN_MAP_ID)}
+  private requestMapTransition(id:string){
+    const map=this.maps.find(m=>m.id===id); const current=this.character.character();
+    if(!map||!current)return;
+    if(current.currentMapId===id&&!current.pendingMapTransition)return;
+    this.error.set(null);
+    const requestSequence=++this.mapRequestSequence;
+    this.latestMapRequestSequence=requestSequence;
+    const previousIntentAt=Date.parse(String(current.pendingMapTransition?.requestedAt??''))||0;
+    this.lastRequestedAt=Math.max(Date.now(),this.lastRequestedAt+1,previousIntentAt+1);
+    const requestedAt=new Date(this.lastRequestedAt).toISOString();
+    const origin=current.currentMapId;
+    this.api.post<any>(`/maps/${id}/enter`,{requestedAt}).subscribe({
+      next:async result=>{
+        if(requestSequence!==this.latestMapRequestSequence)return;
+        const characterPatch=result?.character??{};
+        const acceptedDestination=String(result?.destinationMapId??characterPatch?.pendingMapTransition?.destinationMapId??characterPatch?.currentMapId??id);
+        this.routeOriginMapId.set(origin);
+        this.destinationMapId.set(acceptedDestination);
+        this.character.applyPatch(characterPatch);
+        if(result?.deferred){
+          this.transitionOriginMapId=characterPatch.currentMapId??origin;
+          this.mapTransitionPending.set(true);
+          this.startTransitionPoll();
+          return;
+        }
+        this.mapTransitionPending.set(false);
+        this.stopTransitionPoll();
+        this.transitionOriginMapId=null;
+        await Promise.all([this.character.load(),this.battle.load()]);
+        this.rebuildDiscovery();
+        this.centerOnCurrentMap();
+        if(map.type==='grind'){
+          this.battle.beginGrindSession();
+          try{await this.socket.emit('map:syncPresence',{mapId:acceptedDestination})}catch{}
+        }
+      },
+      error:e=>{if(requestSequence===this.latestMapRequestSequence)this.error.set(e?.error?.message??'Map entry rejected by server')}
+    });
+  }
+  private startTransitionPoll(){
+    if(this.transitionPoll!==null)return;
+    this.transitionPoll=setInterval(()=>{
+      if(this.transitionPollBusy)return;
+      this.transitionPollBusy=true;
+      void this.character.load().then(async()=>{
+        const c=this.character.character();
+        if(!c||c.pendingMapTransition)return;
+        const target=this.destinationMapId();
+        if(c.currentMapId!==target&&c.status!=='town')return;
+        // Death or real food exhaustion may authoritatively route to Town instead
+        // of the requested Grind destination; make the visible waypoint match arrival.
+        if(c.currentMapId!==target)this.destinationMapId.set(c.currentMapId);
+        this.mapTransitionPending.set(false);
+        this.stopTransitionPoll();
+        const arrivedMap=this.maps.find(m=>m.id===c.currentMapId);
+        if(c.currentMapId!==this.transitionOriginMapId&&arrivedMap?.type==='grind'){
+          this.battle.beginGrindSession();
+          try{await this.socket.emit('map:syncPresence',{mapId:c.currentMapId})}catch{}
+        }
+        this.transitionOriginMapId=null;
+        await this.battle.load();
+        this.rebuildDiscovery();
+        this.centerOnCurrentMap();
+      }).finally(()=>{this.transitionPollBusy=false});
+    },1000);
+  }
+  private stopTransitionPoll(){if(this.transitionPoll!==null){clearInterval(this.transitionPoll);this.transitionPoll=null}}
+
+  /** Shortest cardinal route through canonical map nodes, rendered in world-pixel coordinates. */
+  destinationRoute():Array<{x:number;y:number}>{
+    const routeOriginId=this.routeOriginMapId();
+    const origin=(routeOriginId?this.maps.find(m=>m.id===routeOriginId):null)??this.currentMap();
+    const destination=this.maps.find(m=>m.id===this.destinationMapId());
+    if(!origin||!destination||origin.id===destination.id)return [];
+    const pos=(m:any)=>({x:Number(m.coordinates.x),y:Number(m.coordinates.y)});
+    const key=(m:any)=>m.id;
+    const queue=[origin];const previous=new Map<string,string|null>([[key(origin),null]]);const byId=new Map(this.maps.map(m=>[m.id,m]));
+    while(queue.length){
+      const current=queue.shift()!;if(current.id===destination.id)break;
+      const a=pos(current);
+      const neighbors=this.maps.filter(candidate=>candidate.isClickable!==false)
+        .filter(candidate=>{const b=pos(candidate);return Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1})
+        .sort((left,right)=>left.id.localeCompare(right.id));
+      for(const neighbor of neighbors){if(previous.has(key(neighbor)))continue;previous.set(key(neighbor),key(current));queue.push(neighbor)}
+    }
+    let route:any[]=[];
+    if(!previous.has(destination.id))return [];
+    let current:string|null=destination.id;
+    while(current){const node=byId.get(current);if(node)route.unshift(node);current=previous.get(current)??null}
+    return route.map(node=>({x:(Number(node.coordinates.x)+7)*153+76.5,y:(6-Number(node.coordinates.y))*153+76.5}));
+  }
+  destinationRoutePoints(){return this.destinationRoute().map(point=>`${point.x},${point.y}`).join(' ')}
+  destinationPinStyle(map:any){return map.id===this.destinationMapId()}
+  ngOnDestroy(){this.stopTransitionPoll();this.hideTileTooltip()}
 }
 
 @Component({ selector: 'app-inventory-grid', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './inventory-grid.html', styleUrl: './inventory-grid.css' })
@@ -247,8 +351,21 @@ export class GrindInfo implements OnDestroy {
   readonly character = inject(CharacterStore);
   readonly inventory = inject(InventoryStore);
   readonly catalog = inject(CatalogService); readonly vendor = inject(VendorStore);
+  private readonly api = inject(ApiService);
   readonly now = signal(Date.now());
+  readonly savingTown = signal(false);
+  readonly townSaveError = signal<string|null>(null);
   private readonly timer = setInterval(() => this.now.set(Date.now()), 250);
+
+  isCurrentTownSaved(){const c=this.character.character();return !!c&&c.status==='town'&&c.currentMapId===c.savedTownMapId;}
+  async saveTown(){
+    const c=this.character.character();
+    if(!c||c.status!=='town'||this.savingTown()||this.isCurrentTownSaved())return;
+    this.savingTown.set(true);this.townSaveError.set(null);
+    try{const result=await this.api.post<any>('/maps/save-town',{}).toPromise();if(result?.character)this.character.applyPatch(result.character);else if(result?.savedTownMapId)this.character.applyPatch({savedTownMapId:result.savedTownMapId});}
+    catch(error:any){this.townSaveError.set(error?.error?.message??'Unable to save this Town');}
+    finally{this.savingTown.set(false);}
+  }
 
   stateLabel() { const b = this.battle.active(); if (this.battle.state() === 'reconnecting') return 'RECONNECTING'; if (b && this.isSearching(b)) return 'SEARCHING'; return b ? 'ACTIVE' : 'IDLE' }
   isSearching(entry: any) { return Date.now() < Date.parse(entry.startAt) }

@@ -1,4 +1,5 @@
 import { forwardRef, Inject, Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -98,6 +99,38 @@ export class BattleService {
     private readonly mapPresenceService: MapPresenceService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
+
+  /** Serialize operations that may change a character's encounter chain across API/worker replicas. */
+  async withCharacterQueueLock<T>(characterId: string, operation: () => Promise<T>): Promise<T> {
+    const lockKey = `battle:character-queue-lock:${characterId}`;
+    const token = randomUUID();
+    const ttlMs = 300_000;
+    const deadline = Date.now() + 60_000;
+    let acquired = false;
+    while (Date.now() < deadline) {
+      const result = await this.redis.set(lockKey, token, 'PX', ttlMs, 'NX');
+      if (result === 'OK') { acquired = true; break; }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    if (!acquired) throw new Error(`Timed out acquiring encounter-chain lock for character ${characterId}`);
+
+    // Renew well before expiry so a slow queue simulation cannot silently lose exclusivity.
+    const renewScript = 'if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("pexpire", KEYS[1], ARGV[2]) else return 0 end';
+    const releaseScript = 'if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end';
+    const renewal = setInterval(() => {
+      void this.redis.eval(renewScript, 1, lockKey, token, String(ttlMs)).then((renewed: any) => {
+        if (Number(renewed) !== 1) this.logger.error(`Lost encounter-chain lock for character ${characterId}`);
+      }).catch(error => this.logger.error(`Could not renew encounter-chain lock for ${characterId}: ${error instanceof Error ? error.message : String(error)}`));
+    }, 60_000);
+    (renewal as any).unref?.();
+    try {
+      return await operation();
+    } finally {
+      clearInterval(renewal);
+      try { await this.redis.eval(releaseScript, 1, lockKey, token); }
+      catch (error) { this.logger.error(`Could not release encounter-chain lock for ${characterId}; TTL will expire it`, error instanceof Error ? error.stack : String(error)); }
+    }
+  }
 
   /**
    * Get the current battle queue for a character
@@ -448,6 +481,14 @@ export class BattleService {
     targetDepth: number = this.QUEUE_DEPTH_TARGET,
     publishQueueEvent = true,
   ): Promise<BattleQueueEntry[]> {
+    return this.withCharacterQueueLock(characterId, () => this.queueBattlesLocked(characterId, targetDepth, publishQueueEvent));
+  }
+
+  private async queueBattlesLocked(
+    characterId: string,
+    targetDepth: number = this.QUEUE_DEPTH_TARGET,
+    publishQueueEvent = true,
+  ): Promise<BattleQueueEntry[]> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
 
@@ -549,7 +590,7 @@ export class BattleService {
         if (autoFed) {
           await this.characterRepo.save(character);
           await this.discardUnresolvedBattles(characterId);
-          return this.queueBattles(characterId, targetDepth, publishQueueEvent);
+          return this.queueBattlesLocked(characterId, targetDepth, publishQueueEvent);
         }
 
         const leavingMapId = character.currentMapId;
@@ -849,7 +890,7 @@ export class BattleService {
     const reference = await this.battleQueueRepo.findOne({ where: { id: battleId } });
     if (!reference) throw new NotFoundException('Battle not found');
 
-    const result = await this.battleQueueRepo.manager.transaction(async (manager) => {
+    const result = await this.withCharacterQueueLock(reference.characterId, () => this.battleQueueRepo.manager.transaction(async (manager) => {
       const battleRepo = manager.getRepository(BattleQueueEntry);
       const characterRepo = manager.getRepository(Character);
       const character = await characterRepo.findOne({
@@ -976,7 +1017,11 @@ export class BattleService {
       const hungryAfterBattle = !foodExpiresAt || foodExpiresAt <= Date.now();
       const routedToTown = returningToTown || hungryAfterBattle;
       const pendingDestination = requestedDestination && (requestedDestination.type === 'town' || requestedDestination.type === 'grind') ? requestedDestination : null;
+      const movedToRequestedDestination = !!pendingDestination && pendingDestination.id !== previousMapId;
       if (pendingDestination && !hungryAfterBattle) {
+        if (movedToRequestedDestination && this.dataService.getMapById(previousMapId)?.type === 'grind') {
+          await this.resetEncounterSequence(character.id, previousMapId, 'left map', manager);
+        }
         character.currentMapId = pendingDestination.id;
         character.status = pendingDestination.type === 'town' ? 'town' : 'grinding';
         character.pendingMapTransition = null;
@@ -984,6 +1029,10 @@ export class BattleService {
         character.lastSeenAt = new Date();
         await characterRepo.save(character);
       } else if (routedToTown) {
+        const leavingMapId = character.currentMapId;
+        if (leavingMapId && leavingMapId !== TOWN_MAP_ID && this.dataService.getMapById(leavingMapId)?.type === 'grind') {
+          await this.resetEncounterSequence(character.id, leavingMapId, 'left map', manager);
+        }
         character.pendingMapTransition = null;
         character.currentMapId = TOWN_MAP_ID;
         character.status = 'town';
@@ -1022,9 +1071,9 @@ export class BattleService {
         equipmentChanged,
         autoFed,
         discardedBattleIds,
-        previousMapId: routedToTown ? previousMapId : null,
+        previousMapId: (routedToTown || movedToRequestedDestination) ? previousMapId : null,
       };
-    });
+    }));
 
     if (result.alreadyResolved) {
       this.logger.log(`Battle ${battleId} already resolved - skipping`);
@@ -1312,6 +1361,22 @@ export class BattleService {
     await this.safePublishQueueUpdated(characterId, entries);
   }
 
+  /** Remove only Bull jobs for queue rows that have already been deleted transactionally. */
+  async removeBattleQueueJobs(battleIds: string[]): Promise<void> {
+    for (const battleId of [...new Set(battleIds)]) {
+      try {
+        const job = await this.bullQueue.getJob(battleId);
+        if (!job) continue;
+        const state = await job.getState();
+        // A processor already running for a deleted row will harmlessly observe
+        // the missing row; never force-remove an active Bull job.
+        if (state !== 'active') await job.remove();
+      } catch (error) {
+        this.logger.warn(`Could not remove stale Bull job ${battleId}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
+
   async cancelPendingBattlesAfter(characterId: string, activeBattleId: string): Promise<void> {
     const pending = await this.battleQueueRepo.find({
       where: { characterId, resolved: false },
@@ -1319,9 +1384,7 @@ export class BattleService {
     const future = pending.filter((entry) => entry.id !== activeBattleId);
     if (!future.length) return;
     await this.battleQueueRepo.delete({ id: In(future.map((entry) => entry.id)), resolved: false });
-    for (const entry of future) {
-      await this.bullQueue.getJob(entry.id).then((job) => job?.remove()).catch(() => undefined);
-    }
+    await this.removeBattleQueueJobs(future.map(entry => entry.id));
   }
 
   async cancelPendingBattles(characterId: string): Promise<void> {
@@ -1331,9 +1394,7 @@ export class BattleService {
     if (!pending.length) return;
 
     await this.battleQueueRepo.delete({ id: In(pending.map((entry) => entry.id)), resolved: false });
-    for (const entry of pending) {
-      await this.bullQueue.getJob(entry.id).then((job) => job?.remove()).catch(() => undefined);
-    }
+    await this.removeBattleQueueJobs(pending.map(entry => entry.id));
   }
 
   private async safePublishQueueUpdated(
@@ -1411,16 +1472,15 @@ export class BattleService {
     const repo = manager?.getRepository(MapKillCounter) ?? this.mapKillCounterRepo;
     let counter = await repo.findOne({ where: { characterId, mapId } });
     if (!counter) {
-      counter = await repo.save(
-        repo.create({
-          characterId,
-          mapId,
-          epoch: 0,
-          mapKillCount: 0,
-          perMonsterKillCount: {},
-        }),
-      );
+      await repo.createQueryBuilder()
+        .insert()
+        .into(MapKillCounter)
+        .values({ characterId, mapId, epoch: 0, mapKillCount: 0, perMonsterKillCount: {} })
+        .orIgnore()
+        .execute();
+      counter = await repo.findOne({ where: { characterId, mapId } });
     }
+    if (!counter) throw new Error(`Unable to create or read map kill counter for ${characterId}/${mapId}`);
     return counter;
   }
 

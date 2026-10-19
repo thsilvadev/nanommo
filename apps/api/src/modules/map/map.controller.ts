@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards, Request, Param, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, Request, Param, BadRequestException, Body } from '@nestjs/common';
 import { MapService } from './map.service';
 import { CharacterService } from '../character/character.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -33,14 +33,24 @@ export class MapController {
    * Enter a map
    */
   @Post(':mapId/enter')
-  async enterMap(@Request() req: any, @Param('mapId') mapId: string) {
+  async enterMap(@Request() req: any, @Param('mapId') mapId: string, @Body() body: { requestedAt?: string } = {}) {
     // Check email verification FIRST (§15.1)
     const character = await this.characterService.getCharacterByUserId(req.user.userId);
     if (!character) throw new BadRequestException('Character not found');
     
     // Note: email verification is checked inside mapService.enterMap() before other validations
-    const result = await this.mapService.enterMap(character.id, mapId);
+    const result = await this.mapService.enterMap(character.id, mapId, body?.requestedAt);
     return { success: true, ...result, currentMapId: result?.character?.currentMapId ?? mapId, character: result?.character ?? character.id };
+  }
+
+  /** Save the Town currently occupied as the character's future teleport waypoint. */
+  @Post('save-town')
+  async saveTown(@Request() req: any) {
+    const character = await this.characterService.getCharacterByUserId(req.user.userId);
+    if (!character) throw new BadRequestException('Character not found');
+    const saved = await this.mapService.saveCurrentTown(character.id);
+    const updatedCharacter = await this.characterService.getCharacterDtoById(character.id);
+    return { success: true, ...saved, character: updatedCharacter };
   }
 
   /**
