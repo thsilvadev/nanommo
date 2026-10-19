@@ -1036,6 +1036,7 @@ function simulateQueueStepAt({
     items: itemsData,
     killIndex: dropKillIndex,
     seed,
+    characterLevel: level,
   });
   return { monster, simulation, rewards, seed, derived };
 }

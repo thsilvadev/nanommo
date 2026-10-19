@@ -44,11 +44,20 @@ export interface ItemsCatalog {
  * XP: SPEC §11 - the monster's `xpReward` is the payout on a win.
  * Nothing is granted on a loss (SPEC §6.4 XP loss is handled by the caller).
  */
-export function resolveXpGain(monster: any, outcome: 'win' | 'loss'): number {
+export function grindXpLevelMultiplier(characterLevel: number, monsterLevel: number): number {
+  const gap = Math.max(0, Math.floor(Number(characterLevel) || 0) - Math.max(1, Math.floor(Number(monsterLevel) || 1)));
+  if (gap <= 3) return 1;
+  if (gap === 4) return 0.7;
+  if (gap === 5) return 0.5;
+  if (gap === 6) return 0.3;
+  return 0.05;
+}
+
+export function resolveXpGain(monster: any, outcome: 'win' | 'loss', characterLevel = Number(monster?.level ?? 1)): number {
   if (outcome !== 'win') return 0;
   const xpReward = Number(monster?.xpReward);
   if (!Number.isFinite(xpReward) || xpReward <= 0) return 0;
-  return Math.max(0, Math.floor(xpReward * GRIND_XP_RATE));
+  return Math.max(0, Math.floor(xpReward * GRIND_XP_RATE * grindXpLevelMultiplier(characterLevel, Number(monster?.level ?? 1))));
 }
 
 /** Monster kills do not award gold. Gold remains available through non-monster sources such as vendors. */
@@ -169,13 +178,14 @@ export function resolveRewards(params: {
   items: ItemsCatalog;
   killIndex: number;
   seed: string;
+  characterLevel?: number;
 }): BattleRewards {
-  const { monster, mapId, outcome, items, killIndex, seed } = params;
+  const { monster, mapId, outcome, items, killIndex, seed, characterLevel } = params;
   if (outcome !== 'win') {
     return { xpGain: 0, goldGain: 0, drops: [] };
   }
   return {
-    xpGain: resolveXpGain(monster, outcome),
+    xpGain: resolveXpGain(monster, outcome, characterLevel ?? Number(monster?.level ?? 1)),
     goldGain: 0,
     drops: resolveDrops(monster, mapId, items, killIndex),
   };
