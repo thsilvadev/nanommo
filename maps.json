@@ -2,7 +2,7 @@
   "maps": [
     {
       "id": "map_town",
-      "name": "Sierra-Village",
+      "name": "Sierra Village",
       "coordinates": {
         "x": 0,
         "y": 0
@@ -761,7 +761,7 @@
     },
     {
       "id": "map_aramaia_city",
-      "name": "Aramaia-City",
+      "name": "Ancient Aramaia City",
       "coordinates": {
         "x": -5,
         "y": -6

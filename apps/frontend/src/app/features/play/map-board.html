@@ -10,7 +10,7 @@
         <div class="fog-cell" *ngIf="!isRevealed(cell.x,cell.y)" [style.left.px]="cell.col*153" [style.top.px]="cell.row*153" aria-hidden="true"></div>
       </ng-container>
       <button *ngFor="let tile of maps; trackBy: trackMap" type="button" class="map-tile" [style.left.px]="gridColumn(tile)*153" [style.top.px]="gridRow(tile)*153" [class.current]="tile.id===character.character()?.currentMapId" [attr.aria-label]="tile.name" [attr.title]="tile.name" [disabled]="!isRevealed(tile.coordinates.x,tile.coordinates.y) || tile.isClickable===false" (click)="onTileClick($event,tile)"></button>
-      <img *ngIf="currentMap() as current" class="location-pin" src="/assets/maps/pinpoint.png" alt="Current location" [style.left.px]="gridColumn(current)*153+76.5" [style.top.px]="gridRow(current)*153+76.5">
+      <img *ngIf="currentMap() as current" class="location-pin" src="/assets/maps/pinpoint.svg" alt="Current location" [style.left.px]="gridColumn(current)*153+76.5" [style.top.px]="gridRow(current)*153+76.5">
     </div>
   </div>
   <p *ngIf="townReturnPending()" class="map-feedback">Waiting for battle to end to move...</p>
