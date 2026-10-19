@@ -1,3 +1,9 @@
+### Map discovery and deferred Town transition regression fixes (2026-10-19)
+
+Fixed the exploration veil's one-cell vertical offset: fog-cell coordinates now use the same `row = 6 - y` conversion as map tiles, so discovering Green Grounds 0 at (-1, 0) reveals its own cell and the four cardinal neighbors in the correct visual positions. Fixed deferred Town entry during a live battle: MapService keeps the character in `grinding` while recording `pendingMapTransition`, repairs the prior premature `status = town` state, and relies on the battle resolver to commit the destination and Town status after the active battle ends. The map board's existing waiting message remains visible; Town NPC panels must not appear before the committed transition.
+
+Verification passed: shared/API/frontend production builds, `node scripts/validate-world-map.js`, focused coordinate regression assertions, strict OpenSpec validation and `git diff --check`. The SPEC map-transition text was updated in both copies; the repository's pre-existing final-paragraph wording difference between `SPEC.md` and `openspec/specs/SPEC.md` was preserved. Browser verification remains pending. No deployment, database operation or migration.
+
 ### Implementation — `definitive-world-map-viewport` (2026-10-18)
 
 Implemented the 41-location canonical world catalogue and frontend mirror, all `unlockLevel: 0`, recommended-level advisory metadata, native 2295×1989 map artwork and pinpoint assets, a fixed 761×660 viewport with contiguous 153px cells, mouse/touch pointer panning and drag-click suppression, current-location pin, per-character discovery persistence/reveal projection, Town/grind map entry separation, multi-Town destinations and forward-only migration `1799200000000-DefinitiveWorldMapViewport`. Added `scripts/validate-world-map.js`.

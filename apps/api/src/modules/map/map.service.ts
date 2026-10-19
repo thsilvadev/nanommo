@@ -56,8 +56,11 @@ export class MapService {
     const active=queue.find(entry=>Date.parse(String(entry.startAt))<=now&&now<Date.parse(String(entry.endAt)));
     if(map.type==='town') {
       if(active) {
+        // Keep the character in Grind while the active battle is immutable; Town
+        // status and currentMapId change together only when the resolver commits the destination.
+        // Also repair status='town' left by the previous premature-transition behavior.
+        character.status='grinding';
         character.pendingMapTransition={destinationMapId:mapId,reason:'town_request'} as any;
-        character.status='town';
         await this.characterRepo.save(character);
         if(previousMapId) await this.mapPresenceService.syncCharacter(characterId,previousMapId);
         try { await this.battleService.cancelPendingBattlesAfter(characterId,active.id); } catch(error) { this.logger.warn(`Could not trim future queue after Town request: ${error instanceof Error?error.message:String(error)}`); }

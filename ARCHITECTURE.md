@@ -388,7 +388,7 @@ The frontend never applies `+1/-1` deltas. It replaces its displayed count with 
 
 ### Canonical Town identity
 
-Town has exactly one physical identity in the runtime: `map_town`. That same value is the Character location, canonical map-catalog entry, single Board Town node, map-presence identity, Socket.IO room suffix, Town NPC location boundary, and destination of Town-return transitions. `status = town` is an activity/state value only; it is never an alternative physical-location model. The Board must render the dedicated Town node once and must exclude `isTown` entries from the generic grind-map loop.
+`map_town` is the canonical default Town destination (Sierra-Village), new-character starting location, and plain Return-to-Town target. The world catalogue also contains additional physical Town destinations; the authoritative `currentMapId` identifies which Town the character occupies, while `status = town` is an activity/state value and never substitutes for physical location. Town NPC access and map presence must resolve the current map's catalogue type, and the Board must render each Town catalogue entry once while excluding Town entries from grind-only loops.
 
 ### Central transition boundary
 
@@ -398,7 +398,7 @@ Any future movement implementation should follow this sequence:
 2. Apply and persist the authoritative new Character map state.
 3. Call `MapPresenceService.syncCharacter(characterId, previousMapId)`.
 
-The same boundary already covers map entry, map-to-map movement, Town routing, death and food exhaustion. A deferred Town request uses the generic `pendingMapTransition` state: presence is removed immediately while `currentMapId` remains the battle map, then the transition finalizes to `map_town` after the active battle resolves.
+The same boundary already covers map entry, map-to-map movement, Town routing, death and food exhaustion. A deferred Town request uses the generic `pendingMapTransition` state: presence is removed immediately while `currentMapId` and Grind status remain unchanged during the active battle, then the resolver commits the exact requested Town destination and Town status after the active battle resolves.
 
 Battle start/end is not a map-presence event. The character is still on the same map unless authoritative gameplay state says otherwise.
 
@@ -656,7 +656,7 @@ The Inventory drag payload identifies the selected row and quantity. The Vendor 
 
 The canonical `maps.json` catalogue now defines the first 41-location world: Sierra-Village (`map_town`), four additional Town destinations and 36 grind maps. Root `maps.json` is authoritative and `apps/frontend/public/data/maps.json` is its mirror. Every location has `unlockLevel: 0`; `recommendedLevel` is advisory only. Grid coordinates map to zero-based world cells as `column = x + 7`, `row = 6 - y` (equivalently one-based column `x + 8`, row `7 - y`). The world is 15×13 cells, each 153px, at native 2295×1989 artwork size inside a fixed 761×660 viewport. Cells have no gaps, and revealed clickable locations use a transparent overlay with an inset 1px near-white border.
 
-Each Character stores `discoveredMapIds`; new characters start with Sierra-Village discovered. A discovered map reveals itself and the four cardinal neighbor cells. Arrival persists the destination ID; the reveal set is derived from canonical coordinates and never stores a per-cell bitmap. The pinpoint follows authoritative `currentMapId`. Town destinations are peaceful and use Town-type checks for access; grind entry keeps email verification and the existing hungry/food gate but has no level gate. Requests during a live battle preserve its snapshot/job and commit the requested destination only after resolution. Plain Return to Town still targets Sierra-Village.
+Each Character stores `discoveredMapIds`; new characters start with Sierra-Village discovered. A discovered map reveals itself and the four cardinal neighbor cells. Fog-cell positions and map tile positions both use `column = x + 7`, `row = 6 - y`, so the reveal projection aligns exactly with the canonical world grid. Arrival persists the destination ID; the reveal set is derived from canonical coordinates and never stores a per-cell bitmap. The pinpoint follows authoritative `currentMapId`. Town destinations are peaceful and use Town-type checks for access; grind entry keeps email verification and the existing hungry/food gate but has no level gate. Requests during a live battle preserve its snapshot/job and commit the requested destination only after resolution. Plain Return to Town still targets Sierra-Village.
 
 Migration `1799200000000-DefinitiveWorldMapViewport` adds discovery and remaps legacy `map_lv_*` locations by character level. It is forward-only and must follow the existing stopped-consumer/read-only migration-history audit and queue/presence reconciliation procedure. No migration, live database mutation or deployment was performed in the implementation session. `node scripts/validate-world-map.js` validates the 41 map records, map mirror, grid bounds, zero level gates, Town Storage, roster weights/species references and asset byte integrity. Browser verification and migration integration against an audited database remain rollout checks.
 

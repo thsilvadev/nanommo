@@ -46,3 +46,6 @@
 - [x] 7.5 Place the transparent 34px map header inside the fixed viewport and preserve the empty panel space below it.
 - [x] 7.6 Repair the known Town-only initial discovery bootstrap when its only unrelated entry is Green Grounds 4; include the authoritative current map in server discovery checks and return the service transition result from the controller.
 - [ ] 7.7 Browser-verify map entry/network requests, initial Town reveal, tooltip placement at viewport edges, header overlay, and zoom/pan at desktop and touch-sized viewport sizes.
+- [x] 7.8 Align fog-cell coordinate generation with the map tile grid (`column = x + 7`, `row = 6 - y`) so a discovered map reveals its own cell and only the four cardinal neighbors at the correct visual positions.
+- [x] 7.9 When a Town destination is requested during an active battle, persist only `pendingMapTransition` without changing `status` to `town`; keep the Grind panel and waiting message until the resolver commits the requested destination after battle resolution.
+- [ ] 7.10 Regression-verify the fog positions around Green Grounds 0 at (-1, 0), and browser-verify Town return while a battle is active, including the panel remaining in Grind until the committed transition.

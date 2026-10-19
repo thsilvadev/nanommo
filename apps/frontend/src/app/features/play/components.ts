@@ -70,7 +70,7 @@ export class CharacterSummary implements OnDestroy {
 @Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule], templateUrl: './map-board.html', styleUrl: './map-board.css' })
 export class MapBoard implements OnDestroy {
   readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService);
-  maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:7-Math.floor(i/15)}));
+  maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
   readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly townReturnPending = signal(false);
   readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); private discovered = new Set<string>();
   private tooltipEl: HTMLElement|null = null; private tooltipPointer = {x:0,y:0};
