@@ -43,7 +43,10 @@ export class BattleLogsComponent {
     if(event?.action==='status_applied'||event?.action==='status_refreshed') return actor+' applies '+status+' to '+target;
     if(event?.action==='regen') return actor+' regenerated +'+Number(event.amount??0)+' '+String(event.resource??'HP')+'.';
     if(event?.action==='sp_regen') return actor+' regenerated +'+Number(event.amount??0)+' SP.';
-    if(event?.action==='attack') return actor+' attack'+(event.crit?' — CRITICAL HIT':'')+(event.damage!=null?' for '+event.damage+' damage':'')+'.';
+    if(event?.action==='attack') {
+      if(event.damage === 0 || event.damage === null || event.damage === undefined) return actor+' misses!';
+      return actor+' attack'+(event.crit?' — CRITICAL HIT':'')+(event.damage!=null?' for '+event.damage+' damage':'')+'.';
+    }
     if(event?.action==='use_skill'){
       const skill=event.skillId==='monster_skill_ice_bolt'?'Ice Bolt':String(event.skillId??'a skill').replace(/_/g,' ');
       return actor+' used '+skill+(event.damage!=null?' for '+event.damage+' damage':'')+(event.healAmount!=null?' and healed '+event.healAmount+' HP':'')+'.';

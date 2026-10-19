@@ -6,7 +6,7 @@
       <button [class.active]="is('/play/character')" (click)="goCharacter()">Character</button>
       <button (click)="go('/play/gambits')">Gambits</button><button [class.active]="is('/play/battle-logs')"
         (click)="go('/play/battle-logs')">Battle Logs</button>
-      <button class="muted">Tournament</button><button class="muted">Trade</button>
+      <button class="muted disabled" disabled>Tournament<small class="soon">soon</small></button><button class="muted disabled" disabled>Trade<small class="soon">soon</small></button>
     </nav>
     <div class="top-character" *ngIf="character.character() as c">
       <div class="avatar-mini">{{c.name.slice(0,1).toUpperCase()}}</div>
@@ -30,6 +30,10 @@
     <section class="zone-center"><router-outlet /></section>
     <aside class="zone-right"><app-grind-info /></aside>
   </main>
+  <div class="xp-bar-footer" *ngIf="character.character() as c">
+    <div class="xp-bar-inner" [style.width.%]="xpWidth()"></div>
+    <div class="xp-bar-text">XP {{c.xp}} / {{c.xpToNext}}</div>
+  </div>
   <app-chat-drawer [open]="chatOpen()" (closed)="chatOpen.set(false)" />
 </div>
 

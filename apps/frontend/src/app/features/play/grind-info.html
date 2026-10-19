@@ -37,7 +37,7 @@
               *ngFor="let stat of monsterStats(b)"><b>{{stat.label}}: </b><small>{{stat.value}}</small></span></div>
         </div>
         <div class="event-feed">
-          <div *ngFor="let e of recentEvents(b)" class="event"><small>T{{e.tick}}</small><span>   {{eventText(e)}}</span>
+          <div *ngFor="let e of recentEvents(b)" class="event"><small>T{{e.tick}}</small><span>{{eventText(e)}}</span>
           </div>
         </div>
         <div class="monster-skills" *ngIf="monsterSkills(b).length"><div class="section-label">SKILLS</div><div class="skill-icons"><div *ngFor="let skill of monsterSkills(b)" class="monster-skill-icon" tabindex="0" [attr.data-tooltip]="skillTooltip(skill)"><img [src]="skillIcon(skill)" [alt]="skill.name"><span class="skill-tooltip"><b>{{skill.name}}</b><small>{{skillTooltip(skill)}}</small></span></div></div></div>

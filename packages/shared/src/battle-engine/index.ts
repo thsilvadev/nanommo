@@ -466,7 +466,7 @@ export class BattleEngine {
    * Calculate hit chance given accuracy and evasion
    */
   static calculateHitChance(accuracy: number, evasion: number): number {
-    return Math.max(5, Math.min(95, 100 + accuracy - evasion));
+    return Math.max(0, Math.min(100, 100 + accuracy - evasion));
   }
 
   /**

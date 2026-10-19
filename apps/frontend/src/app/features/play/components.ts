@@ -321,7 +321,12 @@ export class GrindInfo implements OnDestroy {
     if (e.action === 'status_stack_lessened') return `${target}'s ${status} lessens (${Number(e.remainingStacks ?? e.stackCount ?? 0)})`;
     if (e.action === 'status_ended' || e.action === 'status_expired') return `${target}'s ${status} ended`;
     if (e.action === 'status_applied' || e.action === 'status_refreshed') return `${actor} applies ${status} to ${target}`;
-    if (e.action === 'attack') { const critical = e.crit ? ' CRITICAL!' : ''; return actor + ' attacks for ' + Number(e.damage ?? 0) + critical; }
+    if (e.action === 'attack') { 
+      const damage = Number(e.damage ?? 0);
+      if (damage === 0) return actor + ' misses!';
+      const critical = e.crit ? ' CRITICAL!' : ''; 
+      return actor + ' attacks for ' + damage + critical; 
+    }
     if (e.action === 'regen') {
       const resource = String(e.resource ?? 'HP').replace(/_regen$/, '').toUpperCase() || 'HP';
       return `${actor} regenerated ${Number(e.amount ?? 0)} ${resource}.`;
