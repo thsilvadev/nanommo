@@ -1,7 +1,7 @@
 <section class="panel grind">
   <div class="panel-title"><span>{{isTown()?'TOWN':'GRIND'}}</span>
     <ng-container *ngIf="isTown()">
-      <button *ngIf="!isCurrentTownSaved()" type="button" class="save-town-button" [disabled]="savingTown()" (click)="saveTown()">{{savingTown()?'Saving…':'Save'}}<img class="button-waypoint" src="/assets/ui/T_waypoint.png" alt="Save"></button>
+      <button *ngIf="!isCurrentTownSaved()" type="button" class="save-town-button" [disabled]="savingTown()" (click)="saveTown()"><span>{{savingTown()?'Saving…':'Save'}}</span><img class="button-waypoint" src="/assets/ui/T_waypoint.png" alt="" aria-hidden="true"></button>
       <span *ngIf="isCurrentTownSaved()" class="town-saved-label">Saved ✔</span>
     </ng-container>
     <span *ngIf="!isTown()" [class.warn]="battle.state()==='reconnecting'">{{stateLabel()}}</span>

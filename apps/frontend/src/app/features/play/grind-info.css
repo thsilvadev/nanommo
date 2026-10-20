@@ -25,13 +25,29 @@
 
 .save-town-button {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   border: 1px solid #a98034;
   background: linear-gradient(#d8b64f, #a87924);
   color: #21170a;
   padding: 3px 8px;
   font: bold 25px Arial;
+  line-height: 1.1;
   letter-spacing: .2px;
+  white-space: nowrap;
   cursor: pointer;
+}
+.save-town-button .button-waypoint {
+  display: block;
+  position: static;
+  width: 22px;
+  height: 24px;
+  flex: 0 0 22px;
+  object-fit: contain;
+  transform: none;
+  z-index: auto;
 }
 .save-town-button:disabled { opacity: .65; cursor: wait; }
 .town-saved-label {
@@ -316,13 +332,4 @@
   .trade-summary span {
     padding: 5px;
   }
-}
-
-.button-waypoint {
-  width: 52px;
-  height: 54px;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 5;
 }
