@@ -527,18 +527,16 @@ export class VendorPanel {
   readonly storageDropListIds = ['storage-drop-list'];
   private lastTownMapId: string|null = null;
   constructor() {
-    console.info('[NPC-DIAG] VendorPanel constructed');
     // GrindInfo and its Town panel stay mounted when moving directly between Towns.
     // Reload on physical map identity changes, not only component construction.
+    // Angular 18 requires allowSignalWrites when an effect resets store signals.
     effect(() => {
       const c = this.character.character();
-      console.info('[NPC-DIAG] Town effect evaluated', { status: c?.status ?? null, mapId: c?.currentMapId ?? null, hasTravelIntent: !!c?.travelIntent, hasPendingMapTransition: !!c?.pendingMapTransition, lastTownMapId: this.lastTownMapId });
       if (!c || c.status !== 'town' || !c.currentMapId || c.currentMapId === this.lastTownMapId) return;
       this.lastTownMapId = c.currentMapId;
-      console.info('[NPC-DIAG] Town entry detected; starting VendorStore.load', { mapId: c.currentMapId });
       this.vendor.resetForTownEntry();
       void this.vendor.load();
-    });
+    }, { allowSignalWrites: true });
   }
   npcPortrait(id: string) { return '/assets/npcs/' + id + '.png'; }
   stockAt(slot: number) { return this.vendor.stock().find(x => x.slotIndex === slot); }

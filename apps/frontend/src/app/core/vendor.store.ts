@@ -55,27 +55,21 @@ export class VendorStore {
 
   async load(){
     const requestSequence=++this.npcLoadSequence;
-    console.info('[NPC-DIAG] VendorStore.load started', { requestSequence, status: this.character.character()?.status ?? null, mapId: this.character.character()?.currentMapId ?? null });
     try{
       // Seed the panel from the same canonical public JSON used by the backend.
       // The API response then confirms/replaces it; a transient request/transition
       // race can no longer blank an otherwise valid Town NPC list.
       let catalogLoadError:any=null;
-      console.info('[NPC-DIAG] Waiting for CatalogService.load');
-      try { await this.catalog.load(); console.info('[NPC-DIAG] CatalogService.load completed'); } catch(error) { catalogLoadError=error; console.error('[NPC-DIAG] CatalogService.load failed', error); }
+      try { await this.catalog.load(); } catch(error) { catalogLoadError=error; }
       const characterAtRequest=this.character.character?.();
       const mapIdAtRequest=characterAtRequest?.currentMapId;
       let catalogueNpcs:TownNpc[]=mapIdAtRequest?this.catalog.townNpcsForMap(mapIdAtRequest) as TownNpc[]:[];
-      console.info('[NPC-DIAG] Catalog NPC lookup completed', { mapId: mapIdAtRequest ?? null, count: catalogueNpcs.length });
       if(!catalogueNpcs.length && mapIdAtRequest) {
-        console.info('[NPC-DIAG] Starting standalone JSON fallback', { mapId: mapIdAtRequest });
-        try { catalogueNpcs=await this.loadTownNpcFallback(mapIdAtRequest); console.info('[NPC-DIAG] Standalone JSON fallback completed', { count: catalogueNpcs.length }); } catch(error) { console.error('[NPC-DIAG] Standalone JSON fallback failed', error); /* API request below remains the authoritative attempt. */ }
+        try { catalogueNpcs=await this.loadTownNpcFallback(mapIdAtRequest); } catch { /* API request below remains the authoritative attempt. */ }
       }
-      if(requestSequence!==this.npcLoadSequence) { console.warn('[NPC-DIAG] Aborting stale VendorStore.load before API request', { requestSequence, latestSequence: this.npcLoadSequence }); return; }
+      if(requestSequence!==this.npcLoadSequence) return;
       if(catalogueNpcs.length) this.npcs.set(catalogueNpcs as TownNpc[]);
-      console.info('[NPC-DIAG] Calling GET /town/npcs', { requestSequence, mapId: mapIdAtRequest ?? null });
       const npcs=await this.api.get<TownNpc[]>('/town/npcs').toPromise();
-      console.info('[NPC-DIAG] GET /town/npcs completed', { requestSequence, count: Array.isArray(npcs) ? npcs.length : null });
       const latestCharacter=this.character.character?.();
       if(requestSequence!==this.npcLoadSequence) return;
       // A Town-to-Town transition can overlap an HTTP response from the previous
