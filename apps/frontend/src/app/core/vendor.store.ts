@@ -44,16 +44,29 @@ export class VendorStore {
     this.modal.set(null);
     this.error.set(null);
   }
+  private async loadTownNpcFallback(mapId:string):Promise<TownNpc[]> {
+    const get=async(path:string)=>{const response=await fetch('/data/'+path);if(!response.ok)throw new Error('Unable to load Town NPC fallback '+path);return response.json();};
+    const [mapsData,npcData,vendor]=await Promise.all([get('maps.json'),get('npc_catalog.json'),get('npc_vendor.json')]);
+    const map=(mapsData.maps??[]).find((row:any)=>row.id===mapId);
+    const catalogue=Array.isArray(npcData.npcs)?npcData.npcs:[];
+    const ids:string[]=Array.isArray(map?.npcIds)?map.npcIds:(mapId==='map_town'?[String(vendor.id??'william'),...catalogue.map((row:any)=>String(row.id))]:[]);
+    return ids.map(id=>id===vendor.id?{id:vendor.id,name:vendor.name,location:vendor.location,types:['vendor'],greeting:vendor.greeting??vendor.vendor?.greeting} as TownNpc:catalogue.find((row:any)=>row.id===id&&row.location==='town') as TownNpc|undefined).filter((row):row is TownNpc=>!!row);
+  }
+
   async load(){
     const requestSequence=++this.npcLoadSequence;
     try{
       // Seed the panel from the same canonical public JSON used by the backend.
       // The API response then confirms/replaces it; a transient request/transition
       // race can no longer blank an otherwise valid Town NPC list.
-      await this.catalog.load();
+      let catalogLoadError:any=null;
+      try { await this.catalog.load(); } catch(error) { catalogLoadError=error; }
       const characterAtRequest=this.character.character?.();
       const mapIdAtRequest=characterAtRequest?.currentMapId;
-      const catalogueNpcs=mapIdAtRequest?this.catalog.townNpcsForMap(mapIdAtRequest):[];
+      let catalogueNpcs:TownNpc[]=mapIdAtRequest?this.catalog.townNpcsForMap(mapIdAtRequest) as TownNpc[]:[];
+      if(!catalogueNpcs.length && mapIdAtRequest) {
+        try { catalogueNpcs=await this.loadTownNpcFallback(mapIdAtRequest); } catch { /* API request below remains the authoritative attempt. */ }
+      }
       if(requestSequence!==this.npcLoadSequence) return;
       if(catalogueNpcs.length) this.npcs.set(catalogueNpcs as TownNpc[]);
       const npcs=await this.api.get<TownNpc[]>('/town/npcs').toPromise();
@@ -73,9 +86,9 @@ export class VendorStore {
       } else if(catalogueNpcs.length) {
         // A successful HTTP response with an empty NPC list is still inconsistent
         // with a Town whose map JSON names residents. Keep the canonical map list
-        // visible and make the API inconsistency diagnosable.
+        // visible and make the API/catalogue inconsistency diagnosable.
         this.npcs.set(catalogueNpcs as TownNpc[]);
-        this.error.set('Town NPC endpoint returned an empty list; showing the map catalogue.');
+        this.error.set(catalogLoadError ? 'Town catalogue load failed; showing NPCs from the standalone map/catalogue files.' : 'Town NPC endpoint returned an empty list; showing the map catalogue.');
       } else this.npcs.set([]);
       if(this.selectedNpcId() && !this.npcs().some(n=>n.id===this.selectedNpcId())) this.resetForTownEntry(false);
       // An empty ID is intentional: never silently select the first NPC.

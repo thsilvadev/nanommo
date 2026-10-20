@@ -19,6 +19,7 @@ async function testCompletedGatheringCycleGrantsAndRestarts() {
   };
   const granted = [];
   const scheduled = [];
+  const published = [];
   const repo = {
     findOne: async () => character,
     save: async row => { Object.assign(character, row); return row; },
@@ -41,7 +42,7 @@ async function testCompletedGatheringCycleGrantsAndRestarts() {
   repo.manager = manager;
   const service = Object.create(MapService.prototype);
   service.characterRepo = repo;
-  service.battleService = { withCharacterQueueLock: async (_id, work) => work() };
+  service.battleService = { withCharacterQueueLock: async (_id, work) => work(), publishQueueUpdated: async id => { published.push(id); } };
   service.mapPresenceService = { countActiveGrinders: async () => 1 };
   service.dataService = {
     getMapById: () => ({ id: 'map_green_grounds_1', type: 'grind', mapLength: 25, gatheringPool: [{ itemId: 'mat_wheat', weight: 100 }] }),
@@ -61,6 +62,7 @@ async function testCompletedGatheringCycleGrantsAndRestarts() {
   assert.ok(character.knownItemIds.includes('mat_wheat'));
   assert.equal(scheduled.length, 1);
   assert.equal(scheduled[0][0], 'advance-stationary-activity');
+  assert.deepEqual(published, [character.id], 'material awards publish an authoritative inventory/Character snapshot immediately');
 }
 
 testCompletedGatheringCycleGrantsAndRestarts().then(() => {

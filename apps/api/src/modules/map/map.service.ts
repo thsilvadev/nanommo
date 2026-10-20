@@ -675,7 +675,10 @@ export class MapService {
       await repo.save(character);
       return { kind: 'updated' as const, cycleIndex, granted, hasProgress: progress > 0 };
     }));
-    if (result.kind === 'updated') await this.scheduleStationaryActivity(characterId, 10_000);
+    if (result.kind === 'updated') {
+      await this.scheduleStationaryActivity(characterId, 10_000);
+      if (result.granted > 0) await this.battleService.publishQueueUpdated(characterId);
+    }
   }
 
   /** Save the exact Town map the character is settled in as their teleport waypoint. */

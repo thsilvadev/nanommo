@@ -740,6 +740,7 @@ export class BattleService {
     const persistedEncounterCycle: any = character.encounterCycle ?? {};
     let preCombatFleeCycle = Math.max(0, Math.floor(Number(persistedEncounterCycle.preCombatFleeCycle ?? 0)));
     let performedPreCombatCheck = false;
+    let lastPreCombatFleeAt: string | null = null;
     for (let i = 0; i < battlesToAdd + 100; i++) {
       if (newBattles.length >= battlesToAdd) break;
       const sequenceIndex = maxSequenceIndex + 1 + newBattles.length;
@@ -775,7 +776,13 @@ export class BattleService {
         const totalLuk = Number(character.luk ?? 5) + Number(attrBonuses.LUK ?? 0);
         const fleeChance = calculateFleeChancePercent(worldSpeed, Number(monsterDef?.moveSpd ?? 0), totalLuk);
         const fleeSeed = buildPreCombatFleeSeed(characterId, mapId, Number(counter.epoch), killIndex, preCombatFleeCycle);
-        const avoid = !monsterDef?.isAggressive || new Mulberry32(fleeSeed).nextPercent() < fleeChance;
+        const aggressive = monsterDef?.isAggressive === true;
+        const fleeRoll = aggressive ? new Mulberry32(fleeSeed).nextPercent() : null;
+        const avoid = !aggressive || Number(fleeRoll) < fleeChance;
+        if (aggressive) {
+          this.logger.log(`Gathering pre-combat FLEE ${avoid ? 'succeeded' : 'failed'} character=${characterId} map=${mapId} monster=${monster.id} chance=${fleeChance}% roll=${fleeRoll}`);
+          if (avoid) lastPreCombatFleeAt = new Date().toISOString();
+        }
         if (avoid) { projectedMapKillCount += 1; nextStartTime = new Date(encounterStartAt); continue; }
       }
       const monsterId = monster.id;
@@ -959,6 +966,11 @@ export class BattleService {
 
       if (simulation.outcome === 'loss') break;
       nextStartTime = new Date(nextStartTime.getTime() + battleDurationMs);
+    }
+
+    if (lastPreCombatFleeAt) {
+      character.encounterCycle = { ...(character.encounterCycle ?? {}), lastFleeSuccessAt: lastPreCombatFleeAt };
+      await this.characterRepo.save(character);
     }
 
     const liveQueue = [...currentQueue, ...newBattles];
@@ -1309,6 +1321,7 @@ export class BattleService {
 
   /** Parallel FLEE roll: never advances the immutable battle's stored combat log/seed stream. */
   async attemptFlee(characterId: string, expectedGeneration?: number, expectedBattleId?: string): Promise<'failed' | 'cancelled' | 'not-active' | 'stale'> {
+    this.logger.log(`FLEE attempt requested character=${characterId} battle=${expectedBattleId ?? 'active'} generation=${expectedGeneration ?? 'any'}`);
     const reference = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!reference) throw new NotFoundException('Character not found');
     const queue = await this.getBattleQueue(characterId, 100);
@@ -1386,6 +1399,7 @@ export class BattleService {
       const attemptIndex = Math.max(0, Number(intent.fleeAttemptIndex ?? 0));
       const roll = new Mulberry32(`${battle.id}:flee:${attemptIndex}`).nextPercent();
       if (roll >= chance) {
+        this.logger.warn(`FLEE failed character=${characterId} battle=${battle.id} attempt=${attemptIndex + 1} chance=${chance}% roll=${roll}`);
         character.fleeAttemptIndex = attemptIndex + 1;
         character.fleeNextAttemptAt = new Date(timestamp + 10_000);
         intent.fleeAttemptIndex = character.fleeAttemptIndex;
@@ -1396,6 +1410,7 @@ export class BattleService {
         return { kind: 'failed' as const, retryAt: timestamp + 10_000, intent: { ...intent }, battleId: battle.id };
       }
 
+      this.logger.log(`FLEE succeeded character=${characterId} battle=${battle.id} attempt=${attemptIndex + 1} chance=${chance}% roll=${roll}`);
       // Inventory changes are those caused by this battle only; preserve unrelated later inventory mutations.
       const currentItems = await manager.getRepository(InventoryItem).find({ where: { characterId, location: 'inventory' }, lock: { mode: 'pessimistic_write' } });
       const currentCount: Record<string, number> = {};
@@ -1710,7 +1725,7 @@ export class BattleService {
 
   async publishQueueUpdated(characterId: string): Promise<void> {
     const entries = await this.getBattleQueue(characterId, 5);
-    await this.safePublishQueueUpdated(characterId, entries);
+    await this.safePublishQueueUpdated(characterId, entries, await this.buildAuthoritativeBattleSnapshot(characterId));
   }
 
   /** Remove only Bull jobs for queue rows that have already been deleted transactionally. */

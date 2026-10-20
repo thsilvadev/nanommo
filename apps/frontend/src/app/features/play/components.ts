@@ -568,6 +568,9 @@ export class BattleProgress implements OnDestroy { @Input() entry!: any; readonl
 
 @Component({ selector: 'app-grind-info', standalone: true, imports: [CommonModule, BattleProgress, VendorPanel, TooltipPositionDirective], templateUrl: './grind-info.html', styleUrl: './grind-info.css', styles:[`.foe-mana{height:8px;background:#10131c;border:1px solid #294c70;margin-top:3px}.foe-mana i{display:block;height:100%;background:#3e91df}.mana-label{margin-top:5px}.status-icons,.skill-icons{display:flex;gap:5px;flex-wrap:wrap}.status-icon,.monster-skill-icon{position:relative;width:34px;height:34px;display:grid;place-items:center}.status-icon img,.monster-skill-icon img{width:30px;height:30px;object-fit:contain}.status-icon .status-tooltip,.monster-skill-icon .skill-tooltip{display:none;position:absolute;z-index:100;bottom:calc(100% + 7px);left:0;min-width:180px;max-width:260px;padding:8px;background:#120d09;border:1px solid #80613a;box-shadow:0 4px 14px #000;color:#c9b79a;white-space:normal;pointer-events:none;text-align:left}.monster-skill-icon:hover .skill-tooltip,.monster-skill-icon:focus .skill-tooltip,.monster-skill-icon:focus-within .skill-tooltip{display:flex;flex-direction:column;gap:4px}.status-tooltip strong,.skill-tooltip b{color:#e1cfad;font:15px Georgia}.status-tooltip small,.skill-tooltip small{font:12px Arial;line-height:1.3}.status-icon b{position:absolute;right:-3px;bottom:-3px;font-size:10px}`] })
 export class GrindInfo implements OnDestroy {
+  isGathering(){return this.character.character()?.lastGrindStance==='gathering' && !this.character.character()?.travelIntent;}
+  recentFleeNotice(){const c:any=this.character.character();const raw=c?.encounterCycle?.lastFleeSuccessAt??c?.travelIntent?.lastFleeSuccessAt;const at=Date.parse(String(raw??''));return Number.isFinite(at)&&Date.now()-at<5000;}
+
   readonly battle = inject(BattleStore);
   readonly character = inject(CharacterStore);
   readonly inventory = inject(InventoryStore);

@@ -13,7 +13,7 @@
   <ng-container *ngIf="isTown();else grindContext"><app-vendor-panel></app-vendor-panel></ng-container>
   <ng-template #grindContext><ng-container *ngIf="battle.active() as b">
       <ng-container *ngIf="isSearching(b); else activeBattle">
-        <div class="idle-state search-state"><strong>Searching for Monsters...</strong></div>
+        <div class="idle-state search-state"><strong>{{isGathering() ? 'Gathering...' : 'Searching for Monsters...'}}</strong><small *ngIf="recentFleeNotice()">You fled an aggressive enemy.</small></div>
       </ng-container>
       <ng-template #activeBattle>
         <div class="foe">
@@ -46,7 +46,7 @@
         <div class="monster-skills" *ngIf="monsterSkills(b).length"><div class="section-label">SKILLS</div><div class="skill-icons"><div *ngFor="let skill of monsterSkills(b)" class="monster-skill-icon" tabindex="0" [attr.data-tooltip]="skillTooltip(skill)"><img [src]="skillIcon(skill)" [alt]="skill.name"><span class="skill-tooltip"><b>{{skill.name}}</b><small>{{skillTooltip(skill)}}</small></span></div></div></div>
       </ng-template>
     </ng-container>
-    <div *ngIf="!battle.active()" class="idle-state"><strong>{{foodLabel()==='HUNGRY'?'HUNGRY':(character.character()?.travelIntent?'TRAVELING':'Searching for Monsters...')}}</strong><small *ngIf="foodLabel()!=='HUNGRY'">Waiting for the authoritative encounter queue.</small></div>
+    <div *ngIf="!battle.active()" class="idle-state"><strong>{{foodLabel()==='HUNGRY'?'HUNGRY':(character.character()?.travelIntent?'TRAVELING':(isGathering()?'Gathering...':'Searching for Monsters...'))}}</strong><small *ngIf="isGathering() && recentFleeNotice()">You fled an aggressive enemy.</small><small *ngIf="foodLabel()!=='HUNGRY'">Waiting for the authoritative encounter queue.</small></div>
     <div class="session-drops">
       <div class="section-label">SESSION LOOT</div>
       <div *ngFor="let it of sessionDrops()" class="session-loot-item" [attr.title]="sessionDropName(it)">
