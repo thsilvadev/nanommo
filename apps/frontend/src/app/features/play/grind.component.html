@@ -13,15 +13,15 @@
       <small *ngIf="error()">{{error()}}</small>
     </div>
     <div class="grind-mode-select" aria-label="Hunting mode">
-      <button type="button" [class.active]="huntMode()==='hunting'" (click)="huntMode.set('hunting')" title="Hunting">
+      <button type="button" [class.active]="character.character()?.status!=='town' && huntMode()==='hunting'" [disabled]="loading()" (click)="selectStance('hunting')" title="Hunting">
         <img src="/assets/ui/hunting.svg" alt="Hunting">
       </button>
-      <!-- <button type="button" [class.active]="huntMode()==='defensive'" (click)="huntMode.set('defensive')" title="Defensive">
-        <img src="/assets/ui/defensive.svg" alt="Defensive">
-      </button> -->
-      <button type="button" [class.active]="huntMode()==='fleeing'" (click)="huntMode.set('fleeing')" title="Fleeing">
-        <img src="/assets/ui/fleeing.svg" alt="Fleeing">
+      <button type="button" [class.active]="character.character()?.status!=='town' && huntMode()==='gathering'" [disabled]="loading()" (click)="selectStance('gathering')" title="Gathering">
+        <img src="/assets/ui/gathering.svg" alt="Gathering">
       </button>
+      <span *ngIf="character.character()?.travelIntent" class="traveling-stance" title="Traveling is automatic while a route is active">
+        <img src="/assets/ui/boots.svg" alt="Traveling">
+      </span>
     </div>
     <div class="grind-inventory"><app-inventory-grid /></div>
   </div>

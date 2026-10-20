@@ -112,7 +112,7 @@ export class InventoryService {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
     const map = this.dataService.getMapById(character.currentMapId);
-    if (map?.type !== 'town' || character.status !== 'town' || character.pendingMapTransition !== null) throw new BadRequestException('Warehouse is only available while settled in Town');
+    if (map?.type !== 'town' || character.status !== 'town' || character.pendingMapTransition !== null || character.travelIntent != null) throw new BadRequestException('Warehouse is only available while settled in Town');
   }
 
   async getItemCount(characterId: string, itemId: string, manager?: EntityManager): Promise<number> {
@@ -457,7 +457,7 @@ export class InventoryService {
       const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
       if (!character) throw new NotFoundException('Character not found');
       const map = this.dataService.getMapById(character.currentMapId);
-      if (map?.type !== 'town' || character.status !== 'town' || character.pendingMapTransition !== null) throw new BadRequestException('Warehouse is only available while settled in Town');
+      if (map?.type !== 'town' || character.status !== 'town' || character.pendingMapTransition !== null || character.travelIntent != null) throw new BadRequestException('Warehouse is only available while settled in Town');
       const repo = manager.getRepository(InventoryItem);
       const candidates = await repo.find({ where: { characterId, itemId, location: fromLocation }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
       const matching = candidates.filter(row => Number(row.quantity) === quantity);
@@ -473,7 +473,7 @@ export class InventoryService {
       const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
       if (!character) throw new NotFoundException('Character not found');
       const map = this.dataService.getMapById(character.currentMapId);
-      if (map?.type !== 'town' || character.status !== 'town' || character.pendingMapTransition !== null) throw new BadRequestException('Warehouse is only available while settled in Town');
+      if (map?.type !== 'town' || character.status !== 'town' || character.pendingMapTransition !== null || character.travelIntent != null) throw new BadRequestException('Warehouse is only available while settled in Town');
       const repo = manager.getRepository(InventoryItem);
       const source = await repo.findOne({ where: { id: sourceRowId, characterId, location: fromLocation }, lock: { mode: 'pessimistic_write' } });
       if (!source) throw new NotFoundException('Source stack not found at expected location');

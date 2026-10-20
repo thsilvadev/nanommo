@@ -84,12 +84,11 @@ async function run() {
   service.dataService = { getItemById: (id) => food(id) };
 
   const boundaryBase = 5_000_000;
-  assert.equal(calculateEncounterSearchDelayMs(0), 2000);
-  assert.equal(calculateEncounterSearchDelayMs(7), 2700);
-  assert.equal(
-    calculateNextEncounterBoundaryAt(boundaryBase, 7),
-    boundaryBase + 2700,
-  );
+  const encounterDelay = calculateEncounterSearchDelayMs(7, 'diet-test-cycle');
+  assert.ok(encounterDelay >= 9000 && encounterDelay <= 13000);
+  assert.equal(calculateEncounterSearchDelayMs(7, 'diet-test-cycle'), encounterDelay);
+  assert.equal(calculateEncounterSearchDelayMs(2, 'diet-test-cycle'), encounterDelay - 5000);
+  assert.equal(calculateNextEncounterBoundaryAt(boundaryBase, 7, 'diet-test-cycle'), boundaryBase + encounterDelay);
 
   const consumed = [];
   service.inventoryService = {

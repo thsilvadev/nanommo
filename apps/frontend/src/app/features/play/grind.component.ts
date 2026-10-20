@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
 import { ApiService } from '../../core/api.service';
 import { CharacterStore } from '../../core/game.store';
 import { GambitPage } from '../../core/game.models';
@@ -11,7 +11,7 @@ export class GrindComponent implements OnInit {
   readonly gambits=signal<GambitPage[]>([]);
   readonly loading=signal(false);
   readonly error=signal<string|null>(null);
-  readonly huntMode=signal<'hunting'|'defensive'|'fleeing'>('hunting');
+  readonly huntMode=signal<'hunting'|'gathering'>('hunting');
   
   readonly activeGambitId=computed(()=>{
     const activeId=this.character.character()?.activeGambitPageId;
@@ -21,7 +21,17 @@ export class GrindComponent implements OnInit {
     return found?activeId:'';
   });
 
+  constructor(){effect(()=>{const stance=this.character.character()?.lastGrindStance;if(stance==='hunting'||stance==='gathering')this.huntMode.set(stance);});}
+
   ngOnInit(){void this.loadGambits();}
+
+  async selectStance(stance:'hunting'|'gathering'){
+    if(this.loading()||this.huntMode()===stance)return;
+    this.loading.set(true);this.error.set(null);
+    try{const response=await this.api.post<any>('/maps/stance',{stance}).toPromise();this.huntMode.set(stance);if(response?.character)this.character.applyPatch(response.character);else this.character.applyPatch({lastGrindStance:stance});}
+    catch(e:any){this.error.set(e?.error?.message??'Unable to change stance');}
+    finally{this.loading.set(false);}
+  }
 
   async loadGambits(){
     try{

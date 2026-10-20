@@ -21,7 +21,8 @@
         "blacksmith_loren",
         "cecilia",
         "storage"
-      ]
+      ],
+      "mapLength": 0
     },
     {
       "id": "map_green_grounds_0",
@@ -47,7 +48,22 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 1
+      "recommendedLevel": 1,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_wild_blueberries",
+          "weight": 45
+        },
+        {
+          "itemId": "mat_herbs",
+          "weight": 30
+        },
+        {
+          "itemId": "mat_wheat",
+          "weight": 25
+        }
+      ]
     },
     {
       "id": "map_green_grounds_1",
@@ -73,7 +89,22 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 1
+      "recommendedLevel": 1,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_wild_blueberries",
+          "weight": 50
+        },
+        {
+          "itemId": "mat_herbs",
+          "weight": 25
+        },
+        {
+          "itemId": "mat_honeycomb",
+          "weight": 25
+        }
+      ]
     },
     {
       "id": "map_green_grounds_3",
@@ -99,7 +130,22 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 5
+      "recommendedLevel": 5,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_herbs",
+          "weight": 50
+        },
+        {
+          "itemId": "mat_cabbage",
+          "weight": 25
+        },
+        {
+          "itemId": "mat_carrot",
+          "weight": 25
+        }
+      ]
     },
     {
       "id": "map_green_grounds_4",
@@ -125,7 +171,22 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 1
+      "recommendedLevel": 1,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_wild_blueberries",
+          "weight": 40
+        },
+        {
+          "itemId": "mat_wheat",
+          "weight": 35
+        },
+        {
+          "itemId": "mat_sugar",
+          "weight": 25
+        }
+      ]
     },
     {
       "id": "map_green_grounds_5",
@@ -151,7 +212,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 1
+      "recommendedLevel": 1,
+      "mapLength": 25
     },
     {
       "id": "map_green_grounds_6",
@@ -177,7 +239,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 5
+      "recommendedLevel": 5,
+      "mapLength": 25
     },
     {
       "id": "map_outpost",
@@ -196,7 +259,8 @@
       "isTown": true,
       "npcIds": [
         "storage"
-      ]
+      ],
+      "mapLength": 0
     },
     {
       "id": "map_gods_bridge",
@@ -218,7 +282,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 10
+      "recommendedLevel": 10,
+      "mapLength": 25
     },
     {
       "id": "map_ipora_beach_0",
@@ -248,7 +313,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 10
+      "recommendedLevel": 10,
+      "mapLength": 25
     },
     {
       "id": "map_ipora_beach_1",
@@ -274,7 +340,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 10
+      "recommendedLevel": 10,
+      "mapLength": 25
     },
     {
       "id": "map_kwaioua_forest_0",
@@ -304,7 +371,22 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20
+      "recommendedLevel": 20,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_herbs",
+          "weight": 40
+        },
+        {
+          "itemId": "mat_wild_blueberries",
+          "weight": 35
+        },
+        {
+          "itemId": "mat_honeycomb",
+          "weight": 25
+        }
+      ]
     },
     {
       "id": "map_kwaioua_forest_1",
@@ -330,7 +412,26 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20
+      "recommendedLevel": 20,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_herbs",
+          "weight": 35
+        },
+        {
+          "itemId": "mat_milk",
+          "weight": 30
+        },
+        {
+          "itemId": "mat_cabbage",
+          "weight": 20
+        },
+        {
+          "itemId": "mat_carrot",
+          "weight": 15
+        }
+      ]
     },
     {
       "id": "map_kwaioua_forest_2",
@@ -356,7 +457,22 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20
+      "recommendedLevel": 20,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_honeycomb",
+          "weight": 40
+        },
+        {
+          "itemId": "mat_herbs",
+          "weight": 35
+        },
+        {
+          "itemId": "mat_wild_blueberries",
+          "weight": 25
+        }
+      ]
     },
     {
       "id": "map_kwaioua_forest_3",
@@ -386,7 +502,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20
+      "recommendedLevel": 20,
+      "mapLength": 25
     },
     {
       "id": "map_kwaioua_forest_6",
@@ -420,7 +537,22 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 40
+      "recommendedLevel": 40,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_herbs",
+          "weight": 45
+        },
+        {
+          "itemId": "mat_honeycomb",
+          "weight": 35
+        },
+        {
+          "itemId": "mat_sugar",
+          "weight": 20
+        }
+      ]
     },
     {
       "id": "map_kwaioua_forest_7",
@@ -458,7 +590,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 40
+      "recommendedLevel": 40,
+      "mapLength": 25
     },
     {
       "id": "map_kwaioua_forest_4",
@@ -488,7 +621,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 30
+      "recommendedLevel": 30,
+      "mapLength": 25
     },
     {
       "id": "map_kwaioua_forest_5",
@@ -518,7 +652,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 30
+      "recommendedLevel": 30,
+      "mapLength": 25
     },
     {
       "id": "map_kwaioua_taba",
@@ -537,7 +672,8 @@
       "isTown": true,
       "npcIds": [
         "storage"
-      ]
+      ],
+      "mapLength": 0
     },
     {
       "id": "map_caete_0",
@@ -571,7 +707,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 40
+      "recommendedLevel": 40,
+      "mapLength": 25
     },
     {
       "id": "map_caete_1",
@@ -601,7 +738,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 50
+      "recommendedLevel": 50,
+      "mapLength": 25
     },
     {
       "id": "map_caete_2",
@@ -631,7 +769,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 50
+      "recommendedLevel": 50,
+      "mapLength": 25
     },
     {
       "id": "map_caete_3",
@@ -665,7 +804,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 40
+      "recommendedLevel": 40,
+      "mapLength": 25
     },
     {
       "id": "map_caete_4",
@@ -687,7 +827,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 30
+      "recommendedLevel": 30,
+      "mapLength": 25
     },
     {
       "id": "map_caete_5",
@@ -709,7 +850,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 30
+      "recommendedLevel": 30,
+      "mapLength": 25
     },
     {
       "id": "map_caete_6",
@@ -735,7 +877,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 50
+      "recommendedLevel": 50,
+      "mapLength": 25
     },
     {
       "id": "map_caete_7",
@@ -757,7 +900,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 30
+      "recommendedLevel": 30,
+      "mapLength": 25
     },
     {
       "id": "map_aramaia_city",
@@ -776,7 +920,8 @@
       "isTown": true,
       "npcIds": [
         "storage"
-      ]
+      ],
+      "mapLength": 0
     },
     {
       "id": "map_forest_ruins_0",
@@ -814,7 +959,26 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 60
+      "recommendedLevel": 60,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_wheat",
+          "weight": 40
+        },
+        {
+          "itemId": "mat_cooking_oil",
+          "weight": 25
+        },
+        {
+          "itemId": "mat_sugar",
+          "weight": 20
+        },
+        {
+          "itemId": "mat_carrot",
+          "weight": 15
+        }
+      ]
     },
     {
       "id": "map_forest_ruins_1",
@@ -852,7 +1016,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 60
+      "recommendedLevel": 60,
+      "mapLength": 25
     },
     {
       "id": "map_forest_ruins_2",
@@ -890,7 +1055,26 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 60
+      "recommendedLevel": 60,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_carrot",
+          "weight": 30
+        },
+        {
+          "itemId": "mat_cabbage",
+          "weight": 30
+        },
+        {
+          "itemId": "mat_herbs",
+          "weight": 25
+        },
+        {
+          "itemId": "mat_milk",
+          "weight": 15
+        }
+      ]
     },
     {
       "id": "map_forest_ruins_3",
@@ -924,7 +1108,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 70
+      "recommendedLevel": 70,
+      "mapLength": 25
     },
     {
       "id": "map_menace_hills_0",
@@ -958,7 +1143,26 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 10
+      "recommendedLevel": 10,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_carrot",
+          "weight": 30
+        },
+        {
+          "itemId": "mat_cabbage",
+          "weight": 25
+        },
+        {
+          "itemId": "mat_wheat",
+          "weight": 25
+        },
+        {
+          "itemId": "mat_cooking_oil",
+          "weight": 20
+        }
+      ]
     },
     {
       "id": "map_menace_hills_1",
@@ -992,7 +1196,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 10
+      "recommendedLevel": 10,
+      "mapLength": 25
     },
     {
       "id": "map_menace_hills_2",
@@ -1026,7 +1231,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 10
+      "recommendedLevel": 10,
+      "mapLength": 25
     },
     {
       "id": "map_menace_hills_3",
@@ -1060,7 +1266,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 10
+      "recommendedLevel": 10,
+      "mapLength": 25
     },
     {
       "id": "map_wastelands_0",
@@ -1094,7 +1301,26 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20
+      "recommendedLevel": 20,
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_wheat",
+          "weight": 30
+        },
+        {
+          "itemId": "mat_cooking_oil",
+          "weight": 25
+        },
+        {
+          "itemId": "mat_sugar",
+          "weight": 25
+        },
+        {
+          "itemId": "mat_honeycomb",
+          "weight": 20
+        }
+      ]
     },
     {
       "id": "map_wastelands_1",
@@ -1128,7 +1354,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 25
+      "recommendedLevel": 25,
+      "mapLength": 25
     },
     {
       "id": "map_wastelands_2",
@@ -1162,7 +1389,8 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20
+      "recommendedLevel": 20,
+      "mapLength": 25
     },
     {
       "id": "map_emperial_capital_caelum",
@@ -1181,7 +1409,8 @@
       "isTown": true,
       "npcIds": [
         "storage"
-      ]
+      ],
+      "mapLength": 0
     }
   ]
 }

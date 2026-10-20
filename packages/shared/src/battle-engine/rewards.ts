@@ -38,6 +38,7 @@ export interface ItemsCatalog {
   consumables?: any[];
   equipment?: any[];
   monsterParts?: any[];
+  materials?: any[];
 }
 
 /**

@@ -69,7 +69,9 @@
         "bow": 1,
         "staff": 0.8,
         "rod": 0.8
-      }
+      },
+      "isAggressive": false,
+      "moveSpd": 40
     },
     {
       "id": "mon_fieldbat",
@@ -133,7 +135,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 62
     },
     {
       "id": "mon_thornsprout",
@@ -203,7 +207,9 @@
       "canMove": false,
       "elementalDamageTakenMultiplier": {
         "fire": 2
-      }
+      },
+      "isAggressive": false,
+      "moveSpd": 0
     },
     {
       "id": "mon_mudcrawler",
@@ -269,7 +275,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 40
     },
     {
       "id": "mon_direwolf",
@@ -315,6 +323,10 @@
           "itemId": "equip_green_grounds_roll",
           "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+        },
+        {
+          "itemId": "mat_meat",
+          "chance": 0.2
         }
       ],
       "gambit": [
@@ -344,7 +356,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 60
     },
     {
       "id": "mon_sandscorpion",
@@ -418,7 +432,9 @@
         "bow": 1,
         "staff": 1.2,
         "rod": 1.2
-      }
+      },
+      "isAggressive": true,
+      "moveSpd": 48
     },
     {
       "id": "mon_duneraider",
@@ -482,7 +498,9 @@
       "basicAttackDamageType": "ranged",
       "basicAttackRange": 6,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 58
     },
     {
       "id": "mon_cindergolem",
@@ -548,7 +566,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 35
     },
     {
       "id": "mon_venomviper",
@@ -625,7 +645,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 80,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 55
     },
     {
       "id": "mon_mirageStalker",
@@ -691,7 +713,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 60
     },
     {
       "id": "mon_brokensentinel",
@@ -763,7 +787,9 @@
         "bow": 1,
         "staff": 1.3,
         "rod": 1.25
-      }
+      },
+      "isAggressive": true,
+      "moveSpd": 40
     },
     {
       "id": "mon_wraith",
@@ -840,7 +866,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 80,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 56
     },
     {
       "id": "mon_arcanewisp",
@@ -924,7 +952,9 @@
         "bow": 1,
         "staff": 0.7,
         "rod": 0.7
-      }
+      },
+      "isAggressive": true,
+      "moveSpd": 65
     },
     {
       "id": "mon_boneknight",
@@ -999,7 +1029,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 44
     },
     {
       "id": "mon_ruinsguardian",
@@ -1074,7 +1106,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 35
     },
     {
       "id": "mon_mudflatcrocodile",
@@ -1138,7 +1172,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 25
     },
     {
       "id": "mon_bandit",
@@ -1213,7 +1249,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 80,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 60
     },
     {
       "id": "mon_kwaiouaranger",
@@ -1289,7 +1327,9 @@
       "basicAttackDamageType": "ranged",
       "basicAttackRange": 6,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 60
     },
     {
       "id": "mon_sacredforestguardian",
@@ -1363,7 +1403,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 45
     },
     {
       "id": "mon_gravelhorn",
@@ -1427,7 +1469,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 45
     },
     {
       "id": "mon_ridgebreaker",
@@ -1491,7 +1535,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 45
     },
     {
       "id": "mon_saltfangcrab",
@@ -1555,7 +1601,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": false,
+      "moveSpd": 45
     },
     {
       "id": "mon_needlebackstalker",
@@ -1601,6 +1649,10 @@
           "itemId": "equip_ruins_roll",
           "chance": 0.002,
           "note": "resolved to a tier-appropriate equipment piece at roll time"
+        },
+        {
+          "itemId": "mat_meat",
+          "chance": 0.2
         }
       ],
       "gambit": [
@@ -1619,7 +1671,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 60
     },
     {
       "id": "mon_giantmosquito",
@@ -1683,7 +1737,9 @@
       "basicAttackDamageType": "ranged",
       "basicAttackRange": 6,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 60
     },
     {
       "id": "mon_rootboundbrute",
@@ -1757,7 +1813,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 45
     },
     {
       "id": "mon_moonleafarcanist",
@@ -1821,7 +1879,9 @@
       "basicAttackDamageType": "ranged",
       "basicAttackRange": 6,
       "maxSp": 80,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": false,
+      "moveSpd": 60
     },
     {
       "id": "mon_aramaianwarden",
@@ -1885,7 +1945,9 @@
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
-      "spRegenPerTenTicks": 2
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 45
     }
   ]
 }

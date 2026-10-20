@@ -76,7 +76,7 @@ export class TownService {
       lock: { mode: 'pessimistic_write' },
     });
     if (!character) throw new NotFoundException('Character not found');
-    if (this.dataService.getMapById(character.currentMapId)?.type !== 'town' || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('Town transactions are only available in Town');
+    if (this.dataService.getMapById(character.currentMapId)?.type !== 'town' || character.pendingMapTransition !== null || character.travelIntent != null || character.status !== 'town') throw new BadRequestException('Town transactions are only available in Town');
     return character;
   }
 
@@ -224,7 +224,7 @@ export class TownService {
   private async assertTown(characterId: string): Promise<Character> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
-    if (this.dataService.getMapById(character.currentMapId)?.type !== 'town' || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
+    if (this.dataService.getMapById(character.currentMapId)?.type !== 'town' || character.pendingMapTransition !== null || character.travelIntent != null || character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
     return character;
   }
 
@@ -314,7 +314,7 @@ export class TownService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!character) throw new NotFoundException('Character not found');
-      if (this.dataService.getMapById(character.currentMapId)?.type !== 'town' || character.pendingMapTransition !== null || character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
+      if (this.dataService.getMapById(character.currentMapId)?.type !== 'town' || character.pendingMapTransition !== null || character.travelIntent != null || character.status !== 'town') throw new BadRequestException('NPC interactions are only available in Town');
 
       const node = this.questNode(npc, nodeId);
       const choice = (node.choices ?? []).find((x: any) => x.id === choiceId);

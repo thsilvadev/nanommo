@@ -21,7 +21,7 @@ import {
   type CombatantSnapshot,
   type AttributeBonuses,
 } from '@nanommo/shared';
-import { effectiveFoodStatValue, TOWN_MAP_ID } from '@nanommo/shared';
+import { effectiveFoodStatValue, TOWN_MAP_ID, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, isInstantTownGrindEdge, calculateFleeChancePercent, deterministicIntInclusive } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 import { CharacterService } from '../character/character.service';
 import { InventoryService, buildDietStateAfterFoodConsumption, normalizeDietState } from '../inventory/inventory.service';
@@ -40,15 +40,17 @@ const EPOCH_ROLLOVER_AT = 10_000;
 const MS_PER_TICK = 1000;
 
 
-export function calculateEncounterSearchDelayMs(otherPlayers: number): number {
-  return 2000 + Math.max(0, Math.floor(otherPlayers)) * 100;
+export function calculateEncounterSearchDelayMs(playersOnMap: number, seed = 'encounter-search'): number {
+  const variable = new Mulberry32(seed).nextIntInclusive(2, 6);
+  return (variable + Math.max(1, Math.floor(playersOnMap))) * 1000;
 }
 
 export function calculateNextEncounterBoundaryAt(
   battleEndAt: number,
-  otherPlayers: number,
+  playersOnMap: number,
+  seed = 'encounter-search',
 ): number {
-  return battleEndAt + calculateEncounterSearchDelayMs(otherPlayers);
+  return battleEndAt + calculateEncounterSearchDelayMs(playersOnMap, seed);
 }
 
 export function applyLevelXpResolution(
@@ -163,7 +165,15 @@ export class BattleService {
       (entry) => entry.startAt.getTime() <= now && now < entry.endAt.getTime(),
     );
 
-    const result = await mutation();
+    await this.pauseTravelProgressForSpeedMutation(characterId);
+    let result: T;
+    try {
+      result = await mutation();
+    } finally {
+      // Even if an equipment/stat mutation fails, clear the short-lived pause using
+      // the currently persisted loadout so a route cannot remain frozen forever.
+      await this.resumeTravelProgressAfterSpeedMutation(characterId);
+    }
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
 
@@ -181,6 +191,65 @@ export class BattleService {
     return result;
   }
 
+  /** Accrue a route's progress under the old movement rate before a loadout/stat mutation. */
+  private async pauseTravelProgressForSpeedMutation(characterId: string): Promise<void> {
+    await this.characterRepo.manager.transaction(async manager => {
+      const repo = manager.getRepository(Character);
+      const character = await repo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      const intent: any = character?.travelIntent;
+      if (!character || !intent || intent.kind !== 'route' || intent.waitingForBattle === true || intent.speedMutationPending === true) return;
+      const routeIds = Array.isArray(intent.routeMapIds) ? intent.routeMapIds.map(String) : [];
+      const segmentIndex = Math.max(0, Math.floor(Number(intent.segmentIndex ?? 0)));
+      if (routeIds[segmentIndex] !== character.currentMapId) return;
+      const source = this.dataService.getMapById(character.currentMapId);
+      const destination = this.dataService.getMapById(String(routeIds[segmentIndex + 1] ?? ''));
+      if (!source || !destination || isInstantTownGrindEdge(source, destination)) return;
+      const unresolved = await manager.getRepository(BattleQueueEntry).find({ where: { characterId, resolved: false } });
+      const now = Date.now();
+      if (unresolved.some(entry => entry.startAt.getTime() <= now && entry.endAt.getTime() > now)) return;
+      const equipment = (await this.equipmentService.getEquipment(characterId)).map((row: any) => ({ ...row, definition: this.dataService.getItemById(row.itemId) }));
+      const oldSpeed = calculateWorldMoveSpeed(character, equipment, character.activeTempBuffs ?? [], character.statusEffects ?? []);
+      const oldDuration = calculateTravelDurationSeconds(oldSpeed, Number(source.mapLength ?? (source.type === 'town' ? 0 : 25)));
+      const rawLastAt = Date.parse(String(intent.lastAccruedAt ?? now));
+      const lastAt = Number.isFinite(rawLastAt) ? rawLastAt : now;
+      const previousDuration = Number(intent.lastDurationSeconds ?? oldDuration);
+      const accrued = accrueTravelSegmentProgress(Number(intent.segmentProgress ?? 0), lastAt, now, previousDuration);
+      // If the segment hits its boundary during a mutation, leave it one scheduler pulse short.
+      intent.segmentProgress = Math.max(0, Math.min(0.999999, accrued.progress));
+      intent.lastAccruedAt = new Date(now).toISOString();
+      intent.lastDurationSeconds = Number.isFinite(oldDuration) ? oldDuration : null;
+      intent.speedPaused = oldSpeed <= 0;
+      intent.speedMutationPending = true;
+      character.travelIntent = intent;
+      await repo.save(character);
+    });
+  }
+
+  /** Resume only after the speed-affecting mutation has committed, without losing accrued progress. */
+  private async resumeTravelProgressAfterSpeedMutation(characterId: string): Promise<void> {
+    await this.characterRepo.manager.transaction(async manager => {
+      const repo = manager.getRepository(Character);
+      const character = await repo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      const intent: any = character?.travelIntent;
+      if (!character || !intent || intent.speedMutationPending !== true) return;
+      const routeIds = Array.isArray(intent.routeMapIds) ? intent.routeMapIds.map(String) : [];
+      const segmentIndex = Math.max(0, Math.floor(Number(intent.segmentIndex ?? 0)));
+      const source = routeIds[segmentIndex] === character.currentMapId ? this.dataService.getMapById(character.currentMapId) : null;
+      const destination = this.dataService.getMapById(String(routeIds[segmentIndex + 1] ?? ''));
+      if (source && destination && !isInstantTownGrindEdge(source, destination)) {
+        const equipment = (await this.equipmentService.getEquipment(characterId)).map((row: any) => ({ ...row, definition: this.dataService.getItemById(row.itemId) }));
+        const newSpeed = calculateWorldMoveSpeed(character, equipment, character.activeTempBuffs ?? [], character.statusEffects ?? []);
+        const newDuration = calculateTravelDurationSeconds(newSpeed, Number(source.mapLength ?? (source.type === 'town' ? 0 : 25)));
+        intent.lastDurationSeconds = Number.isFinite(newDuration) ? newDuration : null;
+        intent.speedPaused = newSpeed <= 0;
+      }
+      intent.lastAccruedAt = new Date().toISOString();
+      intent.speedMutationPending = false;
+      character.travelIntent = intent;
+      await repo.save(character);
+    });
+  }
+
   private async invalidateAndRebuildFutureCombatQueue(characterId: string): Promise<void> {
     await this.discardUnresolvedBattles(characterId);
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
@@ -190,6 +259,7 @@ export class BattleService {
       character.status === 'grinding' &&
       !!character.currentMapId &&
       !character.pendingMapTransition &&
+      !character.travelIntent &&
       character.currentMapId !== TOWN_MAP_ID;
 
     if (!grinding) {
@@ -208,7 +278,7 @@ export class BattleService {
     const rows = await this.battleQueueRepo.find({
       where: { characterId, resolved: true }, order: { startAt: 'DESC' }, take: safeLimit,
     });
-    return rows.map((battle) => {
+    return rows.filter((battle) => !battle.cancelledAt && !battle.cancellationReason).map((battle) => {
       const monster = this.dataService.getMonsterById(battle.monsterId);
       const map = this.dataService.getMapById(battle.mapId);
       return { id:battle.id, outcome:battle.outcome, monsterId:battle.monsterId, monsterName:monster?.name ?? battle.monsterId,
@@ -219,7 +289,7 @@ export class BattleService {
 
   async getResolvedBattleDetail(characterId: string, battleId: string): Promise<any | null> {
     const battle = await this.battleQueueRepo.findOne({ where: { id:battleId, characterId, resolved:true } });
-    if (!battle) return null;
+    if (!battle || battle.cancelledAt || battle.cancellationReason) return null;
     const monster = this.dataService.getMonsterById(battle.monsterId);
     const map = this.dataService.getMapById(battle.mapId);
     return { id:battle.id, outcome:battle.outcome, monsterId:battle.monsterId, monsterName:monster?.name ?? battle.monsterId,
@@ -484,15 +554,21 @@ export class BattleService {
     return this.withCharacterQueueLock(characterId, () => this.queueBattlesLocked(characterId, targetDepth, publishQueueEvent));
   }
 
+  async queueTravelEncounter(characterId: string, monsterId: string): Promise<BattleQueueEntry | null> {
+    const rows = await this.withCharacterQueueLock(characterId, () => this.queueBattlesLocked(characterId, 1, true, { allowTravel: true, immediateEncounter: true, forcedMonsterId: monsterId }));
+    return rows[0] ?? null;
+  }
+
   private async queueBattlesLocked(
     characterId: string,
     targetDepth: number = this.QUEUE_DEPTH_TARGET,
     publishQueueEvent = true,
+    options: { allowTravel?: boolean; immediateEncounter?: boolean; forcedMonsterId?: string } = {},
   ): Promise<BattleQueueEntry[]> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
 
-    if (character.pendingMapTransition) return this.getBattleQueue(characterId, 100);
+    if (character.pendingMapTransition || (character.travelIntent && !options.allowTravel)) return this.getBattleQueue(characterId, 100);
     if (character.status !== 'grinding' || !character.currentMapId || this.dataService.getMapById(character.currentMapId)?.type !== 'grind') {
       const existing = await this.getBattleQueue(characterId, 100);
       if (existing.length === 0 && publishQueueEvent) await this.safePublishQueueUpdated(characterId, []);
@@ -596,6 +672,8 @@ export class BattleService {
         const leavingMapId = character.currentMapId;
         character.currentMapId = TOWN_MAP_ID;
         character.status = 'town';
+        character.travelIntent = null;
+        character.gatheringCycle = { ...(character.gatheringCycle ?? {}), progress: 0, cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) + 1, varianceSeconds: null, lastUpdatedAt: new Date().toISOString() };
         character.pendingMapTransition = null;
         character.lastSeenAt = new Date();
         await this.characterRepo.save(character);
@@ -625,9 +703,8 @@ export class BattleService {
     const statusEffectDefs = Object.fromEntries(
       this.dataService.getStatusEffects().map((status: any) => [status.id, status]),
     );
-    const itemDefinitions = Object.fromEntries(
-      (this.dataService.getItems()?.consumables ?? []).map((c: any) => [c.id, c]),
-    );
+    const itemCatalog = this.dataService.getItems() ?? {};
+    const itemDefinitions = Object.fromEntries([...(itemCatalog.consumables ?? []), ...(itemCatalog.equipment ?? []), ...(itemCatalog.monsterParts ?? []), ...(itemCatalog.materials ?? [])].map((item: any) => [item.id, item]));
 
     // SPEC §11.2: seed = mulberry32Seed(`${characterId}:${mapId}:${epoch}`)
     const encounterSeed = mulberry32Seed(`${characterId}:${mapId}:${counter.epoch}`);
@@ -642,25 +719,25 @@ export class BattleService {
         ? new Date(currentQueue[currentQueue.length - 1].endAt)
         : new Date();
 
-    // Encounter search: 2s base + 0.1s for every OTHER grinder currently on this map.
-    // Character status/map membership is authoritative and the current character is excluded.
+    // DB-backed gameplay presence includes the character and disconnected residents.
     const mapPlayers = await this.mapPresenceService.countActiveGrinders(mapId);
-    const otherPlayers = Math.max(0, mapPlayers - 1);
-    const encounterSearchMs = calculateEncounterSearchDelayMs(otherPlayers);
 
     // One loadout read for the whole batch: equipment and proficiency cannot
     // change between the chained battles, so re-reading them per battle would
     // multiply identical queries without changing any simulated result.
     const loadout = await this.loadCombatantLoadout(characterId);
+    const worldEquipmentRows = (await this.equipmentService.getEquipment(characterId)).map((row: any) => ({ ...row, definition: this.dataService.getItemById(row.itemId) }));
     const weaponBaseAttackTicks = this.getWeaponBaseAttackTicks(loadout.weaponTypes);
 
     let blockedByFoodExpiryBeforeNextStart = false;
-    for (let i = 0; i < battlesToAdd; i++) {
-      const sequenceIndex = maxSequenceIndex + 1 + i;
+    for (let i = 0; i < battlesToAdd + 100; i++) {
+      if (newBattles.length >= battlesToAdd) break;
+      const sequenceIndex = maxSequenceIndex + 1 + newBattles.length;
       const killIndex = projectedMapKillCount;
 
-      // Every encounter has its own search phase, including the first one.
+      // Every encounter has its own independently seeded 2–6 second + population search interval.
       const searchStartTime = new Date(nextStartTime);
+      const encounterSearchMs = options.immediateEncounter && i === 0 ? 0 : calculateEncounterSearchDelayMs(mapPlayers, `${characterId}:${mapId}:${counter.epoch}:${killIndex}:search`);
       const encounterStartAt = nextStartTime.getTime() + encounterSearchMs;
       // Eligibility is evaluated at the actual battle start, after encounter
       // search, not at the beginning of the search gap.
@@ -671,7 +748,19 @@ export class BattleService {
       nextStartTime = new Date(encounterStartAt);
 
       // SPEC §11.2: nextMonsterId(mapId, mapKillCount) = weightedPick(rngForIndex(mapKillCount))
-      const monster = rngForIndex(encounterSeed, killIndex).weightedPick(monsters);
+      const forcedMonster = options.forcedMonsterId ? monsters.find((entry: any) => entry.id === options.forcedMonsterId) : null;
+      const monster = forcedMonster ?? rngForIndex(encounterSeed, killIndex).weightedPick(monsters);
+      if (!forcedMonster && character.lastGrindStance === 'gathering') {
+        const monsterDef = this.dataService.getMonsterById(monster.id);
+        const equippedRows = await this.equipmentService.getEquipment(characterId);
+        const gear = equippedRows.map((row: any) => ({ ...row, definition: this.dataService.getItemById(row.itemId) }));
+        const worldSpeed = calculateWorldMoveSpeed(character, gear, character.activeTempBuffs ?? [], character.statusEffects ?? []);
+        const attrBonuses = sumAttributeBonuses(loadout.equipmentStats.statBonus, masteryPassiveAttributeBonuses(loadout.skillDefs));
+        const totalLuk = Number(character.luk ?? 5) + Number(attrBonuses.LUK ?? 0);
+        const fleeChance = calculateFleeChancePercent(worldSpeed, Number(monsterDef?.moveSpd ?? 0), totalLuk);
+        const avoid = !monsterDef?.isAggressive || new Mulberry32(`${characterId}:${mapId}:${counter.epoch}:${killIndex}:pre-combat-flee`).nextPercent() < fleeChance;
+        if (avoid) { projectedMapKillCount += 1; nextStartTime = new Date(encounterStartAt); continue; }
+      }
       const monsterId = monster.id;
 
       const snapshot = await this.buildCharacterSnapshot(
@@ -748,6 +837,7 @@ export class BattleService {
 
       // ---- Gambit is evaluated INSIDE the engine, per gauge fire (SPEC §7.3)
       const regenTickOffset = Math.max(0, Math.floor((nextStartTime.getTime() - regenAnchor) / MS_PER_TICK));
+      const startingInventory = { ...workingInventory };
       const simulation = BattleEngine.simulateBattle(snapshot, monster, gambitPage, seed, {
         inventory: workingInventory,
         itemDefinitions,
@@ -806,6 +896,16 @@ export class BattleService {
         outcome: simulation.outcome,
         log: { ...simulation.log, mapId, searchStartAt: searchStartTime.toISOString(), searchEndAt: nextStartTime.toISOString() },
         itemsConsumed: simulation.itemsConsumed,
+        startingSnapshot: {
+          snapshot: JSON.parse(JSON.stringify(snapshot)),
+          gambitPage: JSON.parse(JSON.stringify(gambitPage ?? null)),
+          inventory: startingInventory,
+          regenTickOffset,
+          worldEquipment: worldEquipmentRows.map((row: any) => ({ slot: row.slot, itemId: row.itemId, definition: row.definition })),
+          worldSpeedBuffs: JSON.parse(JSON.stringify(character.activeTempBuffs ?? [])),
+          worldBaseMoveSpd: calculateWorldMoveSpeed(character, worldEquipmentRows, [], []),
+          worldMoveSpd: calculateWorldMoveSpeed(character, worldEquipmentRows, character.activeTempBuffs ?? [], []),
+        },
         xpGain: rewards.xpGain,
         goldGain: rewards.goldGain,
         drops: rewards.drops,
@@ -1034,6 +1134,9 @@ export class BattleService {
           await this.resetEncounterSequence(character.id, leavingMapId, 'left map', manager);
         }
         character.pendingMapTransition = null;
+        character.travelIntent = null;
+        character.fleeNextAttemptAt = null;
+        character.gatheringCycle = { ...(character.gatheringCycle ?? {}), progress: 0, cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) + 1, varianceSeconds: null, lastUpdatedAt: new Date().toISOString() };
         character.currentMapId = TOWN_MAP_ID;
         character.status = 'town';
         character.discoveredMapIds = Array.from(new Set([...(character.discoveredMapIds ?? [TOWN_MAP_ID]), TOWN_MAP_ID]));
@@ -1161,6 +1264,208 @@ export class BattleService {
         `mapKillCount=${result.killCounter.mapKillCount} perMonster=${result.battle.monsterId}:${result.killCounter.perMonsterCount}`,
     );
     return true;
+  }
+
+  /** Parallel FLEE roll: never advances the immutable battle's stored combat log/seed stream. */
+  async attemptFlee(characterId: string, expectedGeneration?: number, expectedBattleId?: string): Promise<'failed' | 'cancelled' | 'not-active' | 'stale'> {
+    const reference = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!reference) throw new NotFoundException('Character not found');
+    const queue = await this.getBattleQueue(characterId, 100);
+    const now = Date.now();
+    const active = queue.find(entry => entry.startAt.getTime() <= now && entry.endAt.getTime() > now);
+    if (!active || (expectedBattleId && active.id !== expectedBattleId)) return 'not-active';
+
+    const result = await this.withCharacterQueueLock(characterId, () => this.battleQueueRepo.manager.transaction(async manager => {
+      const characterRepo = manager.getRepository(Character);
+      const battleRepo = manager.getRepository(BattleQueueEntry);
+      const queueRepo = manager.getRepository(BattleQueueEntry);
+      const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character || !character.travelIntent || character.travelIntent.kind === undefined || character.travelIntent.fleeRequested !== true) return { kind: 'stale' as const };
+      const intent: any = character.travelIntent;
+      if (expectedGeneration !== undefined && Number(intent.generation) !== expectedGeneration) return { kind: 'stale' as const };
+      const battle = await battleRepo.findOne({ where: { id: active.id }, lock: { mode: 'pessimistic_write' } });
+      if (!battle || battle.resolved || battle.cancelledAt || battle.cancellationReason) return { kind: 'not-active' as const };
+      const timestamp = Date.now();
+      if (timestamp >= battle.endAt.getTime()) return { kind: 'not-active' as const };
+      const previousTravelJobId = String(intent.scheduledJobId ?? '');
+      if (character.fleeNextAttemptAt && character.fleeNextAttemptAt.getTime() > timestamp) {
+        return { kind: 'failed' as const, retryAt: character.fleeNextAttemptAt.getTime(), intent: { ...intent }, battleId: battle.id };
+      }
+      const start = battle.startingSnapshot;
+      if (!start?.snapshot || !start?.inventory || !Number.isFinite(Number(start.worldMoveSpd))) {
+        // Legacy active rows do not have the immutable starting inventory needed to safely replay theft/consumption.
+        // Fail closed: leave combat and its reward path untouched and retry no sooner than ten seconds.
+        character.fleeAttemptIndex = Math.max(0, Number(character.fleeAttemptIndex ?? 0)) + 1;
+        character.fleeNextAttemptAt = new Date(timestamp + 10_000);
+        intent.fleeAttemptIndex = Number(character.fleeAttemptIndex);
+        character.travelIntent = intent;
+        await characterRepo.save(character);
+        return { kind: 'failed' as const, retryAt: timestamp + 10_000, intent: { ...intent }, battleId: battle.id };
+      }
+
+      const targetTick = Math.max(0, Math.floor((timestamp - battle.startAt.getTime()) / MS_PER_TICK));
+      const replay = BattleEngine.simulateBattle(
+        start.snapshot,
+        this.dataService.getMonsterById(battle.monsterId),
+        // The original log already contains the resolved Gambit choices; replay needs the same page as the original snapshot.
+        start.gambitPage ?? null,
+        battle.seedUsed,
+        {
+          inventory: { ...start.inventory },
+          itemDefinitions: Object.fromEntries([...(this.dataService.getItems()?.consumables ?? []), ...(this.dataService.getItems()?.equipment ?? []), ...(this.dataService.getItems()?.monsterParts ?? []), ...(this.dataService.getItems()?.materials ?? [])].map((item: any) => [item.id, item])),
+          monsterSkillDefs: Object.fromEntries(this.dataService.getMonsterSkills().map((skill: any) => [skill.id, skill])),
+          statusEffectDefs: Object.fromEntries(this.dataService.getStatusEffects().map((status: any) => [status.id, status])),
+          regenTickOffset: Number(start.regenTickOffset ?? 0),
+          stopAfterTick: targetTick,
+        },
+      );
+      const checkpoint: any = (replay as any).checkpoint;
+      if (!checkpoint || checkpoint.battleEnded || Number(checkpoint.hp) <= 0 || Number(checkpoint.monsterHp) <= 0) {
+        // A lethal character tick wins over FLEE, and a battle that has already ended resolves normally.
+        return { kind: 'not-active' as const };
+      }
+
+      const monster = this.dataService.getMonsterById(battle.monsterId);
+      const movePenalty = (statuses: any[]) => (statuses ?? []).reduce((sum: number, status: any) => {
+        const id = String(status?.type ?? status?.id ?? '');
+        const definition: any = this.dataService.getStatusEffects().find((row: any) => row.id === id) ?? {};
+        return sum + Math.max(0, Number(status?.moveSpeedPenalty ?? (definition.stackable ? definition.moveSpeedPenaltyPerStack : definition.moveSpeedPenalty) ?? 0));
+      }, 0);
+      const timestampBuffs = (Array.isArray(start.worldSpeedBuffs) ? start.worldSpeedBuffs : character.activeTempBuffs ?? []).filter((buff: any) => {
+        const expiryRaw = buff?.expiresAt ?? buff?.endsAt;
+        const expiry = typeof expiryRaw === 'number' ? expiryRaw : Date.parse(String(expiryRaw ?? ''));
+        return !Number.isFinite(expiry) || expiry > timestamp;
+      });
+      const characterMoveSpd = Array.isArray(start.worldEquipment)
+        ? calculateWorldMoveSpeed(start.snapshot, start.worldEquipment, timestampBuffs, checkpoint.statusEffects, timestamp)
+        : Math.max(0, Number(start.worldMoveSpd) - movePenalty(checkpoint.statusEffects));
+      const monsterMoveSpd = Math.max(0, Number(monster?.moveSpd ?? 0) - movePenalty(checkpoint.monsterStatusEffects));
+      const totalLuk = Number(start.snapshot.luk ?? character.luk ?? 5);
+      const chance = calculateFleeChancePercent(characterMoveSpd, monsterMoveSpd, totalLuk);
+      const attemptIndex = Math.max(0, Number(intent.fleeAttemptIndex ?? 0));
+      const roll = new Mulberry32(`${battle.id}:flee:${attemptIndex}`).nextPercent();
+      if (roll >= chance) {
+        character.fleeAttemptIndex = attemptIndex + 1;
+        character.fleeNextAttemptAt = new Date(timestamp + 10_000);
+        intent.fleeAttemptIndex = character.fleeAttemptIndex;
+        intent.fleeLastChancePercent = chance;
+        intent.fleeNextAttemptAt = character.fleeNextAttemptAt.toISOString();
+        character.travelIntent = intent;
+        await characterRepo.save(character);
+        return { kind: 'failed' as const, retryAt: timestamp + 10_000, intent: { ...intent }, battleId: battle.id };
+      }
+
+      // Inventory changes are those caused by this battle only; preserve unrelated later inventory mutations.
+      const currentItems = await manager.getRepository(InventoryItem).find({ where: { characterId, location: 'inventory' }, lock: { mode: 'pessimistic_write' } });
+      const currentCount: Record<string, number> = {};
+      for (const row of currentItems) currentCount[row.itemId] = (currentCount[row.itemId] ?? 0) + Number(row.quantity);
+      const initial = start.inventory as Record<string, number>;
+      const after = checkpoint.inventoryAfter as Record<string, number>;
+      for (const itemId of new Set([...Object.keys(initial), ...Object.keys(after)])) {
+        const spent = Math.max(0, Number(initial[itemId] ?? 0) - Number(after[itemId] ?? 0));
+        const take = Math.min(spent, Number(currentCount[itemId] ?? 0));
+        if (take > 0) await this.inventoryService.removeItem(characterId, itemId, take, manager);
+      }
+
+      character.hpCurrent = Math.max(1, Math.min(Number(checkpoint.hp), Number(start.snapshot.maxHp)));
+      character.spCurrent = Math.max(0, Math.min(Number(checkpoint.sp), Number(start.snapshot.maxSp)));
+      character.activeTempBuffs = (character.activeTempBuffs ?? []).filter((buff: any) => {
+        const expiry = Date.parse(String(buff?.expiresAt ?? buff?.endsAt ?? ''));
+        return !Number.isFinite(expiry) || expiry > timestamp;
+      });
+      character.statusEffects = (checkpoint.statusEffects ?? []).map((status: any) => {
+        const remaining = Number(status.expiresAtTick ?? Infinity) - (Number(checkpoint.tick) + 1);
+        const copy = { ...status, appliedAtTick: 0 };
+        if (Number.isFinite(remaining)) {
+          if (remaining <= 0) return null;
+          copy.expiresAtTick = Math.max(1, Math.floor(remaining));
+        } else delete copy.expiresAtTick;
+        return copy;
+      }).filter(Boolean);
+      // Reuse the canonical Diet transition for only the food uses that occurred before the escape tick.
+      const partialBattle = { ...battle, log: { events: (battle.log?.events ?? []).filter((event: any) => Number(event?.tick ?? 0) <= Number(checkpoint.tick)) } } as BattleQueueEntry;
+      this.applyResolvedFoodState(character, partialBattle);
+      const digest = checkpoint.foodDigestRemainingTicksByItem ?? {};
+      for (const [itemId, ticksRaw] of Object.entries(digest)) {
+        const ticks = Math.max(0, Number(ticksRaw) - 1);
+        const until = new Date(timestamp + ticks * MS_PER_TICK).toISOString();
+        if (character.dietLevels?.[itemId]) character.dietLevels[itemId].lastDigestUntil = until;
+        for (const row of character.diet ?? []) if (row.itemId === itemId) row.digestUntil = until;
+      }
+      const checkpointFoods = (checkpoint.foodBuffs ?? []).filter((food: any) => Number(food.remainingTicks ?? 0) > 0);
+      if (checkpointFoods.length) {
+        const latest = checkpointFoods.reduce((a: any, b: any) => Number(a.remainingTicks) >= Number(b.remainingTicks) ? a : b);
+        character.activeFoodBuff = {
+          itemId: latest.itemId,
+          expiresAt: new Date(timestamp + Math.max(0, Number(latest.remainingTicks) - 1) * MS_PER_TICK).toISOString(),
+          hpRegenPerTenTicks: Number(latest.hpRegenPerTenTicks ?? 0),
+          spRegenPerTenTicks: Number(latest.spRegenPerTenTicks ?? 0),
+        };
+      } else character.activeFoodBuff = null;
+
+      // This is an audit marker, not a rewrite of the original precomputed outcome/log/rewards.
+      battle.resolved = true;
+      battle.cancellationReason = 'flee';
+      battle.cancelledAt = new Date(timestamp);
+      await battleRepo.save(battle);
+      const future = await queueRepo.find({ where: { characterId, resolved: false }, order: { sequenceIndex: 'ASC' } });
+      const obsolete = future.filter(entry => entry.id !== battle.id).map(entry => entry.id);
+      if (obsolete.length) await queueRepo.delete({ id: In(obsolete), resolved: false });
+      character.fleeNextAttemptAt = null;
+      character.fleeAttemptIndex = 0;
+      intent.fleeRequested = false;
+      intent.fleeBattleId = null;
+      intent.waitingForBattle = false;
+      intent.fleeNextAttemptAt = null;
+      intent.pausedBattleId = null;
+      intent.lastFleeSuccessAt = new Date(timestamp).toISOString();
+      if (intent.kind !== 'saved-town-teleport') {
+        const population = Math.max(1, await this.mapPresenceService.countActiveGrinders(character.currentMapId));
+        const cycleIndex = Math.max(0, Number(character.encounterCycle?.cycleIndex ?? 0));
+        const delaySeconds = deterministicIntInclusive(`${character.id}:${character.currentMapId}:${cycleIndex}:search-delay`, 2, 6) + population;
+        character.encounterCycle = { ...(character.encounterCycle ?? {}), cycleIndex: cycleIndex + 1, nextAt: new Date(timestamp + delaySeconds * 1000).toISOString() };
+      } else {
+        character.encounterCycle = { ...(character.encounterCycle ?? {}), cycleIndex: Number(character.encounterCycle?.cycleIndex ?? 0) + 1, nextAt: null };
+      }
+      intent.lastAccruedAt = new Date(timestamp).toISOString();
+      // Invalidate the old battle-end travel job. If it is already executing, its
+      // persisted scheduleVersion check still makes it a no-op after this commit.
+      intent.scheduleVersion = Math.max(0, Number(intent.scheduleVersion ?? 0)) + 1;
+      intent.scheduledJobId = `travel-${characterId}-${Number(intent.generation ?? 0)}-${intent.scheduleVersion}`;
+      character.travelIntent = intent;
+      const equipmentChanged = await this.equipmentService.applyPendingEquipmentChanges(character.id, manager);
+      await characterRepo.save(character);
+      return { kind: 'cancelled' as const, battleId: battle.id, character, previousMapId: character.currentMapId, obsolete, intent, equipmentChanged, previousTravelJobId };
+    }));
+
+    if (result.kind === 'stale' || result.kind === 'not-active') return result.kind;
+    if (result.kind === 'failed') {
+      await this.scheduleFleeAttempt(characterId, result.intent, result.battleId, Math.max(250, result.retryAt - Date.now()));
+      return 'failed';
+    }
+
+    try { await this.bullQueue.getJob(result.battleId).then(job => job?.remove()).catch(() => undefined); } catch { /* committed cancellation wins */ }
+    if (result.previousTravelJobId) {
+      try {
+        const previousTravelJob = await this.bullQueue.getJob(result.previousTravelJobId);
+        if (previousTravelJob && await previousTravelJob.getState() !== 'active') await previousTravelJob.remove();
+      } catch { /* a running old job will fail the persisted scheduleVersion check */ }
+    }
+    if (result.obsolete?.length) await this.removeBattleQueueJobs(result.obsolete);
+    await this.bullQueue.add('advance-travel', {
+      characterId, generation: Number(result.intent.generation), scheduleVersion: Number(result.intent.scheduleVersion),
+    }, { jobId: String(result.intent.scheduledJobId), delay: 0, removeOnComplete: true, attempts: 5, backoff: { type: 'exponential', delay: 1000 } });
+    await this.safePublishBattleResolved(characterId, await this.getBattleById(result.battleId) as BattleQueueEntry);
+    await this.safePublishQueueUpdated(characterId, await this.getBattleQueue(characterId, 5), await this.buildAuthoritativeBattleSnapshot(characterId));
+    return 'cancelled';
+  }
+
+  private async scheduleFleeAttempt(characterId: string, intent: any, battleId: string, delayMs: number): Promise<void> {
+    await this.bullQueue.add('attempt-flee', { characterId, battleId, generation: Number(intent.generation) }, {
+      jobId: `flee-${battleId}-g${Number(intent.generation)}-${Number(intent.fleeAttemptIndex ?? 0)}-${Math.floor(Date.now() / 1000)}`,
+      delay: Math.max(0, Math.ceil(delayMs)), removeOnComplete: true, attempts: 5,
+      backoff: { type: 'exponential', delay: 1000 },
+    });
   }
 
   private async grantBattleDropsBestEffort(character: Character, battle: BattleQueueEntry, manager: EntityManager): Promise<void> {
@@ -1326,8 +1631,14 @@ export class BattleService {
   ): Promise<{ deathLog: any; discardedBattleIds: string[] }> {
     const characterRepo = manager.getRepository(Character);
     const queueRepo = manager.getRepository(BattleQueueEntry);
+    const savedTown = this.dataService.getMapById(String(character.savedTownMapId ?? ''));
+    const respawnTownId = savedTown?.type === 'town' ? savedTown.id : TOWN_MAP_ID;
     character.status = 'town';
-    character.currentMapId = TOWN_MAP_ID;
+    character.currentMapId = respawnTownId;
+    character.travelIntent = null;
+    character.gatheringCycle = { ...(character.gatheringCycle ?? {}), progress: 0, cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) + 1, varianceSeconds: null, lastUpdatedAt: new Date().toISOString() };
+    character.fleeNextAttemptAt = null;
+    character.fleeAttemptIndex = 0;
     character.lastSeenAt = new Date();
     character.hpCurrent = 1;
     character.pendingMapTransition = null;
@@ -1434,9 +1745,10 @@ export class BattleService {
       const payload: BattleResolvedPayload = {
         entryId: battle.id,
         outcome: battle.outcome,
-        xpGain: Number(battle.xpGain ?? 0),
-        goldGain: Number(battle.goldGain ?? 0),
-        drops: battle.drops ?? [],
+        xpGain: battle.cancellationReason === 'flee' || battle.cancelledAt ? 0 : Number(battle.xpGain ?? 0),
+        goldGain: battle.cancellationReason === 'flee' || battle.cancelledAt ? 0 : Number(battle.goldGain ?? 0),
+        drops: battle.cancellationReason === 'flee' || battle.cancelledAt ? [] : battle.drops ?? [],
+        ...(battle.cancellationReason || battle.cancelledAt ? { cancelled: true, cancellationReason: battle.cancellationReason ?? 'cancelled' } : {}),
         ...state,
       };
       await this.gatewayService.publishBattleResolved(characterId, payload);

@@ -73,6 +73,10 @@ export class BattleRecoveryService implements OnApplicationBootstrap {
       // Bull remains globally paused while readiness is published, then resumes only after repair.
       await this.queueGate.markReady();
       await this.bullQueue.resume(false);
+      await this.bullQueue.add('resume-world-activities', { requestedAt: new Date().toISOString() }, {
+        jobId: `resume-world-activities-${Date.now()}`, delay: 250, removeOnComplete: true,
+        attempts: 5, backoff: { type: 'exponential', delay: 1000 },
+      });
 
       this.logger.log(
         `Battle startup reconciliation complete in ${Date.now() - startedAt}ms: ` +

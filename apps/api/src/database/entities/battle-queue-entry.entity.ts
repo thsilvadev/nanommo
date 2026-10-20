@@ -51,6 +51,17 @@ export class BattleQueueEntry {
   @Column({ type: 'jsonb', default: '[]' })
   itemsConsumed!: Array<{ itemId: string; quantity: number }>;
 
+  /** Immutable starting combatant/inventory snapshot used for exact partial-battle replay on FLEE. */
+  @Column({ type: 'jsonb', nullable: true })
+  startingSnapshot?: any | null;
+
+  /** FLEE cancellation is terminal but remains available for audit. */
+  @Column({ type: 'varchar', nullable: true })
+  cancellationReason?: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  cancelledAt?: Date | null;
+
   @Column({ type: 'int' })
   hpAfter!: number;
 

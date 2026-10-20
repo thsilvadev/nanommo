@@ -72,7 +72,7 @@ export class MapBoard implements OnDestroy {
   readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService);
   maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
   readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly mapTransitionPending = signal(false); readonly destinationMapId = signal<string|null>(null); readonly routeOriginMapId = signal<string|null>(null);
-  readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); private discovered = new Set<string>();
+  readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); readonly activityNow = signal(Date.now()); private discovered = new Set<string>(); private readonly activityTimer = setInterval(() => this.activityNow.set(Date.now()), 250);
   private tooltipEl: HTMLElement|null = null; private tooltipPointer = {x:0,y:0};
   private mapRequestSequence=0; private latestMapRequestSequence=0; private lastRequestedAt=0; private transitionOriginMapId:string|null=null;
   private transitionPoll:ReturnType<typeof setInterval>|null=null; private transitionPollBusy=false;
@@ -146,7 +146,8 @@ export class MapBoard implements OnDestroy {
     this.transitionOriginMapId=null;
   }
   private reconcileDestinationPreview(c:any){
-    const pending=c.pendingMapTransition??null;
+    const travel=c.travelIntent??null;
+    const pending=travel?{destinationMapId:String(travel.destinationMapId??''),requestedAt:travel.requestedAt??null,waitingForBattle:travel.waitingForBattle===true,routeMapIds:travel.routeMapIds,segmentIndex:travel.segmentIndex}:c.pendingMapTransition??null;
     let destination=this.destinationMapId();
 
     // Another accepted intent can supersede the one currently drawn. Only a newer
@@ -191,7 +192,8 @@ export class MapBoard implements OnDestroy {
         this.destinationRequestedAt=this.destinationRequestedAt??pending.requestedAt??null;
         this.destinationTransitionWasDeferred=true;
         this.transitionOriginMapId=origin??c.currentMapId;
-        this.mapTransitionPending.set(true);
+        if(travel&&Array.isArray(travel.routeMapIds)&&travel.routeMapIds[Number(travel.segmentIndex??0)]===c.currentMapId)this.routeOriginMapId.set(c.currentMapId);
+        this.mapTransitionPending.set(travel?travel.waitingForBattle===true:true);
       }else{
         // If a previously confirmed deferred intent disappeared but the character is
         // still at its origin, the server has ended/cancelled that transition.
@@ -218,7 +220,7 @@ export class MapBoard implements OnDestroy {
       this.routeOriginMapId.set(c.currentMapId);
       this.transitionOriginMapId=c.currentMapId;
       this.destinationTransitionWasDeferred=true;
-      this.mapTransitionPending.set(true);
+      this.mapTransitionPending.set(travel?travel.waitingForBattle===true:true);
       this.startTransitionPoll();
     }
   }
@@ -226,6 +228,17 @@ export class MapBoard implements OnDestroy {
   private rebuildDiscovery(ids?:string[]){const c=this.character.character();this.discovered=new Set(Array.isArray(ids??c?.discoveredMapIds)?(ids??c?.discoveredMapIds??[]):[TOWN_MAP_ID]);if(!this.discovered.size)this.discovered.add(TOWN_MAP_ID);if(c?.currentMapId)this.discovered.add(c.currentMapId);if(c?.currentMapId===TOWN_MAP_ID&&[...this.discovered].every(id=>id===TOWN_MAP_ID||id==='map_green_grounds_4'))this.discovered.delete('map_green_grounds_4');}
   trackMap(_i:number,m:any){return m.id} trackCell(_i:number,c:any){return `${c.x},${c.y}`}
   gridColumn(map:any){return Number(map?.coordinates?.x??0)+7} gridRow(map:any){return 6-Number(map?.coordinates?.y??0)}
+  private activeBattleAt(now=this.activityNow()){const b=this.battle.active();return !!b&&now>=Date.parse(String(b.startAt))&&now<Date.parse(String(b.endAt));}
+  activityKind():'traveling'|'gathering'|null{const c=this.character.character();if(!c)return null;if(c.travelIntent)return 'traveling';return c.status==='grinding'&&this.currentMap()?.type==='grind'?'gathering':null;}
+  activityGaugeVisible(){return this.activityKind()!==null;}
+  activityLabel(){return this.activityKind()==='traveling'?'Traveling…':'Gathering…';}
+  activityProgress(){
+    const c:any=this.character.character();const now=this.activityNow();if(!c)return 0;
+    const activeBattle=this.activeBattleAt(now);let progress=0;let duration=300;
+    if(c.travelIntent){const intent=c.travelIntent;progress=Math.max(0,Math.min(1,Number(intent.segmentProgress??0)));duration=Number(intent.lastDurationSeconds??30);const last=Date.parse(String(intent.lastAccruedAt??now));if(!activeBattle&&!intent.waitingForBattle&&intent.speedPaused!==true&&Number.isFinite(duration)&&duration>0&&Number.isFinite(last))progress=Math.min(1,progress+Math.max(0,now-last)/1000/duration);}
+    else{const map=this.currentMap();const cycle=c.gatheringCycle??{};const population=Math.max(1,this.playersInMap());duration=Math.max(30,12*Number(map?.mapLength??25)+30*(population-1)-(Math.max(1,Number(c.gatheringLevel??1))-1))+Math.max(0,Number(cycle.varianceSeconds??0));progress=Math.max(0,Math.min(1,Number(cycle.progress??0)));const last=Date.parse(String(cycle.lastUpdatedAt??now));if(!activeBattle&&Number.isFinite(last)&&duration>0)progress=Math.min(1,progress+Math.max(0,now-last)/1000/duration);}
+    return Math.round(progress*1000)/10;
+  }
   currentMap(){return this.maps.find(m=>m.id===this.character.character()?.currentMapId)??this.maps.find(m=>m.id===TOWN_MAP_ID)??null}
   mapName(){return this.currentMap()?.name??'Unknown'}
   playersInMap(){const id=this.character.character()?.currentMapId;return id&&this.battle.mapPresence()?.mapId===id?this.battle.mapPresence()?.playersOnMap??0:0}
@@ -250,7 +263,7 @@ export class MapBoard implements OnDestroy {
   private requestMapTransition(id:string){
     const map=this.maps.find(m=>m.id===id); const current=this.character.character();
     if(!map||!current)return;
-    if(current.currentMapId===id&&!current.pendingMapTransition)return;
+    if(current.currentMapId===id&&!current.pendingMapTransition&&!current.travelIntent)return;
     this.error.set(null);
     const requestSequence=++this.mapRequestSequence;
     this.latestMapRequestSequence=requestSequence;
@@ -258,6 +271,7 @@ export class MapBoard implements OnDestroy {
     this.lastRequestedAt=Math.max(Date.now(),this.lastRequestedAt+1,previousIntentAt+1);
     const requestedAt=new Date(this.lastRequestedAt).toISOString();
     const origin=current.currentMapId;
+    this.routeOriginMapId.set(origin);this.destinationRequestedAt=requestedAt;this.destinationMapId.set(id);this.mapTransitionPending.set(false);
     this.api.post<any>(`/maps/${id}/enter`,{requestedAt}).subscribe({
       next:async result=>{
         if(requestSequence!==this.latestMapRequestSequence)return;
@@ -317,7 +331,7 @@ export class MapBoard implements OnDestroy {
           try{await this.socket.emit('map:syncPresence',{mapId:acceptedDestination})}catch{}
         }
       },
-      error:e=>{if(requestSequence===this.latestMapRequestSequence)this.error.set(e?.error?.message??'Map entry rejected by server')}
+      error:e=>{if(requestSequence===this.latestMapRequestSequence){this.error.set(e?.error?.message??'Map entry rejected by server');this.finishDestinationPreview()}}
     });
   }
   private startTransitionPoll(){
@@ -376,7 +390,7 @@ export class MapBoard implements OnDestroy {
   }
   destinationRoutePoints(){return this.destinationRoute().map(point=>`${point.x},${point.y}`).join(' ')}
   destinationPinStyle(map:any){return map.id===this.destinationMapId()}
-  ngOnDestroy(){this.stopTransitionPoll();this.hideTileTooltip()}
+  ngOnDestroy(){clearInterval(this.activityTimer);this.stopTransitionPoll();this.hideTileTooltip()}
 }
 
 @Component({ selector: 'app-inventory-grid', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './inventory-grid.html', styleUrl: './inventory-grid.css' })
@@ -566,7 +580,7 @@ export class GrindInfo implements OnDestroy {
   skillIcon(skill:any){return '/assets/ui/skill-icons/'+skill.id+'.svg'}
   monsterStats(entry: any) { const m = this.monsterSnapshot(entry); return [{ label: 'ATK', value: m.atk }, { label: 'MATK', value: m.matk }, { label: 'DEF', value: m.def }, { label: 'MDEF', value: m.mdefPercent + '%' }, { label: 'ACC', value: m.accuracy }, { label: 'EVA', value: m.evasion }, { label: 'CRIT', value: m.critChance + '%' }] }
 
-  isTown() { const c = this.character.character(); return !!c && c.status === 'town' }
+  isTown() { const c = this.character.character(); return !!c && c.status === 'town' && !c.travelIntent && !c.pendingMapTransition }
   activeGambitTitle() { return this.character.character()?.activeGambitPageId ? 'Configured' : 'Not configured' }
   xpText() { const c = this.character.character(); return c ? `${c.xp} / ${c.xpToNext}` : '—' }
   monster(id: string) { return this.catalog.monster(id) }

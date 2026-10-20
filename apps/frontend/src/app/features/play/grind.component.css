@@ -177,3 +177,6 @@
     height: auto;
   }
 }
+.grind-mode-select button:disabled { cursor: default; opacity: .4; }
+.traveling-stance { width: 48px; height: 48px; padding: 6px; box-sizing: border-box; display: grid; place-items: center; opacity: .9; border: 1px solid #436a91; background: #10263a; }
+.traveling-stance img { display: block; width: 100%; height: 100%; object-fit: contain; }

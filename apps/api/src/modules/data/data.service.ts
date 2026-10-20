@@ -54,12 +54,25 @@ export class DataService implements OnModuleInit {
     for (const monster of monsters) {
       if (!monster?.id || monsterIds.has(monster.id)) throw new Error(`Duplicate or missing monster ID: ${monster?.id}`);
       monsterIds.add(monster.id);
+      if (typeof monster.isAggressive !== 'boolean' || !Number.isFinite(Number(monster.moveSpd)) || Number(monster.moveSpd) < 0) throw new Error(`Monster ${monster.id} must define boolean isAggressive and non-negative moveSpd`);
+      const passiveMonsterIds = new Set(['mon_slime', 'mon_thornsprout', 'mon_saltfangcrab', 'mon_moonleafarcanist']);
+      if (monster.isAggressive === passiveMonsterIds.has(monster.id)) throw new Error(`Unexpected isAggressive value for ${monster.id}`);
       for (const field of ['level', 'hp', 'atk', 'matk', 'def', 'accuracy', 'evasion', 'xpReward']) {
         if (!Number.isFinite(Number(monster[field])) || Number(monster[field]) < (field === 'level' || field === 'hp' || field === 'xpReward' ? 1 : 0)) {
           throw new Error(`Invalid ${field} for monster ${monster.id}`);
         }
       }
     }
+    const materials = this.items?.materials;
+    if (!Array.isArray(materials)) throw new Error('items.json must define a materials array');
+    const materialIds = new Set<string>();
+    for (const material of materials) {
+      if (!material?.id || materialIds.has(material.id) || material.type !== 'material' || !material.stackable || Number(material.maxStack) < 1) throw new Error(`Invalid or duplicate material definition: ${material?.id}`);
+      materialIds.add(material.id);
+    }
+    const meatOwners = monsters.filter((monster: any) => (monster.drops ?? []).some((drop: any) => drop.itemId === 'mat_meat' && Number(drop.chance) === 0.2)).map((monster: any) => monster.id).sort();
+    if (meatOwners.join(',') !== 'mon_direwolf,mon_needlebackstalker') throw new Error('Meat must have an independent 20% drop only from Dire Wolf and Needleback Stalker');
+
     // Town NPC placement is catalog-owned, not hardcoded in the frontend. A
     // future Town map must declare the same canonical Storage ID and resolve every
     // referenced NPC. William lives in npc_vendor.json; quest/Storage IDs live in
@@ -102,6 +115,20 @@ export class DataService implements OnModuleInit {
       if (!Number.isFinite(Number(map.coordinates?.x)) || !Number.isFinite(Number(map.coordinates?.y)) || coordinates.has(coord)) throw new Error(`Invalid or duplicate map coordinates for ${map.id}`);
       coordinates.add(coord);
       if (!Array.isArray(map.monsters)) throw new Error(`Map ${map.id} must define a monster roster`);
+      if (map.mapLength === undefined || !Number.isFinite(Number(map.mapLength)) || Number(map.mapLength) < 0) throw new Error(`Invalid mapLength for ${map.id}`);
+      if (map.type === 'town' && Number(map.mapLength) !== 0) throw new Error(`Town map ${map.id} must have mapLength 0`);
+      if (map.type === 'grind' && Number(map.mapLength) < 25) throw new Error(`Grind map ${map.id} must have mapLength >= 25`);
+      if (map.type === 'town' && map.gatheringPool !== undefined) throw new Error(`Town map ${map.id} must not define a gatheringPool`);
+      if (map.type === 'grind' && map.gatheringPool !== undefined) {
+        if (!Array.isArray(map.gatheringPool)) throw new Error(`Map ${map.id} gatheringPool must be an array`);
+        const poolTotal = map.gatheringPool.reduce((sum: number, entry: any) => sum + Number(entry.weight ?? 0), 0);
+        if (Math.abs(poolTotal - 100) > 0.001) throw new Error(`Gathering weights for ${map.id} sum to ${poolTotal}, not 100`);
+        for (const entry of map.gatheringPool) {
+          const item = [...(this.items?.materials ?? [])].find((candidate: any) => candidate.id === entry.itemId);
+          if (!item || item.type !== 'material') throw new Error(`Map ${map.id} gathering pool references non-material ${entry.itemId}`);
+          if (entry.itemId === 'mat_meat') throw new Error('Meat cannot appear in a gathering pool');
+        }
+      }
       if (map.type === 'grind') {
         const total = map.monsters.reduce((sum: number, entry: any) => sum + Number(entry.presenceRate ?? 0), 0);
         if (Math.abs(total - 100) > 0.02) throw new Error(`Monster presence rates for ${map.id} sum to ${total}, not 100`);
@@ -184,6 +211,7 @@ export class DataService implements OnModuleInit {
       ...(this.items.consumables || []),
       ...(this.items.equipment || []),
       ...(this.items.monsterParts || []),
+      ...(this.items.materials || []),
     ];
     return allItems.find((item: any) => item.id === itemId);
   }

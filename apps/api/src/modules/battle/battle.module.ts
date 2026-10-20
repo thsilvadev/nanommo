@@ -51,6 +51,6 @@ import { PresenceModule } from '../presence/presence.module';
   // Maintenance-only Nest context never registers Bull consumers. The recovery
   // service still runs after migrations, but no delayed job can execute in that process.
   providers: [BattleService, ...(process.env.BATTLE_QUEUE_MAINTENANCE_ONLY === 'true' ? [] : [BattleQueueProcessor]), BattleRecoveryService, BattleQueueGateService, GatewayService],
-  exports: [BattleService, GatewayService],
+  exports: [BattleService, GatewayService, BattleQueueGateService],
 })
 export class BattleModule {}

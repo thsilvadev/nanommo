@@ -552,6 +552,8 @@ export class BattleEngine {
       statusEffectDefs?: Record<string, Partial<StatusEffectDefinition>>;
       /** Absolute character timeline tick at which this battle starts. */
       regenTickOffset?: number;
+      /** Stop after the complete effects of this zero-based combat tick for deterministic FLEE checkpoints. */
+      stopAfterTick?: number;
     } = {},
   ): {
     outcome: 'win' | 'loss';
@@ -563,6 +565,8 @@ export class BattleEngine {
     itemsConsumed: Array<{ itemId: string; quantity: number }>;
     foodBuffAfter?: { itemId: string; hpRegenPerTenTicks: number; spRegenPerTenTicks: number; remainingTicks: number };
     foodBuffsAfter: Array<{ itemId: string; hpRegenPerTenTicks: number; spRegenPerTenTicks: number; remainingTicks: number }>;
+    foodDigestRemainingTicksByItem: Record<string, number>;
+    checkpoint?: { tick: number; hp: number; sp: number; monsterHp: number; monsterSp: number; statusEffects: any[]; monsterStatusEffects: any[]; cooldowns: Record<string, number>; foodBuffs: any[]; foodDigestRemainingTicksByItem: Record<string, number>; inventoryAfter: Record<string, number>; battleEnded: boolean };
   } {
     const rng = new Mulberry32(seed);
     const inventory: Record<string, number> = { ...(options.inventory ?? {}) };
@@ -639,6 +643,7 @@ export class BattleEngine {
     let pendingMonsterCast: { skillId: string; castStartedAtTick: number; resolutionTick: number } | null = null;
     let pendingCharacterCast: { skillId: string; castStartedAtTick: number; resolutionTick: number } | null = null;
     let tick = 0;
+    let stoppedAtCheckpoint = false;
 
     const selfCastThreshold = BattleEngine.castGaugeThreshold(self.dex);
     const monsterAttackThreshold = Math.max(
@@ -1814,8 +1819,13 @@ export class BattleEngine {
       }
 
       tick += 1;
+      if (options.stopAfterTick !== undefined && tick > Math.max(0, Math.floor(options.stopAfterTick))) {
+        stoppedAtCheckpoint = self.hp > 0 && foe.hp > 0;
+        break;
+      }
     }
 
+    // A checkpoint is state only, not a battle result. Its placeholder outcome is never rewarded.
     const outcome: 'win' | 'loss' = foe.hp <= 0 && self.hp > 0 ? 'win' : 'loss';
 
     return {
@@ -1841,6 +1851,17 @@ export class BattleEngine {
         ? [...(self.foodBuffs ?? [])].sort((a: any, b: any) => Number(b.remainingTicks ?? 0) - Number(a.remainingTicks ?? 0))[0]
         : undefined,
       foodBuffsAfter: (self.foodBuffs ?? []).map((buff: any) => ({ ...buff })),
+      foodDigestRemainingTicksByItem: { ...(self.foodDigestRemainingTicksByItem ?? {}) },
+      checkpoint: options.stopAfterTick !== undefined ? {
+        tick: Math.max(0, tick - 1), hp: self.hp, sp: self.sp, monsterHp: foe.hp, monsterSp: foe.sp,
+        statusEffects: (self.statusEffects ?? []).map((status: any) => ({ ...status })),
+        monsterStatusEffects: (foe.statusEffects ?? []).map((status: any) => ({ ...status })),
+        cooldowns: { ...(self.cooldowns ?? {}) },
+        foodBuffs: (self.foodBuffs ?? []).map((buff: any) => ({ ...buff })),
+        foodDigestRemainingTicksByItem: { ...(self.foodDigestRemainingTicksByItem ?? {}) },
+        inventoryAfter: { ...inventory },
+        battleEnded: !stoppedAtCheckpoint,
+      } : undefined,
     };
   }
 }

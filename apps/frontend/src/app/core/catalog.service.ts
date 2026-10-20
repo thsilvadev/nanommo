@@ -4,7 +4,7 @@ import { GambitCatalog, ItemDefinition, MonsterDefinition, WeaponCurve } from '.
 @Injectable({providedIn:'root'})
 export class CatalogService {
  readonly items=signal<ItemDefinition[]>([]);readonly monsters=signal<MonsterDefinition[]>([]);readonly maps=signal<any[]>([]);readonly gambits=signal<GambitCatalog>({meta:{},conditions:[],actions:[]});readonly weaponCurve=signal<WeaponCurve[]>([]);readonly skills=signal<any[]>([]);readonly statusEffects=signal<any[]>([]);private loadPromise:Promise<void>|null=null;
- async load():Promise<void>{if(this.loadPromise)return this.loadPromise;const pending=(async()=>{const get=async<T>(p:string)=>fetch('/data/'+p).then(r=>{if(!r.ok)throw new Error('Unable to load catalogue '+p);return r.json() as Promise<T>});const [i,m,mp,g,w,s,se]=await Promise.all([get<any>('items.json'),get<any>('monsters.json'),get<any>('maps.json'),get<GambitCatalog>('gambit_catalog.json'),get<WeaponCurve[]>('weapon_xp_curve.json'),get<any>('skill_trees.json'),get<any>('status_effects.json')]);this.items.set([...(i.consumables??[]),...(i.equipment??[]),...(i.monsterParts??[])]);this.monsters.set(m.monsters??[]);this.maps.set(mp.maps??[]);this.gambits.set(g);this.weaponCurve.set(w);this.skills.set([...Object.values(s.trees??{}).flat(),...(s.monsterSkills??[]).map((skill:any)=>({...skill,category:'monster'}))]);this.statusEffects.set(se.statusEffects??[]);})();this.loadPromise=pending.catch(error=>{this.loadPromise=null;throw error});return this.loadPromise;}
+ async load():Promise<void>{if(this.loadPromise)return this.loadPromise;const pending=(async()=>{const get=async<T>(p:string)=>fetch('/data/'+p).then(r=>{if(!r.ok)throw new Error('Unable to load catalogue '+p);return r.json() as Promise<T>});const [i,m,mp,g,w,s,se]=await Promise.all([get<any>('items.json'),get<any>('monsters.json'),get<any>('maps.json'),get<GambitCatalog>('gambit_catalog.json'),get<WeaponCurve[]>('weapon_xp_curve.json'),get<any>('skill_trees.json'),get<any>('status_effects.json')]);this.items.set([...(i.consumables??[]),...(i.equipment??[]),...(i.monsterParts??[]),...(i.materials??[])]);this.monsters.set(m.monsters??[]);this.maps.set(mp.maps??[]);this.gambits.set(g);this.weaponCurve.set(w);this.skills.set([...Object.values(s.trees??{}).flat(),...(s.monsterSkills??[]).map((skill:any)=>({...skill,category:'monster'}))]);this.statusEffects.set(se.statusEffects??[]);})();this.loadPromise=pending.catch(error=>{this.loadPromise=null;throw error});return this.loadPromise;}
  statusEffect(id:string){return this.statusEffects().find(x=>x.id===id);}
  item(id:string){return this.items().find(x=>x.id===id);}
  itemTooltipLines(itemId:string,instanceData?:any,equippedSlot?:string){
@@ -14,7 +14,7 @@ export class CatalogService {
    if(String(d.weaponType??'').toLowerCase()==='bow')lines.push({label:'',value:'Bows reduce precision by a half',warning:true});
    return lines;
   }
-  const hidden=d.type==='consumable'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor']):d.type==='monster_part'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();
+  const hidden=d.type==='consumable'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor']):d.type==='monster_part'||d.type==='material'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();
   const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;
   return visible.filter(k=>k!=='id'&&k!=='name'&&!hidden.has(k)&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k==='effect'?'Effect':k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:k==='effect'?this.formatItemEffect(d[k]):typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}));
  }
@@ -45,5 +45,5 @@ export class CatalogService {
   if(rolledAttribute&&rolledValue)lines.push({label:`${rolledAttribute} (rolled)`,value:`+${rolledValue}`});
   return lines;
  }
- itemIcon(id:string,framed=false){const item=this.item(id);const folder=item?.type==='equipment'?'equipment':item?.type==='monster_part'?'monster_parts':'consumables';const variant=framed?'svg':'svg-noframe';return `/assets/ui/items/${variant}/${folder}/${id}.svg`;} mapList(){return this.maps()} monster(id:string){return this.monsters().find(x=>x.id===id);}
+ itemIcon(id:string,framed=false){const item=this.item(id);const folder=item?.type==='equipment'?'equipment':item?.type==='monster_part'?'monster_parts':item?.type==='material'?'materials':'consumables';const variant=framed?'svg':'svg-noframe';return `/assets/ui/items/${variant}/${folder}/${id}.svg`;} mapList(){return this.maps()} monster(id:string){return this.monsters().find(x=>x.id===id);}
 }

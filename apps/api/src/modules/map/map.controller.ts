@@ -43,6 +43,16 @@ export class MapController {
     return { success: true, ...result, currentMapId: result?.character?.currentMapId ?? mapId, character: result?.character ?? character.id };
   }
 
+  /** Persist the last stationary grind stance; Traveling itself is derived from a route intent. */
+  @Post('stance')
+  async setStance(@Request() req: any, @Body() body: { stance?: 'hunting' | 'gathering' }) {
+    const character = await this.characterService.getCharacterByUserId(req.user.userId);
+    if (!character) throw new BadRequestException('Character not found');
+    if (body?.stance !== 'hunting' && body?.stance !== 'gathering') throw new BadRequestException('Invalid stance');
+    const updated = await this.mapService.setStance(character.id, body.stance);
+    return { success: true, character: updated };
+  }
+
   /** Save the Town currently occupied as the character's future teleport waypoint. */
   @Post('save-town')
   async saveTown(@Request() req: any) {

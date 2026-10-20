@@ -1067,7 +1067,7 @@
     },
     {
       "id": "food_blueberry",
-      "name": "Wild Blueberries",
+      "name": "Blueberry Jelly",
       "effect": {
         "type": "food_buff",
         "durationSeconds": 3600,
@@ -1115,7 +1115,7 @@
     },
     {
       "id": "food_honey",
-      "name": "Wild Honey",
+      "name": "Honey",
       "effect": {
         "type": "food_buff",
         "durationSeconds": 3600,
@@ -2919,6 +2919,138 @@
       "dropPool": [
         "map_lv_21",
         "map_lv_26"
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "id": "mat_wild_blueberries",
+      "name": "Wild Blueberries",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 6,
+      "usableFor": [
+        "future_crafting",
+        "future_recipes"
+      ]
+    },
+    {
+      "id": "mat_wheat",
+      "name": "Wheat",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 5,
+      "usableFor": [
+        "future_crafting",
+        "future_recipes"
+      ]
+    },
+    {
+      "id": "mat_cooking_oil",
+      "name": "Cooking Oil",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 6,
+      "usableFor": [
+        "future_crafting",
+        "future_recipes"
+      ]
+    },
+    {
+      "id": "mat_milk",
+      "name": "Milk",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 6,
+      "usableFor": [
+        "future_crafting",
+        "future_recipes"
+      ]
+    },
+    {
+      "id": "mat_sugar",
+      "name": "Sugar",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 6,
+      "usableFor": [
+        "future_crafting",
+        "future_recipes"
+      ]
+    },
+    {
+      "id": "mat_carrot",
+      "name": "Carrot",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 5,
+      "usableFor": [
+        "future_crafting",
+        "future_recipes"
+      ]
+    },
+    {
+      "id": "mat_cabbage",
+      "name": "Cabbage",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 5,
+      "usableFor": [
+        "future_crafting",
+        "future_recipes"
+      ]
+    },
+    {
+      "id": "mat_herbs",
+      "name": "Herbs",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 5,
+      "usableFor": [
+        "future_crafting",
+        "future_recipes"
+      ]
+    },
+    {
+      "id": "mat_honeycomb",
+      "name": "Honeycomb",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 8,
+      "usableFor": [
+        "future_crafting",
+        "future_recipes"
+      ]
+    },
+    {
+      "id": "mat_meat",
+      "name": "Meat",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 35,
+      "usableFor": [
+        "future_crafting",
+        "future_recipes"
       ]
     }
   ]

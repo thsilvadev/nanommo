@@ -70,6 +70,31 @@ export class Character {
   @Column({ type: 'varchar', nullable: true, default: 'map_town' })
   savedTownMapId?: string | null;
 
+  /** Last user-selected stationary stance. Traveling is derived from travelIntent. */
+  @Column({ type: 'varchar', length: 16, default: 'hunting' })
+  lastGrindStance!: 'hunting' | 'gathering';
+
+  /** Server-authoritative route/teleport intent; never a client-owned progress value. */
+  @Column({ type: 'jsonb', nullable: true })
+  travelIntent?: any | null;
+
+  @Column({ type: 'int', default: 1 })
+  gatheringLevel!: number;
+
+  /** Persisted fractional Gathering cycle progress and deterministic per-cycle variance. */
+  @Column({ type: 'jsonb', default: '{"progress":0,"cycleIndex":0,"varianceSeconds":null,"lastUpdatedAt":null}' })
+  gatheringCycle!: any;
+
+  /** Deterministic encounter-search cycle identity/deadline for offline catch-up. */
+  @Column({ type: 'jsonb', default: '{"cycleIndex":0,"nextAt":null}' })
+  encounterCycle!: any;
+
+  @Column({ type: 'int', default: 0 })
+  fleeAttemptIndex!: number;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  fleeNextAttemptAt?: Date | null;
+
   @Column({ type: 'jsonb', default: '[\"map_town\"]' })
   discoveredMapIds!: string[];
 

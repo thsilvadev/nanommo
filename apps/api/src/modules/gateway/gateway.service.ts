@@ -8,6 +8,8 @@ export interface BattleResolvedPayload {
   xpGain: number;
   goldGain: number;
   drops: Array<{ itemId: string; quantity: number }>;
+  cancelled?: boolean;
+  cancellationReason?: string;
   stateRevision: number;
   characterAfter: any;
   inventoryAfter: any[];

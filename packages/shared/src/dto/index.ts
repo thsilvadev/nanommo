@@ -79,6 +79,13 @@ export class CharacterDto {
   autoFeed!: boolean;
   currentMapId!: string;
   savedTownMapId!: string | null;
+  lastGrindStance!: 'hunting' | 'gathering';
+  travelIntent?: any | null;
+  gatheringLevel!: number;
+  gatheringCycle!: any;
+  encounterCycle!: any;
+  fleeAttemptIndex!: number;
+  fleeNextAttemptAt?: Date | null;
   pendingMapTransition?: { destinationMapId: string; reason: 'town_request' | 'map_request'; requestedAt?: string } | null;
   discoveredMapIds!: string[];
   status!: string;

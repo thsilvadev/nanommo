@@ -2,7 +2,13 @@
   <div #viewport class="viewport" role="application" aria-label="World map. Drag to explore and select a revealed location." (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp($event)" (pointercancel)="onPointerCancel($event)" (lostpointercapture)="onPointerCancel($event)" (wheel)="onWheel($event)" (click)="onViewportClick($event)">
     <div class="map-head">
       <h1>Currently in: {{mapName()}}</h1>
-      <div class="map-meta"><span *ngIf="character.character()?.currentMapId">Players in map: {{playersInMap()}}</span></div>
+      <div class="map-meta">
+        <div *ngIf="activityGaugeVisible()" class="activity-gauge" [class.traveling]="activityKind()==='traveling'" [class.gathering]="activityKind()==='gathering'" role="progressbar" [attr.aria-label]="activityLabel()" [attr.aria-valuenow]="activityProgress()" aria-valuemin="0" aria-valuemax="100">
+          <div class="activity-gauge-fill" [style.width.%]="activityProgress()"></div>
+          <strong>{{activityLabel()}}</strong>
+        </div>
+        <span *ngIf="character.character()?.currentMapId">Players in map: {{playersInMap()}}</span>
+      </div>
     </div>
     <div class="world" [style.transform]="'translate3d('+(-cameraX()*zoom())+'px,'+(-cameraY()*zoom())+'px,0) scale('+zoom()+')'">
       <img class="world-art" src="/assets/maps/map-background.png" alt="" draggable="false">
