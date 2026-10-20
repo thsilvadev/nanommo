@@ -9,7 +9,7 @@
   flex-direction: column;
   gap: 0;
   overflow: hidden;
-  align-items: end;
+  align-items: center;
 }
 .map-head {
   position: absolute;

@@ -5,7 +5,7 @@
   grid-template-columns: 331px minmax(0, 1fr);
   gap: 10px;
   background: #17100c;
-  padding: 0 5px 5px;
+  /* padding: 0 5px 5px; */
   overflow: hidden;
 }
 .grind-inventory-column {
