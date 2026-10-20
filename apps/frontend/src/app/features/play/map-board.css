@@ -140,6 +140,8 @@
   font: 20px Arial;
   text-transform: lowercase;
 }
+.map-error.flee-success { text-transform: none; color: #c7b276; }
+
 .map-error {
   margin: 6px 4px 0;
   color: #d18a77;

@@ -368,7 +368,7 @@ export class MapService {
         character.currentMapId = destination.id;
         character.discoveredMapIds = Array.from(new Set([...(character.discoveredMapIds ?? [TOWN_MAP_ID]), destination.id]));
         character.status = 'town'; character.travelIntent = null; character.pendingMapTransition = null;
-        character.encounterCycle = { cycleIndex: Math.max(0, Number(character.encounterCycle?.cycleIndex ?? 0)) + 1, nextAt: null };
+        character.encounterCycle = { ...(character.encounterCycle ?? {}), cycleIndex: Math.max(0, Number(character.encounterCycle?.cycleIndex ?? 0)) + 1, nextAt: null };
         character.gatheringCycle = { ...(character.gatheringCycle ?? {}), progress: 0, cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) + 1, varianceSeconds: null, lastUpdatedAt: new Date(now).toISOString() };
         character.lastSeenAt = new Date(now);
         await characterRepo.save(character);
@@ -419,7 +419,7 @@ export class MapService {
           intent.speedPaused = nextSpeed <= 0;
         } else { intent.lastDurationSeconds = null; intent.speedPaused = false; }
         character.gatheringCycle = { ...(character.gatheringCycle ?? {}), progress: 0, cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) + 1, varianceSeconds: null, lastUpdatedAt: new Date(now).toISOString() };
-        character.encounterCycle = { cycleIndex: Math.max(0, Number(character.encounterCycle?.cycleIndex ?? 0)) + 1, nextAt: null };
+        character.encounterCycle = { ...(character.encounterCycle ?? {}), cycleIndex: Math.max(0, Number(character.encounterCycle?.cycleIndex ?? 0)) + 1, nextAt: null };
         if (finished) { character.travelIntent = null; character.pendingMapTransition = null; }
         else character.travelIntent = intent;
         character.lastSeenAt = new Date(now);
@@ -456,7 +456,7 @@ export class MapService {
           intent.speedPaused = followingSpeed <= 0;
         } else { intent.lastDurationSeconds = null; intent.speedPaused = false; }
         character.gatheringCycle = { ...(character.gatheringCycle ?? {}), progress: 0, cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) + 1, varianceSeconds: null, lastUpdatedAt: new Date(now).toISOString() };
-        character.encounterCycle = { cycleIndex: Math.max(0, Number(character.encounterCycle?.cycleIndex ?? 0)) + 1, nextAt: null };
+        character.encounterCycle = { ...(character.encounterCycle ?? {}), cycleIndex: Math.max(0, Number(character.encounterCycle?.cycleIndex ?? 0)) + 1, nextAt: null };
         const finished = destination.id === intent.destinationMapId || !intent.nextMapId;
         character.status = destination.type === 'town' && finished ? 'town' : 'grinding';
         character.travelIntent = finished ? null : intent;

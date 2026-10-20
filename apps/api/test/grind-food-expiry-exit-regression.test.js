@@ -45,6 +45,7 @@ function makeHarness({ remainingMs, queuedEndOffsetMs, queuedStartOffsetMs }) {
   };
   service.battleQueueRepo = { find: async () => queued, save: async row => row };
   service.mapPresenceService = { syncCharacter: async (...args) => { presenceCalls.push(args); } };
+  service.equipmentService = { getEquipment: async () => [] };
   service.getBattleQueue = async () => queued;
   service.buildInventoryMap = async () => ({});
   service.discardUnresolvedBattles = async id => { discarded.push(id); };
@@ -117,6 +118,42 @@ async function testNoBattleStartsAfterExpiryDuringSearchGap() {
   assert.ok(scheduled[0][2].delay >= 0 && scheduled[0][2].delay <= 1_000);
 }
 
+async function testAllSkippedGatheringBatchSchedulesAContinuation() {
+  const h = makeHarness({ remainingMs: 3_600_000, queuedStartOffsetMs: 30_000, queuedEndOffsetMs: 180_000 });
+  const emptyQueue = [];
+  const scheduled = [];
+  h.character.lastGrindStance = 'gathering';
+  h.character.level = 51;
+  h.character.luk = 5;
+  h.character.activeTempBuffs = [];
+  h.character.statusEffects = [];
+  h.character.encounterCycle = { cycleIndex: 0, nextAt: null };
+  h.service.getBattleQueue = async () => emptyQueue;
+  h.service.buildInventoryMap = async () => ({});
+  h.service.getActiveDietFoodBuffs = () => [{ itemId: 'food_bread', hpRegenPerTenTicks: 1, spRegenPerTenTicks: 1, expiresAt: new Date(Date.now() + 3_600_000).toISOString() }];
+  h.service.latestFoodExpiry = () => Date.now() + 3_600_000;
+  h.service.mapPresenceService.countActiveGrinders = async () => 1;
+  h.service.getOrCreateKillCounter = async () => ({ epoch: 0, mapKillCount: 0, perMonsterKillCount: {} });
+  h.service.loadCombatantLoadout = async () => ({ weaponTypes: [], equipmentStats: { statBonus: {} }, skillDefs: {} });
+  h.service.getWeaponBaseAttackTicks = () => 6;
+  h.service.equipmentService = { getEquipment: async () => [] };
+  h.service.dataService = {
+    getMonstersInMap: () => [{ id: 'mon_slime', weight: 100 }],
+    getMonsterById: () => ({ id: 'mon_slime', name: 'Slime', level: 1, moveSpd: 40, isAggressive: false }),
+    getMonsterSkills: () => [], getStatusEffects: () => [],
+    getItems: () => ({ consumables: [], equipment: [], monsterParts: [], materials: [] }),
+    getItemById: () => null, getMapById: id => ({ id, type: 'grind' }),
+  };
+  h.service.bullQueue = { add: async (...args) => { scheduled.push(args); } };
+
+  const result = await h.service.queueBattles(h.character.id, 5, true);
+  assert.deepEqual(result, [], 'a batch of passive encounters has no battle row');
+  assert.equal(h.character.encounterCycle.preCombatFleeCycle, 1, 'persist the next independent deterministic cycle');
+  const retry = scheduled.find(args => args[0] === 'queue-battles' && String(args[2]?.jobId ?? '').startsWith('precombat-continue-'));
+  assert.ok(retry, 'empty queue must have a delayed continuation even when no resolve-battle job exists');
+  assert.ok(retry[2].delay > 0, 'continuation respects the future search boundary');
+}
+
 async function testAutoFeedGetsBoundaryOpportunityBeforeTown() {
   const h = makeHarness({ remainingMs: -1, queuedStartOffsetMs: 30_000, queuedEndOffsetMs: 180_000 });
   h.character.autoFeed = true;
@@ -175,6 +212,8 @@ async function testActuallyExpiredFoodStillRoutesTown() {
   console.log('[PASS] active battle is preserved when food expires during it');
   await testNoBattleStartsAfterExpiryDuringSearchGap();
   console.log('[PASS] no battle starts after expiry when the encounter-search gap crosses the boundary');
+  await testAllSkippedGatheringBatchSchedulesAContinuation();
+  console.log('[PASS] an all-skipped Gathering encounter batch persists a new cycle and schedules the next search');
   await testAutoFeedGetsBoundaryOpportunityBeforeTown();
   console.log('[PASS] Auto Feed gets the actual exhaustion boundary before Town fallback');
   await testAutoFeedWithoutEligibleFoodRoutesTown();

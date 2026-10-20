@@ -72,13 +72,16 @@ export class MapBoard implements OnDestroy {
   readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService);
   maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
   readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly mapTransitionPending = signal(false); readonly destinationMapId = signal<string|null>(null); readonly routeOriginMapId = signal<string|null>(null);
-  readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); readonly activityNow = signal(Date.now()); private discovered = new Set<string>(); private readonly activityTimer = setInterval(() => this.activityNow.set(Date.now()), 250);
+  readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); readonly activityNow = signal(Date.now()); readonly fleeNotice = signal<string|null>(null); private discovered = new Set<string>(); private readonly activityTimer = setInterval(() => this.activityNow.set(Date.now()), 250);
   private tooltipEl: HTMLElement|null = null; private tooltipPointer = {x:0,y:0};
   private mapRequestSequence=0; private latestMapRequestSequence=0; private lastRequestedAt=0; private transitionOriginMapId:string|null=null;
-  private transitionPoll:ReturnType<typeof setInterval>|null=null; private transitionPollBusy=false;
+  private transitionPoll:ReturnType<typeof setInterval>|null=null; private transitionPollBusy=false; private fleeNoticeTimeout:ReturnType<typeof setTimeout>|null=null; private lastFleeNoticeEntryId:string|null=null;
   private drag: {id:number; startX:number; startY:number; cameraX:number; cameraY:number; moved:boolean}|null = null; private suppressClickUntil = 0; private lastCenteredMapId: string|null = null;
   private readonly worldWidth=2295; private readonly worldHeight=1989; private readonly viewportWidth=761; private readonly viewportHeight=660; private readonly zoomMin=.5; private readonly zoomMax=1;
   constructor() {
+    // lastResolved is a retained store snapshot; don't replay an old FLEE toast
+    // merely because Grind was mounted again after navigation.
+    this.lastFleeNoticeEntryId=this.battle.lastResolved()?.entryId??null;
     this.api.get<any[]>('/maps').subscribe({next:m=>{this.maps=m;this.rebuildDiscovery();this.centerOnCurrentMap();},error:e=>this.error.set(e?.error?.message??'Unable to load maps')});
     effect(()=>{
       const c=this.character.character();
@@ -86,6 +89,15 @@ export class MapBoard implements OnDestroy {
       this.rebuildDiscovery(c.discoveredMapIds);
       this.centerOnCurrentMap();
       this.reconcileDestinationPreview(c);
+    });
+    effect(()=>{
+      const resolved=this.battle.lastResolved();
+      if(!resolved||resolved.entryId===this.lastFleeNoticeEntryId)return;
+      this.lastFleeNoticeEntryId=resolved.entryId;
+      if(resolved.cancellationReason!=='flee')return;
+      this.fleeNotice.set('You managed to flee battle!');
+      if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout);
+      this.fleeNoticeTimeout=setTimeout(()=>{this.fleeNotice.set(null);this.fleeNoticeTimeout=null;},4500);
     });
   }
   private destinationRequestedAt:string|null=null;
@@ -229,6 +241,27 @@ export class MapBoard implements OnDestroy {
   trackMap(_i:number,m:any){return m.id} trackCell(_i:number,c:any){return `${c.x},${c.y}`}
   gridColumn(map:any){return Number(map?.coordinates?.x??0)+7} gridRow(map:any){return 6-Number(map?.coordinates?.y??0)}
   private activeBattleAt(now=this.activityNow()){const b=this.battle.active();return !!b&&now>=Date.parse(String(b.startAt))&&now<Date.parse(String(b.endAt));}
+  private nonBattleElapsedSeconds(fromMs:number,toMs:number){
+    if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs<=fromMs)return 0;
+    const intervals:Array<{start:number;end:number}>=[
+      ...this.battle.queue().map((entry:any)=>({
+        start:Date.parse(String(entry.startAt??'')),
+        end:Date.parse(String(entry.cancellationReason==='flee'&&entry.cancelledAt?entry.cancelledAt:entry.endAt??'')),
+      })),
+      ...this.battle.recentBattleIntervals().map((entry:any)=>({start:Date.parse(String(entry.startAt??'')),end:Date.parse(String(entry.endAt??''))})),
+    ].filter(interval=>Number.isFinite(interval.start)&&Number.isFinite(interval.end)&&interval.end>interval.start)
+      .sort((a,b)=>a.start-b.start);
+    let busyMs=0;let unionStart:number|null=null;let unionEnd:number|null=null;
+    for(const interval of intervals){
+      const start=Math.max(fromMs,interval.start);const end=Math.min(toMs,interval.end);
+      if(end<=start)continue;
+      if(unionStart===null){unionStart=start;unionEnd=end;continue;}
+      if(start<=Number(unionEnd)){unionEnd=Math.max(Number(unionEnd),end);continue;}
+      busyMs+=Number(unionEnd)-unionStart;unionStart=start;unionEnd=end;
+    }
+    if(unionStart!==null)busyMs+=Number(unionEnd)-unionStart;
+    return Math.max(0,(toMs-fromMs-busyMs)/1000);
+  }
   activityKind():'traveling'|'gathering'|null{const c=this.character.character();if(!c)return null;if(c.travelIntent)return 'traveling';return c.status==='grinding'&&this.currentMap()?.type==='grind'?'gathering':null;}
   activityGaugeVisible(){return this.activityKind()!==null;}
   activityLabel(){return this.activityKind()==='traveling'?'Traveling…':'Gathering…';}
@@ -236,7 +269,7 @@ export class MapBoard implements OnDestroy {
     const c:any=this.character.character();const now=this.activityNow();if(!c)return 0;
     const activeBattle=this.activeBattleAt(now);let progress=0;let duration=300;
     if(c.travelIntent){const intent=c.travelIntent;progress=Math.max(0,Math.min(1,Number(intent.segmentProgress??0)));duration=Number(intent.lastDurationSeconds??30);const last=Date.parse(String(intent.lastAccruedAt??now));if(!activeBattle&&!intent.waitingForBattle&&intent.speedPaused!==true&&Number.isFinite(duration)&&duration>0&&Number.isFinite(last))progress=Math.min(1,progress+Math.max(0,now-last)/1000/duration);}
-    else{const map=this.currentMap();const cycle=c.gatheringCycle??{};const population=Math.max(1,this.playersInMap());duration=Math.max(30,12*Number(map?.mapLength??25)+30*(population-1)-(Math.max(1,Number(c.gatheringLevel??1))-1))+Math.max(0,Number(cycle.varianceSeconds??0));progress=Math.max(0,Math.min(1,Number(cycle.progress??0)));const last=Date.parse(String(cycle.lastUpdatedAt??now));if(!activeBattle&&Number.isFinite(last)&&duration>0)progress=Math.min(1,progress+Math.max(0,now-last)/1000/duration);}
+    else{const map=this.currentMap();const cycle=c.gatheringCycle??{};const population=Math.max(1,this.playersInMap());duration=Math.max(30,12*Number(map?.mapLength??25)+30*(population-1)-(Math.max(1,Number(c.gatheringLevel??1))-1))+Math.max(0,Number(cycle.varianceSeconds??0));progress=Math.max(0,Math.min(1,Number(cycle.progress??0)));const last=Date.parse(String(cycle.lastUpdatedAt??now));if(Number.isFinite(last)&&duration>0)progress=Math.min(1,progress+this.nonBattleElapsedSeconds(last,now)/duration);}
     return Math.round(progress*1000)/10;
   }
   currentMap(){return this.maps.find(m=>m.id===this.character.character()?.currentMapId)??this.maps.find(m=>m.id===TOWN_MAP_ID)??null}
@@ -390,7 +423,7 @@ export class MapBoard implements OnDestroy {
   }
   destinationRoutePoints(){return this.destinationRoute().map(point=>`${point.x},${point.y}`).join(' ')}
   destinationPinStyle(map:any){return map.id===this.destinationMapId()}
-  ngOnDestroy(){clearInterval(this.activityTimer);this.stopTransitionPoll();this.hideTileTooltip()}
+  ngOnDestroy(){clearInterval(this.activityTimer);this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
 }
 
 @Component({ selector: 'app-inventory-grid', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './inventory-grid.html', styleUrl: './inventory-grid.css' })

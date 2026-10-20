@@ -26,6 +26,7 @@
       <img *ngIf="currentMap() as current" class="location-pin" src="/assets/maps/pinpoint.svg" alt="Current location" [style.left.px]="gridColumn(current)*153+76.5" [style.top.px]="gridRow(current)*153+76.5">
     </div>
   </div>
+  <p *ngIf="fleeNotice()" class="map-error flee-success">{{fleeNotice()}}</p>
   <p *ngIf="mapTransitionPending()" class="map-feedback">waiting for battle to end to move...</p>
   <p *ngIf="error()" class="map-error">{{error()}}</p>
 </section>

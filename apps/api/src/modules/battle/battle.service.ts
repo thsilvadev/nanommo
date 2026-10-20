@@ -53,6 +53,13 @@ export function calculateNextEncounterBoundaryAt(
   return battleEndAt + calculateEncounterSearchDelayMs(playersOnMap, seed);
 }
 
+/** Independent deterministic stream identity for pre-combat FLEE. Cycle zero preserves the original seed. */
+export function buildPreCombatFleeSeed(characterId: string, mapId: string, epoch: number, killIndex: number, cycle = 0): string {
+  const base = `${characterId}:${mapId}:${epoch}:${killIndex}:pre-combat-flee`;
+  const normalizedCycle = Math.max(0, Math.floor(Number(cycle) || 0));
+  return normalizedCycle === 0 ? base : `${base}:cycle:${normalizedCycle}`;
+}
+
 export function applyLevelXpResolution(
   currentXp: number,
   currentLevel: number,
@@ -730,6 +737,9 @@ export class BattleService {
     const weaponBaseAttackTicks = this.getWeaponBaseAttackTicks(loadout.weaponTypes);
 
     let blockedByFoodExpiryBeforeNextStart = false;
+    const persistedEncounterCycle: any = character.encounterCycle ?? {};
+    let preCombatFleeCycle = Math.max(0, Math.floor(Number(persistedEncounterCycle.preCombatFleeCycle ?? 0)));
+    let performedPreCombatCheck = false;
     for (let i = 0; i < battlesToAdd + 100; i++) {
       if (newBattles.length >= battlesToAdd) break;
       const sequenceIndex = maxSequenceIndex + 1 + newBattles.length;
@@ -747,10 +757,16 @@ export class BattleService {
       }
       nextStartTime = new Date(encounterStartAt);
 
-      // SPEC §11.2: nextMonsterId(mapId, mapKillCount) = weightedPick(rngForIndex(mapKillCount))
+      // Cycle zero preserves the established kill-counter stream. Later Gathering
+      // batches vary selection identity too, so a full batch of passive/dodged picks
+      // cannot repeat the exact same roster sequence forever.
+      const monsterSelectionSeed = character.lastGrindStance === 'gathering' && preCombatFleeCycle > 0
+        ? mulberry32Seed(`${characterId}:${mapId}:${counter.epoch}:pre-combat-cycle:${preCombatFleeCycle}`)
+        : encounterSeed;
       const forcedMonster = options.forcedMonsterId ? monsters.find((entry: any) => entry.id === options.forcedMonsterId) : null;
-      const monster = forcedMonster ?? rngForIndex(encounterSeed, killIndex).weightedPick(monsters);
+      const monster = forcedMonster ?? rngForIndex(monsterSelectionSeed, killIndex).weightedPick(monsters);
       if (!forcedMonster && character.lastGrindStance === 'gathering') {
+        performedPreCombatCheck = true;
         const monsterDef = this.dataService.getMonsterById(monster.id);
         const equippedRows = await this.equipmentService.getEquipment(characterId);
         const gear = equippedRows.map((row: any) => ({ ...row, definition: this.dataService.getItemById(row.itemId) }));
@@ -758,7 +774,8 @@ export class BattleService {
         const attrBonuses = sumAttributeBonuses(loadout.equipmentStats.statBonus, masteryPassiveAttributeBonuses(loadout.skillDefs));
         const totalLuk = Number(character.luk ?? 5) + Number(attrBonuses.LUK ?? 0);
         const fleeChance = calculateFleeChancePercent(worldSpeed, Number(monsterDef?.moveSpd ?? 0), totalLuk);
-        const avoid = !monsterDef?.isAggressive || new Mulberry32(`${characterId}:${mapId}:${counter.epoch}:${killIndex}:pre-combat-flee`).nextPercent() < fleeChance;
+        const fleeSeed = buildPreCombatFleeSeed(characterId, mapId, Number(counter.epoch), killIndex, preCombatFleeCycle);
+        const avoid = !monsterDef?.isAggressive || new Mulberry32(fleeSeed).nextPercent() < fleeChance;
         if (avoid) { projectedMapKillCount += 1; nextStartTime = new Date(encounterStartAt); continue; }
       }
       const monsterId = monster.id;
@@ -945,6 +962,30 @@ export class BattleService {
     }
 
     const liveQueue = [...currentQueue, ...newBattles];
+    // Only advance the separate pre-combat cycle when this batch added no battle
+    // and the queue is actually empty. Ordinary batches that queued fights keep the
+    // established mapKillCount-based roster stream and reward determinism unchanged.
+    if (liveQueue.length === 0 && performedPreCombatCheck && !blockedByFoodExpiryBeforeNextStart) {
+      character.encounterCycle = { ...(character.encounterCycle ?? {}), preCombatFleeCycle: preCombatFleeCycle + 1 };
+      await this.characterRepo.save(character);
+      // A whole projected batch can consist only of passive monsters or successful
+      // pre-combat dodges. No resolve-battle job will fire to refill an empty queue,
+      // so arm the next search boundary explicitly rather than waiting for a UI action.
+      const nextSearchAt = nextStartTime.getTime();
+      const retryDelayMs = Math.max(1_000, nextSearchAt - Date.now());
+      await this.bullQueue.add(
+        'queue-battles',
+        { characterId },
+        {
+          delay: retryDelayMs,
+          jobId: `precombat-continue-${characterId}-${mapId}-${preCombatFleeCycle + 1}-${Math.floor(nextSearchAt / 1000)}`,
+          removeOnComplete: true,
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 2000 },
+        },
+      );
+      this.logger.debug(`Pre-combat encounter batch avoided all candidates for ${characterId}; next search recheck in ${retryDelayMs}ms`);
+    }
     if (liveQueue.length === 0 && blockedByFoodExpiryBeforeNextStart) {
       const actualFoodExpiresAt = this.latestFoodExpiry(this.getActiveDietFoodBuffs(character, Date.now()));
       if (actualFoodExpiresAt > 0) {
@@ -1744,6 +1785,9 @@ export class BattleService {
       if (!state) return;
       const payload: BattleResolvedPayload = {
         entryId: battle.id,
+        startAt: battle.startAt.toISOString(),
+        endAt: battle.endAt.toISOString(),
+        cancelledAt: battle.cancelledAt ? battle.cancelledAt.toISOString() : null,
         outcome: battle.outcome,
         xpGain: battle.cancellationReason === 'flee' || battle.cancelledAt ? 0 : Number(battle.xpGain ?? 0),
         goldGain: battle.cancellationReason === 'flee' || battle.cancelledAt ? 0 : Number(battle.goldGain ?? 0),

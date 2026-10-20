@@ -1,5 +1,6 @@
 <section class="vendor-panel" aria-label="Town NPC">
   <div class="npc-select"><label for="town-npc-select">Talk to:</label><select id="town-npc-select" aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)"><option value="">Choose NPC to interact</option><option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{npc.name}}</option></select></div>
+  <div class="vendor-error" *ngIf="vendor.error() && !vendor.selectedNpc()">{{vendor.error()}}</div>
   <ng-container *ngIf="vendor.selectedNpc() as npc">
     <div class="npc-profile"><img class="npc-portrait" [src]="npcPortrait(npc.id)" [alt]="npc.name" width="167" height="199"></div>
     <div class="vendor-title"><strong>{{npc.name}}</strong><span>{{npc.types.join(' / ') | uppercase}}</span></div>

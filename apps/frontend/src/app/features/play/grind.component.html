@@ -19,7 +19,7 @@
       <button type="button" [class.active]="character.character()?.status!=='town' && huntMode()==='gathering'" [disabled]="loading()" (click)="selectStance('gathering')" title="Gathering">
         <img src="/assets/ui/gathering.svg" alt="Gathering">
       </button>
-      <span *ngIf="character.character()?.travelIntent" class="traveling-stance" title="Traveling is automatic while a route is active">
+      <span class="traveling-stance" [class.active]="!!character.character()?.travelIntent" [class.inactive]="!character.character()?.travelIntent" title="Traveling is automatic while a route is active" aria-label="Traveling">
         <img src="/assets/ui/boots.svg" alt="Traveling">
       </span>
     </div>

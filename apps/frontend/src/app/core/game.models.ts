@@ -8,7 +8,7 @@ export interface BattleHistoryEntry { id:string; outcome:'win'|'loss'; cancelled
 export interface BattleLogDetail extends BattleHistoryEntry { drops:unknown[]; itemsConsumed:Array<{itemId:string;quantity:number}>; hpAfter:number; spAfter:number; seedUsed:string; log:any; }
 export interface BattleQueueEntry { id:string; characterId:string; sequenceIndex:number; cancelledAt?:string|null; cancellationReason?:string|null; mapId:string; monsterId:string; startAt:string; endAt:string; outcome:'win'|'loss'; log?:unknown; xpGain:number; goldGain:number; drops:unknown[]; itemsConsumed:Array<{itemId:string;quantity:number}>; hpAfter:number; spAfter:number; resolved:false; seedUsed:string; }
 export interface BattleQueueUpdated { entries:BattleQueueEntry[]; stateRevision?:number; characterAfter?:Character; inventoryAfter?:InventoryItem[]; }
-export interface BattleResolved { entryId:string; outcome:'win'|'loss'; xpGain:number; goldGain:number; drops:unknown[]; cancelled?:boolean; cancellationReason?:string; stateRevision:number; characterAfter:Character; inventoryAfter:InventoryItem[]; }
+export interface BattleResolved { entryId:string; startAt?:string; endAt?:string; cancelledAt?:string|null; outcome:'win'|'loss'; xpGain:number; goldGain:number; drops:unknown[]; cancelled?:boolean; cancellationReason?:string; stateRevision:number; characterAfter:Character; inventoryAfter:InventoryItem[]; }
 export interface MapPresence { mapId:string; playersOnMap:number; }
 export interface CharacterLeveledUp { newLevel:number; unspentAttributePoints:number; }
 export interface CharacterDied { deathLog:{monsterId:string;mapId:string;timestamp:string;log:unknown}; }

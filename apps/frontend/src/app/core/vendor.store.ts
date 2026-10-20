@@ -21,7 +21,7 @@ export class VendorStore {
   readonly character=inject(CharacterStore);
   readonly inventory=inject(InventoryStore);
   readonly catalog=inject(CatalogService);
-  readonly npcs=signal<TownNpc[]>([{id:'william',name:'William',types:['vendor'],location:'town'}]);
+  readonly npcs=signal<TownNpc[]>([]);
   readonly dialogue=signal<NpcDialogueState|null>(null);
   readonly selectedNpcId=signal('');
   readonly stock=signal<VendorStockItem[]>([]);
@@ -33,9 +33,10 @@ export class VendorStore {
   private npcLoadSequence=0;
 
   /** Reset transient Town interaction state whenever the Town panel is entered. */
-  resetForTownEntry(){
+  resetForTownEntry(clearNpcCatalogue = true){
     // Invalidate any NPC catalogue request started for the previous Town.
     this.npcLoadSequence++;
+    if(clearNpcCatalogue) this.npcs.set([]);
     this.selectedNpcId.set('');
     this.stock.set([]);
     this.warehouse.set([]);
@@ -53,12 +54,17 @@ export class VendorStore {
       if(requestSequence!==this.npcLoadSequence) return;
       // A Town-to-Town transition can overlap an HTTP response from the previous
       // Town. Never let that response replace the destination's NPC catalogue.
-      if(mapIdAtRequest && (latestCharacter?.currentMapId!==mapIdAtRequest || latestCharacter?.status!=='town')) return;
+      if(mapIdAtRequest && (latestCharacter?.currentMapId!==mapIdAtRequest || latestCharacter?.status!=='town')) {
+        // If the response raced with arrival at a different, already-settled Town,
+        // fetch that Town's catalogue instead of leaving a placeholder catalogue behind.
+        if(latestCharacter?.status==='town' && latestCharacter.currentMapId && latestCharacter.currentMapId!==mapIdAtRequest && !latestCharacter.travelIntent && !latestCharacter.pendingMapTransition) void this.load();
+        return;
+      }
       if(Array.isArray(npcs)) this.npcs.set(npcs);
-      if(this.selectedNpcId() && !this.npcs().some(n=>n.id===this.selectedNpcId())) this.resetForTownEntry();
+      if(this.selectedNpcId() && !this.npcs().some(n=>n.id===this.selectedNpcId())) this.resetForTownEntry(false);
       // An empty ID is intentional: never silently select the first NPC.
       await this.loadSelectedNpc();
-    }catch(e:any){this.error.set(e?.error?.message??'Unable to load Town NPCs');}
+    }catch(e:any){if(requestSequence===this.npcLoadSequence)this.error.set(e?.error?.message??'Unable to load Town NPCs');}
   }
   async loadSelectedNpc(){
     const id=this.selectedNpcId();
@@ -101,7 +107,7 @@ export class VendorStore {
     }catch(e:any){if(this.selectedNpcId()===id)this.error.set(e?.error?.message??'Unable to load NPC dialogue');}
   }
   selectNpc(id:string){
-    if(!id){this.resetForTownEntry();return;}
+    if(!id){this.resetForTownEntry(false);return;}
     this.selectedNpcId.set(id);
     this.stock.set([]);
     this.warehouse.set([]);
