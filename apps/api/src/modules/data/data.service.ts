@@ -119,6 +119,7 @@ export class DataService implements OnModuleInit {
       if (map.type === 'town' && Number(map.mapLength) !== 0) throw new Error(`Town map ${map.id} must have mapLength 0`);
       if (map.type === 'grind' && Number(map.mapLength) < 25) throw new Error(`Grind map ${map.id} must have mapLength >= 25`);
       if (map.type === 'town' && map.gatheringPool !== undefined) throw new Error(`Town map ${map.id} must not define a gatheringPool`);
+      if (map.type === 'grind' && (!Array.isArray(map.gatheringPool) || map.gatheringPool.length === 0)) throw new Error(`Grind map ${map.id} must define a non-empty gatheringPool`);
       if (map.type === 'grind' && map.gatheringPool !== undefined) {
         if (!Array.isArray(map.gatheringPool)) throw new Error(`Map ${map.id} gatheringPool must be an array`);
         const poolTotal = map.gatheringPool.reduce((sum: number, entry: any) => sum + Number(entry.weight ?? 0), 0);

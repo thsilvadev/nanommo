@@ -10,14 +10,21 @@ assert.equal(new Set(root.map(m => m.id)).size, 41, 'unique IDs');
 assert.equal(new Set(root.map(m => `${m.coordinates.x},${m.coordinates.y}`)).size, 41, 'unique coordinates');
 assert.equal(root.filter(m => m.type === 'town').length, 5, 'five Towns');
 assert.equal(root.filter(m => m.type === 'grind').length, 36, '36 grind maps');
+assert.equal(root.filter(m => m.type === 'grind' && Array.isArray(m.gatheringPool) && m.gatheringPool.length).length, 36, 'all 36 grind maps have gathering pools');
 for (const m of root) {
   assert.equal(Number.isInteger(m.coordinates.x) && Number.isInteger(m.coordinates.y), true, `${m.id} integer coordinates`);
   assert.ok(m.coordinates.x + 8 >= 1 && m.coordinates.x + 8 <= 15 && 7 - m.coordinates.y >= 1 && 7 - m.coordinates.y <= 13, `${m.id} within 15x13 grid`);
   assert.equal(m.isClickable, true, `${m.id} clickable`);
   assert.equal(m.unlockLevel, 0, `${m.id} has no level gate`);
-  if (m.type === 'town') { assert.deepEqual(m.monsters, [], `${m.id} peaceful`); assert.ok(m.npcIds.includes('storage'), `${m.id} has Storage`); }
-  else { assert.ok(m.monsters.length, `${m.id} roster exists`); assert.ok(Math.abs(m.monsters.reduce((s, e) => s + e.presenceRate, 0) - 100) < .02, `${m.id} weights total 100`); }
+  if (m.type === 'town') { assert.deepEqual(m.monsters, [], `${m.id} peaceful`); assert.ok(m.npcIds.includes('storage'), `${m.id} has Storage`); assert.equal(m.gatheringPool, undefined, `${m.id} Town has no gathering pool`); }
+  else {
+    assert.ok(m.monsters.length, `${m.id} roster exists`);
+    assert.ok(Math.abs(m.monsters.reduce((s, e) => s + e.presenceRate, 0) - 100) < .02, `${m.id} weights total 100`);
+    assert.ok(Array.isArray(m.gatheringPool) && m.gatheringPool.length > 0, `${m.id} has gathering pool`);
+    assert.ok(Math.abs(m.gatheringPool.reduce((s, e) => s + e.weight, 0) - 100) < .001, `${m.id} gathering weights total 100`);
+    assert.ok(!m.gatheringPool.some(e => e.itemId === 'mat_meat'), `${m.id} never gathers Meat`);
+  }
   for (const entry of m.monsters) assert.ok(monsters.has(entry.monsterId), `${m.id} references ${entry.monsterId}`);
 }
 for (const f of ['map-background.png', 'pinpoint.png']) assert.deepEqual(fs.readFileSync(path.join(__dirname, '../project', f)), fs.readFileSync(path.join(__dirname, `../apps/frontend/assets/maps/${f}`)), `${f} asset mirror`);
-console.log('Validated 41 world locations, zero level gates, 5 Towns, 36 grind rosters, coordinate bounds, catalogue parity and art asset integrity.');
+console.log('Validated 41 world locations, zero level gates, 5 Towns, 36 grind rosters/pools, coordinate bounds, catalogue parity and art asset integrity.');

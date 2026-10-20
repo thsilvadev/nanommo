@@ -8,7 +8,7 @@ Define passive collection while stationary, authoritative Gathering-cycle timing
 
 ### Requirement: Gathering gauge runs in stationary Hunting and Gathering
 
-A stationary character on a grind map MUST accrue the orange Gathering gauge in both Hunting and Gathering. It MUST pause during battle and Traveling. The “Searching for monster…” indicator MUST be removed; encounter search continues server-side in parallel with collection between battles.
+A stationary character on a grind map MUST accrue the orange Gathering gauge in both Hunting and Gathering. It MUST pause during battle and Traveling. The growing search/progress bar MUST be removed, but the text-only “Searching for Monsters...” state MUST remain during future encounter search; encounter search continues server-side in parallel with collection between battles.
 
 #### Scenario: Hunting collects during search
 - **WHEN** a Hunting character is stationary on a grind map and not fighting
@@ -34,7 +34,7 @@ Unvaried base duration in seconds MUST be max(30, 12 × mapLength + 30 × (playe
 
 ### Requirement: Gathering rewards use map-owned weighted material pools
 
-A grind map MAY define a gathering pool whose probabilities total exactly 100%. Town maps MUST have no pool. Roughly one-third of current grind maps MUST receive cooking ingredient pools. At completion, the server MUST make a deterministic weighted pick and grant through normal InventoryService capacity rules.
+Every current grind map MUST define a non-empty gathering pool whose probabilities total exactly 100%. Town maps MUST have no pool. The initial world distribution MUST include all nine gatherable material IDs across the 36 grind maps; Meat is excluded from all gathering pools and remains a monster drop. At completion, the server MUST make a deterministic weighted pick and grant through normal InventoryService capacity rules.
 
 #### Scenario: Inventory has room
 - **WHEN** a collection cycle completes and a material is selected

@@ -3,8 +3,8 @@ import { Injectable, signal } from '@angular/core';
 import { GambitCatalog, ItemDefinition, MonsterDefinition, WeaponCurve } from './game.models';
 @Injectable({providedIn:'root'})
 export class CatalogService {
- readonly items=signal<ItemDefinition[]>([]);readonly monsters=signal<MonsterDefinition[]>([]);readonly maps=signal<any[]>([]);readonly gambits=signal<GambitCatalog>({meta:{},conditions:[],actions:[]});readonly weaponCurve=signal<WeaponCurve[]>([]);readonly skills=signal<any[]>([]);readonly statusEffects=signal<any[]>([]);private loadPromise:Promise<void>|null=null;
- async load():Promise<void>{if(this.loadPromise)return this.loadPromise;const pending=(async()=>{const get=async<T>(p:string)=>fetch('/data/'+p).then(r=>{if(!r.ok)throw new Error('Unable to load catalogue '+p);return r.json() as Promise<T>});const [i,m,mp,g,w,s,se]=await Promise.all([get<any>('items.json'),get<any>('monsters.json'),get<any>('maps.json'),get<GambitCatalog>('gambit_catalog.json'),get<WeaponCurve[]>('weapon_xp_curve.json'),get<any>('skill_trees.json'),get<any>('status_effects.json')]);this.items.set([...(i.consumables??[]),...(i.equipment??[]),...(i.monsterParts??[]),...(i.materials??[])]);this.monsters.set(m.monsters??[]);this.maps.set(mp.maps??[]);this.gambits.set(g);this.weaponCurve.set(w);this.skills.set([...Object.values(s.trees??{}).flat(),...(s.monsterSkills??[]).map((skill:any)=>({...skill,category:'monster'}))]);this.statusEffects.set(se.statusEffects??[]);})();this.loadPromise=pending.catch(error=>{this.loadPromise=null;throw error});return this.loadPromise;}
+ readonly items=signal<ItemDefinition[]>([]);readonly monsters=signal<MonsterDefinition[]>([]);readonly maps=signal<any[]>([]);readonly gambits=signal<GambitCatalog>({meta:{},conditions:[],actions:[]});readonly weaponCurve=signal<WeaponCurve[]>([]);readonly skills=signal<any[]>([]);readonly statusEffects=signal<any[]>([]);readonly npcCatalog=signal<any[]>([]);readonly npcVendor=signal<any|null>(null);private loadPromise:Promise<void>|null=null;
+ async load():Promise<void>{if(this.loadPromise)return this.loadPromise;const pending=(async()=>{const get=async<T>(p:string)=>fetch('/data/'+p).then(r=>{if(!r.ok)throw new Error('Unable to load catalogue '+p);return r.json() as Promise<T>});const [i,m,mp,g,w,s,se,npcs,vendor]=await Promise.all([get<any>('items.json'),get<any>('monsters.json'),get<any>('maps.json'),get<GambitCatalog>('gambit_catalog.json'),get<WeaponCurve[]>('weapon_xp_curve.json'),get<any>('skill_trees.json'),get<any>('status_effects.json'),get<any>('npc_catalog.json'),get<any>('npc_vendor.json')]);this.items.set([...(i.consumables??[]),...(i.equipment??[]),...(i.monsterParts??[]),...(i.materials??[])]);this.monsters.set(m.monsters??[]);this.maps.set(mp.maps??[]);this.gambits.set(g);this.weaponCurve.set(w);this.skills.set([...Object.values(s.trees??{}).flat(),...(s.monsterSkills??[]).map((skill:any)=>({...skill,category:'monster'}))]);this.statusEffects.set(se.statusEffects??[]);this.npcCatalog.set(npcs.npcs??[]);this.npcVendor.set(vendor??null);})();this.loadPromise=pending.catch(error=>{this.loadPromise=null;throw error});return this.loadPromise;}
  statusEffect(id:string){return this.statusEffects().find(x=>x.id===id);}
  item(id:string){return this.items().find(x=>x.id===id);}
  itemTooltipLines(itemId:string,instanceData?:any,equippedSlot?:string){
@@ -44,6 +44,17 @@ export class CatalogService {
   const rolledAttribute=String(instanceData?.rolledAttribute??'');const rolledValue=Number(instanceData?.rolledValue??0);
   if(rolledAttribute&&rolledValue)lines.push({label:`${rolledAttribute} (rolled)`,value:`+${rolledValue}`});
   return lines;
+ }
+ townNpcsForMap(mapId:string){
+  const map=this.maps().find(row=>row.id===mapId);
+  const catalogue=this.npcCatalog();
+  const vendor=this.npcVendor();
+  const ids:string[]=Array.isArray(map?.npcIds)?map.npcIds:(mapId==='map_town'?[String(vendor?.id??'william'),...catalogue.map(row=>String(row.id))]:[]);
+  return ids.map(id=>{
+   if(id===vendor?.id)return {id:vendor.id,name:vendor.name,location:vendor.location,types:['vendor'],greeting:vendor.greeting??vendor.vendor?.greeting};
+   const npc=catalogue.find(row=>row.id===id&&row.location==='town');
+   return npc?{id:npc.id,name:npc.name,location:npc.location,types:Array.isArray(npc.types)?npc.types:[],greeting:npc.greeting??npc.vendor?.greeting,monologue:npc.monologue}:null;
+  }).filter((npc):npc is NonNullable<typeof npc>=>npc!==null);
  }
  itemIcon(id:string,framed=false){const item=this.item(id);const folder=item?.type==='equipment'?'equipment':item?.type==='monster_part'?'monster_parts':item?.type==='material'?'materials':'consumables';const variant=framed?'svg':'svg-noframe';return `/assets/ui/items/${variant}/${folder}/${id}.svg`;} mapList(){return this.maps()} monster(id:string){return this.monsters().find(x=>x.id===id);}
 }

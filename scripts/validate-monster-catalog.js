@@ -27,6 +27,7 @@ for (const map of maps) {
   assert.ok(map.monsters.length, `${map.name} has a monster roster`);
   assert.ok(Math.abs(map.monsters.reduce((sum, entry) => sum + Number(entry.presenceRate), 0) - 100) < 0.02, `${map.name} monster weights sum to 100`);
   assert.ok(Number(map.monsters_quantity) >= 1, `${map.name} has at least one monster slot`);
+  assert.ok(Array.isArray(map.gatheringPool) && map.gatheringPool.length > 0, `${map.id} has a non-empty gathering pool`);
   if (map.gatheringPool !== undefined) {
     assert.ok(Array.isArray(map.gatheringPool), `${map.id} gathering pool is an array`);
     assert.ok(Math.abs(map.gatheringPool.reduce((sum, entry) => sum + Number(entry.weight), 0) - 100) < 0.001, `${map.id} gathering weights sum to 100`);
@@ -61,6 +62,9 @@ for (const monster of monsters) {
   }
 }
 assert.deepEqual(monsters.filter(monster => (monster.drops || []).some(drop => drop.itemId === 'mat_meat' && Number(drop.chance) === 0.2)).map(monster => monster.id).sort(), ['mon_direwolf','mon_needlebackstalker']);
+const gatheredMaterialIds = new Set(maps.flatMap(map => (map.gatheringPool ?? []).map(entry => entry.itemId)));
+assert.deepEqual(gatheredMaterialIds, new Set(items.materials.map(item => item.id).filter(id => id !== 'mat_meat')), 'all nine gatherable materials are distributed world-wide; Meat is excluded');
+assert.equal(maps.filter(map => map.type === 'grind' && Array.isArray(map.gatheringPool)).length, 36, 'all Grind maps have a gathering pool');
 assert.equal(items.materials.length, 10, 'Ten stable cooking/material IDs');
 assert.equal(new Set(items.materials.map(item=>item.id)).size, items.materials.length, 'Material IDs unique');
 for (const item of items.materials) {
@@ -83,4 +87,4 @@ assert.ok(monsters.some(monster=>monster.id==='mon_bandit' && monster.level===25
 assert.ok(monsters.some(monster=>monster.id==='mon_mudflatcrocodile' && monster.level===12));
 assert.ok(monsters.some(monster=>monster.id==='mon_kwaiouaranger' && monster.level===33));
 assert.ok(monsters.some(monster=>monster.id==='mon_sacredforestguardian' && monster.level===50));
-console.log(`Validated ${maps.length} locations, ${monsters.length} monsters, ${items.monsterParts.length} monster parts, ${items.materials.length} materials and ${maps.filter(map=>map.gatheringPool).length} gathering pools.`);
+console.log(`Validated ${maps.length} locations, ${monsters.length} monsters, ${items.monsterParts.length} monster parts, ${items.materials.length} materials and ${maps.filter(map=>map.gatheringPool).length} gathering pools across all Grind maps.`);

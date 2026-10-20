@@ -37,7 +37,16 @@ describe('Town NPC selection state', () => {
     };
     store.character = {};
     store.inventory = {};
-    store.catalog = {};
+    store.catalog = {
+      load: async () => {},
+      townNpcsForMap: (mapId: string) => mapId === 'map_town' ? [
+        { id: 'william', name: 'William', location: 'town', types: ['vendor'] },
+        { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['quest'] },
+        { id: 'blacksmith_loren', name: 'Blacksmith Loren', location: 'town', types: ['vendor'] },
+        { id: 'cecilia', name: 'Cecilia', location: 'town', types: ['quest'] },
+        { id: 'storage', name: 'Storage', location: 'town', types: ['storage'] },
+      ] : mapId === 'town_a' ? [{ id: 'town_a_vendor', name: 'Town A Vendor', location: 'town', types: ['vendor'] }] : mapId === 'town_b' ? [{ id: 'storage', name: 'Storage', location: 'town', types: ['storage'] }] : [],
+    };
     store.npcs = signal<any[]>([
       { id: 'william', name: 'William', location: 'town', types: ['vendor'] },
       { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['quest'] },
@@ -125,6 +134,24 @@ describe('Town NPC selection state', () => {
 
     expect(store.npcs()).toEqual(destinationNpcs);
     expect(store.selectedNpcId()).toBe('');
+  });
+
+  it('keeps the map-owned NPC list if the live endpoint incorrectly returns an empty array', async () => {
+    const store = makeStore();
+    store.character = { character: () => ({ currentMapId: 'town_b', status: 'town' }) };
+    store.api.get.and.returnValue({ toPromise: () => Promise.resolve([]) });
+    await store.load();
+    expect(store.npcs()).toEqual([{ id: 'storage', name: 'Storage', location: 'town', types: ['storage'] }]);
+    expect(store.error()).toContain('empty list');
+  });
+
+  it('keeps the canonical JSON NPC list visible if the live endpoint fails', async () => {
+    const store = makeStore();
+    store.character = { character: () => ({ currentMapId: 'town_b', status: 'town' }) };
+    store.api.get.and.returnValue({ toPromise: () => Promise.reject({ error: { message: 'temporary API error' } }) });
+    await store.load();
+    expect(store.npcs()).toEqual([{ id: 'storage', name: 'Storage', location: 'town', types: ['storage'] }]);
+    expect(store.error()).toBe('temporary API error');
   });
 
   it('ignores a stock response that arrives after a different NPC was selected', async () => {

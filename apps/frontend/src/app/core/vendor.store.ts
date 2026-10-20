@@ -46,9 +46,16 @@ export class VendorStore {
   }
   async load(){
     const requestSequence=++this.npcLoadSequence;
-    const characterAtRequest=this.character.character?.();
-    const mapIdAtRequest=characterAtRequest?.currentMapId;
     try{
+      // Seed the panel from the same canonical public JSON used by the backend.
+      // The API response then confirms/replaces it; a transient request/transition
+      // race can no longer blank an otherwise valid Town NPC list.
+      await this.catalog.load();
+      const characterAtRequest=this.character.character?.();
+      const mapIdAtRequest=characterAtRequest?.currentMapId;
+      const catalogueNpcs=mapIdAtRequest?this.catalog.townNpcsForMap(mapIdAtRequest):[];
+      if(requestSequence!==this.npcLoadSequence) return;
+      if(catalogueNpcs.length) this.npcs.set(catalogueNpcs as TownNpc[]);
       const npcs=await this.api.get<TownNpc[]>('/town/npcs').toPromise();
       const latestCharacter=this.character.character?.();
       if(requestSequence!==this.npcLoadSequence) return;
@@ -60,11 +67,26 @@ export class VendorStore {
         if(latestCharacter?.status==='town' && latestCharacter.currentMapId && latestCharacter.currentMapId!==mapIdAtRequest && !latestCharacter.travelIntent && !latestCharacter.pendingMapTransition) void this.load();
         return;
       }
-      if(Array.isArray(npcs)) this.npcs.set(npcs);
+      if(Array.isArray(npcs) && npcs.length) {
+        this.npcs.set(npcs);
+        this.error.set(null);
+      } else if(catalogueNpcs.length) {
+        // A successful HTTP response with an empty NPC list is still inconsistent
+        // with a Town whose map JSON names residents. Keep the canonical map list
+        // visible and make the API inconsistency diagnosable.
+        this.npcs.set(catalogueNpcs as TownNpc[]);
+        this.error.set('Town NPC endpoint returned an empty list; showing the map catalogue.');
+      } else this.npcs.set([]);
       if(this.selectedNpcId() && !this.npcs().some(n=>n.id===this.selectedNpcId())) this.resetForTownEntry(false);
       // An empty ID is intentional: never silently select the first NPC.
       await this.loadSelectedNpc();
-    }catch(e:any){if(requestSequence===this.npcLoadSequence)this.error.set(e?.error?.message??'Unable to load Town NPCs');}
+    }catch(e:any){
+      if(requestSequence===this.npcLoadSequence){
+        // Keep the map-specific public-JSON entries displayed if the API is
+        // temporarily unavailable, but surface the API error instead of hiding it.
+        this.error.set(e?.error?.message??'Unable to refresh Town NPCs');
+      }
+    }
   }
   async loadSelectedNpc(){
     const id=this.selectedNpcId();

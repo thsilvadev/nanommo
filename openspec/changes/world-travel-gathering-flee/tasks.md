@@ -7,7 +7,7 @@
 - [x]  1.3 Add explicit isAggressive and hard-coded moveSpd to root/frontend monster catalogues. Only mon_slime, mon_thornsprout, mon_saltfangcrab and mon_moonleafarcanist are initially non-aggressive. Seed world moveSpd from current moveSpeedBase values; never level-scale the new field and preserve battle-lane behavior.
 - [x]  1.4 Add a materials group and type material items with stable IDs, stack/sale metadata and icons for Wild Blueberries, Wheat, Cooking Oil, Milk, Sugar, Carrot, Cabbage, Herbs, Honeycomb and Meat.
 - [x]  1.5 Rename food_blueberry to Blueberry Jelly and food_honey to Honey without changing IDs/effects/ownership. Add 20% independent Meat drops to mon_direwolf and mon_needlebackstalker only.
-- [x]  1.6 Add weighted gathering pools to roughly 12 current grind maps, with regional cooking ingredients and total weights of 100. Never add Meat to a gathering pool; Town pools remain empty.
+- [x]  1.6 Add weighted gathering pools to all 36 current grind maps, with a temporary randomized distribution of all nine gatherable materials and total weights of 100 per map. Never add Meat to a gathering pool; Town pools remain empty.
 - [x]  1.7 Create the Blueberry Jelly icon and icons for every new material ID following the existing icon conventions. Extend icon lookup to a materials folder.
 - [x]  1.8 Extend DataService, CatalogService, all-item lookup, tooltip/category handling, drop resolution, mirror checks and asset validators for materials.
 
@@ -31,7 +31,7 @@
 - [x]  3.1 Implement an idempotent durable activity scheduler for segment progress, search timers, Gathering cycles and post-battle resume using existing distributed per-character locking/recovery.
 - [ ] 3.2 Add chronological catch-up for offline/restart intervals. Process encounter and battle timestamps in order and never accrue travel/Gathering through a battle interval.
 - [x]  3.3 Replace fixed search delay with inclusive deterministic randInt(2,6) + playersInMap seconds. Count the current character and disconnected residents; avoid Math.random.
-- [x]  3.4 Remove the frontend Searching for monster… progress bar/text without removing server-side encounter cadence.
+- [x]  3.4 Remove the growing frontend search/progress bar but retain text-only “Searching for Monsters...” during server-side encounter cadence.
 - [x]  3.5 Hunting always fights; Gathering/Traveling encounters use aggression filtering and a pre-combat FLEE roll. Do not prequeue reward-bearing fights that the current stance may skip.
 - [x]  3.6 Keep active battle snapshots/jobs immutable when destination or stance changes; invalidate only future entries and resume according to latest authoritative activity.
 
@@ -64,7 +64,7 @@
 - [x]  6.2 Destination clicks activate Traveling immediately but pin stays at currentMapId until arrival. Current-map click or stationary stance cancels route/preview. During battle a new destination requests FLEE without stopping normal combat.
 - [x]  6.3 Add reusable map-head activity gauge at upper right above Players in map, opposite Currently in. Traveling is blueberry-blue; Gathering is orange; inner text bold white.
 - [x]  6.4 Keep the applicable gauge visible but frozen in battle. Traveling takes precedence; stationary grind in either Hunting or Gathering shows Gathering gauge. Hide active stationary stance styling in Town but preserve selected stance.
-- [x]  6.5 Remove Searching for monster… display while retaining server search.
+- [x]  6.5 Remove only the growing search/progress bar; retain text-only “Searching for Monsters...” while the server searches.
 - [x]  6.6 Reconcile intermediate/final arrival, cancellation, FLEE, death, teleport, reload and stale HTTP/socket responses so completed paths/pins do not reappear.
 - [x]  6.7 Preserve existing map camera, art, drag-click handling, tooltips, and mobile/desktop behavior.
 

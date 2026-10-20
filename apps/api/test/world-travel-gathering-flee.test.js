@@ -57,7 +57,10 @@ const items = require('../../../items.json');
 assert.equal(items.materials.length,10);
 assert.equal(items.consumables.find(item=>item.id==='food_blueberry').name,'Blueberry Jelly');
 assert.equal(items.consumables.find(item=>item.id==='food_honey').name,'Honey');
-assert.equal(maps.filter(map=>Array.isArray(map.gatheringPool)).length,12);
+assert.equal(maps.filter(map=>map.type==='grind' && Array.isArray(map.gatheringPool)).length,36);
+assert.ok(maps.filter(map=>map.type==='grind').every(map=>Array.isArray(map.gatheringPool) && map.gatheringPool.length>0), 'every Grind map can yield Gathering materials');
+assert.ok(maps.filter(map=>map.type==='town').every(map=>map.gatheringPool===undefined), 'Town maps never gather materials');
+assert.deepEqual(new Set(maps.flatMap(map=>(map.gatheringPool??[]).map(entry=>entry.itemId))), new Set(items.materials.map(item=>item.id).filter(id=>id!=='mat_meat')), 'every gatherable material is distributed across the world and Meat remains excluded');
 for (const map of maps.filter(map=>map.gatheringPool)) {
   assert.equal(map.gatheringPool.reduce((sum,entry)=>sum+entry.weight,0),100,map.id);
   assert.ok(map.gatheringPool.every(entry=>items.materials.some(item=>item.id===entry.itemId&&item.type==='material')));
