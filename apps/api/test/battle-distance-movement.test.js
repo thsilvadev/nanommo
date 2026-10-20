@@ -51,6 +51,8 @@ function run() {
   for (const monster of monstersData.monsters) {
     assert(['melee', 'ranged'].includes(monster.combatStyle), `combatStyle: ${monster.id}`);
     assert(Number.isFinite(monster.moveSpeedBase) && (monster.id === 'mon_thornsprout' ? monster.moveSpeedBase === 0 : monster.moveSpeedBase > 0), `moveSpeedBase: ${monster.id}`);
+    assert.equal(monster.moveSpd, monster.moveSpeedBase + monster.level - 1, `hard-coded shared Move Speed formula: ${monster.id}`);
+    assert.equal(BattleEngine.buildMonsterSnapshot(monster).moveSpeed, monster.moveSpd, `battle lane uses shared catalog Move Speed: ${monster.id}`);
     assert(['melee', 'ranged', 'magic'].includes(monster.basicAttackDamageType), `basicAttackDamageType: ${monster.id}`);
     assert(Number.isFinite(monster.basicAttackRange), `basicAttackRange: ${monster.id}`);
     assert(Number.isFinite(monster.evasion) && monster.evasion >= 0, `evasion: ${monster.id}`);

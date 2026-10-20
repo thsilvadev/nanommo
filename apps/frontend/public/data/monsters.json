@@ -137,7 +137,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 62
+      "moveSpd": 63
     },
     {
       "id": "mon_thornsprout",
@@ -209,7 +209,7 @@
         "fire": 2
       },
       "isAggressive": false,
-      "moveSpd": 0
+      "moveSpd": 5
     },
     {
       "id": "mon_mudcrawler",
@@ -277,7 +277,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 40
+      "moveSpd": 46
     },
     {
       "id": "mon_direwolf",
@@ -358,7 +358,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 60
+      "moveSpd": 68
     },
     {
       "id": "mon_sandscorpion",
@@ -434,7 +434,7 @@
         "rod": 1.2
       },
       "isAggressive": true,
-      "moveSpd": 48
+      "moveSpd": 61
     },
     {
       "id": "mon_duneraider",
@@ -500,7 +500,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 58
+      "moveSpd": 80
     },
     {
       "id": "mon_cindergolem",
@@ -568,7 +568,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 35
+      "moveSpd": 104
     },
     {
       "id": "mon_venomviper",
@@ -647,7 +647,7 @@
       "maxSp": 80,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 55
+      "moveSpd": 79
     },
     {
       "id": "mon_mirageStalker",
@@ -715,7 +715,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 60
+      "moveSpd": 104
     },
     {
       "id": "mon_brokensentinel",
@@ -789,7 +789,7 @@
         "rod": 1.25
       },
       "isAggressive": true,
-      "moveSpd": 40
+      "moveSpd": 107
     },
     {
       "id": "mon_wraith",
@@ -868,7 +868,7 @@
       "maxSp": 80,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 56
+      "moveSpd": 128
     },
     {
       "id": "mon_arcanewisp",
@@ -954,7 +954,7 @@
         "rod": 0.7
       },
       "isAggressive": true,
-      "moveSpd": 65
+      "moveSpd": 109
     },
     {
       "id": "mon_boneknight",
@@ -1031,7 +1031,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 44
+      "moveSpd": 105
     },
     {
       "id": "mon_ruinsguardian",
@@ -1108,7 +1108,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 35
+      "moveSpd": 92
     },
     {
       "id": "mon_mudflatcrocodile",
@@ -1174,7 +1174,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 25
+      "moveSpd": 36
     },
     {
       "id": "mon_bandit",
@@ -1251,7 +1251,7 @@
       "maxSp": 80,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 60
+      "moveSpd": 84
     },
     {
       "id": "mon_kwaiouaranger",
@@ -1329,7 +1329,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 60
+      "moveSpd": 92
     },
     {
       "id": "mon_sacredforestguardian",
@@ -1405,7 +1405,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 45
+      "moveSpd": 94
     },
     {
       "id": "mon_gravelhorn",
@@ -1471,7 +1471,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 45
+      "moveSpd": 55
     },
     {
       "id": "mon_ridgebreaker",
@@ -1537,7 +1537,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 45
+      "moveSpd": 62
     },
     {
       "id": "mon_saltfangcrab",
@@ -1603,7 +1603,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": false,
-      "moveSpd": 45
+      "moveSpd": 62
     },
     {
       "id": "mon_needlebackstalker",
@@ -1673,7 +1673,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 60
+      "moveSpd": 80
     },
     {
       "id": "mon_giantmosquito",
@@ -1739,7 +1739,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 60
+      "moveSpd": 86
     },
     {
       "id": "mon_rootboundbrute",
@@ -1815,7 +1815,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 45
+      "moveSpd": 73
     },
     {
       "id": "mon_moonleafarcanist",
@@ -1881,7 +1881,7 @@
       "maxSp": 80,
       "spRegenPerTenTicks": 2,
       "isAggressive": false,
-      "moveSpd": 60
+      "moveSpd": 100
     },
     {
       "id": "mon_aramaianwarden",
@@ -1947,7 +1947,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
-      "moveSpd": 45
+      "moveSpd": 99
     }
   ]
 }

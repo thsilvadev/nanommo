@@ -50,6 +50,10 @@ Verification passed: shared/API builds, frontend production build, `node scripts
 
 # NanoMMO — Implementation Status
 
+### Unified monster Move Speed across combat and FLEE (2026-10-20)
+
+Monster `moveSpd` is now hard-coded in both `monsters.json` copies to the previous combat formula `moveSpeedBase + level - 1`. BattleEngine reads this final catalog value instead of independently scaling the species base, so the same monster speed is used for in-battle lane movement, pre-encounter FLEE in Gathering/Traveling, and during-battle FLEE while Traveling/FLEEing. Updated the monster catalogue validator and SPEC/ARCHITECTURE/proposal wording to remove the contradictory fixed-world-speed rule.
+
 ### Regression fixes — `world-travel-gathering-flee` follow-up (2026-10-20)
 
 The Gathering pre-combat path now records each aggressive encounter's seeded FLEE roll (chance and roll, success/failure) in backend logs. A successful pre-combat dodge persists its timestamp in `encounterCycle.lastFleeSuccessAt`; Grind Info displays `Gathering...` instead of `Searching for Monsters...` during the Gathering search interval and briefly shows `You fled an aggressive enemy.` after a successful dodge. When a Gathering cycle awards a material, the backend now publishes an authoritative queue/state snapshot so the frontend inventory and Gathering gauge update immediately instead of waiting for a later battle/death event. Successful/failed in-battle FLEE attempts also emit backend logs. Battle Logs label a reward-free cancelled entry `FLED` rather than `DEFEAT`, while preserving its original deterministic battle log/outcome as audit data. Corrected Sacred Forest Guardian to be aggressive, matching the existing world rule that only Slime, Thornsprout, Saltfang Crab and Moonleaf Arcanist are non-aggressive.

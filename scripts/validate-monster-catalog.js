@@ -55,7 +55,7 @@ for (const monster of monsters) {
   assert.equal(typeof monster.isAggressive, 'boolean', `${monster.id} explicit aggression`);
   assert.equal(monster.isAggressive, !peaceful.has(monster.id), `${monster.id} aggression matches approved initial set`);
   assert.ok(Number.isFinite(monster.moveSpd) && monster.moveSpd >= 0, `${monster.id} world moveSpd valid`);
-  assert.equal(monster.moveSpd, Math.max(0, Math.floor(Number(monster.moveSpeedBase ?? 0))), `${monster.id} world speed is explicit baseline, not level-scaled`);
+  assert.equal(monster.moveSpd, Math.max(0, Math.floor(Number(monster.moveSpeedBase ?? 0))) + Number(monster.level ?? 1) - 1, `${monster.id} shared Move Speed equals species base + level - 1`);
   assert.ok(Number.isFinite(monster.xpReward) && monster.xpReward > 0, `${monster.name} xpReward`);
   for (const drop of monster.drops || []) {
     assert.ok([...items.monsterParts,...items.consumables,...items.equipment,...items.materials].some(item=>item.id===drop.itemId) || ['item_consumable_random_map_tier','equip_green_grounds_roll','equip_menace_roll','equip_ruins_roll'].includes(drop.itemId), `${monster.name} missing drop ${drop.itemId}`);

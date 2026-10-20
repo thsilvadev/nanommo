@@ -441,8 +441,10 @@ export class BattleEngine {
       combatStyle: monsterDefinition?.combatStyle === 'ranged' ? 'ranged' : 'melee',
       basicAttackDamageType: monsterDefinition?.basicAttackDamageType ?? 'melee',
       basicAttackRange: Number(monsterDefinition?.basicAttackRange ?? 0),
-      moveSpeedBase: Number(monsterDefinition?.moveSpeedBase ?? 50) + level - 1,
-      moveSpeed: Number(monsterDefinition?.moveSpeedBase ?? 50) + level - 1,
+      // monsters.json stores the final, hard-coded species+level Move Speed.
+      // Keep the formula only as a compatibility fallback for synthetic/legacy test definitions.
+      moveSpeedBase: Number(monsterDefinition?.moveSpd ?? (Number(monsterDefinition?.moveSpeedBase ?? 50) + level - 1)),
+      moveSpeed: Number(monsterDefinition?.moveSpd ?? (Number(monsterDefinition?.moveSpeedBase ?? 50) + level - 1)),
       canMove: monsterDefinition?.canMove !== false,
     };
   }
