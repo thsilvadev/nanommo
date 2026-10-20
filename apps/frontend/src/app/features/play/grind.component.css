@@ -5,8 +5,6 @@
   grid-template-columns: 300px minmax(0, 1fr);
   gap: 10px;
   background: #17100c;
-  border: 1px solid var(--nm-bronze);
-  box-shadow: inset 0 0 0 1px #3a281b;
   padding: 0 10px 10px;
   overflow: hidden;
 }
