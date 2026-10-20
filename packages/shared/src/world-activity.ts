@@ -73,6 +73,16 @@ export function calculateWorldMoveSpeed(character: any, equipment: any[] = [], a
   }
   let penalties = 0;
   for (const status of statuses) {
+    // Persistent Character effects use wall-clock expiresAt. A finite expiresAtTick
+    // without one is legacy battle-local data and cannot safely penalize world travel.
+    const expiryRaw = status?.expiresAt;
+    const expiry = typeof expiryRaw === 'number' ? expiryRaw : Date.parse(String(expiryRaw ?? ''));
+    if (Number.isFinite(expiry) && expiry <= atMs) continue;
+    const hasLegacyTickExpiry = status?.expiresAtTick !== undefined
+      && status?.expiresAtTick !== null
+      && Number.isFinite(Number(status.expiresAtTick))
+      && expiryRaw == null;
+    if (hasLegacyTickExpiry) continue;
     penalties += Math.max(0, Number(status?.moveSpeedPenalty ?? status?.moveSpdPenalty ?? 0) || 0);
   }
   return Math.max(0, Math.min(250, Math.floor(((50 + level + flat) * multiplier) - penalties)));

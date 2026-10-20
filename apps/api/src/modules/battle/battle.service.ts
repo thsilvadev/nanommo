@@ -20,6 +20,9 @@ import {
   masteryPassiveAttributeBonuses,
   type CombatantSnapshot,
   type AttributeBonuses,
+  normalizePersistentStatusEffects,
+  statusEffectsForBattle,
+  persistStatusEffectsAtCheckpoint,
 } from '@nanommo/shared';
 import { effectiveFoodStatValue, TOWN_MAP_ID, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, isInstantTownExitEdge, calculateFleeChancePercent, deterministicIntInclusive } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
@@ -522,7 +525,7 @@ export class BattleService {
       skills,
       skillDefs,
       masteryEquipment,
-      statusEffects: character.statusEffects ?? [],
+      statusEffects: statusEffectsForBattle(character.statusEffects ?? [], atTime),
       equippedWeaponTypes: weaponTypes,
       luk: Number((character as any).luk ?? 5) + Number(attributeBonuses.LUK ?? 0),
     } as CombatantSnapshot;
@@ -583,6 +586,27 @@ export class BattleService {
     }
     if (!character.currentMapId) {
       throw new BadRequestException('Character is not on a map');
+    }
+
+    // Character rows written before absolute status expiry was introduced contain
+    // battle-local expiresAtTick values. Normalize once, then invalidate only queued
+    // future simulations that baked those untrustworthy statuses into their Gambits.
+    const normalizedStatuses = normalizePersistentStatusEffects(character.statusEffects ?? [], Date.now());
+    if (normalizedStatuses.changed) {
+      character.statusEffects = normalizedStatuses.statusEffects;
+      await this.characterRepo.save(character);
+
+      const now = Date.now();
+      const previouslyQueued = await this.getBattleQueue(characterId, 100);
+      // Keep any already-started battle immutable, including an overdue row waiting
+      // for its resolver. Only discard later, not-yet-started projections.
+      const startedBattle = previouslyQueued.find(entry => entry.startAt.getTime() <= now);
+      await this.discardUnresolvedBattles(characterId, startedBattle?.id);
+      if (startedBattle) {
+        const remaining = await this.getBattleQueue(characterId, 100);
+        await this.safePublishQueueUpdated(characterId, remaining, await this.buildAuthoritativeBattleSnapshot(characterId));
+        return remaining;
+      }
     }
 
     const currentQueue = await this.getBattleQueue(characterId, 100);
@@ -1390,9 +1414,10 @@ export class BattleService {
         const expiry = typeof expiryRaw === 'number' ? expiryRaw : Date.parse(String(expiryRaw ?? ''));
         return !Number.isFinite(expiry) || expiry > timestamp;
       });
+      const checkpointStatuses = persistStatusEffectsAtCheckpoint(checkpoint.statusEffects, Number(checkpoint.tick), timestamp);
       const characterMoveSpd = Array.isArray(start.worldEquipment)
-        ? calculateWorldMoveSpeed(start.snapshot, start.worldEquipment, timestampBuffs, checkpoint.statusEffects, timestamp)
-        : Math.max(0, Number(start.worldMoveSpd) - movePenalty(checkpoint.statusEffects));
+        ? calculateWorldMoveSpeed(start.snapshot, start.worldEquipment, timestampBuffs, checkpointStatuses, timestamp)
+        : Math.max(0, Number(start.worldMoveSpd) - movePenalty(checkpointStatuses));
       const monsterMoveSpd = Math.max(0, Number(monster?.moveSpd ?? 0) - movePenalty(checkpoint.monsterStatusEffects));
       const totalLuk = Number(start.snapshot.luk ?? character.luk ?? 5);
       const chance = calculateFleeChancePercent(characterMoveSpd, monsterMoveSpd, totalLuk);
@@ -1429,15 +1454,7 @@ export class BattleService {
         const expiry = Date.parse(String(buff?.expiresAt ?? buff?.endsAt ?? ''));
         return !Number.isFinite(expiry) || expiry > timestamp;
       });
-      character.statusEffects = (checkpoint.statusEffects ?? []).map((status: any) => {
-        const remaining = Number(status.expiresAtTick ?? Infinity) - (Number(checkpoint.tick) + 1);
-        const copy = { ...status, appliedAtTick: 0 };
-        if (Number.isFinite(remaining)) {
-          if (remaining <= 0) return null;
-          copy.expiresAtTick = Math.max(1, Math.floor(remaining));
-        } else delete copy.expiresAtTick;
-        return copy;
-      }).filter(Boolean);
+      character.statusEffects = checkpointStatuses;
       // Reuse the canonical Diet transition for only the food uses that occurred before the escape tick.
       const partialBattle = { ...battle, log: { events: (battle.log?.events ?? []).filter((event: any) => Number(event?.tick ?? 0) <= Number(checkpoint.tick)) } } as BattleQueueEntry;
       this.applyResolvedFoodState(character, partialBattle);

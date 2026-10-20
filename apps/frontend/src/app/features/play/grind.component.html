@@ -13,10 +13,10 @@
       <small *ngIf="error()">{{error()}}</small>
     </div>
     <div class="grind-mode-select" aria-label="Hunting mode">
-      <button type="button" [class.active]="character.character()?.status!=='town' && huntMode()==='hunting'" [disabled]="loading()" (click)="selectStance('hunting')" title="Hunting">
+      <button type="button" [class.active]="character.character()?.status!=='town' && huntMode()==='hunting'" [disabled]="loading() || !huntMode()" (click)="selectStance('hunting')" title="Hunting">
         <img src="/assets/ui/hunting.svg" alt="Hunting">
       </button>
-      <button type="button" [class.active]="character.character()?.status!=='town' && huntMode()==='gathering'" [disabled]="loading()" (click)="selectStance('gathering')" title="Gathering">
+      <button type="button" [class.active]="character.character()?.status!=='town' && huntMode()==='gathering'" [disabled]="loading() || !huntMode()" (click)="selectStance('gathering')" title="Gathering">
         <img src="/assets/ui/gathering.svg" alt="Gathering">
       </button>
       <span class="traveling-stance" [class.active]="!!character.character()?.travelIntent" [class.inactive]="!character.character()?.travelIntent" title="Traveling is automatic while a route is active" aria-label="Traveling">

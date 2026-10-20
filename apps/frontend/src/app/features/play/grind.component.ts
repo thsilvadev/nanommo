@@ -11,7 +11,7 @@ export class GrindComponent implements OnInit {
   readonly gambits=signal<GambitPage[]>([]);
   readonly loading=signal(false);
   readonly error=signal<string|null>(null);
-  readonly huntMode=signal<'hunting'|'gathering'>('hunting');
+  readonly huntMode=signal<'hunting'|'gathering'|null>(null);
   
   readonly activeGambitId=computed(()=>{
     const activeId=this.character.character()?.activeGambitPageId;
@@ -23,10 +23,18 @@ export class GrindComponent implements OnInit {
 
   constructor(){effect(()=>{const stance=this.character.character()?.lastGrindStance;if(stance==='hunting'||stance==='gathering')this.huntMode.set(stance);});}
 
-  ngOnInit(){void this.loadGambits();}
+  ngOnInit(){
+    // Never assume Hunting while the authoritative persisted stance is still loading.
+    this.huntMode.set(null);
+    void this.character.load().then(()=>{
+      const stance=this.character.character()?.lastGrindStance;
+      if(stance==='hunting'||stance==='gathering')this.huntMode.set(stance);
+    });
+    void this.loadGambits();
+  }
 
   async selectStance(stance:'hunting'|'gathering'){
-    if(this.loading()||this.huntMode()===stance)return;
+    if(this.loading()||!this.huntMode()||this.huntMode()===stance)return;
     this.loading.set(true);this.error.set(null);
     try{const response=await this.api.post<any>('/maps/stance',{stance}).toPromise();this.huntMode.set(stance);if(response?.character)this.character.applyPatch(response.character);else this.character.applyPatch({lastGrindStance:stance});}
     catch(e:any){this.error.set(e?.error?.message??'Unable to change stance');}

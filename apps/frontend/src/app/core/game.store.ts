@@ -8,14 +8,13 @@ type LoadState='idle'|'loading'|'loaded'|'error'|'reconnecting';
 export class CharacterStore {
  private readonly api=inject(ApiService); private readonly _character=signal<Character|null>(null); private readonly _state=signal<LoadState>('idle'); private loadSeq=0; private realtimeGeneration=0; private realtimeRevision=0; private readonly _error=signal<string|null>(null);
  readonly character=this._character.asReadonly();readonly state=this._state.asReadonly();readonly error=this._error.asReadonly();readonly isGrinding=computed(()=>this._character()?.status==='grinding');
- async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const value=await this.api.get<Character|null>('/characters').toPromise()??null;if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if(value&&value.stateVersion<=this.realtimeRevision)return;if(value)this.realtimeRevision=value.stateVersion;this._character.set(value);this._state.set('loaded')}catch(e:any){if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;this._state.set('error');this._error.set(e?.error?.message??'Unable to load character')}}
+ async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const value=await this.api.get<Character|null>('/characters').toPromise()??null;if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if(value&&value.stateVersion<this.realtimeRevision)return;if(value)this.realtimeRevision=value.stateVersion;this._character.set(value);this._state.set('loaded')}catch(e:any){if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;this._state.set('error');this._error.set(e?.error?.message??'Unable to load character')}}
  applyPatch(p:Partial<Character>){const c=this._character();if(c){this.realtimeGeneration++;this._character.set({...c,...p});}}
- // Digestion expiry changes the authoritative diet without any server write, so the
- // response carries the same stateVersion as the one we hold. load() discards equal
- // revisions, which is why polling never surfaced the change; this accepts equal but
- // still refuses anything genuinely older. The client does not decide that digestion
- // ended — the server prunes the diet — it only asks the server again at the boundary
- // the server itself reported.
+ // Digestion expiry and some presentation fields can change without a newer
+ // stateVersion. Fresh GETs may therefore replace an equal-revision snapshot, but
+ // sequence/realtimeGeneration still rejects a request raced by a newer socket event,
+ // and a genuinely older revision is never accepted. Diet eligibility is still decided
+ // by the server; the client only re-reads state at the server-reported boundary.
  async refreshDiet(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;try{const value=await this.api.get<Character|null>('/characters').toPromise()??null;if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if(!value)return;if(value.stateVersion<this.realtimeRevision)return;this.realtimeRevision=value.stateVersion;this._character.set(value);this._state.set('loaded')}catch{}}
  applyRealtimeSnapshot(value:Character,revision:number){if(revision<=this.realtimeRevision)return;this.realtimeRevision=revision;this.realtimeGeneration++;this._character.set(value);this._state.set('loaded');}
  async setAutoFeed(enabled:boolean):Promise<Character>{const value=await this.api.post<Character>('/characters/auto-feed',{enabled}).toPromise();if(value&&value.stateVersion>this.realtimeRevision)this.applyRealtimeSnapshot(value,value.stateVersion);return value as Character;}

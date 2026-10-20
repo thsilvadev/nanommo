@@ -61,6 +61,20 @@ describe('realtime resource synchronization', () => {
     expect(store.character()?.spCurrent).toBe(35);
   });
 
+  it('refreshes a persisted stance from a same-revision Character GET', async () => {
+    const response = new Subject<Character | null>();
+    api.get.and.returnValue(response.asObservable() as any);
+    const store = TestBed.inject(CharacterStore);
+    store.applyRealtimeSnapshot({...character(70, 35), lastGrindStance: 'hunting'}, 200);
+
+    const load = store.load();
+    response.next({...character(70, 35), lastGrindStance: 'gathering', stateVersion: 200});
+    response.complete();
+    await load;
+
+    expect(store.character()?.lastGrindStance).toBe('gathering');
+  });
+
   it('discards an old Inventory HTTP response after a newer realtime snapshot', async () => {
     const inventoryResponse = new Subject<{items: InventoryItem[]; stateVersion: number}>();
     const equipmentResponse = new Subject<any[]>();

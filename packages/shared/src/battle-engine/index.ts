@@ -8,6 +8,7 @@ export {
 } from './prng';
 export * from './rewards';
 export * from './mastery-rewards';
+export * from './persistent-status';
 
 /** Effective food regeneration value: Diet level adds +1 per level. */
 export function effectiveFoodStatValue(catalogValue: number, dietLevel: number): number {

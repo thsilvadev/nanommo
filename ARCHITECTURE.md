@@ -1,3 +1,9 @@
+## Battle status expiry and authoritative Grind stance projection — 2026-10-20
+
+`Character.statusEffects` is persistent world state, so finite durations must be stored as absolute ISO `expiresAt` timestamps. `appliedAtTick` and `expiresAtTick` belong only to one immutable battle snapshot. A successful in-battle FLEE converts the replay checkpoint's remaining ticks to wall-clock expiries; queue generation drops expired or legacy finite-tick-only status rows and rebuilds not-yet-started battle projections, preserving any started battle unchanged. `buildCharacterSnapshot()` converts the still-live wall-clock duration to battle-local ticks. World Move Speed only applies penalties from valid persistent statuses; browser status icons remain a projection of the current battle's snapshot and event timeline.
+
+Grind's Hunting/Gathering indicator must initialize from an authoritative `/characters` read, never a hard-coded Hunting default. `CharacterStore.load()` may accept an equal `stateVersion` to refresh fields such as stance that may be stale in memory, but it must still discard the response if a newer realtime event arrived during that request. `applyRealtimeSnapshot()` remains strictly revision-monotonic.
+
 ### Monster catalogue / map ownership overhaul (2026-10-16)
 
 Maps.json is the canonical source for map topology, map metadata, and weighted monster presence. Monsters.json contains species only; each map roster references monsterId and presenceRate. Town is map_town at (0,0); six grind maps map_lv_1 through map_lv_26 occupy (0,1) through (0,6). Root and frontend public catalogue copies must remain synchronized. Legacy character locations are migrated by character level, while active battle snapshots and historical battle logs are immutable.
