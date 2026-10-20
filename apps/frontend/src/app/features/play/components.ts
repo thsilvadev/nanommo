@@ -476,9 +476,20 @@ export class InventoryGrid implements OnDestroy {
 
 @Component({ selector: 'app-vendor-panel', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './vendor-panel.html', styleUrl: './vendor-panel.css' })
 export class VendorPanel {
-  readonly vendor = inject(VendorStore); readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly slots = Array.from({ length: 10 }, (_, i) => i);
+  readonly vendor = inject(VendorStore); readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly character = inject(CharacterStore); readonly slots = Array.from({ length: 10 }, (_, i) => i);
   readonly storageDropListIds = ['storage-drop-list'];
-  constructor() { this.vendor.resetForTownEntry(); void this.vendor.load(); }
+  private lastTownMapId: string|null = null;
+  constructor() {
+    // GrindInfo and its Town panel stay mounted when moving directly between Towns.
+    // Reload on physical map identity changes, not only component construction.
+    effect(() => {
+      const c = this.character.character();
+      if (!c || c.status !== 'town' || !c.currentMapId || c.currentMapId === this.lastTownMapId) return;
+      this.lastTownMapId = c.currentMapId;
+      this.vendor.resetForTownEntry();
+      void this.vendor.load();
+    });
+  }
   npcPortrait(id: string) { return '/assets/npcs/' + id + '.png'; }
   stockAt(slot: number) { return this.vendor.stock().find(x => x.slotIndex === slot); }
   warehouseAt(slot:number) { return this.vendor.warehouse().find(x=>x.slotIndex===slot); }

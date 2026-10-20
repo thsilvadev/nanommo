@@ -30,9 +30,12 @@ export class VendorStore {
   readonly error=signal<string|null>(null);
   readonly busy=signal(false);
   readonly selectedNpc=computed(()=>this.npcs().find(n=>n.id===this.selectedNpcId())??null);
+  private npcLoadSequence=0;
 
   /** Reset transient Town interaction state whenever the Town panel is entered. */
   resetForTownEntry(){
+    // Invalidate any NPC catalogue request started for the previous Town.
+    this.npcLoadSequence++;
     this.selectedNpcId.set('');
     this.stock.set([]);
     this.warehouse.set([]);
@@ -41,8 +44,16 @@ export class VendorStore {
     this.error.set(null);
   }
   async load(){
+    const requestSequence=++this.npcLoadSequence;
+    const characterAtRequest=this.character.character?.();
+    const mapIdAtRequest=characterAtRequest?.currentMapId;
     try{
       const npcs=await this.api.get<TownNpc[]>('/town/npcs').toPromise();
+      const latestCharacter=this.character.character?.();
+      if(requestSequence!==this.npcLoadSequence) return;
+      // A Town-to-Town transition can overlap an HTTP response from the previous
+      // Town. Never let that response replace the destination's NPC catalogue.
+      if(mapIdAtRequest && (latestCharacter?.currentMapId!==mapIdAtRequest || latestCharacter?.status!=='town')) return;
       if(Array.isArray(npcs)) this.npcs.set(npcs);
       if(this.selectedNpcId() && !this.npcs().some(n=>n.id===this.selectedNpcId())) this.resetForTownEntry();
       // An empty ID is intentional: never silently select the first NPC.

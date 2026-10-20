@@ -2015,3 +2015,8 @@ Added frontend regression coverage for Town→Town, Grind→Town, Town→Grind a
 Validation: production frontend build passed; focused ChromeHeadless route suite passed (12/12); `node apps/api/test/map-transition-frontend-contract.test.js`, `node scripts/validate-world-map.js`, and `git diff --check` passed. The full frontend suite completed with 44 passing and one unrelated existing failure in `mastery-progress.component.spec.ts`, whose expected Mastery XP thresholds do not match the current progression curve. No database operation, migration, API/gameplay change, or deployment.
 
 Scope note: the visual route/pin reconciliation is type-agnostic. Server-side map entry still explicitly supports only `town` and `grind`; adding `sanctuary` requires defined backend entry/status/queue semantics before that new type can be entered.
+
+
+### Town-to-Town NPC panel refresh (2026-10-19)
+
+Fixed the Town NPC panel retaining the previous Town’s NPC list when moving directly between Town maps. `VendorPanel` now reacts to authoritative `currentMapId` changes, resets NPC selection/dialogue/stock/Warehouse/modal/error state, and reloads the Town NPC catalogue. `VendorStore.load()` sequences requests and ignores stale responses from the previous Town. Added a regression test for an old Town catalogue response arriving after the destination Town response. Validation pending. No backend/API contract, database, or deployment changes.

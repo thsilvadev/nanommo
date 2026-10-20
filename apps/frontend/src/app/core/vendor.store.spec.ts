@@ -52,6 +52,7 @@ describe('Town NPC selection state', () => {
     store.modal = signal<any>(null);
     store.error = signal<any>(null);
     store.busy = signal(false);
+    store.npcLoadSequence = 0;
     store.selectedNpc = computed(() => store.npcs().find((npc: any) => npc.id === store.selectedNpcId()) ?? null);
     return store;
   }
@@ -82,6 +83,28 @@ describe('Town NPC selection state', () => {
     expect(store.dialogue()).toBeNull();
     expect(store.modal()).toBeNull();
     expect(store.error()).toBeNull();
+  });
+
+  it('ignores a Town NPC catalogue response from the previous Town after a map change', async () => {
+    const store = makeStore();
+    let currentCharacter: any = { currentMapId: 'town_a', status: 'town' };
+    store.character = { character: () => currentCharacter };
+    const requests: Array<(value: any[]) => void> = [];
+    store.api.get.and.returnValue({ toPromise: () => new Promise(resolve => requests.push(resolve)) });
+
+    const oldTownLoad = store.load();
+    currentCharacter = { currentMapId: 'town_b', status: 'town' };
+    store.resetForTownEntry();
+    const destinationTownLoad = store.load();
+
+    const destinationNpcs = [{ id: 'destination_vendor', name: 'Destination Vendor', location: 'town', types: ['vendor'] }];
+    requests[1](destinationNpcs);
+    await destinationTownLoad;
+    requests[0]([{ id: 'stale_vendor', name: 'Stale Vendor', location: 'town', types: ['vendor'] }]);
+    await oldTownLoad;
+
+    expect(store.npcs()).toEqual(destinationNpcs);
+    expect(store.selectedNpcId()).toBe('');
   });
 
   it('ignores a stock response that arrives after a different NPC was selected', async () => {
