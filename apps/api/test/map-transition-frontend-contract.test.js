@@ -20,12 +20,14 @@ assert(mapHtml.includes('/project/destination_pinpoint.png'));
 assert(mapHtml.includes('/project/T_waypoint.png'));
 assert(mapHtml.includes('<polyline [attr.points]="destinationRoutePoints()" />'));
 assert(mapCss.includes('animation: destination-dashes'));
+assert(mapCss.includes('.map-panel .town-waypoint') && mapCss.includes('left: 50%;\n  top: 50%;\n  transform: translate(-50%, -50%);'), 'saved Town waypoint is centered inside its tile');
 assert(components.includes('Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1'), 'route uses cardinally adjacent map nodes');
 assert(components.includes('candidate.isClickable!==false'), 'route traverses only clickable map nodes');
 assert(components.includes('if(!previous.has(destination.id))return []'), 'disconnected topology does not fabricate a path');
 assert(components.includes("this.api.post<any>(`/maps/${id}/enter`,{requestedAt})"));
 assert(components.includes('this.routeOriginMapId.set(origin)'), 'route preview preserves the location the player clicked from, even when this map click teleports immediately');
 assert(components.includes('const routeOriginId=this.routeOriginMapId()'));
+assert(components.includes('private clearDestinationPreview(){this.destinationMapId.set(null);this.routeOriginMapId.set(null)}'), 'destination pin and animated route are cleared after authoritative arrival');
 assert(components.includes("'/maps/save-town'"));
 assert(grindHtml.includes('Save here') && grindHtml.includes('Saved ✔'));
 assert(characterDto.includes('pendingMapTransition?'));
@@ -33,6 +35,8 @@ assert(characterDto.includes('savedTownMapId!'));
 assert(characterService.includes('pendingMapTransition: character.pendingMapTransition ?? null'));
 assert(characterService.includes('savedTownMapId: character.savedTownMapId ?? null'));
 assert(migration.includes('ADD COLUMN IF NOT EXISTS "savedTownMapId"'));
+assert(migration.includes("SET \"savedTownMapId\" = 'map_town' WHERE \"savedTownMapId\" IS NULL"), 'existing characters default to Sierra Village');
+assert(migration.includes(`ALTER COLUMN "savedTownMapId" SET DEFAULT 'map_town'`), 'database default is repaired if the column already exists');
 assert(mapService.includes("reason: map.type === 'town' ? 'town_request' : 'map_request'"));
 
 const publicAssets = [

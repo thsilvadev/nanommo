@@ -67,7 +67,7 @@ export class Character {
   currentMapId!: string;
 
   /** Last Town map explicitly saved as this character's waypoint. */
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', nullable: true, default: 'map_town' })
   savedTownMapId?: string | null;
 
   @Column({ type: 'jsonb', default: '[\"map_town\"]' })

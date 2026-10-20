@@ -92,6 +92,9 @@ export class MapBoard implements OnDestroy {
         this.transitionOriginMapId=c.currentMapId;
         this.mapTransitionPending.set(true);
         this.startTransitionPoll();
+      }else if(this.destinationMapId()&&(c.currentMapId===this.destinationMapId()||c.status==='town')){
+        // The authoritative Character projection confirms arrival (including a Town fallback).
+        this.clearDestinationPreview();
       }
     });
   }
@@ -170,8 +173,9 @@ export class MapBoard implements OnDestroy {
         const target=this.destinationMapId();
         if(c.currentMapId!==target&&c.status!=='town')return;
         // Death or real food exhaustion may authoritatively route to Town instead
-        // of the requested Grind destination; make the visible waypoint match arrival.
-        if(c.currentMapId!==target)this.destinationMapId.set(c.currentMapId);
+        // of the requested Grind destination. In either case the transition has ended,
+        // so remove the preview instead of leaving a stale destination pin/route behind.
+        this.clearDestinationPreview();
         this.mapTransitionPending.set(false);
         this.stopTransitionPoll();
         const arrivedMap=this.maps.find(m=>m.id===c.currentMapId);
@@ -186,6 +190,7 @@ export class MapBoard implements OnDestroy {
       }).finally(()=>{this.transitionPollBusy=false});
     },1000);
   }
+  private clearDestinationPreview(){this.destinationMapId.set(null);this.routeOriginMapId.set(null)}
   private stopTransitionPoll(){if(this.transitionPoll!==null){clearInterval(this.transitionPoll);this.transitionPoll=null}}
 
   /** Shortest cardinal route through canonical map nodes, rendered in world-pixel coordinates. */

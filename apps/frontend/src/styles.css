@@ -40,8 +40,8 @@
 .map-panel .town-waypoint {
   width: 52px;
   height: 54px;
-  left: 68%;
-  top: 68%;
+  left: 50%;
+  top: 50%;
   transform: translate(-50%, -50%);
   z-index: 5;
 }
