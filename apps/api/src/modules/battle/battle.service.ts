@@ -21,7 +21,7 @@ import {
   type CombatantSnapshot,
   type AttributeBonuses,
 } from '@nanommo/shared';
-import { effectiveFoodStatValue, TOWN_MAP_ID, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, isInstantTownGrindEdge, calculateFleeChancePercent, deterministicIntInclusive } from '@nanommo/shared';
+import { effectiveFoodStatValue, TOWN_MAP_ID, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, isInstantTownExitEdge, calculateFleeChancePercent, deterministicIntInclusive } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 import { CharacterService } from '../character/character.service';
 import { InventoryService, buildDietStateAfterFoodConsumption, normalizeDietState } from '../inventory/inventory.service';
@@ -210,7 +210,7 @@ export class BattleService {
       if (routeIds[segmentIndex] !== character.currentMapId) return;
       const source = this.dataService.getMapById(character.currentMapId);
       const destination = this.dataService.getMapById(String(routeIds[segmentIndex + 1] ?? ''));
-      if (!source || !destination || isInstantTownGrindEdge(source, destination)) return;
+      if (!source || !destination || isInstantTownExitEdge(source, destination)) return;
       const unresolved = await manager.getRepository(BattleQueueEntry).find({ where: { characterId, resolved: false } });
       const now = Date.now();
       if (unresolved.some(entry => entry.startAt.getTime() <= now && entry.endAt.getTime() > now)) return;
@@ -243,7 +243,7 @@ export class BattleService {
       const segmentIndex = Math.max(0, Math.floor(Number(intent.segmentIndex ?? 0)));
       const source = routeIds[segmentIndex] === character.currentMapId ? this.dataService.getMapById(character.currentMapId) : null;
       const destination = this.dataService.getMapById(String(routeIds[segmentIndex + 1] ?? ''));
-      if (source && destination && !isInstantTownGrindEdge(source, destination)) {
+      if (source && destination && !isInstantTownExitEdge(source, destination)) {
         const equipment = (await this.equipmentService.getEquipment(characterId)).map((row: any) => ({ ...row, definition: this.dataService.getItemById(row.itemId) }));
         const newSpeed = calculateWorldMoveSpeed(character, equipment, character.activeTempBuffs ?? [], character.statusEffects ?? []);
         const newDuration = calculateTravelDurationSeconds(newSpeed, Number(source.mapLength ?? (source.type === 'town' ? 0 : 25)));

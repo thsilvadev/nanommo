@@ -8,7 +8,7 @@ import { MapKillCounter, BattleQueueEntry, Character, User } from '../../databas
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
 import { MapPresenceService } from '../presence/map-presence.service';
-import { TOWN_MAP_ID, findCardinalRoute, isInstantTownGrindEdge, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, deterministicIntInclusive, calculateGatheringDurationSeconds, calculateFleeChancePercent, Mulberry32 } from '@nanommo/shared';
+import { TOWN_MAP_ID, findCardinalRoute, isInstantTownExitEdge, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, deterministicIntInclusive, calculateGatheringDurationSeconds, calculateFleeChancePercent, Mulberry32 } from '@nanommo/shared';
 import { EquipmentService } from '../equipment/equipment.service';
 import { InventoryService } from '../inventory/inventory.service';
 
@@ -281,7 +281,7 @@ export class MapService {
       const encounterRouteIds = Array.isArray(intent.routeMapIds) ? intent.routeMapIds.map(String) : [];
       const encounterSegmentIndex = Math.max(0, Math.floor(Number(intent.segmentIndex ?? 0)));
       const encounterNextNode = this.dataService.getMapById(String(encounterRouteIds[encounterSegmentIndex + 1] ?? ''));
-      const currentEdgeIsInstant = isInstantTownGrindEdge(currentNode, encounterNextNode);
+      const currentEdgeIsInstant = isInstantTownExitEdge(currentNode, encounterNextNode);
       if (intent.kind === 'route' && currentNode?.type === 'grind' && !currentEdgeIsInstant) {
         const cycle: any = { cycleIndex: 0, nextAt: null, ...(character.encounterCycle ?? {}) };
         let nextAt = Date.parse(String(cycle.nextAt ?? ''));
@@ -400,7 +400,7 @@ export class MapService {
         return { kind: 'cancelled' as const, previousMapId };
       }
 
-      if (isInstantTownGrindEdge(source, destination)) {
+      if (isInstantTownExitEdge(source, destination)) {
         character.currentMapId = destination.id;
         character.discoveredMapIds = Array.from(new Set([...(character.discoveredMapIds ?? [TOWN_MAP_ID]), destination.id]));
         const finished = destination.id === intent.destinationMapId;
@@ -410,7 +410,7 @@ export class MapService {
         // Instant edges have no elapsed travel time; preserve the prior historical boundary.
         intent.lastAccruedAt = String(intent.lastAccruedAt ?? new Date(now).toISOString());
         const followingNode = this.dataService.getMapById(String(routeIds[segmentIndex + 2] ?? ''));
-        if (followingNode && !isInstantTownGrindEdge(destination, followingNode)) {
+        if (followingNode && !isInstantTownExitEdge(destination, followingNode)) {
           const equipmentRows = await this.equipmentService.getEquipment(characterId);
           const gear = equipmentRows.map((row: any) => ({ ...row, definition: this.dataService.getItemById(row.itemId) }));
           const nextSpeed = calculateWorldMoveSpeed(character, gear, character.activeTempBuffs ?? [], character.statusEffects ?? []);
@@ -447,7 +447,7 @@ export class MapService {
         const segmentCompletedAt = accrual.completedAt ?? now;
         intent.lastAccruedAt = new Date(segmentCompletedAt).toISOString();
         const followingNode = this.dataService.getMapById(String(routeIds[segmentIndex + 2] ?? ''));
-        if (followingNode && !isInstantTownGrindEdge(destination, followingNode)) {
+        if (followingNode && !isInstantTownExitEdge(destination, followingNode)) {
           const followingEquipment = await this.equipmentService.getEquipment(characterId);
           const followingGear = followingEquipment.map((row: any) => ({ ...row, definition: this.dataService.getItemById(row.itemId) }));
           const followingSpeed = calculateWorldMoveSpeed(character, followingGear, character.activeTempBuffs ?? [], character.statusEffects ?? []);

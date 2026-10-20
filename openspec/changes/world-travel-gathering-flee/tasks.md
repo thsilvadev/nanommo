@@ -17,7 +17,7 @@
 - [x]  2.2 Implement deterministic cardinal BFS with stable tie-breaks matching the frontend route preview; validate current maps are reachable and route nodes are canonical/clickable.
 - [x]  2.3 Derive character world moveSpd from 50 + level, generic equipment/buff flat/multiplicative modifiers and active movement penalties. Clamp 0–250; zero pauses travel. Do not add new speed items or change battle-lane movement.
 - [x]  2.4 Implement the approved curve: 51→30 s, 100→20 s, 250→5 s at length 25; linear interpolation for 51–100 and 100–250; below 51 use 30×51/speed; timed floor 5 s; scale by source mapLength/25.
-- [x]  2.5 Make cardinal Town↔adjacent-grind edges instant. Ensure a timed edge cannot accidentally be zero-duration solely because a Town source has mapLength 0.
+- [x]  2.5 Make Town→cardinally adjacent Grind edges instant; keep Grind→Town edges timed using the source Grind map's mapLength. Ensure a timed edge cannot accidentally be zero-duration solely because a Town source has mapLength 0.
 - [x]  2.6 Keep currentMapId, discovery, pin and presence unchanged until a segment commits; atomically commit each intermediate node and start the next segment.
 - [x]  2.7 Preserve segment progress when destination changes but nextMapId stays the same. Reset only if nextMapId changes. Current-map click or Hunting/Gathering cancels future travel but never rewinds committed arrival.
 - [x]  2.8 Before an authoritative speed-affecting stat/equipment/buff change, accrue progress using old speed and continue with the new rate.

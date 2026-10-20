@@ -43,11 +43,13 @@ export function findCardinalRoute<T extends WorldMapNode>(maps: T[], fromMapId: 
   return route;
 }
 
-export function isInstantTownGrindEdge(from: WorldMapNode | undefined, to: WorldMapNode | undefined): boolean {
+export function isInstantTownExitEdge(from: WorldMapNode | undefined, to: WorldMapNode | undefined): boolean {
   if (!from || !to) return false;
   const adjacent = Math.abs(Number(from.coordinates.x) - Number(to.coordinates.x)) +
     Math.abs(Number(from.coordinates.y) - Number(to.coordinates.y)) === 1;
-  return adjacent && ((from.type === 'town' && to.type === 'grind') || (from.type === 'grind' && to.type === 'town'));
+  // Only exiting a Town is instantaneous. Returning from a Grind map to a Town
+  // is a normal timed segment, using the source Grind map's mapLength.
+  return adjacent && from.type === 'town' && to.type === 'grind';
 }
 
 /** World speed is deliberately separate from combat-lane movement speed. */

@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const {
-  findCardinalRoute, isInstantTownGrindEdge, calculateWorldMoveSpeed,
+  findCardinalRoute, isInstantTownExitEdge, calculateWorldMoveSpeed,
   calculateTravelDurationSeconds, calculateFleeChancePercent,
   deterministicIntInclusive, calculateGatheringBaseDurationSeconds,
   calculateGatheringDurationSeconds, accrueTravelSegmentProgress,
@@ -14,8 +14,10 @@ assert.equal(route.at(-1).id, 'map_green_grounds_1');
 assert.ok(route.every((m, i) => i === 0 || Math.abs(m.coordinates.x-route[i-1].coordinates.x)+Math.abs(m.coordinates.y-route[i-1].coordinates.y)===1));
 for (const map of maps) assert.ok(findCardinalRoute(maps, 'map_town', map.id).length, `route from Town to ${map.id}`);
 assert.deepEqual(findCardinalRoute(maps, 'map_town', 'map_green_grounds_1').map(m=>m.id), findCardinalRoute(maps, 'map_town', 'map_green_grounds_1').map(m=>m.id), 'BFS ties deterministic');
-assert.ok(isInstantTownGrindEdge(maps.find(m=>m.id==='map_town'), maps.find(m=>m.id==='map_green_grounds_0')));
-assert.equal(isInstantTownGrindEdge(maps.find(m=>m.id==='map_town'), maps.find(m=>m.id==='map_outpost')), false);
+assert.ok(isInstantTownExitEdge(maps.find(m=>m.id==='map_town'), maps.find(m=>m.id==='map_green_grounds_0')), 'Town → adjacent Grind is instant');
+assert.equal(isInstantTownExitEdge(maps.find(m=>m.id==='map_green_grounds_0'), maps.find(m=>m.id==='map_town')), false, 'Grind → adjacent Town is timed');
+assert.equal(isInstantTownExitEdge(maps.find(m=>m.id==='map_town'), maps.find(m=>m.id==='map_outpost')), false, 'non-adjacent Town edge is not instant');
+assert.equal(calculateTravelDurationSeconds(100, Number(maps.find(m=>m.id==='map_green_grounds_0').mapLength)), 20, 'returning to Town uses source Grind mapLength');
 assert.equal(calculateTravelDurationSeconds(51,25),30);
 assert.equal(calculateTravelDurationSeconds(100,25),20);
 assert.equal(calculateTravelDurationSeconds(250,25),5);
