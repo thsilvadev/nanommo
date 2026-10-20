@@ -81,5 +81,7 @@
         </ng-container><ng-template #emptyFood><img src="/assets/ui/food.svg" alt="Empty food slot"></ng-template></div>
     </div>
   </div>
-  <div class="status-line"><span class="status-dot"></span>{{statusLabel()}}</div>
+  <div class="food-state" [class.hungry]="foodLabel().startsWith('HUNGRY')"
+    [class.satisfied]="foodLabel().startsWith('SATISFIED')" [class.full]="foodLabel().startsWith('FULL')">
+    {{foodLabel()}}</div>
 </section>

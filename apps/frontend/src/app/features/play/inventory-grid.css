@@ -1,7 +1,7 @@
 .panel {
   background: #17100c;
   border: 0;
-  padding: var(--nm-panel-pad);
+  /* padding: var(--nm-panel-pad); */
   height: 100%;
   min-height: 0;
   display: flex;

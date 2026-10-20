@@ -1,15 +1,12 @@
 <section class="panel grind">
   <div class="panel-title"><span>{{isTown()?'TOWN':'GRIND'}}</span>
     <ng-container *ngIf="isTown()">
-      <button *ngIf="!isCurrentTownSaved()" type="button" class="save-town-button" [disabled]="savingTown()" (click)="saveTown()">{{savingTown()?'Saving…':'Save here'}}</button>
+      <button *ngIf="!isCurrentTownSaved()" type="button" class="save-town-button" [disabled]="savingTown()" (click)="saveTown()">{{savingTown()?'Saving…':'Save'}}<img class="button-waypoint" src="/assets/ui/T_waypoint.png" alt="Save"></button>
       <span *ngIf="isCurrentTownSaved()" class="town-saved-label">Saved ✔</span>
     </ng-container>
     <span *ngIf="!isTown()" [class.warn]="battle.state()==='reconnecting'">{{stateLabel()}}</span>
   </div>
   <small *ngIf="townSaveError()" class="town-save-error">{{townSaveError()}}</small>
-  <div class="food-state" [class.hungry]="foodLabel().startsWith('HUNGRY')"
-    [class.satisfied]="foodLabel().startsWith('SATISFIED')" [class.full]="foodLabel().startsWith('FULL')">
-    {{foodLabel()}}</div>
   <ng-container *ngIf="isTown();else grindContext"><app-vendor-panel></app-vendor-panel></ng-container>
   <ng-template #grindContext><ng-container *ngIf="battle.active() as b">
       <ng-container *ngIf="isSearching(b); else activeBattle">

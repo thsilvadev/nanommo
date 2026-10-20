@@ -2,14 +2,14 @@
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 331px minmax(0, 1fr);
   gap: 10px;
   background: #17100c;
-  padding: 0 10px 10px;
+  padding: 0 5px 5px;
   overflow: hidden;
 }
 .grind-inventory-column {
-  min-width: 0;
+  min-width: 330px;
   min-height: 0;
   height: 100%;
   display: flex;
