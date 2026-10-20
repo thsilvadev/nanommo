@@ -15,7 +15,7 @@
       <button *ngFor="let tile of maps; trackBy: trackMap" type="button" class="map-tile" [style.left.px]="gridColumn(tile)*153" [style.top.px]="gridRow(tile)*153" [class.current]="tile.id===character.character()?.currentMapId" [class.destination]="tile.id===destinationMapId()" [attr.aria-label]="tile.name" [attr.data-map-id]="tile.id" [disabled]="!isRevealed(tile.coordinates.x,tile.coordinates.y) || tile.isClickable===false" (pointerenter)="showTileTooltip(tile,$event)" (pointermove)="moveTileTooltip($event)" (pointerleave)="hideTileTooltip()" (focus)="showTileTooltip(tile,$event)" (blur)="hideTileTooltip()">
         <img *ngIf="tile.id===destinationMapId()" class="destination-pinpoint" src="/project/destination_pinpoint.png" alt="Destination">
         <img *ngIf="tile.type==='town' && tile.id===character.character()?.savedTownMapId" class="town-waypoint" src="/project/T_waypoint.png" alt="Saved Town waypoint">
-        <span class="map-tooltip-content"><strong>{{tile.name}}</strong><small *ngIf="tile.type==='grind'">Recommended level: {{tile.recommendedLevel ?? 1}}</small><small *ngIf="tile.type==='town'">Town</small></span>
+        <span class="map-tooltip-content"><strong>{{tile.name}}</strong><small *ngIf="tile.type==='grind'">Recommended level: {{tile.recommendedLevel ?? 1}}</small><small *ngIf="tile.type==='town'">Town</small><small *ngIf="tile.type!=='town' && tile.type!=='grind'">{{tile.type | titlecase}}</small></span>
       </button>
       <img *ngIf="currentMap() as current" class="location-pin" src="/assets/maps/pinpoint.svg" alt="Current location" [style.left.px]="gridColumn(current)*153+76.5" [style.top.px]="gridRow(current)*153+76.5">
     </div>

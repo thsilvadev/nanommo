@@ -25,11 +25,14 @@ assert(components.includes('Math.abs(a.x-b.x)+Math.abs(a.y-b.y)===1'), 'route us
 assert(components.includes('candidate.isClickable!==false'), 'route traverses only clickable map nodes');
 assert(components.includes('if(!previous.has(destination.id))return []'), 'disconnected topology does not fabricate a path');
 assert(components.includes("this.api.post<any>(`/maps/${id}/enter`,{requestedAt})"));
-assert(components.includes('this.routeOriginMapId.set(origin)'), 'route preview preserves the location the player clicked from, even when this map click teleports immediately');
+assert(components.includes('this.routeOriginMapId.set(newerRealtimeIntent&&latestCharacter?latestCharacter.currentMapId:origin)'), 'route origin follows the freshest accepted intent when another move supersedes the current one');
+assert(components.includes('private mapIntentResponseFreshness('), 'in-flight map responses are compared with the latest realtime location and intent');
+assert(components.includes('if(!newerRealtimeIntent&&!responseBehindLocation)this.character.applyPatch(characterPatch)'), 'an older map HTTP response cannot roll the character back to its origin');
 assert(components.includes('const routeOriginId=this.routeOriginMapId()'));
-assert(components.includes('private clearDestinationPreview(){this.destinationMapId.set(null);this.routeOriginMapId.set(null)}'), 'destination pin and animated route are cleared after authoritative arrival');
-assert(components.includes('if(requestedDestination&&(c.currentMapId===requestedDestination||c.status===\'town\'))'), 'authoritative destination arrival takes precedence over stale pending transition metadata');
-assert(components.includes('if(target&&c.currentMapId===target){'), 'transition polling clears preview on arrival even while battle continues');
+assert(components.includes('private finishDestinationPreview(pending?:any)'), 'destination pin and route are cleared through one atomic reconciliation boundary');
+assert(components.includes('if(c.currentMapId===destination){'), 'arrival depends only on destination map identity, never location type or activity status');
+assert(components.includes('const transitionFinished=!!previousTarget&&this.destinationMapId()===null'), 'transition polling uses the same authoritative reconciliation boundary');
+assert(components.includes('this.suppressedPendingTransitionKeys'), 'stale pending metadata cannot recreate a completed route');
 assert(components.includes("'/maps/save-town'"));
 assert(grindHtml.includes('Save here') && grindHtml.includes('Saved ✔'));
 assert(characterDto.includes('pendingMapTransition?'));

@@ -88,33 +88,136 @@ export class MapBoard implements OnDestroy {
       this.reconcileDestinationPreview(c);
     });
   }
-  private suppressedPendingDestinationMapId:string|null=null;
-  private reconcileDestinationPreview(c:any){
-    const pendingDestination=c.pendingMapTransition?.destinationMapId as string|undefined;
-    const requestedDestination=this.destinationMapId();
-    const arrivedAtRequested=!!requestedDestination&&c.currentMapId===requestedDestination;
-    const arrivedAtPending=!!pendingDestination&&c.currentMapId===pendingDestination;
-    const reachedTownFallback=c.status==='town'&&this.transitionOriginMapId!==null&&c.currentMapId!==this.transitionOriginMapId;
+  private destinationRequestedAt:string|null=null;
+  private destinationTransitionWasDeferred=false;
+  private readonly suppressedPendingTransitionKeys=new Set<string>();
 
-    // A settled location wins over an old pending-intent projection. Remember that
-    // stale destination so later HP/battle snapshots cannot resurrect its route.
-    if(arrivedAtRequested||arrivedAtPending||reachedTownFallback){
-      if(arrivedAtPending||(reachedTownFallback&&pendingDestination)){
-        this.suppressedPendingDestinationMapId=pendingDestination??null;
-      }else if(arrivedAtRequested&&pendingDestination===requestedDestination){
-        this.suppressedPendingDestinationMapId=pendingDestination;
+  private transitionIntentKey(destinationMapId:string,requestedAt?:string|null){
+    const normalizedAt=requestedAt&&Number.isFinite(Date.parse(requestedAt))
+      ?new Date(requestedAt).toISOString()
+      :requestedAt||'legacy';
+    return `${destinationMapId}|${normalizedAt}`;
+  }
+  private isPendingTransitionSuppressed(pending:any){
+    return !!pending?.destinationMapId&&this.suppressedPendingTransitionKeys.has(
+      this.transitionIntentKey(String(pending.destinationMapId),pending.requestedAt??null),
+    );
+  }
+  private suppressPendingTransition(destinationMapId:string,requestedAt?:string|null){
+    this.suppressedPendingTransitionKeys.add(this.transitionIntentKey(destinationMapId,requestedAt));
+    while(this.suppressedPendingTransitionKeys.size>64){
+      const oldest=this.suppressedPendingTransitionKeys.values().next().value;
+      if(oldest===undefined)break;
+      this.suppressedPendingTransitionKeys.delete(oldest);
+    }
+  }
+  private pendingIntentIsNewerThan(pending:any,referenceAt?:string|null,referenceDestination?:string|null){
+    if(!pending?.requestedAt)return false;
+    const pendingAt=Date.parse(pending.requestedAt);
+    const referenceTime=Date.parse(String(referenceAt??''));
+    if(!Number.isFinite(pendingAt))return false;
+    if(!Number.isFinite(referenceTime)||pendingAt>referenceTime)return true;
+    // Independent clients can generate the same millisecond timestamp. If the targets
+    // differ, preserve the currently reported server intent rather than guessing that
+    // the in-flight HTTP response is newer.
+    return pendingAt===referenceTime&&!!referenceDestination&&pending.destinationMapId!==referenceDestination;
+  }
+  private pendingTransitionIsNewer(pending:any){
+    return this.pendingIntentIsNewerThan(pending,this.destinationRequestedAt,this.destinationMapId());
+  }
+  private mapIntentResponseFreshness(latestCharacter:any,origin:string,characterPatch:any,responseIntentAt:string,responseDestination:string){
+    return {
+      newerRealtimeIntent:this.pendingIntentIsNewerThan(latestCharacter?.pendingMapTransition,responseIntentAt,responseDestination),
+      responseBehindLocation:!!latestCharacter
+        &&!!characterPatch?.currentMapId
+        &&characterPatch.currentMapId===origin
+        &&latestCharacter.currentMapId!==origin,
+    };
+  }
+  private finishDestinationPreview(pending?:any){
+    const destination=this.destinationMapId();
+    if(destination)this.suppressPendingTransition(destination,this.destinationRequestedAt);
+    if(pending?.destinationMapId)this.suppressPendingTransition(String(pending.destinationMapId),pending.requestedAt??null);
+    this.clearDestinationPreview();
+    this.destinationRequestedAt=null;
+    this.destinationTransitionWasDeferred=false;
+    this.mapTransitionPending.set(false);
+    this.stopTransitionPoll();
+    this.transitionOriginMapId=null;
+  }
+  private reconcileDestinationPreview(c:any){
+    const pending=c.pendingMapTransition??null;
+    let destination=this.destinationMapId();
+
+    // Another accepted intent can supersede the one currently drawn. Only a newer
+    // server request timestamp may replace the local destination; old snapshots must
+    // never roll the route back to a previous map.
+    if(destination&&pending&&pending.destinationMapId!==destination&&this.pendingTransitionIsNewer(pending)){
+      destination=String(pending.destinationMapId);
+      this.destinationMapId.set(destination);
+      this.destinationRequestedAt=pending.requestedAt??null;
+      this.routeOriginMapId.set(c.currentMapId);
+      this.transitionOriginMapId=c.currentMapId;
+      this.destinationTransitionWasDeferred=true;
+    }
+
+    if(destination){
+      const origin=this.routeOriginMapId()??this.transitionOriginMapId;
+      const pendingIsSuppressed=this.isPendingTransitionSuppressed(pending);
+      const pendingMatchesDestination=!!pending
+        &&pending.destinationMapId===destination
+        &&!pendingIsSuppressed
+        &&(!pending.requestedAt||!this.destinationRequestedAt
+          ||Date.parse(pending.requestedAt)>=Date.parse(this.destinationRequestedAt));
+
+      // The only arrival rule is map identity. It deliberately does not branch on
+      // Town/Grind/activity status, and stale pending metadata cannot undo the arrival.
+      if(c.currentMapId===destination){
+        this.finishDestinationPreview(pending);
+        return;
       }
-      this.clearDestinationPreview();
-      this.mapTransitionPending.set(false);
-      this.stopTransitionPoll();
-      this.transitionOriginMapId=null;
+
+      // A server-directed fallback/redirect completed somewhere other than both the
+      // origin and requested destination. This is also type-independent.
+      if(origin&&c.currentMapId!==origin&&!pendingMatchesDestination){
+        this.finishDestinationPreview(pending);
+        return;
+      }
+
+      if(pending&&!pendingMatchesDestination&&!this.pendingTransitionIsNewer(pending)){
+        this.suppressPendingTransition(String(pending.destinationMapId),pending.requestedAt??null);
+      }
+      if(pendingMatchesDestination){
+        this.destinationRequestedAt=this.destinationRequestedAt??pending.requestedAt??null;
+        this.destinationTransitionWasDeferred=true;
+        this.transitionOriginMapId=origin??c.currentMapId;
+        this.mapTransitionPending.set(true);
+      }else{
+        // If a previously confirmed deferred intent disappeared but the character is
+        // still at its origin, the server has ended/cancelled that transition.
+        if(this.destinationTransitionWasDeferred&&!pending&&(!origin||c.currentMapId===origin)){
+          this.finishDestinationPreview();
+          return;
+        }
+        this.mapTransitionPending.set(false);
+      }
+      this.startTransitionPoll();
       return;
     }
 
-    if(pendingDestination&&pendingDestination!==this.suppressedPendingDestinationMapId){
+    // On reload there is no local preview yet. Resume a genuine pending intent, but
+    // never show a route if the character is already at that destination.
+    if(pending&&!this.isPendingTransitionSuppressed(pending)){
+      const pendingDestination=String(pending.destinationMapId);
+      if(c.currentMapId===pendingDestination){
+        this.finishDestinationPreview(pending);
+        return;
+      }
       this.destinationMapId.set(pendingDestination);
-      if(!this.routeOriginMapId())this.routeOriginMapId.set(c.currentMapId);
+      this.destinationRequestedAt=pending.requestedAt??null;
+      this.routeOriginMapId.set(c.currentMapId);
       this.transitionOriginMapId=c.currentMapId;
+      this.destinationTransitionWasDeferred=true;
       this.mapTransitionPending.set(true);
       this.startTransitionPoll();
     }
@@ -134,12 +237,12 @@ export class MapBoard implements OnDestroy {
   onPointerUp(e:PointerEvent){const d=this.drag;if(!d||d.id!==e.pointerId)return;if(d.moved)this.suppressClickUntil=Date.now()+250;this.drag=null}
   onPointerCancel(e:PointerEvent){if(this.drag?.id===e.pointerId)this.drag=null}
   onViewportClick(e:MouseEvent){if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}const target=e.target as HTMLElement;const button=target.closest?.('.map-tile') as HTMLButtonElement|null;if(!button||button.disabled)return;const tile=this.maps.find(m=>m.id===button.getAttribute('data-map-id'));if(tile)this.onTileClick(e,tile)}
-  onTileClick(e:MouseEvent,tile:any){if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}if(!this.isRevealed(tile.coordinates.x,tile.coordinates.y))return;this.selected.set(tile.id);if(tile.type==='town')this.enterTownMap(tile.id);else this.enter(tile.id)}
+  onTileClick(e:MouseEvent,tile:any){if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}if(!this.isRevealed(tile.coordinates.x,tile.coordinates.y))return;this.selected.set(tile.id);this.enter(tile.id)}
   onWheel(e:WheelEvent){e.preventDefault();const viewport=e.currentTarget as HTMLElement;const rect=viewport.getBoundingClientRect();const localX=e.clientX-rect.left,localY=e.clientY-rect.top;const oldZoom=this.zoom();const nextZoom=Math.max(this.zoomMin,Math.min(this.zoomMax,Number((oldZoom*(e.deltaY>0?.9:1.1)).toFixed(4))));if(nextZoom===oldZoom)return;const worldX=this.cameraX()+localX/oldZoom,worldY=this.cameraY()+localY/oldZoom;const p=this.clampCamera(worldX-localX/nextZoom,worldY-localY/nextZoom,nextZoom);this.zoom.set(nextZoom);this.cameraX.set(p.x);this.cameraY.set(p.y)}
   showTileTooltip(tile:any,e:PointerEvent|FocusEvent){this.hoveredMap.set(tile);if(e instanceof PointerEvent)this.tooltipPointer={x:e.clientX,y:e.clientY};else{const r=(e.target as HTMLElement).getBoundingClientRect();this.tooltipPointer={x:r.left+r.width/2,y:r.top+r.height/2}}this.renderTileTooltip()}
   moveTileTooltip(e:PointerEvent){this.tooltipPointer={x:e.clientX,y:e.clientY};this.positionTileTooltip()}
   hideTileTooltip(){this.hoveredMap.set(null);this.tooltipEl?.remove();this.tooltipEl=null}
-  private renderTileTooltip(){const map=this.hoveredMap();this.tooltipEl?.remove();this.tooltipEl=null;if(!map)return;const el=document.createElement('div');el.className='nm-map-tooltip';el.style.cssText='position:fixed;z-index:10000;display:flex;flex-direction:column;gap:5px;min-width:190px;max-width:min(320px,calc(100vw - 20px));padding:12px 15px;background:linear-gradient(145deg,#21170f,#100b07);border:1px solid #a98750;box-shadow:0 6px 22px #000c,inset 0 0 0 1px #4b3521;color:#c9b79a;pointer-events:none;box-sizing:border-box;';const title=document.createElement('strong');title.textContent=map.name;title.style.cssText='color:#f0d9ac;font:bold 25px/1.05 Georgia,serif;letter-spacing:.4px;text-shadow:0 2px 3px #000;';el.appendChild(title);const sub=document.createElement('small');sub.textContent=map.type==='grind'?('Recommended level: '+(map.recommendedLevel??1)):'Town';sub.style.cssText='color:#b9a17a;font:12px/1.3 Arial,sans-serif;';el.appendChild(sub);document.body.appendChild(el);this.tooltipEl=el;this.positionTileTooltip()}
+  private renderTileTooltip(){const map=this.hoveredMap();this.tooltipEl?.remove();this.tooltipEl=null;if(!map)return;const el=document.createElement('div');el.className='nm-map-tooltip';el.style.cssText='position:fixed;z-index:10000;display:flex;flex-direction:column;gap:5px;min-width:190px;max-width:min(320px,calc(100vw - 20px));padding:12px 15px;background:linear-gradient(145deg,#21170f,#100b07);border:1px solid #a98750;box-shadow:0 6px 22px #000c,inset 0 0 0 1px #4b3521;color:#c9b79a;pointer-events:none;box-sizing:border-box;';const title=document.createElement('strong');title.textContent=map.name;title.style.cssText='color:#f0d9ac;font:bold 25px/1.05 Georgia,serif;letter-spacing:.4px;text-shadow:0 2px 3px #000;';el.appendChild(title);const sub=document.createElement('small');const mapType=String(map.type??'location').replace(/[_-]+/g,' ');sub.textContent=map.type==='grind'?('Recommended level: '+(map.recommendedLevel??1)):mapType.charAt(0).toUpperCase()+mapType.slice(1);sub.style.cssText='color:#b9a17a;font:12px/1.3 Arial,sans-serif;';el.appendChild(sub);document.body.appendChild(el);this.tooltipEl=el;this.positionTileTooltip()}
   private positionTileTooltip(){const el=this.tooltipEl;if(!el)return;const margin=10,gap=14;el.style.left='0px';el.style.top='0px';const r=el.getBoundingClientRect(),vw=document.documentElement.clientWidth,vh=document.documentElement.clientHeight;const x=this.tooltipPointer.x+gap+r.width<=vw-margin?this.tooltipPointer.x+gap:Math.max(margin,this.tooltipPointer.x-r.width-gap);const y=this.tooltipPointer.y+gap+r.height<=vh-margin?this.tooltipPointer.y+gap:Math.max(margin,this.tooltipPointer.y-r.height-gap);el.style.left=x+'px';el.style.top=y+'px'}
   enter(id:string){this.requestMapTransition(id)}
   enterTownMap(id:string){this.requestMapTransition(id)}
@@ -159,24 +262,57 @@ export class MapBoard implements OnDestroy {
       next:async result=>{
         if(requestSequence!==this.latestMapRequestSequence)return;
         const characterPatch=result?.character??{};
-        const acceptedDestination=String(result?.destinationMapId??characterPatch?.pendingMapTransition?.destinationMapId??characterPatch?.currentMapId??id);
-        this.suppressedPendingDestinationMapId=null;
-        this.routeOriginMapId.set(origin);
-        this.destinationMapId.set(acceptedDestination);
-        this.character.applyPatch(characterPatch);
-        if(result?.deferred){
-          this.transitionOriginMapId=characterPatch.currentMapId??origin;
-          this.mapTransitionPending.set(true);
-          this.startTransitionPoll();
-          return;
+        const latestCharacter=this.character.character();
+        const responsePending=characterPatch?.pendingMapTransition??null;
+        const responseIntentAt=responsePending?.requestedAt??requestedAt;
+        const latestPending=latestCharacter?.pendingMapTransition??null;
+        const responseDestination=String(result?.destinationMapId??responsePending?.destinationMapId??characterPatch?.currentMapId??id);
+        const freshness=this.mapIntentResponseFreshness(latestCharacter,origin,characterPatch,responseIntentAt,responseDestination);
+        const newerRealtimeIntent=freshness.newerRealtimeIntent;
+        const responseBehindLocation=freshness.responseBehindLocation;
+
+        let acceptedDestination=String(result?.destinationMapId??responsePending?.destinationMapId??characterPatch?.currentMapId??id);
+        let acceptedPending=responsePending;
+        // Character realtime snapshots can commit the move while this HTTP request is
+        // still in flight. Never patch that newer map state back to the origin using an
+        // older "deferred" response (a common race during "searching for monsters").
+        if(newerRealtimeIntent&&latestPending){
+          acceptedPending=latestPending;
+          acceptedDestination=String(latestPending.destinationMapId);
+        }else if(responseBehindLocation&&latestCharacter){
+          acceptedPending=latestPending;
+          acceptedDestination=String(latestCharacter.currentMapId);
         }
-        this.mapTransitionPending.set(false);
-        this.stopTransitionPoll();
-        this.transitionOriginMapId=null;
+
+        this.destinationRequestedAt=acceptedPending?.destinationMapId===acceptedDestination
+          ?acceptedPending?.requestedAt??responseIntentAt
+          :requestedAt;
+        this.routeOriginMapId.set(newerRealtimeIntent&&latestCharacter?latestCharacter.currentMapId:origin);
+        this.transitionOriginMapId=latestCharacter?.currentMapId??characterPatch.currentMapId??origin;
+        this.destinationTransitionWasDeferred=newerRealtimeIntent||(!responseBehindLocation&&!!result?.deferred);
+        this.destinationMapId.set(acceptedDestination);
+        if(!newerRealtimeIntent&&!responseBehindLocation)this.character.applyPatch(characterPatch);
+
+        // Reconcile synchronously with the freshest known Character state as well as
+        // through the signal effect. Arrival is keyed only by currentMapId and is atomic
+        // across Town/Grind/any future location type.
+        const acceptedCharacter=this.character.character();
+        if(acceptedCharacter)this.reconcileDestinationPreview(acceptedCharacter);
+        if(result?.deferred||this.mapTransitionPending()){
+          // Keep polling only if there is still an active preview. If a newer state
+          // already confirmed arrival, continue the ordinary post-transition refresh
+          // instead of leaving early or re-enabling the waiting state.
+          if(this.destinationMapId()){
+            this.mapTransitionPending.set(true);
+            this.startTransitionPoll();
+            return;
+          }
+        }
         await Promise.all([this.character.load(),this.battle.load()]);
         this.rebuildDiscovery();
         this.centerOnCurrentMap();
-        if(map.type==='grind'){
+        const acceptedMap=this.maps.find(candidate=>candidate.id===acceptedDestination);
+        if(acceptedMap?.type==='grind'){
           this.battle.beginGrindSession();
           try{await this.socket.emit('map:syncPresence',{mapId:acceptedDestination})}catch{}
         }
@@ -189,31 +325,23 @@ export class MapBoard implements OnDestroy {
     this.transitionPoll=setInterval(()=>{
       if(this.transitionPollBusy)return;
       this.transitionPollBusy=true;
+      const previousTarget=this.destinationMapId();
+      const previousOrigin=this.routeOriginMapId();
       void this.character.load().then(async()=>{
         const c=this.character.character();
         if(!c)return;
-        const target=this.destinationMapId();
-        // Check authoritative arrival before pending intent metadata. A lingering intent
-        // must not keep the route visible once currentMapId is already the destination.
-        if(target&&c.currentMapId===target){
-          this.clearDestinationPreview();
-          this.mapTransitionPending.set(false);
-          this.stopTransitionPoll();
-          this.transitionOriginMapId=null;
-        }else if(c.pendingMapTransition)return;
-        else if(c.status!=='town')return;
-        // Death or real food exhaustion may authoritatively route to Town instead
-        // of the requested Grind destination. In either case the transition has ended,
-        // so remove the preview instead of leaving a stale destination pin/route behind.
-        this.clearDestinationPreview();
-        this.mapTransitionPending.set(false);
-        this.stopTransitionPoll();
+
+        // Use the exact same, type-agnostic reconciliation as socket/HTTP updates.
+        // "Town" is not a special arrival signal: only currentMapId determines arrival.
+        this.reconcileDestinationPreview(c);
+        const transitionFinished=!!previousTarget&&this.destinationMapId()===null;
+        if(!transitionFinished)return;
+
         const arrivedMap=this.maps.find(m=>m.id===c.currentMapId);
-        if(c.currentMapId!==this.transitionOriginMapId&&arrivedMap?.type==='grind'){
+        if(c.currentMapId!==previousOrigin&&arrivedMap?.type==='grind'){
           this.battle.beginGrindSession();
           try{await this.socket.emit('map:syncPresence',{mapId:c.currentMapId})}catch{}
         }
-        this.transitionOriginMapId=null;
         await this.battle.load();
         this.rebuildDiscovery();
         this.centerOnCurrentMap();
