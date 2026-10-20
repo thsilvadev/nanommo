@@ -85,24 +85,39 @@ export class MapBoard implements OnDestroy {
       if(!c)return;
       this.rebuildDiscovery(c.discoveredMapIds);
       this.centerOnCurrentMap();
-      const pendingDestination=c.pendingMapTransition?.destinationMapId;
-      const requestedDestination=this.destinationMapId();
-      // Arrival takes precedence over pending-transition metadata: the character can
-      // already be on the destination while a stale/pipelined projection still carries
-      // the intent. Combat continuing on that map must not keep the travel preview alive.
-      if(requestedDestination&&(c.currentMapId===requestedDestination||c.status==='town')){
-        this.clearDestinationPreview();
-        this.mapTransitionPending.set(false);
-        this.stopTransitionPoll();
-        this.transitionOriginMapId=null;
-      }else if(pendingDestination){
-        this.destinationMapId.set(pendingDestination);
-        if(!this.routeOriginMapId())this.routeOriginMapId.set(c.currentMapId);
-        this.transitionOriginMapId=c.currentMapId;
-        this.mapTransitionPending.set(true);
-        this.startTransitionPoll();
-      }
+      this.reconcileDestinationPreview(c);
     });
+  }
+  private suppressedPendingDestinationMapId:string|null=null;
+  private reconcileDestinationPreview(c:any){
+    const pendingDestination=c.pendingMapTransition?.destinationMapId as string|undefined;
+    const requestedDestination=this.destinationMapId();
+    const arrivedAtRequested=!!requestedDestination&&c.currentMapId===requestedDestination;
+    const arrivedAtPending=!!pendingDestination&&c.currentMapId===pendingDestination;
+    const reachedTownFallback=c.status==='town'&&this.transitionOriginMapId!==null&&c.currentMapId!==this.transitionOriginMapId;
+
+    // A settled location wins over an old pending-intent projection. Remember that
+    // stale destination so later HP/battle snapshots cannot resurrect its route.
+    if(arrivedAtRequested||arrivedAtPending||reachedTownFallback){
+      if(arrivedAtPending||(reachedTownFallback&&pendingDestination)){
+        this.suppressedPendingDestinationMapId=pendingDestination??null;
+      }else if(arrivedAtRequested&&pendingDestination===requestedDestination){
+        this.suppressedPendingDestinationMapId=pendingDestination;
+      }
+      this.clearDestinationPreview();
+      this.mapTransitionPending.set(false);
+      this.stopTransitionPoll();
+      this.transitionOriginMapId=null;
+      return;
+    }
+
+    if(pendingDestination&&pendingDestination!==this.suppressedPendingDestinationMapId){
+      this.destinationMapId.set(pendingDestination);
+      if(!this.routeOriginMapId())this.routeOriginMapId.set(c.currentMapId);
+      this.transitionOriginMapId=c.currentMapId;
+      this.mapTransitionPending.set(true);
+      this.startTransitionPoll();
+    }
   }
   private key(x:number,y:number){return `${x},${y}`}
   private rebuildDiscovery(ids?:string[]){const c=this.character.character();this.discovered=new Set(Array.isArray(ids??c?.discoveredMapIds)?(ids??c?.discoveredMapIds??[]):[TOWN_MAP_ID]);if(!this.discovered.size)this.discovered.add(TOWN_MAP_ID);if(c?.currentMapId)this.discovered.add(c.currentMapId);if(c?.currentMapId===TOWN_MAP_ID&&[...this.discovered].every(id=>id===TOWN_MAP_ID||id==='map_green_grounds_4'))this.discovered.delete('map_green_grounds_4');}
@@ -145,6 +160,7 @@ export class MapBoard implements OnDestroy {
         if(requestSequence!==this.latestMapRequestSequence)return;
         const characterPatch=result?.character??{};
         const acceptedDestination=String(result?.destinationMapId??characterPatch?.pendingMapTransition?.destinationMapId??characterPatch?.currentMapId??id);
+        this.suppressedPendingDestinationMapId=null;
         this.routeOriginMapId.set(origin);
         this.destinationMapId.set(acceptedDestination);
         this.character.applyPatch(characterPatch);
