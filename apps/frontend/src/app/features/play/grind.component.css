@@ -115,6 +115,7 @@
   display: grid;
   place-items: center;
   opacity: .5;
+  margin-left: 30px;
 }
 .grind-mode-select .traveling-stance img {
   width: 100%;

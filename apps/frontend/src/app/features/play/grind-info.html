@@ -13,7 +13,7 @@
   <ng-container *ngIf="isTown();else grindContext"><app-vendor-panel></app-vendor-panel></ng-container>
   <ng-template #grindContext><ng-container *ngIf="battle.active() as b">
       <ng-container *ngIf="isSearching(b); else activeBattle">
-        <div class="idle-state search-state"><strong>{{isGathering() ? 'Gathering...' : 'Searching for Monsters...'}}</strong><small *ngIf="recentFleeNotice()">You fled an aggressive enemy.</small></div>
+        <div class="idle-state search-state"><strong>{{isGathering() ? 'Gathering...' : 'Searching for Monsters...'}}</strong><p *ngIf="recentFleeNotice()">You fled an aggressive enemy.</p></div>
       </ng-container>
       <ng-template #activeBattle>
         <div class="foe">
