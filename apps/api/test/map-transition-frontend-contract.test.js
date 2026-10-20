@@ -28,6 +28,8 @@ assert(components.includes("this.api.post<any>(`/maps/${id}/enter`,{requestedAt}
 assert(components.includes('this.routeOriginMapId.set(origin)'), 'route preview preserves the location the player clicked from, even when this map click teleports immediately');
 assert(components.includes('const routeOriginId=this.routeOriginMapId()'));
 assert(components.includes('private clearDestinationPreview(){this.destinationMapId.set(null);this.routeOriginMapId.set(null)}'), 'destination pin and animated route are cleared after authoritative arrival');
+assert(components.includes('if(requestedDestination&&(c.currentMapId===requestedDestination||c.status===\'town\'))'), 'authoritative destination arrival takes precedence over stale pending transition metadata');
+assert(components.includes('if(target&&c.currentMapId===target){'), 'transition polling clears preview on arrival even while battle continues');
 assert(components.includes("'/maps/save-town'"));
 assert(grindHtml.includes('Save here') && grindHtml.includes('Saved ✔'));
 assert(characterDto.includes('pendingMapTransition?'));

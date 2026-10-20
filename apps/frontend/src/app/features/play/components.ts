@@ -86,15 +86,21 @@ export class MapBoard implements OnDestroy {
       this.rebuildDiscovery(c.discoveredMapIds);
       this.centerOnCurrentMap();
       const pendingDestination=c.pendingMapTransition?.destinationMapId;
-      if(pendingDestination){
+      const requestedDestination=this.destinationMapId();
+      // Arrival takes precedence over pending-transition metadata: the character can
+      // already be on the destination while a stale/pipelined projection still carries
+      // the intent. Combat continuing on that map must not keep the travel preview alive.
+      if(requestedDestination&&(c.currentMapId===requestedDestination||c.status==='town')){
+        this.clearDestinationPreview();
+        this.mapTransitionPending.set(false);
+        this.stopTransitionPoll();
+        this.transitionOriginMapId=null;
+      }else if(pendingDestination){
         this.destinationMapId.set(pendingDestination);
         if(!this.routeOriginMapId())this.routeOriginMapId.set(c.currentMapId);
         this.transitionOriginMapId=c.currentMapId;
         this.mapTransitionPending.set(true);
         this.startTransitionPoll();
-      }else if(this.destinationMapId()&&(c.currentMapId===this.destinationMapId()||c.status==='town')){
-        // The authoritative Character projection confirms arrival (including a Town fallback).
-        this.clearDestinationPreview();
       }
     });
   }
@@ -169,9 +175,17 @@ export class MapBoard implements OnDestroy {
       this.transitionPollBusy=true;
       void this.character.load().then(async()=>{
         const c=this.character.character();
-        if(!c||c.pendingMapTransition)return;
+        if(!c)return;
         const target=this.destinationMapId();
-        if(c.currentMapId!==target&&c.status!=='town')return;
+        // Check authoritative arrival before pending intent metadata. A lingering intent
+        // must not keep the route visible once currentMapId is already the destination.
+        if(target&&c.currentMapId===target){
+          this.clearDestinationPreview();
+          this.mapTransitionPending.set(false);
+          this.stopTransitionPoll();
+          this.transitionOriginMapId=null;
+        }else if(c.pendingMapTransition)return;
+        else if(c.status!=='town')return;
         // Death or real food exhaustion may authoritatively route to Town instead
         // of the requested Grind destination. In either case the transition has ended,
         // so remove the preview instead of leaving a stale destination pin/route behind.
