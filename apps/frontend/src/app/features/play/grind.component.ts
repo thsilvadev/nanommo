@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ApiService } from '../../core/api.service';
 import { CharacterStore } from '../../core/game.store';
 import { GambitPage } from '../../core/game.models';
@@ -11,7 +11,7 @@ export class GrindComponent implements OnInit {
   readonly gambits=signal<GambitPage[]>([]);
   readonly loading=signal(false);
   readonly error=signal<string|null>(null);
-  readonly huntMode=signal<'hunting'|'gathering'|null>(null);
+  readonly huntMode=computed<'hunting'|'gathering'|null>(()=>{const stance=this.character.character()?.lastGrindStance;return stance==='hunting'||stance==='gathering'?stance:null;});
   
   readonly activeGambitId=computed(()=>{
     const activeId=this.character.character()?.activeGambitPageId;
@@ -21,22 +21,16 @@ export class GrindComponent implements OnInit {
     return found?activeId:'';
   });
 
-  constructor(){effect(()=>{const stance=this.character.character()?.lastGrindStance;if(stance==='hunting'||stance==='gathering')this.huntMode.set(stance);});}
-
   ngOnInit(){
-    // Never assume Hunting while the authoritative persisted stance is still loading.
-    this.huntMode.set(null);
-    void this.character.load().then(()=>{
-      const stance=this.character.character()?.lastGrindStance;
-      if(stance==='hunting'||stance==='gathering')this.huntMode.set(stance);
-    });
+    // The mode is derived directly from the CharacterStore, never mirrored in local UI state.
+    // PlayComponent owns the initial Character load; this component only reacts to store updates.
     void this.loadGambits();
   }
 
   async selectStance(stance:'hunting'|'gathering'){
     if(this.loading()||!this.huntMode()||this.huntMode()===stance)return;
     this.loading.set(true);this.error.set(null);
-    try{const response=await this.api.post<any>('/maps/stance',{stance}).toPromise();this.huntMode.set(stance);if(response?.character)this.character.applyPatch(response.character);else this.character.applyPatch({lastGrindStance:stance});}
+    try{const response=await this.api.post<any>('/maps/stance',{stance}).toPromise();if(response?.character)this.character.applyPatch(response.character);else this.character.applyPatch({lastGrindStance:stance});}
     catch(e:any){this.error.set(e?.error?.message??'Unable to change stance');}
     finally{this.loading.set(false);}
   }

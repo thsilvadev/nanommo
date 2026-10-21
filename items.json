@@ -112,7 +112,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 710,
+      "sellPriceToVendor": 910,
       "usableFor": [
         "market_trade",
         "future_crafting",
