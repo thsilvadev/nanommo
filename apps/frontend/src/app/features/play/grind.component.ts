@@ -30,7 +30,7 @@ export class GrindComponent implements OnInit {
   async selectStance(stance:'hunting'|'gathering'){
     if(this.loading()||!this.huntMode()||this.huntMode()===stance)return;
     this.loading.set(true);this.error.set(null);
-    try{const response=await this.api.post<any>('/maps/stance',{stance}).toPromise();if(response?.character)this.character.applyPatch(response.character);else this.character.applyPatch({lastGrindStance:stance});}
+    try{const response=await this.api.post<any>('/maps/stance',{stance}).toPromise();this.character.applyConfirmedStance(stance,response?.character);}
     catch(e:any){this.error.set(e?.error?.message??'Unable to change stance');}
     finally{this.loading.set(false);}
   }

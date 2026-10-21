@@ -127,6 +127,8 @@ const password = 'Test123456';
   assert.strictEqual(created.data.name, `Hero${stamp}`, 'created character carries the submitted name');
   assert.strictEqual(created.data.level, 1, 'starter level is 1');
   assert.strictEqual(created.data.str, 5, 'starter str is 5');
+  assert.strictEqual(created.data.currentMapId, 'map_town', 'new character is born in Sierra Village');
+  assert.strictEqual(created.data.savedTownMapId, 'map_town', 'Sierra Village is the new character saved Town waypoint');
 
   // Starter inventory: 50x pot_hp_small, 5x food_bread.
   const inventory = await request('GET', '/inventory', null, reg.data.accessToken);

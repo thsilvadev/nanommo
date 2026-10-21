@@ -150,6 +150,7 @@ export class CharacterService {
       spCurrent: baseStats.maxSp,
       status: 'town',
       currentMapId: 'map_town',
+      savedTownMapId: 'map_town',
       discoveredMapIds: ['map_town'],
       diet: [],
       dietLevels: {},

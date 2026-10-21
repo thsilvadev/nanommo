@@ -91,6 +91,69 @@ describe('realtime resource synchronization', () => {
     expect(store.character()?.spCurrent).toBe(35);
   });
 
+  it('keeps the server-confirmed Gathering stance against a newer but older-timestamp socket snapshot', () => {
+    const store = TestBed.inject(CharacterStore);
+    store.applyRealtimeSnapshot({
+      ...character(70, 35), lastGrindStance: 'hunting',
+      updatedAt: '2026-10-21T17:00:00.000Z', stateVersion: 200,
+    }, 200);
+
+    // Stance can change without stateVersion moving past a concurrent update.
+    store.applyConfirmedStance('gathering', {
+      ...character(70, 35), lastGrindStance: 'gathering',
+      updatedAt: '2026-10-21T17:01:00.000Z', stateVersion: 199,
+    });
+
+    // This snapshot has a higher resource revision but was built before the stance change.
+    store.applyRealtimeSnapshot({
+      ...character(20, 10), lastGrindStance: 'hunting',
+      updatedAt: '2026-10-21T17:00:30.000Z', stateVersion: 201,
+    }, 201);
+
+    expect(store.character()?.lastGrindStance).toBe('gathering');
+    expect(store.character()?.stateVersion).toBe(201);
+    expect(store.character()?.hpCurrent).toBe(20);
+  });
+
+  it('ignores a stale full-Character patch after a newer realtime snapshot', () => {
+    const store = TestBed.inject(CharacterStore);
+    store.applyRealtimeSnapshot({
+      ...character(70, 35), lastGrindStance: 'gathering', stateVersion: 202,
+    }, 202);
+
+    store.applyPatch({
+      ...character(20, 10), lastGrindStance: 'hunting', stateVersion: 201,
+    });
+
+    expect(store.character()?.lastGrindStance).toBe('gathering');
+    expect(store.character()?.stateVersion).toBe(202);
+    expect(store.character()?.hpCurrent).toBe(70);
+  });
+
+  it('advances the revision watermark for an accepted attribute mutation response', async () => {
+    const response = new Subject<Character>();
+    api.post.and.returnValue(response.asObservable() as any);
+    const store = TestBed.inject(CharacterStore);
+    store.applyRealtimeSnapshot({
+      ...character(70, 35), lastGrindStance: 'hunting', stateVersion: 200,
+    }, 200);
+
+    const mutation = store.spend({str: 1});
+    response.next({
+      ...character(70, 35), lastGrindStance: 'gathering', stateVersion: 201,
+    });
+    response.complete();
+    await mutation;
+
+    store.applyRealtimeSnapshot({
+      ...character(20, 10), lastGrindStance: 'hunting', stateVersion: 200,
+    }, 200);
+
+    expect(store.character()?.lastGrindStance).toBe('gathering');
+    expect(store.character()?.stateVersion).toBe(201);
+    expect(store.character()?.hpCurrent).toBe(70);
+  });
+
   it('discards an old Inventory HTTP response after a newer realtime snapshot', async () => {
     const inventoryResponse = new Subject<{items: InventoryItem[]; stateVersion: number}>();
     const equipmentResponse = new Subject<any[]>();

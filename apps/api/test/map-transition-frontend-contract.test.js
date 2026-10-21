@@ -39,6 +39,7 @@ assert(characterDto.includes('pendingMapTransition?'));
 assert(characterDto.includes('savedTownMapId!'));
 assert(characterService.includes('pendingMapTransition: character.pendingMapTransition ?? null'));
 assert(characterService.includes('savedTownMapId: character.savedTownMapId ?? null'));
+assert(characterService.includes("currentMapId: 'map_town',\n      savedTownMapId: 'map_town',"), 'new characters are explicitly born in Sierra Village with Sierra Village saved as their waypoint');
 assert(migration.includes('ADD COLUMN IF NOT EXISTS "savedTownMapId"'));
 assert(migration.includes("SET \"savedTownMapId\" = 'map_town' WHERE \"savedTownMapId\" IS NULL"), 'existing characters default to Sierra Village');
 assert(migration.includes(`ALTER COLUMN "savedTownMapId" SET DEFAULT 'map_town'`), 'database default is repaired if the column already exists');

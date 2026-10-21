@@ -89,7 +89,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 1,
+      "recommendedLevel": 5,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -111,8 +111,8 @@
       ]
     },
     {
-      "id": "map_green_grounds_3",
-      "name": "Green Grounds 3",
+      "id": "map_green_grounds_2",
+      "name": "Green Grounds 2",
       "coordinates": {
         "x": -2,
         "y": 1
@@ -134,7 +134,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 5,
+      "recommendedLevel": 8,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -164,8 +164,8 @@
       ]
     },
     {
-      "id": "map_green_grounds_4",
-      "name": "Green Grounds 4",
+      "id": "map_green_grounds_3",
+      "name": "Green Grounds 3",
       "coordinates": {
         "x": 0,
         "y": -1
@@ -217,8 +217,8 @@
       ]
     },
     {
-      "id": "map_green_grounds_5",
-      "name": "Green Grounds 5",
+      "id": "map_green_grounds_4",
+      "name": "Green Grounds 4",
       "coordinates": {
         "x": 0,
         "y": -2
@@ -240,7 +240,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 1,
+      "recommendedLevel": 7,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -258,8 +258,8 @@
       ]
     },
     {
-      "id": "map_green_grounds_6",
-      "name": "Green Grounds 6",
+      "id": "map_green_grounds_5",
+      "name": "Green Grounds 5",
       "coordinates": {
         "x": -1,
         "y": -2
@@ -281,7 +281,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 5,
+      "recommendedLevel": 7,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -338,7 +338,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 10,
+      "recommendedLevel": 11,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -383,7 +383,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 10,
+      "recommendedLevel": 14,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -428,7 +428,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 10,
+      "recommendedLevel": 14,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -481,7 +481,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20,
+      "recommendedLevel": 25,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -526,7 +526,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20,
+      "recommendedLevel": 25,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -571,7 +571,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20,
+      "recommendedLevel": 25,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -611,7 +611,7 @@
       "monsters": [
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 20
+          "presenceRate": 25
         },
         {
           "monsterId": "mon_mudflatcrocodile",
@@ -619,12 +619,12 @@
         },
         {
           "monsterId": "mon_thornsprout",
-          "presenceRate": 10
+          "presenceRate": 5
         }
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20,
+      "recommendedLevel": 25,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -681,7 +681,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 40,
+      "recommendedLevel": 45,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -725,19 +725,15 @@
       "monsters": [
         {
           "monsterId": "mon_arcanewisp",
-          "presenceRate": 32
+          "presenceRate": 34
         },
         {
           "monsterId": "mon_kwaiouaranger",
-          "presenceRate": 24
+          "presenceRate": 26
         },
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 16
-        },
-        {
-          "monsterId": "mon_thornsprout",
-          "presenceRate": 8
+          "presenceRate": 20
         },
         {
           "monsterId": "mon_rootboundbrute",
@@ -746,7 +742,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 40,
+      "recommendedLevel": 45,
       "mapLength": 25,
       "gatheringPool": [
         {

@@ -1366,8 +1366,8 @@
       "fixedStats": {
         "atk": 8
       },
-      "sellPriceToVendor": 0,
-      "marketBasePrice": 0,
+      "sellPriceToVendor": 60,
+      "marketBasePrice": 500,
       "allowedOffHandTypes": [
         "dagger",
         "shield",
