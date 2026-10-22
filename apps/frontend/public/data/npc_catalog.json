@@ -231,6 +231,15 @@
         "storage"
       ],
       "monologue": "You know I have a name, right? But you'll keep calling me Storage anyway."
+    },
+    {
+      "id": "uncle_phillip",
+      "name": "Uncle Phillip",
+      "location": "town",
+      "types": [
+        "cooking"
+      ],
+      "greeting": "Hmmm… delicious… this might go well with tha - Oy! Young traveler! I know you have a great taste for food. You wanna use my kitchen? Fell free to, oy!"
     }
   ]
 }

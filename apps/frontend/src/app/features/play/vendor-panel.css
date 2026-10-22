@@ -171,3 +171,29 @@
 
 .storage-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .storage-hint { display:block; margin-top:7px; color:#6f5d49; font:12px Arial; }
+
+.cooking-open-button { width:100%; margin:8px 0; padding:11px; color:#e8cf98; background:#2c1e11; border:1px solid #8d6936; font:20px Georgia; cursor:pointer; }
+.cooking-overlay { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; background:#000b; }
+.cooking-modal { width:min(50vw,1000px); min-width:min(620px,100%); max-height:88vh; overflow:auto; padding:20px; color:#d8c4a1; background:#140e0a; border:1px solid #8a6638; box-shadow:0 12px 60px #000; }
+.cooking-modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #493521; }
+.cooking-modal-header small { color:#98794b; letter-spacing:2px; }
+.cooking-modal-header h2 { margin:5px 0; color:#e4c37c; font:32px Georgia; }
+.cooking-modal-header span { color:#a99472; font:14px Arial; }
+.cooking-modal-header button { border:0; background:transparent; color:#cdb88f; font:30px Arial; cursor:pointer; }
+.cooking-recipes { display:flex; flex-direction:column; gap:8px; }
+.cooking-recipe { display:flex; align-items:center; gap:14px; min-height:104px; padding:10px 12px; border:1px solid #4e3924; background:linear-gradient(100deg,#21170f,#17100b); }
+.cooking-recipe.locked { opacity:.7; border-color:#33271b; }
+.cooking-food-icon { width:62px; height:62px; object-fit:contain; flex:0 0 62px; }
+.cooking-recipe-info { display:flex; flex:1; flex-direction:column; gap:5px; min-width:0; }
+.cooking-recipe-info>strong { color:#e4c47e; font:22px Georgia; }
+.cooking-required,.cooking-ingredients { color:#b5a184; font:13px Arial; line-height:1.35; }
+.cooking-warning { color:#dc8b70; font:12px Arial; }
+.cooking-locked-label { color:#887a68; font:12px Arial; }
+.cooking-button,.cooking-cancel { min-width:82px; padding:10px 12px; border:1px solid #a68146; background:#392713; color:#e8d5a8; font:bold 13px Arial; cursor:pointer; }
+.cooking-button:disabled,.cooking-cancel:disabled { opacity:.35; cursor:not-allowed; }
+.cooking-session { margin-bottom:14px; padding:12px; border:1px solid #8a6638; background:#21170f; }
+.cooking-session-row { display:flex; justify-content:space-between; margin-bottom:8px; text-transform:capitalize; }
+.cooking-progress { height:10px; background:#0a0806; border:1px solid #493521; margin-bottom:10px; }
+.cooking-progress i { display:block; height:100%; background:#c49a50; transition:width .1s linear; }
+.cooking-cancel { display:block; margin-left:auto; }
+@media(max-width:900px) { .cooking-modal { width:100%; min-width:0; padding:12px; } .cooking-recipe { gap:8px; padding:8px; } .cooking-food-icon { width:44px; height:44px; flex-basis:44px; } .cooking-recipe-info>strong { font-size:18px; } .cooking-button { min-width:62px; padding:8px; } }

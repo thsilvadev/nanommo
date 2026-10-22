@@ -81,6 +81,17 @@ export class Character {
   @Column({ type: 'int', default: 1 })
   gatheringLevel!: number;
 
+  /** Cumulative server-authoritative Cooking progression. */
+  @Column({ name: 'cooking_level', type: 'int', default: 1 })
+  cookingLevel!: number;
+
+  @Column({ name: 'cooking_xp', type: 'bigint', default: 0 })
+  cookingXp!: number;
+
+  /** Persisted timed Cooking session and reservation snapshot, if any. */
+  @Column({ name: 'cooking_session', type: 'jsonb', nullable: true })
+  cookingSession?: any | null;
+
   /** Persisted fractional Gathering cycle progress and deterministic per-cycle variance. */
   @Column({ type: 'jsonb', default: '{"progress":0,"cycleIndex":0,"varianceSeconds":null,"lastUpdatedAt":null}' })
   gatheringCycle!: any;

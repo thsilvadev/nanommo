@@ -306,12 +306,27 @@ export class InventoryService {
     location: 'inventory' | 'warehouse' = 'inventory',
     instanceData?: any,
     manager?: EntityManager,
+    allowCookingReservation = false,
   ): Promise<InventoryItem> {
     if (location !== 'inventory') throw new BadRequestException('Warehouse items can only be created by an explicit Storage transfer');
     if (!Number.isInteger(quantity) || quantity <= 0) throw new BadRequestException('Quantity must be a positive integer');
     const inventoryRepo = manager?.getRepository(InventoryItem) ?? this.inventoryItemRepo;
     const item = this.dataService.getItemById(itemId);
     if (!item) throw new NotFoundException(`Item ${itemId} not found`);
+    if (!allowCookingReservation) {
+      const character = await (manager?.getRepository(Character) ?? this.characterRepo).findOne({ where: { id: characterId }, lock: manager ? { mode: 'pessimistic_write' } : undefined });
+      const session = character?.cookingSession;
+      if (session) {
+        const rows = await inventoryRepo.find({ where: { characterId, location: 'inventory' } });
+        const projected = rows.map(row => ({ itemId: row.itemId, quantity: Number(row.quantity) }));
+        let remainingGrant = quantity;
+        if (item.stackable) for (const row of projected.filter(row => row.itemId === itemId)) { const add = Math.min(remainingGrant, Math.max(0, Number(item.maxStack ?? 1) - row.quantity)); row.quantity += add; remainingGrant -= add; }
+        while (remainingGrant > 0) { const add = item.stackable ? Math.min(remainingGrant, Number(item.maxStack ?? remainingGrant)) : 1; projected.push({ itemId, quantity: add }); remainingGrant -= add; }
+        const output = this.dataService.getItemById(session.outputItemId);
+        const outputCanMerge = !!output?.stackable && projected.some(row => row.itemId === output.id && row.quantity < Number(output.maxStack ?? 1));
+        if (!outputCanMerge && projected.length >= 50) throw new BadRequestException('Inventory space is reserved for your active Cooking session');
+      }
+    }
 
     let remaining = quantity;
     let lastItem: InventoryItem;
@@ -418,8 +433,15 @@ export class InventoryService {
     itemId: string,
     quantity: number,
     manager?: EntityManager,
+    allowCookingReservation = false,
   ): Promise<void> {
     const inventoryRepo = manager?.getRepository(InventoryItem) ?? this.inventoryItemRepo;
+    if (!allowCookingReservation) {
+      const character = await (manager?.getRepository(Character) ?? this.characterRepo).findOne({ where: { id: characterId }, lock: manager ? { mode: 'pessimistic_write' } : undefined });
+      const reserved = (character?.cookingSession?.ingredients ?? []).filter((row: any) => row.itemId === itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
+      const owned = await inventoryRepo.find({ where: { characterId, itemId, location: 'inventory' } });
+      if (owned.reduce((sum, row) => sum + Number(row.quantity), 0) - quantity < reserved) throw new BadRequestException('Items are reserved for your active Cooking session');
+    }
     let remaining = quantity;
 
     // Find and remove from stacks
@@ -461,6 +483,11 @@ export class InventoryService {
       const map = this.dataService.getMapById(character.currentMapId);
       if (map?.type !== 'town' || character.status !== 'town' || character.pendingMapTransition !== null || character.travelIntent != null) throw new BadRequestException('Warehouse is only available while settled in Town');
       const repo = manager.getRepository(InventoryItem);
+      if (fromLocation === 'inventory' && character.cookingSession) {
+        const reserved = (character.cookingSession.ingredients ?? []).filter((row: any) => row.itemId === itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
+        const ownedRows = await repo.find({ where: { characterId, itemId, location: 'inventory' } });
+        if (ownedRows.reduce((sum, row) => sum + Number(row.quantity), 0) - quantity < reserved) throw new BadRequestException('Items are reserved for your active Cooking session');
+      }
       const candidates = await repo.find({ where: { characterId, itemId, location: fromLocation }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
       const matching = candidates.filter(row => Number(row.quantity) === quantity);
       if (matching.length !== 1) throw new BadRequestException(matching.length > 1 ? 'Ambiguous source stack; use the row-ID transfer endpoint' : 'Transfer must move one complete stack; reload and retry');
@@ -479,6 +506,11 @@ export class InventoryService {
       const repo = manager.getRepository(InventoryItem);
       const source = await repo.findOne({ where: { id: sourceRowId, characterId, location: fromLocation }, lock: { mode: 'pessimistic_write' } });
       if (!source) throw new NotFoundException('Source stack not found at expected location');
+      if (fromLocation === 'inventory' && character.cookingSession) {
+        const reserved = (character.cookingSession.ingredients ?? []).filter((row: any) => row.itemId === source.itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
+        const ownedRows = await repo.find({ where: { characterId, itemId: source.itemId, location: 'inventory' } });
+        if (ownedRows.reduce((sum, row) => sum + Number(row.quantity), 0) - Number(source.quantity) < reserved) throw new BadRequestException('Items are reserved for your active Cooking session');
+      }
       return this.transferLockedRow(manager, source, toLocation);
     });
   }

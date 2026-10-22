@@ -1798,7 +1798,32 @@ export class BattleService {
     const respawnTownId = savedTown?.type === 'town' ? savedTown.id : TOWN_MAP_ID;
     character.status = 'town';
     character.currentMapId = respawnTownId;
-    character.travelIntent = null;
+    const savedTownWaypointTravel = character.travelIntent &&
+      (character.travelIntent.kind === 'saved-town-route-teleport' || character.travelIntent.viaSavedTownWaypoint === true)
+      ? { ...character.travelIntent }
+      : null;
+    // A route deliberately using the saved Town as an intermediate teleport
+    // survives death: respawn at that Town, then let MapService recompute the
+    // remaining route to the originally requested destination.
+    if (savedTownWaypointTravel) {
+      savedTownWaypointTravel.segmentIndex = 0;
+      savedTownWaypointTravel.segmentProgress = 0;
+      savedTownWaypointTravel.lastAccruedAt = new Date().toISOString();
+      savedTownWaypointTravel.lastDurationSeconds = null;
+      savedTownWaypointTravel.waitingForBattle = false;
+      savedTownWaypointTravel.pausedBattleId = null;
+      savedTownWaypointTravel.fleeRequested = false;
+      savedTownWaypointTravel.fleeBattleId = null;
+      savedTownWaypointTravel.fleeNextAttemptAt = null;
+      if (savedTownWaypointTravel.kind !== 'saved-town-route-teleport') {
+        // Re-enter the one-time waypoint state so MapService recomputes BFS
+        // from the actual respawn Town, even if death happened after the first warp.
+        savedTownWaypointTravel.kind = 'saved-town-route-teleport';
+        savedTownWaypointTravel.waypointMapId = respawnTownId;
+        savedTownWaypointTravel.routeMapIds = [];
+      }
+    }
+    character.travelIntent = savedTownWaypointTravel;
     character.gatheringCycle = { ...(character.gatheringCycle ?? {}), progress: 0, cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) + 1, varianceSeconds: null, lastUpdatedAt: new Date().toISOString() };
     character.fleeNextAttemptAt = null;
     character.fleeAttemptIndex = 0;

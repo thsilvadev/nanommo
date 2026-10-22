@@ -43,6 +43,21 @@ export function findCardinalRoute<T extends WorldMapNode>(maps: T[], fromMapId: 
   return route;
 }
 
+/**
+ * Returns the index of the saved Town when it is an intermediate node in a route.
+ * A route origin or final destination is never treated as a waypoint.
+ */
+export function findSavedTownWaypointIndex<T extends WorldMapNode>(
+  route: T[],
+  savedTownMapId: string | null | undefined,
+): number {
+  if (!savedTownMapId || route.length < 3) return -1;
+  const index = route.findIndex(map =>
+    map.id === savedTownMapId && map.type === 'town' && map.isClickable !== false,
+  );
+  return index > 0 && index < route.length - 1 ? index : -1;
+}
+
 export function isInstantTownExitEdge(from: WorldMapNode | undefined, to: WorldMapNode | undefined): boolean {
   if (!from || !to) return false;
   const adjacent = Math.abs(Number(from.coordinates.x) - Number(to.coordinates.x)) +

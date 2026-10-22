@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const {
-  findCardinalRoute, isInstantTownExitEdge, calculateWorldMoveSpeed,
+  findCardinalRoute, findSavedTownWaypointIndex, isInstantTownExitEdge, calculateWorldMoveSpeed,
   calculateTravelDurationSeconds, calculateFleeChancePercent,
   deterministicIntInclusive, calculateGatheringBaseDurationSeconds,
   calculateGatheringDurationSeconds, accrueTravelSegmentProgress,
@@ -12,6 +12,20 @@ const route = findCardinalRoute(maps, 'map_town', 'map_green_grounds_1');
 assert.equal(route[0].id, 'map_town');
 assert.equal(route.at(-1).id, 'map_green_grounds_1');
 assert.ok(route.every((m, i) => i === 0 || Math.abs(m.coordinates.x-route[i-1].coordinates.x)+Math.abs(m.coordinates.y-route[i-1].coordinates.y)===1));
+const sampleSavedTownRoute = [
+  { id: 'origin', type: 'grind', coordinates: { x: 0, y: 0 } },
+  { id: 'saved-town', type: 'town', coordinates: { x: 1, y: 0 } },
+  { id: 'destination', type: 'grind', coordinates: { x: 2, y: 0 } },
+];
+assert.equal(findSavedTownWaypointIndex(sampleSavedTownRoute, 'saved-town'), 1, 'intermediate saved Town is a teleport waypoint');
+assert.equal(findSavedTownWaypointIndex(sampleSavedTownRoute, 'origin'), -1, 'route origin is not a waypoint');
+assert.equal(findSavedTownWaypointIndex(sampleSavedTownRoute, 'destination'), -1, 'final destination is not a waypoint');
+assert.equal(findSavedTownWaypointIndex(sampleSavedTownRoute, 'missing-town'), -1, 'missing saved Town is ignored');
+assert.equal(findSavedTownWaypointIndex([
+  sampleSavedTownRoute[0],
+  { ...sampleSavedTownRoute[1], type: 'grind' },
+  sampleSavedTownRoute[2],
+], 'saved-town'), -1, 'only a canonical Town node can be a waypoint');
 for (const map of maps) assert.ok(findCardinalRoute(maps, 'map_town', map.id).length, `route from Town to ${map.id}`);
 assert.deepEqual(findCardinalRoute(maps, 'map_town', 'map_green_grounds_1').map(m=>m.id), findCardinalRoute(maps, 'map_town', 'map_green_grounds_1').map(m=>m.id), 'BFS ties deterministic');
 assert.ok(isInstantTownExitEdge(maps.find(m=>m.id==='map_town'), maps.find(m=>m.id==='map_green_grounds_0')), 'Town → adjacent Grind is instant');

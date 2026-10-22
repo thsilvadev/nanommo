@@ -36,6 +36,19 @@
       </div>
     </ng-container>
 
+    <ng-container *ngIf="npc.types.includes('cooking')">
+      <p class="vendor-greeting">{{npc.greeting}}</p>
+      <button type="button" class="cooking-open-button" (click)="vendor.openCooking()">I'd like to cook</button>
+    </ng-container>
+
+    <div class="cooking-overlay" *ngIf="vendor.cookingModal() && npc.id==='uncle_phillip'" (click)="vendor.closeCooking()">
+      <section class="cooking-modal" role="dialog" aria-modal="true" aria-label="Cooking" (click)="$event.stopPropagation()">
+        <header class="cooking-modal-header"><div><small>UNCLE PHILLIP'S KITCHEN</small><h2>Cooking</h2><span>Level {{vendor.cookingState()?.progress?.level ?? 1}} · {{vendor.cookingState()?.progress?.xpIntoLevel ?? 0}} / {{vendor.cookingState()?.progress?.xpToNextLevel ?? 100}} XP</span></div><button type="button" aria-label="Close Cooking" (click)="vendor.closeCooking()">×</button></header>
+        <div class="cooking-session" *ngIf="vendor.cookingState()?.session as session"><div class="cooking-session-row"><strong>Cooking {{session.recipeId.replace('_', ' ')}}</strong><span>{{vendor.cookingRemaining()}}s</span></div><div class="cooking-progress"><i [style.width.%]="vendor.cookingPercent()"></i></div><button type="button" class="cooking-cancel" (click)="vendor.cancelCooking()" [disabled]="vendor.busy()">Cancel</button></div>
+        <div class="cooking-recipes"><article *ngFor="let recipe of vendor.cookingState()?.recipes" class="cooking-recipe" [class.locked]="!recipe.unlocked" [class.unavailable]="!recipe.available"><img [src]="vendor.catalog.itemIcon(recipe.outputItemId)" [alt]="recipe.name" class="cooking-food-icon"><div class="cooking-recipe-info"><strong>{{recipe.name}}</strong><span class="cooking-required">Cooking Lv. {{recipe.requiredLevel}} · {{recipe.xpReward}} XP</span><span class="cooking-ingredients"><ng-container *ngFor="let ingredient of recipe.ingredients;let last=last">{{ingredient.quantity}} {{ingredient.item.name}} ({{ingredient.available}} available){{last?'':' · '}}</ng-container></span><span *ngIf="!recipe.canReserveOutput" class="cooking-warning">Not enough inventory space</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients" class="cooking-warning">Missing ingredients</span><span *ngIf="!recipe.unlocked" class="cooking-locked-label">Unlock at Cooking level {{recipe.requiredLevel}}</span></div><button type="button" class="cooking-button" [disabled]="!recipe.available || vendor.busy() || !!vendor.cookingState()?.session" (click)="vendor.startCooking(recipe.id)">COOK</button></article></div>
+      </section>
+    </div>
+
     <div class="quest-dialogue" *ngIf="npc.types.includes('quest') && vendor.dialogue() as dialogue">
       <p class="quest-text">{{dialogue.npcText}}</p>
       <div class="quest-choices">

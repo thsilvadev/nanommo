@@ -18,6 +18,7 @@ export class DataService implements OnModuleInit {
   private weaponXpCurve: any = null;
   private npcVendor: any = null;
   private npcCatalog: any = null;
+  private cookingRecipes: any = null;
 
   onModuleInit() {
     this.loadAllData();
@@ -37,6 +38,7 @@ export class DataService implements OnModuleInit {
       this.weaponXpCurve = this.loadJsonFile(path.join(dataDir, 'weapon_xp_curve.json'));
       this.npcVendor = this.loadJsonFile(path.join(dataDir, 'npc_vendor.json'));
       this.npcCatalog = this.loadJsonFile(path.join(dataDir, 'npc_catalog.json'));
+      this.cookingRecipes = this.loadJsonFile(path.join(dataDir, 'cooking_recipes.json'));
 
       this.validateCatalogues();
       this.logger.log('All data files loaded successfully');
@@ -104,6 +106,30 @@ export class DataService implements OnModuleInit {
         seenNpcIds.add(npcId);
       }
       if (map.type === 'town' && !seenNpcIds.has('storage')) throw new Error(`Town map ${map.id} must reference canonical Storage NPC`);
+    }
+
+    const recipeRows = Array.isArray(this.cookingRecipes?.recipes) ? this.cookingRecipes.recipes : null;
+    if (!recipeRows || recipeRows.length !== 7) throw new Error('cooking_recipes.json must define exactly seven recipes');
+    const recipeIds = new Set<string>();
+    const itemIds = new Set([...(this.items.consumables || []), ...(this.items.equipment || []), ...(this.items.monsterParts || []), ...(this.items.materials || [])].map((item: any) => item.id));
+    const orderedRecipes = [...recipeRows].sort((a: any, b: any) => Number(a.order) - Number(b.order));
+    for (const recipe of recipeRows) {
+      if (!recipe?.id || recipeIds.has(recipe.id) || !Number.isInteger(Number(recipe.requiredLevel)) || Number(recipe.requiredLevel) < 1 || !Number.isInteger(Number(recipe.xpReward)) || Number(recipe.xpReward) < 1 || !Number.isInteger(Number(recipe.order))) throw new Error(`Invalid or duplicate Cooking recipe ${recipe?.id}`);
+      recipeIds.add(recipe.id);
+      const output = this.getItemById(recipe.outputItemId);
+      if (!output || output.type !== 'food' || output.effect?.type !== 'food_buff') throw new Error(`Cooking recipe ${recipe.id} references invalid food output ${recipe.outputItemId}`);
+      if (!Array.isArray(recipe.ingredients) || recipe.ingredients.length === 0) throw new Error(`Cooking recipe ${recipe.id} requires ingredients`);
+      for (const ingredient of recipe.ingredients) if (!itemIds.has(ingredient.itemId) || !this.items.materials.some((x: any) => x.id === ingredient.itemId) || !Number.isInteger(Number(ingredient.quantity)) || Number(ingredient.quantity) < 1) throw new Error(`Cooking recipe ${recipe.id} references invalid ingredient ${ingredient.itemId}`);
+    }
+    if (new Set(recipeRows.map((x: any) => x.order)).size !== recipeRows.length || orderedRecipes.some((x: any, i: number) => x.order !== i + 1)) throw new Error('Cooking recipe order must be unique and contiguous from 1');
+    const recipeOutputs = orderedRecipes.map((x: any) => x.outputItemId).join(',');
+    if (recipeOutputs !== 'food_bread,food_blueberry,food_cheese,food_herbtea,food_honey,food_stew,food_roast') throw new Error('Cooking recipe order/output catalogue differs from the approved progression');
+
+    const uncle = npcRows.filter((npc: any) => npc.id === 'uncle_phillip');
+    if (uncle.length !== 1 || uncle[0].name !== 'Uncle Phillip' || uncle[0].location !== 'town' || JSON.stringify(uncle[0].types) !== '["cooking"]' || uncle[0].greeting !== 'Hmmm… delicious… this might go well with tha - Oy! Young traveler! I know you have a great taste for food. You wanna use my kitchen? Fell free to, oy!') throw new Error('npc_catalog.json must define Uncle Phillip with the canonical greeting and cooking-only capability');
+    for (const map of maps) {
+      const hasUncle = (map.npcIds ?? []).includes('uncle_phillip');
+      if (hasUncle !== (map.id === 'map_town')) throw new Error('Uncle Phillip must be listed only in Sierra Village (map_town)');
     }
 
     const mapIds = new Set<string>();
@@ -209,6 +235,8 @@ export class DataService implements OnModuleInit {
   getNpcCatalog() {
     return this.npcCatalog;
   }
+
+  getCookingRecipes() { return this.cookingRecipes; }
 
   // Specific getters
   getMonsterById(monsterId: string): any {

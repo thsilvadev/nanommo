@@ -1,0 +1,114 @@
+{
+  "recipes": [
+    {
+      "id": "bread",
+      "name": "Bread",
+      "requiredLevel": 1,
+      "ingredients": [
+        {
+          "itemId": "mat_wheat",
+          "quantity": 5
+        }
+      ],
+      "outputItemId": "food_bread",
+      "xpReward": 5,
+      "order": 1
+    },
+    {
+      "id": "blueberry_jelly",
+      "name": "Blueberry Jelly",
+      "requiredLevel": 1,
+      "ingredients": [
+        {
+          "itemId": "mat_wild_blueberries",
+          "quantity": 5
+        }
+      ],
+      "outputItemId": "food_blueberry",
+      "xpReward": 5,
+      "order": 2
+    },
+    {
+      "id": "cheese",
+      "name": "Cheese",
+      "requiredLevel": 2,
+      "ingredients": [
+        {
+          "itemId": "mat_milk",
+          "quantity": 10
+        }
+      ],
+      "outputItemId": "food_cheese",
+      "xpReward": 18,
+      "order": 3
+    },
+    {
+      "id": "herbtea",
+      "name": "Herbtea",
+      "requiredLevel": 2,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 10
+        }
+      ],
+      "outputItemId": "food_herbtea",
+      "xpReward": 18,
+      "order": 4
+    },
+    {
+      "id": "honey",
+      "name": "Honey",
+      "requiredLevel": 5,
+      "ingredients": [
+        {
+          "itemId": "mat_honeycomb",
+          "quantity": 15
+        }
+      ],
+      "outputItemId": "food_honey",
+      "xpReward": 20,
+      "order": 5
+    },
+    {
+      "id": "hunters_stew",
+      "name": "Hunter's Stew",
+      "requiredLevel": 6,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_carrot",
+          "quantity": 6
+        },
+        {
+          "itemId": "mat_meat",
+          "quantity": 4
+        }
+      ],
+      "outputItemId": "food_stew",
+      "xpReward": 25,
+      "order": 6
+    },
+    {
+      "id": "roasted_barbecue",
+      "name": "Roasted Barbecue",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_meat",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_carrot",
+          "quantity": 10
+        }
+      ],
+      "outputItemId": "food_roast",
+      "xpReward": 30,
+      "order": 7
+    }
+  ]
+}

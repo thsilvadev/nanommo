@@ -8,7 +8,7 @@ import { MapKillCounter, BattleQueueEntry, Character, User } from '../../databas
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
 import { MapPresenceService } from '../presence/map-presence.service';
-import { TOWN_MAP_ID, findCardinalRoute, isInstantTownExitEdge, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, deterministicIntInclusive, calculateGatheringDurationSeconds, calculateFleeChancePercent, Mulberry32 } from '@nanommo/shared';
+import { TOWN_MAP_ID, findCardinalRoute, findSavedTownWaypointIndex, isInstantTownExitEdge, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, deterministicIntInclusive, calculateGatheringDurationSeconds, calculateFleeChancePercent, Mulberry32 } from '@nanommo/shared';
 import { EquipmentService } from '../equipment/equipment.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { IdleJournalService } from '../chat/chat-history.service';
@@ -107,8 +107,12 @@ export class MapService {
       const savedTownTeleport = mapId === character.savedTownMapId;
       const route = savedTownTeleport ? [this.dataService.getMapById(character.currentMapId), map] : findCardinalRoute(this.dataService.getMaps(), character.currentMapId, mapId);
       if (!route.length || route.some(node => !node || node.isClickable === false)) throw new BadRequestException('No canonical route to the selected map');
-      const nextMapId = route.length > 1 ? route[1].id : mapId;
-      const preserveSegment = !savedTownTeleport && oldIntent?.kind === 'route' && oldIntent.nextMapId === nextMapId;
+      // If the shortest route crosses the saved Town before reaching its final
+      // destination, use that waypoint as a one-time teleport and then route onward.
+      const savedTownWaypointIndex = savedTownTeleport ? -1 : findSavedTownWaypointIndex(route as any[], character.savedTownMapId);
+      const routeViaSavedTown = savedTownWaypointIndex > 0;
+      const nextMapId = routeViaSavedTown ? String(character.savedTownMapId) : (route.length > 1 ? route[1].id : mapId);
+      const preserveSegment = !savedTownTeleport && !routeViaSavedTown && oldIntent?.kind === 'route' && oldIntent.nextMapId === nextMapId;
       const oldLastAt = Date.parse(String(oldIntent?.lastAccruedAt ?? now));
       const oldDuration = Number(oldIntent?.lastDurationSeconds);
       const accruedSinceLastPulse = preserveSegment && !active && oldIntent?.waitingForBattle !== true && Number.isFinite(oldLastAt) && Number.isFinite(oldDuration) && oldDuration > 0
@@ -117,11 +121,12 @@ export class MapService {
         ? Math.max(0, Math.min(0.999999, Number(oldIntent.segmentProgress ?? 0) + accruedSinceLastPulse)) : 0;
       const generation = Math.max(0, Number(oldIntent?.generation ?? 0)) + 1;
       const newIntent: any = {
-        kind: savedTownTeleport ? 'saved-town-teleport' : 'route',
+        kind: savedTownTeleport ? 'saved-town-teleport' : routeViaSavedTown ? 'saved-town-route-teleport' : 'route',
         destinationMapId: mapId,
-        routeMapIds: route.map(node => node.id),
+        routeMapIds: routeViaSavedTown ? [] : route.map(node => node.id),
         segmentIndex: 0,
         nextMapId: savedTownTeleport ? mapId : nextMapId,
+        ...(routeViaSavedTown ? { waypointMapId: character.savedTownMapId, viaSavedTownWaypoint: true } : {}),
         segmentProgress: oldProgress,
         lastAccruedAt: active ? new Date(Math.max(now, active.endAt.getTime())).toISOString() : new Date(now).toISOString(),
         requestedAt: intentAt,
@@ -286,6 +291,74 @@ export class MapService {
         intent.fleeBattleId = null;
         intent.fleeNextAttemptAt = null;
         character.fleeNextAttemptAt = null;
+      }
+
+      if (intent.kind === 'saved-town-route-teleport') {
+        const waypointId = String(intent.waypointMapId ?? character.savedTownMapId ?? '');
+        const waypoint = this.dataService.getMapById(waypointId);
+        const target = this.dataService.getMapById(String(intent.destinationMapId ?? ''));
+        const continuedRoute = target
+          ? findCardinalRoute(this.dataService.getMaps(), waypointId, target.id)
+          : [];
+        if (!waypoint || waypoint.type !== 'town' || waypoint.id !== character.savedTownMapId ||
+            !target || target.isClickable === false || !continuedRoute.length) {
+          character.travelIntent = null;
+          character.pendingMapTransition = null;
+          character.status = this.dataService.getMapById(character.currentMapId)?.type === 'town' ? 'town' : 'grinding';
+          await characterRepo.save(character);
+          return { kind: 'cancelled' as const, previousMapId };
+        }
+
+        // This special intent has exactly one waypoint. Commit the teleport atomically,
+        // then replace it with a normal route from the saved Town to the original target.
+        character.currentMapId = waypoint.id;
+        character.discoveredMapIds = Array.from(new Set([...(character.discoveredMapIds ?? [TOWN_MAP_ID]), waypoint.id]));
+        character.pendingMapTransition = null;
+        character.gatheringCycle = {
+          ...(character.gatheringCycle ?? {}),
+          progress: 0,
+          cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) + 1,
+          varianceSeconds: null,
+          lastUpdatedAt: new Date(now).toISOString(),
+        };
+        character.encounterCycle = {
+          ...(character.encounterCycle ?? {}),
+          cycleIndex: Math.max(0, Number(character.encounterCycle?.cycleIndex ?? 0)) + 1,
+          nextAt: null,
+        };
+        character.fleeNextAttemptAt = null;
+        character.fleeAttemptIndex = 0;
+        const continuedRouteIds = continuedRoute.map(node => node.id);
+        const finished = waypoint.id === target.id || continuedRouteIds.length <= 1;
+        intent.kind = 'route';
+        intent.routeMapIds = continuedRouteIds;
+        intent.segmentIndex = 0;
+        intent.nextMapId = continuedRouteIds[1] ?? null;
+        intent.segmentProgress = 0;
+        intent.lastAccruedAt = new Date(now).toISOString();
+        intent.lastDurationSeconds = null;
+        intent.speedPaused = false;
+        intent.waitingForBattle = false;
+        intent.pausedBattleId = null;
+        intent.fleeRequested = false;
+        intent.fleeBattleId = null;
+        intent.fleeNextAttemptAt = null;
+        character.status = finished ? (waypoint.type === 'town' ? 'town' : 'grinding') : 'grinding';
+        character.travelIntent = finished ? null : intent;
+        character.lastSeenAt = new Date(now);
+        const cancelledBattleIds = unresolved.map(entry => entry.id);
+        if (cancelledBattleIds.length) await queueRepo.delete({ id: In(cancelledBattleIds), resolved: false });
+        await characterRepo.save(character);
+        return {
+          kind: 'committed' as const,
+          previousMapId,
+          currentMapId: waypoint.id,
+          finished,
+          continue: !finished,
+          status: character.status,
+          intent: character.travelIntent,
+          cancelledBattleIds,
+        };
       }
 
       // World encounters are selected only after the current map's persisted search deadline.

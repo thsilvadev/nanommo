@@ -23,7 +23,7 @@
         <img *ngIf="tile.type==='town' && tile.id===character.character()?.savedTownMapId" class="town-waypoint" src="/project/T_waypoint.png" alt="Saved Town waypoint">
         <span class="map-tooltip-content"><strong>{{tile.name}}</strong><small *ngIf="tile.type==='grind'">Recommended level: {{tile.recommendedLevel ?? 1}}</small><small *ngIf="tile.type==='town'">Town</small><small *ngIf="tile.type!=='town' && tile.type!=='grind'">{{tile.type | titlecase}}</small></span>
       </button>
-      <img *ngIf="currentMap() as current" class="location-pin" src="/assets/maps/pinpoint.svg" alt="Current location" [style.left.px]="gridColumn(current)*153+76.5" [style.top.px]="gridRow(current)*153+76.5">
+      <img *ngIf="currentMap()" class="location-pin" src="/assets/maps/pinpoint.svg" alt="Current location" [style.animation]="character.character()?.travelIntent ? 'none' : null" [style.left.px]="locationPinPosition().x" [style.top.px]="locationPinPosition().y">
     </div>
   </div>
   <p *ngIf="fleeNotice()" class="map-error flee-success">{{fleeNotice()}}</p>

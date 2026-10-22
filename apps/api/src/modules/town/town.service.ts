@@ -7,6 +7,10 @@ import { DataService } from '../data/data.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { CharacterService } from '../character/character.service';
 import { TOWN_MAP_ID } from '@nanommo/shared';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { randomUUID } from 'crypto';
+import { BattleService } from '../battle/battle.service';
 
 const GOLD_CAP = 1_000_000_000_000;
 const INVENTORY_SLOTS = 50;
@@ -22,6 +26,8 @@ export class TownService {
     private readonly dataService: DataService,
     private readonly inventoryService: InventoryService,
     private readonly characterService: CharacterService,
+    private readonly battleService: BattleService,
+    @InjectQueue('battle-queue') private readonly bullQueue: Queue,
   ) {}
 
   private vendor(vendorId = 'william'): Vendor {
@@ -94,6 +100,16 @@ export class TownService {
   }
 
   private async addInventoryAtomic(manager: EntityManager, characterId: string, itemId: string, quantity: number) {
+    const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+    const active = character?.cookingSession;
+    if (active) {
+      const output = this.item(active.outputItemId);
+      const rows = await manager.getRepository(InventoryItem).find({ where: { characterId, location: 'inventory' } });
+      const granted = this.item(itemId);
+      const rowCountAfter = rows.length + (granted.stackable && rows.some(row => row.itemId === itemId && row.quantity < Number(granted.maxStack ?? 1)) ? 0 : Math.ceil(quantity / Number(granted.maxStack ?? 1)));
+      const outputCanMerge = output.stackable && rows.some(row => row.itemId === output.id && row.quantity < Number(output.maxStack ?? 1)) && !(itemId === output.id && rowCountAfter > rows.length);
+      if (!outputCanMerge && rowCountAfter >= INVENTORY_SLOTS) throw new BadRequestException('Inventory space is reserved for your active Cooking session');
+    }
     const item = this.item(itemId);
     let remaining = quantity;
     const repo = manager.getRepository(InventoryItem);
@@ -121,6 +137,10 @@ export class TownService {
   }
 
   private async removeInventoryAtomic(manager: EntityManager, characterId: string, itemId: string, quantity: number) {
+    const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+    const reservation = character?.cookingSession?.ingredients?.filter((row: any) => row.itemId === itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0) ?? 0;
+    const current = await manager.getRepository(InventoryItem).find({ where: { characterId, itemId, location: 'inventory' } });
+    if (current.reduce((sum, row) => sum + row.quantity, 0) - quantity < reservation) throw new BadRequestException('Items are reserved for your active Cooking session');
     const repo = manager.getRepository(InventoryItem);
     const rows = await repo.find({ where: { characterId, location: 'inventory', itemId }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
     const owned = rows.reduce((sum, row) => sum + row.quantity, 0);
@@ -347,6 +367,145 @@ export class TownService {
     const npc = this.npc(npcId);
     if (action !== 'open') throw new BadRequestException('Unsupported NPC action');
     return { npcId: npc.id, types: npc.types, name: npc.name };
+  }
+
+  private cookingThresholds(): number[] { return [0, 100, 220, 390, 640, 1640, 4140, 7890]; }
+
+  private cookingLevelForXp(xpValue: number): number {
+    const xp = Math.max(0, Number(xpValue) || 0);
+    let level = 1;
+    while (level < 99 && xp >= this.cookingThreshold(level + 1)) level++;
+    return level;
+  }
+
+  private cookingThreshold(level: number): number {
+    const known = this.cookingThresholds(); if (level <= 1) return 0; if (known[level - 1] !== undefined) return known[level - 1];
+    let total = known[known.length - 1], increment = known[known.length - 1] - known[known.length - 2];
+    for (let current = known.length; current < level; current++) { increment = Math.floor(increment * 1.5); total += increment; }
+    return total;
+  }
+
+  private cookingProgress(character: Character) {
+    const xp = Math.max(0, Number(character.cookingXp ?? 0));
+    const level = this.cookingLevelForXp(xp);
+    const current = this.cookingThreshold(level); const next = this.cookingThreshold(level + 1);
+    return { level, xp, totalXp: xp, xpIntoLevel: xp - current, xpToNextLevel: next - current, nextLevelXp: next, progressPercent: Math.max(0, Math.min(100, (xp - current) / Math.max(1, next - current) * 100)) };
+  }
+
+  private async cookingState(manager: EntityManager, character: Character) {
+    const recipes = this.dataService.getCookingRecipes()?.recipes ?? [];
+    const rows = await manager.getRepository(InventoryItem).find({ where: { characterId: character.id, location: 'inventory' }, order: { slotIndex: 'ASC' } });
+    const totals = new Map<string, number>(); for (const row of rows) totals.set(row.itemId, (totals.get(row.itemId) ?? 0) + Number(row.quantity));
+    const progress = this.cookingProgress(character);
+    const reservedIngredients: Record<string, number> = {};
+    const session = character.cookingSession ?? null;
+    if (session) for (const req of session.ingredients ?? []) reservedIngredients[req.itemId] = Number(reservedIngredients[req.itemId] ?? 0) + Number(req.quantity);
+    const recipeStates = recipes.map((recipe: any) => {
+      const ingredients = recipe.ingredients.map((req: any) => ({ ...req, owned: totals.get(req.itemId) ?? 0, available: Math.max(0, (totals.get(req.itemId) ?? 0) - (reservedIngredients[req.itemId] ?? 0)), item: this.item(req.itemId) }));
+      const output = this.item(recipe.outputItemId);
+      return { ...recipe, output, ingredients, unlocked: progress.level >= recipe.requiredLevel, hasIngredients: ingredients.every((req: any) => req.available >= req.quantity), canReserveOutput: this.canReserveCapacity(rows, output), available: character.currentMapId === TOWN_MAP_ID && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition && progress.level >= recipe.requiredLevel && ingredients.every((req: any) => req.available >= req.quantity) && this.canReserveCapacity(rows, output) && !session };
+    });
+    return { characterId: character.id, progress, recipes: recipeStates, session };
+  }
+
+  private canReserveCapacity(rows: InventoryItem[], item: any): boolean {
+    if (item?.stackable) {
+      if (rows.some(row => row.itemId === item.id && row.quantity < Number(item.maxStack ?? 1))) return true;
+    }
+    return rows.length < INVENTORY_SLOTS;
+  }
+
+  private async scheduleCookingCompletion(characterId: string, session: any) {
+    const delay = Math.max(0, Date.parse(session.completesAt) - Date.now());
+    await this.bullQueue.add('complete-cooking', { characterId, sessionId: session.id, generation: session.generation }, { jobId: `cooking-${characterId}-${session.id}`, delay, removeOnComplete: true, attempts: 10, backoff: { type: 'exponential', delay: 1000 } });
+  }
+
+  async getCookingState(characterId: string) {
+    await this.reconcileCooking(characterId);
+    return this.characterRepo.manager.transaction(async manager => {
+      const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character) throw new NotFoundException('Character not found');
+      return this.cookingState(manager, character);
+    });
+  }
+
+  async startCooking(characterId: string, recipeId: string) {
+    const recipes = this.dataService.getCookingRecipes()?.recipes ?? [];
+    const recipe = recipes.find((row: any) => row.id === recipeId);
+    if (!recipe) throw new BadRequestException('Unknown Cooking recipe');
+    const result = await this.battleService.withCharacterQueueLock(characterId, () => this.characterRepo.manager.transaction(async manager => {
+      const character = await this.characterForTown(manager, characterId);
+      if (character.currentMapId !== TOWN_MAP_ID) throw new BadRequestException('Cooking is available only in Sierra Village');
+      if (character.cookingSession) throw new BadRequestException('Cooking session already active');
+      const state = await this.cookingState(manager, character);
+      const candidate = state.recipes.find((row: any) => row.id === recipeId);
+      if (!candidate?.unlocked) throw new BadRequestException('Cooking level too low for this recipe');
+      if (!candidate.hasIngredients) throw new BadRequestException('Insufficient ingredients');
+      if (!candidate.canReserveOutput) throw new BadRequestException('Not enough inventory space for the cooked food');
+      const now = new Date(); const session = { id: randomUUID(), generation: randomUUID(), recipeId, startedAt: now.toISOString(), completesAt: new Date(now.getTime() + 10_000).toISOString(), ingredients: recipe.ingredients.map((req: any) => ({ itemId: req.itemId, quantity: Number(req.quantity) })), outputItemId: recipe.outputItemId, outputQuantity: 1, xpReward: Number(recipe.xpReward) };
+      character.cookingSession = session; await manager.getRepository(Character).save(character);
+      return { character, session };
+    }));
+    await this.scheduleCookingCompletion(characterId, result.session);
+    return this.getCookingState(characterId);
+  }
+
+  async cancelCooking(characterId: string, sessionId?: string) {
+    const now = Date.now();
+    const result = await this.battleService.withCharacterQueueLock(characterId, () => this.characterRepo.manager.transaction(async manager => {
+      const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character) throw new NotFoundException('Character not found');
+      const session = character.cookingSession;
+      if (!session) throw new BadRequestException('No active Cooking session');
+      if (sessionId && session.id !== sessionId) throw new BadRequestException('Cooking session has changed');
+      if (now >= Date.parse(session.completesAt)) return { complete: true, characterId, sessionId: session.id };
+      character.cookingSession = null; await manager.getRepository(Character).save(character);
+      return { complete: false, characterId, sessionId: session.id };
+    }));
+    if (result.complete) await this.completeCooking(characterId, result.sessionId);
+    else { const job = await this.bullQueue.getJob(`cooking-${characterId}-${result.sessionId}`); if (job) await job.remove().catch(() => undefined); }
+    return this.getCookingState(characterId);
+  }
+
+  async reconcileCooking(characterId?: string) {
+    const characters = characterId ? [await this.characterRepo.findOne({ where: { id: characterId } })].filter(Boolean) as Character[] : await this.characterRepo.find({ where: {} });
+    for (const character of characters) {
+      const session = character.cookingSession;
+      if (!session?.id || !session.completesAt) continue;
+      const jobId = `cooking-${character.id}-${session.id}`;
+      const job = await this.bullQueue.getJob(jobId).catch(() => null);
+      if (!job) await this.scheduleCookingCompletion(character.id, session);
+      if (Date.now() >= Date.parse(session.completesAt)) await this.completeCooking(character.id, session.id);
+    }
+  }
+
+  async completeCooking(characterId: string, sessionId: string) {
+    const result = await this.battleService.withCharacterQueueLock(characterId, () => this.characterRepo.manager.transaction(async manager => {
+      const characterRepo = manager.getRepository(Character);
+      const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character) throw new NotFoundException('Character not found');
+      const session = character.cookingSession;
+      if (!session || session.id !== sessionId) return null;
+      if (Date.now() < Date.parse(session.completesAt)) return null;
+      const previousLevel = Math.max(1, Number(character.cookingLevel ?? 1));
+      const recipe = (this.dataService.getCookingRecipes()?.recipes ?? []).find((row: any) => row.id === session.recipeId);
+      if (!recipe || recipe.outputItemId !== session.outputItemId) throw new BadRequestException('Cooking recipe changed during session');
+      const invRepo = manager.getRepository(InventoryItem);
+      const rows = await invRepo.find({ where: { characterId, location: 'inventory' }, lock: { mode: 'pessimistic_write' } });
+      const totals = new Map<string, number>(); for (const row of rows) totals.set(row.itemId, (totals.get(row.itemId) ?? 0) + Number(row.quantity));
+      for (const req of session.ingredients ?? []) if ((totals.get(req.itemId) ?? 0) < Number(req.quantity)) throw new BadRequestException(`Reserved ingredient missing: ${req.itemId}`);
+      for (const req of session.ingredients ?? []) await this.inventoryService.removeItem(characterId, req.itemId, Number(req.quantity), manager, true);
+      await this.inventoryService.addItem(characterId, session.outputItemId, 1, 'inventory', undefined, manager, true);
+      character.cookingXp = Number(character.cookingXp ?? 0) + Number(recipe.xpReward);
+      character.cookingLevel = this.cookingLevelForXp(character.cookingXp);
+      character.cookingSession = null; await characterRepo.save(character);
+      return { character, levelUp: character.cookingLevel > previousLevel, previousLevel, newLevel: character.cookingLevel };
+    }));
+    if (result) {
+      await this.battleService.runFutureCombatMutation(characterId, async () => undefined);
+      // The completion transaction is authoritative; clients re-read Inventory/Character on the modal deadline.
+    }
+    return result;
   }
 
   async getWarehouse(characterId: string): Promise<InventoryItem[]> { await this.assertTown(characterId); return this.inventoryRepo.find({ where: { characterId, location: 'warehouse' }, order: { slotIndex: 'ASC' } }); }

@@ -73,7 +73,8 @@ export class MapBoard implements OnDestroy {
   readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService);
   maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
   readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly mapTransitionPending = signal(false); readonly destinationMapId = signal<string|null>(null); readonly routeOriginMapId = signal<string|null>(null);
-  readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); readonly activityNow = signal(Date.now()); readonly fleeNotice = signal<string|null>(null); private discovered = new Set<string>(); private readonly activityTimer = setInterval(() => this.activityNow.set(Date.now()), 250);
+  readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); readonly activityNow = signal(Date.now()); readonly fleeNotice = signal<string|null>(null); readonly pinArrivalFromMapId = signal<string|null>(null); private discovered = new Set<string>(); private readonly activityTimer = setInterval(() => this.activityNow.set(Date.now()), 250);
+  private pinArrivalCharacterId: string|null = null; private pinArrivalMapId: string|null = null; private pinArrivalPreviousIntent: any = null;
   private tooltipEl: HTMLElement|null = null; private tooltipPointer = {x:0,y:0};
   private mapRequestSequence=0; private latestMapRequestSequence=0; private lastRequestedAt=0; private transitionOriginMapId:string|null=null;
   private transitionPoll:ReturnType<typeof setInterval>|null=null; private transitionPollBusy=false; private fleeNoticeTimeout:ReturnType<typeof setTimeout>|null=null; private lastFleeNoticeEntryId:string|null=null;
@@ -87,6 +88,7 @@ export class MapBoard implements OnDestroy {
     effect(()=>{
       const c=this.character.character();
       if(!c)return;
+      this.trackLocationArrival(c);
       this.rebuildDiscovery(c.discoveredMapIds);
       this.centerOnCurrentMap();
       this.reconcileDestinationPreview(c);
@@ -275,6 +277,76 @@ export class MapBoard implements OnDestroy {
   }
   currentMap(){return this.maps.find(m=>m.id===this.character.character()?.currentMapId)??this.maps.find(m=>m.id===TOWN_MAP_ID)??null}
   mapName(){return this.currentMap()?.name??'Unknown'}
+  private pinArrivalStorageKey(characterId:string){return `nanommo:location-pin-arrival:${characterId}`}
+  private trackLocationArrival(character:any){
+    const characterId=String(character?.id??'');const mapId=String(character?.currentMapId??'');
+    if(!characterId||!mapId)return;
+    const intent=character.travelIntent?{kind:character.travelIntent.kind,routeMapIds:Array.isArray(character.travelIntent.routeMapIds)?[...character.travelIntent.routeMapIds]:[],segmentIndex:Number(character.travelIntent.segmentIndex??0)}:null;
+    if(characterId!==this.pinArrivalCharacterId){
+      this.pinArrivalCharacterId=characterId;this.pinArrivalMapId=mapId;this.pinArrivalPreviousIntent=intent;
+      try{const stored=JSON.parse(localStorage.getItem(this.pinArrivalStorageKey(characterId))??'null');this.pinArrivalFromMapId.set(stored?.mapId===mapId&&typeof stored?.fromMapId==='string'?stored.fromMapId:null);}catch{this.pinArrivalFromMapId.set(null);}
+      return;
+    }
+    if(this.pinArrivalMapId&&this.pinArrivalMapId!==mapId){
+      const oldMapId=this.pinArrivalMapId;const oldIntent=this.pinArrivalPreviousIntent;
+      const expectedNext=oldIntent?.kind==='route'?oldIntent.routeMapIds?.[Number(oldIntent.segmentIndex??0)+1]:null;
+      if(expectedNext===mapId){
+        this.pinArrivalFromMapId.set(oldMapId);
+        try{localStorage.setItem(this.pinArrivalStorageKey(characterId),JSON.stringify({mapId,fromMapId:oldMapId}));}catch{}
+      }else{
+        this.pinArrivalFromMapId.set(null);
+        try{localStorage.removeItem(this.pinArrivalStorageKey(characterId));}catch{}
+      }
+      this.pinArrivalMapId=mapId;
+    }
+    this.pinArrivalPreviousIntent=intent;
+  }
+  /** Pin follows the current authoritative route leg, not a client-created route/timer. */
+  locationPinPosition():{x:number;y:number}{
+    const current=this.currentMap();
+    if(!current)return{x:0,y:0};
+    const left=this.gridColumn(current)*153;const top=this.gridRow(current)*153;
+    const center={x:left+76.5,y:top+76.5};
+    const character:any=this.character.character();const intent:any=character?.travelIntent;
+    const routeIds:string[]=Array.isArray(intent?.routeMapIds)?intent.routeMapIds.map(String):[];
+    const segmentIndex=Math.max(0,Math.floor(Number(intent?.segmentIndex??0)));
+    if(intent?.kind!=='route'||routeIds[segmentIndex]!==current.id)return this.locationPinArrivalPosition(current,left,top,center);
+    const next=this.maps.find(m=>m.id===routeIds[segmentIndex+1]);
+    if(!next)return this.locationPinArrivalPosition(current,left,top,center);
+    const cx=Number(current.coordinates.x),cy=Number(current.coordinates.y),nx=Number(next.coordinates.x),ny=Number(next.coordinates.y);
+    if(Math.abs(cx-nx)+Math.abs(cy-ny)!==1)return center;
+    const previous=segmentIndex>0
+      ?this.maps.find(m=>m.id===routeIds[segmentIndex-1])
+      :this.maps.find(m=>m.id===this.pinArrivalFromMapId());
+    const px=Number(previous?.coordinates?.x),py=Number(previous?.coordinates?.y);
+    let start={...center};
+    if(previous&&Math.abs(cx-px)+Math.abs(cy-py)===1){
+      if(px<cx)start={x:left,y:center.y};else if(px>cx)start={x:left+153,y:center.y};
+      else if(py>cy)start={x:center.x,y:top};else start={x:center.x,y:top+153};
+    }else if(nx>cx)start={x:left,y:center.y};
+    else if(nx<cx)start={x:left+153,y:center.y};
+    else if(ny>cy)start={x:center.x,y:top+153};
+    else start={x:center.x,y:top};
+    let end={...center};
+    if(nx>cx)end={x:left+153,y:center.y};else if(nx<cx)end={x:left,y:center.y};
+    else if(ny>cy)end={x:center.x,y:top};else end={x:center.x,y:top+153};
+    const progress=Math.max(0,Math.min(1,this.activityProgress()/100));
+    // Move from the entry edge to the center, then to the exit edge. On a
+    // corner this creates the same cardinal turn as the map path, never a diagonal.
+    if(progress<=0.5){const leg=progress*2;return{x:start.x+(center.x-start.x)*leg,y:start.y+(center.y-start.y)*leg};}
+    const leg=(progress-0.5)*2;
+    return{x:center.x+(end.x-center.x)*leg,y:center.y+(end.y-center.y)*leg};
+  }
+  private locationPinArrivalPosition(current:any,left:number,top:number,center:{x:number;y:number}){
+    const from=this.maps.find(m=>m.id===this.pinArrivalFromMapId());
+    if(!from)return center;
+    const cx=Number(current.coordinates.x),cy=Number(current.coordinates.y),fx=Number(from.coordinates.x),fy=Number(from.coordinates.y);
+    if(Math.abs(cx-fx)+Math.abs(cy-fy)!==1)return center;
+    if(fx<cx)return{x:left,y:center.y};
+    if(fx>cx)return{x:left+153,y:center.y};
+    if(fy>cy)return{x:center.x,y:top};
+    return{x:center.x,y:top+153};
+  }
   playersInMap(){const id=this.character.character()?.currentMapId;return id&&this.battle.mapPresence()?.mapId===id?this.battle.mapPresence()?.playersOnMap??0:0}
   isRevealed(x:number,y:number){if(!this.discovered.size)return x===0&&y===0;for(const id of this.discovered){const m=this.maps.find(v=>v.id===id);if(!m)continue;const dx=Math.abs(Number(m.coordinates.x)-x),dy=Math.abs(Number(m.coordinates.y)-y);if(dx+dy<=1)return true;}return false}
   private clampCamera(x:number,y:number,zoom=this.zoom()){const visibleWidth=this.viewportWidth/zoom,visibleHeight=this.viewportHeight/zoom;return {x:Math.max(0,Math.min(this.worldWidth-visibleWidth,x)),y:Math.max(0,Math.min(this.worldHeight-visibleHeight,y))}}
@@ -401,6 +473,15 @@ export class MapBoard implements OnDestroy {
 
   /** Shortest cardinal route through canonical map nodes, rendered in world-pixel coordinates. */
   destinationRoute():Array<{x:number;y:number}>{
+    const character:any=this.character.character();
+    const intent:any=character?.travelIntent;
+    if(intent?.kind==='route'&&intent.viaSavedTownWaypoint===true&&Array.isArray(intent.routeMapIds)){
+      const startIndex=Math.max(0,Math.floor(Number(intent.segmentIndex??0)));
+      return intent.routeMapIds.slice(startIndex)
+        .map((id:string)=>this.maps.find(m=>m.id===id))
+        .filter(Boolean)
+        .map((map:any)=>({x:(Number(map.coordinates.x)+7)*153+76.5,y:(6-Number(map.coordinates.y))*153+76.5}));
+    }
     const routeOriginId=this.routeOriginMapId();
     const origin=(routeOriginId?this.maps.find(m=>m.id===routeOriginId):null)??this.currentMap();
     const destination=this.maps.find(m=>m.id===this.destinationMapId());

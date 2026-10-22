@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-22
+goal: Travel routes honor the saved-Town waypoint and the location pin follows
+  persisted Traveling progress, pausing with battles.

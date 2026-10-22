@@ -64,6 +64,16 @@ export class TownController {
   async interactWithNPC(@Request() req: any, @Param('npcId') npcId: string, @Body() body: { action: string }) {
     return this.townService.interactWithNPC(await this.characterId(req), npcId, body.action);
   }
+  @Get('npcs/uncle_phillip/cooking')
+  async getCookingState(@Request() req: any) { return this.townService.getCookingState(await this.characterId(req)); }
+  @Post('npcs/uncle_phillip/cooking/start')
+  async startCooking(@Request() req: any, @Body() body: { recipeId: string }) {
+    if (!body || typeof body.recipeId !== 'string' || !body.recipeId) throw new BadRequestException('recipeId is required');
+    return this.townService.startCooking(await this.characterId(req), body.recipeId);
+  }
+  @Post('npcs/uncle_phillip/cooking/cancel')
+  async cancelCooking(@Request() req: any, @Body() body: { sessionId?: string }) { return this.townService.cancelCooking(await this.characterId(req), body?.sessionId); }
+
   @Get('news')
   getTownNews() { return this.townService.getTownNews(); }
 }

@@ -8,7 +8,7 @@
     <nav class="sheet-tabs"><button type="button" [class.active]="tab==='character'"
             (click)="setTab('character')">Character</button><button type="button" [class.active]="tab==='gambits'"
             (click)="setTab('gambits')">Gambits</button><button type="button" [class.active]="tab==='mastery'"
-            (click)="setTab('mastery')">Mastery</button></nav>
+            (click)="setTab('mastery')">Mastery</button><button type="button" [class.active]="tab==='professions'" (click)="setTab('professions')">Professions</button></nav>
     <div *ngIf="tab==='character'" class="character-grid">
         <section class="sheet-panel inventory-panel"><app-inventory-grid /></section>
         <section class="sheet-panel allocator">
@@ -71,6 +71,9 @@
                     [src]="row[0]==='shield'?'/assets/ui/shield.svg':'/assets/ui/weapon.svg'"
                     alt=""><span>{{row[1]}}</span><b>Lv {{weaponLevels()[row[0]] || 0}}</b></button>
         </section>
+    </div>
+    <div *ngIf="tab==='professions'" class="professions-page">
+        <section class="sheet-panel professions-panel"><h2>Professions</h2><article *ngFor="let row of professionRows()" class="profession-row"><div><strong>{{row.name}}</strong><span>Level {{row.level}} — {{row.xpIntoLevel}}/{{row.xpToNextLevel}}</span></div><div class="profession-progress"><i [style.width.%]="row.xpToNextLevel ? row.xpIntoLevel / row.xpToNextLevel * 100 : 0"></i></div></article></section>
     </div>
     <div *ngIf="tab==='gambits'" class="gambit-full"><app-gambit-editor /></div>
 </section>

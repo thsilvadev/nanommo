@@ -4,6 +4,7 @@ import { Job } from 'bull';
 import { MapService } from './map.service';
 import { BattleService } from '../battle/battle.service';
 import { BattleQueueGateService } from '../battle/battle-queue-gate.service';
+import { TownService } from '../town/town.service';
 
 @Processor('battle-queue')
 @Injectable()
@@ -11,7 +12,7 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WorldActivityProcessor.name);
   private recoveryTimer: NodeJS.Timeout | null = null;
   private recoveryInProgress: Promise<void> | null = null;
-  constructor(private readonly maps: MapService, private readonly battles: BattleService, private readonly gate: BattleQueueGateService) {}
+  constructor(private readonly maps: MapService, private readonly battles: BattleService, private readonly gate: BattleQueueGateService, private readonly town: TownService) {}
 
   onModuleInit(): void {
     // Redis retains delayed jobs across restarts; this reconciler repairs only persisted activity whose job is missing.
@@ -27,6 +28,7 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
       try {
         await this.gate.assertReadyForProcessing();
         const result = await this.maps.recoverPendingActivities();
+        await this.town.reconcileCooking();
         if (result.travel || result.gathering || result.flee) this.logger.log(`Recovered world activity jobs: travel=${result.travel} gathering=${result.gathering} flee=${result.flee}`);
       } catch { /* The shared battle-queue gate stays authoritative until normal startup recovery opens it. */ }
     })();
@@ -65,4 +67,10 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
     await this.maps.advanceStationaryActivity(p.characterId, Number(p.cycleIndex));
     return { success: true, characterId: p.characterId };
   }
+  @Process('complete-cooking')
+  async completeCooking(job: Job<{ characterId: string; sessionId: string; generation: string }>) {
+    await this.gate.assertReadyForProcessing();
+    return this.town.completeCooking(job.data.characterId, job.data.sessionId);
+  }
+
 }

@@ -1199,7 +1199,7 @@
       "sellPriceToVendor": 7,
       "cooldownInSeconds": 0
     },
-        {
+    {
       "id": "food_honey",
       "name": "Honey",
       "effect": {
@@ -1231,7 +1231,6 @@
       "sellPriceToVendor": 7,
       "cooldownInSeconds": 0
     },
-
     {
       "id": "food_roast",
       "name": "Roasted Barbecue",
