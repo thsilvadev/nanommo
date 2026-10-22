@@ -12,6 +12,7 @@ import { PresenceModule } from '../presence/presence.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { WorldActivityProcessor } from './world-activity.processor';
 import { ChatModule } from '../chat/chat.module';
+import { TownModule } from '../town/town.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ChatModule } from '../chat/chat.module';
     InventoryModule,
     PresenceModule,
     ChatModule,
+    TownModule,
   ],
   controllers: [MapController],
   providers: [MapService, ...(process.env.BATTLE_QUEUE_MAINTENANCE_ONLY === 'true' ? [] : [WorldActivityProcessor])],

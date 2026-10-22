@@ -1,3 +1,7 @@
+### WorldActivityProcessor TownService dependency injection — 2026-10-22
+
+Fixed API startup failure after Cooking recovery was added to `WorldActivityProcessor`: `MapModule` now imports `TownModule`, which exports `TownService`. The processor can therefore reconcile overdue Cooking sessions and execute `complete-cooking` jobs in its own Nest module context. Added a focused source-contract regression for the MapModule import, TownService export, and both processor call sites. API build and the focused contract test pass. No migration, database mutation, or deployment.
+
 ### Saved-Town route waypoint and Traveling location pin — 2026-10-22
 
 Added a deterministic shared helper that recognizes the character's saved Town only when it appears strictly between the current map and a different requested destination on the canonical clickable BFS route. MapService persists a one-time `saved-town-route-teleport` intent, keeps the original destination, waits for a started battle to resolve before committing the Town waypoint, then recomputes BFS from that Town. If the character dies during this special route, death respawn at the saved Town preserves the route intent and travel continues to the original target; ordinary death handling is unchanged outside the special route. The existing direct saved-Town click keeps its original intent.
