@@ -80,11 +80,11 @@
         },
         {
           "monsterId": "mon_fieldbat",
-          "presenceRate": 8
+          "presenceRate": 5
         },
         {
           "monsterId": "mon_thornsprout",
-          "presenceRate": 85
+          "presenceRate": 80
         }
       ],
       "unlockLevel": 0,
