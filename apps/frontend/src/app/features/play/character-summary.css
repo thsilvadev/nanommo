@@ -20,13 +20,6 @@
   padding-bottom: 8px;
   flex: 0 0 auto;
 }
-.panel-title button {
-  background: none;
-  border: 0;
-  color: #987c56;
-  font-size: 20px;
-  cursor: pointer;
-}
 .paper-doll {
   display: grid;
   grid-template-columns: minmax(58px, 1fr) minmax(94px, 1.2fr) minmax(58px, 1fr);
@@ -227,6 +220,8 @@
   height: 70%;
   object-fit: contain;
   filter: drop-shadow(0 1px 1px #000);
+  position: relative;
+  z-index: 2;
 }
 .diet-stars {
   position: absolute;
@@ -236,10 +231,6 @@
   text-align: center;
   color: #d0a552;
   font-size: 18px;
-}
-.diet-slot > img {
-  position: relative;
-  z-index: 2;
 }
 .auto-feed {
   display: flex;
@@ -330,11 +321,6 @@
   .status-reserve {
     height: 62px;
   }
-  .diet-slot {
-    width: 100%;
-    aspect-ratio: 1/1;
-    height: auto;
-  }
 }
 @media (max-width: 899px) {
   .panel {
@@ -364,10 +350,5 @@
   }
   .summary h2 {
     font-size: 28px;
-  }
-  .diet-slot {
-    width: 100%;
-    aspect-ratio: 1/1;
-    height: auto;
   }
 }
