@@ -313,9 +313,7 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": [
-        "storage"
-      ],
+      "npcIds": ["storage"],
       "mapLength": 0
     },
     {
@@ -370,15 +368,19 @@
       "monsters": [
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 70
+          "presenceRate": 40
         },
         {
           "monsterId": "mon_sandscorpion",
-          "presenceRate": 20
+          "presenceRate": 10
         },
         {
           "monsterId": "mon_thornsprout",
-          "presenceRate": 10
+          "presenceRate": 5
+        },
+                {
+          "monsterId": "mon_saltfangcrab",
+          "presenceRate": 45
         }
       ],
       "unlockLevel": 0,
@@ -419,11 +421,15 @@
       "monsters": [
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 50
+          "presenceRate": 30
         },
         {
           "monsterId": "mon_sandscorpion",
-          "presenceRate": 50
+          "presenceRate": 5
+        },
+                {
+          "monsterId": "mon_saltfangcrab",
+          "presenceRate": 65
         }
       ],
       "unlockLevel": 0,
@@ -787,7 +793,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 30,
+      "recommendedLevel": 29,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -872,9 +878,7 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": [
-        "storage"
-      ],
+      "npcIds": ["storage"],
       "mapLength": 0
     },
     {
@@ -896,20 +900,16 @@
         },
         {
           "monsterId": "mon_moonleafarcanist",
-          "presenceRate": 35
+          "presenceRate": 65
         },
         {
-          "monsterId": "mon_sacredforestguardian",
-          "presenceRate": 35
-        },
-        {
-          "monsterId": "mon_aramaianwarden",
-          "presenceRate": 20
+          "monsterId": "mon_kwaiouaranger",
+          "presenceRate": 25
         }
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 40,
+      "recommendedLevel": 41,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -954,7 +954,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 50,
+      "recommendedLevel": 55,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -999,7 +999,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 50,
+      "recommendedLevel": 55,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -1038,17 +1038,13 @@
           "presenceRate": 40
         },
         {
-          "monsterId": "mon_sacredforestguardian",
-          "presenceRate": 30
-        },
-        {
-          "monsterId": "mon_aramaianwarden",
-          "presenceRate": 15
+          "monsterId": "mon_kwaiouaranger",
+          "presenceRate": 45
         }
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 40,
+      "recommendedLevel": 41,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -1080,7 +1076,11 @@
       "monsters": [
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 100
+          "presenceRate": 75
+        },
+        {
+          "monsterId": "mon_kwaiouaranger",
+          "presenceRate": 25
         }
       ],
       "unlockLevel": 0,
@@ -1121,7 +1121,15 @@
       "monsters": [
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 100
+          "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_kwaiouaranger",
+          "presenceRate": 15
+        },
+        {
+          "monsterId": "mon_giantmosquito",
+          "presenceRate": 65
         }
       ],
       "unlockLevel": 0,
@@ -1158,11 +1166,15 @@
       "monsters": [
         {
           "monsterId": "mon_sacredforestguardian",
-          "presenceRate": 50
+          "presenceRate": 45
         },
         {
           "monsterId": "mon_aramaianwarden",
-          "presenceRate": 50
+          "presenceRate": 45
+        },
+        {
+          "monsterId": "mon_arcanewisp",
+          "presenceRate": 10
         }
       ],
       "unlockLevel": 0,
@@ -1199,8 +1211,21 @@
       "monsters": [
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 100
+          "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_kwaiouaranger",
+          "presenceRate": 15
+        },
+        {
+          "monsterId": "mon_giantmosquito",
+          "presenceRate": 45
+        },
+        {
+          "monsterId": "mon_saltfangcrab",
+          "presenceRate": 20
         }
+
       ],
       "unlockLevel": 0,
       "isTown": false,
@@ -1240,9 +1265,7 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": [
-        "storage"
-      ],
+      "npcIds": ["storage"],
       "mapLength": 0
     },
     {
@@ -1867,9 +1890,7 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": [
-        "storage"
-      ],
+      "npcIds": ["storage"],
       "mapLength": 0
     }
   ]
