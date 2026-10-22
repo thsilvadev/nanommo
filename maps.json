@@ -695,7 +695,8 @@
       "unlockLevel": 0,
       "isTown": true,
       "npcIds": [
-        "storage"
+        "storage",
+        "william"
       ],
       "mapLength": 0
     },
@@ -1015,7 +1016,8 @@
       "unlockLevel": 0,
       "isTown": true,
       "npcIds": [
-        "storage"
+        "storage",
+        "william"
       ],
       "mapLength": 0
     },
@@ -1468,7 +1470,8 @@
       "unlockLevel": 0,
       "isTown": true,
       "npcIds": [
-        "storage"
+        "storage",
+        "william"
       ],
       "mapLength": 0
     }

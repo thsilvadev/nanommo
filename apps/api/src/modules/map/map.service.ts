@@ -13,6 +13,8 @@ import { EquipmentService } from '../equipment/equipment.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { IdleJournalService } from '../chat/chat-history.service';
 
+const TOWN_GUARD_HUNGER_MESSAGE = 'Town Guard: You are hungry! Eat something or go cleanse your sins for a change.';
+
 @Injectable()
 export class MapService {
   private readonly logger = new Logger(MapService.name);
@@ -53,7 +55,9 @@ export class MapService {
       this.dataService.getMapById(beforeTravel.currentMapId)?.type === 'grind') {
       await this.advanceStationaryActivity(characterId);
     }
-    const result = await this.battleService.withCharacterQueueLock(characterId, async () => this.characterRepo.manager.transaction(async manager => {
+    let result: any;
+    try {
+      result = await this.battleService.withCharacterQueueLock(characterId, async () => this.characterRepo.manager.transaction(async manager => {
       const characterRepo = manager.getRepository(Character);
       const queueRepo = manager.getRepository(BattleQueueEntry);
       const userRepo = manager.getRepository(User);
@@ -75,7 +79,7 @@ export class MapService {
       if (map.type === 'grind' && mapId !== character.currentMapId) {
         const expiry = character.activeFoodBuff?.expiresAt ? Date.parse(String(character.activeFoodBuff.expiresAt)) : 0;
         const dietExpiry = (Array.isArray(character.diet) ? character.diet : []).reduce((max, row: any) => Math.max(max, Date.parse(String(row.digestUntil ?? '')) || 0), 0);
-        if (Math.max(expiry, dietExpiry) <= Date.now()) throw new BadRequestException('Town Guard: Your hungry! Eat something or go cleanse your sins for a change.');
+        if (Math.max(expiry, dietExpiry) <= Date.now()) throw new BadRequestException(TOWN_GUARD_HUNGER_MESSAGE);
       }
 
       const now = Date.now();
@@ -145,7 +149,14 @@ export class MapService {
         return { mode: 'deferred', previousMapId, destinationMapId: mapId, character, cancelledBattleIds, previousJobId, activeBattleId: active.id, activeBattleEndAt: active.endAt.getTime(), scheduled };
       }
       return { mode: 'travel', previousMapId, destinationMapId: mapId, character, cancelledBattleIds, previousJobId };
-    }));
+      }));
+    } catch (error) {
+      if (error instanceof BadRequestException && error.message === TOWN_GUARD_HUNGER_MESSAGE &&
+          beforeTravel?.status === 'town' && this.dataService.getMapById(mapId)?.type === 'grind') {
+        await this.idleJournal.townGuardHungry(characterId, `town-guard-hungry:${Date.now()}`);
+      }
+      throw error;
+    }
 
     if (result.previousJobId) await this.removeJob(String(result.previousJobId));
     if (result.cancelledBattleIds?.length) await this.battleService.removeBattleQueueJobs(result.cancelledBattleIds);

@@ -1,11 +1,32 @@
-import { Controller, Get, Post, UseGuards, Request, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, Request, Body, Param, Query, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Character } from '../../database/entities/character.entity';
 
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  private readonly logger = new Logger(ChatController.name);
+
+  constructor(
+    private readonly chatService: ChatService,
+    @InjectRepository(Character) private readonly characterRepo: Repository<Character>,
+  ) {}
+
+  /** REST JWTs identify the account (userId); Socket.IO resolves the same account to its Character. */
+  private async resolveCharacterId(req: any): Promise<string> {
+    const userId = String(req?.user?.userId ?? '');
+    if (!userId) throw new NotFoundException('Authenticated account was not found');
+    const character = await this.characterRepo.findOne({ where: { userId } });
+    if (!character) throw new NotFoundException('Character not found');
+    return character.id;
+  }
+
+  private describeError(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
 
   /**
    * Get available chat channels
@@ -24,7 +45,13 @@ export class ChatController {
     @Param('channel') channel: string,
     @Query('limit') limit: number = 20,
   ) {
-    return this.chatService.getChatHistory(channel, limit, req.user.characterId);
+    try {
+      const characterId = await this.resolveCharacterId(req);
+      return await this.chatService.getChatHistory(channel, limit, characterId);
+    } catch (error) {
+      this.logger.error(`Chat history request failed channel=${channel}: ${this.describeError(error)}`);
+      throw error;
+    }
   }
 
   /**
@@ -35,8 +62,13 @@ export class ChatController {
     @Request() req: any,
     @Body() body: { channel: string; message: string },
   ) {
-    const characterId = req.user.characterId;
-    return { success: true, message: await this.chatService.sendChatMessage(characterId, body.channel, body.message) };
+    try {
+      const characterId = await this.resolveCharacterId(req);
+      return { success: true, message: await this.chatService.sendChatMessage(characterId, body.channel, body.message) };
+    } catch (error) {
+      this.logger.warn(`REST chat send rejected: ${this.describeError(error)}`);
+      throw error;
+    }
   }
 
   /**

@@ -34,6 +34,7 @@ export class ChatService {
     if (limited !== 'OK') throw new HttpException('You can send one message every five seconds', HttpStatus.TOO_MANY_REQUESTS);
     const saved = await this.globalHistory.append(character.id, character.name, text);
     const dto = { id: saved.id, channel: 'global', senderCharacterId: saved.senderCharacterId, username: saved.senderNameSnapshot, message: saved.message, sentAt: new Date(saved.sentAt).toISOString() };
+    this.logger.log(`Global chat message accepted character=${character.id} messageId=${saved.id}`);
     try {
       await this.redis.publish('gateway:chat:global', JSON.stringify(dto));
     } catch (error) {

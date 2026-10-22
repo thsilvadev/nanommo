@@ -771,7 +771,7 @@ export class BattleService {
     let preCombatFleeCycle = Math.max(0, Math.floor(Number(persistedEncounterCycle.preCombatFleeCycle ?? 0)));
     let performedPreCombatCheck = false;
     let lastPreCombatFleeAt: string | null = null;
-    const preCombatJournalEvents: Array<{ monsterId: string; monsterName: string; aggressive: boolean; key: string }> = [];
+    const preCombatJournalEvents: Array<{ monsterId: string; monsterName: string; aggressive: boolean; key: string; occurredAt: string; activityKind: 'gathering' | 'travel' }> = [];
     for (let i = 0; i < battlesToAdd + 100; i++) {
       if (newBattles.length >= battlesToAdd) break;
       const sequenceIndex = maxSequenceIndex + 1 + newBattles.length;
@@ -812,13 +812,15 @@ export class BattleService {
         const avoid = !aggressive || Number(fleeRoll) < fleeChance;
         if (aggressive) {
           this.logger.log(`Gathering pre-combat FLEE ${avoid ? 'succeeded' : 'failed'} character=${characterId} map=${mapId} monster=${monster.id} chance=${fleeChance}% roll=${fleeRoll}`);
-          if (avoid) lastPreCombatFleeAt = new Date().toISOString();
+          if (avoid) lastPreCombatFleeAt = new Date(encounterStartAt).toISOString();
         }
         if (avoid) {
           const journalName = String(monsterDef?.name ?? monster.id);
           preCombatJournalEvents.push({
             monsterId: String(monster.id), monsterName: journalName, aggressive,
             key: `precombat:${mapId}:${counter.epoch}:${killIndex}:${preCombatFleeCycle}`,
+            occurredAt: new Date(encounterStartAt).toISOString(),
+            activityKind: options.allowTravel === true ? 'travel' : 'gathering',
           });
           projectedMapKillCount += 1;
           nextStartTime = new Date(encounterStartAt);
@@ -1058,10 +1060,20 @@ export class BattleService {
       }
     }
     if (publishQueueEvent) await this.safePublishQueueUpdated(characterId, liveQueue);
-    // Journal follows authoritative encounter-cycle/queue persistence, never the speculative projection loop.
+    // The rolls may be projected while building a future queue, but user-facing messages
+    // must arrive at the projected encounter boundary, not when this batch is generated.
     for (const event of preCombatJournalEvents) {
-      if (event.aggressive) await this.idleJournal.dodged(characterId, event.monsterName, event.key);
-      else await this.idleJournal.passed(characterId, event.monsterName, event.key);
+      const safeKey = event.key.replace(/[^a-zA-Z0-9_-]/g, '-');
+      const dueAt = Date.parse(event.occurredAt);
+      await this.bullQueue.add('idle-journal-precombat', {
+        characterId, mapId, ...event,
+      }, {
+        jobId: `journal-precombat-${characterId}-${safeKey}`,
+        delay: Math.max(0, dueAt - Date.now()),
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 1000 },
+      });
     }
     return liveQueue;
   }

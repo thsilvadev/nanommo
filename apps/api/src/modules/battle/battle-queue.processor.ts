@@ -4,6 +4,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { BattleService } from './battle.service';
 import { CharacterService } from '../character/character.service';
 import { BattleQueueGateService } from './battle-queue-gate.service';
+import { IdleJournalService } from '../chat/chat-history.service';
 
 /**
  * BattleQueueProcessor - Handles delayed battle resolution via BullMQ
@@ -18,6 +19,7 @@ export class BattleQueueProcessor {
     private battleService: BattleService,
     private characterService: CharacterService,
     private readonly queueGate: BattleQueueGateService,
+    private readonly idleJournal: IdleJournalService,
   ) {}
 
   /**
@@ -116,6 +118,37 @@ export class BattleQueueProcessor {
       );
       throw error;
     }
+  }
+
+  /** Publish a pre-combat Gathering/Travel journal event when its projected encounter interval arrives. */
+  @Process('idle-journal-precombat')
+  async publishPreCombatJournal(job: Job<{
+    characterId: string;
+    mapId: string;
+    monsterId: string;
+    monsterName: string;
+    aggressive: boolean;
+    key: string;
+    occurredAt: string;
+    activityKind: 'gathering' | 'travel';
+  }>) {
+    await this.queueGate.assertReadyForProcessing();
+    const event = job.data;
+    const character = await this.characterService.getCharacterById(event.characterId);
+    const stillInSameActivity = !!character && character.status === 'grinding' && character.currentMapId === event.mapId && (
+      event.activityKind === 'travel'
+        ? !!character.travelIntent
+        : !character.travelIntent && character.lastGrindStance === 'gathering'
+    );
+    if (!stillInSameActivity) {
+      this.logger.debug(`Discarded stale pre-combat Journal event ${event.key}: Character activity changed`);
+      return { success: true, skipped: true };
+    }
+
+    if (event.aggressive) await this.idleJournal.dodged(event.characterId, event.monsterName, event.key);
+    else await this.idleJournal.passed(event.characterId, event.monsterName, event.key);
+    this.logger.debug(`Published pre-combat Journal event key=${event.key} occurredAt=${event.occurredAt}`);
+    return { success: true, skipped: false };
   }
 
   /**

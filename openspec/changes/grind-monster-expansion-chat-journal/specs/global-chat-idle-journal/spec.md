@@ -7,9 +7,10 @@
 The authenticated player chat SHALL expose only the Global channel. Valid Global messages SHALL be persisted in PostgreSQL and broadcast to connected clients across API instances. The newest CHAT_HISTORY_RETENTION_LIMIT messages SHALL be retained, with the environment variable defaulting to 20 and required to parse as a positive integer. Historical records SHALL contain a stable ID, sender-name snapshot, message text and server timestamp; the sender association SHALL be nullable/SET NULL if the character is deleted.
 
 #### Scenario: Global message is sent
-- GIVEN an authenticated character sends a valid message to Global
-- WHEN the server validates and accepts it
-- THEN the message is persisted before success is reported
+- GIVEN an authenticated character sends a valid message to Global over Socket.IO `/game` event `chat:send`
+- WHEN the server validates, persists, and accepts it
+- THEN the Socket.IO acknowledgment returns the persisted message DTO (including ID and server timestamp)
+- AND the frontend displays the row and clears the draft only when that acknowledgment is valid
 - AND it is broadcast to all connected Global subscribers with the original server timestamp
 - AND other destinations such as Town, Party or Whisper are rejected as unsupported.
 
@@ -67,18 +68,24 @@ The Grind column SHALL render a chat panel directly below the map and SHALL not 
 - AND are merged by server timestamp
 - AND only the latest 20 combined rows are rendered while five rows remain visible at once.
 
-#### Scenario: Journal toggle is enabled by default
+#### Scenario: System toggle is enabled by default
 - GIVEN a new browser preference with no saved choice
 - WHEN the chat panel first loads
-- THEN Journal display is enabled
-- AND Global messages are always visible regardless of the Journal toggle.
+- THEN System display is enabled
+- AND Global messages are always visible regardless of the System toggle.
 
-#### Scenario: Journal toggle hides without stopping collection
-- GIVEN the Journal toggle is off
-- WHEN Journal events arrive
+#### Scenario: System toggle hides without stopping collection
+- GIVEN the System toggle is off
+- WHEN System events arrive
 - THEN they continue to be stored for that character in Redis but are hidden from the combined view
-- AND switching the toggle on restores still-retained Journal rows
+- AND switching the toggle on restores still-retained System rows
 - AND the toggle choice persists locally across reloads.
+
+#### Scenario: System rows have no sender label
+- GIVEN a System/Journal row is displayed
+- WHEN it is rendered in the combined view
+- THEN no synthetic “Idle Journal” sender label is shown
+- AND normal System messages are green while explicit error-severity messages are red.
 
 #### Scenario: Read older messages while new messages arrive
 - GIVEN the user has scrolled above the newest messages
@@ -104,8 +111,10 @@ The server SHALL generate personal Journal rows for exactly these event families
 
 #### Scenario: Passive encounter or pre-combat dodge
 - GIVEN Gathering/Traveling selects a non-aggressive monster, or a seeded pre-combat dodge of an aggressive monster succeeds
-- WHEN the authoritative encounter decision is committed
-- THEN the corresponding passive-pass-by or misled-aggressive entry is produced once
+- WHEN the encounter is projected while constructing the future battle queue
+- THEN its pass-by/dodge decision may be computed ahead of time, but its System row is scheduled for the projected encounter's start timestamp and is not published during queue generation
+- AND the delayed publisher verifies the Character is still in the same relevant Gathering/Travel activity before publishing
+- AND the corresponding passive-pass-by or misled-aggressive entry is produced once at that scheduled boundary
 - AND a failed dodge produces no successful-dodge entry.
 
 #### Scenario: Successful FLEE during a battle
@@ -135,3 +144,14 @@ Chat orchestration/validation, PostgreSQL Global history, Redis transient histor
 - WHEN live event fan-out fails
 - THEN the durable history remains correct, the failure is logged and clients can retrieve the message from the next history refresh
 - AND the service does not roll back already committed Global history.
+
+### Requirement: Hungry Town exit failures appear as red System rows
+
+When a character tries to leave a Town for a Grind map while hungry, the server SHALL reject the travel and publish one character-scoped System entry with error severity. The frontend SHALL suppress the duplicated generic map-error display for this specific rejection while leaving other map errors visible.
+
+#### Scenario: Town Guard blocks departure while hungry
+- GIVEN a character is in Town with no active food or digestion remaining
+- WHEN they click a Grind map
+- THEN travel is rejected and location stays in Town
+- AND System shows “Town Guard: You are hungry! Eat something or go cleanse your sins for a change.” in red
+- AND the same rejection is not also shown as the generic map error.

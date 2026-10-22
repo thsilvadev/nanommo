@@ -55,7 +55,7 @@ export class TransientChatHistoryService {
     return (await this.redis.set(`chat:journal:dedupe:${characterId}:${key}`, '1', 'EX', 604800, 'NX')) === 'OK';
   }
 
-  async appendJournal(characterId: string, row: { id: string; channel: 'journal'; message: string; sentAt: string }): Promise<void> {
+  async appendJournal(characterId: string, row: { id: string; channel: 'journal'; message: string; sentAt: string; severity?: 'success' | 'error' }): Promise<void> {
     const key = `chat:journal:${characterId}`;
     const serialized = JSON.stringify(row);
     await this.redis.multi().lpush(key, serialized).ltrim(key, 0, this.limit - 1).exec();
@@ -74,7 +74,7 @@ export class IdleJournalService {
   private readonly logger = new Logger(IdleJournalService.name);
   constructor(private readonly transientHistory: TransientChatHistoryService) {}
 
-  async record(characterId: string, message: string, dedupeKey?: string): Promise<void> {
+  async record(characterId: string, message: string, dedupeKey?: string, severity: 'success' | 'error' = 'success'): Promise<void> {
     const clean = String(message ?? '').trim();
     if (!characterId || !clean) return;
     try {
@@ -84,11 +84,15 @@ export class IdleJournalService {
       }
       await this.transientHistory.appendJournal(characterId, {
         id: dedupeKey || require('crypto').randomUUID(),
-        channel: 'journal', message: clean, sentAt: new Date().toISOString(),
+        channel: 'journal', message: clean, sentAt: new Date().toISOString(), severity,
       });
     } catch (error) {
       this.logger.error(`Failed to append Idle Journal for character ${characterId}: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  townGuardHungry(characterId: string, key: string) {
+    return this.record(characterId, 'Town Guard: You are hungry! Eat something or go cleanse your sins for a change.', key, 'error');
   }
 
   gathered(characterId: string, quantity: number, itemName: string, mapName: string, key: string) {

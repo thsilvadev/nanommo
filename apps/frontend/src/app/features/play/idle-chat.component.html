@@ -1,11 +1,11 @@
-<section class="idle-chat" aria-label="Global chat and Idle Journal">
+<section class="idle-chat" aria-label="Global chat and System messages">
   <header class="chat-heading">
     <strong>GLOBAL CHAT</strong>
-    <label><input type="checkbox" [checked]="journalEnabled()" (change)="setJournalEnabled($any($event.target).checked)"> Idle Journal</label>
+    <label><input type="checkbox" [checked]="journalEnabled()" (change)="setJournalEnabled($any($event.target).checked)"> System</label>
   </header>
   <div #history class="chat-history" role="log" aria-live="polite" (scroll)="onScroll()">
-    <div *ngFor="let row of visibleMessages(); trackBy: trackRow" class="chat-row" [class.journal-row]="row.channel==='journal'">
-      <time>{{row.sentAt | date:'HH:mm:ss'}}</time><b>{{rowLabel(row)}}</b><span>{{row.message}}</span>
+    <div *ngFor="let row of visibleMessages(); trackBy: trackRow" class="chat-row" [class.journal-row]="row.channel==='journal'" [class.system-error]="row.channel==='journal' && row.severity==='error'">
+      <time>{{row.sentAt | date:'HH:mm:ss'}}</time><b *ngIf="row.channel!=='journal'">{{rowLabel(row)}}</b><span>{{row.message}}</span>
     </div>
     <p class="empty-history" *ngIf="!visibleMessages().length">No messages yet.</p>
   </div>

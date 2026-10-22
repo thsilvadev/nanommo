@@ -4,6 +4,8 @@ const path = require('node:path');
 const { BattleEngine } = require('../../../packages/shared/dist/battle-engine');
 const { chatRetentionLimit, GlobalChatHistoryService, TransientChatHistoryService, IdleJournalService } = require('../dist/apps/api/src/modules/chat/chat-history.service');
 const { ChatService } = require('../dist/apps/api/src/modules/chat/chat.service');
+const { ChatController } = require('../dist/apps/api/src/modules/chat/chat.controller');
+const { BattleQueueProcessor } = require('../dist/apps/api/src/modules/battle/battle-queue.processor');
 const { BadRequestException, HttpException } = require('@nestjs/common');
 
 const root = path.resolve(__dirname, '../../..');
@@ -223,6 +225,13 @@ function testChatServices() {
     assert(order.some(entry => entry[0] === 'journal-list' && entry[1] === 'character-a'), 'Journal fetch is character-scoped');
     await assert.rejects(service.getChatHistory('journal', 20), error => error instanceof BadRequestException);
 
+    let resolvedHistoryCharacter = '';
+    const historyController = new ChatController({ getChatHistory: async (_channel, _limit, characterId) => { resolvedHistoryCharacter = characterId; return []; } }, {
+      findOne: async ({ where }) => where.userId === 'user-a' ? { id: 'character-a', userId: 'user-a' } : null,
+    });
+    await historyController.getChatHistory({ user: { userId: 'user-a' } }, 'journal', 20);
+    assert.equal(resolvedHistoryCharacter, 'character-a', 'REST JWT userId resolves to the Character ID for Journal history');
+
     // Exercise the actual Redis-only bounded list adapter and all six exact templates.
     const lists = new Map();
     const publications = [];
@@ -263,14 +272,36 @@ function testChatServices() {
     ]);
     assert(publications.every(row => row.channel === 'gateway:chat:journal:character-a'));
     assert.equal(lists.get('chat:journal:character-a').length, 6, 'Journal is stored in the character-scoped Redis list, not in SQL');
+    await journalService.townGuardHungry('character-a', 'hungry-1');
+    assert.equal(publications[6].row.message, 'Town Guard: You are hungry! Eat something or go cleanse your sins for a change.');
+    assert.equal(publications[6].row.severity, 'error', 'Town Guard hunger rejection is a red System row');
+    assert.equal(lists.get('chat:journal:character-a').length, 7);
     console.log('grind-monster-expansion-chat-journal: catalog, Sting simulator and chat/Journal unit assertions passed');
   });
+}
+
+async function testScheduledPreCombatJournal() {
+  const published = [];
+  const character = { id: 'character-a', status: 'grinding', currentMapId: 'map_green_grounds_1', lastGrindStance: 'gathering', travelIntent: null };
+  const processor = new BattleQueueProcessor({}, { getCharacterById: async () => character }, { assertReadyForProcessing: async () => undefined }, {
+    dodged: async (...args) => published.push(['dodged', ...args]),
+    passed: async (...args) => published.push(['passed', ...args]),
+  });
+  const data = { characterId: 'character-a', mapId: 'map_green_grounds_1', monsterId: 'mon_slime', monsterName: 'Slime', aggressive: false, key: 'precombat:test:1', occurredAt: new Date().toISOString(), activityKind: 'gathering' };
+  const result = await processor.publishPreCombatJournal({ data });
+  assert.equal(result.skipped, false);
+  assert.deepEqual(published[0], ['passed', 'character-a', 'Slime', 'precombat:test:1']);
+  character.lastGrindStance = 'hunting';
+  const stale = await processor.publishPreCombatJournal({ data: { ...data, key: 'precombat:test:2', aggressive: true } });
+  assert.equal(stale.skipped, true, 'projected Journal events are suppressed if the player changed to Hunting before their due time');
+  assert.equal(published.length, 1);
 }
 
 async function run() {
   testCatalogue();
   testStingSimulator();
   await testChatServices();
+  await testScheduledPreCombatJournal();
 }
 
 run().catch(error => { console.error(error); process.exitCode = 1; });

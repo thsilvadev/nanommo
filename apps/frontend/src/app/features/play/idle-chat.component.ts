@@ -10,6 +10,7 @@ type ChatRow = {
   message: string;
   sentAt: string;
   username?: string;
+  severity?: 'success' | 'error';
 };
 
 @Component({
@@ -52,17 +53,20 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
 
   async loadHistory(): Promise<void> {
     const followBottom = this.wasAtBottom;
-    try {
-      const [globalRows, journalRows] = await Promise.all([
-        this.api.get<ChatRow[]>('/chat/history/global?limit=20').toPromise(),
-        this.api.get<ChatRow[]>('/chat/history/journal?limit=20').toPromise(),
-      ]);
-      this.merge([...(globalRows ?? []), ...(journalRows ?? []).map(row => ({ ...row, channel: 'journal' as const }))]);
-      this.error.set('');
-      if (followBottom) this.scrollToBottom();
-    } catch {
-      this.error.set('Unable to load chat history.');
-    }
+    const [globalResult, systemResult] = await Promise.all([
+      this.api.get<ChatRow[]>('/chat/history/global?limit=20').toPromise()
+        .then(rows => ({ rows: rows ?? [], error: '' }))
+        .catch(() => ({ rows: [] as ChatRow[], error: 'Unable to load Global chat history.' })),
+      this.api.get<ChatRow[]>('/chat/history/journal?limit=20').toPromise()
+        .then(rows => ({ rows: rows ?? [], error: '' }))
+        .catch(() => ({ rows: [] as ChatRow[], error: 'Unable to load System history.' })),
+    ]);
+    this.merge([
+      ...globalResult.rows,
+      ...systemResult.rows.map(row => ({ ...row, channel: 'journal' as const })),
+    ]);
+    this.error.set([globalResult.error, systemResult.error].filter(Boolean).join(' '));
+    if (followBottom) this.scrollToBottom();
   }
 
   setJournalEnabled(enabled: boolean): void {
@@ -81,13 +85,17 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
     const text = this.draft().trim();
     if (!text || this.sending()) return;
     if (text.length > 200) { this.error.set('Messages may contain at most 200 characters.'); return; }
+    if (!this.socket.connected) { this.error.set('Chat is disconnected; message was not sent.'); return; }
     this.sending.set(true);
     this.error.set('');
     try {
       const result: any = await this.socket.emit<any>('chat:send', { channel: 'global', message: text });
       if (result?.error || result?.success === false) throw new Error(String(result?.error ?? 'Message was rejected.'));
-      if (result?.id && result?.channel === 'global') this.append(result);
-      else if (result?.message?.id) this.append(result.message);
+      const accepted: any = result?.message?.id ? result.message : result;
+      if (!accepted?.id || accepted?.channel !== 'global' || typeof accepted?.message !== 'string' || !accepted?.sentAt) {
+        throw new Error('The server did not confirm this message; it was not added to chat.');
+      }
+      this.append(accepted);
       this.draft.set('');
     } catch (error: any) {
       this.error.set(error?.message ?? 'Message was not accepted.');
@@ -96,7 +104,7 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  rowLabel(row: ChatRow): string { return row.channel === 'journal' ? 'Idle Journal' : (row.username || 'Unknown'); }
+  rowLabel(row: ChatRow): string { return row.username || 'Unknown'; }
   trackRow(_index: number, row: ChatRow): string { return row.id; }
 
   private append(row: ChatRow): void {

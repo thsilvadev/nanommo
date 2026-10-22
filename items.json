@@ -1199,14 +1199,14 @@
       "sellPriceToVendor": 7,
       "cooldownInSeconds": 0
     },
-    {
-      "id": "food_stew",
-      "name": "Hunter's Stew",
+        {
+      "id": "food_honey",
+      "name": "Honey",
       "effect": {
         "type": "food_buff",
         "durationSeconds": 3600,
-        "hpRegenPerTenTicks": 5,
-        "spRegenPerTenTicks": 5
+        "hpRegenPerTenTicks": 4,
+        "spRegenPerTenTicks": 4
       },
       "vendorSells": false,
       "type": "food",
@@ -1216,8 +1216,8 @@
       "cooldownInSeconds": 0
     },
     {
-      "id": "food_honey",
-      "name": "Honey",
+      "id": "food_stew",
+      "name": "Hunter's Stew",
       "effect": {
         "type": "food_buff",
         "durationSeconds": 3600,
@@ -1231,9 +1231,10 @@
       "sellPriceToVendor": 7,
       "cooldownInSeconds": 0
     },
+
     {
       "id": "food_roast",
-      "name": "Roasted Boar Leg",
+      "name": "Roasted Barbecue",
       "effect": {
         "type": "food_buff",
         "durationSeconds": 3600,
