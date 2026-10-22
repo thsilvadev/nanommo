@@ -703,19 +703,19 @@
       "kind": "active",
       "target": "self",
       "spCost": 30,
-      "cooldownTicks": 35,
+      "cooldownTicks": 15,
       "baseCastTicks": 2,
       "effects": [
         {
           "type": "apply_status",
           "status": "tip_of_pain",
-          "durationTicks": 30
+          "durationTicks": 9999
         }
       ],
       "effect": {
         "type": "self_status_buff",
         "applyStatus": "tip_of_pain",
-        "durationTicks": 30
+        "durationTicks": 9999
       },
       "damageType": "melee"
     }

@@ -76,7 +76,7 @@
       "monsters": [
         {
           "monsterId": "mon_mutantbee",
-          "presenceRate": 60
+          "presenceRate": 15
         },
         {
           "monsterId": "mon_fieldbat",
@@ -84,7 +84,7 @@
         },
         {
           "monsterId": "mon_thornsprout",
-          "presenceRate": 32
+          "presenceRate": 85
         }
       ],
       "unlockLevel": 0,
@@ -191,15 +191,15 @@
       "monsters": [
         {
           "monsterId": "mon_mutantbee",
-          "presenceRate": 35
+          "presenceRate": 45
         },
         {
           "monsterId": "mon_fieldbat",
-          "presenceRate": 13
+          "presenceRate": 5
         },
         {
           "monsterId": "mon_mudcrawler",
-          "presenceRate": 52
+          "presenceRate": 50
         }
       ],
       "unlockLevel": 0,

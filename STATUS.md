@@ -1,3 +1,7 @@
+### Monster sprite style refresh — 2026-10-22
+
+Replaced `apps/frontend/assets/monsters/mon_mutantbee.svg`, `mon_giantmantis.svg`, and `mon_flamingtreant.svg` with isolated transparent 167×199 sprites rendered in the same detailed, dark-outlined pixel-art RPG style as the existing monster sheet. Mutant Bee is a menacing wasp with segmented yellow-black armor, red eyes and large veined wings; Giant Mantis follows the attached side-profile/praying pose with purple underwing and leg details; Flaming Treant is burning, furious and distressed, with icy tears. Each SVG embeds an optimized transparent PNG payload so existing catalogue paths and layout stay unchanged. UI asset validation, frontend development build, and frontend production build pass. The production build still reports existing non-fatal CSS-budget and CommonJS warnings. No gameplay data, database, migration, or deployment was changed for the sprite refresh.
+
 ### System Journal timing, chat history identity and Town Guard feedback — 2026-10-22
 
 Pre-computed Gathering/Traveling pass-by and successful-dodge decisions no longer publish their System/Journal rows immediately when a future queue is built. Each decision now schedules an `idle-journal-precombat` Bull job for its projected encounter boundary; the worker checks that the Character is still on the same map and in the same activity before publishing. The persisted successful-dodge timestamp uses that projected boundary and the Grind Info hint does not display early when it lies in the future.
@@ -2109,3 +2113,10 @@ The repository-wide `pnpm --filter @nanommo/api test --runInBand` command was at
 ### Directional Town/Grind travel timing — 2026-10-20
 
 Changed the shared instant-edge rule to be directional: leaving a Town for a cardinally adjacent Grind map remains instant, but returning from a Grind map to an adjacent Town is timed using the source Grind map’s `mapLength`. Renamed the helper to `isInstantTownExitEdge`, updated both canonical SPEC copies and ARCHITECTURE, and added contract assertions for both directions. No deploy or database operation.
+
+
+### Traveling pre-combat System Journal feedback — 2026-10-22
+
+Fixed the missing System chat rows for Traveling encounters. Unlike Gathering, Traveling's seeded encounter selection and aggressive FLEE roll are handled directly in `MapService.advanceTravel()`, so they never passed through the existing `BattleService.queueBattles()` Journal hook. Traveling now schedules the same delayed `idle-journal-precombat` job for both passive-monster pass-bys and successful aggressive-monster dodges, using the projected encounter boundary and the existing worker's same-map/same-activity guard. Failed aggressive rolls still start combat and do not emit a successful-dodge row. Updated root/canonical SPEC and ARCHITECTURE documentation.
+
+Validation: API build and `node apps/api/test/world-travel-gathering-flee.test.js` passed. `node apps/api/test/grind-monster-expansion-chat-journal.test.js` remains blocked by a pre-existing canonical/public monster catalogue mirror mismatch (including Mutant Bee stats); no catalogue data was changed. No migration, database mutation, or deployment.

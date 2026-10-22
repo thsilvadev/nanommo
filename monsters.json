@@ -144,7 +144,7 @@
       "name": "Thornsprout",
       "level": 6,
       "hp": 272,
-      "atk": 35,
+      "atk": 25,
       "matk": 19,
       "def": 7,
       "mdefPercent": 0,
@@ -1954,7 +1954,7 @@
       "name": "Mutant Bee",
       "level": 5,
       "hp": 230,
-      "atk": 28,
+      "atk": 18,
       "matk": 12,
       "def": 5,
       "mdefPercent": 0,
@@ -2017,7 +2017,7 @@
           }
         }
       ],
-      "moveSpeedBase": 62,
+      "moveSpeedBase": 55,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,

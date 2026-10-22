@@ -30,9 +30,17 @@ Cooking XP is cumulative. Level thresholds are total XP: L1 0; L2 100; L3 220; L
 
 Add uncle_phillip to root/frontend npc_catalog.json with types: ["cooking"], his requested greeting, and no vendor/quest capability. Add his ID only to map_town.npcIds in root/frontend maps.json, ensuring other Towns do not list him. The Town panel's generic NPC selector remains the entry point; its cooking capability renders the [I'd like to cook] action.
 
+The sprite already exists at apps/frontend/assets/npcs/uncle_phillip.png. VendorPanel.npcPortrait(id) currently returns '/assets/npcs/' + id + '.png'; therefore NPC ID uncle_phillip resolves to the existing asset by convention. Reuse this helper and asset; do not add a duplicate portrait path, change the helper, or generate/copy another sprite.
+
 The modal is centered and approximately 50vw wide on desktop, constrained to fit small screens. Its recipe cards are horizontal, nearly full-width rectangles, stacked in deterministic recipe-level order. Use the existing output food icon, distinct decorative treatment for the food name, ingredient names/counts, level requirement, and a subdued disabled COOK button when the recipe level, ingredients, or inventory-capacity reservation is unavailable. Separate currently unlocked/available recipes from future level-locked recipes; level-up promotes freshly unlocked cards into the available list below existing available recipes. Ingredient shortages remain visible per card.
 
 Starting a recipe changes COOK to Cancel and shows a Cooking progress bar inside the modal. Use server-provided startedAt and completesAt; browser intervals only animate the display. At success, keep the modal mounted, refresh authoritative XP/level/inventory/session state, and immediately update newly unlocked cards.
+
+## Character Professions tab
+
+Extend the existing Character page's query-parameter tab allowlist to include `professions`, using the current URL shape `/play/character?tab=professions`. Add a Professions tab button alongside Character, Gambits, and Mastery. Selecting it updates the query parameter without introducing a new route or breaking the existing tab deep links.
+
+The Professions view is deliberately minimal: four rows/cards, in this order: Gathering, Cooking, Blacksmith, Alchemy. Each displays the profession name, level, and current-level XP progress in the format `Level {level} — {currXp}/{xpToNxtLvl}`. Gathering reads its existing persisted progression; Cooking reads the progression defined in this change. Blacksmith and Alchemy do not gain crafting features or backend progression in this change and display a documented baseline of Level 1 — 0/100 until their systems are specified. The XP display is XP within the current level over XP required to reach the next level, not total lifetime XP. Keep layout and styles consistent with the existing sheet panels.
 
 ## Persistent session and transaction design
 

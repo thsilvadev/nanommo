@@ -21,11 +21,17 @@
 - [ ] 3.2 Build a centered responsive Cooking modal (about 50vw desktop) with horizontal recipe cards, existing icons, polished names, ingredient counts, required level, and disabled eligibility states.
 - [ ] 3.3 Add the modal-local 10-second Cooking progress bar; change COOK to Cancel and keep the session alive if the modal closes or the page reloads.
 - [ ] 3.4 Refresh authoritative inventory/XP/level after completion; reveal newly unlocked recipes immediately and render clear error/space states.
+- [ ] 3.5 Confirm `apps/frontend/assets/npcs/uncle_phillip.png` is reused through the existing `npcPortrait(id)` convention (`/assets/npcs/<id>.png`); do not add duplicate portrait-loading logic.
 
-## 4. Regression tests and handoff
-- [ ] 4.1 Test recipe catalogue/mirror validity and all ingredient/output references.
-- [ ] 4.2 Test XP curve pacing: 20 level-1 + 30 level-2 preparations reach L5; +50 Honey reaches L6; +100 Hunter's Stew reaches L7.
-- [ ] 4.3 Test eligibility, atomic success/failure, reservation conflicts/capacity, Cancel/completion races, duplicate/recovered jobs, and no consumption/reward on Cancel.
-- [ ] 4.4 Test active/future battle queue behavior, NPC map ownership, API validation, and immediate recipe unlock UI.
-- [ ] 4.5 Run shared/API/frontend builds, focused tests, catalogue validators, strict OpenSpec validation, and git diff --check.
-- [ ] 4.6 During apply, update root/canonical SPEC, ARCHITECTURE, and STATUS from verified results. No migration execution, live DB mutation, or deployment.
+## 4. Character Professions tab
+- [ ] 4.1 Add the `Professions` tab to the existing `/play/character?tab=` query-parameter allowlist and navigation.
+- [ ] 4.2 Display Gathering, Cooking, Blacksmith, and Alchemy with level and current-level XP progress; use existing Gathering progress, Cooking progress from this change, and the documented Level 1 / 0 of 100 baseline for Blacksmith and Alchemy.
+- [ ] 4.3 Test direct deep-link loading, tab selection, progress formatting, and unchanged behavior for Character, Gambits, and Mastery tabs.
+
+## 5. Regression tests and handoff
+- [ ] 5.1 Test recipe catalogue/mirror validity and all ingredient/output references.
+- [ ] 5.2 Test XP curve pacing: 20 level-1 + 30 level-2 preparations reach L5; +50 Honey reaches L6; +100 Hunter's Stew reaches L7.
+- [ ] 5.3 Test eligibility, atomic success/failure, reservation conflicts/capacity, Cancel/completion races, duplicate/recovered jobs, and no consumption/reward on Cancel.
+- [ ] 5.4 Test active/future battle queue behavior, NPC map ownership, API validation, immediate recipe unlock UI, and the existing portrait URL convention.
+- [ ] 5.5 Run shared/API/frontend builds, focused tests, catalogue validators, strict OpenSpec validation, and git diff --check.
+- [ ] 5.6 During apply, update root/canonical SPEC, ARCHITECTURE, and STATUS from verified results. No migration execution, live DB mutation, or deployment.

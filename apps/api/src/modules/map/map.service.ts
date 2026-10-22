@@ -335,15 +335,26 @@ export class MapService {
               const chance = calculateFleeChancePercent(worldSpeed, Number(monsterDef?.moveSpd ?? 0), Number(character.luk ?? 5));
               avoid = new Mulberry32(`${character.id}:${character.currentMapId}:${cycle.cycleIndex - 1}:pre-combat-flee`).nextPercent() < chance;
             }
-            if (avoid && Number.isFinite(expectedSegmentCompletionAt) && nextAt <= expectedSegmentCompletionAt && Date.parse(String(cycle.nextAt)) <= now) {
-              // More deterministic search events occurred before the estimated segment
-              // completion. Re-arm immediately and process the next event before arrival.
+            if (avoid) {
+              // Traveling performs its encounter roll here (not through queueBattles),
+              // so enqueue the same delayed personal Journal event used by Gathering.
+              // Keep the encounter boundary as the event timestamp even during offline catch-up.
+              const journalEvent = {
+                characterId,
+                mapId: String(character.currentMapId),
+                monsterId: String(monster.id),
+                monsterName: String(monsterDef?.name ?? monster.id),
+                aggressive: monsterDef?.isAggressive === true,
+                key: `travel-precombat:${character.currentMapId}:${Number(cycle.cycleIndex ?? 1) - 1}:${monster.id}`,
+                occurredAt: new Date(nextAt).toISOString(),
+                activityKind: 'travel' as const,
+              };
               const scheduled = this.nextTravelSchedule(characterId, intent);
               intent.scheduleVersion = scheduled.scheduleVersion;
               intent.scheduledJobId = scheduled.jobId;
               character.travelIntent = intent;
               await characterRepo.save(character);
-              return { kind: 'wait' as const, intent: { ...intent }, delayMs: 0 };
+              return { kind: 'avoided' as const, intent: { ...intent }, journalEvent, delayMs: 0 };
             }
             if (!avoid) {
               // Preserve the movement accumulated up to the persisted encounter
@@ -512,6 +523,20 @@ export class MapService {
       } else {
         await this.advanceTravel(characterId, Number(result.intent.generation));
       }
+      return;
+    }
+    if (result.kind === 'avoided') {
+      const event = result.journalEvent;
+      const safeKey = event.key.replace(/[^a-zA-Z0-9_-]/g, '-');
+      const dueAt = Date.parse(event.occurredAt);
+      await this.bullQueue.add('idle-journal-precombat', event, {
+        jobId: `journal-precombat-${characterId}-${safeKey}`,
+        delay: Math.max(0, dueAt - Date.now()),
+        removeOnComplete: true,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 1000 },
+      });
+      await this.enqueueTravelSchedule(characterId, result.intent, result.delayMs);
       return;
     }
     if (result.kind === 'wait') { await this.enqueueTravelSchedule(characterId, result.intent, result.delayMs); return; }
