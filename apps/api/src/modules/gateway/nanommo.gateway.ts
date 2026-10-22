@@ -24,6 +24,7 @@ import { MapPresenceService } from '../presence/map-presence.service';
 import { OnlinePresenceService } from '../presence/online-presence.service';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
+import { ChatService } from '../chat/chat.service';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -63,6 +64,7 @@ export class NanommoGateway
     private readonly mapPresenceService: MapPresenceService,
     private readonly onlinePresenceService: OnlinePresenceService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    private readonly chatService: ChatService,
   ) {}
 
   afterInit(server: Server) {
@@ -113,6 +115,9 @@ export class NanommoGateway
         if (channel === 'gateway:map:presence' && payload?.mapId) {
           this.server.to(`map:${payload.mapId}`).emit('map:presence', payload);
         }
+        if (channel === 'gateway:chat:global' && payload?.message) {
+          this.server.to('chat:global').emit('chat:message', payload);
+        }
         if (channel === 'gateway:map:transition' && payload?.characterId) {
           const socketId = this.connectedSockets.get(payload.characterId);
           if (socketId) {
@@ -132,7 +137,7 @@ export class NanommoGateway
         // Ignore malformed internal presence payloads; gameplay remains server-authoritative.
       }
     });
-    this.mapPresenceSubscriber.subscribe('gateway:map:presence', 'gateway:map:transition');
+    this.mapPresenceSubscriber.subscribe('gateway:map:presence', 'gateway:map:transition', 'gateway:chat:global');
 
     this.logger.log(
       `Gateway initialized on namespace ${process.env.WEBSOCKET_NAMESPACE || '/game'}`,
@@ -174,9 +179,8 @@ export class NanommoGateway
         });
       }
 
-      // Subscribe to global chat rooms
+      // Player messaging is Global-only. Idle Journal is emitted to char:<id>.
       client.join('chat:global');
-      client.join('chat:town');
 
       // Online/socket presence is separate from gameplay map presence. This service
       // will later be refreshed by the reusable heartbeat for friends/online lists.
@@ -344,44 +348,20 @@ export class NanommoGateway
     }
   }
 
-  /**
-   * Chat:send event
-   */
+  /** Authenticated, validated and durable Global chat intent. */
   @SubscribeMessage('chat:send')
   async handleChatSend(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody()
-    data: { channel: 'global' | 'town'; message: string },
+    @MessageBody() data: { channel: string; message: string },
   ) {
     try {
-      const character = await this.characterRepo.findOne({
-        where: { id: client.characterId },
-      });
-
-      if (!character) {
-        throw new WsException('Character not found');
-      }
-
-      // TODO: Validate message length
-      // TODO: Rate limit check
-      // TODO: Mute list check
-      // TODO: Store in history
-
-      const room = `chat:${data.channel}`;
-      this.server.to(room).emit('chat:message', {
-        channel: data.channel,
-        username: character.name,
-        message: data.message,
-        sentAt: new Date(),
-      });
-
-      this.logger.debug(
-        `Chat from ${character.name}: [${data.channel}] ${data.message}`,
-      );
+      if (!client.characterId) throw new WsException('Character not found');
+      return await this.chatService.sendChatMessage(client.characterId, data?.channel, data?.message);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Chat send error: ${errorMessage}`);
-      throw new WsException(errorMessage);
+      this.logger.warn(`Chat send rejected for ${client.characterId}: ${errorMessage}`);
+      return { success: false, error: errorMessage };
+
     }
   }
 
@@ -429,6 +409,7 @@ export class NanommoGateway
       `gateway:battle:queueUpdated:${characterId}`,
       `gateway:mail:newItem:${characterId}`,
       `gateway:market:orderFilled:${characterId}`,
+      `gateway:chat:journal:${characterId}`,
     ];
 
     channels.forEach((channel) => {

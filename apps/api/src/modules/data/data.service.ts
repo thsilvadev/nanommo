@@ -55,7 +55,7 @@ export class DataService implements OnModuleInit {
       if (!monster?.id || monsterIds.has(monster.id)) throw new Error(`Duplicate or missing monster ID: ${monster?.id}`);
       monsterIds.add(monster.id);
       if (typeof monster.isAggressive !== 'boolean' || !Number.isFinite(Number(monster.moveSpd)) || Number(monster.moveSpd) < 0) throw new Error(`Monster ${monster.id} must define boolean isAggressive and non-negative moveSpd`);
-      const passiveMonsterIds = new Set(['mon_slime', 'mon_thornsprout', 'mon_saltfangcrab', 'mon_moonleafarcanist']);
+      const passiveMonsterIds = new Set(['mon_slime', 'mon_thornsprout', 'mon_saltfangcrab', 'mon_moonleafarcanist', 'mon_giantmantis']);
       if (monster.isAggressive === passiveMonsterIds.has(monster.id)) throw new Error(`Unexpected isAggressive value for ${monster.id}`);
       for (const field of ['level', 'hp', 'atk', 'matk', 'def', 'accuracy', 'evasion', 'xpReward']) {
         if (!Number.isFinite(Number(monster[field])) || Number(monster[field]) < (field === 'level' || field === 'hp' || field === 'xpReward' ? 1 : 0)) {
@@ -108,6 +108,23 @@ export class DataService implements OnModuleInit {
 
     const mapIds = new Set<string>();
     const coordinates = new Set<string>();
+    const exactGatheringAllowList = new Map<string, Set<string>>([
+      ['map_green_grounds_0', new Set(['mat_wheat', 'mat_milk'])],
+      ['map_green_grounds_1', new Set(['mat_cabbage', 'mat_carrot', 'mat_honeycomb'])],
+      ['map_green_grounds_2', new Set(['mat_cabbage', 'mat_carrot'])],
+      ['map_green_grounds_3', new Set(['mat_wheat'])],
+      ['map_green_grounds_4', new Set(['mat_sugar', 'mat_honeycomb'])],
+      ['map_green_grounds_5', new Set(['mat_sugar'])],
+      ['map_menace_hills_1', new Set(['mat_wild_blueberries'])],
+      ['map_menace_hills_3', new Set(['mat_wild_blueberries'])],
+      ['map_ipora_beach_0', new Set(['mat_cooking_oil'])],
+      ['map_ipora_beach_1', new Set(['mat_cooking_oil'])],
+    ]);
+    for (const map of maps) {
+      if (/^map_kwaioua_forest_[0-7]$/.test(String(map.id)) || /^map_forest_ruins_[0-3]$/.test(String(map.id)) || /^map_caete_[0-7]$/.test(String(map.id))) {
+        exactGatheringAllowList.set(String(map.id), new Set(['mat_herbs']));
+      }
+    }
     for (const map of maps) {
       if (!map?.id || mapIds.has(map.id)) throw new Error(`Duplicate or missing map ID: ${map?.id}`);
       mapIds.add(map.id);
@@ -119,7 +136,9 @@ export class DataService implements OnModuleInit {
       if (map.type === 'town' && Number(map.mapLength) !== 0) throw new Error(`Town map ${map.id} must have mapLength 0`);
       if (map.type === 'grind' && Number(map.mapLength) < 25) throw new Error(`Grind map ${map.id} must have mapLength >= 25`);
       if (map.type === 'town' && map.gatheringPool !== undefined) throw new Error(`Town map ${map.id} must not define a gatheringPool`);
-      if (map.type === 'grind' && (!Array.isArray(map.gatheringPool) || map.gatheringPool.length === 0)) throw new Error(`Grind map ${map.id} must define a non-empty gatheringPool`);
+      const allowedGatherables = exactGatheringAllowList.get(String(map.id)) ?? new Set<string>();
+      if (map.type === 'grind' && allowedGatherables.size === 0 && map.gatheringPool !== undefined) throw new Error(`Grind map ${map.id} has no regional assignment and must omit gatheringPool`);
+      if (map.type === 'grind' && allowedGatherables.size > 0 && (!Array.isArray(map.gatheringPool) || map.gatheringPool.length === 0)) throw new Error(`Grind map ${map.id} must define its assigned gatheringPool`);
       if (map.type === 'grind' && map.gatheringPool !== undefined) {
         if (!Array.isArray(map.gatheringPool)) throw new Error(`Map ${map.id} gatheringPool must be an array`);
         const poolTotal = map.gatheringPool.reduce((sum: number, entry: any) => sum + Number(entry.weight ?? 0), 0);
@@ -128,6 +147,8 @@ export class DataService implements OnModuleInit {
           const item = [...(this.items?.materials ?? [])].find((candidate: any) => candidate.id === entry.itemId);
           if (!item || item.type !== 'material') throw new Error(`Map ${map.id} gathering pool references non-material ${entry.itemId}`);
           if (entry.itemId === 'mat_meat') throw new Error('Meat cannot appear in a gathering pool');
+          if (!Number.isFinite(Number(entry.weight)) || Number(entry.weight) < 0) throw new Error(`Map ${map.id} has invalid gathering weight for ${entry.itemId}`);
+          if (!allowedGatherables.has(String(entry.itemId))) throw new Error(`Map ${map.id} cannot gather ${entry.itemId}; regional assignment does not allow it`);
         }
       }
       if (map.type === 'grind') {

@@ -19,6 +19,7 @@ import { EquipmentModule } from '../equipment/equipment.module';
 import { RedisModule } from '../../config/redis.module';
 import { GatewayService } from '../gateway/gateway.service';
 import { PresenceModule } from '../presence/presence.module';
+import { ChatModule } from '../chat/chat.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { PresenceModule } from '../presence/presence.module';
     forwardRef(() => EquipmentModule),
     RedisModule,
     PresenceModule,
+    ChatModule,
   ],
   controllers: [BattleController],
   // Maintenance-only Nest context never registers Bull consumers. The recovery

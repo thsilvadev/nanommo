@@ -917,6 +917,108 @@
       "usableFor": [
         "market_trade"
       ]
+    },
+    {
+      "id": "part_mutantbee_common",
+      "name": "Mutant Bee's Stinger",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_mutantbee"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 18,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_mutantbee_rare",
+      "name": "Mutant Bee Royal Jelly",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_mutantbee"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 220,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_giantmantis_common",
+      "name": "Fun Purple Paint",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_giantmantis"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 420,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_giantmantis_rare",
+      "name": "Giant Mantis Scythe Blade",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_giantmantis"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 6400,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_flamingtreant_common",
+      "name": "Forest Ancient's Teardrop",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_flamingtreant"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 520,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
+    },
+    {
+      "id": "part_flamingtreant_rare",
+      "name": "Flame-Hollow Heartwood",
+      "type": "monster_part",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_flamingtreant"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 8900,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ]
     }
   ],
   "consumables": [

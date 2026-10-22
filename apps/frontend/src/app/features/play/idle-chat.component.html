@@ -1,0 +1,17 @@
+<section class="idle-chat" aria-label="Global chat and Idle Journal">
+  <header class="chat-heading">
+    <strong>GLOBAL CHAT</strong>
+    <label><input type="checkbox" [checked]="journalEnabled()" (change)="setJournalEnabled($any($event.target).checked)"> Idle Journal</label>
+  </header>
+  <div #history class="chat-history" role="log" aria-live="polite" (scroll)="onScroll()">
+    <div *ngFor="let row of visibleMessages(); trackBy: trackRow" class="chat-row" [class.journal-row]="row.channel==='journal'">
+      <time>{{row.sentAt | date:'HH:mm:ss'}}</time><b>{{rowLabel(row)}}</b><span>{{row.message}}</span>
+    </div>
+    <p class="empty-history" *ngIf="!visibleMessages().length">No messages yet.</p>
+  </div>
+  <form class="chat-compose" (submit)="$event.preventDefault(); send()">
+    <input type="text" maxlength="200" [value]="draft()" (input)="onDraftInput($event)" (keydown.enter)="$event.preventDefault(); send()" placeholder="Message Global…" aria-label="Global message" autocomplete="off">
+    <button type="submit" [disabled]="sending() || !draft().trim()">{{sending()?'Sending…':'Send'}}</button>
+  </form>
+  <small class="chat-error" *ngIf="error()">{{error()}}</small>
+</section>

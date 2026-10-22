@@ -10,6 +10,7 @@ import { RedisModule } from '../../config/redis.module';
 import { BattleModule } from '../battle/battle.module';
 import { MapModule } from '../map/map.module';
 import { PresenceModule } from '../presence/presence.module';
+import { ChatModule } from '../chat/chat.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PresenceModule } from '../presence/presence.module';
     BattleModule,
     MapModule,
     PresenceModule,
+    ChatModule,
   ],
   providers: [NanommoGateway],
   exports: [NanommoGateway],

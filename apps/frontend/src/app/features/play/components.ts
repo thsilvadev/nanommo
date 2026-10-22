@@ -693,6 +693,3 @@ export class GrindInfo implements OnDestroy {
   foodLabel() { const count = this.character.character()?.diet?.length ?? 0; return count <= 0 ? 'HUNGRY' : count === 1 ? 'FED' : count === 2 ? 'SATISFIED' : 'FULL' }
   ngOnDestroy() { clearInterval(this.timer) }
 }
-
-@Component({ selector: 'app-chat-drawer', standalone: true, imports: [CommonModule], templateUrl: './chat-drawer.html', styleUrl: './chat-drawer.css' })
-export class ChatDrawer { @Input() open = false; @Output() closed = new EventEmitter<void>(); }

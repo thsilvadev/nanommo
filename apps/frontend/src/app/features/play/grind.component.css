@@ -52,10 +52,20 @@
   color: #d18a77;
   font: 16px Arial;
 }
-.grind-map {
+.grind-map-column {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   height: 100%;
+  gap: 4px;
+  overflow: hidden;
+}
+.grind-map {
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  height: auto;
   overflow: hidden;
 }
 .grind-map app-map-board {
@@ -184,7 +194,12 @@
     flex-basis: auto;
     padding: 0 0 6px;
   }
+  .grind-map-column {
+    height: auto;
+    overflow: visible;
+  }
   .grind-map {
+    flex: 0 0 auto;
     height: auto;
   }
   .grind-map .panel {

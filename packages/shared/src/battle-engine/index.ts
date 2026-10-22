@@ -1545,7 +1545,9 @@ export class BattleEngine {
           );
           const crit = landed && rng.chance(foe.critChance / 100);
           const monsterAttackType = foe.basicAttackDamageType ?? 'melee';
-          const raw = (monsterAttackType === 'magic' ? foe.matk : effectiveAttack(foe)) * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
+          const tipOfPain = monsterAttackType !== 'magic' && hasStatus(foe, 'tip_of_pain');
+          const raw = (monsterAttackType === 'magic' ? foe.matk : effectiveAttack(foe))
+            * (crit ? BattleEngine.CRIT_MULTIPLIER : 1) * (tipOfPain ? 2 : 1);
           let finalDamage = monsterAttackType === 'magic'
             ? BattleEngine.calculateMagicDamage(raw, self.mdefPercent)
             : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
@@ -1565,7 +1567,16 @@ export class BattleEngine {
             tick, actor: 'monster', action: 'attack', target: 'character',
             damage, damageAbsorbed: barrierResult.absorbed || undefined,
             damageType: monsterAttackType, crit, hit: landed, distanceAtActionStart,
+            ...(tipOfPain ? { empoweredBy: 'tip_of_pain' } : {}),
           });
+
+          // Tip of Pain is consumed on the very next physical basic-attack attempt,
+          // even when the normal hit roll misses. Only a landed hit applies Disarm.
+          if (tipOfPain) {
+            foe.statusEffects = (foe.statusEffects ?? []).filter((status: any) => statusIdOf(status) !== 'tip_of_pain');
+            record({ tick, actor: 'monster', action: 'status_ended', status: 'tip_of_pain', target: 'monster', sourceSkillId: 'monster_skill_sting' });
+            if (landed) applyStatus(self, 'disarm', 'monster_skill_sting', 10, {}, 'monster');
+          }
 
           const shieldBashRank = Math.max(0, Number(self.skillDefs?.shield_bash?.masteryRank ?? 0));
           if (landed && shieldBashRank > 0 && distanceAtActionStart === 0
@@ -1592,6 +1603,10 @@ export class BattleEngine {
             return (statusEffectDefs[statusId] as any)?.polarity !== 'debuff';
           });
           applyStatus(foe, 'rage', skillId, Number(effect.durationTicks ?? 15), { atkBonus: Number(effect.atk ?? 20) }, 'monster');
+          record({ tick, actor: 'monster', action: 'use_skill', skillId, target: 'monster', damage: 0, hit: true, spSpent: spCost });
+        } else if (skillId === 'monster_skill_sting') {
+          // Sting is a self-buff. It must never route through the generic damage resolver.
+          applyStatus(foe, 'tip_of_pain', skillId, Number(effect.durationTicks ?? 9999), {}, 'monster');
           record({ tick, actor: 'monster', action: 'use_skill', skillId, target: 'monster', damage: 0, hit: true, spSpent: spCost });
         } else if (skillId === 'monster_skill_pickpocket') {
           const chance = chanceAfterSaveButtLuck(Number(effect.chance ?? 0.1), Number(self.luk ?? 0), effect.saveButtLuck === true);
@@ -1627,7 +1642,7 @@ export class BattleEngine {
               target: 'monster',
               healAmount: foe.hp - before,
             });
-          } else if (skillId !== 'monster_skill_rage') {
+          } else if (skillId !== 'monster_skill_rage' && skillId !== 'monster_skill_sting') {
             // Monster active skills follow the same guaranteed-hit/no-crit contract.
             const landed = true;
             const raw =

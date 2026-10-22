@@ -10,3 +10,4 @@ export * from './market-order.entity';
 export * from './market-deal.entity';
 export * from './mail-message.entity';
 export * from './chat-report.entity';
+export * from './global-chat-message.entity';

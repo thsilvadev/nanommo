@@ -1,4 +1,5 @@
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger, Optional } from '@nestjs/common';
+import { IdleJournalService } from '../chat/chat-history.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
@@ -82,6 +83,7 @@ export class InventoryService {
     @InjectRepository(Character)
     private readonly characterRepo: Repository<Character>,
     private readonly dataService: DataService,
+    @Optional() private readonly idleJournal?: IdleJournalService,
   ) {}
 
   /**
@@ -521,7 +523,7 @@ export class InventoryService {
     return this.transferItem(characterId, itemId, quantity, 'warehouse', 'inventory');
   }
 
-  async consumeFood(characterId: string, itemId: string, manager?: EntityManager, consumeInventory = true): Promise<Character> {
+  async consumeFood(characterId: string, itemId: string, manager?: EntityManager, consumeInventory = true, journal = true): Promise<Character> {
     const item = this.dataService.getItemById(itemId);
     if (!item || item.type !== 'food' || item.effect?.type !== 'food_buff') {
       throw new BadRequestException('Item is not a food');
@@ -582,6 +584,9 @@ export class InventoryService {
     try {
       const saved = await apply(queryRunner.manager);
       await queryRunner.commitTransaction();
+      if (journal && this.idleJournal) {
+        await this.idleJournal.ate(characterId, String(item.name ?? itemId), `manual-food:${characterId}:${itemId}:${saved.lastSeenAt?.getTime() ?? Date.now()}`);
+      }
       return saved;
     } catch (error) {
       await queryRunner.rollbackTransaction();

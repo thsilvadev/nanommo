@@ -15,8 +15,7 @@
       </div>
       <div class="resource gold"><img src="/assets/ui/coin.svg" alt=""> {{c.gold | number}}</div>
     </div>
-    <div class="top-actions"><app-login-music-control variant="header" /><button
-        (click)="chatOpen.set(!chatOpen())">CHAT</button>
+    <div class="top-actions"><app-login-music-control variant="header" />
       <div class="settings-wrap"><button aria-label="Settings" (click)="settingsOpen.set(!settingsOpen())"><img
             src="/assets/ui/settings.svg" alt=""></button>
         <div class="settings-menu" *ngIf="settingsOpen()"><button (click)="openDeleteAccount()">Delete account</button>
@@ -33,7 +32,6 @@
     <div class="xp-bar-inner"></div>
     <div class="xp-bar-text">XP {{c.xp}} / {{c.xpToNext}}</div>
   </div>
-  <app-chat-drawer [open]="chatOpen()" (closed)="chatOpen.set(false)" />
 </div>
 
 <div class="account-modal-backdrop" *ngIf="deleteAccountOpen()" (click)="cancelDeleteAccount()">

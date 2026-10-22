@@ -8,9 +8,10 @@ import { Character } from '../../database/entities/character.entity';
 import { DataModule } from '../data/data.module';
 import { CharacterModule } from '../character/character.module';
 import { BattleModule } from '../battle/battle.module';
+import { ChatModule } from '../chat/chat.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([InventoryItem, Character]), DataModule, forwardRef(() => CharacterModule), forwardRef(() => BattleModule)],
+  imports: [TypeOrmModule.forFeature([InventoryItem, Character]), DataModule, ChatModule, forwardRef(() => CharacterModule), forwardRef(() => BattleModule)],
   controllers: [InventoryController, DevCheatController],
   providers: [InventoryService],
   exports: [InventoryService],

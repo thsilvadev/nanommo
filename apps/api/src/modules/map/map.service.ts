@@ -11,6 +11,7 @@ import { MapPresenceService } from '../presence/map-presence.service';
 import { TOWN_MAP_ID, findCardinalRoute, isInstantTownExitEdge, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, deterministicIntInclusive, calculateGatheringDurationSeconds, calculateFleeChancePercent, Mulberry32 } from '@nanommo/shared';
 import { EquipmentService } from '../equipment/equipment.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { IdleJournalService } from '../chat/chat-history.service';
 
 @Injectable()
 export class MapService {
@@ -29,6 +30,7 @@ export class MapService {
     private readonly equipmentService: EquipmentService,
     private readonly inventoryService: InventoryService,
     private readonly mapPresenceService: MapPresenceService,
+    private readonly idleJournal: IdleJournalService,
   ) {}
 
   /**
@@ -646,6 +648,7 @@ export class MapService {
       if (cursor < now) availableSeconds += (now - cursor) / 1000;
       let progress = Math.max(0, Math.min(0.999999999, Number(cycle.progress ?? 0)));
       let granted = 0;
+      const grantedJournalRows: Array<{ itemId: string; cycleIndex: number }> = [];
       let cycleIndex = Math.max(0, Number(cycle.cycleIndex ?? 0));
       let remainingSeconds = availableSeconds;
       // Catch up in timestamp order. If a cycle's inventory grant cannot fit, that material is simply skipped.
@@ -661,6 +664,7 @@ export class MapService {
           if (selected && await this.inventoryService.canFitInventoryDrop(characterId, String(selected.itemId), 1, manager)) {
             await this.inventoryService.addItem(characterId, String(selected.itemId), 1, 'inventory', undefined, manager);
             if (!(character.knownItemIds ?? []).includes(String(selected.itemId))) character.knownItemIds = [...(character.knownItemIds ?? []), String(selected.itemId)];
+            grantedJournalRows.push({ itemId: String(selected.itemId), cycleIndex });
             granted += 1;
           }
         }
@@ -673,11 +677,16 @@ export class MapService {
       cycle.lastUpdatedAt = new Date(now).toISOString();
       character.gatheringCycle = cycle;
       await repo.save(character);
-      return { kind: 'updated' as const, cycleIndex, granted, hasProgress: progress > 0 };
+      return { kind: 'updated' as const, cycleIndex, granted, grantedJournalRows, mapId: String(character.currentMapId), hasProgress: progress > 0 };
     }));
     if (result.kind === 'updated') {
       await this.scheduleStationaryActivity(characterId, 10_000);
       if (result.granted > 0) await this.battleService.publishQueueUpdated(characterId);
+      const mapName = String(this.dataService.getMapById(result.mapId)?.name ?? result.mapId);
+      for (const awarded of result.grantedJournalRows) {
+        const itemName = String(this.dataService.getItemById(awarded.itemId)?.name ?? awarded.itemId);
+        await this.idleJournal.gathered(characterId, 1, itemName, mapName, `gather:${result.mapId}:${awarded.cycleIndex}`);
+      }
     }
   }
 

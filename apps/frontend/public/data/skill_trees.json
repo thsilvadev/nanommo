@@ -662,7 +662,7 @@
         {
           "type": "damage",
           "damageType": "melee",
-          "atkMultiplier": 2.0
+          "atkMultiplier": 2
         },
         {
           "type": "apply_status",
@@ -674,7 +674,7 @@
       ],
       "effect": {
         "type": "physical_damage",
-        "dmgMult": 2.0,
+        "dmgMult": 2,
         "applyStatus": "bleed",
         "statusChance": 0.5,
         "durationTicks": 20
@@ -694,8 +694,30 @@
       "damageType": "magic",
       "effect": {
         "type": "magic_damage",
-        "dmgMult": 2.0
+        "dmgMult": 2
       }
+    },
+    {
+      "id": "monster_skill_sting",
+      "name": "Sting",
+      "kind": "active",
+      "target": "self",
+      "spCost": 30,
+      "cooldownTicks": 15,
+      "baseCastTicks": 2,
+      "effects": [
+        {
+          "type": "apply_status",
+          "status": "tip_of_pain",
+          "durationTicks": 9999
+        }
+      ],
+      "effect": {
+        "type": "self_status_buff",
+        "applyStatus": "tip_of_pain",
+        "durationTicks": 9999
+      },
+      "damageType": "melee"
     }
   ],
   "legacySkills": [

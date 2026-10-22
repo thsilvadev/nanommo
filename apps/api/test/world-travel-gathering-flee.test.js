@@ -53,21 +53,36 @@ assert.equal(calculateGatheringBaseDurationSeconds(25,2,1),330);
 assert.ok(calculateGatheringDurationSeconds(25,1,1,'g1')>=300 && calculateGatheringDurationSeconds(25,1,1,'g1')<=305);
 for (const map of maps) assert.equal(map.mapLength, map.type==='town'?0:25, `${map.id} mapLength`);
 const peaceful = monsters.filter(monster=>!monster.isAggressive).map(monster=>monster.id).sort();
-assert.deepEqual(peaceful,['mon_moonleafarcanist','mon_saltfangcrab','mon_slime','mon_thornsprout']);
+assert.deepEqual(peaceful,['mon_giantmantis','mon_moonleafarcanist','mon_saltfangcrab','mon_slime','mon_thornsprout']);
 assert.ok(monsters.every(monster=>Number.isFinite(monster.moveSpd)&&monster.moveSpd>=0));
 const items = require('../../../items.json');
 assert.equal(items.materials.length,10);
 assert.equal(items.consumables.find(item=>item.id==='food_blueberry').name,'Blueberry Jelly');
 assert.equal(items.consumables.find(item=>item.id==='food_honey').name,'Honey');
-assert.equal(maps.filter(map=>map.type==='grind' && Array.isArray(map.gatheringPool)).length,36);
-assert.ok(maps.filter(map=>map.type==='grind').every(map=>Array.isArray(map.gatheringPool) && map.gatheringPool.length>0), 'every Grind map can yield Gathering materials');
+assert.equal(maps.filter(map=>map.type==='grind' && Array.isArray(map.gatheringPool)).length,30, 'only regionally assigned grind maps have pools; unassigned maps are valid');
+const regionalGathering = new Map([
+  ['map_green_grounds_0', {mat_wheat:50,mat_milk:50}],
+  ['map_green_grounds_1', {mat_cabbage:40,mat_carrot:40,mat_honeycomb:20}],
+  ['map_green_grounds_2', {mat_cabbage:50,mat_carrot:50}],
+  ['map_green_grounds_3', {mat_wheat:100}],
+  ['map_green_grounds_4', {mat_sugar:80,mat_honeycomb:20}],
+  ['map_green_grounds_5', {mat_sugar:100}],
+  ['map_menace_hills_1', {mat_wild_blueberries:100}],
+  ['map_menace_hills_3', {mat_wild_blueberries:100}],
+  ['map_ipora_beach_0', {mat_cooking_oil:100}],
+  ['map_ipora_beach_1', {mat_cooking_oil:100}],
+]);
+for (const map of maps) if (/^map_kwaioua_forest_[0-7]$/.test(map.id) || /^map_forest_ruins_[0-3]$/.test(map.id) || /^map_caete_[0-7]$/.test(map.id)) regionalGathering.set(map.id,{mat_herbs:100});
 assert.ok(maps.filter(map=>map.type==='town').every(map=>map.gatheringPool===undefined), 'Town maps never gather materials');
-assert.deepEqual(new Set(maps.flatMap(map=>(map.gatheringPool??[]).map(entry=>entry.itemId))), new Set(items.materials.map(item=>item.id).filter(id=>id!=='mat_meat')), 'every gatherable material is distributed across the world and Meat remains excluded');
-for (const map of maps.filter(map=>map.gatheringPool)) {
+for (const map of maps) {
+  const expected = regionalGathering.get(map.id);
+  if (!expected) { assert.equal(map.gatheringPool, undefined, `${map.id} must omit an unassigned gathering pool`); continue; }
+  assert.deepEqual(Object.fromEntries(map.gatheringPool.map(entry=>[entry.itemId,entry.weight])), expected, `${map.id} matches its regional allow-list`);
   assert.equal(map.gatheringPool.reduce((sum,entry)=>sum+entry.weight,0),100,map.id);
   assert.ok(map.gatheringPool.every(entry=>items.materials.some(item=>item.id===entry.itemId&&item.type==='material')));
   assert.ok(!map.gatheringPool.some(entry=>entry.itemId==='mat_meat'));
 }
+assert.deepEqual(maps.filter(map=>map.gatheringPool?.some(entry=>entry.itemId==='mat_honeycomb')).map(map=>map.id).sort(),['map_green_grounds_1','map_green_grounds_4']);
 assert.deepEqual(monsters.filter(monster=>monster.drops.some(drop=>drop.itemId==='mat_meat'&&drop.chance===0.2)).map(monster=>monster.id).sort(),['mon_direwolf','mon_needlebackstalker']);
 console.log('world-travel-gathering-flee contract tests passed');
 

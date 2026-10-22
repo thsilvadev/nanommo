@@ -54,7 +54,7 @@
       "id": "disarm",
       "name": "Disarm",
       "stackable": false,
-      "statusDurationTicks": 5,
+      "statusDurationTicks": 10,
       "maxStacks": 1,
       "reapplication": "refresh",
       "polarity": "debuff"
@@ -125,6 +125,18 @@
       "maxStacks": 1,
       "reapplication": "refresh",
       "polarity": "debuff"
+    },
+    {
+      "id": "tip_of_pain",
+      "name": "Tip of Pain",
+      "stackable": false,
+      "statusDurationTicks": 9999,
+      "maxStacks": 1,
+      "reapplication": "refresh",
+      "polarity": "buff",
+      "nextBasicAttackAtkMultiplier": 2,
+      "consumeOnNextBasicAttackAttempt": true,
+      "applyDisarmOnHitTicks": 10
     }
   ]
 }

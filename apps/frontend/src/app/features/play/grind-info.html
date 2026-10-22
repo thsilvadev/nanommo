@@ -16,8 +16,14 @@
         <div class="foe">
           <strong>{{monster(b.monsterId)?.name||b.monsterId}} Lv.{{monsterLevel(b)}}</strong>
           <small>Battle #{{b.sequenceIndex+1}} · {{elapsedTicks(b)}}s</small>
-          <img class="foe-sprite" [src]="monsterSprite(b.monsterId)"
-            [alt]="monster(b.monsterId)?.name||b.monsterId" width="167" height="199">
+          <div class="foe-sprite-wrap">
+            <img class="foe-sprite" [src]="monsterSprite(b.monsterId)"
+              [alt]="monster(b.monsterId)?.name||b.monsterId" width="167" height="199">
+            <span *ngIf="monster(b.monsterId)?.isAggressive === true" class="aggression-badge" tabindex="0" role="img"
+              aria-label="Aggressive: this monster will try to interrupt your gathering or traveling">
+              <img src="/assets/ui/aggression-badge.svg" alt="">
+            </span>
+          </div>
         </div>
         <div class="hp-block">
           <div class="hp-label"><b>{{monsterHp(b)}} / {{monsterMaxHp(b)}}</b></div>

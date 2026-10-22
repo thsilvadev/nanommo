@@ -31,6 +31,7 @@ import { InventoryService, buildDietStateAfterFoodConsumption, normalizeDietStat
 import { EquipmentService } from '../equipment/equipment.service';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
+import { IdleJournalService } from '../chat/chat-history.service';
 import { GatewayService, BattleResolvedPayload, CharacterLeveledUpPayload, CharacterDiedPayload } from '../gateway/gateway.service';
 import { MapPresenceService } from '../presence/map-presence.service';
 import { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
@@ -110,6 +111,7 @@ export class BattleService {
     private readonly gatewayService: GatewayService,
     private readonly mapPresenceService: MapPresenceService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    private readonly idleJournal: IdleJournalService,
   ) {}
 
   /** Serialize operations that may change a character's encounter chain across API/worker replicas. */
@@ -693,9 +695,13 @@ export class BattleService {
         // any battle is active, give Auto Feed the same authoritative chance the
         // resolver gives it. A successful consume persists the food through the
         // existing InventoryService path; throw away stale projections and rebuild.
-        const autoFed = await this.tryAutoFeed(character, now);
-        if (autoFed) {
+        const autoFedItems = await this.tryAutoFeed(character, now);
+        if (autoFedItems.length) {
           await this.characterRepo.save(character);
+          for (let index = 0; index < autoFedItems.length; index++) {
+            const itemId = autoFedItems[index];
+            await this.idleJournal.ate(characterId, String(this.dataService.getItemById(itemId)?.name ?? itemId), `auto-feed-queue:${characterId}:${itemId}:${index}:${Date.now()}`);
+          }
           await this.discardUnresolvedBattles(characterId);
           return this.queueBattlesLocked(characterId, targetDepth, publishQueueEvent);
         }
@@ -765,6 +771,7 @@ export class BattleService {
     let preCombatFleeCycle = Math.max(0, Math.floor(Number(persistedEncounterCycle.preCombatFleeCycle ?? 0)));
     let performedPreCombatCheck = false;
     let lastPreCombatFleeAt: string | null = null;
+    const preCombatJournalEvents: Array<{ monsterId: string; monsterName: string; aggressive: boolean; key: string }> = [];
     for (let i = 0; i < battlesToAdd + 100; i++) {
       if (newBattles.length >= battlesToAdd) break;
       const sequenceIndex = maxSequenceIndex + 1 + newBattles.length;
@@ -790,7 +797,7 @@ export class BattleService {
         : encounterSeed;
       const forcedMonster = options.forcedMonsterId ? monsters.find((entry: any) => entry.id === options.forcedMonsterId) : null;
       const monster = forcedMonster ?? rngForIndex(monsterSelectionSeed, killIndex).weightedPick(monsters);
-      if (!forcedMonster && character.lastGrindStance === 'gathering') {
+      if (!forcedMonster && (character.lastGrindStance === 'gathering' || options.allowTravel === true)) {
         performedPreCombatCheck = true;
         const monsterDef = this.dataService.getMonsterById(monster.id);
         const equippedRows = await this.equipmentService.getEquipment(characterId);
@@ -807,7 +814,16 @@ export class BattleService {
           this.logger.log(`Gathering pre-combat FLEE ${avoid ? 'succeeded' : 'failed'} character=${characterId} map=${mapId} monster=${monster.id} chance=${fleeChance}% roll=${fleeRoll}`);
           if (avoid) lastPreCombatFleeAt = new Date().toISOString();
         }
-        if (avoid) { projectedMapKillCount += 1; nextStartTime = new Date(encounterStartAt); continue; }
+        if (avoid) {
+          const journalName = String(monsterDef?.name ?? monster.id);
+          preCombatJournalEvents.push({
+            monsterId: String(monster.id), monsterName: journalName, aggressive,
+            key: `precombat:${mapId}:${counter.epoch}:${killIndex}:${preCombatFleeCycle}`,
+          });
+          projectedMapKillCount += 1;
+          nextStartTime = new Date(encounterStartAt);
+          continue;
+        }
       }
       const monsterId = monster.id;
 
@@ -1042,6 +1058,11 @@ export class BattleService {
       }
     }
     if (publishQueueEvent) await this.safePublishQueueUpdated(characterId, liveQueue);
+    // Journal follows authoritative encounter-cycle/queue persistence, never the speculative projection loop.
+    for (const event of preCombatJournalEvents) {
+      if (event.aggressive) await this.idleJournal.dodged(characterId, event.monsterName, event.key);
+      else await this.idleJournal.passed(characterId, event.monsterName, event.key);
+    }
     return liveQueue;
   }
 
@@ -1089,11 +1110,15 @@ export class BattleService {
 
       // Simulated consumptions and all resulting inventory changes share this
       // transaction with the battle claim and Character state.
+      const committedConsumptions: Array<{ itemId: string; quantity: number }> = [];
       for (const consumed of battle.itemsConsumed ?? []) {
         const have = await this.inventoryService.getItemCount(character.id, consumed.itemId, manager);
         const take = Math.min(have, consumed.quantity);
         if (take > 0) {
           await this.inventoryService.removeItem(character.id, consumed.itemId, take, manager);
+          const existing = committedConsumptions.find(row => row.itemId === consumed.itemId);
+          if (existing) existing.quantity += take;
+          else committedConsumptions.push({ itemId: consumed.itemId, quantity: take });
         }
       }
 
@@ -1110,6 +1135,8 @@ export class BattleService {
           deathLog: death.deathLog,
           discardedBattleIds: death.discardedBattleIds,
           previousMapId: battle.mapId,
+          committedConsumptions,
+          autoFedItems: [],
         };
       }
 
@@ -1179,7 +1206,8 @@ export class BattleService {
       // Auto Feed uses the same EntityManager; a conflict/exception rolls back
       // the battle instead of leaving a partially applied payout. Eligibility
       // conflicts for still-digesting foods are handled as a normal skipped item.
-      const autoFed = await this.tryAutoFeed(character, 0, manager);
+      const autoFedItems = await this.tryAutoFeed(character, 0, manager);
+      const autoFed = autoFedItems.length > 0;
       if (autoFed) await characterRepo.save(character);
 
       const killCounter = await this.incrementKillCounter(character.id, battle.mapId, battle.monsterId, manager);
@@ -1250,6 +1278,8 @@ export class BattleService {
         leveledUp,
         equipmentChanged,
         autoFed,
+        autoFedItems,
+        committedConsumptions,
         discardedBattleIds,
         previousMapId: (routedToTown || movedToRequestedDestination) ? previousMapId : null,
       };
@@ -1261,6 +1291,13 @@ export class BattleService {
       // duplicate delivery while the winning caller is maintaining the queue.
       return false;
     }
+
+    await this.publishCommittedBattleJournal(
+      result.character.id,
+      result.battle,
+      result.committedConsumptions ?? [],
+      result.autoFedItems ?? [],
+    );
 
     // BullMQ, Redis presence and Socket.IO are deliberately outside the database
     // transaction. Their failure cannot roll back or duplicate the committed
@@ -1442,10 +1479,14 @@ export class BattleService {
       for (const row of currentItems) currentCount[row.itemId] = (currentCount[row.itemId] ?? 0) + Number(row.quantity);
       const initial = start.inventory as Record<string, number>;
       const after = checkpoint.inventoryAfter as Record<string, number>;
+      const committedConsumptions: Array<{ itemId: string; quantity: number }> = [];
       for (const itemId of new Set([...Object.keys(initial), ...Object.keys(after)])) {
         const spent = Math.max(0, Number(initial[itemId] ?? 0) - Number(after[itemId] ?? 0));
         const take = Math.min(spent, Number(currentCount[itemId] ?? 0));
-        if (take > 0) await this.inventoryService.removeItem(characterId, itemId, take, manager);
+        if (take > 0) {
+          await this.inventoryService.removeItem(characterId, itemId, take, manager);
+          committedConsumptions.push({ itemId, quantity: take });
+        }
       }
 
       character.hpCurrent = Math.max(1, Math.min(Number(checkpoint.hp), Number(start.snapshot.maxHp)));
@@ -1508,7 +1549,8 @@ export class BattleService {
       character.travelIntent = intent;
       const equipmentChanged = await this.equipmentService.applyPendingEquipmentChanges(character.id, manager);
       await characterRepo.save(character);
-      return { kind: 'cancelled' as const, battleId: battle.id, character, previousMapId: character.currentMapId, obsolete, intent, equipmentChanged, previousTravelJobId };
+      const journalEvents = (Array.isArray(battle.log?.events) ? battle.log.events : []).filter((event: any) => Number(event?.tick ?? 0) <= Number(checkpoint.tick));
+      return { kind: 'cancelled' as const, battleId: battle.id, character, previousMapId: character.currentMapId, obsolete, intent, equipmentChanged, previousTravelJobId, committedConsumptions, journalEvents, battleForJournal: { ...battle, log: { events: journalEvents } } };
     }));
 
     if (result.kind === 'stale' || result.kind === 'not-active') return result.kind;
@@ -1517,6 +1559,8 @@ export class BattleService {
       return 'failed';
     }
 
+    await this.publishCommittedBattleJournal(characterId, result.battleForJournal, result.committedConsumptions, []);
+    await this.idleJournal.fled(characterId, String(this.dataService.getMonsterById(result.battleForJournal.monsterId)?.name ?? result.battleForJournal.monsterId), `battle-flee:${result.battleId}`);
     try { await this.bullQueue.getJob(result.battleId).then(job => job?.remove()).catch(() => undefined); } catch { /* committed cancellation wins */ }
     if (result.previousTravelJobId) {
       try {
@@ -1559,6 +1603,40 @@ export class BattleService {
     }
   }
 
+  private async publishCommittedBattleJournal(
+    characterId: string,
+    battle: BattleQueueEntry,
+    committedConsumptions: Array<{ itemId: string; quantity: number }>,
+    autoFedItems: string[],
+  ): Promise<void> {
+    const remaining = new Map<string, number>();
+    for (const row of committedConsumptions) remaining.set(row.itemId, (remaining.get(row.itemId) ?? 0) + Math.max(0, Number(row.quantity ?? 0)));
+    const monsterName = String(this.dataService.getMonsterById(battle.monsterId)?.name ?? battle.monsterId);
+    const events = (Array.isArray(battle.log?.events) ? battle.log.events : []).slice().sort((a: any, b: any) => Number(a.tick ?? 0) - Number(b.tick ?? 0));
+    for (const event of events) {
+      const itemId = String(event?.itemId ?? '');
+      if (!itemId) continue;
+      if (event.action === 'use_item') {
+        const definition = this.dataService.getItemById(itemId);
+        if (definition?.effect?.type !== 'food_buff') continue;
+        const available = Number(remaining.get(itemId) ?? 0);
+        if (available < 1) continue;
+        remaining.set(itemId, available - 1);
+        await this.idleJournal.ate(characterId, String(definition.name ?? itemId), `battle-food:${battle.id}:${Number(event.tick ?? 0)}:${itemId}`);
+      } else if (event.action === 'item_stolen') {
+        const available = Number(remaining.get(itemId) ?? 0);
+        const quantity = Math.min(available, Math.max(0, Math.floor(Number(event.quantity ?? 1))));
+        if (quantity < 1) continue;
+        remaining.set(itemId, available - quantity);
+        await this.idleJournal.stolen(characterId, monsterName, quantity, String(this.dataService.getItemById(itemId)?.name ?? itemId), `battle-theft:${battle.id}:${Number(event.tick ?? 0)}:${itemId}`);
+      }
+    }
+    for (let index = 0; index < autoFedItems.length; index++) {
+      const itemId = autoFedItems[index];
+      await this.idleJournal.ate(characterId, String(this.dataService.getItemById(itemId)?.name ?? itemId), `auto-feed-battle:${battle.id}:${index}:${itemId}`);
+    }
+  }
+
   private async applyMasteryRewards(battle: BattleQueueEntry, manager: EntityManager): Promise<void> {
     const awards = calculateMasteryXpAwards(battle.log, getMasteryXpPolicy());
     const repo = manager.getRepository(WeaponProficiency);
@@ -1574,8 +1652,8 @@ export class BattleService {
     }
   }
 
-  private async tryAutoFeed(character: Character, boundaryAt: number, manager?: EntityManager): Promise<boolean> {
-    if (!character.autoFeed || character.pendingMapTransition) return false;
+  private async tryAutoFeed(character: Character, boundaryAt: number, manager?: EntityManager): Promise<string[]> {
+    if (!character.autoFeed || character.pendingMapTransition) return [];
 
     // Auto Feed is evaluated at every authoritative battle-resolution boundary.
     // An already-active food buff does not suppress feeding: any Diet entry whose
@@ -1585,7 +1663,7 @@ export class BattleService {
     void boundaryAt;
 
     const now = Date.now();
-    let consumedAny = false;
+    const consumedItems: string[] = [];
 
     // Fill every currently eligible Diet slot in the same authoritative boundary.
     // Each successful consumeFood() mutates Character.diet, so re-read the current
@@ -1612,7 +1690,7 @@ export class BattleService {
 
         let updated: Character;
         try {
-          updated = await this.inventoryService.consumeFood(character.id, itemId, manager);
+          updated = await this.inventoryService.consumeFood(character.id, itemId, manager, true, false);
         } catch (error) {
           // A concurrent inventory/digestion change is a normal lost
           // eligibility race, not a battle-resolution failure. Try another food.
@@ -1623,7 +1701,7 @@ export class BattleService {
           throw error;
         }
         Object.assign(character, updated);
-        consumedAny = true;
+        consumedItems.push(itemId);
         consumedThisPass = true;
         break;
       }
@@ -1631,7 +1709,7 @@ export class BattleService {
       if (!consumedThisPass) break;
     }
 
-    return consumedAny;
+    return consumedItems;
   }
 
   private applyResolvedFoodState(character: Character, battle: BattleQueueEntry): void {

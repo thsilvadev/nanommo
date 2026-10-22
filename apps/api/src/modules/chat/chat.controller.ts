@@ -20,10 +20,11 @@ export class ChatController {
    */
   @Get('history/:channel')
   async getChatHistory(
+    @Request() req: any,
     @Param('channel') channel: string,
-    @Query('limit') limit: number = 50,
+    @Query('limit') limit: number = 20,
   ) {
-    return this.chatService.getChatHistory(channel, limit);
+    return this.chatService.getChatHistory(channel, limit, req.user.characterId);
   }
 
   /**
@@ -35,8 +36,7 @@ export class ChatController {
     @Body() body: { channel: string; message: string },
   ) {
     const characterId = req.user.characterId;
-    await this.chatService.sendChatMessage(characterId, body.channel, body.message);
-    return { success: true };
+    return { success: true, message: await this.chatService.sendChatMessage(characterId, body.channel, body.message) };
   }
 
   /**

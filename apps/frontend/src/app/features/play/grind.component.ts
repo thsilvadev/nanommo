@@ -4,7 +4,8 @@ import { ApiService } from '../../core/api.service';
 import { CharacterStore } from '../../core/game.store';
 import { GambitPage } from '../../core/game.models';
 import { MapBoard, InventoryGrid } from './components';
-@Component({selector:'app-grind',standalone:true,imports:[CommonModule,MapBoard,InventoryGrid],templateUrl:'./grind.component.html',styleUrl:'./grind.component.css'})
+import { IdleChatComponent } from './idle-chat.component';
+@Component({selector:'app-grind',standalone:true,imports:[CommonModule,MapBoard,InventoryGrid,IdleChatComponent],templateUrl:'./grind.component.html',styleUrl:'./grind.component.css'})
 export class GrindComponent implements OnInit {
   readonly api=inject(ApiService);
   readonly character=inject(CharacterStore);

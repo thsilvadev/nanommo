@@ -1255,7 +1255,7 @@
     },
     {
       "id": "mon_kwaiouaranger",
-      "name": "Kwaiouá Ranger",
+      "name": "Kwaiou\u00e1 Ranger",
       "level": 33,
       "hp": 1970,
       "atk": 93,
@@ -1278,7 +1278,7 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 753,
-      "designNote": "Kwaiouá Ranger: ranger role with data-driven weapon/element counterplay.",
+      "designNote": "Kwaiou\u00e1 Ranger: ranger role with data-driven weapon/element counterplay.",
       "drops": [
         {
           "itemId": "part_kwaioua_ranger_common",
@@ -1948,6 +1948,220 @@
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
       "moveSpd": 99
+    },
+    {
+      "id": "mon_mutantbee",
+      "name": "Mutant Bee",
+      "level": 5,
+      "hp": 230,
+      "atk": 28,
+      "matk": 12,
+      "def": 5,
+      "mdefPercent": 0,
+      "accuracy": 103,
+      "evasion": 118,
+      "critChance": 4.2,
+      "atkSpeedTicks": 5,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "archer",
+      "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1,
+        "magic": 1
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 112,
+      "designNote": "A hostile, mutated bee that coats its stinger in a lingering pain toxin.",
+      "drops": [
+        {
+          "itemId": "part_mutantbee_common",
+          "chance": 0.55
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "part_mutantbee_rare",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_green_grounds_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "self_missing_status",
+            "status": "tip_of_pain"
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_sting"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 62,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 66
+    },
+    {
+      "id": "mon_giantmantis",
+      "name": "Giant Mantis",
+      "level": 36,
+      "hp": 2780,
+      "atk": 178,
+      "matk": 65,
+      "def": 22,
+      "mdefPercent": 0,
+      "accuracy": 102,
+      "evasion": 150,
+      "critChance": 4.8,
+      "atkSpeedTicks": 7,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1,
+        "magic": 1
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 832,
+      "designNote": "A patient, non-aggressive forest predator with exceptionally sharp reflexes.",
+      "drops": [
+        {
+          "itemId": "part_giantmantis_common",
+          "chance": 0.4
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "part_giantmantis_rare",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 48,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": false,
+      "moveSpd": 83
+    },
+    {
+      "id": "mon_flamingtreant",
+      "name": "Flaming Treant",
+      "level": 38,
+      "hp": 3360,
+      "atk": 280,
+      "matk": 90,
+      "def": 25,
+      "mdefPercent": 0,
+      "accuracy": 106,
+      "evasion": 108,
+      "critChance": 4.8,
+      "atkSpeedTicks": 8,
+      "element": "fire",
+      "elementalResistances": [
+        "fire"
+      ],
+      "elementalDamageTakenMultiplier": {
+        "fire": 0
+      },
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1,
+        "magic": 1
+      },
+      "sustainPressure": true,
+      "ability": null,
+      "xpReward": 885,
+      "designNote": "An enraged ancient tree consumed by flames; its burning bark is impervious to fire.",
+      "drops": [
+        {
+          "itemId": "part_flamingtreant_common",
+          "chance": 0.35
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "part_flamingtreant_rare",
+          "chance": 0.0008
+        },
+        {
+          "itemId": "equip_ruins_roll",
+          "chance": 0.002,
+          "note": "resolved to a tier-appropriate equipment piece at roll time"
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 44,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 81
     }
   ]
 }

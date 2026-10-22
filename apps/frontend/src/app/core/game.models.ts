@@ -19,7 +19,7 @@ export interface GambitPage { id:string; characterId:string; slotIndex:number; t
 export interface MapInfo { id:string; name:string; unlockLevel:number; }
 export interface GambitCatalog { meta:any; conditions:any[]; actions:any[]; }
 export interface ItemDefinition { id:string; name:string; type:string; rarity?:string; stackable?:boolean; maxStack?:number; weaponType?:string; slot?:string; fixedStats?:any; }
-export interface MonsterDefinition { id:string; name:string; map:string; level:number; hp:number; }
+export interface MonsterDefinition { id:string; name:string; map:string; level:number; hp:number; isAggressive?: boolean; }
 export interface WeaponCurve { weaponLevel:number; xpToNext:number; cumulativeXp:number; }
 export type WeaponType = 'sword'|'greatsword'|'dagger'|'bow'|'staff'|'rod'|'shield';
 export type EquipmentSlot = 'head'|'body'|'mainHand'|'offHand'|'shoes'|'cape'|'accessoryLeft'|'accessoryRight';
