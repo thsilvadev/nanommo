@@ -3,7 +3,7 @@ const {
   findCardinalRoute, findSavedTownWaypointIndex, isInstantTownExitEdge, calculateWorldMoveSpeed,
   calculateTravelDurationSeconds, calculateFleeChancePercent,
   deterministicIntInclusive, calculateGatheringBaseDurationSeconds,
-  calculateGatheringDurationSeconds, accrueTravelSegmentProgress,
+  calculateGatheringDurationSeconds, gatheringLevelForXp, gatheringProgressForXp, accrueTravelSegmentProgress,
 } = require('../../../packages/shared/dist/world-activity.js');
 const maps = require('../../../maps.json').maps;
 const monsters = require('../../../monsters.json').monsters;
@@ -61,7 +61,15 @@ assert.equal(calculateFleeChancePercent(0,1,99),1);
 assert.equal(calculateFleeChancePercent(1000,1,1),99);
 assert.equal(deterministicIntInclusive('cycle-a',2,6),deterministicIntInclusive('cycle-a',2,6));
 assert.ok(deterministicIntInclusive('cycle-a',2,6)>=2 && deterministicIntInclusive('cycle-a',2,6)<=6);
+assert.equal(gatheringLevelForXp(0), 1);
+assert.equal(gatheringLevelForXp(99), 1);
+assert.equal(gatheringLevelForXp(100), 2, '100 cumulative Gathering XP unlocks level 2');
+assert.equal(gatheringLevelForXp(199), 2);
+assert.equal(gatheringLevelForXp(200), 3, 'the next level requires the next 100 cumulative XP');
+assert.deepEqual(gatheringProgressForXp(120), { level: 2, xp: 120, totalXp: 120, xpIntoLevel: 20, xpToNextLevel: 100, nextLevelXp: 200, progressPercent: 20 });
 assert.equal(calculateGatheringBaseDurationSeconds(25,1,1),300);
+assert.equal(calculateGatheringBaseDurationSeconds(25,1,gatheringLevelForXp(100)),299, 'level 2 reduces gathering base time by one second');
+assert.equal(calculateGatheringBaseDurationSeconds(25,1,gatheringLevelForXp(200)),298, 'each additional level applies to the existing gathering-time formula');
 assert.equal(calculateGatheringBaseDurationSeconds(50,1,1),600);
 assert.equal(calculateGatheringBaseDurationSeconds(25,2,1),330);
 assert.ok(calculateGatheringDurationSeconds(25,1,1,'g1')>=300 && calculateGatheringDurationSeconds(25,1,1,'g1')<=305);

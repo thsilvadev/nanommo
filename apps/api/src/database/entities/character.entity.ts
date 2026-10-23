@@ -81,6 +81,10 @@ export class Character {
   @Column({ type: 'int', default: 1 })
   gatheringLevel!: number;
 
+  /** Cumulative server-authoritative Gathering XP; every 100 XP grants one level. */
+  @Column({ type: 'int', default: 0 })
+  gatheringXp!: number;
+
   /** Cumulative server-authoritative Cooking progression. */
   @Column({ name: 'cooking_level', type: 'int', default: 1 })
   cookingLevel!: number;

@@ -8,7 +8,7 @@ import { MapKillCounter, BattleQueueEntry, Character, User } from '../../databas
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
 import { MapPresenceService } from '../presence/map-presence.service';
-import { TOWN_MAP_ID, findCardinalRoute, findSavedTownWaypointIndex, isInstantTownExitEdge, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, deterministicIntInclusive, calculateGatheringDurationSeconds, calculateFleeChancePercent, Mulberry32 } from '@nanommo/shared';
+import { TOWN_MAP_ID, findCardinalRoute, findSavedTownWaypointIndex, isInstantTownExitEdge, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, deterministicIntInclusive, calculateGatheringDurationSeconds, gatheringLevelForXp, calculateFleeChancePercent, Mulberry32 } from '@nanommo/shared';
 import { EquipmentService } from '../equipment/equipment.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { IdleJournalService } from '../chat/chat-history.service';
@@ -198,7 +198,7 @@ export class MapService {
       id: character.id, status: character.status, currentMapId: character.currentMapId,
       pendingMapTransition: character.pendingMapTransition ?? null, savedTownMapId: character.savedTownMapId ?? null,
       discoveredMapIds: character.discoveredMapIds ?? [TOWN_MAP_ID], lastGrindStance: character.lastGrindStance ?? 'hunting',
-      travelIntent: character.travelIntent ?? null, gatheringLevel: Number(character.gatheringLevel ?? 1),
+      travelIntent: character.travelIntent ?? null, gatheringLevel: Number(character.gatheringLevel ?? 1), gatheringXp: Math.max(0, Number(character.gatheringXp ?? 0)),
       gatheringCycle: character.gatheringCycle ?? { progress: 0, cycleIndex: 0, varianceSeconds: null, lastUpdatedAt: null },
       encounterCycle: character.encounterCycle ?? { cycleIndex: 0, nextAt: null },
       fleeAttemptIndex: Number(character.fleeAttemptIndex ?? 0), fleeNextAttemptAt: character.fleeNextAttemptAt ?? null,
@@ -773,6 +773,11 @@ export class MapService {
           if (selected && await this.inventoryService.canFitInventoryDrop(characterId, String(selected.itemId), 1, manager)) {
             await this.inventoryService.addItem(characterId, String(selected.itemId), 1, 'inventory', undefined, manager);
             if (!(character.knownItemIds ?? []).includes(String(selected.itemId))) character.knownItemIds = [...(character.knownItemIds ?? []), String(selected.itemId)];
+            // XP belongs to an actual inventory award, not merely a completed timer.
+            // This is inside the same transaction as the item insert so failed grants
+            // cannot advance progression. A level-up affects the following catch-up cycle.
+            character.gatheringXp = Math.max(0, Number(character.gatheringXp ?? 0)) + 30;
+            character.gatheringLevel = gatheringLevelForXp(character.gatheringXp);
             grantedJournalRows.push({ itemId: String(selected.itemId), cycleIndex });
             granted += 1;
           }

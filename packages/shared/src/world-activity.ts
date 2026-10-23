@@ -179,6 +179,27 @@ export function deterministicIntInclusive(seed: string, min: number, max: number
   return new Mulberry32(seed).nextIntInclusive(low, high);
 }
 
+/** Gathering XP is cumulative; each 100 total XP unlocks the next level. */
+export function gatheringLevelForXp(xpValue: number): number {
+  const xp = Math.max(0, Math.floor(Number(xpValue) || 0));
+  return Math.floor(xp / 100) + 1;
+}
+
+export function gatheringProgressForXp(xpValue: number) {
+  const xp = Math.max(0, Math.floor(Number(xpValue) || 0));
+  const level = gatheringLevelForXp(xp);
+  const xpIntoLevel = xp - ((level - 1) * 100);
+  return {
+    level,
+    xp,
+    totalXp: xp,
+    xpIntoLevel,
+    xpToNextLevel: 100,
+    nextLevelXp: level * 100,
+    progressPercent: xpIntoLevel,
+  };
+}
+
 export function calculateGatheringBaseDurationSeconds(mapLength: number, playersOnMap: number, gatheringLevel = 1): number {
   return Math.max(30, 12 * Math.max(0, Number(mapLength) || 0) +
     30 * (Math.max(1, Math.floor(Number(playersOnMap) || 1)) - 1) -

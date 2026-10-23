@@ -168,7 +168,9 @@ export class MapBoard implements OnDestroy {
     // Another accepted intent can supersede the one currently drawn. Only a newer
     // server request timestamp may replace the local destination; old snapshots must
     // never roll the route back to a previous map.
-    if(destination&&pending&&pending.destinationMapId!==destination&&this.pendingTransitionIsNewer(pending)){
+    if(destination&&pending&&pending.destinationMapId!==destination&&(!!travel||this.pendingTransitionIsNewer(pending))){
+      // An active server travelIntent is the latest authoritative route. Do not let an
+      // old local pending-transition timestamp or suppression key override it.
       destination=String(pending.destinationMapId);
       this.destinationMapId.set(destination);
       this.destinationRequestedAt=pending.requestedAt??null;
@@ -179,12 +181,18 @@ export class MapBoard implements OnDestroy {
 
     if(destination){
       const origin=this.routeOriginMapId()??this.transitionOriginMapId;
-      const pendingIsSuppressed=this.isPendingTransitionSuppressed(pending);
-      const pendingMatchesDestination=!!pending
+      // Unlike legacy pendingMapTransition metadata, travelIntent remains live across
+      // battle resolution and intermediate segment commits. Historical suppression only
+      // applies after the server has no active travel intent.
+      const activeTravelMatchesDestination=!!travel
+        &&String(travel.destinationMapId??'')===destination
+        &&c.currentMapId!==destination;
+      const pendingIsSuppressed=travel?false:this.isPendingTransitionSuppressed(pending);
+      const pendingMatchesDestination=activeTravelMatchesDestination|| (!!pending
         &&pending.destinationMapId===destination
         &&!pendingIsSuppressed
         &&(!pending.requestedAt||!this.destinationRequestedAt
-          ||Date.parse(pending.requestedAt)>=Date.parse(this.destinationRequestedAt));
+          ||Date.parse(pending.requestedAt)>=Date.parse(this.destinationRequestedAt)));
 
       // The only arrival rule is map identity. It deliberately does not branch on
       // Town/Grind/activity status, and stale pending metadata cannot undo the arrival.
@@ -224,7 +232,7 @@ export class MapBoard implements OnDestroy {
 
     // On reload there is no local preview yet. Resume a genuine pending intent, but
     // never show a route if the character is already at that destination.
-    if(pending&&!this.isPendingTransitionSuppressed(pending)){
+    if(pending&&(travel||!this.isPendingTransitionSuppressed(pending))){
       const pendingDestination=String(pending.destinationMapId);
       if(c.currentMapId===pendingDestination){
         this.finishDestinationPreview(pending);
@@ -301,6 +309,26 @@ export class MapBoard implements OnDestroy {
     }
     this.pinArrivalPreviousIntent=intent;
   }
+  /** Whether the icon is currently traversing a valid, cardinal server route leg. */
+  isLocationPinTraveling():boolean{
+    const character:any=this.character.character();
+    const intent:any=character?.travelIntent;
+    const routeIds:string[]=Array.isArray(intent?.routeMapIds)?intent.routeMapIds.map(String):[];
+    const index=Math.max(0,Math.floor(Number(intent?.segmentIndex??0)));
+    if(intent?.kind!=='route'||routeIds[index]!==character?.currentMapId)return false;
+    const current=this.maps.find(m=>m.id===routeIds[index]);
+    const next=this.maps.find(m=>m.id===routeIds[index+1]);
+    if(!current||!next)return false;
+    const dx=Math.abs(Number(current.coordinates?.x)-Number(next.coordinates?.x));
+    const dy=Math.abs(Number(current.coordinates?.y)-Number(next.coordinates?.y));
+    return dx+dy===1;
+  }
+
+  /** The 88px marker's artwork sits slightly below the CSS box anchor; compensate only in motion. */
+  locationPinRenderY():number{
+    return this.locationPinPosition().y-(this.isLocationPinTraveling()?7:0);
+  }
+
   /** Pin follows the current authoritative route leg, not a client-created route/timer. */
   locationPinPosition():{x:number;y:number}{
     const current=this.currentMap();
@@ -471,20 +499,29 @@ export class MapBoard implements OnDestroy {
   private clearDestinationPreview(){this.destinationMapId.set(null);this.routeOriginMapId.set(null)}
   private stopTransitionPoll(){if(this.transitionPoll!==null){clearInterval(this.transitionPoll);this.transitionPoll=null}}
 
-  /** Shortest cardinal route through canonical map nodes, rendered in world-pixel coordinates. */
+  /** Active server travel always wins over local preview bookkeeping that can be stale after battle events. */
+  displayDestinationMapId():string|null{
+    const character:any=this.character.character();
+    const intent:any=character?.travelIntent;
+    if(intent?.destinationMapId&&String(intent.destinationMapId)!==String(character?.currentMapId??''))return String(intent.destinationMapId);
+    return this.destinationMapId();
+  }
+
+  /** Active server route is the source of truth; local BFS is only a preview before the server intent arrives. */
   destinationRoute():Array<{x:number;y:number}>{
     const character:any=this.character.character();
     const intent:any=character?.travelIntent;
-    if(intent?.kind==='route'&&intent.viaSavedTownWaypoint===true&&Array.isArray(intent.routeMapIds)){
-      const startIndex=Math.max(0,Math.floor(Number(intent.segmentIndex??0)));
-      return intent.routeMapIds.slice(startIndex)
-        .map((id:string)=>this.maps.find(m=>m.id===id))
-        .filter(Boolean)
-        .map((map:any)=>({x:(Number(map.coordinates.x)+7)*153+76.5,y:(6-Number(map.coordinates.y))*153+76.5}));
+    const activeRouteIds:string[]=Array.isArray(intent?.routeMapIds)?intent.routeMapIds.map(String):[];
+    const target=this.displayDestinationMapId();
+    if(intent&&activeRouteIds.length>1&&activeRouteIds[activeRouteIds.length-1]===target){
+      const startIndex=Math.max(0,Math.min(activeRouteIds.length-1,Math.floor(Number(intent.segmentIndex??0))));
+      const remaining=activeRouteIds.slice(startIndex);
+      const route=remaining.map((id:string)=>this.maps.find(m=>m.id===id)).filter(Boolean) as any[];
+      return route.map((map:any)=>({x:(Number(map.coordinates.x)+7)*153+76.5,y:(6-Number(map.coordinates.y))*153+76.5}));
     }
-    const routeOriginId=this.routeOriginMapId();
+    const routeOriginId=intent?String(character?.currentMapId??''):this.routeOriginMapId();
     const origin=(routeOriginId?this.maps.find(m=>m.id===routeOriginId):null)??this.currentMap();
-    const destination=this.maps.find(m=>m.id===this.destinationMapId());
+    const destination=this.maps.find(m=>m.id===target);
     if(!origin||!destination||origin.id===destination.id)return [];
     const pos=(m:any)=>({x:Number(m.coordinates.x),y:Number(m.coordinates.y)});
     const key=(m:any)=>m.id;
@@ -504,7 +541,7 @@ export class MapBoard implements OnDestroy {
     return route.map(node=>({x:(Number(node.coordinates.x)+7)*153+76.5,y:(6-Number(node.coordinates.y))*153+76.5}));
   }
   destinationRoutePoints(){return this.destinationRoute().map(point=>`${point.x},${point.y}`).join(' ')}
-  destinationPinStyle(map:any){return map.id===this.destinationMapId()}
+  destinationPinStyle(map:any){return map.id===this.displayDestinationMapId()}
   ngOnDestroy(){clearInterval(this.activityTimer);this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
 }
 

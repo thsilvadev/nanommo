@@ -482,6 +482,7 @@ export class CharacterService {
       lastGrindStance: character.lastGrindStance === 'gathering' ? 'gathering' : 'hunting',
       travelIntent: character.travelIntent ?? null,
       gatheringLevel: Math.max(1, Number(character.gatheringLevel ?? 1)),
+      gatheringXp: Math.max(0, Number(character.gatheringXp ?? 0)),
       cookingLevel: Math.max(1, Number(character.cookingLevel ?? 1)),
       cookingXp: Math.max(0, Number(character.cookingXp ?? 0)),
       cookingSession: character.cookingSession ?? null,

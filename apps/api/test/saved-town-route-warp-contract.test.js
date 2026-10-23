@@ -25,7 +25,7 @@ assert.match(battleService, /savedTownWaypointTravel\.routeMapIds = \[\]/, 'deat
 assert.match(components, /this\.activityProgress\(\)\/100/, 'the pin is driven by the gauge percentage');
 assert.match(components, /pinArrivalStorageKey/, 'the arrived edge survives refresh for this UI');
 assert.match(mapHtml, /\[style\.left\.px\]="locationPinPosition\(\)\.x"/);
-assert.match(mapHtml, /\[style\.top\.px\]="locationPinPosition\(\)\.y"/);
+assert.match(mapHtml, /\[style\.top\.px\]="locationPinRenderY\(\)"/, 'the visual alignment correction is isolated from the authoritative route position');
 assert.match(mapHtml, /\[style\.animation\]="character\.character\(\)\?\.travelIntent \? 'none' : null"/);
 assert.doesNotMatch(mapCss, /\.location-pin\.traveling/);
 assert.ok(fs.existsSync(path.join(root, 'apps/frontend/src/app/features/play/location-pin-motion.spec.ts')));

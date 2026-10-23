@@ -1,3 +1,11 @@
+### Traveling preview recovery and Gathering XP progression — 2026-10-22
+
+Made the active server `travelIntent` authoritative for the map's destination tile and remaining route polyline, even when local preview state has been cleared during a battle-resolution snapshot. The map board now reconstructs the destination/path from the persisted `destinationMapId`, `routeMapIds`, and `segmentIndex`; local BFS remains the fallback before an active route is available. The moving 88px location marker receives a 7px upward visual correction only during a valid cardinal route leg; settled placement remains unshifted.
+
+Added cumulative persisted `Character.gatheringXp`. Each resource that is actually inserted into Inventory by `advanceStationaryActivity()` awards exactly +30 XP in that same transaction; missing pool/capacity-discarded cycles give no XP. `gatheringLevel` is derived as `floor(gatheringXp / 100) + 1`; Level 2 requires 100 total XP. The existing server/UI duration formula already uses `gatheringLevel`, so the level-up affects the next gathering cycle with the existing one-second reduction per level above 1. Added forward-only migration `1799900000000-GatheringProgression` (not executed) and updated the Professions progress projection/specs.
+
+Validation passed: shared/API builds; frontend development and production builds; eight focused `location-pin-motion.spec.ts` tests in Headless Chromium; saved-Town route contract; world-travel/Gathering checkpoint tests; Gathering grant/XP regression; new route/XP contract; strict OpenSpec validation; and `git diff --check`. Production Angular emits the existing non-fatal component CSS-budget and CommonJS warnings. No migration, live database mutation, or deployment.
+
 ### WorldActivityProcessor TownService dependency injection — 2026-10-22
 
 Fixed API startup failure after Cooking recovery was added to `WorldActivityProcessor`: `MapModule` now imports `TownModule`, which exports `TownService`. The processor can therefore reconcile overdue Cooking sessions and execute `complete-cooking` jobs in its own Nest module context. Added a focused source-contract regression for the MapModule import, TownService export, and both processor call sites. API build and the focused contract test pass. No migration, database mutation, or deployment.

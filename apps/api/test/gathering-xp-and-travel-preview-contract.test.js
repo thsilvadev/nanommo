@@ -1,0 +1,42 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const root = path.resolve(__dirname, '../../..');
+const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
+const board = read('apps/frontend/src/app/features/play/components.ts');
+const boardHtml = read('apps/frontend/src/app/features/play/map-board.html');
+const mapService = read('apps/api/src/modules/map/map.service.ts');
+const characterEntity = read('apps/api/src/database/entities/character.entity.ts');
+const characterService = read('apps/api/src/modules/character/character.service.ts');
+const dto = read('packages/shared/src/dto/index.ts');
+const models = read('apps/frontend/src/app/core/game.models.ts');
+const shared = read('packages/shared/src/world-activity.ts');
+const migration = read('apps/api/src/database/migrations/1799900000000-GatheringProgression.ts');
+const professions = read('apps/frontend/src/app/features/character/character-page.component.ts');
+
+assert.match(board, /displayDestinationMapId\(\):string\|null/);
+assert.match(board, /intent\?\.destinationMapId/);
+assert.match(board, /activeRouteIds\[activeRouteIds\.length-1\]===target/);
+assert.match(board, /const routeOriginId=intent\?String\(character\?\.currentMapId\?\?''\):this\.routeOriginMapId\(\)/);
+assert.match(boardHtml, /\[class\.destination\]="tile\.id===displayDestinationMapId\(\)"/);
+assert.match(boardHtml, /\*ngIf="tile\.id===displayDestinationMapId\(\)"/);
+assert.match(boardHtml, /\[attr\.points\]="destinationRoutePoints\(\)"/);
+assert.match(boardHtml, /\[style\.top\.px\]="locationPinRenderY\(\)"/);
+assert.match(board, /locationPinPosition\(\)\.y-\(this\.isLocationPinTraveling\(\)\?7:0\)/);
+assert.match(board, /return dx\+dy===1/);
+assert.match(characterEntity, /gatheringXp!: number/);
+assert.match(characterService, /gatheringXp: Math\.max\(0, Number\(character\.gatheringXp \?\? 0\)\)/);
+assert.match(dto, /gatheringXp!: number/);
+assert.match(models, /gatheringXp\?:number/);
+assert.match(migration, /ADD COLUMN IF NOT EXISTS "gatheringXp" integer NOT NULL DEFAULT 0/);
+assert.match(migration, /FLOOR\("gatheringXp" \/ 100\)::integer \+ 1/);
+assert.match(mapService, /character\.gatheringXp = Math\.max\(0, Number\(character\.gatheringXp \?\? 0\)\) \+ 30/);
+assert.match(mapService, /character\.gatheringLevel = gatheringLevelForXp\(character\.gatheringXp\)/);
+assert.ok(mapService.indexOf('await this.inventoryService.addItem(characterId, String(selected.itemId)') < mapService.indexOf('character.gatheringXp = Math.max(0, Number(character.gatheringXp ?? 0)) + 30'), 'XP is added only after the actual inventory insert in the same transaction');
+assert.match(shared, /export function gatheringLevelForXp\(xpValue: number\)/);
+assert.match(shared, /Math\.floor\(xp \/ 100\) \+ 1/);
+assert.match(shared, /\(Math\.max\(1, Math\.floor\(Number\(gatheringLevel\) \|\| 1\)\) - 1\)/);
+assert.match(professions, /gatheringProgressForXp\(xp\)/);
+
+console.log('gathering-xp-and-travel-preview-contract: active route resilience, travel-only offset, XP awards, thresholds and duration formula passed');

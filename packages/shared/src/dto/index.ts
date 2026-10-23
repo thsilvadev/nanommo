@@ -82,6 +82,7 @@ export class CharacterDto {
   lastGrindStance!: 'hunting' | 'gathering';
   travelIntent?: any | null;
   gatheringLevel!: number;
+  gatheringXp!: number;
   cookingLevel!: number;
   cookingXp!: number;
   cookingSession?: any | null;

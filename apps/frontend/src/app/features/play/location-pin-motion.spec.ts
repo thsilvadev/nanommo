@@ -74,6 +74,75 @@ describe('MapBoard Traveling location pin', () => {
     expect(inNorth).toEqual(outEast);
   });
 
+  it('keeps destination pin and route after battle/segment updates even when a stale suppression key exists', () => {
+    const requestedAt = '2026-10-22T12:00:00.000Z';
+    const board: any = Object.create(MapBoard.prototype);
+    board.maps = maps;
+    board.character = { character: signal({
+      id: 'character-1',
+      currentMapId: 'east',
+      status: 'grinding',
+      travelIntent: {
+        kind: 'route',
+        destinationMapId: 'turn-north',
+        requestedAt,
+        routeMapIds: ['origin', 'east', 'turn-north'],
+        segmentIndex: 1,
+        segmentProgress: 0,
+        waitingForBattle: false,
+      },
+      pendingMapTransition: null,
+    }) };
+    board.destinationMapId = signal('turn-north');
+    board.routeOriginMapId = signal('origin');
+    board.mapTransitionPending = signal(false);
+    board.destinationRequestedAt = requestedAt;
+    board.destinationTransitionWasDeferred = true;
+    board.transitionOriginMapId = 'origin';
+    board.suppressedPendingTransitionKeys = new Set([`turn-north|${requestedAt}`]);
+    board.transitionPoll = null;
+    board.startTransitionPoll = jasmine.createSpy('startTransitionPoll');
+    board.stopTransitionPoll = jasmine.createSpy('stopTransitionPoll');
+
+    board.reconcileDestinationPreview(board.character.character());
+
+    expect(board.destinationMapId()).toBe('turn-north');
+    expect(board.routeOriginMapId()).toBe('east');
+    expect(board.destinationRoute()).toEqual([
+      { x: 8 * 153 + 153 / 2, y: 6 * 153 + 153 / 2 },
+      { x: 8 * 153 + 153 / 2, y: 5 * 153 + 153 / 2 },
+    ]);
+    expect(board.stopTransitionPoll).not.toHaveBeenCalled();
+  });
+
+  it('reconstructs a destination/path from the live server route if the local preview was cleared', () => {
+    const board: any = Object.create(MapBoard.prototype);
+    board.maps = maps;
+    board.character = { character: signal({
+      id: 'character-1', currentMapId: 'east', status: 'grinding',
+      travelIntent: { kind: 'route', destinationMapId: 'turn-north', routeMapIds: ['origin', 'east', 'turn-north'], segmentIndex: 1, segmentProgress: 0 },
+      pendingMapTransition: null,
+    }) };
+    board.destinationMapId = signal(null);
+    board.routeOriginMapId = signal(null);
+    expect(board.displayDestinationMapId()).toBe('turn-north');
+    expect(board.destinationRoute()).toEqual([
+      { x: 8 * 153 + 76.5, y: 6 * 153 + 76.5 },
+      { x: 8 * 153 + 76.5, y: 5 * 153 + 76.5 },
+    ]);
+  });
+
+  it('raises the visual marker by 7px only while traversing a route, not when settled', () => {
+    const moving = harness('origin', ['origin', 'east'], 0, 25);
+    expect(moving.locationPinRenderY()).toBe(moving.locationPinPosition().y - 7);
+
+    const settled: any = Object.create(MapBoard.prototype);
+    settled.maps = maps;
+    settled.character = { character: signal({ id: 'character-1', currentMapId: 'origin', status: 'grinding', travelIntent: null }) };
+    settled.pinArrivalFromMapId = signal(null);
+    expect(settled.locationPinRenderY()).toBe(settled.locationPinPosition().y);
+  });
+
   it('keeps the pin at the entry edge after final arrival when there is no active route', () => {
     const board: any = Object.create(MapBoard.prototype);
     board.maps = maps;
