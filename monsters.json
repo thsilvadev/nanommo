@@ -774,7 +774,7 @@
           }
         }
       ],
-      "moveSpeedBase": 40,
+      "moveSpeedBase": 60,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -939,7 +939,7 @@
           }
         }
       ],
-      "moveSpeedBase": 65,
+      "moveSpeedBase": 75,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -1024,7 +1024,7 @@
           }
         }
       ],
-      "moveSpeedBase": 44,
+      "moveSpeedBase": 64,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -1101,7 +1101,7 @@
           }
         }
       ],
-      "moveSpeedBase": 35,
+      "moveSpeedBase": 75,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -1167,7 +1167,7 @@
           }
         }
       ],
-      "moveSpeedBase": 25,
+      "moveSpeedBase": 45,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -1322,7 +1322,7 @@
           }
         }
       ],
-      "moveSpeedBase": 60,
+      "moveSpeedBase": 70,
       "combatStyle": "ranged",
       "basicAttackDamageType": "ranged",
       "basicAttackRange": 6,
@@ -1398,7 +1398,7 @@
           }
         }
       ],
-      "moveSpeedBase": 45,
+      "moveSpeedBase": 85,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -1464,7 +1464,7 @@
           }
         }
       ],
-      "moveSpeedBase": 45,
+      "moveSpeedBase": 64,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -1530,7 +1530,7 @@
           }
         }
       ],
-      "moveSpeedBase": 45,
+      "moveSpeedBase": 63,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -1596,7 +1596,7 @@
           }
         }
       ],
-      "moveSpeedBase": 45,
+      "moveSpeedBase": 38,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -1732,7 +1732,7 @@
           }
         }
       ],
-      "moveSpeedBase": 60,
+      "moveSpeedBase": 59,
       "combatStyle": "ranged",
       "basicAttackDamageType": "ranged",
       "basicAttackRange": 6,
@@ -1808,7 +1808,7 @@
           }
         }
       ],
-      "moveSpeedBase": 45,
+      "moveSpeedBase": 55,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -1940,7 +1940,7 @@
           }
         }
       ],
-      "moveSpeedBase": 45,
+      "moveSpeedBase": 70,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -2083,7 +2083,7 @@
           }
         }
       ],
-      "moveSpeedBase": 48,
+      "moveSpeedBase": 78,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
