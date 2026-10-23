@@ -592,3 +592,15 @@ select:focus-visible,
 .aggression-badge>img{display:block;width:100%;height:100%}
 .aggression-badge::after{content:attr(aria-label);display:none;position:absolute;top:25px;right:0;width:205px;box-sizing:border-box;padding:6px;background:#100b09;border:1px solid #8b2525;color:#f2d7c5;font:11px/1.3 Arial;letter-spacing:0;text-align:left;white-space:normal;box-shadow:0 3px 8px #000;z-index:100}
 .aggression-badge:hover::after,.aggression-badge:focus::after{display:block}
+
+
+/* Gambit warning indicators and Settings dropdown sound controls. */
+.gambit-title-warning{display:inline-block;margin-left:4px;padding:0;border:0;background:transparent;color:inherit;font:20px/1 Arial,sans-serif;vertical-align:middle;cursor:pointer;transform-origin:center;animation:gambit-warning-pulse 3s infinite}
+@keyframes gambit-warning-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}75%{transform:scale(.95)}}
+.settings-section-title{color:#a88a5d;font:10px Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.settings-menu app-login-music-control{display:block;padding:2px 0 5px}
+.settings-divider{height:1px;background:#49331f;margin:2px 0}
+.settings-menu .delete-account-setting{color:#d8a18d}
+@media(prefers-reduced-motion:reduce){.gambit-title-warning{animation:none}}
+.gambit-warning{display:inline-block;font-size:20px;line-height:1;cursor:help;transform-origin:center;animation:gambit-warning-pulse 3s infinite}
+@media(prefers-reduced-motion:reduce){.gambit-warning{animation:none}}

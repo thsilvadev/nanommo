@@ -1605,7 +1605,7 @@
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
-        "atk": 9
+        "atk": 18
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1637,7 +1637,7 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "atk": 20
+        "atk": 35
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1669,7 +1669,7 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "atk": 36
+        "atk": 59
       },
       "randomRollOnDrop": {
         "enabled": true,

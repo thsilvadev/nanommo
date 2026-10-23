@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://api.botpit.online',
+  apiBaseUrl: 'https://api.idlelords.com',
 };

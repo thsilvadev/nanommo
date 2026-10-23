@@ -2161,3 +2161,7 @@ Fixed `CharacterSummary.foodLabel()` in `apps/frontend/src/app/features/play/com
 ### Gambit warning affordance and sound controls in Settings — 2026-10-23
 
 Increased the active-Gambit warning button to 20px (from the 9px title text scale), added a subtle three-second infinite scale pulse between 95% and 105%, and respected `prefers-reduced-motion`. The unavailable-equipment warning in each Gambit line now uses `cursor: help` on hover and has the same size/pulse treatment. Moved the existing music mute toggle and volume slider out of the top bar into the Settings dropdown, alongside the existing Delete account action; the shared music service and saved volume behavior remain unchanged. The account deletion confirmation remains a modal. Frontend development build and `git diff --check` passed. No deployment.
+
+### Vercel CSS budget follow-up — 2026-10-23
+
+Moved the new Gambit warning and Settings dropdown styling from component-scoped stylesheets into the global stylesheet to keep the `play.component.css` and `gambit-editor.component.css` component budgets within the hard 5.12 kB limit without changing Angular budget configuration. Production build (`pnpm --filter @nanommo/shared build && node scripts/set-env.js && pnpm --filter @nanommo/frontend build --configuration production`) and `git diff --check` pass. Existing non-blocking component CSS budget warnings and the `@nanommo/shared` CommonJS/ESM warning remain; no deployment performed.

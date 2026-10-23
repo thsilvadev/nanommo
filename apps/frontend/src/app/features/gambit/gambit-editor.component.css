@@ -217,22 +217,6 @@
   justify-content: center;
   gap: 5px;
 }
-.gambit-warning {
-  display: inline-block;
-  font-size: 20px;
-  line-height: 1;
-  cursor: help;
-  transform-origin: center;
-  animation: gambit-warning-pulse 3s infinite;
-}
-@keyframes gambit-warning-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  75% { transform: scale(.95); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .gambit-warning { animation: none; }
-}
 .switch {
   display: block;
   width: 28px;
