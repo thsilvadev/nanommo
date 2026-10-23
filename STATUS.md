@@ -2156,3 +2156,8 @@ Updated chat retention defaults from 20 to 40 when `CHAT_HISTORY_RETENTION_LIMIT
 ### Character summary food-state counts only active digestion — 2026-10-23
 
 Fixed `CharacterSummary.foodLabel()` in `apps/frontend/src/app/features/play/components.ts`: HUNGRY/FED/SATISFIED/FULL is now derived from Diet entries whose server-provided `digestUntil` timestamp is still in the future, rather than the total number of retained Diet entries. Diet entries remain visible for the streak/history even after digestion expires, but no longer count toward the current food state. If every Diet item is at 0m/not digesting, the label is HUNGRY. Frontend development build and `git diff --check` passed.
+
+
+### Gambit warning affordance and sound controls in Settings — 2026-10-23
+
+Increased the active-Gambit warning button to 20px (from the 9px title text scale), added a subtle three-second infinite scale pulse between 95% and 105%, and respected `prefers-reduced-motion`. The unavailable-equipment warning in each Gambit line now uses `cursor: help` on hover and has the same size/pulse treatment. Moved the existing music mute toggle and volume slider out of the top bar into the Settings dropdown, alongside the existing Delete account action; the shared music service and saved volume behavior remain unchanged. The account deletion confirmation remains a modal. Frontend development build and `git diff --check` passed. No deployment.

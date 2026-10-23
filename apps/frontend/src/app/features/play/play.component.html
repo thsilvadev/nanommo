@@ -15,10 +15,14 @@
       </div>
       <div class="resource gold"><img src="/assets/ui/coin.svg" alt=""> {{c.gold | number}}</div>
     </div>
-    <div class="top-actions"><app-login-music-control variant="header" />
+    <div class="top-actions">
       <div class="settings-wrap"><button aria-label="Settings" (click)="settingsOpen.set(!settingsOpen())"><img
             src="/assets/ui/settings.svg" alt=""></button>
-        <div class="settings-menu" *ngIf="settingsOpen()"><button (click)="openDeleteAccount()">Delete account</button>
+        <div class="settings-menu" *ngIf="settingsOpen()">
+          <small class="settings-section-title">Sound</small>
+          <app-login-music-control variant="header" />
+          <div class="settings-divider"></div>
+          <button class="delete-account-setting" (click)="openDeleteAccount()">Delete account</button>
         </div>
       </div><button (click)="auth.logout()">EXIT</button>
     </div>

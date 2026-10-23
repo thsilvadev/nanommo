@@ -85,6 +85,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.gambit-title-warning {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: 20px/1 Arial, sans-serif;
+  vertical-align: middle;
+  cursor: pointer;
+  transform-origin: center;
+  animation: gambit-warning-pulse 3s infinite;
+}
+@keyframes gambit-warning-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  75% { transform: scale(.95); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gambit-title-warning { animation: none; }
+}
 .avatar-mini {
   width: 40px;
   height: 40px;
@@ -260,11 +281,30 @@
   right: 0;
   top: calc(100% + 6px);
   z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
   background: #17100c;
   border: 1px solid #654828;
   box-shadow: 0 8px 24px #000a;
-  padding: 4px;
-  min-width: 150px;
+  padding: 10px;
+  min-width: 190px;
+}
+.settings-section-title {
+  color: #a88a5d;
+  font: 10px Arial, sans-serif;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.settings-menu app-login-music-control {
+  display: block;
+  padding: 2px 0 5px;
+}
+.settings-divider {
+  height: 1px;
+  background: #49331f;
+  margin: 2px 0;
 }
 .settings-menu button {
   width: 100%;
@@ -279,6 +319,9 @@
 .settings-menu button:hover {
   background: #302015;
   color: #e0bd70;
+}
+.settings-menu .delete-account-setting {
+  color: #d8a18d;
 }
 .account-modal-backdrop {
   position: fixed;
