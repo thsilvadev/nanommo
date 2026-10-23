@@ -27,7 +27,10 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly draft = signal('');
   readonly sending = signal(false);
   readonly error = signal('');
-  readonly visibleMessages = computed(() => this.messages().filter(row => row.channel !== 'journal' || this.journalEnabled()));
+  readonly fontSizeLevel = signal(Math.max(0, Math.min(2, Number(localStorage.getItem('nanommo.chat.font-size') ?? 0) || 0)));
+  readonly visibleMessages = computed(() => this.messages()
+    .filter(row => row.channel !== 'journal' || this.journalEnabled())
+    .slice(-40));
   private readonly subscriptions: Subscription[] = [];
   private wasAtBottom = true;
   private viewReady = false;
@@ -54,10 +57,10 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   async loadHistory(): Promise<void> {
     const followBottom = this.wasAtBottom;
     const [globalResult, systemResult] = await Promise.all([
-      this.api.get<ChatRow[]>('/chat/history/global?limit=20').toPromise()
+      this.api.get<ChatRow[]>('/chat/history/global?limit=40').toPromise()
         .then(rows => ({ rows: rows ?? [], error: '' }))
         .catch(() => ({ rows: [] as ChatRow[], error: 'Unable to load Global chat history.' })),
-      this.api.get<ChatRow[]>('/chat/history/journal?limit=20').toPromise()
+      this.api.get<ChatRow[]>('/chat/history/journal?limit=40').toPromise()
         .then(rows => ({ rows: rows ?? [], error: '' }))
         .catch(() => ({ rows: [] as ChatRow[], error: 'Unable to load System history.' })),
     ]);
@@ -67,6 +70,12 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
     ]);
     this.error.set([globalResult.error, systemResult.error].filter(Boolean).join(' '));
     if (followBottom) this.scrollToBottom();
+  }
+
+  changeFontSize(delta: number): void {
+    const next = Math.max(0, Math.min(2, this.fontSizeLevel() + delta));
+    this.fontSizeLevel.set(next);
+    localStorage.setItem('nanommo.chat.font-size', String(next));
   }
 
   setJournalEnabled(enabled: boolean): void {
@@ -122,7 +131,9 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
       all.set(row.id, { ...row, channel });
     }
     const merged = [...all.values()].sort((a, b) => Date.parse(a.sentAt) - Date.parse(b.sentAt) || a.id.localeCompare(b.id));
-    this.messages.set(merged.slice(-20));
+    const globalRows = merged.filter(row => row.channel === 'global').slice(-40);
+    const journalRows = merged.filter(row => row.channel === 'journal').slice(-40);
+    this.messages.set([...globalRows, ...journalRows].sort((a, b) => Date.parse(a.sentAt) - Date.parse(b.sentAt) || a.id.localeCompare(b.id)));
   }
 
   private scrollToBottom(): void {

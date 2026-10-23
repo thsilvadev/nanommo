@@ -1,9 +1,13 @@
 <section class="idle-chat" aria-label="Global chat and System messages">
   <header class="chat-heading">
     <strong>GLOBAL CHAT</strong>
-    <label><input type="checkbox" [checked]="journalEnabled()" (change)="setJournalEnabled($any($event.target).checked)"> System</label>
+    <div class="chat-controls">
+      <button type="button" aria-label="Decrease chat text size" title="Decrease text size" [disabled]="fontSizeLevel() === 0" (click)="changeFontSize(-1)">−</button>
+      <button type="button" aria-label="Increase chat text size" title="Increase text size" [disabled]="fontSizeLevel() === 2" (click)="changeFontSize(1)">+</button>
+      <label><input type="checkbox" [checked]="journalEnabled()" (change)="setJournalEnabled($any($event.target).checked)"> System</label>
+    </div>
   </header>
-  <div #history class="chat-history" role="log" aria-live="polite" (scroll)="onScroll()">
+  <div #history class="chat-history" [class.chat-size-1]="fontSizeLevel() === 1" [class.chat-size-2]="fontSizeLevel() === 2" role="log" aria-live="polite" (scroll)="onScroll()">
     <div *ngFor="let row of visibleMessages(); trackBy: trackRow" class="chat-row" [class.journal-row]="row.channel==='journal'" [class.system-error]="row.channel==='journal' && row.severity==='error'">
       <time>{{row.sentAt | date:'HH:mm:ss'}}</time><b *ngIf="row.channel!=='journal'">{{rowLabel(row)}}</b><span>{{row.message}}</span>
     </div>

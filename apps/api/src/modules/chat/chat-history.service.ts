@@ -7,7 +7,7 @@ import { REDIS_CLIENT } from '../../config/redis.provider';
 import { GlobalChatMessage } from '../../database/entities/global-chat-message.entity';
 
 export function chatRetentionLimit(raw = process.env.CHAT_HISTORY_RETENTION_LIMIT): number {
-  if (raw === undefined) return 20;
+  if (raw === undefined) return 40;
   if (!/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw)) || Number(raw) <= 0) {
     throw new Error('CHAT_HISTORY_RETENTION_LIMIT must be a positive integer');
   }

@@ -130,7 +130,7 @@
           }
         }
       ],
-      "moveSpeedBase": 62,
+      "moveSpeedBase": 56,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -351,7 +351,7 @@
           }
         }
       ],
-      "moveSpeedBase": 60,
+      "moveSpeedBase": 68,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
@@ -561,7 +561,7 @@
           }
         }
       ],
-      "moveSpeedBase": 35,
+      "moveSpeedBase": 45,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
