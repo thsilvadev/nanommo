@@ -136,7 +136,7 @@
             ]
           },
           "offer": {
-            "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 3x slime gel, 1x golem core shard and 1x viper fang and I’ll give you something that’ll bring luck to your journey.",
+            "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and 20x Thorn Barks and I’ll give you something that’ll bring luck to your journey.",
             "choices": [
               {
                 "id": "handle_items",
@@ -146,15 +146,15 @@
                   "items": [
                     {
                       "itemId": "part_slime_common",
-                      "quantity": 3
+                      "quantity": 20
                     },
                     {
-                      "itemId": "part_cindergolem_common",
-                      "quantity": 1
+                      "itemId": "part_fieldbat_common",
+                      "quantity": 20
                     },
                     {
-                      "itemId": "part_venomviper_common",
-                      "quantity": 1
+                      "itemId": "part_thornsprout_common",
+                      "quantity": 20
                     }
                   ]
                 },
@@ -164,15 +164,15 @@
                   "remove": [
                     {
                       "itemId": "part_slime_common",
-                      "quantity": 3
+                      "quantity": 20
                     },
                     {
-                      "itemId": "part_cindergolem_common",
-                      "quantity": 1
+                      "itemId": "part_fieldbat_common",
+                      "quantity": 20
                     },
                     {
-                      "itemId": "part_venomviper_common",
-                      "quantity": 1
+                      "itemId": "part_thornsprout_common",
+                      "quantity": 20
                     }
                   ],
                   "add": [
@@ -191,15 +191,15 @@
                   "items": [
                     {
                       "itemId": "part_slime_common",
-                      "quantity": 3
+                      "quantity": 20
                     },
                     {
-                      "itemId": "part_cindergolem_common",
-                      "quantity": 1
+                      "itemId": "part_fieldbat_common",
+                      "quantity": 20
                     },
                     {
-                      "itemId": "part_venomviper_common",
-                      "quantity": 1
+                      "itemId": "part_thornsprout_common",
+                      "quantity": 20
                     }
                   ]
                 },
@@ -208,7 +208,7 @@
             ]
           },
           "return_later": {
-            "npcText": "Dear, come back when you have 3x slime gel, 1x golem core shard and 1x viper fang! You are lucky I’m pacient, but don’t keep me waiting!",
+            "npcText": "Dear, come back when you have 20x Slime Gels, 20x Bat Wings and 20x Thorn Barks! You are lucky I’m pacient, but don’t keep me waiting!",
             "choices": [
               {
                 "id": "fast",
