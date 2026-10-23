@@ -159,7 +159,30 @@ export class InventoryService {
       if (source.slotIndex !== targetSlotIndex) {
         const sourceSlotIndex = source.slotIndex;
         const target = rows.find((row) => row.slotIndex === targetSlotIndex);
-        if (target) {
+        let merged = false;
+        if (target && target.id !== source.id && target.itemId === source.itemId
+          && JSON.stringify(target.instanceData ?? null) === JSON.stringify(source.instanceData ?? null)) {
+          const definition = this.dataService.getItemById(source.itemId);
+          const maxStack = Math.max(1, Math.floor(Number(definition?.maxStack ?? 1)));
+          if (definition?.stackable === true && maxStack > 1) {
+            const room = Math.max(0, maxStack - Number(target.quantity));
+            const transfer = Math.min(room, Number(source.quantity));
+            if (transfer > 0) {
+              target.quantity = Number(target.quantity) + transfer;
+              source.quantity = Number(source.quantity) - transfer;
+              await repo.save(target);
+              if (source.quantity === 0) await repo.remove(source);
+              else await repo.save(source); // Overflow stays in the original source slot.
+              merged = true;
+            }
+          }
+        }
+        const sourceDefinition = this.dataService.getItemById(source.itemId);
+        if (!merged && target && target.itemId === source.itemId
+          && JSON.stringify(target.instanceData ?? null) === JSON.stringify(source.instanceData ?? null)
+          && sourceDefinition?.stackable === true && Number(sourceDefinition.maxStack ?? 1) > 1) {
+          // Same compatible stack with no room: leave both rows in place, don't swap them.
+        } else if (!merged && target) {
           // Use a guaranteed-free transient index to respect the unique slot constraint.
           source.slotIndex = Math.max(50, ...rows.map((row) => row.slotIndex + 1));
           await repo.save(source);
@@ -167,7 +190,7 @@ export class InventoryService {
           await repo.save(target);
           source.slotIndex = targetSlotIndex;
           await repo.save(source);
-        } else {
+        } else if (!merged) {
           source.slotIndex = targetSlotIndex;
           await repo.save(source);
         }

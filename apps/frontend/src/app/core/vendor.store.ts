@@ -4,7 +4,7 @@ import { CharacterStore, InventoryStore } from './game.store';
 import { CatalogService } from './catalog.service';
 import { TownNpc, VendorStockItem, VendorQuote, NpcDialogueState } from '@nanommo/shared';
 
-export interface VendorModal { mode:'buy'|'sell'; itemId:string; quantity:number; maxQuantity:number; unitPrice:number; }
+export interface VendorModal { mode:'buy'|'sell'; itemId:string; quantity:number; maxQuantity:number; unitPrice:number; sourceInventoryItemId?:string; }
 export interface CookingState { progress:{level:number;xp:number;xpIntoLevel:number;xpToNextLevel:number;nextLevelXp:number}; recipes:any[]; session:any|null; }
 
 /** Maximum amount selectable when selling the Inventory row that was dragged. */
@@ -193,7 +193,7 @@ export class VendorStore {
     for(const row of items.filter(x=>x.itemId===itemId)) room+=Math.max(0,Number(def.maxStack??1)-row.quantity);
     return room;
   }
-  async openSell(itemId:string, selectedStackQuantity?:number){
+  async openSell(itemId:string, selectedStackQuantity?:number, sourceInventoryItemId?:string){
     this.error.set(null);
     const owned=this.totalOwned(itemId);
     if(owned<=0)return;
@@ -204,7 +204,7 @@ export class VendorStore {
       // Selling from a dragged stack scopes the modal to that stack, not the
       // sum of every matching item across the whole Inventory.
       const max=sellModalMaxQuantity(owned,selectedStackQuantity,!!q?.stackable);
-      this.modal.set({mode:'sell',itemId,quantity:1,maxQuantity:max,unitPrice:unit});
+      this.modal.set({mode:'sell',itemId,quantity:1,maxQuantity:max,unitPrice:unit,...(sourceInventoryItemId?{sourceInventoryItemId}:{})});
     }catch(e:any){this.error.set(e?.error?.message??'Unable to price item');}
   }
   openBuy(entry:VendorStockItem){
@@ -231,7 +231,7 @@ export class VendorStore {
     this.busy.set(true);this.error.set(null);
     try{
       const path=m.mode==='buy'?'/town/vendor/'+this.selectedNpcId()+'/buy':'/town/vendor/'+this.selectedNpcId()+'/sell';
-      await this.api.post(path,{itemId:m.itemId,quantity:m.quantity}).toPromise();
+      await this.api.post(path,{itemId:m.itemId,quantity:m.quantity,...(m.mode==='sell'&&m.sourceInventoryItemId?{sourceInventoryItemId:m.sourceInventoryItemId}:{})}).toPromise();
       this.modal.set(null);
       await Promise.all([this.character.load(),this.inventory.load(),this.loadStock()]);
     }catch(e:any){this.error.set(e?.error?.message??'Vendor transaction rejected');}

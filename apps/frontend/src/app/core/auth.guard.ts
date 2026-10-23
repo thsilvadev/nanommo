@@ -26,16 +26,15 @@ export const characterGuard: CanActivateFn = (route, state): boolean | UrlTree |
   }
 
   return from(ensureCharacterLoaded(characterStore)).pipe(
-    map(() => {
+    map((loaded) => {
       if (authStore.userPayload()?.emailVerified === false) {
         return router.createUrlTree(['/verify-email-pending']);
       }
-      if (characterStore.character()) {
-        return true;
-      }
+      if (!loaded) return characterLoadErrorTree(router, state.url);
+      if (characterStore.character()) return true;
       return router.createUrlTree(['/create-character']);
     }),
-    catchError(() => of(router.createUrlTree(['/create-character']))),
+    catchError(() => of(characterLoadErrorTree(router, state.url))),
   );
 };
 
@@ -49,16 +48,17 @@ export const createCharacterGuard: CanActivateFn = (route, state): boolean | Url
   }
 
   return from(ensureCharacterLoaded(characterStore)).pipe(
-    map(() => {
+    map((loaded) => {
       if (authStore.userPayload()?.emailVerified === false) {
         return router.createUrlTree(['/verify-email-pending']);
       }
+      if (!loaded) return characterLoadErrorTree(router, state.url);
       if (characterStore.character()) {
         return router.createUrlTree(['/play']);
       }
       return true;
     }),
-    catchError(() => of(true)),
+    catchError(() => of(characterLoadErrorTree(router, state.url))),
   );
 };
 
@@ -72,19 +72,30 @@ export const guestGuard: CanActivateFn = (route, state): boolean | UrlTree | Obs
   }
 
   return from(ensureCharacterLoaded(characterStore)).pipe(
-    map(() => {
+    map((loaded) => {
+      if (!loaded) return characterLoadErrorTree(router, state.url);
       if (characterStore.character()) {
         return router.createUrlTree(['/play']);
       }
       return router.createUrlTree(['/create-character']);
     }),
-    catchError(() => of(router.createUrlTree(['/create-character']))),
+    catchError(() => of(characterLoadErrorTree(router, state.url))),
   );
 };
 
-function ensureCharacterLoaded(characterStore: CharacterStore): Promise<void> {
-  if (characterStore.character()) {
-    return Promise.resolve();
-  }
-  return characterStore.load().then(() => undefined).catch(() => undefined);
+/**
+ * CharacterStore.load() deliberately records failures in its state instead of throwing.
+ * Only a successful, loaded response with no Character means that character creation is
+ * appropriate; a failed or interrupted load must never be interpreted as a missing save.
+ */
+async function ensureCharacterLoaded(characterStore: CharacterStore): Promise<boolean> {
+  if (characterStore.character()) return true;
+  await characterStore.load();
+  return characterStore.state() === 'loaded';
+}
+
+function characterLoadErrorTree(router: Router, returnUrl: string): UrlTree {
+  return router.createUrlTree(['/error'], {
+    queryParams: { reason: 'character-load', returnUrl },
+  });
 }

@@ -677,7 +677,7 @@ export class VendorPanel {
   }
   drop(ev: CdkDragDrop<any>) {
     const data = ev.item.data;
-    if (data?.source === 'inventory') { if (this.vendor.selectedNpc()?.types.includes('storage') && data.id) void this.vendor.transferWarehouseRow(data.id,'deposit'); else if (this.vendor.selectedNpc()?.types.includes('vendor')) void this.vendor.openSell(data.itemId, Number(data.quantity)); }
+    if (data?.source === 'inventory') { if (this.vendor.selectedNpc()?.types.includes('storage') && data.id) void this.vendor.transferWarehouseRow(data.id,'deposit'); else if (this.vendor.selectedNpc()?.types.includes('vendor')) void this.vendor.openSell(data.itemId, Number(data.quantity), String(data.id ?? '')); }
     this.inventory.endDrag();
     document.dispatchEvent(new Event('nm:drag-end'));
   }

@@ -24,9 +24,11 @@ describe('auth guards', () => {
   let characterStore: jasmine.SpyObj<CharacterStore>;
   let router: jasmine.SpyObj<Router>;
   let createdTrees: string[];
+  let createdTreeOptions: any[];
 
   beforeEach(() => {
     createdTrees = [];
+    createdTreeOptions = [];
     authStore = {
       isAuthenticated: jasmine.createSpy('isAuthenticated'),
       userPayload: jasmine.createSpy('userPayload').and.returnValue({ emailVerified: true }),
@@ -34,11 +36,13 @@ describe('auth guards', () => {
     characterStore = {
       character: jasmine.createSpy('character'),
       load: jasmine.createSpy('load'),
+      state: jasmine.createSpy('state').and.returnValue('loaded'),
     } as unknown as jasmine.SpyObj<CharacterStore>;
     router = jasmine.createSpyObj<Router>('Router', ['createUrlTree']);
-    router.createUrlTree.and.callFake((commands: any[]) => {
-      const tree = { __commands: commands } as unknown as UrlTree;
+    router.createUrlTree.and.callFake((commands: any[], options?: any) => {
+      const tree = { __commands: commands, __options: options } as unknown as UrlTree;
       createdTrees.push(JSON.stringify(commands));
+      createdTreeOptions.push(options);
       return tree;
     });
 
@@ -83,6 +87,20 @@ describe('auth guards', () => {
       const result = await runGuard(characterGuard);
       expect(result).toBe(true);
     });
+
+    it('redirects a failed character load to the error page, not character creation', async () => {
+      (authStore.isAuthenticated as any) = () => true;
+      characterStore.character.and.returnValue(null);
+      characterStore.load.and.returnValue(Promise.resolve());
+      (characterStore.state as any).and.returnValue('error');
+
+      const result = await runGuard(characterGuard) as any;
+
+      expect(result.__commands).toEqual(['/error']);
+      expect(result.__options.queryParams.reason).toBe('character-load');
+      expect(result.__options.queryParams.returnUrl).toBe('/play');
+      expect(createdTrees).not.toContain(JSON.stringify(['/create-character']));
+    });
   });
 
   describe('createCharacterGuard (/create-character)', () => {
@@ -107,6 +125,18 @@ describe('auth guards', () => {
       const result = await runGuard(createCharacterGuard);
       expect(result).toBe(true);
     });
+
+    it('does not allow character creation when the character load failed', async () => {
+      (authStore.isAuthenticated as any) = () => true;
+      characterStore.character.and.returnValue(null);
+      characterStore.load.and.returnValue(Promise.resolve());
+      (characterStore.state as any).and.returnValue('error');
+
+      const result = await runGuard(createCharacterGuard) as any;
+
+      expect(result.__commands).toEqual(['/error']);
+      expect(result.__options.queryParams.reason).toBe('character-load');
+    });
   });
 
   describe('guestGuard (/login, /register)', () => {
@@ -130,6 +160,18 @@ describe('auth guards', () => {
       characterStore.load.and.returnValue(Promise.resolve());
       const result = await runGuard(guestGuard);
       expect(createdTrees).toContain(JSON.stringify(['/create-character']));
+    });
+
+    it('redirects a failed character load to the error page', async () => {
+      (authStore.isAuthenticated as any) = () => true;
+      characterStore.character.and.returnValue(null);
+      characterStore.load.and.returnValue(Promise.resolve());
+      (characterStore.state as any).and.returnValue('error');
+
+      const result = await runGuard(guestGuard) as any;
+
+      expect(result.__commands).toEqual(['/error']);
+      expect(result.__options.queryParams.reason).toBe('character-load');
     });
   });
 

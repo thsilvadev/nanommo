@@ -56,6 +56,18 @@ async function run(){
   await assert.rejects(()=>service.buyFromVendor('c1','william','pot_hp_medium',-1),/positive integer/);
   await assert.rejects(()=>service.buyFromVendor('c1','william','sword',1),/Item is not sold/);
 
+  ({service,state}=harness({id:'c-stack',status:'town',currentMapId:'map_town',pendingMapTransition:null,gold:0},[
+    {id:'honey-20',characterId:'c-stack',location:'inventory',slotIndex:0,itemId:'pot_hp_small',quantity:20},
+    {id:'honey-18',characterId:'c-stack',location:'inventory',slotIndex:1,itemId:'pot_hp_small',quantity:18},
+  ]));
+  await service.sellToVendor('c-stack','william','pot_hp_small',15,'honey-20');
+  assert.equal(state.rows.find(r=>r.id==='honey-20').quantity,5,'sale must remove only from the selected 20-unit stack');
+  assert.equal(state.rows.find(r=>r.id==='honey-18').quantity,18,'same-item stacks must remain untouched');
+  await assert.rejects(()=>service.sellToVendor('c-stack','william','pot_hp_small',6,'honey-20'),/exceeds the selected stack/);
+  assert.equal(state.rows.find(r=>r.id==='honey-20').quantity,5,'rejected overdraw must not mutate source stack');
+  assert.equal(state.character.gold,30,'gold changes only for successful selected-stack sale');
+
+
   ({service,state}=harness({id:'c2',status:'grinding',currentMapId:'map_green_grounds',pendingMapTransition:null,gold:100},[{id:'i1',characterId:'c2',location:'inventory',slotIndex:0,itemId:'pot_hp_small',quantity:2}]));
   await assert.rejects(()=>service.sellToVendor('c2','william','pot_hp_small',1),/only available in Town/);
   await assert.rejects(()=>service.getVendorStock('c2','william'),/only available in Town/);
@@ -67,6 +79,6 @@ async function run(){
   await assert.rejects(()=>service.buyFromVendor('c3','william','pot_hp_small',1),/Inventory is full/);
   assert.equal(state.character.gold,100);
 
-  console.log('town-vendor.service.test.js: 13 assertions passed');
+  console.log('town-vendor.service.test.js: vendor transactions, source-stack-scoped sales, reservation/ownership checks and Town guards passed');
 }
 run().catch(err=>{console.error(err);process.exit(1);});

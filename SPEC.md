@@ -563,6 +563,8 @@ Food expiry projection across unresolved future queue entries is only used to de
 
 `BattleQueueEntry` rows are the source of truth, not the BullMQ job state. On backend boot, for every character with unresolved `BattleQueueEntry` rows whose `endAt < now()`, resolve them **synchronously in order** (oldest first) exactly as the scheduled job would have — applying effects, deaths, drops, and level-ups — before accepting new socket connections for that character. Then re-derive the live queue depth and top it back up to 5 if the character is still alive and still on a map. This guarantees zero data loss and zero "free time" exploits from server downtime.
 
+World activity job lifecycle is observable through backend logs at normal `log`/`warn` levels, not only `debug`: `advance-travel` logs the queue job ID, Character ID, generation, schedule version, route segment, progress, delay, encounter/battle boundary, and result; `advance-stationary-activity` logs the job/cycle identity, elapsed non-battle interval, completed cycles, grants, and stale/no-op reason; battle resolution logs its job/battle identity and retry attempt. Queue completion/failure listeners must be registered with Bull event decorators. Every failed attempt includes job name/ID and `attemptsMade/maxAttempts`; periodic recovery explicitly logs when an absent/failed persisted activity job is re-armed. If a Travel job finds an unresolved started battle whose `endAt` is already in the past, it emits a dedicated warning so a stuck battle resolution cannot be mistaken for ordinary route progress. These logs are diagnostic only and do not change transactional authority or retry semantics.
+
 ### 7.6 Death handling
 
 A battle outcome is never decided by elapsed time or tick count. `outcome = 'loss'` is valid only when the character's HP reaches 0 (including a simultaneous mutual knockout); reaching any elapsed-time threshold must never cause defeat.
@@ -1037,6 +1039,7 @@ Concept references:
 
 ```text
 /login, /register, /verify-email, /reset-password
+/error                         -> recoverable error page for failed character loads/other routed errors
 /play                          -> shell; redirects to town or grind by Character.status
 /play/town                     -> vendor, warehouse, market, mail
 /play/grind                    -> map selection + battle bar + inventory + event feed
@@ -1047,6 +1050,8 @@ Concept references:
 
 There is one Gambit editor implementation. `/play/gambits` is a route-level entry point,
 not a second editor.
+
+Character-loading guards must distinguish a successfully completed `/characters` request that returns no Character from a failed/interrupted request. Only the former may route an account to `/create-character`. A load error routes to `/error?reason=character-load&returnUrl=...`, where the page explains the possible temporary server/communication failure, apologizes, and allows retrying the original app-local route. The retry destination must reject protocol-relative/external URLs. The error route itself must not be guarded by Character loading.
 
 ### 17.4 Global layout
 
@@ -1463,8 +1468,11 @@ Standard monster `xpReward` is `round(round(18 * level^1.15) * 0.75)`; Thornspro
 - For newly generated encounters, every monster with level >=15 uses hp = max(1, round(baselineHp * 0.60)); all other monster fields and all monsters below level 15 remain unchanged. Existing simulated queue snapshots and resolved history remain immutable.
 - This is the approved implementation contract. Core implementation, offline contract tests, catalog validation and the map-layout browser smoke are complete. Actual PostgreSQL/Redis/Bull integration and authenticated live-battle status-icon visual verification remain environment-dependent; see STATUS.md and openspec/changes/storage-map-and-combat-progression-corrections/tasks.md.
 
-### Vendor selling is scoped to the dragged stack
-When a player drags an Inventory stack onto a Vendor, the sell modal maximum and All button are limited to that selected stack quantity, capped by the current owned total. Identical items in other Inventory stacks are not aggregated for the modal maximum. Example: four stacks of 20 potions; drag one stack and choose All => quantity 20. Buying behavior is unchanged.
+### Vendor selling is scoped to the selected Inventory row
+When a player drags an Inventory stack onto a Vendor, the sell modal maximum and All button are limited to that selected stack quantity. The request carries the persisted Inventory row ID, and the authoritative transaction validates ownership, item identity, location, quantity, Town access and Cooking reservations before removing only from that row. Identical items in other Inventory stacks are not consumed. Example: stacks of 20 and 18; sell 15 from the 20-unit row => that row becomes 5 and the other remains 18. The source-row ID is an explicit operation input, not a drag-and-drop-only rule, so a future item action menu can use the same API. Requests without a row ID retain aggregate removal for existing non-row-specific callers. Buying behavior is unchanged.
+
+### Inventory stack merging
+Dragging one Inventory row onto another compatible row of the same stackable item merges units up to the catalogue `maxStack` (currently up to 20). Compatible means the same item ID and equal `instanceData`. The target keeps its slot. If the source fully fits, its row is removed; if only part fits, the overflow remains in the source row and its original slot. Dropping onto a compatible stack already at maxStack leaves both rows unchanged. Different items or incompatible instance data retain existing move/swap behavior. The server performs the merge transactionally and remains authoritative; no client-side quantity mutation or database migration is introduced.
 
 
 ## Shared status timeline projection — 2026-10-16

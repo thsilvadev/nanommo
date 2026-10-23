@@ -19,7 +19,9 @@ async function run() {
   await controller.buyFromVendor(req, 'william', { itemId: 'pot_hp_small', quantity: 2 });
   await controller.sellToVendor(req, 'william', { itemId: 'pot_hp_small', quantity: 1 });
   assert.deepEqual(calls[0], ['buy', 'character-1', 'william', 'pot_hp_small', 2]);
-  assert.deepEqual(calls[1], ['sell', 'character-1', 'william', 'pot_hp_small', 1]);
+  assert.deepEqual(calls[1], ['sell', 'character-1', 'william', 'pot_hp_small', 1, undefined]);
+  await controller.sellToVendor(req, 'william', { itemId: 'pot_hp_small', quantity: 3, sourceInventoryItemId: 'stack-20' });
+  assert.deepEqual(calls[2], ['sell', 'character-1', 'william', 'pot_hp_small', 3, 'stack-20']);
   console.log('town-vendor.controller.test.js: userId → characterId mapping passed');
 }
 

@@ -32,8 +32,8 @@ export class TownController {
   }
 
   @Post('vendor/:vendorId/sell')
-  async sellToVendor(@Request() req: any, @Param('vendorId') vendorId: string, @Body() body: { itemId: string; quantity: number }) {
-    return this.townService.sellToVendor(await this.characterId(req), vendorId, body.itemId, body.quantity);
+  async sellToVendor(@Request() req: any, @Param('vendorId') vendorId: string, @Body() body: { itemId: string; quantity: number; sourceInventoryItemId?: string }) {
+    return this.townService.sellToVendor(await this.characterId(req), vendorId, body.itemId, body.quantity, body.sourceInventoryItemId);
   }
 
   @Get('warehouse/contents')

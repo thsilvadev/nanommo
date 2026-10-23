@@ -11,6 +11,7 @@ export const routes: Routes = [
   { path: 'verify-email-pending', loadComponent: () => import('./features/auth/email-verification-pending.component').then((m) => m.EmailVerificationPendingComponent) },
   { path: 'forgot-password', loadComponent: () => import('./features/auth/forgot-password.component').then((m) => m.ForgotPasswordComponent), canActivate: [guestGuard] },
   { path: 'reset-password', loadComponent: () => import('./features/auth/reset-password.component').then((m) => m.ResetPasswordComponent) },
+  { path: 'error', loadComponent: () => import('./features/error/error-page.component').then((m) => m.ErrorPageComponent) },
   {
     path: 'play', loadComponent: () => import('./features/play/play.component').then((m) => m.PlayComponent), canActivate: [characterGuard],
     children: [

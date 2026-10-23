@@ -136,15 +136,24 @@ export class TownService {
     }
   }
 
-  private async removeInventoryAtomic(manager: EntityManager, characterId: string, itemId: string, quantity: number) {
+  private async removeInventoryAtomic(manager: EntityManager, characterId: string, itemId: string, quantity: number, sourceInventoryItemId?: string) {
     const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
     const reservation = character?.cookingSession?.ingredients?.filter((row: any) => row.itemId === itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0) ?? 0;
-    const current = await manager.getRepository(InventoryItem).find({ where: { characterId, itemId, location: 'inventory' } });
-    if (current.reduce((sum, row) => sum + row.quantity, 0) - quantity < reservation) throw new BadRequestException('Items are reserved for your active Cooking session');
     const repo = manager.getRepository(InventoryItem);
     const rows = await repo.find({ where: { characterId, location: 'inventory', itemId }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
     const owned = rows.reduce((sum, row) => sum + row.quantity, 0);
     if (owned < quantity) throw new BadRequestException('Insufficient item quantity');
+    if (owned - quantity < reservation) throw new BadRequestException('Items are reserved for your active Cooking session');
+
+    if (sourceInventoryItemId) {
+      const source = rows.find(row => row.id === sourceInventoryItemId);
+      if (!source) throw new BadRequestException('Selected inventory stack no longer exists; reload and retry');
+      if (quantity > Number(source.quantity)) throw new BadRequestException('Sale quantity exceeds the selected stack');
+      source.quantity -= quantity;
+      if (source.quantity === 0) await repo.remove(source); else await repo.save(source);
+      return;
+    }
+
     let remaining = quantity;
     for (const row of rows) {
       const remove = Math.min(remaining, row.quantity);
@@ -211,7 +220,7 @@ export class TownService {
     });
   }
 
-  async sellToVendor(characterId: string, vendorId: string, itemId: string, quantity: number) {
+  async sellToVendor(characterId: string, vendorId: string, itemId: string, quantity: number, sourceInventoryItemId?: string) {
     this.assertPositiveInteger(quantity);
     const v = this.vendor(vendorId);
     const item = this.item(itemId);
@@ -222,7 +231,7 @@ export class TownService {
 
     return this.characterRepo.manager.transaction(async manager => {
       const character = await this.characterForTown(manager, characterId);
-      await this.removeInventoryAtomic(manager, characterId, itemId, quantity);
+      await this.removeInventoryAtomic(manager, characterId, itemId, quantity, sourceInventoryItemId);
       character.gold = Math.min(Number(character.gold) + total, GOLD_CAP);
       await manager.getRepository(Character).save(character);
       return { goldReceived: total, unitPrice, quantity, itemId };

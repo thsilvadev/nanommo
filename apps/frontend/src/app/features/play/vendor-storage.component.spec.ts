@@ -80,7 +80,7 @@ describe('Town Storage drag/drop and double-click handlers', () => {
   it('keeps Vendor sell quantity scoped to the dragged stack and does not withdraw from Warehouse when Vendor is selected', async () => {
     const { grid, panel, vendor } = setup('vendor');
     panel.drop({ item: { data: { source: 'inventory', id: 'stack-row', itemId: 'potion', quantity: 20 } } });
-    expect(vendor.openSell).toHaveBeenCalledOnceWith('potion', 20);
+    expect(vendor.openSell).toHaveBeenCalledOnceWith('potion', 20, 'stack-row');
     await grid.dropInventory({ item: { data: { source: 'warehouse', id: 'warehouse-row', itemId: 'potion', quantity: 20 } }, dropPoint: { x: 0, y: 0 } } as any);
     expect(vendor.transferWarehouseRow).not.toHaveBeenCalled();
   });

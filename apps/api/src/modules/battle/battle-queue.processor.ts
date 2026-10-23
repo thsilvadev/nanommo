@@ -1,4 +1,4 @@
-import { Processor, Process } from '@nestjs/bull';
+import { Processor, Process, OnQueueCompleted, OnQueueFailed } from '@nestjs/bull';
 import { Job } from 'bull';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { BattleService } from './battle.service';
@@ -32,13 +32,14 @@ export class BattleQueueProcessor {
 
     try {
       await this.queueGate.assertReadyForProcessing();
-      this.logger.debug(`Resolving battle ${battleId}`);
+      this.logger.log(`[battle-job] resolve-start jobId=${job.id} battleId=${battleId} attempt=${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)} delayMs=${Number(job.opts.delay ?? 0)}`);
 
       // Resolve the battle (apply XP, gold, drops, level-ups, death handling).
       // A duplicate delivery is a successful no-op; do not race the winning
       // caller's post-commit queue rebuild with a second top-up.
       const resolvedByThisCall = await this.battleService.resolveBattle(battleId);
       if (!resolvedByThisCall) {
+        this.logger.log(`[battle-job] resolve-skipped jobId=${job.id} battleId=${battleId} reason=already-resolved-or-claimed`);
         return { success: true, battleId, skipped: true };
       }
 
@@ -71,7 +72,7 @@ export class BattleQueueProcessor {
         }
       }
 
-      this.logger.debug(`Battle ${battleId} resolved successfully`);
+      this.logger.log(`[battle-job] resolve-finished jobId=${job.id} battleId=${battleId} characterId=${battle.characterId}`);
       return { success: true, battleId };
     } catch (error) {
       // A battle row can legitimately be gone by the time its job fires: SPEC
@@ -84,7 +85,8 @@ export class BattleQueueProcessor {
       }
 
       this.logger.error(
-        `Failed to resolve battle ${battleId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `[battle-job] resolve-error jobId=${job.id} battleId=${battleId} attempt=${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)} error=${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
       );
       // Throw to trigger retry
       throw error;
@@ -105,12 +107,15 @@ export class BattleQueueProcessor {
       await this.queueGate.assertReadyForProcessing();
       const character = await this.characterService.getCharacterById(characterId);
       const queueable = character?.status === 'grinding' && !!character.currentMapId && !character.pendingMapTransition;
-      if (!queueable) return { success: true, characterId, skipped: true, reason: 'Character is not eligible to queue Grind battles' };
-      this.logger.debug(`Queueing battles for character ${characterId}`);
+      if (!queueable) {
+        this.logger.log(`[battle-job] queue-battles-skipped characterId=${characterId} status=${String(character?.status ?? 'missing')} map=${String(character?.currentMapId ?? '')} hasPendingTransition=${!!character?.pendingMapTransition}`);
+        return { success: true, characterId, skipped: true, reason: 'Character is not eligible to queue Grind battles' };
+      }
+      this.logger.log(`[battle-job] queue-battles-start jobId=${job.id} characterId=${characterId} map=${String(character.currentMapId)} attempt=${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)}`);
 
       await this.battleService.queueBattles(characterId, 5);
 
-      this.logger.debug(`Queued 5 new battles for character ${characterId}`);
+      this.logger.log(`[battle-job] queue-battles-finished jobId=${job.id} characterId=${characterId}`);
       return { success: true, characterId };
     } catch (error) {
       this.logger.error(
@@ -154,16 +159,26 @@ export class BattleQueueProcessor {
   /**
    * Job completed handler - for logging/events
    */
+  @OnQueueCompleted()
   onCompleted(job: Job) {
-    this.logger.debug(`Job ${job.id} completed: ${job.name}`);
+    if (!this.shouldTraceJob(job.name)) return;
+    this.logger.log(`[queue-job] completed jobId=${job.id} name=${job.name} attemptsMade=${Number(job.attemptsMade ?? 0)} data=${this.jobContext(job)}`);
   }
 
-  /**
-   * Job failed handler - logs failures
-   */
+  /** Bull queue event hooks are decorators; plain methods named onFailed/onCompleted are never called automatically. */
+  @OnQueueFailed()
   onFailed(job: Job, err: Error) {
-    this.logger.error(
-      `Job ${job.id} failed after ${job.attemptsMade} attempts: ${err.message}`,
-    );
+    if (!this.shouldTraceJob(job.name)) return;
+    this.logger.error(`[queue-job] failed jobId=${job.id} name=${job.name} attemptsMade=${Number(job.attemptsMade ?? 0)} maxAttempts=${Number(job.opts.attempts ?? 1)} data=${this.jobContext(job)} error=${err?.message ?? 'Unknown error'}`, err?.stack);
+  }
+
+  private shouldTraceJob(name: string): boolean {
+    return ['resolve-battle', 'queue-battles', 'advance-travel', 'advance-stationary-activity', 'attempt-flee', 'resume-world-activities'].includes(name);
+  }
+
+  private jobContext(job: Job): string {
+    const data = job.data ?? {};
+    const fields = ['characterId', 'battleId', 'generation', 'scheduleVersion', 'cycleIndex', 'resumeAfterFlee', 'requestedAt'];
+    return fields.filter((key) => data[key] !== undefined).map((key) => `${key}=${String(data[key])}`).join(',');
   }
 }

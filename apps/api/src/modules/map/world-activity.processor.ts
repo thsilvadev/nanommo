@@ -25,12 +25,17 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
   private async recoverActivities(): Promise<void> {
     if (this.recoveryInProgress) return this.recoveryInProgress;
     this.recoveryInProgress = (async () => {
+      // A closed/unavailable startup gate is an expected pre-readiness state. Once
+      // the gate opens, failures in the actual reconciler must be visible in logs.
+      try { await this.gate.assertReadyForProcessing(); }
+      catch { return; }
       try {
-        await this.gate.assertReadyForProcessing();
         const result = await this.maps.recoverPendingActivities();
         await this.town.reconcileCooking();
         if (result.travel || result.gathering || result.flee) this.logger.log(`Recovered world activity jobs: travel=${result.travel} gathering=${result.gathering} flee=${result.flee}`);
-      } catch { /* The shared battle-queue gate stays authoritative until normal startup recovery opens it. */ }
+      } catch (error) {
+        this.logger.error(`[activity-recovery] reconciliation-failed error=${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
+      }
     })();
     try { await this.recoveryInProgress; } finally { this.recoveryInProgress = null; }
   }
@@ -45,27 +50,50 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
 
   @Process('advance-travel')
   async advanceTravel(job: Job<{ characterId: string; generation: number; scheduleVersion?: number; resumeAfterFlee?: boolean }>) {
-    await this.gate.assertReadyForProcessing();
     const p = job.data;
-    await this.maps.advanceTravel(p.characterId, Number(p.generation), p.resumeAfterFlee ? undefined : Number(p.scheduleVersion));
-    return { success: true, characterId: p.characterId };
+    const attempt = `${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)}`;
+    this.logger.log(`[world-job] start type=advance-travel jobId=${job.id} attempt=${attempt} characterId=${p.characterId} generation=${Number(p.generation)} scheduleVersion=${p.resumeAfterFlee ? 'resume-after-flee' : Number(p.scheduleVersion ?? 0)} delayMs=${Number(job.opts.delay ?? 0)}`);
+    try {
+      await this.gate.assertReadyForProcessing();
+      await this.maps.advanceTravel(p.characterId, Number(p.generation), p.resumeAfterFlee ? undefined : Number(p.scheduleVersion));
+      this.logger.log(`[world-job] handler-finished type=advance-travel jobId=${job.id} characterId=${p.characterId} generation=${Number(p.generation)} scheduleVersion=${Number(p.scheduleVersion ?? 0)}`);
+      return { success: true, characterId: p.characterId };
+    } catch (error) {
+      this.logger.error(`[world-job] handler-error type=advance-travel jobId=${job.id} attempt=${attempt} characterId=${p.characterId} generation=${Number(p.generation)} scheduleVersion=${Number(p.scheduleVersion ?? 0)} error=${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
   }
 
   @Process('attempt-flee')
   async attemptFlee(job: Job<{ characterId: string; battleId: string; generation: number }>) {
-    await this.gate.assertReadyForProcessing();
     const p = job.data;
-    const result = await this.battles.attemptFlee(p.characterId, Number(p.generation), p.battleId);
-    this.logger.debug(`FLEE attempt ${p.battleId}: ${result}`);
-    return { success: true, battleId: p.battleId, result };
+    const attempt = `${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)}`;
+    this.logger.log(`[world-job] start type=attempt-flee jobId=${job.id} attempt=${attempt} characterId=${p.characterId} battleId=${p.battleId} generation=${Number(p.generation)}`);
+    try {
+      await this.gate.assertReadyForProcessing();
+      const result = await this.battles.attemptFlee(p.characterId, Number(p.generation), p.battleId);
+      this.logger.log(`[world-job] handler-finished type=attempt-flee jobId=${job.id} characterId=${p.characterId} battleId=${p.battleId} generation=${Number(p.generation)} result=${result}`);
+      return { success: true, battleId: p.battleId, result };
+    } catch (error) {
+      this.logger.error(`[world-job] handler-error type=attempt-flee jobId=${job.id} attempt=${attempt} characterId=${p.characterId} battleId=${p.battleId} generation=${Number(p.generation)} error=${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
   }
 
   @Process('advance-stationary-activity')
   async advanceStationaryActivity(job: Job<{ characterId: string; cycleIndex: number }>) {
-    await this.gate.assertReadyForProcessing();
     const p = job.data;
-    await this.maps.advanceStationaryActivity(p.characterId, Number(p.cycleIndex));
-    return { success: true, characterId: p.characterId };
+    const attempt = `${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)}`;
+    this.logger.log(`[world-job] start type=advance-stationary-activity jobId=${job.id} attempt=${attempt} characterId=${p.characterId} cycleIndex=${Number(p.cycleIndex)} delayMs=${Number(job.opts.delay ?? 0)}`);
+    try {
+      await this.gate.assertReadyForProcessing();
+      await this.maps.advanceStationaryActivity(p.characterId, Number(p.cycleIndex));
+      this.logger.log(`[world-job] handler-finished type=advance-stationary-activity jobId=${job.id} characterId=${p.characterId} expectedCycleIndex=${Number(p.cycleIndex)}`);
+      return { success: true, characterId: p.characterId };
+    } catch (error) {
+      this.logger.error(`[world-job] handler-error type=advance-stationary-activity jobId=${job.id} attempt=${attempt} characterId=${p.characterId} cycleIndex=${Number(p.cycleIndex)} error=${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
   }
   @Process('complete-cooking')
   async completeCooking(job: Job<{ characterId: string; sessionId: string; generation: string }>) {

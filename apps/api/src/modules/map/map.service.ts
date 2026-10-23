@@ -211,31 +211,48 @@ export class MapService {
   }
 
   private async enqueueTravelSchedule(characterId: string, intent: any, delayMs: number): Promise<void> {
-    if (!intent || !intent.scheduledJobId) return;
+    if (!intent) return;
+    if (!intent.scheduledJobId) {
+      this.logger.warn(`[travel-job] enqueue-skipped characterId=${characterId} reason=missing-scheduledJobId generation=${Number(intent.generation ?? 0)} scheduleVersion=${Number(intent.scheduleVersion ?? 0)}`);
+      return;
+    }
+    const jobId = String(intent.scheduledJobId);
+    const delay = Math.max(0, Math.ceil(delayMs));
     await this.bullQueue.add('advance-travel', {
       characterId, generation: Number(intent.generation), scheduleVersion: Number(intent.scheduleVersion),
     }, {
-      jobId: String(intent.scheduledJobId), delay: Math.max(0, Math.ceil(delayMs)),
+      jobId, delay,
       removeOnComplete: true, removeOnFail: false,
       attempts: 5, backoff: { type: 'exponential', delay: 1000 },
     });
+    this.logger.log(`[travel-job] enqueued jobId=${jobId} characterId=${characterId} generation=${Number(intent.generation)} scheduleVersion=${Number(intent.scheduleVersion)} delayMs=${delay} destination=${String(intent.destinationMapId ?? '')} segmentIndex=${Number(intent.segmentIndex ?? 0)} nextMap=${String(intent.nextMapId ?? '')} progress=${Number(intent.segmentProgress ?? 0).toFixed(4)} waitingForBattle=${intent.waitingForBattle === true}`);
   }
 
   private async removeJob(jobId: string): Promise<void> {
-    try { const job = await this.bullQueue.getJob(jobId); if (job && await job.getState() !== 'active') await job.remove(); }
-    catch (error) { this.logger.debug(`Could not remove activity job ${jobId}: ${error instanceof Error ? error.message : String(error)}`); }
+    try {
+      const job = await this.bullQueue.getJob(jobId);
+      if (job && await job.getState() !== 'active') {
+        await job.remove();
+        this.logger.log(`[world-job] removed jobId=${jobId} name=${job.name}`);
+      } else if (job) {
+        this.logger.warn(`[world-job] removal-skipped-active jobId=${jobId} name=${job.name}`);
+      }
+    } catch (error) {
+      this.logger.warn(`[world-job] remove-failed jobId=${jobId} error=${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /** Advance exactly one authoritative route segment. Bull jobs are hints; persisted intent and locks decide. */
   async advanceTravel(characterId: string, expectedGeneration?: number, expectedScheduleVersion?: number): Promise<void> {
+    this.logger.log(`[travel-job] advance-start characterId=${characterId} expectedGeneration=${expectedGeneration ?? 'any'} expectedScheduleVersion=${expectedScheduleVersion ?? 'any'}`);
     const result = await this.battleService.withCharacterQueueLock(characterId, async () => this.characterRepo.manager.transaction(async manager => {
       const characterRepo = manager.getRepository(Character);
       const queueRepo = manager.getRepository(BattleQueueEntry);
       const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
-      if (!character?.travelIntent) return { kind: 'stale' as const };
+      if (!character?.travelIntent) return { kind: 'stale' as const, reason: character ? 'missing-travel-intent' : 'character-missing', currentMapId: character?.currentMapId ?? null };
       const intent: any = character.travelIntent;
-      if (expectedGeneration !== undefined && Number(intent.generation) !== expectedGeneration) return { kind: 'stale' as const };
-      if (expectedScheduleVersion !== undefined && Number(intent.scheduleVersion) !== expectedScheduleVersion) return { kind: 'stale' as const };
+      if (expectedGeneration !== undefined && Number(intent.generation) !== expectedGeneration) return { kind: 'stale' as const, reason: 'generation-mismatch', currentGeneration: Number(intent.generation), currentScheduleVersion: Number(intent.scheduleVersion ?? 0), currentMapId: character.currentMapId, destinationMapId: intent.destinationMapId };
+      if (expectedScheduleVersion !== undefined && Number(intent.scheduleVersion) !== expectedScheduleVersion) return { kind: 'stale' as const, reason: 'schedule-version-mismatch', currentGeneration: Number(intent.generation), currentScheduleVersion: Number(intent.scheduleVersion ?? 0), currentMapId: character.currentMapId, destinationMapId: intent.destinationMapId };
       const now = Date.now();
       const unresolved = await queueRepo.find({ where: { characterId, resolved: false }, order: { startAt: 'ASC', sequenceIndex: 'ASC' } });
       const startedBattle = unresolved.find(entry => entry.startAt.getTime() <= now);
@@ -266,7 +283,7 @@ export class MapService {
         intent.scheduledJobId = scheduled.jobId;
         character.travelIntent = intent;
         await characterRepo.save(character);
-        return { kind: 'wait' as const, intent: { ...intent }, delayMs: Math.max(500, startedBattle.endAt.getTime() - now + 250) };
+        return { kind: 'wait' as const, reason: 'started-battle', battleId: startedBattle.id, battleEndAt: startedBattle.endAt.toISOString(), currentMapId: character.currentMapId, intent: { ...intent }, delayMs: Math.max(500, startedBattle.endAt.getTime() - now + 250) };
       }
 
       if (intent.speedMutationPending === true) {
@@ -277,7 +294,7 @@ export class MapService {
         intent.scheduledJobId = scheduled.jobId;
         character.travelIntent = intent;
         await characterRepo.save(character);
-        return { kind: 'wait' as const, intent: { ...intent }, delayMs: 500 };
+        return { kind: 'wait' as const, reason: 'speed-mutation-pending', currentMapId: character.currentMapId, intent: { ...intent }, delayMs: 500 };
       }
 
       const previousMapId = character.currentMapId;
@@ -427,7 +444,7 @@ export class MapService {
               intent.scheduledJobId = scheduled.jobId;
               character.travelIntent = intent;
               await characterRepo.save(character);
-              return { kind: 'avoided' as const, intent: { ...intent }, journalEvent, delayMs: 0 };
+              return { kind: 'avoided' as const, currentMapId: character.currentMapId, intent: { ...intent }, journalEvent, delayMs: 0 };
             }
             if (!avoid) {
               // Preserve the movement accumulated up to the persisted encounter
@@ -450,7 +467,7 @@ export class MapService {
               intent.fleeNextAttemptAt = character.fleeNextAttemptAt.toISOString();
               character.travelIntent = intent;
               await characterRepo.save(character);
-              return { kind: 'encounter' as const, previousMapId, monsterId: String(monster.id), intent: { ...intent } };
+              return { kind: 'encounter' as const, previousMapId, currentMapId: character.currentMapId, monsterId: String(monster.id), intent: { ...intent } };
             }
           }
         }
@@ -567,13 +584,26 @@ export class MapService {
       character.travelIntent = intent;
       await characterRepo.save(character);
       const delayMs = 1000;
-      return { kind: 'wait' as const, intent: { ...intent }, delayMs };
+      return { kind: 'wait' as const, currentMapId: character.currentMapId, reason: 'segment-in-progress', intent: { ...intent }, delayMs };
     }));
 
-    if (result.kind === 'stale') return;
+    const trace: any = result;
+    const traceIntent: any = trace.intent;
+    const traceFields = `characterId=${characterId} kind=${trace.kind} reason=${String(trace.reason ?? 'none')} generation=${Number(traceIntent?.generation ?? trace.currentGeneration ?? expectedGeneration ?? 0)} scheduleVersion=${Number(traceIntent?.scheduleVersion ?? trace.currentScheduleVersion ?? expectedScheduleVersion ?? 0)} currentMap=${String(trace.currentMapId ?? traceIntent?.currentMapId ?? '')} destination=${String(traceIntent?.destinationMapId ?? trace.destinationMapId ?? '')} nextMap=${String(traceIntent?.nextMapId ?? '')} segmentIndex=${Number(traceIntent?.segmentIndex ?? 0)} progress=${Number(traceIntent?.segmentProgress ?? 0).toFixed(4)} battleId=${String(trace.battleId ?? '')} battleEndAt=${String(trace.battleEndAt ?? '')} delayMs=${Number(trace.delayMs ?? 0)}`;
+    if (result.kind === 'stale') {
+      this.logger.warn(`[travel-job] advance-stale ${traceFields}`);
+      return;
+    }
+    if (result.kind === 'wait' && trace.battleEndAt && Date.parse(String(trace.battleEndAt)) <= Date.now()) {
+      this.logger.warn(`[travel-job] waiting-on-expired-battle ${traceFields} hint=unresolved battle row remains after its endAt`);
+    } else {
+      this.logger.log(`[travel-job] advance-result ${traceFields}`);
+    }
     if (result.kind === 'encounter') {
+      this.logger.log(`[travel-job] encounter-triggered characterId=${characterId} monsterId=${result.monsterId} generation=${Number(result.intent.generation ?? 0)} map=${String(result.previousMapId ?? '')}`);
       const battle = await this.battleService.queueTravelEncounter(characterId, result.monsterId);
       if (battle) {
+        this.logger.log(`[travel-job] encounter-battle-queued characterId=${characterId} battleId=${battle.id} startAt=${battle.startAt.toISOString()} endAt=${battle.endAt.toISOString()} generation=${Number(result.intent.generation ?? 0)}`);
         // The failed pre-combat roll counts as attempt zero. The route resumes only after
         // battle resolution unless the independent retry succeeds and cancels this entry.
         const fresh = await this.characterRepo.findOne({ where: { id: characterId } });
@@ -637,6 +667,7 @@ export class MapService {
         const currentJob = jobId ? await this.bullQueue.getJob(jobId).catch(() => null) : null;
         const currentState = currentJob ? await currentJob.getState().catch(() => 'missing') : 'missing';
         if (!currentJob || !['waiting', 'delayed', 'active', 'paused'].includes(String(currentState))) {
+          this.logger.warn(`[activity-recovery] travel-job-rearm characterId=${character.id} jobId=${jobId || 'missing'} state=${String(currentState)} generation=${Number(intent.generation ?? 0)} scheduleVersion=${Number(intent.scheduleVersion ?? 0)} currentMap=${String(character.currentMapId ?? '')} destination=${String(intent.destinationMapId ?? '')}`);
           if (currentJob && currentState === 'failed') await currentJob.remove().catch(() => undefined);
           try { await this.advanceTravel(character.id, Number(intent.generation)); travel += 1; }
           catch (error) { this.logger.warn(`Travel recovery failed for ${character.id}: ${error instanceof Error ? error.message : String(error)}`); }
@@ -665,6 +696,7 @@ export class MapService {
         const job = jobId ? await this.bullQueue.getJob(jobId).catch(() => null) : null;
         const state = job ? await job.getState().catch(() => 'missing') : 'missing';
         if (!job || !['waiting', 'delayed', 'active', 'paused'].includes(String(state))) {
+          this.logger.warn(`[activity-recovery] gathering-job-rearm characterId=${character.id} jobId=${jobId || 'missing'} state=${String(state)} cycleIndex=${Number(cycle.cycleIndex ?? 0)} currentMap=${String(character.currentMapId ?? '')}`);
           if (job && state === 'failed') await job.remove().catch(() => undefined);
           try { await this.scheduleStationaryActivity(character.id, 1000); gathering += 1; }
           catch (error) { this.logger.warn(`Gathering recovery failed for ${character.id}: ${error instanceof Error ? error.message : String(error)}`); }
@@ -715,7 +747,9 @@ export class MapService {
     cycle.scheduledJobId = jobId;
     character.gatheringCycle = cycle;
     await this.characterRepo.save(character);
-    await this.bullQueue.add('advance-stationary-activity', { characterId, cycleIndex: Number(cycle.cycleIndex ?? 0) }, { jobId, delay: Math.max(0, Math.ceil(delayMs)), removeOnComplete: true, attempts: 5, backoff: { type: 'exponential', delay: 1000 } });
+    const delay = Math.max(0, Math.ceil(delayMs));
+    await this.bullQueue.add('advance-stationary-activity', { characterId, cycleIndex: Number(cycle.cycleIndex ?? 0) }, { jobId, delay, removeOnComplete: true, attempts: 5, backoff: { type: 'exponential', delay: 1000 } });
+    this.logger.log(`[gathering-job] enqueued jobId=${jobId} characterId=${characterId} cycleIndex=${Number(cycle.cycleIndex ?? 0)} map=${String(character.currentMapId)} delayMs=${delay}`);
   }
 
   /** Accrue collection using persisted non-battle time, excluding every overlapping battle interval. */
@@ -723,10 +757,11 @@ export class MapService {
     const result = await this.battleService.withCharacterQueueLock(characterId, async () => this.characterRepo.manager.transaction(async manager => {
       const repo = manager.getRepository(Character); const queueRepo = manager.getRepository(BattleQueueEntry);
       const character = await repo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
-      if (!character) return { kind: 'stale' as const };
-      if (character.status !== 'grinding' || character.travelIntent || this.dataService.getMapById(character.currentMapId)?.type !== 'grind') return { kind: 'stale' as const };
+      if (!character) return { kind: 'stale' as const, reason: 'character-missing' };
+      const currentMapType = this.dataService.getMapById(character.currentMapId)?.type;
+      if (character.status !== 'grinding' || character.travelIntent || currentMapType !== 'grind') return { kind: 'stale' as const, reason: 'character-not-gathering', status: character.status, mapId: character.currentMapId, mapType: currentMapType, hasTravelIntent: !!character.travelIntent, cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) };
       const cycle: any = { progress: 0, cycleIndex: 0, varianceSeconds: null, lastUpdatedAt: new Date().toISOString(), ...(character.gatheringCycle ?? {}) };
-      if (expectedCycleIndex !== undefined && Number(cycle.cycleIndex) !== expectedCycleIndex) return { kind: 'stale' as const };
+      if (expectedCycleIndex !== undefined && Number(cycle.cycleIndex) !== expectedCycleIndex) return { kind: 'stale' as const, reason: 'cycle-index-mismatch', expectedCycleIndex, cycleIndex: Number(cycle.cycleIndex), mapId: character.currentMapId };
       const now = Date.now();
       const lastAtRaw = Date.parse(String(cycle.lastUpdatedAt ?? now));
       const startAt = Number.isFinite(lastAtRaw) ? Math.min(now, lastAtRaw) : now;
@@ -758,7 +793,8 @@ export class MapService {
       let progress = Math.max(0, Math.min(0.999999999, Number(cycle.progress ?? 0)));
       let granted = 0;
       const grantedJournalRows: Array<{ itemId: string; cycleIndex: number }> = [];
-      let cycleIndex = Math.max(0, Number(cycle.cycleIndex ?? 0));
+      const initialCycleIndex = Math.max(0, Number(cycle.cycleIndex ?? 0));
+      let cycleIndex = initialCycleIndex;
       let remainingSeconds = availableSeconds;
       // Catch up in timestamp order. If a cycle's inventory grant cannot fit, that material is simply skipped.
       while (remainingSeconds > 0) {
@@ -791,8 +827,13 @@ export class MapService {
       cycle.lastUpdatedAt = new Date(now).toISOString();
       character.gatheringCycle = cycle;
       await repo.save(character);
-      return { kind: 'updated' as const, cycleIndex, granted, grantedJournalRows, mapId: String(character.currentMapId), hasProgress: progress > 0 };
+      return { kind: 'updated' as const, initialCycleIndex, cycleIndex, completedCycles: cycleIndex - initialCycleIndex, granted, availableSeconds, grantedJournalRows, mapId: String(character.currentMapId), hasProgress: progress > 0 };
     }));
+    if (result.kind === 'stale') {
+      this.logger.warn(`[gathering-job] advance-stale characterId=${characterId} expectedCycleIndex=${expectedCycleIndex ?? 'any'} reason=${result.reason} cycleIndex=${Number((result as any).cycleIndex ?? -1)} map=${String((result as any).mapId ?? '')} status=${String((result as any).status ?? '')} hasTravelIntent=${Boolean((result as any).hasTravelIntent)}`);
+      return;
+    }
+    this.logger.log(`[gathering-job] advance-result characterId=${characterId} kind=updated initialCycleIndex=${result.initialCycleIndex} finalCycleIndex=${result.cycleIndex} completedCycles=${result.completedCycles} expectedCycleIndex=${expectedCycleIndex ?? 'any'} granted=${result.granted} availableSeconds=${result.availableSeconds.toFixed(2)} map=${result.mapId} hasProgress=${result.hasProgress}`);
     if (result.kind === 'updated') {
       await this.scheduleStationaryActivity(characterId, 10_000);
       if (result.granted > 0) await this.battleService.publishQueueUpdated(characterId);

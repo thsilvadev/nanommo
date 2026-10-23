@@ -66,6 +66,24 @@ async function run(){
   await assert.rejects(()=>h.service.transferItem('c1','potion',5,'inventory','warehouse'),/Ambiguous source stack/);
   assert.equal(h.rows.length,2);
 
+  h=harness([row('source','inventory',2,'potion',7),row('target','inventory',5,'potion',18)]);
+  await h.service.moveItemToSlot('c1','source',5);
+  assert.equal(h.rows.find(x=>x.id==='target').quantity,20,'merge fills the target stack to maxStack');
+  assert.equal(h.rows.find(x=>x.id==='source').quantity,5,'overflow remains in the source stack');
+  assert.equal(h.rows.find(x=>x.id==='source').slotIndex,2,'overflow remains in the source slot');
+  assert.equal(h.rows.find(x=>x.id==='target').slotIndex,5,'target stack keeps its slot');
+
+  h=harness([row('source','inventory',2,'potion',5),row('target','inventory',5,'potion',10)]);
+  await h.service.moveItemToSlot('c1','source',5);
+  assert.equal(h.rows.length,1,'fully merged source row is removed');
+  assert.equal(h.rows[0].id,'target'); assert.equal(h.rows[0].quantity,15);
+
+  h=harness([row('source','inventory',2,'potion',7),row('target','inventory',5,'potion',20)]);
+  await h.service.moveItemToSlot('c1','source',5);
+  assert.equal(h.rows.find(x=>x.id==='source').slotIndex,2,'a full compatible target does not swap same-item stacks');
+  assert.equal(h.rows.find(x=>x.id==='source').quantity,7);
+  assert.equal(h.rows.find(x=>x.id==='target').slotIndex,5);
+
   h=harness([row('source','inventory',0)],{id:'c1',currentMapId:'map_lv_1',status:'grinding',pendingMapTransition:null});
   await assert.rejects(()=>h.service.transferInventoryRow('c1','source','inventory','warehouse'),/settled in Town/);
   assert.equal(h.rows[0].location,'inventory');
