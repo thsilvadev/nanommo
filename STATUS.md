@@ -2253,3 +2253,9 @@ Follow-up verification: shared build, API build and frontend TypeScript check pa
 - Centered the listing drop slot horizontally in its row.
 - Replaced styling based on CDK's receiving class with an explicit hover signal driven by `cdkDropListEntered` / `cdkDropListExited`, reset on drop and the inventory's `nm:drag-end` event. The slot highlight only applies while the dragged item is over the slot.
 - Validation: frontend TypeScript check, production build, and `git diff --check` passed. Existing nonfatal CSS-budget and CommonJS warnings remain; no deployment or database mutation performed.
+
+
+## Coin SVG size optimization — 2026-10-24
+- Simplified `apps/frontend/assets/ui/coin.svg` to a compact 32×32 SVG with a white background and gold coin/rim gradients.
+- Reduced file size from 26,792 bytes to 606 bytes (under 1 KB). Verified the SVG parses as valid XML and `git diff --check` passes. A copy of the prior working-tree asset was preserved at `/tmp/coin-before-shrink.svg` on the development machine before editing.
+- No deployment or database mutation performed.
