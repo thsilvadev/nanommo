@@ -176,7 +176,15 @@ export class VendorStore {
     catch(e:any){if(this.selectedNpcId()==='uncle_phillip')this.error.set(e?.error?.message??'Unable to load Cooking');}
   }
   openCooking(){this.cookingModal.set(true);void this.loadCooking();}
-  closeCooking(){this.cookingModal.set(false);}
+  async closeCooking(){
+    if(this.cookingState()?.session){
+      if(this.busy())return;
+      await this.cancelCooking();
+      // Keep the window open if the server could not confirm cancellation.
+      if(this.cookingState()?.session)return;
+    }
+    this.cookingModal.set(false);
+  }
   cookingRemaining(){const session=this.cookingState()?.session;if(!session)return 0;return Math.max(0,Math.ceil((Date.parse(session.completesAt)-this.cookingNow())/1000));}
   cookingPercent(){const session=this.cookingState()?.session;if(!session)return 0;const start=Date.parse(session.startedAt),end=Date.parse(session.completesAt);return Math.max(0,Math.min(100,(this.cookingNow()-start)/Math.max(1,end-start)*100));}
   async startCooking(recipeId:string){if(this.busy())return;this.busy.set(true);this.error.set(null);try{const state=await this.api.post<CookingState>('/town/npcs/uncle_phillip/cooking/start',{recipeId}).toPromise();this.cookingState.set(state??null);this.cookingModal.set(true);if(!this.cookingTimer)this.cookingTimer=setInterval(()=>{this.cookingNow.set(Date.now());const session=this.cookingState()?.session;if(session&&this.cookingRemaining()===0&&this.cookingRefreshSessionId!==session.id){this.cookingRefreshSessionId=session.id;void this.loadCooking().then(()=>Promise.all([this.inventory.load(),this.character.load()]));}},100);}catch(e:any){this.error.set(e?.error?.message??'Unable to start Cooking');}finally{this.busy.set(false);}}

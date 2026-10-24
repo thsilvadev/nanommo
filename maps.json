@@ -40,11 +40,11 @@
       "monsters": [
         {
           "monsterId": "mon_slime",
-          "presenceRate": 70
+          "presenceRate": 85
         },
         {
           "monsterId": "mon_fieldbat",
-          "presenceRate": 30
+          "presenceRate": 15
         }
       ],
       "unlockLevel": 0,

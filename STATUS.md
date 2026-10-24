@@ -1,3 +1,7 @@
+### Closing the crafting modal cancels active Cooking — 2026-10-24
+
+Closing Uncle Phillip's Cooking modal via its X or backdrop now calls the existing server-authoritative cancel endpoint before closing. If cancellation cannot be confirmed and the session remains active, the modal stays open; a session that has already reached its completion deadline is handled by the existing server completion/reconciliation flow. Reloading the page still does not cancel a session. Documented in root SPEC, OpenSpec SPEC and ARCHITECTURE. Frontend spec TypeScript check, development build and `git diff --check` passed. No API logic, migration, database mutation or deployment.
+
 ### Inventory stack split — 2026-10-24
 
 Ctrl+clicking a stackable inventory stack now opens a Split modal with quantity bounded by the original stack minus one. Added `PUT /inventory/split`; server locks Character and inventory rows, checks stack eligibility, integer quantity and free slot, and atomically creates the new stack while subtracting from the original. Failed validation/transaction rolls back and emits a red System Journal error; modal closes and original stack stays unchanged. Updated root/OpenSpec SPEC and ARCHITECTURE. API build, frontend spec TypeScript check, frontend development build and `git diff --check` passed. No migration or deployment.
