@@ -114,6 +114,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
   async placeBuyOrder(): Promise<never> { throw new ForbiddenException('Buy orders are disabled; Market is sell-only'); }
 
   async placeSellOrder(characterId: string, itemId: string, quantity: number, pricePerUnit: number, _untrustedInstanceData?: any, inventoryItemId?: string): Promise<{ order: MarketOrder; matches: MarketDeal[] }> {
+    if (!characterId) throw new NotFoundException('Character not found for authenticated account');
     return this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
       const characters = manager.getRepository(Character);
       const inventory = manager.getRepository(InventoryItem);
@@ -155,6 +156,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
   }
 
   async purchaseOrder(characterId: string, orderId: string, quantity: number): Promise<MarketDeal> {
+    if (!characterId) throw new NotFoundException('Character not found for authenticated account');
     return this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
       const orders = manager.getRepository(MarketOrder);
       const characters = manager.getRepository(Character);

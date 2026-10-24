@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
+import { CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ApiService } from '../../core/api.service';
 import { CatalogService } from '../../core/catalog.service';
 import { CharacterStore, InventoryStore } from '../../core/game.store';
 
-@Component({ selector:'app-market', standalone:true, imports:[CommonModule], templateUrl:'./market.component.html', styleUrl:'./market.component.css' })
+@Component({ selector:'app-market', standalone:true, imports:[CommonModule,CdkDropList], templateUrl:'./market.component.html', styleUrl:'./market.component.css', styles:[".market-sell-drop{min-height:132px;margin:10px 0 14px;padding:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;border:1px dashed #a88753;background:radial-gradient(ellipse at top,#302315 0%,#17120e 70%);color:#bda57e;transition:border-color .15s,background .15s,box-shadow .15s}.market-sell-drop:not(.has-item){box-shadow:inset 0 0 22px #0008}.market-sell-drop.has-item{border-style:solid;border-color:#9b7a46;color:#e3cfaa}.market-sell-drop img{width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 2px 3px #000)}.market-sell-drop p{max-width:220px;margin:0;line-height:1.5}.market-sell-drop span{font-size:11px;color:#aa9677}.market-sell-drop button{background:transparent;color:#c9a66c;border:0;text-decoration:underline;cursor:pointer;font-size:11px}.market-sell-drop.cdk-drop-list-receiving{border-color:#e2c17b;background:#332719;box-shadow:0 0 0 2px #c49a5344,inset 0 0 20px #c49a531f}"] })
 export class MarketComponent implements OnInit {
   private api=inject(ApiService); readonly catalog=inject(CatalogService); readonly character=inject(CharacterStore); readonly inventory=inject(InventoryStore);
   readonly tab=signal<'browse'|'orders'|'deals'>('browse'); readonly query=signal(''); readonly type=signal(''); readonly tier=signal(''); readonly minPrice=signal(''); readonly maxPrice=signal(''); readonly sort=signal('lowest'); readonly page=signal(1);
@@ -21,6 +22,13 @@ export class MarketComponent implements OnInit {
   async loadOrders(){this.loading.set(true);try{this.orders.set(await this.api.get<any[]>('/market/my-orders').toPromise()??[])}catch(e:any){this.error.set(e?.error?.message??'Unable to load your listings')}finally{this.loading.set(false)}}
   async loadDeals(){this.loading.set(true);try{this.deals.set(await this.api.get<any[]>('/market/my-deals').toPromise()??[])}catch(e:any){this.error.set(e?.error?.message??'Unable to load deal history')}finally{this.loading.set(false)}}
   search(){this.page.set(1);void this.loadListings()}
+  dropInventoryStack(event:CdkDragDrop<any>){
+    const data=event.item.data;
+    if(data?.source!=='inventory'||!data.id)return;
+    const row=this.inventory.items().find(item=>item.id===data.id);
+    if(!row){this.error.set('That inventory stack is no longer available');return;}
+    this.changeInventory(row.id);
+  }
   changeInventory(id:string){this.selectedInventoryId.set(id);this.unitPrice.set('');this.suggestion.set(null);const row=this.inventory.items().find(x=>x.id===id);if(row)void this.loadSuggestion(row.itemId)}
   async loadSuggestion(itemId:string){try{const result=await this.api.get<any>('/market/suggestion/'+itemId).toPromise();if(this.selectedInventory()?.itemId!==itemId)return;this.suggestion.set(result??null);if(result?.suggestedUnitPrice)this.unitPrice.set(String(result.suggestedUnitPrice))}catch{this.suggestion.set(null)}}
   async createListing(){const row=this.selectedInventory();const price=Number(this.unitPrice());if(!row){this.error.set('Select an inventory stack first');return}if(!Number.isSafeInteger(price)||price<1){this.error.set('Unit price must be a positive integer');return}const gross=Number(row.quantity)*price;if(!Number.isSafeInteger(gross)||gross>this.maxGold){this.error.set('Listing total cannot exceed 999,999,999 gold');return}if(!window.confirm('List '+row.quantity+'x '+(this.catalog.item(row.itemId)?.name??row.itemId)+' for '+gross.toLocaleString()+' gold? The '+this.listingFee().toLocaleString()+' gold fee is non-refundable.'))return;this.loading.set(true);this.error.set('');try{await this.api.post('/market/orders/sell',{inventoryItemId:row.id,itemId:row.itemId,quantity:row.quantity,pricePerUnit:price}).toPromise();this.selectedInventoryId.set('');this.unitPrice.set('');await Promise.all([this.inventory.load(),this.character.load()]);this.tab.set('orders');await this.loadOrders()}catch(e:any){this.error.set(e?.error?.message??'Unable to create listing')}finally{this.loading.set(false)}}

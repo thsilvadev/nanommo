@@ -1,11 +1,25 @@
-import { Controller, Get, Post, Delete, UseGuards, Request, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Delete, UseGuards, Request, Body, Param, Query, NotFoundException } from '@nestjs/common';
 import { MarketService } from './market.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Character } from '../../database/entities/character.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('market')
 @UseGuards(JwtAuthGuard)
 export class MarketController {
-  constructor(private readonly marketService: MarketService) {}
+  constructor(
+    private readonly marketService: MarketService,
+    @InjectRepository(Character) private readonly characterRepo: Repository<Character>,
+  ) {}
+
+  private async resolveCharacterId(req: any): Promise<string> {
+    const userId = String(req?.user?.userId ?? '');
+    if (!userId) throw new NotFoundException('Authenticated account was not found');
+    const character = await this.characterRepo.findOne({ where: { userId } });
+    if (!character) throw new NotFoundException('Character not found');
+    return character.id;
+  }
 
   @Get('listings')
   async searchListings(@Query() query: { query?: string; type?: string; tier?: string; minPrice?: string; maxPrice?: string; sort?: string; page?: string; pageSize?: string }) {
@@ -14,7 +28,7 @@ export class MarketController {
 
   @Get('suggestion/:itemId')
   async getPriceSuggestion(@Request() req: any, @Param('itemId') itemId: string) {
-    return this.marketService.getPriceSuggestion(req.user.characterId, itemId);
+    return this.marketService.getPriceSuggestion(await this.resolveCharacterId(req), itemId);
   }
 
   /**
@@ -46,7 +60,7 @@ export class MarketController {
    */
   @Get('my-orders')
   async getCharacterOrders(@Request() req: any) {
-    const characterId = req.user.characterId;
+    const characterId = await this.resolveCharacterId(req);
     return this.marketService.getCharacterOrders(characterId);
   }
 
@@ -55,7 +69,7 @@ export class MarketController {
    */
   @Get('my-deals')
   async getCharacterDeals(@Request() req: any) {
-    const characterId = req.user.characterId;
+    const characterId = await this.resolveCharacterId(req);
     return this.marketService.getCharacterDeals(characterId);
   }
 
@@ -67,7 +81,7 @@ export class MarketController {
     @Request() req: any,
     @Body() body: { itemId: string; quantity: number; pricePerUnit: number; inventoryItemId?: string; itemInstanceData?: any },
   ) {
-    const characterId = req.user.characterId;
+    const characterId = await this.resolveCharacterId(req);
     return this.marketService.placeSellOrder(
       characterId,
       body.itemId,
@@ -86,7 +100,7 @@ export class MarketController {
     @Param('orderId') orderId: string,
     @Body() body: { quantity: number },
   ) {
-    return this.marketService.purchaseOrder(req.user.characterId, orderId, body.quantity);
+    return this.marketService.purchaseOrder(await this.resolveCharacterId(req), orderId, body.quantity);
   }
 
   /**
@@ -94,7 +108,7 @@ export class MarketController {
    */
   @Delete('orders/:orderId')
   async cancelOrder(@Request() req: any, @Param('orderId') orderId: string) {
-    const characterId = req.user.characterId;
+    const characterId = await this.resolveCharacterId(req);
     await this.marketService.cancelOrder(orderId, characterId);
     return { success: true };
   }

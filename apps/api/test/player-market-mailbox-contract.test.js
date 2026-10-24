@@ -60,7 +60,12 @@ assert.match(mail, /withCharacterQueueLock\(senderId/, 'sending item mail partic
 assert.match(mail, /withCharacterQueueLock\(characterId/, 'collecting item mail participates in encounter-chain lock');
 assert.match(mail, /MAX_MARKET_ORDER_GOLD/);
 assert.match(mail, /sourceKey/);
-assert.match(mailController, /req\.user\.characterId/);
+assert.match(mailController, /resolveCharacterId/);
+assert.doesNotMatch(mailController, /req\.user\.characterId/);
+assert.match(mailController, /where: \{ userId \}/);
+assert.match(marketController, /resolveCharacterId/);
+assert.match(marketController, /where: \{ userId \}/);
+assert.doesNotMatch(marketController, /req\.user\.characterId/);
 assert.doesNotMatch(mailController, /getMail\(@Param\('mailId'\)/, 'message detail endpoint is scoped to authenticated character');
 
 const migration = read('apps/api/src/database/migrations/1799920000000-PlayerMarketAndMailbox.ts');

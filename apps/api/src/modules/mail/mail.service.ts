@@ -86,6 +86,7 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
   }
 
   async sendMail(senderId: string, recipientName: string, subject: string, body: string, attachedGold?: number, attachedItemId?: string, attachedItemQuantity?: number, idempotencyKey?: string, attachedInventoryItemId?: string): Promise<MailMessage> {
+    if (!senderId) throw new NotFoundException('Character not found for authenticated account');
     return this.battleService.withCharacterQueueLock(senderId, () => this.dataSource.transaction(async manager => {
       const mailRepo = manager.getRepository(MailMessage);
       const sender = await manager.getRepository(Character).findOne({ where: { id: senderId }, lock: { mode: 'pessimistic_write' } });
@@ -157,6 +158,7 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
   }
 
   async collectAttachments(characterId: string, mailId: string): Promise<void> {
+    if (!characterId) throw new NotFoundException('Character not found for authenticated account');
     return this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
       const characterRepo = manager.getRepository(Character);
       const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
