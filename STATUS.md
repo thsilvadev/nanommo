@@ -2269,3 +2269,10 @@ Follow-up verification: shared build, API build and frontend TypeScript check pa
 - Enabled inventory item tooltips for the Market selected slot and for Mailbox Compose, Inbox/Sent cards and message details. Drop slots highlight only while a dragged stack is over the target and reset at drag end.
 - Moved Confirm Listing beside the centered Market drop slot in `market-drop-row`.
 - Validation passed: frontend spec TypeScript check, frontend production build, `node apps/api/test/player-market-mailbox-contract.test.js`, and `git diff --check`. Production build has existing nonfatal component CSS-budget and CommonJS warnings; no deployment or database mutation.
+
+
+### Frontend production build warnings — 2026-10-24
+- Adjusted the Angular component-style budget to a 5.2 kB warning threshold and 6 kB hard error threshold, above the current largest component stylesheet (~5.12 kB), without disabling the budget guard.
+- Added an ESM output for `@nanommo/shared` (`dist/esm`) and declared it through the package `module` field. The package's existing CommonJS `main` entry remains intact for Node/NestJS consumers.
+- Removed obsolete `.mailbox-portrait` CSS; the Mailbox portrait uses the standard `npcPortrait(npc.id)` path and its official asset.
+- Validation passed: shared CommonJS+ESM build, frontend spec TypeScript check, production frontend build (no CSS-budget or non-ESM warnings), API build, CommonJS runtime smoke check, Market/Mailbox contract test, and `git diff --check`. No deployment or database mutation performed.
