@@ -212,6 +212,52 @@ export class InventoryService {
     });
   }
 
+  /** Split a stack into a new free inventory slot. All validation and both row mutations are atomic. */
+  async splitStack(characterId: string, inventoryItemId: string, splitQuantity: number): Promise<{ items: InventoryItem[]; stateVersion: number; lastSeenAt: Date }> {
+    try {
+      return await this.inventoryItemRepo.manager.transaction(async (manager) => {
+        const characterRepo = manager.getRepository(Character);
+        const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+        if (!character) throw new NotFoundException('Character not found');
+        const repo = manager.getRepository(InventoryItem);
+        const rows = await repo.find({ where: { characterId, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
+        const source = rows.find(row => row.id === inventoryItemId);
+        if (!source) throw new NotFoundException('Inventory stack not found; reload and retry');
+        const definition = this.dataService.getItemById(source.itemId);
+        if (definition?.stackable !== true || Number(definition.maxStack ?? 1) <= 1 || Number(source.quantity) <= 1) {
+          throw new BadRequestException('This item cannot be split');
+        }
+        if (!Number.isInteger(splitQuantity) || splitQuantity < 1 || splitQuantity >= Number(source.quantity)) {
+          throw new BadRequestException(`Split quantity must be between 1 and ${Number(source.quantity) - 1}`);
+        }
+        if (rows.length >= 50) throw new BadRequestException('Inventory is full; free a slot before splitting a stack');
+        const used = new Set(rows.map(row => Number(row.slotIndex)));
+        const freeSlot = Array.from({ length: 50 }, (_, index) => index).find(index => !used.has(index));
+        if (freeSlot === undefined) throw new BadRequestException('Inventory is full; free a slot before splitting a stack');
+
+        source.quantity = Number(source.quantity) - splitQuantity;
+        await repo.save(source);
+        const split = repo.create({
+          characterId, location: 'inventory', slotIndex: freeSlot,
+          itemId: source.itemId, quantity: splitQuantity,
+          ...(source.instanceData == null ? {} : { instanceData: source.instanceData }),
+        });
+        await repo.save(split);
+        character.lastSeenAt = new Date();
+        const savedCharacter = await characterRepo.save(character);
+        return {
+          items: await repo.find({ where: { characterId, location: 'inventory' }, order: { slotIndex: 'ASC' } }),
+          stateVersion: savedCharacter.stateVersion,
+          lastSeenAt: savedCharacter.lastSeenAt,
+        };
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unknown validation error';
+      await this.idleJournal?.record(characterId, `Inventory split failed: ${reason}`, undefined, 'error');
+      throw error;
+    }
+  }
+
   /**
    * Persist the complete inventory order supplied by the client. The submitted IDs
    * must exactly match the current inventory to prevent stale requests from losing rows.

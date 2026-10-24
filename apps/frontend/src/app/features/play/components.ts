@@ -556,6 +556,8 @@ export class InventoryGrid implements OnDestroy {
   readonly highlightedSlot = signal<number | null>(null);
   readonly sorting = signal(false);
   readonly sortError = signal<string | null>(null);
+  readonly splitItem = signal<any | null>(null);
+  readonly splitQuantity = signal(1);
   private readonly timer = setInterval(() => this.now.set(Date.now()), 250);
   item(i: number) { return this.inventory.items().find(x => x.slotIndex === i) }
   itemTitle(i: any) { return this.catalog.item(i.itemId)?.name ?? i.itemId }
@@ -566,6 +568,28 @@ export class InventoryGrid implements OnDestroy {
   glyph(i: any) { return this.catalog.itemIcon(i.itemId) }
   elapsedTick() { const b = this.battle.active(); if (!b) return -1; return Math.max(0, Math.floor((this.now() - Date.parse(b.startAt)) / 1000)) }
   displayQuantity(it: any) { return Number(it.quantity ?? 0) }
+  onItemClick(event: MouseEvent, item: any) {
+    if (!event.ctrlKey) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const definition: any = this.catalog.item(item.itemId);
+    if (Number(item.quantity) <= 1 || definition?.stackable !== true || Number(definition?.maxStack ?? 1) <= 1) return;
+    this.splitItem.set(item);
+    this.splitQuantity.set(1);
+  }
+  setSplitQuantity(event: Event) {
+    const value = Number((event.target as HTMLInputElement).value);
+    this.splitQuantity.set(Number.isFinite(value) ? Math.trunc(value) : 0);
+  }
+  closeSplitModal() { this.splitItem.set(null); }
+  async confirmSplit() {
+    const item = this.splitItem();
+    if (!item) return;
+    const quantity = this.splitQuantity();
+    this.splitItem.set(null);
+    try { await this.inventory.splitStack(item.id, quantity); }
+    catch { /* The API records validation failures in the red System Journal. */ }
+  }
   onDragStart(ev: CdkDragStart<any>) {
     this.inventory.beginDrag(ev.source.data.itemId);
     this.sortError.set(null);

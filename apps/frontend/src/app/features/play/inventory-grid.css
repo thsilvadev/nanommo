@@ -122,6 +122,51 @@
   opacity: 0;
   pointer-events: none;
 }
+.split-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: #000b;
+}
+.split-modal {
+  width: min(360px, 100%);
+  box-sizing: border-box;
+  padding: 22px;
+  border: 1px solid #8b6a3b;
+  background: #17100c;
+  color: #e8dcc8;
+  box-shadow: 0 12px 40px #000b;
+  font: 15px Arial, sans-serif;
+}
+.split-modal h2 {
+  margin: 0 0 12px;
+  color: #d0a552;
+  font-size: 20px;
+}
+.split-modal p { margin: 0 0 16px; line-height: 1.45; }
+.split-modal label { display: block; margin-bottom: 6px; color: #b99759; }
+.split-modal input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #493521;
+  background: #100c09;
+  color: #fff;
+  font: inherit;
+}
+.split-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.split-modal-actions button {
+  padding: 8px 14px;
+  border: 1px solid #493521;
+  background: #100c09;
+  color: #e8dcc8;
+  cursor: pointer;
+}
+.split-modal-actions .split-confirm { border-color: #8b6a3b; color: #e0c28a; }
+.split-modal-actions button:hover { border-color: #d0a552; }
 .cdk-drag-preview {
   box-sizing: border-box;
   pointer-events: none;

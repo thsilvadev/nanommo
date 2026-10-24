@@ -58,6 +58,18 @@ export class InventoryController {
     return this.getConsistentInventorySnapshot(character.id);
   }
 
+  /** Split one stack into a new inventory slot; the service validates and mutates atomically. */
+  @Put('split')
+  async splitStack(
+    @Request() req: any,
+    @Body() body: { itemId: string; quantity: number },
+  ) {
+    const userId = req.user.userId;
+    const character = await this.characterService.getCharacterByUserId(userId);
+    await this.inventoryService.splitStack(character.id, String(body.itemId ?? ''), Number(body.quantity));
+    return this.getConsistentInventorySnapshot(character.id);
+  }
+
   /** Sort by item type/name and compact all items into consecutive slots. */
   @Put('sort')
   async sortInventory(

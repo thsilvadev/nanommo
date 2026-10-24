@@ -1,3 +1,7 @@
+### Inventory stack split — 2026-10-24
+
+Ctrl+clicking a stackable inventory stack now opens a Split modal with quantity bounded by the original stack minus one. Added `PUT /inventory/split`; server locks Character and inventory rows, checks stack eligibility, integer quantity and free slot, and atomically creates the new stack while subtracting from the original. Failed validation/transaction rolls back and emits a red System Journal error; modal closes and original stack stays unchanged. Updated root/OpenSpec SPEC and ARCHITECTURE. API build, frontend spec TypeScript check, frontend development build and `git diff --check` passed. No migration or deployment.
+
 ### Chat error visibility and scroll behavior — 2026-10-24
 
 System Journal already had `severity: 'success' | 'error'` and red styling for error rows; no new classification was needed. Incoming System error rows now automatically enable System and scroll to the latest message even if it was hidden or the user had scrolled up. Activating a channel and changing text size with plus/minus also scrolls to the bottom. Documented in root SPEC, OpenSpec SPEC and ARCHITECTURE. Frontend development build and `git diff --check` passed; no API/gameplay/database/deployment changes.
