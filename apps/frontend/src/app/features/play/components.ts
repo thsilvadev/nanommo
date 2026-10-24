@@ -635,7 +635,23 @@ export class InventoryGrid implements OnDestroy {
     }
   }
   accessorySlot() { const equipped = this.inventory.equipment(); return equipped.some(x => x.slot === 'accessoryLeft') ? 'accessoryRight' : 'accessoryLeft' }
-  async doubleClick(it: any) { if (this.vendor.selectedNpc()?.types.includes('storage')) { await this.vendor.transferWarehouseRow(it.id, 'deposit'); return; } const d: any = this.catalog.item(it.itemId); if (d?.type === 'consumable' || d?.type === 'food') { try { await this.inventory.useConsumable(it.itemId) } catch { } } else if (d?.type === 'equipment' && d.slot) { const slot = d.slot === 'accessory' ? this.accessorySlot() : d.slot; try { await this.inventory.equip(slot, it.itemId) } catch { } } }
+  async doubleClick(it: any) {
+    this.sortError.set(null);
+    if (this.vendor.selectedNpc()?.types.includes('storage')) {
+      try { await this.vendor.transferWarehouseRow(it.id, 'deposit'); }
+      catch (error: any) { this.sortError.set(error?.error?.message ?? 'Unable to transfer item'); }
+      return;
+    }
+    const definition: any = this.catalog.item(it.itemId);
+    if (definition?.type === 'consumable' || definition?.type === 'food') {
+      try { await this.inventory.useConsumable(it.itemId); }
+      catch (error: any) { this.sortError.set(error?.error?.message ?? 'Unable to use item'); }
+    } else if (definition?.type === 'equipment' && definition.slot) {
+      const slot = definition.slot === 'accessory' ? this.accessorySlot() : definition.slot;
+      try { await this.inventory.equip(slot, it.itemId); }
+      catch (error: any) { this.sortError.set(error?.error?.message ?? 'Unable to equip item'); }
+    }
+  }
   dragData(it: any) { return { source: 'inventory', ...it } }
   ngOnDestroy() { clearInterval(this.timer) }
 }

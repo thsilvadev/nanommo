@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Logger, ConflictException, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem } from '@/database/entities';
+import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem, BattleQueueEntry } from '@/database/entities';
 import { CharacterDto, Attribute, WeaponType, BattleEngine, effectiveWeaponAttack, sumAttributeBonuses, applyAttributeBonuses, masteryPassiveAttributeBonuses, type AttributeBonuses, effectiveFoodStatValue } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
@@ -157,6 +157,8 @@ export class CharacterService {
       autoFeed: false,
       lastSeenAt: new Date(),
       regenAnchorAt: new Date(),
+      resourceRegenAt: new Date(),
+      consumableCooldowns: {},
     });
 
     const savedCharacter = await this.characterRepository.save(character);
@@ -344,8 +346,8 @@ export class CharacterService {
   async getCharacterDtoByUserId(userId: string): Promise<CharacterDto | null> {
     const character = await this.getCharacterByUserId(userId);
     if (!character) return null;
-    await this.applyTownRegeneration(character);
-    return this.toDto(character);
+    const settled = await this.applyOffBattleRegeneration(character.id);
+    return this.toDto(settled?.character ?? character);
   }
 
   async getCharacterDtoById(characterId: string): Promise<CharacterDto | null> {
@@ -390,37 +392,117 @@ export class CharacterService {
     return { hp, sp, count, expiresAt };
   }
 
-  private async applyTownRegeneration(character: Character): Promise<void> {
-    if (character.status !== 'town') return;
+  /**
+   * Persist resource regeneration on the global 10-tick cadence, but only for
+   * time outside authoritative battle intervals. A started unresolved battle
+   * freezes this writer; the next pass after resolution skips its whole interval.
+   */
+  async applyOffBattleRegeneration(characterId: string): Promise<{ character: Character; resourcesChanged: boolean } | null> {
+    return this.battleService.withCharacterQueueLock(characterId, () => this.characterRepository.manager.transaction(async (manager) => {
+      const characterRepo = manager.getRepository(Character);
+      const battleRepo = manager.getRepository(BattleQueueEntry);
+      const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character) return null;
 
-    const now = Date.now();
-    const last = character.lastSeenAt?.getTime?.() ?? now;
-    const elapsedTicks = Math.max(0, Math.floor((now - last) / 1000));
-    const tenTickPeriods = Math.floor(elapsedTicks / 10);
-    if (tenTickPeriods <= 0) return;
+      const map = this.dataService.getMapById(character.currentMapId);
+      if (!['town', 'grinding'].includes(String(character.status)) || !map || !['town', 'grind'].includes(String(map.type))) {
+        return { character, resourcesChanged: false };
+      }
 
-    const equipped = await this.equippedItemRepository.find({ where: { characterId: character.id } });
-    const equipment = this.buildEquipmentStats(equipped);
-    const attributeBonuses = await this.buildTotalAttributeBonuses(character.id, equipped, equipment.statBonus);
-    const attrs = applyAttributeBonuses(character, attributeBonuses);
-    const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
-    let hpGain = 0;
-    let spGain = 0;
-    // Food slots can expire at different instants. Evaluate each 10-tick boundary
-    // independently, so one food stops contributing without removing the others.
-    for (let period = 1; period <= tenTickPeriods; period += 1) {
-      const boundaryAt = last + period * 10_000;
-      const food = this.getFoodRegenAt(character, boundaryAt);
-      hpGain += derived.hpRegenPerTenTicks + food.hp;
-      spGain += derived.spRegenPerTenTicks + food.sp;
+      const now = Date.now();
+      // Even an overdue unresolved row is still the authoritative active battle
+      // until its resolver commits. Never overwrite its immutable HP/SP result.
+      const startedBattle = await battleRepo.createQueryBuilder('battle')
+        .where('battle."characterId" = :characterId', { characterId })
+        .andWhere('battle."resolved" = false')
+        .andWhere('battle."startAt" <= :now', { now: new Date(now) })
+        .getOne();
+      if (startedBattle) return { character, resourcesChanged: false };
+
+      const anchorAt = character.regenAnchorAt?.getTime?.() ?? character.createdAt?.getTime?.() ?? now;
+      const checkpointAt = character.resourceRegenAt?.getTime?.() ?? character.lastSeenAt?.getTime?.() ?? anchorAt;
+      const endPeriod = Math.floor((now - anchorAt) / 10_000);
+      const firstPeriod = Math.max(1, Math.floor((checkpointAt - anchorAt) / 10_000) + 1);
+      if (endPeriod < firstPeriod) return { character, resourcesChanged: false };
+      const lastBoundaryAt = anchorAt + endPeriod * 10_000;
+      const battles = await battleRepo.createQueryBuilder('battle')
+        .where('battle."characterId" = :characterId', { characterId })
+        .andWhere('battle."startAt" < :endAt AND battle."endAt" > :startAt', {
+          startAt: new Date(checkpointAt), endAt: new Date(lastBoundaryAt + 1),
+        })
+        .orderBy('battle."startAt"', 'ASC')
+        .getMany();
+
+      const equipped = await this.equippedItemRepository.find({ where: { characterId } });
+      const equipment = this.buildEquipmentStats(equipped);
+      const attributeBonuses = await this.buildTotalAttributeBonuses(characterId, equipped, equipment.statBonus);
+      const attrs = applyAttributeBonuses(character, attributeBonuses);
+      const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
+      const beforeHp = Number(character.hpCurrent);
+      const beforeSp = Number(character.spCurrent);
+      let hp = beforeHp;
+      let sp = beforeSp;
+
+      for (let period = firstPeriod; period <= endPeriod; period += 1) {
+        const boundaryAt = anchorAt + period * 10_000;
+        const occupiedByBattle = battles.some((battle) => {
+          const startsAt = battle.startAt.getTime();
+          const fleeCancelledAt = battle.cancellationReason === 'flee' && battle.cancelledAt
+            ? battle.cancelledAt.getTime() : Number.POSITIVE_INFINITY;
+          const effectiveEndAt = Math.min(battle.endAt.getTime(), fleeCancelledAt);
+          // The final boundary belongs to the battle too: its simulation already
+          // owned that tick (and suppresses regen if it ended in a knockout).
+          // Otherwise a freshly respawned 1-HP Character could regen at that same tick.
+          return startsAt <= boundaryAt && boundaryAt <= effectiveEndAt;
+        });
+        if (occupiedByBattle) continue;
+        const food = this.getFoodRegenAt(character, boundaryAt);
+        hp = Math.min(derived.maxHp, hp + derived.hpRegenPerTenTicks + food.hp);
+        sp = Math.min(derived.maxSp, sp + derived.spRegenPerTenTicks + food.sp);
+        if (hp >= derived.maxHp && sp >= derived.maxSp && !food.count) {
+          // Skip old offline history only if no later battle could have caused
+          // damage inside the unprocessed period; otherwise later regen matters.
+          const latestFoodExpiry = Math.max(0, ...(Array.isArray(character.diet) ? character.diet : []).map((row: any) => Date.parse(String(row?.digestUntil ?? '')) || 0));
+          const laterBattle = battles.some((battle) => {
+            const startsAt = battle.startAt.getTime();
+            const fleeCancelledAt = battle.cancellationReason === 'flee' && battle.cancelledAt
+              ? battle.cancelledAt.getTime() : Number.POSITIVE_INFINITY;
+            return startsAt > boundaryAt && startsAt <= lastBoundaryAt && Math.min(battle.endAt.getTime(), fleeCancelledAt) > boundaryAt;
+          });
+          if (latestFoodExpiry <= boundaryAt && !laterBattle) break;
+        }
+      }
+
+      character.hpCurrent = Math.max(0, Math.floor(hp));
+      character.spCurrent = Math.max(0, Math.floor(sp));
+      character.resourceRegenAt = new Date(lastBoundaryAt);
+      if (character.activeFoodBuff?.expiresAt && Date.parse(String(character.activeFoodBuff.expiresAt)) <= now) {
+        character.activeFoodBuff = null;
+      }
+      const saved = await characterRepo.save(character);
+      return {
+        character: saved,
+        resourcesChanged: Number(saved.hpCurrent) !== beforeHp || Number(saved.spCurrent) !== beforeSp,
+      };
+    }));
+  }
+
+  /** Run every recovery pulse so off-battle regeneration is server-driven, not dependent on refreshes. */
+  async regenerateOffBattleResourcesForAll(): Promise<string[]> {
+    const candidates = await this.characterRepository.find({ select: ['id', 'status', 'currentMapId'] });
+    const updated: string[] = [];
+    for (const candidate of candidates) {
+      if (!['town', 'grinding'].includes(String(candidate.status))) continue;
+      const map = this.dataService.getMapById(candidate.currentMapId);
+      if (!map || !['town', 'grind'].includes(String(map.type))) continue;
+      try {
+        const result = await this.applyOffBattleRegeneration(candidate.id);
+        if (result?.resourcesChanged) updated.push(candidate.id);
+      } catch (error) {
+        this.logger.warn(`Off-battle regeneration failed for ${candidate.id}: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
-    character.hpCurrent = Math.min(derived.maxHp, character.hpCurrent + hpGain);
-    character.spCurrent = Math.min(derived.maxSp, character.spCurrent + spGain);
-    if (character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() <= now) {
-      character.activeFoodBuff = null;
-    }
-    character.lastSeenAt = new Date(last + tenTickPeriods * 10_000);
-    await this.characterRepository.save(character);
+    return updated;
   }
 
   private async toDto(character: Character): Promise<CharacterDto> {
@@ -495,6 +577,10 @@ export class CharacterService {
       status: character.status,
       activeGambitPageId: character.activeGambitPageId || undefined,
       lastSeenAt: character.lastSeenAt,
+      consumableCooldowns: Object.fromEntries(Object.entries(character.consumableCooldowns ?? {}).filter(([, until]) => {
+        const timestamp = Date.parse(String(until));
+        return Number.isFinite(timestamp) && timestamp > Date.now();
+      })),
       createdAt: character.createdAt,
       updatedAt: character.updatedAt,
       stateVersion: character.stateVersion,

@@ -273,4 +273,28 @@ describe('realtime resource synchronization', () => {
     expect(characterStore.character()?.spCurrent).toBe(35);
     expect(inventoryStore.items()[0].quantity).toBe(18);
   });
+
+  it('recovers a missing realtime battle queue while the character is grinding', () => {
+    const response = new Subject<any[]>();
+    api.get.and.returnValue(response.asObservable() as any);
+    const characterStore = TestBed.inject(CharacterStore);
+    const inventoryStore = TestBed.inject(InventoryStore);
+    const battleStore = TestBed.inject(BattleStore);
+    characterStore.applyRealtimeSnapshot(character(40, 20), 10);
+    battleStore.bindEvents(characterStore, inventoryStore);
+    const missedBattle = {
+      id: 'battle-recovered', characterId: 'char-1', sequenceIndex: 0,
+      mapId: 'map_lv_1', monsterId: 'mon_venomviper',
+      startAt: new Date(Date.now() - 1000).toISOString(), endAt: new Date(Date.now() + 20000).toISOString(),
+      outcome: 'loss', log: {}, xpGain: 0, goldGain: 0, drops: [], itemsConsumed: [],
+      hpAfter: 0, spAfter: 0, resolved: false, seedUsed: 'seed-recovered',
+    };
+
+    (battleStore as any).reconcileMissingBattleQueue();
+    response.next([missedBattle]);
+    response.complete();
+
+    expect(battleStore.active()?.id).toBe('battle-recovered');
+    battleStore.ngOnDestroy();
+  });
 });

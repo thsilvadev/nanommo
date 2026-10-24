@@ -10,6 +10,7 @@ const { InventoryController } = require('../dist/apps/api/src/modules/inventory/
   };
   const characterService = {
     getCharacterByUserId: async (userId) => { assert.equal(userId, 'user-1'); return character; },
+    applyOffBattleRegeneration: async (characterId) => { assert.equal(characterId, character.id); return { character, resourcesChanged: false }; },
     getCharacterDtoById: async (characterId) => { assert.equal(characterId, character.id); return { ...character, stateVersion: 12 }; },
   };
   const battleService = {

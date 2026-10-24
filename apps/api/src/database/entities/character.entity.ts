@@ -153,6 +153,14 @@ export class Character {
   @Column({ type: 'timestamptz', nullable: true })
   regenAnchorAt?: Date;
 
+  /** Last globally aligned 10-tick boundary accounted for by off-battle regeneration. */
+  @Column({ type: 'timestamptz', nullable: true })
+  resourceRegenAt?: Date | null;
+
+  /** Absolute expiration timestamps, keyed exactly like battle-engine cooldown keys. */
+  @Column({ type: 'jsonb', default: '{}' })
+  consumableCooldowns!: Record<string, string>;
+
   @CreateDateColumn()
   createdAt!: Date;
 

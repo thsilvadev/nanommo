@@ -116,6 +116,9 @@ export class InventoryController {
   async useConsumable(@Request() req: any, @Body() body: { itemId: string }) {
     const userId = req.user.userId;
     const character = await this.characterService.getCharacterByUserId(userId);
+    // Settle the latest completed non-battle regen tick before applying the item.
+    // An active battle is detected by the service and leaves its immutable state alone.
+    await this.characterService.applyOffBattleRegeneration(character.id);
     await this.battleService.runFutureCombatMutation(character.id, () =>
       this.inventoryService.useConsumable(character.id, body.itemId),
     );

@@ -95,6 +95,8 @@ export class CharacterDto {
   status!: string;
   activeGambitPageId?: string;
   lastSeenAt!: Date;
+  /** Absolute cooldown deadlines keyed by item:potion or item:<itemId>. */
+  consumableCooldowns!: Record<string, string>;
   createdAt!: Date;
   updatedAt!: Date;
   stateVersion!: number;

@@ -524,6 +524,14 @@ export class BattleService {
           return [itemId, until > atTime ? Math.ceil((until - atTime) / MS_PER_TICK) : 0];
         }),
       ),
+      // Manual off-battle consumables persist absolute cooldown deadlines. Convert
+      // them at this immutable encounter's projected start so cooldown time keeps
+      // elapsing during travel/search and then naturally counts down on combat ticks.
+      cooldowns: Object.fromEntries(Object.entries(character.consumableCooldowns ?? {}).flatMap(([key, until]) => {
+        const expiry = Date.parse(String(until));
+        if (!Number.isFinite(expiry) || expiry <= atTime) return [];
+        return [[key, Math.ceil((expiry - atTime) / MS_PER_TICK) + 1]];
+      })),
       skills,
       skillDefs,
       masteryEquipment,
@@ -1136,6 +1144,9 @@ export class BattleService {
 
       if (battle.outcome === 'loss') {
         this.applyResolvedFoodState(character, battle);
+        // The immutable battle owns every 10-tick regen boundary through endAt.
+        // Advance the off-battle checkpoint before the death path resets HP to 1.
+        this.advanceResourceRegenCheckpoint(character, battle.endAt);
         const death = await this.handleCharacterDeath(character, battle, manager);
         battle.resolved = true;
         await battleRepo.save(battle);
@@ -1205,6 +1216,7 @@ export class BattleService {
       }
 
       this.applyResolvedFoodState(character, battle);
+      this.advanceResourceRegenCheckpoint(character, battle.endAt);
       const equipmentChanged = await this.equipmentService.applyPendingEquipmentChanges(character.id, manager);
       await characterRepo.save(character);
 
@@ -1533,6 +1545,9 @@ export class BattleService {
       battle.resolved = true;
       battle.cancellationReason = 'flee';
       battle.cancelledAt = new Date(timestamp);
+      // FLEE replay has already reconstructed resources through its checkpoint;
+      // never let off-battle catch-up reapply pre-FLEE intervals to that state.
+      this.advanceResourceRegenCheckpoint(character, new Date(timestamp));
       await battleRepo.save(battle);
       const future = await queueRepo.find({ where: { characterId, resolved: false }, order: { sequenceIndex: 'ASC' } });
       const obsolete = future.filter(entry => entry.id !== battle.id).map(entry => entry.id);
@@ -1647,6 +1662,21 @@ export class BattleService {
       const itemId = autoFedItems[index];
       await this.idleJournal.ate(characterId, String(this.dataService.getItemById(itemId)?.name ?? itemId), `auto-feed-battle:${battle.id}:${index}:${itemId}`);
     }
+  }
+
+  /**
+   * Move the off-battle regeneration cursor through an immutable combat boundary.
+   * BattleEngine already projected every eligible 10-tick regen event in this
+   * interval, and current Character HP/SP now represent the battle's terminal
+   * snapshot. Replaying any pre-battle boundary on top of that terminal state
+   * would grant HP/SP twice, especially after delayed-job recovery.
+   */
+  private advanceResourceRegenCheckpoint(character: Character, throughAt: Date): void {
+    const timestamp = throughAt.getTime();
+    const anchorAt = character.regenAnchorAt?.getTime?.() ?? character.createdAt?.getTime?.() ?? timestamp;
+    const lastOwnedBoundaryAt = anchorAt + Math.floor((timestamp - anchorAt) / MS_PER_TICK / 10) * 10 * MS_PER_TICK;
+    const currentCheckpointAt = character.resourceRegenAt?.getTime?.() ?? Number.NEGATIVE_INFINITY;
+    if (lastOwnedBoundaryAt > currentCheckpointAt) character.resourceRegenAt = new Date(lastOwnedBoundaryAt);
   }
 
   private async applyMasteryRewards(battle: BattleQueueEntry, manager: EntityManager): Promise<void> {

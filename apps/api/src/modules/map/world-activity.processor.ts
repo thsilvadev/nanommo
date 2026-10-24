@@ -5,6 +5,7 @@ import { MapService } from './map.service';
 import { BattleService } from '../battle/battle.service';
 import { BattleQueueGateService } from '../battle/battle-queue-gate.service';
 import { TownService } from '../town/town.service';
+import { CharacterService } from '../character/character.service';
 
 @Processor('battle-queue')
 @Injectable()
@@ -12,7 +13,7 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WorldActivityProcessor.name);
   private recoveryTimer: NodeJS.Timeout | null = null;
   private recoveryInProgress: Promise<void> | null = null;
-  constructor(private readonly maps: MapService, private readonly battles: BattleService, private readonly gate: BattleQueueGateService, private readonly town: TownService) {}
+  constructor(private readonly maps: MapService, private readonly battles: BattleService, private readonly gate: BattleQueueGateService, private readonly town: TownService, private readonly characters: CharacterService) {}
 
   onModuleInit(): void {
     // Redis retains delayed jobs across restarts; this reconciler repairs only persisted activity whose job is missing.
@@ -32,7 +33,10 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
       try {
         const result = await this.maps.recoverPendingActivities();
         await this.town.reconcileCooking();
+        const regeneratedCharacters = await this.characters.regenerateOffBattleResourcesForAll();
+        for (const characterId of regeneratedCharacters) await this.battles.publishQueueUpdated(characterId);
         if (result.travel || result.gathering || result.flee) this.logger.log(`Recovered world activity jobs: travel=${result.travel} gathering=${result.gathering} flee=${result.flee}`);
+        if (regeneratedCharacters.length) this.logger.log(`[off-battle-regen] updated=${regeneratedCharacters.length} characterIds=${regeneratedCharacters.join(',')}`);
       } catch (error) {
         this.logger.error(`[activity-recovery] reconciliation-failed error=${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
       }

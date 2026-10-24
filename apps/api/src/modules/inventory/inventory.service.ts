@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { Character } from '../../database/entities/character.entity';
+import { BattleQueueEntry } from '../../database/entities/battle-queue-entry.entity';
 import { DataService } from '../data/data.service';
 import { effectiveFoodStatValue } from '@nanommo/shared';
 
@@ -656,38 +657,81 @@ export class InventoryService {
     if (!item || !['consumable', 'food'].includes(item.type)) {
       throw new BadRequestException('Item is not a usable item');
     }
-    const character = await this.characterRepo.findOne({ where: { id: characterId } });
-    if (!character) throw new NotFoundException('Character not found');
-    if (character.status === 'grinding') {
-      throw new BadRequestException('Consumables can only be used manually outside battle');
-    }
 
-    const count = await this.getItemCount(characterId, itemId);
-    if (count <= 0) throw new BadRequestException('Insufficient item quantity');
+    const result = await this.characterRepo.manager.transaction(async (manager) => {
+      const characterRepo = manager.getRepository(Character);
+      const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character) throw new NotFoundException('Character not found');
 
-    const effect = item.effect ?? {};
-    if (item.type === 'food' && effect.type === 'food_buff') {
-      const updated = await this.consumeFood(characterId, itemId);
-      return { character: updated, itemId };
-    }
-    character.lastSeenAt = new Date();
-    if (effect.type === 'heal_hp') {
-      const derived = await this.getDerivedStatsForCharacter(character);
-      character.hpCurrent = Math.min(derived.maxHp, Number(character.hpCurrent) + Number(effect.amount ?? 0));
-    } else if (effect.type === 'heal_sp') {
-      const derived = await this.getDerivedStatsForCharacter(character);
-      character.spCurrent = Math.min(derived.maxSp, Number(character.spCurrent) + Number(effect.amount ?? 0));
-    } else if (effect.type === 'heal_hp_sp') {
-      const derived = await this.getDerivedStatsForCharacter(character);
-      character.hpCurrent = Math.min(derived.maxHp, Number(character.hpCurrent) + Number(effect.hpAmount ?? 0));
-      character.spCurrent = Math.min(derived.maxSp, Number(character.spCurrent) + Number(effect.spAmount ?? 0));
-    } else if (effect.type === 'cure_status' && effect.status) {
-      character.statusEffects = (character.statusEffects ?? []).filter((s: any) => (s.type ?? s.id) !== effect.status);
-    }
+      const now = Date.now();
+      const startedBattle = await manager.getRepository(BattleQueueEntry).createQueryBuilder('battle')
+        .where('battle."characterId" = :characterId', { characterId })
+        .andWhere('battle."resolved" = false')
+        .andWhere('battle."startAt" <= :now', { now: new Date(now) })
+        .getOne();
+      if (startedBattle) {
+        throw new BadRequestException('Consumables can only be used outside battle');
+      }
 
-    await this.removeItem(characterId, itemId, 1);
-    await this.characterRepo.save(character);
-    return { character, itemId };
+      const count = await this.getItemCount(characterId, itemId, manager);
+      if (count <= 0) throw new BadRequestException('Insufficient item quantity');
+
+      const effect = item.effect ?? {};
+      if (item.type === 'food' && effect.type === 'food_buff') {
+        // Keep all existing diet/digestion/streak/reservation validation in the
+        // canonical consumeFood transaction; do not add a second food cooldown.
+        const updated = await this.consumeFood(characterId, itemId, manager, true, false);
+        return { character: updated, itemId, usedFood: true };
+      }
+
+      const effectType = String(effect.type ?? '');
+      const isPotion = item.type === 'consumable' && ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType);
+      const configuredCooldown = Number(item.cooldownInSeconds ?? item.cooldownSeconds ?? (isPotion ? 5 : 0));
+      const cooldownKey = isPotion ? 'item:potion' : configuredCooldown > 0 ? `item:${itemId}` : null;
+      const cooldowns = { ...(character.consumableCooldowns ?? {}) };
+      if (cooldownKey) {
+        const expiresAt = Date.parse(String(cooldowns[cooldownKey] ?? ''));
+        if (Number.isFinite(expiresAt) && expiresAt > now) {
+          const secondsRemaining = Math.ceil((expiresAt - now) / 1000);
+          throw new BadRequestException(`Item is on cooldown (${secondsRemaining}s remaining)`);
+        }
+      }
+
+      character.lastSeenAt = new Date(now);
+      if (effectType === 'heal_hp') {
+        const derived = await this.getDerivedStatsForCharacter(character);
+        character.hpCurrent = Math.min(derived.maxHp, Number(character.hpCurrent) + Number(effect.amount ?? 0));
+      } else if (effectType === 'heal_sp') {
+        const derived = await this.getDerivedStatsForCharacter(character);
+        character.spCurrent = Math.min(derived.maxSp, Number(character.spCurrent) + Number(effect.amount ?? 0));
+      } else if (effectType === 'heal_hp_sp') {
+        const derived = await this.getDerivedStatsForCharacter(character);
+        character.hpCurrent = Math.min(derived.maxHp, Number(character.hpCurrent) + Number(effect.hpAmount ?? 0));
+        character.spCurrent = Math.min(derived.maxSp, Number(character.spCurrent) + Number(effect.spAmount ?? 0));
+      } else if (effectType === 'cure_status' && effect.status) {
+        character.statusEffects = (character.statusEffects ?? []).filter((status: any) => (status.type ?? status.id) !== effect.status);
+      }
+
+      // Persist absolute deadlines so the cooldown keeps elapsing outside battle
+      // and can seed the next immutable battle snapshot if combat starts early.
+      if (cooldownKey && configuredCooldown > 0) {
+        for (const [key, until] of Object.entries(cooldowns)) {
+          const timestamp = Date.parse(String(until));
+          if (!Number.isFinite(timestamp) || timestamp <= now) delete cooldowns[key];
+        }
+        cooldowns[cooldownKey] = new Date(now + configuredCooldown * 1000).toISOString();
+        character.consumableCooldowns = cooldowns;
+      }
+
+      await this.removeItem(characterId, itemId, 1, manager);
+      const saved = await characterRepo.save(character);
+      return { character: saved, itemId, usedFood: false };
+    });
+
+    if (result.usedFood && this.idleJournal) {
+      await this.idleJournal.ate(characterId, String(item.name ?? itemId), `manual-food:${characterId}:${itemId}:${result.character.lastSeenAt?.getTime() ?? Date.now()}`);
+    }
+    return { character: result.character, itemId: result.itemId };
   }
 
   private async getDerivedStatsForCharacter(character: Character): Promise<{ maxHp: number; maxSp: number }> {

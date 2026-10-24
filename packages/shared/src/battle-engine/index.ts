@@ -582,7 +582,7 @@ export class BattleEngine {
     const monsterSkillDefs: Record<string, any> = options.monsterSkillDefs ?? {};
     const statusEffectDefs: Record<string, Partial<StatusEffectDefinition>> = options.statusEffectDefs ?? {};
 
-    const cooldowns: Record<string, number> = {};
+    const cooldowns: Record<string, number> = { ...(characterSnapshot.cooldowns ?? {}) };
 
     const self: CombatantSnapshot = {
       ...characterSnapshot,
