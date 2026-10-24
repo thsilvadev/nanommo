@@ -1,0 +1,48 @@
+# Tasks
+
+## 1. Persistence, validation contracts, and Town catalogue
+
+- [ ] 1.1 Add a forward-only migration and entity fields for MailMessage sender/recipient snapshots, body, gold attachment, independent read/attachment state, per-side visibility, expiry/source idempotency, plus MarketOrder listing-fee audit data; verify migration tests preserve legacy messages, active sell escrow, and MarketDeal history without executing the migration on the configured database.
+- [ ] 1.2 Define one shared `MAX_MARKET_ORDER_GOLD = 999_999_999` contract for total listing/purchase value and gold attachments; test positive integer validation, fee rounding/minimum, overflow-safe multiplication, and Character gold-boundary checks.
+- [ ] 1.3 Register the Mailbox NPC/capability for every canonical map with `type: town`; synchronize root and frontend public map/NPC catalogues and verify catalogue parity and town ownership with the existing validation scripts.
+- [ ] 1.4 Document the additive schema, fee/cap contract, legacy-state compatibility, and non-execution of migrations in the change design/STATUS handoff; verify `pnpm --filter @nanommo/shared build`, API type/build checks, and `git diff --check` for this group.
+
+## 2. Mailbox backend and asset custody
+
+- [ ] 2.1 Implement a shared transaction-manager-based system-mail creation path that can attach one canonical item stack/instance and/or gold, records sender/recipient snapshots and an idempotency/source key, and can be called inside a Market transaction without opening a nested transaction; test duplicate source-key behavior and rollback.
+- [ ] 2.2 Implement player-to-player send in a settled Town: resolve recipient by exact character name, reject self-send, validate subject/body and attachment caps, lock Character and the selected InventoryItem, respect Cooking reservations, debit gold/remove the exact item quantity, and create the mail atomically; test invalid/stale/insufficient attachments and repeated send idempotency.
+- [ ] 2.3 Implement Inbox, Sent, message detail, search, read state, sender/recipient deletion visibility, and unread counts with every query scoped to the authenticated sender/recipient; test that guessing another character's mail ID cannot read, mutate, collect, or delete the message.
+- [ ] 2.4 Implement atomic Town-only attachment collection: verify recipient, expiry, and uncollected state; plan capacity across compatible existing stacks and free slots; preserve equipment instance data; credit gold and insert all items only if the entire attachment fits; test gold-only collection with a full inventory, no-space rollback, gold bounds, and concurrent double-collect.
+- [ ] 2.5 Implement idempotent 30-day mail expiry/recovery and clear API/UI error responses; verify uncollected attachments are removed only at expiry, collected attachments cannot be claimed again, and retrying expiry does not repeat asset movement. Update the Mail section of root `SPEC.md` and `ARCHITECTURE.md`, append verified implementation/test evidence to `STATUS.md`, and run focused Mail service tests plus `git diff --check`.
+
+## 3. Town Mailbox UI
+
+- [ ] 3.1 Integrate the Mailbox capability with the generic Town NPC panel and show an unread badge/count without introducing a route that bypasses Town-only access; verify opening it while settled in any Town works and the existing NPCs continue to render.
+- [ ] 3.2 Build the responsive Inbox, Sent, message-detail, and Compose views with sender/destination snapshots, subject/body, date/expiry, read state, and one optional item-stack plus one optional gold attachment; verify canonical icons/tooltips and exact equipment attributes render correctly.
+- [ ] 3.3 Add a confirmation step before Send and explicit Collect/Delete actions; show inventory capacity errors without clearing or consuming the pending attachment, disable collecting outside Town, and show expiration warnings; test all flows with component/service specs.
+- [ ] 3.4 Verify the mailbox remains visually consistent with the existing dark/brass Town UI and works at desktop/mobile widths; run frontend spec TypeScript checks, relevant Angular tests, development build, and `git diff --check`.
+
+## 4. Sell-only Market backend
+
+- [ ] 4.1 Disable new buy-order endpoints and automatic cross-side matching for this release; add a retry-safe reconciliation for legacy active buy-order escrow that returns the audited remaining gold through Auction House mail, and test that old buy orders cannot be filled or refunded twice.
+- [ ] 4.2 Implement sell-listing creation using the exact selected InventoryItem ID and server-owned instance data; atomically validate remaining unreserved quantity, the 10-active-order limit, unit price/total cap, Character gold, 1% fee rounded up (minimum 1), item escrow, and the saved expiry; test stale stacks, Cooking reservations, equipment instance preservation, insufficient fee funds, and no double charge.
+- [ ] 4.3 Implement server-side listing search by canonical item name, combined category/type/tier/unit-price filters, bounded pagination, deterministic sorting and last-deal price lookup; test low-price default ordering, tie-breaking, other-player price suggestion, own-listing handling, and empty results.
+- [ ] 4.4 Implement partial Purchase for stack listings and whole-instance Purchase for equipment; inside one transaction debit buyer gold, decrement order escrow, update fulfillment state, create MarketDeal, and create buyer item mail plus seller gold mail; test insufficient funds, self-purchase rejection, full-inventory buyer purchases, cap boundaries, rollback on mail failure, and concurrent buyers competing for the last units.
+- [ ] 4.5 Implement owner-only cancellation and expiry by persisted `expiresAt`, returning exactly the remaining item escrow through Auction House mail without refunding the listing fee; implement active My Orders and newest-first last-15 My Deals APIs; test cancel-vs-purchase and expiry retries. Update the Market sections of root `SPEC.md` and `ARCHITECTURE.md`, append verified results to `STATUS.md`, and run focused Market service tests plus `git diff --check`.
+
+## 5. Market frontend and InventoryGrid reuse
+
+- [ ] 5.1 Add `/play/market`, replace disabled Trade with Market, and build the page inside the central router outlet while preserving the shared left Character Summary and right Grind Info; verify the existing Grind, Character, and Battle Logs navigation/layout does not regress.
+- [ ] 5.2 Extend InventoryGrid with optional Market drag/drop configuration and a clear sell drop zone, reusing existing icons, tooltip lines, stack quantities, drag previews and split behavior; test that the default Grind inventory interaction remains unchanged.
+- [ ] 5.3 Build Browse with item-name search, category/type/tier/price filters, sorting and pagination; show canonical item icons/tooltips, quantity, unit price, total listing value, Purchase action, own-listing state and clear no-offers state. Verify the default ordering is lowest unit price first.
+- [ ] 5.4 Build the sell composer with competing offers, editable unit price, suggested-price rules, full-stack quantity, gross/fee/net preview, irreversible-fee warning and explicit confirmation; test fee previews, empty-history input, stale offer refresh and validation errors.
+- [ ] 5.5 Build quantity confirmation for partial stack purchases and whole-instance equipment purchase, My Orders cancellation/expiry state, and My Deals history; route insufficient-gold failures to the existing red System Journal and show that purchased/returned items and proceeds await Mail collection in Town. Verify no inventory-space check runs at purchase time.
+- [ ] 5.6 Verify the central Market workspace remains usable at the actual desktop central-panel width with persistent side panels; use responsive internal scrolling/stacking for narrower widths. Run frontend spec TypeScript checks, focused component tests, development and production builds, and `git diff --check`.
+
+## 6. Cross-system, migration, and release-readiness verification
+
+- [ ] 6.1 Add service/integration tests that exercise full Mailbox-to-Market transactions against a disposable PostgreSQL/Redis runtime where available: two buyers, cancel-vs-buy, send-vs-retry, collect-vs-collect, insufficient inventory capacity, maximum gold boundaries, legacy escrow reconciliation, and database rollback when any mail row fails.
+- [ ] 6.2 Verify durable expiry/recovery behavior across worker restart and confirm each successful deal creates exactly two correctly addressed Auction House mails while cancellations/expiry create exactly one item return mail; verify no seller proceeds or buyer items are credited directly outside Mail.
+- [ ] 6.3 Run shared/API builds, frontend spec TypeScript check and development/production builds, focused tests, map/NPC catalogue validators, strict OpenSpec validation, and `git diff --check`; record any environment-blocked integration tests honestly in STATUS instead of treating source-contract checks as concurrency proof.
+- [ ] 6.4 Synchronize `SPEC.md`, `openspec/specs/SPEC.md`, `ARCHITECTURE.md`, and `STATUS.md` from verified results, including the sell-only scope, gold-only pricing, mailbox-only delivery, Town-only collection, explicit shared gold cap, legacy buy-order reconciliation, and the fact that the migration has not been executed.
+- [ ] 6.5 Perform a read-only pre-rollout audit of the deployed migration history, schema, active MarketOrder states, and outstanding escrow before any rollout; verify the approved forward migration and reconciliation plan without running migrations, mutating live data, or deploying during implementation.
