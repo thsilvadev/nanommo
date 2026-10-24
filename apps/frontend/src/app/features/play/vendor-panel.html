@@ -1,18 +1,33 @@
 <section class="vendor-panel" aria-label="Town NPC">
-  <div class="npc-select"><label for="town-npc-select">Talk to:</label><select id="town-npc-select" aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)"><option value="">Choose NPC to interact</option><option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{npc.name}}</option></select></div>
+  <div class="npc-select"><label for="town-npc-select">Talk to:</label><select id="town-npc-select"
+      aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)">
+      <option value="">Choose NPC to interact</option>
+      <option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{npc.name}}</option>
+    </select></div>
   <div class="vendor-error" *ngIf="vendor.error() && !vendor.selectedNpc()">{{vendor.error()}}</div>
   <ng-container *ngIf="vendor.selectedNpc() as npc">
-    <div class="npc-profile"><img *ngIf="npc.id!=='mailbox'" class="npc-portrait" [src]="npcPortrait(npc.id)" [alt]="npc.name" width="167" height="199"><div *ngIf="npc.id==='mailbox'" class="mailbox-portrait" aria-label="Mailbox">✉</div></div>
+    <div class="npc-profile"><img *ngIf="npc.id!=='mailbox'" class="npc-portrait" [src]="npcPortrait(npc.id)"
+        [alt]="npc.name" width="167" height="199"></div>
     <div class="vendor-title"><strong>{{npc.name}}</strong><span>{{npc.types.join(' / ') | uppercase}}</span></div>
 
     <ng-container *ngIf="npc.types.includes('storage')">
       <p class="vendor-greeting">{{npc.monologue}}</p>
-      <div id="storage-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid storage-grid" [class.drop-target-active]="shouldHighlightDropTarget()">
+      <div id="storage-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
+        cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid storage-grid"
+        [class.drop-target-active]="shouldHighlightDropTarget()">
         <div *ngFor="let slot of slots" class="vendor-slot" [class.filled]="warehouseAt(slot)">
-          <div *ngIf="warehouseAt(slot) as item" cdkDrag [cdkDragData]="warehouseDragData(item)" (cdkDragStarted)="onVendorDragStart(item)" (cdkDragEnded)="onVendorDragEnd()" (dblclick)="doubleClickWarehouse(item)" class="vendor-item">
-            <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon"><b *ngIf="item.quantity>1">{{item.quantity}}</b>
-            <div class="item-tooltip"><strong>{{vendor.itemName(item.itemId)}}</strong><span *ngFor="let line of catalog.itemTooltipLines(item.itemId,item.instanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></div>
-            <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)"></ng-template><ng-template cdkDragPlaceholder><span class="vendor-placeholder"></span></ng-template>
+          <div *ngIf="warehouseAt(slot) as item" cdkDrag [cdkDragData]="warehouseDragData(item)"
+            (cdkDragStarted)="onVendorDragStart(item)" (cdkDragEnded)="onVendorDragEnd()"
+            (dblclick)="doubleClickWarehouse(item)" class="vendor-item">
+            <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)"
+              class="vendor-icon"><b *ngIf="item.quantity>1">{{item.quantity}}</b>
+            <div class="item-tooltip"><strong>{{vendor.itemName(item.itemId)}}</strong><span
+                *ngFor="let line of catalog.itemTooltipLines(item.itemId,item.instanceData)"
+                [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+            </div>
+            <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)"
+                [alt]="vendor.itemName(item.itemId)"></ng-template><ng-template cdkDragPlaceholder><span
+                class="vendor-placeholder"></span></ng-template>
           </div>
         </div>
       </div>
@@ -21,15 +36,21 @@
 
     <ng-container *ngIf="npc.types.includes('vendor')">
       <p class="vendor-greeting">{{npc.greeting || 'Hello, adventurer!'}}</p>
-      <div id="vendor-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid"
-          [class.drop-target-active]="shouldHighlightDropTarget()">
+      <div id="vendor-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
+        cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid"
+        [class.drop-target-active]="shouldHighlightDropTarget()">
         <div *ngFor="let slot of slots" class="vendor-slot" [class.filled]="stockAt(slot)">
           <div *ngIf="stockAt(slot) as item" cdkDrag [cdkDragData]="dragData(item)"
-              (cdkDragStarted)="onVendorDragStart(item)" (cdkDragEnded)="onVendorDragEnd()" class="vendor-item">
+            (cdkDragStarted)="onVendorDragStart(item)" (cdkDragEnded)="onVendorDragEnd()" class="vendor-item">
             <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon">
             <b>∞</b>
-            <div class="item-tooltip"><strong [class]="itemTierClass(item.itemId)">{{vendor.itemName(item.itemId)}}</strong><span *ngFor="let line of catalog.itemTooltipLines(item.itemId)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></div><small>{{item.buyPrice}} G</small>
-            <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)"></ng-template>
+            <div class="item-tooltip"><strong
+                [class]="itemTierClass(item.itemId)">{{vendor.itemName(item.itemId)}}</strong><span
+                *ngFor="let line of catalog.itemTooltipLines(item.itemId)"
+                [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+            </div><small>{{item.buyPrice}} G</small>
+            <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)"
+                [alt]="vendor.itemName(item.itemId)"></ng-template>
             <ng-template cdkDragPlaceholder><span class="vendor-placeholder"></span></ng-template>
           </div>
         </div>
@@ -39,73 +60,134 @@
     <ng-container *ngIf="npc.types.includes('mailbox')">
       <p class="vendor-greeting">Letters, parcels, and Market deliveries are waiting here.</p>
       <div class="mailbox-tabs">
-        <button type="button" [class.active]="vendor.mailboxMode()==='inbox'" (click)="vendor.mailboxMode.set('inbox')">Inbox <b *ngIf="vendor.mailboxUnread()">{{vendor.mailboxUnread()}}</b></button>
-        <button type="button" [class.active]="vendor.mailboxMode()==='sent'" (click)="vendor.mailboxMode.set('sent')">Sent</button>
-        <button type="button" [class.active]="vendor.mailboxMode()==='compose'" (click)="vendor.mailboxMode.set('compose')">Compose</button>
+        <button type="button" [class.active]="vendor.mailboxMode()==='inbox'"
+          (click)="vendor.mailboxMode.set('inbox')">Inbox <b
+            *ngIf="vendor.mailboxUnread()">{{vendor.mailboxUnread()}}</b></button>
+        <button type="button" [class.active]="vendor.mailboxMode()==='sent'"
+          (click)="vendor.mailboxMode.set('sent')">Sent</button>
+        <button type="button" [class.active]="vendor.mailboxMode()==='compose'"
+          (click)="vendor.mailboxMode.set('compose')">Compose</button>
       </div>
       <div class="mailbox-compose" *ngIf="vendor.mailboxMode()==='compose'">
-        <label>Character name<input [value]="vendor.mailboxRecipient()" (input)="vendor.mailboxRecipient.set($any($event.target).value)" maxlength="16"></label>
-        <label>Subject<input [value]="vendor.mailboxSubject()" (input)="vendor.mailboxSubject.set($any($event.target).value)" maxlength="120"></label>
-        <label>Message<textarea [value]="vendor.mailboxBody()" (input)="vendor.mailboxBody.set($any($event.target).value)" maxlength="5000" rows="4"></textarea></label>
-        <label>Gold attachment<input type="number" min="0" max="999999999" [value]="vendor.mailboxGold()" (input)="vendor.mailboxGold.set($any($event.target).value)"></label>
+        <label>Character name<input [value]="vendor.mailboxRecipient()"
+            (input)="vendor.mailboxRecipient.set($any($event.target).value)" maxlength="16"></label>
+        <label>Subject<input [value]="vendor.mailboxSubject()"
+            (input)="vendor.mailboxSubject.set($any($event.target).value)" maxlength="120"></label>
+        <label>Message<textarea [value]="vendor.mailboxBody()"
+            (input)="vendor.mailboxBody.set($any($event.target).value)" maxlength="5000" rows="4"></textarea></label>
+        <label>Gold attachment<input type="number" min="0" max="999999999" [value]="vendor.mailboxGold()"
+            (input)="vendor.mailboxGold.set($any($event.target).value)"></label>
         <div class="mail-attachment-row"><span>Item attachment</span>
           <div id="mail-attachment-drop" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
             cdkDropListSortingDisabled (cdkDropListEntered)="mailDropHovered.set(true)"
             (cdkDropListExited)="mailDropHovered.set(false)" (cdkDropListDropped)="dropMailAttachment($event)"
             class="mail-attachment-drop" [class.has-item]="!!vendor.mailboxItemId()"
             [class.drop-hover]="mailDropHovered()" aria-label="Drop item to attach to mail">
-            <ng-container *ngIf="mailAttachment() as attached"><div class="mailbox-item-icon">
-              <img [src]="vendor.catalog.itemIcon(attached.itemId)" [alt]="vendor.itemName(attached.itemId)">
-              <b *ngIf="attached.quantity>1">{{attached.quantity}}</b>
-              <div class="item-tooltip"><strong>{{vendor.itemName(attached.itemId)}}</strong><span
-                *ngFor="let line of catalog.itemTooltipLines(attached.itemId,attached.instanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></div>
-            </div><button type="button" class="mail-attachment-remove" aria-label="Remove attachment" title="Remove attachment" (click)="vendor.mailboxItemId.set('')">×</button></ng-container>
+            <ng-container *ngIf="mailAttachment() as attached">
+              <div class="mailbox-item-icon">
+                <img [src]="vendor.catalog.itemIcon(attached.itemId)" [alt]="vendor.itemName(attached.itemId)">
+                <b *ngIf="attached.quantity>1">{{attached.quantity}}</b>
+                <div class="item-tooltip"><strong>{{vendor.itemName(attached.itemId)}}</strong><span
+                    *ngFor="let line of catalog.itemTooltipLines(attached.itemId,attached.instanceData)"
+                    [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+                </div>
+              </div><button type="button" class="mail-attachment-remove" aria-label="Remove attachment"
+                title="Remove attachment" (click)="vendor.mailboxItemId.set('')">×</button>
+            </ng-container>
           </div>
-          <small class="mail-attachment-hint" *ngIf="!vendor.mailboxItemId()">Drag a stack here. Attach the whole stack.</small>
+          <small class="mail-attachment-hint" *ngIf="!vendor.mailboxItemId()">Drag a stack here. Attach the whole
+            stack.</small>
         </div>
-        <button type="button" [disabled]="vendor.mailboxBusy()" (click)="vendor.sendPlayerMail()">Review &amp; Send</button>
+        <button type="button" [disabled]="vendor.mailboxBusy()" (click)="vendor.sendPlayerMail()">Review &amp;
+          Send</button>
       </div>
       <div class="mailbox-list" *ngIf="vendor.mailboxMode()!=='compose'">
-        <button type="button" *ngFor="let mail of (vendor.mailboxMode()==='inbox'?vendor.mailboxInbox():vendor.mailboxSent())"
-          class="mailbox-message" [class.unread]="vendor.mailboxMode()==='inbox'&&!mail.isRead" (click)="openMail(mail)">
-          <span class="mailbox-message-counterpart">{{vendor.mailboxMode()==='inbox'?mail.senderName:'To '+mail.recipientName}}</span>
+        <button type="button"
+          *ngFor="let mail of (vendor.mailboxMode()==='inbox'?vendor.mailboxInbox():vendor.mailboxSent())"
+          class="mailbox-message" [class.unread]="vendor.mailboxMode()==='inbox'&&!mail.isRead"
+          (click)="openMail(mail)">
+          <span class="mailbox-message-counterpart">{{vendor.mailboxMode()==='inbox'?mail.senderName:'To
+            '+mail.recipientName}}</span>
           <strong class="mailbox-message-subject">{{mail.subject}}</strong>
           <span class="mailbox-message-item" *ngIf="mail.itemId"><span class="mailbox-item-icon">
-            <img [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId)">
-            <b *ngIf="mail.quantity>1">{{mail.quantity}}</b>
-            <span class="item-tooltip"><strong>{{vendor.itemName(mail.itemId)}}</strong><span
-              *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></span>
-          </span></span>
+              <img [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId)">
+              <b *ngIf="mail.quantity>1">{{mail.quantity}}</b>
+              <span class="item-tooltip"><strong>{{vendor.itemName(mail.itemId)}}</strong><span
+                  *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)"
+                  [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' :
+                  ''}}{{line.value}}</span></span>
+            </span></span>
         </button>
         <p *ngIf="!(vendor.mailboxMode()==='inbox'?vendor.mailboxInbox():vendor.mailboxSent()).length">No messages.</p>
       </div>
 
       <div class="mailbox-modal-backdrop" *ngIf="openedMail() as mail" (click)="closeMail()">
-        <section class="mailbox-modal" role="dialog" aria-modal="true" aria-labelledby="mailbox-modal-subject" (click)="$event.stopPropagation()">
-          <header class="mailbox-modal-header"><div><small>{{vendor.mailboxMode()==='inbox'?'INBOX MESSAGE':'SENT MESSAGE'}}</small><h2 id="mailbox-modal-subject">{{mail.subject}}</h2></div><button type="button" class="mailbox-modal-close" aria-label="Close message" (click)="closeMail()">×</button></header>
-          <p class="mailbox-modal-meta"><strong>{{vendor.mailboxMode()==='inbox'?'From':'To'}}:</strong> {{vendor.mailboxMode()==='inbox'?mail.senderName:mail.recipientName}}<br><strong>Sent:</strong> {{mail.createdAt | date:'medium'}}<br><strong>Expires:</strong> {{mail.expiresAt | date:'medium'}}</p>
+        <section class="mailbox-modal" role="dialog" aria-modal="true" aria-labelledby="mailbox-modal-subject"
+          (click)="$event.stopPropagation()">
+          <header class="mailbox-modal-header">
+            <div><small>{{vendor.mailboxMode()==='inbox'?'INBOX MESSAGE':'SENT MESSAGE'}}</small>
+              <h2 id="mailbox-modal-subject">{{mail.subject}}</h2>
+            </div><button type="button" class="mailbox-modal-close" aria-label="Close message"
+              (click)="closeMail()">×</button>
+          </header>
+          <p class="mailbox-modal-meta"><strong>{{vendor.mailboxMode()==='inbox'?'From':'To'}}:</strong>
+            {{vendor.mailboxMode()==='inbox'?mail.senderName:mail.recipientName}}<br><strong>Sent:</strong>
+            {{mail.createdAt | date:'medium'}}<br><strong>Expires:</strong> {{mail.expiresAt | date:'medium'}}</p>
           <div class="mailbox-modal-body">{{mail.body}}</div>
           <div class="mailbox-modal-attachments" *ngIf="mail.itemId||mail.attachedGold">
-            <div class="mailbox-modal-attachment" *ngIf="mail.itemId"><span class="mailbox-item-icon"><img [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId)"><b *ngIf="mail.quantity>1">{{mail.quantity}}</b><span class="item-tooltip"><strong>{{vendor.itemName(mail.itemId)}}</strong><span *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></span></span><span><strong>{{vendor.itemName(mail.itemId)}}</strong><small>Quantity: {{mail.quantity}}</small></span></div>
-            <div class="mailbox-modal-attachment" *ngIf="mail.attachedGold"><img src="/assets/ui/coin.svg" alt="Gold" width="28" height="28"><span><strong>{{mail.attachedGold | number}} gold</strong><small>Gold attachment</small></span></div>
+            <div class="mailbox-modal-attachment" *ngIf="mail.itemId"><span class="mailbox-item-icon"><img
+                  [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId)"><b
+                  *ngIf="mail.quantity>1">{{mail.quantity}}</b><span
+                  class="item-tooltip"><strong>{{vendor.itemName(mail.itemId)}}</strong><span
+                    *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)"
+                    [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' :
+                    ''}}{{line.value}}</span></span></span><span><strong>{{vendor.itemName(mail.itemId)}}</strong><small>Quantity:
+                  {{mail.quantity}}</small></span></div>
+            <div class="mailbox-modal-attachment" *ngIf="mail.attachedGold"><img src="/assets/ui/coin.svg" alt="Gold"
+                width="28" height="28"><span><strong>{{mail.attachedGold | number}} gold</strong><small>Gold
+                  attachment</small></span></div>
           </div>
           <p class="mailbox-modal-meta" *ngIf="mail.attachmentsCollected">Attachments have already been collected.</p>
-          <div class="mailbox-delete-confirm" *ngIf="mailboxDeleteConfirm()"><p>Delete this {{vendor.mailboxMode()==='sent'?'sent copy':'message'}}? This cannot be undone.</p><div class="mailbox-confirm-actions"><button type="button" (click)="mailboxDeleteConfirm.set(false)">Keep message</button><button type="button" class="primary" [disabled]="vendor.mailboxBusy()" (click)="confirmDeleteOpenedMail()">Delete permanently</button></div></div>
+          <div class="mailbox-delete-confirm" *ngIf="mailboxDeleteConfirm()">
+            <p>Delete this {{vendor.mailboxMode()==='sent'?'sent copy':'message'}}? This cannot be undone.</p>
+            <div class="mailbox-confirm-actions"><button type="button" (click)="mailboxDeleteConfirm.set(false)">Keep
+                message</button><button type="button" class="primary" [disabled]="vendor.mailboxBusy()"
+                (click)="confirmDeleteOpenedMail()">Delete permanently</button></div>
+          </div>
           <footer class="mailbox-modal-actions" *ngIf="!mailboxDeleteConfirm()">
             <button type="button" (click)="closeMail()">Close</button>
-            <button type="button" *ngIf="vendor.mailboxMode()==='inbox'&&(mail.itemId||mail.attachedGold)&&!mail.attachmentsCollected" class="primary" [disabled]="vendor.mailboxBusy()" (click)="collectOpenedMail()">Collect attachments</button>
-            <button type="button" [disabled]="vendor.mailboxBusy()" (click)="requestDeleteOpenedMail()">{{vendor.mailboxMode()==='sent'?'Delete sent copy':'Delete'}}</button>
+            <button type="button"
+              *ngIf="vendor.mailboxMode()==='inbox'&&(mail.itemId||mail.attachedGold)&&!mail.attachmentsCollected"
+              class="primary" [disabled]="vendor.mailboxBusy()" (click)="collectOpenedMail()">Collect
+              attachments</button>
+            <button type="button" [disabled]="vendor.mailboxBusy()"
+              (click)="requestDeleteOpenedMail()">{{vendor.mailboxMode()==='sent'?'Delete sent copy':'Delete'}}</button>
           </footer>
           <p class="mailbox-error" *ngIf="vendor.error()">{{vendor.error()}}</p>
         </section>
       </div>
 
-      <div class="mailbox-confirm-backdrop" *ngIf="vendor.mailboxSendConfirm()" (click)="vendor.mailboxSendConfirm.set(false)">
-        <section class="mailbox-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="mailbox-send-confirm-title" (click)="$event.stopPropagation()">
-          <header class="mailbox-confirm-header"><div><small>MAILBOX</small><h2 id="mailbox-send-confirm-title">Confirm sending</h2></div><button type="button" class="mailbox-modal-close" aria-label="Close confirmation" (click)="vendor.mailboxSendConfirm.set(false)">×</button></header>
-          <div class="mailbox-confirm-summary"><span>Recipient</span><strong>{{vendor.mailboxRecipient()}}</strong><span>Subject</span><strong>{{vendor.mailboxSubject()}}</strong><span>Message</span><span>{{vendor.mailboxBody()}}</span><ng-container *ngIf="mailAttachment() as attached"><span>Item attachment</span><strong>{{vendor.itemName(attached.itemId)}} × {{attached.quantity}}</strong></ng-container><ng-container *ngIf="mailboxGoldAmount()>0"><span>Gold attachment</span><strong>{{mailboxGoldAmount() | number}} gold</strong></ng-container></div>
-          <p class="mailbox-modal-meta">The attached gold and complete item stack will be transferred when the message is sent. This action cannot be undone.</p>
-          <div class="mailbox-confirm-actions"><button type="button" (click)="vendor.mailboxSendConfirm.set(false)">Go back</button><button type="button" class="primary" [disabled]="vendor.mailboxBusy()" (click)="vendor.sendPlayerMail(true)">Send mail</button></div>
+      <div class="mailbox-confirm-backdrop" *ngIf="vendor.mailboxSendConfirm()"
+        (click)="vendor.mailboxSendConfirm.set(false)">
+        <section class="mailbox-confirm-modal" role="dialog" aria-modal="true"
+          aria-labelledby="mailbox-send-confirm-title" (click)="$event.stopPropagation()">
+          <header class="mailbox-confirm-header">
+            <div><small>MAILBOX</small>
+              <h2 id="mailbox-send-confirm-title">Confirm sending</h2>
+            </div><button type="button" class="mailbox-modal-close" aria-label="Close confirmation"
+              (click)="vendor.mailboxSendConfirm.set(false)">×</button>
+          </header>
+          <div class="mailbox-confirm-summary">
+            <span>Recipient</span><strong>{{vendor.mailboxRecipient()}}</strong><span>Subject</span><strong>{{vendor.mailboxSubject()}}</strong><span>Message</span><span>{{vendor.mailboxBody()}}</span><ng-container
+              *ngIf="mailAttachment() as attached"><span>Item
+                attachment</span><strong>{{vendor.itemName(attached.itemId)}} ×
+                {{attached.quantity}}</strong></ng-container><ng-container *ngIf="mailboxGoldAmount()>0"><span>Gold
+                attachment</span><strong>{{mailboxGoldAmount() | number}} gold</strong></ng-container></div>
+          <p class="mailbox-modal-meta">The attached gold and complete item stack will be transferred when the message
+            is sent. This action cannot be undone.</p>
+          <div class="mailbox-confirm-actions"><button type="button" (click)="vendor.mailboxSendConfirm.set(false)">Go
+              back</button><button type="button" class="primary" [disabled]="vendor.mailboxBusy()"
+              (click)="vendor.sendPlayerMail(true)">Send mail</button></div>
           <p class="mailbox-error" *ngIf="vendor.error()">{{vendor.error()}}</p>
         </section>
       </div>
@@ -116,18 +198,48 @@
       <button type="button" class="cooking-open-button" (click)="vendor.openCooking()">I'd like to cook</button>
     </ng-container>
 
-    <div class="cooking-overlay" *ngIf="vendor.cookingModal() && npc.id==='uncle_phillip'" (click)="vendor.closeCooking()">
-      <section class="cooking-modal" role="dialog" aria-modal="true" aria-label="Cooking" (click)="$event.stopPropagation()">
-        <header class="cooking-modal-header"><div><small>UNCLE PHILLIP'S KITCHEN</small><h2>Cooking</h2><span>Level {{vendor.cookingState()?.progress?.level ?? 1}} · {{vendor.cookingState()?.progress?.xpIntoLevel ?? 0}} / {{vendor.cookingState()?.progress?.xpToNextLevel ?? 100}} XP</span></div><button type="button" aria-label="Close Cooking" (click)="vendor.closeCooking()">×</button></header>
-        <div class="cooking-session" *ngIf="vendor.cookingState()?.session as session"><div class="cooking-session-row"><strong>Cooking {{session.recipeId.replace('_', ' ')}}</strong><span>{{vendor.cookingRemaining()}}s</span></div><div class="cooking-progress"><i [style.width.%]="vendor.cookingPercent()"></i></div><button type="button" class="cooking-cancel" (click)="vendor.cancelCooking()" [disabled]="vendor.busy()">Cancel</button></div>
-        <div class="cooking-recipes"><article *ngFor="let recipe of vendor.cookingState()?.recipes" class="cooking-recipe" [class.locked]="!recipe.unlocked" [class.unavailable]="!recipe.available"><img [src]="vendor.catalog.itemIcon(recipe.outputItemId)" [alt]="recipe.name" class="cooking-food-icon"><div class="cooking-recipe-info"><strong>{{recipe.name}}</strong><span class="cooking-required">Cooking Lv. {{recipe.requiredLevel}} · {{recipe.xpReward}} XP</span><span class="cooking-ingredients"><ng-container *ngFor="let ingredient of recipe.ingredients;let last=last">{{ingredient.quantity}} {{ingredient.item.name}} ({{ingredient.available}} available){{last?'':' · '}}</ng-container></span><span *ngIf="!recipe.canReserveOutput" class="cooking-warning">Not enough inventory space</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients" class="cooking-warning">Missing ingredients</span><span *ngIf="!recipe.unlocked" class="cooking-locked-label">Unlock at Cooking level {{recipe.requiredLevel}}</span></div><button type="button" class="cooking-button" [disabled]="!recipe.available || vendor.busy() || !!vendor.cookingState()?.session" (click)="vendor.startCooking(recipe.id)">COOK</button></article></div>
+    <div class="cooking-overlay" *ngIf="vendor.cookingModal() && npc.id==='uncle_phillip'"
+      (click)="vendor.closeCooking()">
+      <section class="cooking-modal" role="dialog" aria-modal="true" aria-label="Cooking"
+        (click)="$event.stopPropagation()">
+        <header class="cooking-modal-header">
+          <div><small>UNCLE PHILLIP'S KITCHEN</small>
+            <h2>Cooking</h2><span>Level {{vendor.cookingState()?.progress?.level ?? 1}} ·
+              {{vendor.cookingState()?.progress?.xpIntoLevel ?? 0}} / {{vendor.cookingState()?.progress?.xpToNextLevel
+              ?? 100}} XP</span>
+          </div><button type="button" aria-label="Close Cooking" (click)="vendor.closeCooking()">×</button>
+        </header>
+        <div class="cooking-session" *ngIf="vendor.cookingState()?.session as session">
+          <div class="cooking-session-row"><strong>Cooking {{session.recipeId.replace('_', '
+              ')}}</strong><span>{{vendor.cookingRemaining()}}s</span></div>
+          <div class="cooking-progress"><i [style.width.%]="vendor.cookingPercent()"></i></div><button type="button"
+            class="cooking-cancel" (click)="vendor.cancelCooking()" [disabled]="vendor.busy()">Cancel</button>
+        </div>
+        <div class="cooking-recipes">
+          <article *ngFor="let recipe of vendor.cookingState()?.recipes" class="cooking-recipe"
+            [class.locked]="!recipe.unlocked" [class.unavailable]="!recipe.available"><img
+              [src]="vendor.catalog.itemIcon(recipe.outputItemId)" [alt]="recipe.name" class="cooking-food-icon">
+            <div class="cooking-recipe-info"><strong>{{recipe.name}}</strong><span class="cooking-required">Cooking Lv.
+                {{recipe.requiredLevel}} · {{recipe.xpReward}} XP</span><span class="cooking-ingredients"><ng-container
+                  *ngFor="let ingredient of recipe.ingredients;let last=last">{{ingredient.quantity}}
+                  {{ingredient.item.name}} ({{ingredient.available}} available){{last?'':' ·
+                  '}}</ng-container></span><span *ngIf="!recipe.canReserveOutput" class="cooking-warning">Not enough
+                inventory space</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients"
+                class="cooking-warning">Missing ingredients</span><span *ngIf="!recipe.unlocked"
+                class="cooking-locked-label">Unlock at Cooking level {{recipe.requiredLevel}}</span></div><button
+              type="button" class="cooking-button"
+              [disabled]="!recipe.available || vendor.busy() || !!vendor.cookingState()?.session"
+              (click)="vendor.startCooking(recipe.id)">COOK</button>
+          </article>
+        </div>
       </section>
     </div>
 
     <div class="quest-dialogue" *ngIf="npc.types.includes('quest') && vendor.dialogue() as dialogue">
       <p class="quest-text">{{dialogue.npcText}}</p>
       <div class="quest-choices">
-        <button *ngFor="let choice of dialogue.choices" type="button" [disabled]="vendor.busy()" (click)="vendor.chooseDialogue(choice.id)">{{choice.text}}</button>
+        <button *ngFor="let choice of dialogue.choices" type="button" [disabled]="vendor.busy()"
+          (click)="vendor.chooseDialogue(choice.id)">{{choice.text}}</button>
       </div>
     </div>
 

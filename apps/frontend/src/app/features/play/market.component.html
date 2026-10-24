@@ -16,7 +16,7 @@
       <h2>Sell from Inventory</h2>
       <app-inventory-grid class="market-inventory-grid"></app-inventory-grid>
       <div class="market-drop-row">
-        <div class="market-drop-target-column"><span>Listing item</span>
+        <div class="market-drop-target-column">
           <div id="market-sell-drop" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
             cdkDropListSortingDisabled (cdkDropListEntered)="marketDropHovered.set(true)"
             (cdkDropListExited)="marketDropHovered.set(false)" (cdkDropListDropped)="dropInventoryStack($event)"
