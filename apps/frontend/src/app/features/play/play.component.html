@@ -6,7 +6,7 @@
       <button [class.active]="is('/play/character')" (click)="goCharacter()">Character</button>
       <button [class.active]="is('/play/battle-logs')"
         (click)="go('/play/battle-logs')">Battle Logs</button>
-      <button class="muted" disabled>Tournament</button><button class="muted" disabled>Trade</button>
+      <button class="muted" disabled>Tournament</button><button [class.active]="is('/play/market')" (click)="go('/play/market')">Market</button>
     </nav>
     <div class="top-character" *ngIf="character.character() as c">
       <div class="avatar-mini">{{c.name.slice(0,1).toUpperCase()}}</div>

@@ -301,16 +301,16 @@ Unique on `(characterId, mapId)`.
 |---|---|---|
 | id | uuid, PK | |
 | characterId | uuid, FK | owner |
-| type | enum('sell','buy') | |
+| type | enum('sell','buy') | New orders may only use sell; buy is retained solely for legacy escrow reconciliation |
 | itemId | varchar | |
-| itemInstanceData | jsonb, nullable | present for a **sell** order of a unique equipment piece; **buy orders never carry this** (see §13.4) |
+| itemInstanceData | jsonb, nullable | server-copied canonical instance snapshot for sell listings; historical buy rows are legacy only |
 | quantity | int | equipment orders always quantity = 1 |
-| pricePerUnit | int | gold, before the 5% buyer fee |
+| pricePerUnit | int | gold per unit; total listing/purchase value is capped at 999,999,999 gold |
 | escrowedItemQuantity | int, nullable | for sell orders, mirrors `quantity` while in escrow |
-| escrowedGold | bigint, nullable | for buy orders: `quantity * pricePerUnit * 1.05`, refundable |
+| escrowedGold | bigint, nullable | legacy active buy-order escrow only; reconciled to idempotent Auction House mail, never matched |
 | status | enum('active','fulfilled','cancelled','expired') | |
 | createdAt | timestamptz | |
-| expiresAt | timestamptz | `createdAt + 7 days` |
+| expiresAt | timestamptz | sell listing expires seven days after creation; legacy rows retain their stored deadline |
 
 ### 4.10 `MarketDeal` (history, last 15 shown per player per §47)
 | field | type | notes |
@@ -319,9 +319,9 @@ Unique on `(characterId, mapId)`.
 | buyerCharacterId | uuid, FK | |
 | sellerCharacterId | uuid, FK | |
 | itemId | varchar | |
-| itemInstanceData | jsonb, nullable | |
+| itemInstanceData | jsonb, nullable | server-copied canonical instance snapshot for sell listings; historical buy rows are legacy only |
 | quantity | int | |
-| pricePerUnit | int | |
+| pricePerUnit | int | gold per unit; total listing/purchase value is capped at 999,999,999 gold |
 | feeCollected | bigint | 5% of `quantity*pricePerUnit`, paid by buyer |
 | dealAt | timestamptz | |
 
@@ -331,11 +331,11 @@ Unique on `(characterId, mapId)`.
 | id | uuid, PK | |
 | recipientCharacterId | uuid, FK | |
 | itemId | varchar, nullable | null for pure-gold mails (not used in MVP, but future-proof) |
-| itemInstanceData | jsonb, nullable | |
+| itemInstanceData | jsonb, nullable | server-copied canonical instance snapshot for sell listings; historical buy rows are legacy only |
 | quantity | int, nullable | |
 | subject | varchar | e.g. "Market sale delivery", "Order cancelled" |
 | createdAt | timestamptz | |
-| expiresAt | timestamptz | `createdAt + 30 days` |
+| expiresAt | timestamptz | sell listing expires seven days after creation; legacy rows retain their stored deadline |
 | collected | boolean, default false | |
 
 ### 4.12 GlobalChatMessage
@@ -875,53 +875,42 @@ Not-hungry branch: "I'm fine, prayer. Came to get blessed for battle." → "The 
 - Legacy mute/report endpoints are not functional moderation features in this release; the service rejects unsupported operations. Do not treat the older §12.3 requirements for Town chat, automatic mute, or presence counters as implemented by this change.
 ---
 
-## 13. Market Trade
+## 13. Market
 
-An order-book style, auto-matching market, town-only UI.
+The Market release is sell-only and gold-only. Buy orders, automatic cross-side matching, cash pricing, and cash wallets are not available.
 
-### 13.1 Order types
+### 13.1 Sell listings and fee
 
-- **Sell order:** player picks an item (and, for stackables, a quantity; equipment is always quantity 1), a price **per unit**, lists it. The item(s) leave the inventory immediately and sit in **escrow** on the `MarketOrder` row (`escrowedItemQuantity`).
-- **Buy order:** player picks an item **by name/template only** — for equipment, they cannot pick or filter by the random-rolled bonus attribute (confirmed: buy orders are template-level, never instance-level), a quantity (equipment always 1), and a price per unit. `escrowedGold = quantity * pricePerUnit * 1.05` (the 5% fee, always buyer-side, is escrowed up front) is deducted from the character's gold immediately and held on the order.
+- A listing is created from one exact InventoryItem row. The selected stack is listed in full; equipment remains one instance and its canonical instanceData is copied from the locked server row. The client cannot supply authoritative instance data.
+- The server validates positive safe-integer unit price and quantity, eligible item definition, remaining unreserved inventory quantity, active listing limit (10 per character), and the gross listing value before persistence.
+- The shared MAX_MARKET_ORDER_GOLD constant is 999,999,999. It caps gross listing/purchase value and each individual attached-gold transfer. Multiplication and wallet bounds are validated before writes.
+- Listing fee is max(1, ceil(gross listing value × 1%)). It is charged once from the seller when the listing is created and is never refunded on cancellation or expiry. There is no flat 100-gold fee and no 5% buyer fee.
+- Sell listings expire at their persisted expiresAt (seven days after creation). Partial purchases decrement remaining escrow; initial quantity remains the original listed quantity.
 
-### 13.2 Matching
+### 13.2 Purchase and order lifecycle
 
-Fully automatic, continuous double-auction style: whenever a new order is placed, the server looks for existing **opposite-side** orders on the same `itemId` (ignoring `itemInstanceData` for matching — a buy order matches *any* sell order of that template, first-come-first-served among sellers) where `sellOrder.pricePerUnit <= buyOrder.pricePerUnit`. Match at **the resting order's price** (i.e., whichever order was already sitting in the book — first-come-first-served on price, per confirmed design), for `min(remaining sell qty, remaining buy qty)` units, repeating until one side is exhausted or no more matches exist. This can partially fill an order (some quantity trades, the remainder stays active) — support partial fills for stackable-item orders; equipment orders are always all-or-nothing since quantity is always 1.
+- Purchase accepts only a listing ID and requested quantity. Stackable items can be purchased partially; non-stackable equipment is purchased as one whole instance. Own listings cannot be purchased.
+- One database transaction locks and revalidates the listing and buyer, debits buyer gold, decrements listing escrow, writes one MarketDeal, and creates two Auction House mails: the item stack for the buyer and gross sale proceeds in gold for the seller. Neither item nor proceeds are delivered directly to Inventory or Character.gold.
+- Cancellation and expiry mark the listing terminal and send exactly the remaining item escrow through idempotent Auction House mail. The prepaid listing fee is not refunded. The expiry/recovery loop uses persisted expiresAt and bounded batches.
+- Legacy active buy orders are disabled and cannot be matched. Startup/periodic reconciliation returns their remaining escrowedGold through idempotent, capped Auction House gold mails and marks the old order terminal. Reconciliation must be audited against deployed state before rollout.
+- Browse supports canonical item-name search, item type/tier/price filters, bounded pagination, deterministic price sorting, and the last-15 deal history. Inventory delivery capacity is not checked at purchase time because the item waits in Mail.
 
-On a match:
-- Seller receives `quantity * pricePerUnit` gold directly to `Character.gold` (confirmed: instant, not via mail).
-- Buyer receives the item via **Mail** (§14) — not directly to inventory (confirmed).
-- The `5%` fee (already escrowed from the buyer at order-placement time) is captured as platform revenue (a `MarketDeal.feeCollected` row — no actual "sink" account needed, just don't credit it to the seller; it simply leaves the economy, which is intentional as a gold sink alongside the flat order fee below).
-- A `MarketDeal` row is created for **both** parties' history (§13.5).
+### 13.3 Market UI
 
-### 13.3 Fees (confirmed)
-
-- **5% fee, always charged to the buyer,** baked into `escrowedGold` on buy orders, and shown transparently: when browsing sell orders, the buyer-facing price already includes the +5% ("you pay: X"); when placing a buy order, the seller-facing view of that resting order shows the amount they'll actually receive (the buyer's stake minus 5%).
-- **Flat 100 gold listing fee**, charged immediately on placing **any** order (sell or buy), non-refundable even if the order is later cancelled (only the escrowed item/gold is returned on cancel, not this fee).
-
-### 13.4 Equipment orders — units and instances
-
-Because equipment is never stackable and buy orders never target a specific instance, an equipment **buy** order is inherently a "give me any copy of Reinforced Chestplate (Magic), I don't care about its rolled bonus stat" order — it will match the **first (oldest)** eligible sell order at or under the buyer's price. Equipment **sell** orders always carry the real `itemInstanceData` (the actual rolled attribute/value) so the buyer can inspect exactly what they're receiving once it lands in their mail.
-
-### 13.5 Order lifecycle
-
-- `expiresAt = createdAt + 7 days`. A scheduled job sweeps expired orders: **the escrowed item or gold is refunded via Mail**, not instantly (confirmed) — consistent with how all "the market gives you something" flows work.
-- Cancelling an active order early also refunds the escrow via Mail (same handling as expiry, for consistency — implement as one shared `releaseOrderEscrow(order, reason)` function).
-- Limit: **10 active sell orders + 10 active buy orders per character** (accepted suggestion).
-- **History:** the market UI's "My Deals" tab shows the **last 15** `MarketDeal` rows involving the character (as buyer or seller), newest first — simple `ORDER BY dealAt DESC LIMIT 15`.
+Market is a child route inside the central play outlet, preserving Character Summary and Grind Info. The current UI offers Browse, My Orders, and My Deals, a full-stack sell composer with gross/fee/net preview, a suggested price (one gold below the lowest other-player offer, otherwise one below the latest completed unit price, otherwise manual entry), price/type/tier filters, pagination, purchase quantity confirmation, and cancellation confirmation. Purchased items, sale proceeds, and returns must be collected through Mail in Town.
 
 ---
 
-## 14. Mail System
+## 14. Mailbox
 
-- Every mail is tied to `recipientCharacterId`, carries **at most one item stack** (or is a pure-text system notice with no item — supported by the schema for future use, not required at launch), and expires **30 days** after creation.
-- A numeric badge on the Mail icon shows the count of **uncollected** mail.
-- **Collecting** an item from mail requires available inventory space (a free slot, or room on an existing stack) — if there's no room, the collect action fails client-side with a clear "inventory full" message and the mail stays pending.
-- Expired, uncollected mail: **the item is simply deleted** (confirmed — no refund-of-refund chains). A scheduled job sweeps `expiresAt < now() AND collected = false` rows.
-- Sources of mail in MVP: Market sales delivered to the buyer (§13.2), Market order cancellations/expirations (§13.5). No other systems generate mail yet, but the schema is generic enough for future quest rewards etc.
+- Each message has sender and recipient character snapshots, sender relation when applicable, subject/body, created/expiry timestamps, optional one-stack item attachment with canonical instance data, optional gold attachment, separate read and attachment-collection flags, per-side deletion visibility, and a unique nullable source key for idempotent system delivery.
+- Mail expires 30 days after creation. At expiry, uncollected item/gold attachments are removed without refund chains; repeated cleanup does not move assets again.
+- Every player Mailbox operation is authenticated and scoped to the caller's sender/recipient side. Opening a message marks it read but never collects attachments. Sender-side deletion only hides the Sent copy. Recipient deletion is blocked while uncollected attachments remain.
+- Sending and collection require the character to be settled in a map whose canonical type is town, with status town and no travelIntent or pendingMapTransition. Sending resolves the exact character name, rejects self-send, validates subject/body and attachment bounds, respects active Cooking reservations, and removes gold/item plus creates the message in one transaction. At most one selected item stack and one gold attachment are allowed.
+- Collection locks the recipient and message, checks ownership, expiry and uncollected state, plans compatible-stack/free-slot placement for the entire item attachment, and credits attached gold in the same transaction. A full inventory does not prevent collecting gold-only mail; if the full item attachment cannot fit, nothing is transferred and the message remains claimable.
+- Every canonical map with type town lists the Mailbox NPC capability in both the root and public map catalogues. Inbox, Sent, Compose, read state, unread count, collection, and deletion are exposed through the generic Town NPC panel. No postage is charged.
 
 ---
-
 ## 15. Accounts, Auth & Security
 
 ### 15.1 Registration
@@ -951,7 +940,7 @@ Both required in MVP (confirmed). Standard token-in-email-link flow: generate a 
 
 ### 15.5 Anti item-duplication
 
-Every operation that moves gold or items between two owners (market match, mail collect, vendor buy/sell, inventory↔warehouse transfer) **must** run inside a single Postgres transaction with explicit row-level locking (`SELECT ... FOR UPDATE`) on every row being mutated, in a **consistent lock order** (e.g. always lock the lower-UUID row first) to avoid deadlocks. Never trust client-sent quantities/prices without re-validating server-side inside that same transaction. This is a hard requirement, not a nice-to-have — write integration tests specifically trying to double-spend/double-collect (§19.4).
+Every operation that moves gold or items between two owners (market listing/purchase, mail collect, vendor buy/sell, inventory↔warehouse transfer) **must** run inside a single Postgres transaction with explicit row-level locking (`SELECT ... FOR UPDATE`) on every row being mutated, in a **consistent lock order** (e.g. always lock the lower-UUID row first) to avoid deadlocks. Never trust client-sent quantities/prices without re-validating server-side inside that same transaction. This is a hard requirement, not a nice-to-have — write integration tests specifically trying to double-spend/double-collect (§19.4).
 
 ---
 
@@ -1320,7 +1309,7 @@ A standalone script (not part of CI, run manually during tuning) that runs thous
 
 - Auth flow: register → verify email → login → single-session enforcement (second login invalidates the first token).
 - Full grind loop: enter map → queue of 5 battles created → simulate time passing (mock the scheduler or fast-forward a test clock) → battles resolve → XP/gold/drops applied → death routes to town + death log recorded.
-- Market: place sell order → place matching buy order → both `MarketDeal` rows created → seller gold credited instantly → buyer receives item via mail → **concurrency test**: two buy orders racing for the same single sell order must never both succeed (this is the anti-duplication guarantee from §15.5 — write this test specifically, firing near-simultaneous requests and asserting exactly one wins and the other's gold is never spent).
+- Market: create a sell listing → purchase some/all units → one MarketDeal and two Auction House mails (buyer item, seller gold); verify no direct seller-wallet credit, fee is charged once, own-listing purchase is rejected, and concurrent buyers cannot acquire the same final units. Also race cancel/expiry against purchase and verify legacy buy-order escrow reconciliation is idempotent.
 - Mail: expiry sweep deletes uncollected items past 30 days; collect fails cleanly when inventory is full.
 - Crash recovery (§7.5): manually insert `BattleQueueEntry` rows with `endAt` in the past, restart the resolving service (or call its boot-time recovery function directly in the test), assert they resolve synchronously and in order before new connections are served.
 

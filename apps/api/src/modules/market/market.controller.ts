@@ -7,20 +7,22 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class MarketController {
   constructor(private readonly marketService: MarketService) {}
 
+  @Get('listings')
+  async searchListings(@Query() query: { query?: string; type?: string; tier?: string; minPrice?: string; maxPrice?: string; sort?: string; page?: string; pageSize?: string }) {
+    return this.marketService.searchListings(query);
+  }
+
+  @Get('suggestion/:itemId')
+  async getPriceSuggestion(@Request() req: any, @Param('itemId') itemId: string) {
+    return this.marketService.getPriceSuggestion(req.user.characterId, itemId);
+  }
+
   /**
    * Get all active orders for an item
    */
   @Get('orders/:itemId')
   async getMarketOrders(@Param('itemId') itemId: string) {
     return this.marketService.getMarketOrders(itemId);
-  }
-
-  /**
-   * Get buy orders (highest bids) for an item
-   */
-  @Get('orders/:itemId/buy')
-  async getBuyOrders(@Param('itemId') itemId: string) {
-    return this.marketService.getBuyOrders(itemId);
   }
 
   /**
@@ -58,29 +60,12 @@ export class MarketController {
   }
 
   /**
-   * Place a buy order
-   */
-  @Post('orders/buy')
-  async placeBuyOrder(
-    @Request() req: any,
-    @Body() body: { itemId: string; quantity: number; pricePerUnit: number },
-  ) {
-    const characterId = req.user.characterId;
-    return this.marketService.placeBuyOrder(
-      characterId,
-      body.itemId,
-      body.quantity,
-      body.pricePerUnit,
-    );
-  }
-
-  /**
    * Place a sell order
    */
   @Post('orders/sell')
   async placeSellOrder(
     @Request() req: any,
-    @Body() body: { itemId: string; quantity: number; pricePerUnit: number; itemInstanceData?: any },
+    @Body() body: { itemId: string; quantity: number; pricePerUnit: number; inventoryItemId?: string; itemInstanceData?: any },
   ) {
     const characterId = req.user.characterId;
     return this.marketService.placeSellOrder(
@@ -89,7 +74,19 @@ export class MarketController {
       body.quantity,
       body.pricePerUnit,
       body.itemInstanceData,
+      body.inventoryItemId,
     );
+  }
+
+
+  /** Purchase part or all of an active sell listing. */
+  @Post('orders/:orderId/purchase')
+  async purchaseOrder(
+    @Request() req: any,
+    @Param('orderId') orderId: string,
+    @Body() body: { quantity: number },
+  ) {
+    return this.marketService.purchaseOrder(req.user.characterId, orderId, body.quantity);
   }
 
   /**

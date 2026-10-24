@@ -1,606 +1,267 @@
-import { Injectable, Logger, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan } from 'typeorm';
 import { MarketOrder } from '../../database/entities/market-order.entity';
 import { MarketDeal } from '../../database/entities/market-deal.entity';
-import { MailMessage } from '../../database/entities/mail-message.entity';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { Character } from '../../database/entities/character.entity';
 import { DataService } from '../data/data.service';
-// import { GatewayService } from '../gateway/gateway.service';
-import { REDIS_CLIENT } from '../../config/redis.provider';
-import { Redis } from 'ioredis';
+import { MAX_MARKET_ORDER_GOLD } from '@nanommo/shared';
+import { marketGrossValue, marketListingFee } from './market-contract';
+import { BattleService } from '../battle/battle.service';
+import { MailService } from '../mail/mail.service';
 
-interface OrderMatch {
-  buyOrder: MarketOrder;
-  sellOrder: MarketOrder;
-  matchQty: number;
-  dealPrice: number;
-}
+const CHARACTER_GOLD_CAP = 1_000_000_000_000;
 
 @Injectable()
-export class MarketService {
+export class MarketService implements OnModuleInit, OnModuleDestroy {
+  private expiryTimer: NodeJS.Timeout | null = null;
+  private expiryInProgress = false;
   private readonly logger = new Logger('MarketService');
-  private readonly LISTING_FEE = 100; // Gold
-  private readonly BUYER_FEE_PERCENT = 5; // 5% buyer fee
   private readonly ORDER_TTL_DAYS = 7;
-  private readonly ACTIVE_ORDERS_PER_SIDE_LIMIT = 10;
+  private readonly ACTIVE_ORDERS_LIMIT = 10;
 
   constructor(
-    @InjectRepository(MarketOrder)
-    private readonly marketOrderRepo: Repository<MarketOrder>,
-    @InjectRepository(MarketDeal)
-    private readonly marketDealRepo: Repository<MarketDeal>,
-    @InjectRepository(MailMessage)
-    private readonly mailRepo: Repository<MailMessage>,
-    @InjectRepository(InventoryItem)
-    private readonly inventoryRepo: Repository<InventoryItem>,
-    @InjectRepository(Character)
-    private readonly characterRepo: Repository<Character>,
+    @InjectRepository(MarketOrder) private readonly marketOrderRepo: Repository<MarketOrder>,
+    @InjectRepository(MarketDeal) private readonly marketDealRepo: Repository<MarketDeal>,
+    @InjectRepository(InventoryItem) private readonly inventoryRepo: Repository<InventoryItem>,
+    @InjectRepository(Character) private readonly characterRepo: Repository<Character>,
     private readonly dataService: DataService,
-    // private readonly gatewayService: GatewayService,
-    @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    private readonly battleService: BattleService,
+    private readonly mailService: MailService,
     private readonly dataSource: DataSource,
   ) {}
 
-  /**
-   * Get all active market orders for an item
-   */
-  async getMarketOrders(itemId: string): Promise<MarketOrder[]> {
-    return this.marketOrderRepo.find({
-      where: { itemId, status: 'active' },
-      order: { createdAt: 'ASC' },
-      take: 50,
-    });
+  onModuleInit(): void {
+    // Startup recovery reconciles retired buy-order escrow and due sell-order expiries.
+    const startupTimer = setTimeout(() => { void this.runExpirySafely(); }, 5000);
+    (startupTimer as any).unref?.();
+    this.expiryTimer = setInterval(() => { void this.runExpirySafely(); }, 60_000);
+    (this.expiryTimer as any).unref?.();
+  }
+  onModuleDestroy(): void { if (this.expiryTimer) clearInterval(this.expiryTimer); this.expiryTimer = null; }
+  private async runExpirySafely(): Promise<void> {
+    if (this.expiryInProgress) return;
+    this.expiryInProgress = true;
+    try { await this.expireOrders(); }
+    catch (error) { this.logger.error('Market expiry/legacy escrow reconciliation failed', error instanceof Error ? error.stack : String(error)); }
+    finally { this.expiryInProgress = false; }
   }
 
-  /**
-   * Get buy orders for an item (highest bids first)
-   */
-  async getBuyOrders(itemId: string): Promise<MarketOrder[]> {
-    return this.marketOrderRepo.find({
-      where: { itemId, type: 'buy', status: 'active' },
-      order: { pricePerUnit: 'DESC', createdAt: 'ASC' },
-      take: 10,
+  async getMarketOrders(itemId: string): Promise<MarketOrder[]> { return this.getSellOrders(itemId); }
+  async getBuyOrders(_itemId: string): Promise<MarketOrder[]> { return []; }
+
+  async searchListings(filters: { query?: string; type?: string; tier?: string; minPrice?: string; maxPrice?: string; sort?: string; page?: string; pageSize?: string }): Promise<any> {
+    const query = String(filters.query ?? '').trim().toLocaleLowerCase();
+    const type = String(filters.type ?? '').trim();
+    const tier = filters.tier === undefined || filters.tier === '' ? null : Number(filters.tier);
+    const minPrice = filters.minPrice === undefined || filters.minPrice === '' ? null : Number(filters.minPrice);
+    const maxPrice = filters.maxPrice === undefined || filters.maxPrice === '' ? null : Number(filters.maxPrice);
+    const page = Math.max(1, Math.trunc(Number(filters.page) || 1));
+    const pageSize = Math.max(1, Math.min(50, Math.trunc(Number(filters.pageSize) || 20)));
+    const sort = filters.sort === 'highest' ? 'highest' : 'lowest';
+    const orders = await this.marketOrderRepo.find({
+      where: { type: 'sell', status: 'active' },
+      order: sort === 'highest' ? { pricePerUnit: 'DESC', createdAt: 'ASC' } : { pricePerUnit: 'ASC', createdAt: 'ASC' },
+      take: 5000,
     });
+    const listings = orders.filter(order => {
+      if (order.expiresAt.getTime() <= Date.now() || Number(order.escrowedItemQuantity ?? 0) <= 0) return false;
+      const item = this.dataService.getItemById(order.itemId);
+      if (!item) return false;
+      if (query && !String(item.name ?? order.itemId).toLocaleLowerCase().includes(query)) return false;
+      if (type && String(item.type ?? '') !== type) return false;
+      if (tier !== null && Number(item.tier ?? 0) !== tier) return false;
+      if (minPrice !== null && (!Number.isFinite(minPrice) || order.pricePerUnit < minPrice)) return false;
+      if (maxPrice !== null && (!Number.isFinite(maxPrice) || order.pricePerUnit > maxPrice)) return false;
+      return true;
+    });
+    const total = listings.length;
+    return { items: listings.slice((page - 1) * pageSize, page * pageSize).map(order => {
+      const item = this.dataService.getItemById(order.itemId);
+      return { ...order, itemName: item?.name ?? order.itemId, itemType: item?.type ?? 'unknown', tier: Number(item?.tier ?? 0), remainingQuantity: Number(order.escrowedItemQuantity ?? 0) };
+    }), total, page, pageSize, sort };
   }
 
-  /**
-   * Get sell orders for an item (lowest asks first)
-   */
-  async getSellOrders(itemId: string): Promise<MarketOrder[]> {
-    return this.marketOrderRepo.find({
+  async getPriceSuggestion(characterId: string, itemId: string): Promise<any> {
+    const item = this.dataService.getItemById(itemId);
+    if (!item) throw new NotFoundException('Item definition not found');
+    const offers = await this.marketOrderRepo.find({
       where: { itemId, type: 'sell', status: 'active' },
       order: { pricePerUnit: 'ASC', createdAt: 'ASC' },
-      take: 10,
+      take: 50,
     });
+    const activeOffers = offers.filter(order => order.expiresAt.getTime() > Date.now() && Number(order.escrowedItemQuantity ?? 0) > 0);
+    const competing = activeOffers.find(order => order.characterId !== characterId);
+    if (competing) return {
+      suggestedUnitPrice: Number(competing.pricePerUnit) > 1 ? Number(competing.pricePerUnit) - 1 : null,
+      reason: 'undercut_lowest_other_player_offer',
+      offers: activeOffers.map(order => ({ orderId: order.id, characterId: order.characterId, pricePerUnit: Number(order.pricePerUnit), quantity: Number(order.escrowedItemQuantity ?? 0), itemInstanceData: order.itemInstanceData ?? null, isOwn: order.characterId === characterId })),
+    };
+    const latestDeal = await this.marketDealRepo.findOne({ where: { itemId }, order: { dealAt: 'DESC' } });
+    const suggested = latestDeal ? Number(latestDeal.pricePerUnit) - 1 : null;
+    return {
+      suggestedUnitPrice: suggested !== null && suggested > 0 ? suggested : null,
+      reason: latestDeal ? 'undercut_latest_deal' : 'no_price_history',
+      offers: activeOffers.map(order => ({ orderId: order.id, characterId: order.characterId, pricePerUnit: Number(order.pricePerUnit), quantity: Number(order.escrowedItemQuantity ?? 0), itemInstanceData: order.itemInstanceData ?? null, isOwn: order.characterId === characterId })),
+    };
   }
 
-  /**
-   * Place a buy order with automatic matching
-   */
-  async placeBuyOrder(
-    characterId: string,
-    itemId: string,
-    quantity: number,
-    pricePerUnit: number,
-  ): Promise<{ order: MarketOrder; matches: MarketDeal[] }> {
-    return this.dataSource.transaction(async (txManager) => {
-      const character = await txManager.findOne(Character, {
-        where: { id: characterId },
-        lock: { mode: 'pessimistic_write' },
-      });
+  async getSellOrders(itemId: string): Promise<MarketOrder[]> {
+    return this.marketOrderRepo.find({ where: { itemId, type: 'sell', status: 'active' }, order: { pricePerUnit: 'ASC', createdAt: 'ASC' }, take: 50 });
+  }
 
+  async placeBuyOrder(): Promise<never> { throw new ForbiddenException('Buy orders are disabled; Market is sell-only'); }
+
+  async placeSellOrder(characterId: string, itemId: string, quantity: number, pricePerUnit: number, _untrustedInstanceData?: any, inventoryItemId?: string): Promise<{ order: MarketOrder; matches: MarketDeal[] }> {
+    return this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
+      const characters = manager.getRepository(Character);
+      const inventory = manager.getRepository(InventoryItem);
+      const orders = manager.getRepository(MarketOrder);
+      const character = await characters.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
       if (!character) throw new NotFoundException('Character not found');
-
+      if (character.status === 'dead_pending_return') throw new BadRequestException('Cannot list items while dead');
       const itemDef = this.dataService.getItemById(itemId);
-      if (!itemDef) throw new BadRequestException('Item not found');
-
-      const existingBuyOrders = await txManager.countBy(MarketOrder, {
-        characterId,
-        type: 'buy',
-        status: 'active',
+      if (!itemDef) throw new NotFoundException('Item definition not found');
+      if (!Number.isSafeInteger(quantity) || quantity < 1 || !Number.isSafeInteger(pricePerUnit) || pricePerUnit < 1) throw new BadRequestException('Quantity and unit price must be positive integers');
+      const gross = marketGrossValue(quantity, pricePerUnit);
+      const activeCount = await orders.count({ where: { characterId, type: 'sell', status: 'active' } });
+      if (activeCount >= this.ACTIVE_ORDERS_LIMIT) throw new BadRequestException(`Cannot have more than ${this.ACTIVE_ORDERS_LIMIT} active sell listings`);
+      const source = await inventory.findOne({
+        where: inventoryItemId ? { id: inventoryItemId, characterId, itemId, location: 'inventory' } : { characterId, itemId, location: 'inventory' },
+        order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' },
       } as any);
-
-      if (existingBuyOrders >= this.ACTIVE_ORDERS_PER_SIDE_LIMIT) {
-        throw new BadRequestException(
-          `Cannot place more than ${this.ACTIVE_ORDERS_PER_SIDE_LIMIT} active buy orders`,
-        );
+      if (!source) throw new NotFoundException('Selected inventory stack not found');
+      if (source.quantity !== quantity) throw new BadRequestException('Market listing must use the full selected stack; split the stack in Inventory first');
+      if ((!itemDef.stackable || Number(itemDef.maxStack ?? 1) <= 1) && quantity !== 1) throw new BadRequestException('Non-stackable items must be listed one at a time');
+      if (character.cookingSession) {
+        const reserved = (character.cookingSession.ingredients ?? []).filter((row: any) => row.itemId === itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
+        const owned = await inventory.find({ where: { characterId, itemId, location: 'inventory' } });
+        if (owned.reduce((sum, row) => sum + Number(row.quantity), 0) - source.quantity < reserved) throw new BadRequestException('Items are reserved for your active Cooking session');
       }
-
-      const escrowedGold = Math.floor(quantity * pricePerUnit * (1 + this.BUYER_FEE_PERCENT / 100));
-      const totalCost = this.LISTING_FEE + escrowedGold;
-
-      const charGold = Number(character.gold);
-      if (charGold < totalCost) {
-        throw new BadRequestException(
-          `Insufficient gold: need ${totalCost}, have ${charGold}`,
-        );
-      }
-
-      character.gold = (charGold - totalCost) as any;
-      await txManager.save(Character, character);
-
-      const order = this.marketOrderRepo.create({
-        characterId,
-        type: 'buy',
-        itemId,
-        quantity,
-        pricePerUnit,
-        escrowedGold: escrowedGold as any,
-        status: 'active',
-        createdAt: new Date(),
+      const fee = marketListingFee(gross);
+      if (Number(character.gold) < fee) throw new BadRequestException(`Insufficient gold for listing fee: need ${fee}`);
+      character.gold = Number(character.gold) - fee;
+      await characters.save(character);
+      await inventory.remove(source);
+      const order = orders.create({
+        characterId, type: 'sell', itemId, itemInstanceData: source.instanceData ?? null,
+        quantity, pricePerUnit, escrowedItemQuantity: quantity, escrowedGold: 0,
+        listingFeeGold: fee, status: 'active', createdAt: new Date(),
         expiresAt: new Date(Date.now() + this.ORDER_TTL_DAYS * 24 * 60 * 60 * 1000),
       });
-
-      const savedOrder = await txManager.save(MarketOrder, order);
-      const matches = await this.matchBuyOrder(savedOrder, txManager);
-
-      // await this.gatewayService.publishMarketOrderFilled(characterId, {
-      //   orderId: (savedOrder as any).id,
-      //   type: 'buy',
-      //   itemId,
-      //   quantity: savedOrder.quantity,
-      //   pricePerUnit,
-      //   matchCount: matches.length,
-      // });
-
-      return { order: savedOrder, matches };
-    });
-  }
-
-  /**
-   * Place a sell order with automatic matching
-   */
-  async placeSellOrder(
-    characterId: string,
-    itemId: string,
-    quantity: number,
-    pricePerUnit: number,
-    itemInstanceData?: any,
-  ): Promise<{ order: MarketOrder; matches: MarketDeal[] }> {
-    return this.dataSource.transaction(async (txManager) => {
-      const character = await txManager.findOne(Character, {
-        where: { id: characterId },
-        lock: { mode: 'pessimistic_write' },
-      });
-
-      if (!character) throw new NotFoundException('Character not found');
-
-      const itemDef = this.dataService.getItemById(itemId);
-      if (!itemDef) throw new BadRequestException('Item not found');
-
-      const existingSellOrders = await txManager.countBy(MarketOrder, {
-        characterId,
-        type: 'sell',
-        status: 'active',
-      } as any);
-
-      if (existingSellOrders >= this.ACTIVE_ORDERS_PER_SIDE_LIMIT) {
-        throw new BadRequestException(
-          `Cannot place more than ${this.ACTIVE_ORDERS_PER_SIDE_LIMIT} active sell orders`,
-        );
-      }
-
-      const hasItems = await txManager.findOne(InventoryItem, {
-        where: { characterId, itemId, location: 'inventory' } as any,
-        lock: { mode: 'pessimistic_write' },
-      });
-
-      if (!hasItems || hasItems.quantity < quantity) {
-        throw new BadRequestException(
-          `Insufficient items: need ${quantity}, have ${hasItems?.quantity || 0}`,
-        );
-      }
-
-      const charGold = Number(character.gold);
-      if (charGold < this.LISTING_FEE) {
-        throw new BadRequestException('Insufficient gold for listing fee');
-      }
-
-      character.gold = (charGold - this.LISTING_FEE) as any;
-      await txManager.save(Character, character);
-
-      hasItems.quantity -= quantity;
-      if (hasItems.quantity === 0) {
-        await txManager.delete(InventoryItem, hasItems.id);
-      } else {
-        await txManager.save(InventoryItem, hasItems);
-      }
-
-      const order = this.marketOrderRepo.create({
-        characterId,
-        type: 'sell',
-        itemId,
-        itemInstanceData,
-        quantity,
-        pricePerUnit,
-        escrowedItemQuantity: quantity,
-        status: 'active',
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + this.ORDER_TTL_DAYS * 24 * 60 * 60 * 1000),
-      });
-
-      const savedOrder = await txManager.save(MarketOrder, order);
-      const matches = await this.matchSellOrder(savedOrder, txManager);
-
-      // await this.gatewayService.publishMarketOrderFilled(characterId, {
-      //   orderId: (savedOrder as any).id,
-      //   type: 'sell',
-      //   itemId,
-      //   quantity: savedOrder.quantity,
-      //   pricePerUnit,
-      //   matchCount: matches.length,
-      // });
-
-      return { order: savedOrder, matches };
-    });
-  }
-
-  /**
-   * Cancel an active order
-   */
-  async cancelOrder(orderId: string, characterId: string): Promise<void> {
-    return this.dataSource.transaction(async (txManager) => {
-      const order = await txManager.findOne(MarketOrder, {
-        where: { id: orderId, characterId, status: 'active' },
-        lock: { mode: 'pessimistic_write' },
-      });
-
-      if (!order) throw new NotFoundException('Order not found or already completed');
-
-      await this.releaseOrderEscrow(order, 'Order cancelled by player', txManager);
-    });
-  }
-
-  /**
-   * Internal: Match a buy order against existing sell orders
-   */
-  private async matchBuyOrder(
-    buyOrder: MarketOrder,
-    txManager: any,
-  ): Promise<MarketDeal[]> {
-    const deals: MarketDeal[] = [];
-    let remainingBuyQty = buyOrder.quantity;
-
-    const sellOrders = await txManager.find(MarketOrder, {
-      where: { itemId: buyOrder.itemId, type: 'sell', status: 'active' } as any,
-      order: { pricePerUnit: 'ASC', createdAt: 'ASC' },
-    });
-
-    for (const sellOrder of sellOrders) {
-      if (remainingBuyQty === 0) break;
-      if (buyOrder.pricePerUnit < sellOrder.pricePerUnit) break;
-
-      const escrowedQty = (sellOrder.escrowedItemQuantity || 0) as number;
-      if (escrowedQty === 0) continue;
-
-      const matchQty = Math.min(remainingBuyQty, escrowedQty);
-      const dealPrice = sellOrder.pricePerUnit;
-      const dealGold = matchQty * dealPrice;
-      const feeGold = Math.floor(dealGold * (this.BUYER_FEE_PERCENT / 100));
-
-      const deal = this.marketDealRepo.create({
-        buyerCharacterId: buyOrder.characterId,
-        sellerCharacterId: sellOrder.characterId,
-        itemId: buyOrder.itemId,
-        itemInstanceData: sellOrder.itemInstanceData,
-        quantity: matchQty,
-        pricePerUnit: dealPrice,
-        feeCollected: feeGold,
-        dealAt: new Date(),
-      });
-
-      await txManager.save(MarketDeal, deal);
-      deals.push(deal);
-
-      // Give gold to seller
-      const seller = await txManager.findOne(Character, {
-        where: { id: sellOrder.characterId },
-        lock: { mode: 'pessimistic_write' },
-      });
-
-      if (seller) {
-        seller.gold = (Number(seller.gold) + dealGold) as any;
-        await txManager.save(Character, seller);
-      }
-
-      // Deliver item to buyer via mail
-      const mail = this.mailRepo.create({
-        recipientCharacterId: buyOrder.characterId,
-        itemId: buyOrder.itemId,
-        itemInstanceData: sellOrder.itemInstanceData,
-        quantity: matchQty,
-        subject: 'Market sale delivery',
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        collected: false,
-      });
-
-      await txManager.save(MailMessage, mail);
-
-      // await this.gatewayService.publishMailNewItem(buyOrder.characterId, {
-      //   mailId: (mail as any).id,
-      //   itemId: buyOrder.itemId,
-      //   quantity: matchQty,
-      //   subject: mail.subject,
-      // });
-
-      // Update quantities
-      remainingBuyQty -= matchQty;
-      sellOrder.escrowedItemQuantity = (sellOrder.escrowedItemQuantity || 0) - matchQty;
-
-      if ((sellOrder.escrowedItemQuantity as number) === 0) {
-        sellOrder.status = 'fulfilled';
-      }
-
-      await txManager.save(MarketOrder, sellOrder);
-    }
-
-    // Update buy order
-    buyOrder.quantity = remainingBuyQty;
-    if (remainingBuyQty === 0) {
-      buyOrder.status = 'fulfilled';
-    } else {
-      // Refund unused escrow
-      const buyer = await txManager.findOne(Character, {
-        where: { id: buyOrder.characterId },
-        lock: { mode: 'pessimistic_write' },
-      });
-
-      if (buyer) {
-        const usedGold = deals.reduce((sum, deal) => sum + deal.quantity * deal.pricePerUnit, 0);
-        const refundGold = Number(buyOrder.escrowedGold || 0) - Math.ceil(usedGold * (1 + this.BUYER_FEE_PERCENT / 100));
-
-        if (refundGold > 0) {
-          buyer.gold = (Number(buyer.gold) + refundGold) as any;
-          await txManager.save(Character, buyer);
-        }
-      }
-    }
-
-    await txManager.save(MarketOrder, buyOrder);
-    return deals;
-  }
-
-  /**
-   * Internal: Match a sell order against existing buy orders
-   */
-  private async matchSellOrder(
-    sellOrder: MarketOrder,
-    txManager: any,
-  ): Promise<MarketDeal[]> {
-    const deals: MarketDeal[] = [];
-    let remainingSellQty = (sellOrder.escrowedItemQuantity || 0) as number;
-
-    const buyOrders = await txManager.find(MarketOrder, {
-      where: { itemId: sellOrder.itemId, type: 'buy', status: 'active' } as any,
-      order: { pricePerUnit: 'DESC', createdAt: 'ASC' },
-    });
-
-    for (const buyOrder of buyOrders) {
-      if (remainingSellQty === 0) break;
-      if (buyOrder.pricePerUnit < sellOrder.pricePerUnit) break;
-
-      const matchQty = Math.min(remainingSellQty, buyOrder.quantity);
-      if (matchQty === 0) continue;
-
-      const dealPrice = sellOrder.pricePerUnit;
-      const dealGold = matchQty * dealPrice;
-      const feeGold = Math.floor(dealGold * (this.BUYER_FEE_PERCENT / 100));
-
-      const deal = this.marketDealRepo.create({
-        buyerCharacterId: buyOrder.characterId,
-        sellerCharacterId: sellOrder.characterId,
-        itemId: sellOrder.itemId,
-        itemInstanceData: sellOrder.itemInstanceData,
-        quantity: matchQty,
-        pricePerUnit: dealPrice,
-        feeCollected: feeGold,
-        dealAt: new Date(),
-      });
-
-      await txManager.save(MarketDeal, deal);
-      deals.push(deal);
-
-      // Give gold to seller
-      const seller = await txManager.findOne(Character, {
-        where: { id: sellOrder.characterId },
-        lock: { mode: 'pessimistic_write' },
-      });
-
-      if (seller) {
-        seller.gold = (Number(seller.gold) + dealGold) as any;
-        await txManager.save(Character, seller);
-      }
-
-      // Deliver item to buyer via mail
-      const mail = this.mailRepo.create({
-        recipientCharacterId: buyOrder.characterId,
-        itemId: sellOrder.itemId,
-        itemInstanceData: sellOrder.itemInstanceData,
-        quantity: matchQty,
-        subject: 'Market sale delivery',
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        collected: false,
-      });
-
-      await txManager.save(MailMessage, mail);
-
-      // await this.gatewayService.publishMailNewItem(buyOrder.characterId, {
-      //   mailId: (mail as any).id,
-      //   itemId: sellOrder.itemId,
-      //   quantity: matchQty,
-      //   subject: mail.subject,
-      // });
-
-      // Update quantities
-      remainingSellQty -= matchQty;
-      buyOrder.quantity -= matchQty;
-
-      if (buyOrder.quantity === 0) {
-        buyOrder.status = 'fulfilled';
-      } else {
-        // Refund unused escrow
-        const buyer = await txManager.findOne(Character, {
-          where: { id: buyOrder.characterId },
-          lock: { mode: 'pessimistic_write' },
-        });
-
-        if (buyer) {
-          const refundGold = buyOrder.quantity * sellOrder.pricePerUnit * (1 + this.BUYER_FEE_PERCENT / 100);
-          buyer.gold = (Number(buyer.gold) + refundGold) as any;
-          await txManager.save(Character, buyer);
-        }
-      }
-
-      await txManager.save(MarketOrder, buyOrder);
-    }
-
-    // Update sell order
-    sellOrder.escrowedItemQuantity = remainingSellQty;
-    if (remainingSellQty === 0) {
-      sellOrder.status = 'fulfilled';
-    }
-
-    await txManager.save(MarketOrder, sellOrder);
-    return deals;
-  }
-
-  /**
-   * Internal: Release escrow (cancellation/expiry)
-   */
-  private async releaseOrderEscrow(
-    order: MarketOrder,
-    reason: string,
-    txManager: any,
-  ): Promise<void> {
-    order.status = order.status === 'expired' ? 'expired' : 'cancelled';
-    await txManager.save(MarketOrder, order);
-
-    if (order.type === 'sell') {
-      // Return items to inventory
-      if ((order.escrowedItemQuantity || 0) > 0) {
-        let inventoryItem = await txManager.findOne(InventoryItem, {
-          where: {
-            characterId: order.characterId,
-            itemId: order.itemId,
-            location: 'inventory',
-          } as any,
-        });
-
-        if (inventoryItem) {
-          inventoryItem.quantity += (order.escrowedItemQuantity || 0);
-        } else {
-          inventoryItem = this.inventoryRepo.create({
-            characterId: order.characterId,
-            itemId: order.itemId,
-            location: 'inventory',
-            slotIndex: -1,
-            quantity: (order.escrowedItemQuantity || 0),
-            instanceData: order.itemInstanceData,
-          } as any);
-        }
-
-        await txManager.save(InventoryItem, inventoryItem);
-      }
-    } else if (order.type === 'buy') {
-      // Return gold
-      const character = await txManager.findOne(Character, {
-        where: { id: order.characterId },
-        lock: { mode: 'pessimistic_write' },
-      });
-
-      if (character && order.escrowedGold) {
-        character.gold = (Number(character.gold) + Number(order.escrowedGold)) as any;
-        await txManager.save(Character, character);
-      }
-    }
-
-    // Send notification mail
-    const mail = this.mailRepo.create({
-      recipientCharacterId: order.characterId,
-      subject: reason,
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      collected: true,
-    });
-
-    await txManager.save(MailMessage, mail);
-    this.logger.debug(`Released escrow for order ${order.id}: ${reason}`);
-  }
-
-  /**
-   * Get character's active orders
-   */
-  async getCharacterOrders(characterId: string): Promise<MarketOrder[]> {
-    return this.marketOrderRepo.find({
-      where: { characterId, status: 'active' },
-      order: { createdAt: 'DESC' },
-    });
-  }
-
-  /**
-   * Get character's deal history (last 15)
-   */
-  async getCharacterDeals(characterId: string): Promise<MarketDeal[]> {
-    return this.marketDealRepo.find({
-      where: [
-        { buyerCharacterId: characterId },
-        { sellerCharacterId: characterId },
-      ] as any,
-      order: { dealAt: 'DESC' },
-      take: 15,
-    });
-  }
-
-  /**
-   * Get price history for an item
-   */
-  async getPriceHistory(itemId: string, days: number = 7): Promise<any[]> {
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
-    const deals = await this.marketDealRepo.find({
-      where: { itemId } as any,
-      order: { dealAt: 'ASC' },
-    });
-
-    const filtered = deals.filter(d => d.dealAt >= since);
-    const byDay: Record<string, number[]> = {};
-
-    for (const deal of filtered) {
-      const day = deal.dealAt.toISOString().split('T')[0];
-      if (!byDay[day]) byDay[day] = [];
-      byDay[day].push(deal.pricePerUnit);
-    }
-
-    return Object.entries(byDay).map(([date, prices]) => ({
-      date,
-      minPrice: Math.min(...prices),
-      maxPrice: Math.max(...prices),
-      avgPrice: Math.floor(prices.reduce((a, b) => a + b, 0) / prices.length),
-      dealCount: prices.length,
+      return { order: await orders.save(order), matches: [] };
     }));
   }
 
-  /**
-   * Expire old orders (scheduled job)
-   */
-  async expireOrders(): Promise<number> {
-    return this.dataSource.transaction(async (txManager) => {
-      const cutoff = new Date(Date.now() - this.ORDER_TTL_DAYS * 24 * 60 * 60 * 1000);
+  async purchaseOrder(characterId: string, orderId: string, quantity: number): Promise<MarketDeal> {
+    return this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
+      const orders = manager.getRepository(MarketOrder);
+      const characters = manager.getRepository(Character);
+      const deals = manager.getRepository(MarketDeal);
+      const order = await orders.findOne({ where: { id: orderId, type: 'sell', status: 'active' }, lock: { mode: 'pessimistic_write' } });
+      if (!order || order.expiresAt.getTime() <= Date.now()) throw new NotFoundException('Active sell listing not found');
+      if (order.characterId === characterId) throw new BadRequestException('You cannot purchase your own listing');
+      const remaining = Number(order.escrowedItemQuantity ?? 0);
+      if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > remaining) throw new BadRequestException('Purchase quantity exceeds the remaining listing quantity');
+      const itemDef = this.dataService.getItemById(order.itemId);
+      if (!itemDef) throw new BadRequestException('Listing references an unknown item');
+      if ((!itemDef.stackable || Number(itemDef.maxStack ?? 1) <= 1) && quantity !== 1) throw new BadRequestException('Equipment listings must be purchased as a whole instance');
+      const gross = marketGrossValue(quantity, Number(order.pricePerUnit));
+      const buyer = await characters.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!buyer) throw new NotFoundException('Buyer character not found');
+      if (Number(buyer.gold) < gross) throw new BadRequestException(`Insufficient gold: need ${gross}, have ${Number(buyer.gold)}`);
+      const seller = await characters.findOne({ where: { id: order.characterId } });
+      if (!seller) throw new NotFoundException('Seller character not found');
+      buyer.gold = Number(buyer.gold) - gross;
+      await characters.save(buyer);
+      const deal = await deals.save(deals.create({
+        buyerCharacterId: buyer.id, sellerCharacterId: seller.id, itemId: order.itemId,
+        itemInstanceData: order.itemInstanceData ?? null, quantity, pricePerUnit: order.pricePerUnit,
+        feeCollected: 0, dealAt: new Date(),
+      }));
+      order.escrowedItemQuantity = remaining - quantity;
+      if (Number(order.escrowedItemQuantity) === 0) order.status = 'fulfilled';
+      await orders.save(order);
+      await this.mailService.sendSystemMail(
+        buyer.id, 'Market purchase delivery', 'Your purchased item is waiting for collection in Town.', undefined,
+        { itemId: order.itemId, quantity, itemInstanceData: order.itemInstanceData ?? null },
+        manager, `market-deal:${deal.id}:buyer-item`,
+      );
+      await this.mailService.sendSystemMail(
+        seller.id, 'Market sale proceeds', 'Gold from your Market sale is waiting for collection in Town.', gross,
+        undefined, manager, `market-deal:${deal.id}:seller-gold`,
+      );
+      return deal;
+    }));
+  }
 
-      const expiredOrders = await this.marketOrderRepo.find({
-        where: { status: 'active', createdAt: LessThan(cutoff) } as any,
-      });
+  async cancelOrder(orderId: string, characterId: string): Promise<void> {
+    await this.dataSource.transaction(async manager => {
+      const order = await manager.getRepository(MarketOrder).findOne({ where: { id: orderId, characterId, status: 'active' }, lock: { mode: 'pessimistic_write' } });
+      if (!order) throw new NotFoundException('Order not found or already completed');
+      await this.releaseOrderEscrow(order, 'Market listing cancelled', manager);
+    });
+  }
 
-      for (const order of expiredOrders) {
-        order.status = 'expired';
-        await this.releaseOrderEscrow(order, 'Market order expired (7 days)', txManager);
+  private async releaseOrderEscrow(order: MarketOrder, reason: string, manager: any): Promise<void> {
+    const orders = manager.getRepository(MarketOrder);
+    const characters = manager.getRepository(Character);
+    const character = await characters.findOne({ where: { id: order.characterId } });
+    if (!character) throw new NotFoundException('Order owner character not found');
+    if (order.type === 'sell') {
+      const qty = Math.max(0, Number(order.escrowedItemQuantity ?? 0));
+      if (qty > 0) {
+        const key = `market-order-return:${order.id}`;
+        await this.mailService.sendSystemMail(character.id, reason, 'Your remaining listing items are waiting for collection in Town.',
+          undefined, { itemId: order.itemId, quantity: qty, itemInstanceData: order.itemInstanceData ?? null }, manager, key);
       }
+      order.escrowedItemQuantity = 0;
+    } else {
+      const escrow = Math.max(0, Number(order.escrowedGold ?? 0));
+      // Historical buy-order escrow is returned in bounded, independently idempotent mail attachments.
+      let remaining = escrow; let part = 0;
+      while (remaining > 0) {
+        const amount = Math.min(remaining, MAX_MARKET_ORDER_GOLD);
+        const key = `market-legacy-buy-refund:${order.id}:${part++}`;
+        await this.mailService.sendSystemMail(character.id, 'Legacy Market escrow return',
+          'Gold escrow from a retired buy order is waiting for collection in Town.', amount, undefined, manager, key);
+        remaining -= amount;
+      }
+      order.escrowedGold = 0;
+    }
+    order.status = reason.includes('expired') ? 'expired' : 'cancelled';
+    await orders.save(order);
+    this.logger.debug(`Released escrow for order ${order.id}: ${reason}`);
+  }
 
-      return expiredOrders.length;
+  async getCharacterOrders(characterId: string): Promise<MarketOrder[]> {
+    return this.marketOrderRepo.find({ where: { characterId, type: 'sell', status: 'active' }, order: { createdAt: 'DESC' } });
+  }
+
+  async getCharacterDeals(characterId: string): Promise<MarketDeal[]> {
+    return this.marketDealRepo.find({ where: [{ buyerCharacterId: characterId }, { sellerCharacterId: characterId }] as any, order: { dealAt: 'DESC' }, take: 15 });
+  }
+
+  async getPriceHistory(itemId: string, days = 7): Promise<any[]> {
+    const since = new Date(Date.now() - Math.max(1, Math.min(365, Number(days) || 7)) * 24 * 60 * 60 * 1000);
+    const deals = await this.marketDealRepo.find({ where: { itemId, dealAt: LessThan(new Date()) } as any, order: { dealAt: 'ASC' } });
+    const byDay: Record<string, number[]> = {};
+    for (const deal of deals.filter(d => d.dealAt >= since)) {
+      const day = deal.dealAt.toISOString().slice(0, 10);
+      (byDay[day] ??= []).push(Number(deal.pricePerUnit));
+    }
+    return Object.entries(byDay).map(([date, prices]) => ({ date, minPrice: Math.min(...prices), maxPrice: Math.max(...prices), avgPrice: Math.floor(prices.reduce((a, b) => a + b, 0) / prices.length), dealCount: prices.length }));
+  }
+
+  async expireOrders(): Promise<number> {
+    return this.dataSource.transaction(async manager => {
+      const repo = manager.getRepository(MarketOrder);
+      const legacyBuys = await repo.find({ where: { type: 'buy', status: 'active' }, order: { createdAt: 'ASC' }, take: 200, lock: { mode: 'pessimistic_write', onLocked: 'skip_locked' } as any });
+      for (const order of legacyBuys) await this.releaseOrderEscrow(order, 'Legacy buy order escrow returned', manager);
+      const due = await repo.find({ where: { type: 'sell', status: 'active', expiresAt: LessThan(new Date()) }, order: { expiresAt: 'ASC' }, take: 200, lock: { mode: 'pessimistic_write', onLocked: 'skip_locked' } as any });
+      for (const order of due) await this.releaseOrderEscrow(order, 'Market listing expired', manager);
+      return legacyBuys.length + due.length;
     });
   }
 }

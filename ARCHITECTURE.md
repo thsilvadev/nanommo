@@ -176,11 +176,19 @@ Character (level, xp, gold, status, currentMapId, pendingMapTransition)
 - Stackable items (max 20) vs. unique equipment (qty=1)
 - `instanceData` stores rolled attributes for equipment
 
-### MarketOrder → MarketDeal
-- Buy/Sell orders placed by characters
-- Orders matched double-auction (buy at resting ask, sell at resting bid)
-- Matched orders create `MarketDeal` (history record)
-- Matched items delivered via `MailMessage`
+### MarketOrder → MarketDeal → MailMessage
+
+- Market is sell-only for this release: no buy-order endpoint and no cross-side matching.
+- A listing escrows one exact InventoryItem stack and records the prepaid 1% listingFeeGold audit value (minimum 1 gold, non-refundable).
+- A purchase transaction debits the buyer, updates listing escrow, creates one MarketDeal, and creates two idempotent Auction House mails: buyer item and seller gold proceeds. Neither is delivered directly to Inventory or Character.gold.
+- Cancellation/expiry returns remaining item escrow by one source-keyed MailMessage. A bounded startup/periodic reconciliation returns legacy active buy-order escrow as capped gold attachments before those orders are terminalized.
+
+### MailMessage and Town Mailbox
+
+- MailMessage snapshots senderName/recipientName, optional senderCharacterId, subject/body, one item stack and/or attachedGold, independent isRead/attachmentsCollected flags, per-side deletion flags, expiresAt, and nullable unique sourceKey.
+- Player send, inbox/sent/read/delete/search, and attachment collection are authenticated and scoped to the current Character. All player Mailbox actions require settled Town; system-generated Market mail does not require the recipient to be online or in Town.
+- Send and collect use one transaction with Character/InventoryItem/MailMessage locks. Collection preflights all item capacity before transferring either item or gold. Expired attachments are discarded by idempotent bounded cleanup; collected assets cannot be claimed again.
+- MAX_MARKET_ORDER_GOLD is shared from @nanommo/shared and caps gross Market listing/purchase values and individual attached-gold transfers at 999,999,999.
 
 ### ChatReport → Auto-mute
 - Reports stored with reporter/reported user
@@ -325,7 +333,7 @@ The HTTP and realtime paths are intentionally guarded independently:
 ### Exploits Prevented
 - ❌ Offline XP farming (battles pre-computed server-side)
 - ❌ Infinite gold exploit (currency capped at 1 trillion)
-- ❌ Market price manipulation (order matching is deterministic)
+- ❌ Automated valuation / price manipulation protection (Market is sell-only with user-entered prices; price suggestions are advisory)
 - ❌ Duplicate item creation (inventory operations atomic)
 
 ---
@@ -462,7 +470,7 @@ The CharacterModule/BattleModule dependency is intentionally circular and uses `
 - Equip item → Stat recalculation
 - Gambit save/validate
 - Battle queue generation
-- Market order matching
+- Market listing/purchase transaction and mail delivery
 
 ### E2E Tests
 - Full game loop (login → map → battles → level-up)

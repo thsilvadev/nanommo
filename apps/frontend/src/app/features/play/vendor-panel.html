@@ -2,7 +2,7 @@
   <div class="npc-select"><label for="town-npc-select">Talk to:</label><select id="town-npc-select" aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)"><option value="">Choose NPC to interact</option><option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{npc.name}}</option></select></div>
   <div class="vendor-error" *ngIf="vendor.error() && !vendor.selectedNpc()">{{vendor.error()}}</div>
   <ng-container *ngIf="vendor.selectedNpc() as npc">
-    <div class="npc-profile"><img class="npc-portrait" [src]="npcPortrait(npc.id)" [alt]="npc.name" width="167" height="199"></div>
+    <div class="npc-profile"><img *ngIf="npc.id!=='mailbox'" class="npc-portrait" [src]="npcPortrait(npc.id)" [alt]="npc.name" width="167" height="199"><div *ngIf="npc.id==='mailbox'" class="mailbox-portrait" aria-label="Mailbox">✉</div></div>
     <div class="vendor-title"><strong>{{npc.name}}</strong><span>{{npc.types.join(' / ') | uppercase}}</span></div>
 
     <ng-container *ngIf="npc.types.includes('storage')">
@@ -33,6 +33,32 @@
             <ng-template cdkDragPlaceholder><span class="vendor-placeholder"></span></ng-template>
           </div>
         </div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="npc.types.includes('mailbox')">
+      <p class="vendor-greeting">Letters, parcels, and Market deliveries are waiting here.</p>
+      <div class="mailbox-tabs">
+        <button type="button" [class.active]="vendor.mailboxMode()==='inbox'" (click)="vendor.mailboxMode.set('inbox')">Inbox <b *ngIf="vendor.mailboxUnread()">{{vendor.mailboxUnread()}}</b></button>
+        <button type="button" [class.active]="vendor.mailboxMode()==='sent'" (click)="vendor.mailboxMode.set('sent')">Sent</button>
+        <button type="button" [class.active]="vendor.mailboxMode()==='compose'" (click)="vendor.mailboxMode.set('compose')">Compose</button>
+      </div>
+      <div class="mailbox-compose" *ngIf="vendor.mailboxMode()==='compose'">
+        <label>Character name<input [value]="vendor.mailboxRecipient()" (input)="vendor.mailboxRecipient.set($any($event.target).value)" maxlength="16"></label>
+        <label>Subject<input [value]="vendor.mailboxSubject()" (input)="vendor.mailboxSubject.set($any($event.target).value)" maxlength="120"></label>
+        <label>Message<textarea [value]="vendor.mailboxBody()" (input)="vendor.mailboxBody.set($any($event.target).value)" maxlength="5000" rows="4"></textarea></label>
+        <label>Gold attachment<input type="number" min="0" max="999999999" [value]="vendor.mailboxGold()" (input)="vendor.mailboxGold.set($any($event.target).value)"></label>
+        <label>Inventory stack (optional)<select [value]="vendor.mailboxItemId()" (change)="vendor.mailboxItemId.set($any($event.target).value)"><option value="">No item attachment</option><option *ngFor="let row of inventory.items()" [value]="row.id">{{vendor.itemName(row.itemId)}} × {{row.quantity}}</option></select></label>
+        <label>Item quantity<input type="number" min="1" [value]="vendor.mailboxItemQuantity()" (input)="vendor.mailboxItemQuantity.set($any($event.target).value)"></label>
+        <button type="button" [disabled]="vendor.mailboxBusy()" (click)="vendor.sendPlayerMail()">Confirm & Send</button>
+      </div>
+      <div class="mailbox-list" *ngIf="vendor.mailboxMode()!=='compose'">
+        <article *ngFor="let mail of (vendor.mailboxMode()==='inbox'?vendor.mailboxInbox():vendor.mailboxSent())" class="mailbox-message" [class.unread]="vendor.mailboxMode()==='inbox'&&!mail.isRead">
+          <button type="button" class="mailbox-open" (click)="vendor.openPlayerMail(mail)"><strong>{{mail.subject}}</strong><small>{{vendor.mailboxMode()==='inbox'?'From '+mail.senderName:'To '+mail.recipientName}} · {{mail.createdAt | date:'short'}}</small><span>{{mail.body}}</span><div class="mailbox-attachment" *ngIf="mail.itemId||mail.attachedGold"><img *ngIf="mail.itemId" [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId)"><span *ngIf="mail.itemId" [title]="mailTooltip(mail)">{{vendor.itemName(mail.itemId)}} × {{mail.quantity}}</span><span *ngIf="mail.attachedGold">{{mail.attachedGold | number}} gold</span></div><small>Expires {{mail.expiresAt | date:'short'}}</small></button>
+          <div class="mailbox-actions" *ngIf="vendor.mailboxMode()==='inbox'"><button type="button" *ngIf="!mail.attachmentsCollected&&(mail.itemId||mail.attachedGold)" [disabled]="vendor.mailboxBusy()" (click)="vendor.collectPlayerMail(mail)">Collect</button><button type="button" [disabled]="vendor.mailboxBusy()" (click)="vendor.deletePlayerMail(mail)">Delete</button></div>
+          <button type="button" *ngIf="vendor.mailboxMode()==='sent'" [disabled]="vendor.mailboxBusy()" (click)="vendor.deletePlayerMail(mail)">Delete sent copy</button>
+        </article>
+        <p *ngIf="!(vendor.mailboxMode()==='inbox'?vendor.mailboxInbox():vendor.mailboxSent()).length">No messages.</p>
       </div>
     </ng-container>
 

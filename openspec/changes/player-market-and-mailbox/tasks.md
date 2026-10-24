@@ -4,8 +4,8 @@
 
 - [ ] 1.1 Add a forward-only migration and entity fields for MailMessage sender/recipient snapshots, body, gold attachment, independent read/attachment state, per-side visibility, expiry/source idempotency, plus MarketOrder listing-fee audit data; verify migration tests preserve legacy messages, active sell escrow, and MarketDeal history without executing the migration on the configured database.
 - [ ] 1.2 Define one shared `MAX_MARKET_ORDER_GOLD = 999_999_999` contract for total listing/purchase value and gold attachments; test positive integer validation, fee rounding/minimum, overflow-safe multiplication, and Character gold-boundary checks.
-- [ ] 1.3 Register the Mailbox NPC/capability for every canonical map with `type: town`; synchronize root and frontend public map/NPC catalogues and verify catalogue parity and town ownership with the existing validation scripts.
-- [ ] 1.4 Document the additive schema, fee/cap contract, legacy-state compatibility, and non-execution of migrations in the change design/STATUS handoff; verify `pnpm --filter @nanommo/shared build`, API type/build checks, and `git diff --check` for this group.
+- [x] 1.3 Register the Mailbox NPC/capability for every canonical map with `type: town`; synchronize root and frontend public map/NPC catalogues and verify catalogue parity and town ownership with the existing validation scripts.
+- [x] 1.4 Document the additive schema, fee/cap contract, legacy-state compatibility, and non-execution of migrations in the change design/STATUS handoff; verify `pnpm --filter @nanommo/shared build`, API type/build checks, and `git diff --check` for this group.
 
 ## 2. Mailbox backend and asset custody
 

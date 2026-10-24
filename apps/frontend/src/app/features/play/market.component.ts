@@ -1,0 +1,34 @@
+import { CommonModule } from '@angular/common';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ApiService } from '../../core/api.service';
+import { CatalogService } from '../../core/catalog.service';
+import { CharacterStore, InventoryStore } from '../../core/game.store';
+
+@Component({ selector:'app-market', standalone:true, imports:[CommonModule], templateUrl:'./market.component.html', styleUrl:'./market.component.css' })
+export class MarketComponent implements OnInit {
+  private api=inject(ApiService); readonly catalog=inject(CatalogService); readonly character=inject(CharacterStore); readonly inventory=inject(InventoryStore);
+  readonly tab=signal<'browse'|'orders'|'deals'>('browse'); readonly query=signal(''); readonly type=signal(''); readonly tier=signal(''); readonly minPrice=signal(''); readonly maxPrice=signal(''); readonly sort=signal('lowest'); readonly page=signal(1);
+  readonly listings=signal<any[]>([]); readonly total=signal(0); readonly suggestion=signal<any|null>(null); readonly orders=signal<any[]>([]); readonly deals=signal<any[]>([]); readonly loading=signal(false); readonly busyId=signal(''); readonly error=signal('');
+  readonly selectedInventoryId=signal(''); readonly unitPrice=signal('');
+  readonly selectedInventory=computed(()=>this.inventory.items().find(row=>row.id===this.selectedInventoryId())??null);
+  readonly listingGross=computed(()=>{const row=this.selectedInventory();const p=Number(this.unitPrice());return row&&Number.isSafeInteger(p)&&p>0?Number(row.quantity)*p:0});
+  readonly listingFee=computed(()=>this.listingGross()>0?Math.max(1,Math.ceil(this.listingGross()*0.01)):0);
+  readonly maxGold=999999999; readonly pageSize=20;
+  ngOnInit(){void Promise.all([this.catalog.load(),this.inventory.load(),this.character.load()]).then(()=>this.refresh())}
+  refresh(){if(this.tab()==='browse')return this.loadListings();if(this.tab()==='orders')return this.loadOrders();return this.loadDeals()}
+  setTab(t:'browse'|'orders'|'deals'){this.tab.set(t);this.error.set('');void this.refresh()}
+  async loadListings(){this.loading.set(true);this.error.set('');try{const p=new URLSearchParams({query:this.query(),sort:this.sort(),page:String(this.page()),pageSize:String(this.pageSize)});if(this.type())p.set('type',this.type());if(this.tier())p.set('tier',this.tier());if(this.minPrice())p.set('minPrice',this.minPrice());if(this.maxPrice())p.set('maxPrice',this.maxPrice());const r=await this.api.get<any>('/market/listings?'+p.toString()).toPromise();this.listings.set(r?.items??[]);this.total.set(Number(r?.total??0))}catch(e:any){this.error.set(e?.error?.message??'Unable to load Market listings')}finally{this.loading.set(false)}}
+  async loadOrders(){this.loading.set(true);try{this.orders.set(await this.api.get<any[]>('/market/my-orders').toPromise()??[])}catch(e:any){this.error.set(e?.error?.message??'Unable to load your listings')}finally{this.loading.set(false)}}
+  async loadDeals(){this.loading.set(true);try{this.deals.set(await this.api.get<any[]>('/market/my-deals').toPromise()??[])}catch(e:any){this.error.set(e?.error?.message??'Unable to load deal history')}finally{this.loading.set(false)}}
+  search(){this.page.set(1);void this.loadListings()}
+  changeInventory(id:string){this.selectedInventoryId.set(id);this.unitPrice.set('');this.suggestion.set(null);const row=this.inventory.items().find(x=>x.id===id);if(row)void this.loadSuggestion(row.itemId)}
+  async loadSuggestion(itemId:string){try{const result=await this.api.get<any>('/market/suggestion/'+itemId).toPromise();if(this.selectedInventory()?.itemId!==itemId)return;this.suggestion.set(result??null);if(result?.suggestedUnitPrice)this.unitPrice.set(String(result.suggestedUnitPrice))}catch{this.suggestion.set(null)}}
+  async createListing(){const row=this.selectedInventory();const price=Number(this.unitPrice());if(!row){this.error.set('Select an inventory stack first');return}if(!Number.isSafeInteger(price)||price<1){this.error.set('Unit price must be a positive integer');return}const gross=Number(row.quantity)*price;if(!Number.isSafeInteger(gross)||gross>this.maxGold){this.error.set('Listing total cannot exceed 999,999,999 gold');return}if(!window.confirm('List '+row.quantity+'x '+(this.catalog.item(row.itemId)?.name??row.itemId)+' for '+gross.toLocaleString()+' gold? The '+this.listingFee().toLocaleString()+' gold fee is non-refundable.'))return;this.loading.set(true);this.error.set('');try{await this.api.post('/market/orders/sell',{inventoryItemId:row.id,itemId:row.itemId,quantity:row.quantity,pricePerUnit:price}).toPromise();this.selectedInventoryId.set('');this.unitPrice.set('');await Promise.all([this.inventory.load(),this.character.load()]);this.tab.set('orders');await this.loadOrders()}catch(e:any){this.error.set(e?.error?.message??'Unable to create listing')}finally{this.loading.set(false)}}
+  async purchase(row:any){const remaining=Number(row.remainingQuantity??row.escrowedItemQuantity);const q=remaining===1?1:Number(window.prompt('Quantity to purchase (1-'+remaining+')','1'));if(!Number.isSafeInteger(q)||q<1||q>remaining)return;const gross=q*Number(row.pricePerUnit);if(!Number.isSafeInteger(gross)||gross>this.maxGold){this.error.set('Purchase total exceeds 999,999,999 gold');return}if(!window.confirm('Purchase '+q+'x '+row.itemName+' for '+gross.toLocaleString()+' gold? Items will be delivered to Mail.'))return;this.busyId.set(row.id);try{await this.api.post('/market/orders/'+row.id+'/purchase',{quantity:q}).toPromise();await Promise.all([this.character.load(),this.loadListings()])}catch(e:any){this.error.set(e?.error?.message??'Purchase failed')}finally{this.busyId.set('')}}
+  async cancel(row:any){if(!window.confirm('Cancel listing? Remaining items go to Mail; the listing fee is not refunded.'))return;this.busyId.set(row.id);try{await this.api.delete('/market/orders/'+row.id).toPromise();await this.loadOrders()}catch(e:any){this.error.set(e?.error?.message??'Unable to cancel listing')}finally{this.busyId.set('')}}
+  itemIcon(id:string){return this.catalog.itemIcon(id)}
+  tooltip(id:string,instance?:any){return this.catalog.itemTooltipLines(id,instance).map(x=>(x.label?x.label+': ':'')+x.value).join(' · ')}
+  own(row:any){return row.characterId===this.character.character()?.id}
+  pages(){return Math.max(1,Math.ceil(this.total()/this.pageSize))}
+  changePage(n:number){this.page.set(Math.max(1,Math.min(this.pages(),this.page()+n)));void this.loadListings()}
+}

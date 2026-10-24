@@ -95,6 +95,11 @@ export class DataService implements OnModuleInit {
       storageRows[0].monologue !== storageMonologue) {
       throw new Error('npc_catalog.json must define exactly one canonical Storage NPC with the approved name, town location, storage-only capability and exact monologue');
     }
+    const mailboxRows = npcRows.filter((npc: any) => npc.id === 'mailbox');
+    if (mailboxRows.length !== 1 || mailboxRows[0].name !== 'Mailbox' || mailboxRows[0].location !== 'town' ||
+      !Array.isArray(mailboxRows[0].types) || mailboxRows[0].types.length !== 1 || mailboxRows[0].types[0] !== 'mailbox') {
+      throw new Error('npc_catalog.json must define exactly one canonical Mailbox NPC with the mailbox-only capability');
+    }
     const townMaps = maps.filter((map: any) => map?.type === 'town');
     if (townMaps.length === 0) throw new Error('maps.json must define at least one map with type=town');
     for (const map of maps) {
@@ -106,6 +111,7 @@ export class DataService implements OnModuleInit {
         seenNpcIds.add(npcId);
       }
       if (map.type === 'town' && !seenNpcIds.has('storage')) throw new Error(`Town map ${map.id} must reference canonical Storage NPC`);
+      if (map.type === 'town' && !seenNpcIds.has('mailbox')) throw new Error('Town map ' + map.id + ' must reference canonical Mailbox NPC');
     }
 
     const recipeRows = Array.isArray(this.cookingRecipes?.recipes) ? this.cookingRecipes.recipes : null;

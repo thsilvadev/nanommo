@@ -33,6 +33,10 @@ export class MarketOrder {
   @Column({ type: 'int', nullable: true })
   escrowedItemQuantity?: number;
 
+  /** One-time non-refundable fee charged at listing creation. */
+  @Column({ type: 'int', default: 0 })
+  listingFeeGold!: number;
+
   @Column({ type: 'bigint', nullable: true })
   escrowedGold?: number;
 

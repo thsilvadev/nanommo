@@ -9,20 +9,21 @@ import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { Character } from '../../database/entities/character.entity';
 import { DataModule } from '../data/data.module';
 import { GatewayModule } from '../gateway/gateway.module';
-import { RedisModule } from '../../config/redis.module';
+import { BattleModule } from '../battle/battle.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       MarketOrder,
       MarketDeal,
-      MailMessage,
       InventoryItem,
       Character,
     ]),
     DataModule,
     GatewayModule,
-    RedisModule,
+    BattleModule,
+    MailModule,
   ],
   controllers: [MarketController],
   providers: [MarketService],

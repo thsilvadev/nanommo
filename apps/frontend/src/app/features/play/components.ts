@@ -680,7 +680,7 @@ export class InventoryGrid implements OnDestroy {
   ngOnDestroy() { clearInterval(this.timer) }
 }
 
-@Component({ selector: 'app-vendor-panel', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './vendor-panel.html', styleUrl: './vendor-panel.css' })
+@Component({ selector: 'app-vendor-panel', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './vendor-panel.html', styleUrl: './vendor-panel.css' , styles: [".mailbox-portrait{width:167px;height:199px;display:grid;place-items:center;background:linear-gradient(145deg,#29221a,#100e0c);border:1px solid #80613a;color:#d9b66e;font-size:64px}.mailbox-attachment{display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:#d9c39e;font-size:11px}.mailbox-attachment img{width:24px;height:24px;object-fit:contain}.mailbox-tabs{display:flex;gap:5px;margin:10px 0}.mailbox-tabs button,.mailbox-actions button,.mailbox-compose button{background:#28221b;color:#d9c39e;border:1px solid #715532;padding:6px 8px;cursor:pointer}.mailbox-tabs button.active{background:#594225;border-color:#c49a53}.mailbox-compose{display:grid;gap:8px}.mailbox-compose label{display:grid;gap:3px;color:#bfa982;font-size:12px}.mailbox-compose input,.mailbox-compose textarea{width:100%;box-sizing:border-box;background:#100e0c;color:#e5d6b8;border:1px solid #57442d;padding:7px}.mailbox-list{display:grid;gap:7px;max-height:480px;overflow:auto}.mailbox-message{border:1px solid #57442d;background:#17130f;padding:7px}.mailbox-message.unread{border-color:#c49a53}.mailbox-open{display:grid;gap:4px;width:100%;text-align:left;color:#d9c39e;background:transparent;border:0;cursor:pointer}.mailbox-open small{color:#9b8a70}.mailbox-open span{white-space:pre-wrap;overflow-wrap:anywhere}.mailbox-actions{display:flex;gap:5px;margin-top:6px}"] })
 export class VendorPanel {
   readonly vendor = inject(VendorStore); readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly character = inject(CharacterStore); readonly slots = Array.from({ length: 10 }, (_, i) => i);
   readonly storageDropListIds = ['storage-drop-list'];
@@ -698,6 +698,7 @@ export class VendorPanel {
     }, { allowSignalWrites: true });
   }
   npcPortrait(id: string) { return '/assets/npcs/' + id + '.png'; }
+  mailTooltip(mail: any) { return this.catalog.itemTooltipLines(mail.itemId, mail.itemInstanceData).map(line => (line.label ? line.label + ': ' : '') + line.value).join(' · '); }
   stockAt(slot: number) { return this.vendor.stock().find(x => x.slotIndex === slot); }
   warehouseAt(slot:number) { return this.vendor.warehouse().find(x=>x.slotIndex===slot); }
   warehouseDragData(row:any) { return { source:'warehouse', ...row }; }

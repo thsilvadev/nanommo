@@ -240,6 +240,15 @@
         "cooking"
       ],
       "greeting": "Hmmm… delicious… this might go well with tha - Oy! Young traveler! I know you have a great taste for food. You wanna use my kitchen? Fell free to, oy!"
+    },
+    {
+      "id": "mailbox",
+      "name": "Mailbox",
+      "location": "town",
+      "types": [
+        "mailbox"
+      ],
+      "monologue": "Letters, parcels, and Market deliveries are waiting here."
     }
   ]
 }
