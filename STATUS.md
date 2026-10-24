@@ -2276,3 +2276,9 @@ Follow-up verification: shared build, API build and frontend TypeScript check pa
 - Added an ESM output for `@nanommo/shared` (`dist/esm`) and declared it through the package `module` field. The package's existing CommonJS `main` entry remains intact for Node/NestJS consumers.
 - Removed obsolete `.mailbox-portrait` CSS; the Mailbox portrait uses the standard `npcPortrait(npc.id)` path and its official asset.
 - Validation passed: shared CommonJS+ESM build, frontend spec TypeScript check, production frontend build (no CSS-budget or non-ESM warnings), API build, CommonJS runtime smoke check, Market/Mailbox contract test, and `git diff --check`. No deployment or database mutation performed.
+
+
+### Coin icon transparency and topbar color — 2026-10-24
+- Removed the opaque white background rectangle from `apps/frontend/assets/ui/coin.svg`, keeping the gold coin art and allowing the Mail attachment modal and Market heading backgrounds to show through.
+- Overrode the shared white-icon CSS filter specifically for `.resource.gold img` in the Play topbar, so the coin remains gold instead of rendering as a white silhouette. Other resource and action icons retain their existing filter behavior.
+- Validation passed: SVG XML parse/transparency check, frontend spec TypeScript check, production frontend build without CSS-budget or ESM warnings, and `git diff --check`. No deployment or database mutation performed.

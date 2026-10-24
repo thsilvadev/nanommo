@@ -132,6 +132,10 @@
 .top-actions img {
   opacity: 1;
 }
+/* Keep the gold coin's actual colors instead of applying the white-icon filter. */
+.resource.gold img {
+  filter: none;
+}
 .game-board {
   height: calc(100dvh - var(--nm-topbar-height));
   display: grid;
