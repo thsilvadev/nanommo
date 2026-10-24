@@ -2245,3 +2245,11 @@ Follow-up verification: shared build, API build and frontend TypeScript check pa
 - Corrected the compact-grid CSS selector to target the `app-inventory-grid` host class directly (`:host(.market-inventory-grid)`), so its Market-only layout reliably overrides the shared inventory's default and responsive grid rules.
 - Kept the visible grid viewport at 240px and configured five columns with intrinsic-height rows and a vertical-only scrollbar. Each slot reserves its own square row instead of tracks being compressed into the viewport; scrolling reveals the remaining rows.
 - Validation: frontend TypeScript check, production build, and `git diff --check` passed. No deployment or database mutation performed.
+
+
+## Market page layout and drop-hover follow-up — 2026-10-24
+- Made the Market page a fixed-height flex column with no page-level scrollbar; the Browse panel fills the remaining workspace height and only `market-listings` scrolls. Search filters and pagination remain fixed inside the Browse panel, and `market-note` remains in the visible layout. My Orders / My Deals contents also scroll within their own fixed-height panel.
+- Kept the Market inventory viewport at 240px with `min-height: 225px`.
+- Centered the listing drop slot horizontally in its row.
+- Replaced styling based on CDK's receiving class with an explicit hover signal driven by `cdkDropListEntered` / `cdkDropListExited`, reset on drop and the inventory's `nm:drag-end` event. The slot highlight only applies while the dragged item is over the slot.
+- Validation: frontend TypeScript check, production build, and `git diff --check` passed. Existing nonfatal CSS-budget and CommonJS warnings remain; no deployment or database mutation performed.
