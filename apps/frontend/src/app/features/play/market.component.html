@@ -30,7 +30,6 @@
             </div><button type="button" aria-label="Remove selected item" title="Remove selected item"
               (click)="changeInventory('')">×</button></ng-container>
           </div>
-          <p class="market-drop-hint" *ngIf="!selectedInventory()">Drag an item here.</p>
         </div>
         <button class="market-primary market-listing-confirm" [disabled]="loading()||!selectedInventory()||listingGross()<=0||listingGross()>maxGold" (click)="createListing()">Confirm Listing</button>
       </div>
