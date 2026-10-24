@@ -7,7 +7,7 @@
       "ingredients": [
         {
           "itemId": "mat_wheat",
-          "quantity": 2
+          "quantity": 1
         }
       ],
       "outputItemId": "food_bread",
