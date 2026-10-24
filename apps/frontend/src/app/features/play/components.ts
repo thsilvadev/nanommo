@@ -545,7 +545,7 @@ export class MapBoard implements OnDestroy {
   ngOnDestroy(){clearInterval(this.activityTimer);this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
 }
 
-@Component({ selector: 'app-inventory-grid', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './inventory-grid.html', styleUrl: './inventory-grid.css' })
+@Component({ selector: 'app-inventory-grid', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './inventory-grid.html', styleUrl: './inventory-grid.css', styles: [':host-context(.market-inventory-grid) .panel{height:auto;min-height:0;padding:0;background:transparent}:host-context(.market-inventory-grid) .panel-title{font-size:15px;letter-spacing:1px;margin-bottom:5px}:host-context(.market-inventory-grid) .inventory-sort-button{width:25px;height:23px}:host-context(.market-inventory-grid) .inv-grid{grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:none;grid-auto-rows:auto;gap:3px;overflow:auto;max-height:240px;flex:0 1 auto}:host-context(.market-inventory-grid) .inv-slot{min-height:0}:host-context(.market-inventory-grid) .item b{font-size:12px;right:2px;bottom:1px}'] })
 export class InventoryGrid implements OnDestroy {
   readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly battle = inject(BattleStore); readonly vendor = inject(VendorStore);
   slots = Array.from({ length: 50 }, (_, i) => i);

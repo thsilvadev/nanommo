@@ -2232,3 +2232,10 @@ Root cause of the reported market_orders.characterId NULL insert: JwtStrategy.va
 Replaced the Market's inventory-stack select with a connected Angular CDK drop target. Replaced Mailbox's item-attachment select with a CDK drop target; dropping an inventory stack selects its exact InventoryItem row and defaults the attachment quantity to that stack's quantity, which can then be adjusted. Updated InventoryGrid's connected drop-list IDs so the inventory can actually drag into both new targets. Drop targets use the existing dark fantasy palette and active-drop highlighting. Moved the additional Mailbox drop-target CSS into component-scoped inline styles and the Market drop-zone CSS into component styles to stay within the production hard CSS budget.
 
 Follow-up verification: shared build, API build and frontend TypeScript check passed; production frontend build passed (existing component CSS budget/CommonJS warnings remain, but no hard budget error); direct Market/Mailbox contract checks passed; strict OpenSpec validation passed. No deployment or database mutation was performed.
+
+
+## Market sell panel inventory follow-up — 2026-10-24
+- Embedded the existing `app-inventory-grid` component in the `/market` sell panel above the listing drop slot, reusing its 50-slot inventory, item icons, stack counts, tooltips, sort control, Ctrl+click split modal, and CDK drag data/handlers.
+- Added a compact Market-only presentation for the shared inventory grid (5 columns, reduced gaps/title/button, capped scroll height) without changing its default appearance elsewhere.
+- Reduced the Market listing drop target to a single 48×48 item slot; dragging a stack onto it selects that inventory row for listing, and the × control clears the selection.
+- Validation: frontend TypeScript check and production build passed; `git diff --check` passed. Production build reports the existing component CSS-budget/CommonJS warnings; no deployment or database mutation performed.
