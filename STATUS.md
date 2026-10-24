@@ -2239,3 +2239,9 @@ Follow-up verification: shared build, API build and frontend TypeScript check pa
 - Added a compact Market-only presentation for the shared inventory grid (5 columns, reduced gaps/title/button, capped scroll height) without changing its default appearance elsewhere.
 - Reduced the Market listing drop target to a single 48×48 item slot; dragging a stack onto it selects that inventory row for listing, and the × control clears the selection.
 - Validation: frontend TypeScript check and production build passed; `git diff --check` passed. Production build reports the existing component CSS-budget/CommonJS warnings; no deployment or database mutation performed.
+
+
+## Market inventory slot overlap fix — 2026-10-24
+- Corrected the compact-grid CSS selector to target the `app-inventory-grid` host class directly (`:host(.market-inventory-grid)`), so its Market-only layout reliably overrides the shared inventory's default and responsive grid rules.
+- Kept the visible grid viewport at 240px and configured five columns with intrinsic-height rows and a vertical-only scrollbar. Each slot reserves its own square row instead of tracks being compressed into the viewport; scrolling reveals the remaining rows.
+- Validation: frontend TypeScript check, production build, and `git diff --check` passed. No deployment or database mutation performed.
