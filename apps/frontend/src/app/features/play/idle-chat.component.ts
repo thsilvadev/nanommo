@@ -69,18 +69,31 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
       ...systemResult.rows.map(row => ({ ...row, channel: 'journal' as const })),
     ]);
     this.error.set([globalResult.error, systemResult.error].filter(Boolean).join(' '));
-    if (followBottom) this.scrollToBottom();
+    if (systemResult.rows.some(row => row.severity === 'error')) {
+      this.setChannelEnabled('journal', true);
+    } else if (followBottom) {
+      this.scrollToBottom();
+    }
   }
 
   changeFontSize(delta: number): void {
     const next = Math.max(0, Math.min(2, this.fontSizeLevel() + delta));
     this.fontSizeLevel.set(next);
     localStorage.setItem('nanommo.chat.font-size', String(next));
+    this.scrollToBottom();
   }
 
   setJournalEnabled(enabled: boolean): void {
-    this.journalEnabled.set(enabled);
-    localStorage.setItem('nanommo.chat.journal.enabled', String(enabled));
+    this.setChannelEnabled('journal', enabled);
+  }
+
+  /** Shared activation behavior for channel toggles, so future channels follow the same UX. */
+  private setChannelEnabled(channel: ChatRow['channel'], enabled: boolean): void {
+    if (channel === 'journal') {
+      this.journalEnabled.set(enabled);
+      localStorage.setItem('nanommo.chat.journal.enabled', String(enabled));
+    }
+    if (enabled) this.scrollToBottom();
   }
 
   onScroll(): void {
@@ -119,8 +132,17 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   private append(row: ChatRow): void {
     if (!row || typeof row.message !== 'string' || (row.channel !== 'global' && row.channel !== 'journal')) return;
     const follow = this.wasAtBottom;
+    const isSystemError = row.channel === 'journal' && row.severity === 'error';
     this.merge([row]);
-    if (follow && this.viewReady) this.scrollToBottom();
+    if (isSystemError) {
+      // Important System errors must be visible even when the user had hidden System
+      // or scrolled up; activate the channel and bring the newest message into view.
+      const wasEnabled = this.journalEnabled();
+      this.setChannelEnabled('journal', true);
+      if (wasEnabled) this.scrollToBottom();
+    } else if (follow && this.viewReady) {
+      this.scrollToBottom();
+    }
   }
 
   private merge(rows: ChatRow[]): void {

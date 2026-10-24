@@ -1,3 +1,7 @@
+### Chat error visibility and scroll behavior — 2026-10-24
+
+System Journal already had `severity: 'success' | 'error'` and red styling for error rows; no new classification was needed. Incoming System error rows now automatically enable System and scroll to the latest message even if it was hidden or the user had scrolled up. Activating a channel and changing text size with plus/minus also scrolls to the bottom. Documented in root SPEC, OpenSpec SPEC and ARCHITECTURE. Frontend development build and `git diff --check` passed; no API/gameplay/database/deployment changes.
+
 ### Cooking XP curve — 2026-10-24
 
 Cooking thresholds reduced to 20% of the previous curve: L2 20, L3 44, L4 78, L5 128, L6 328, L7 828, L8 1578 XP. Rate is defined in `apps/api/src/modules/town/town.service.ts`, `cookingThresholds()`. Updated root and OpenSpec SPEC. API build and `git diff --check` passed. No migration or deployment.

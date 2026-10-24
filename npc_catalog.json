@@ -136,7 +136,7 @@
             ]
           },
           "offer": {
-            "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and 20x Thorn Barks and I’ll give you something that’ll bring luck to your journey.",
+            "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and 10x Thorn Barks and I’ll give you something that’ll bring luck to your journey.",
             "choices": [
               {
                 "id": "handle_items",
@@ -154,7 +154,7 @@
                     },
                     {
                       "itemId": "part_thornsprout_common",
-                      "quantity": 20
+                      "quantity": 10
                     }
                   ]
                 },
@@ -172,7 +172,7 @@
                     },
                     {
                       "itemId": "part_thornsprout_common",
-                      "quantity": 20
+                      "quantity": 10
                     }
                   ],
                   "add": [
@@ -199,7 +199,7 @@
                     },
                     {
                       "itemId": "part_thornsprout_common",
-                      "quantity": 20
+                      "quantity": 10
                     }
                   ]
                 },
@@ -208,7 +208,7 @@
             ]
           },
           "return_later": {
-            "npcText": "Dear, come back when you have 20x Slime Gels, 20x Bat Wings and 20x Thorn Barks! You are lucky I’m pacient, but don’t keep me waiting!",
+            "npcText": "Dear, come back when you have 20x Slime Gels, 20x Bat Wings and 10x Thorn Barks! You are lucky I’m pacient, but don’t keep me waiting!",
             "choices": [
               {
                 "id": "fast",
