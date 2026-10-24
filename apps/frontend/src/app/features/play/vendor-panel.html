@@ -48,17 +48,66 @@
         <label>Subject<input [value]="vendor.mailboxSubject()" (input)="vendor.mailboxSubject.set($any($event.target).value)" maxlength="120"></label>
         <label>Message<textarea [value]="vendor.mailboxBody()" (input)="vendor.mailboxBody.set($any($event.target).value)" maxlength="5000" rows="4"></textarea></label>
         <label>Gold attachment<input type="number" min="0" max="999999999" [value]="vendor.mailboxGold()" (input)="vendor.mailboxGold.set($any($event.target).value)"></label>
-        <div id="mail-attachment-drop" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']" cdkDropListSortingDisabled (cdkDropListDropped)="dropMailAttachment($event)" class="mail-attachment-drop" [class.has-item]="!!vendor.mailboxItemId()"><ng-container *ngIf="mailAttachment() as attached"><img [src]="vendor.catalog.itemIcon(attached.itemId)" [alt]="vendor.itemName(attached.itemId)"><div><strong>{{vendor.itemName(attached.itemId)}}</strong><small>Stack contains {{attached.quantity}}</small></div><button type="button" (click)="vendor.mailboxItemId.set('')">Remove</button></ng-container><p *ngIf="!vendor.mailboxItemId()">Drag an inventory item here to attach it</p></div>
-        <label>Item quantity<input type="number" min="1" [value]="vendor.mailboxItemQuantity()" (input)="vendor.mailboxItemQuantity.set($any($event.target).value)"></label>
-        <button type="button" [disabled]="vendor.mailboxBusy()" (click)="vendor.sendPlayerMail()">Confirm & Send</button>
+        <div class="mail-attachment-row"><span>Item attachment</span>
+          <div id="mail-attachment-drop" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
+            cdkDropListSortingDisabled (cdkDropListEntered)="mailDropHovered.set(true)"
+            (cdkDropListExited)="mailDropHovered.set(false)" (cdkDropListDropped)="dropMailAttachment($event)"
+            class="mail-attachment-drop" [class.has-item]="!!vendor.mailboxItemId()"
+            [class.drop-hover]="mailDropHovered()" aria-label="Drop item to attach to mail">
+            <ng-container *ngIf="mailAttachment() as attached"><div class="mailbox-item-icon">
+              <img [src]="vendor.catalog.itemIcon(attached.itemId)" [alt]="vendor.itemName(attached.itemId)">
+              <b *ngIf="attached.quantity>1">{{attached.quantity}}</b>
+              <div class="item-tooltip"><strong>{{vendor.itemName(attached.itemId)}}</strong><span
+                *ngFor="let line of catalog.itemTooltipLines(attached.itemId,attached.instanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></div>
+            </div><button type="button" class="mail-attachment-remove" aria-label="Remove attachment" title="Remove attachment" (click)="vendor.mailboxItemId.set('')">×</button></ng-container>
+          </div>
+          <small class="mail-attachment-hint" *ngIf="!vendor.mailboxItemId()">Drag a stack here. Attach the whole stack.</small>
+        </div>
+        <button type="button" [disabled]="vendor.mailboxBusy()" (click)="vendor.sendPlayerMail()">Review &amp; Send</button>
       </div>
       <div class="mailbox-list" *ngIf="vendor.mailboxMode()!=='compose'">
-        <article *ngFor="let mail of (vendor.mailboxMode()==='inbox'?vendor.mailboxInbox():vendor.mailboxSent())" class="mailbox-message" [class.unread]="vendor.mailboxMode()==='inbox'&&!mail.isRead">
-          <button type="button" class="mailbox-open" (click)="vendor.openPlayerMail(mail)"><strong>{{mail.subject}}</strong><small>{{vendor.mailboxMode()==='inbox'?'From '+mail.senderName:'To '+mail.recipientName}} · {{mail.createdAt | date:'short'}}</small><span>{{mail.body}}</span><div class="mailbox-attachment" *ngIf="mail.itemId||mail.attachedGold"><img *ngIf="mail.itemId" [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId)"><span *ngIf="mail.itemId" [title]="mailTooltip(mail)">{{vendor.itemName(mail.itemId)}} × {{mail.quantity}}</span><span *ngIf="mail.attachedGold">{{mail.attachedGold | number}} gold</span></div><small>Expires {{mail.expiresAt | date:'short'}}</small></button>
-          <div class="mailbox-actions" *ngIf="vendor.mailboxMode()==='inbox'"><button type="button" *ngIf="!mail.attachmentsCollected&&(mail.itemId||mail.attachedGold)" [disabled]="vendor.mailboxBusy()" (click)="vendor.collectPlayerMail(mail)">Collect</button><button type="button" [disabled]="vendor.mailboxBusy()" (click)="vendor.deletePlayerMail(mail)">Delete</button></div>
-          <button type="button" *ngIf="vendor.mailboxMode()==='sent'" [disabled]="vendor.mailboxBusy()" (click)="vendor.deletePlayerMail(mail)">Delete sent copy</button>
-        </article>
+        <button type="button" *ngFor="let mail of (vendor.mailboxMode()==='inbox'?vendor.mailboxInbox():vendor.mailboxSent())"
+          class="mailbox-message" [class.unread]="vendor.mailboxMode()==='inbox'&&!mail.isRead" (click)="openMail(mail)">
+          <span class="mailbox-message-counterpart">{{vendor.mailboxMode()==='inbox'?mail.senderName:'To '+mail.recipientName}}</span>
+          <strong class="mailbox-message-subject">{{mail.subject}}</strong>
+          <span class="mailbox-message-item" *ngIf="mail.itemId"><span class="mailbox-item-icon">
+            <img [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId)">
+            <b *ngIf="mail.quantity>1">{{mail.quantity}}</b>
+            <span class="item-tooltip"><strong>{{vendor.itemName(mail.itemId)}}</strong><span
+              *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></span>
+          </span></span>
+        </button>
         <p *ngIf="!(vendor.mailboxMode()==='inbox'?vendor.mailboxInbox():vendor.mailboxSent()).length">No messages.</p>
+      </div>
+
+      <div class="mailbox-modal-backdrop" *ngIf="openedMail() as mail" (click)="closeMail()">
+        <section class="mailbox-modal" role="dialog" aria-modal="true" aria-labelledby="mailbox-modal-subject" (click)="$event.stopPropagation()">
+          <header class="mailbox-modal-header"><div><small>{{vendor.mailboxMode()==='inbox'?'INBOX MESSAGE':'SENT MESSAGE'}}</small><h2 id="mailbox-modal-subject">{{mail.subject}}</h2></div><button type="button" class="mailbox-modal-close" aria-label="Close message" (click)="closeMail()">×</button></header>
+          <p class="mailbox-modal-meta"><strong>{{vendor.mailboxMode()==='inbox'?'From':'To'}}:</strong> {{vendor.mailboxMode()==='inbox'?mail.senderName:mail.recipientName}}<br><strong>Sent:</strong> {{mail.createdAt | date:'medium'}}<br><strong>Expires:</strong> {{mail.expiresAt | date:'medium'}}</p>
+          <div class="mailbox-modal-body">{{mail.body}}</div>
+          <div class="mailbox-modal-attachments" *ngIf="mail.itemId||mail.attachedGold">
+            <div class="mailbox-modal-attachment" *ngIf="mail.itemId"><span class="mailbox-item-icon"><img [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId)"><b *ngIf="mail.quantity>1">{{mail.quantity}}</b><span class="item-tooltip"><strong>{{vendor.itemName(mail.itemId)}}</strong><span *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></span></span><span><strong>{{vendor.itemName(mail.itemId)}}</strong><small>Quantity: {{mail.quantity}}</small></span></div>
+            <div class="mailbox-modal-attachment" *ngIf="mail.attachedGold"><img src="/assets/ui/coin.svg" alt="Gold" width="28" height="28"><span><strong>{{mail.attachedGold | number}} gold</strong><small>Gold attachment</small></span></div>
+          </div>
+          <p class="mailbox-modal-meta" *ngIf="mail.attachmentsCollected">Attachments have already been collected.</p>
+          <div class="mailbox-delete-confirm" *ngIf="mailboxDeleteConfirm()"><p>Delete this {{vendor.mailboxMode()==='sent'?'sent copy':'message'}}? This cannot be undone.</p><div class="mailbox-confirm-actions"><button type="button" (click)="mailboxDeleteConfirm.set(false)">Keep message</button><button type="button" class="primary" [disabled]="vendor.mailboxBusy()" (click)="confirmDeleteOpenedMail()">Delete permanently</button></div></div>
+          <footer class="mailbox-modal-actions" *ngIf="!mailboxDeleteConfirm()">
+            <button type="button" (click)="closeMail()">Close</button>
+            <button type="button" *ngIf="vendor.mailboxMode()==='inbox'&&(mail.itemId||mail.attachedGold)&&!mail.attachmentsCollected" class="primary" [disabled]="vendor.mailboxBusy()" (click)="collectOpenedMail()">Collect attachments</button>
+            <button type="button" [disabled]="vendor.mailboxBusy()" (click)="requestDeleteOpenedMail()">{{vendor.mailboxMode()==='sent'?'Delete sent copy':'Delete'}}</button>
+          </footer>
+          <p class="mailbox-error" *ngIf="vendor.error()">{{vendor.error()}}</p>
+        </section>
+      </div>
+
+      <div class="mailbox-confirm-backdrop" *ngIf="vendor.mailboxSendConfirm()" (click)="vendor.mailboxSendConfirm.set(false)">
+        <section class="mailbox-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="mailbox-send-confirm-title" (click)="$event.stopPropagation()">
+          <header class="mailbox-confirm-header"><div><small>MAILBOX</small><h2 id="mailbox-send-confirm-title">Confirm sending</h2></div><button type="button" class="mailbox-modal-close" aria-label="Close confirmation" (click)="vendor.mailboxSendConfirm.set(false)">×</button></header>
+          <div class="mailbox-confirm-summary"><span>Recipient</span><strong>{{vendor.mailboxRecipient()}}</strong><span>Subject</span><strong>{{vendor.mailboxSubject()}}</strong><span>Message</span><span>{{vendor.mailboxBody()}}</span><ng-container *ngIf="mailAttachment() as attached"><span>Item attachment</span><strong>{{vendor.itemName(attached.itemId)}} × {{attached.quantity}}</strong></ng-container><ng-container *ngIf="mailboxGoldAmount()>0"><span>Gold attachment</span><strong>{{mailboxGoldAmount() | number}} gold</strong></ng-container></div>
+          <p class="mailbox-modal-meta">The attached gold and complete item stack will be transferred when the message is sent. This action cannot be undone.</p>
+          <div class="mailbox-confirm-actions"><button type="button" (click)="vendor.mailboxSendConfirm.set(false)">Go back</button><button type="button" class="primary" [disabled]="vendor.mailboxBusy()" (click)="vendor.sendPlayerMail(true)">Send mail</button></div>
+          <p class="mailbox-error" *ngIf="vendor.error()">{{vendor.error()}}</p>
+        </section>
       </div>
     </ng-container>
 

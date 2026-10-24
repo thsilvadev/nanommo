@@ -2259,3 +2259,13 @@ Follow-up verification: shared build, API build and frontend TypeScript check pa
 - Simplified `apps/frontend/assets/ui/coin.svg` to a compact 32×32 SVG with a white background and gold coin/rim gradients.
 - Reduced file size from 26,792 bytes to 606 bytes (under 1 KB). Verified the SVG parses as valid XML and `git diff --check` passes. A copy of the prior working-tree asset was preserved at `/tmp/coin-before-shrink.svg` on the development machine before editing.
 - No deployment or database mutation performed.
+
+
+### Market and Mailbox final UI polish — 2026-10-24
+
+- Mailbox Compose now uses a centered 48×48 attachment slot matching the Market slot, with only the item icon, stack count, clear control and hover tooltip. Removed the manual quantity input; sending attaches the complete selected Inventory stack, so partial sends use Ctrl+click stack splitting.
+- Inbox/Sent rows are single clickable cards showing only the counterpart name, subject and item icon/count when present. Opening a card displays a themed modal with message text, dates, attachments, collect and delete actions; deletion has a themed in-modal confirmation.
+- Added themed confirmation dialogs for Mail send and Market listing, plus a two-step Market purchase dialog for quantity selection and purchase confirmation. Removed native prompt/confirm UI for these specific flows.
+- Enabled inventory item tooltips for the Market selected slot and for Mailbox Compose, Inbox/Sent cards and message details. Drop slots highlight only while a dragged stack is over the target and reset at drag end.
+- Moved Confirm Listing beside the centered Market drop slot in `market-drop-row`.
+- Validation passed: frontend spec TypeScript check, frontend production build, `node apps/api/test/player-market-mailbox-contract.test.js`, and `git diff --check`. Production build has existing nonfatal component CSS-budget and CommonJS warnings; no deployment or database mutation.

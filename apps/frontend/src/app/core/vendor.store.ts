@@ -43,7 +43,7 @@ export class VendorStore {
   readonly mailboxBody=signal('');
   readonly mailboxGold=signal('0');
   readonly mailboxItemId=signal('');
-  readonly mailboxItemQuantity=signal('1');
+  readonly mailboxSendConfirm=signal(false);
   readonly mailboxIdempotencyKey=signal('');
   readonly error=signal<string|null>(null);
   readonly busy=signal(false);
@@ -62,6 +62,7 @@ export class VendorStore {
     this.modal.set(null);
     this.cookingModal.set(false);
     this.error.set(null);
+    this.mailboxSendConfirm.set(false);
   }
   private async loadTownNpcFallback(mapId:string):Promise<TownNpc[]> {
     const get=async(path:string)=>{const response=await fetch('/data/'+path);if(!response.ok)throw new Error('Unable to load Town NPC fallback '+path);return response.json();};
@@ -147,23 +148,23 @@ export class VendorStore {
       this.mailboxInbox.set(inbox??[]);this.mailboxSent.set(sent??[]);this.mailboxUnread.set(Number(count?.unreadCount??0));
     } catch(e:any){this.error.set(e?.error?.message??'Unable to load Mailbox');}
   }
-  async sendPlayerMail(){
+  async sendPlayerMail(confirmed = false){
     if(this.mailboxBusy())return;
     const recipientName=this.mailboxRecipient().trim(),subject=this.mailboxSubject().trim(),body=this.mailboxBody().trim();
     const attachedGold=Number(this.mailboxGold()||0),selectedAttachment=this.inventory.items().find(row=>row.id===this.mailboxItemId());
     const attachedItemId=selectedAttachment?.itemId??'';
-    const attachedItemQuantity=Number(this.mailboxItemQuantity()||1);
+    // Attach the complete selected Inventory stack. For a partial attachment, the player
+    // can split the stack first using the inventory's Ctrl+click workflow.
+    const attachedItemQuantity=selectedAttachment?Number(selectedAttachment.quantity):0;
     if(!recipientName||!subject||!body){this.error.set('Recipient, subject, and message are required');return;}
     if(!Number.isSafeInteger(attachedGold)||attachedGold<0){this.error.set('Gold attachment must be a non-negative integer');return;}
-    if(attachedItemId&&(!Number.isSafeInteger(attachedItemQuantity)||attachedItemQuantity<1)){this.error.set('Item quantity must be a positive integer');return;}
-    if(!attachedGold&&!attachedItemId){this.error.set('Attach gold or an item');return;}
-    if(!window.confirm('Send this mail and transfer the selected attachments? This cannot be undone.'))return;
+    if(!attachedGold&&!selectedAttachment){this.error.set('Attach gold or an item');return;}
+    if(!confirmed){this.mailboxSendConfirm.set(true);return;}
     this.mailboxBusy.set(true);this.error.set(null);
     if(!this.mailboxIdempotencyKey())this.mailboxIdempotencyKey.set(crypto.randomUUID());
     try{
-      if(selectedAttachment&&attachedItemQuantity>Number(selectedAttachment.quantity))throw new Error('Attachment quantity exceeds the selected stack');
       await this.api.post('/mail/send',{recipientName,subject,body,attachedGold,idempotencyKey:this.mailboxIdempotencyKey(), ...(selectedAttachment?{attachedItemId,attachedItemQuantity,attachedInventoryItemId:selectedAttachment.id}:{})}).toPromise();
-      this.mailboxRecipient.set('');this.mailboxSubject.set('');this.mailboxBody.set('');this.mailboxGold.set('0');this.mailboxItemId.set('');this.mailboxIdempotencyKey.set('');
+      this.mailboxRecipient.set('');this.mailboxSubject.set('');this.mailboxBody.set('');this.mailboxGold.set('0');this.mailboxItemId.set('');this.mailboxIdempotencyKey.set('');this.mailboxSendConfirm.set(false);
       this.mailboxMode.set('sent');await this.loadMailbox();
     }catch(e:any){this.error.set(e?.error?.message??'Unable to send mail');}
     finally{this.mailboxBusy.set(false);}
@@ -175,14 +176,14 @@ export class VendorStore {
     finally{this.mailboxBusy.set(false);}
   }
   async deletePlayerMail(mail:any){
-    if(this.mailboxBusy()||!window.confirm('Delete this mail copy?'))return;this.mailboxBusy.set(true);this.error.set(null);
+    if(this.mailboxBusy())return;this.mailboxBusy.set(true);this.error.set(null);
     try{await this.api.delete('/mail/'+mail.id).toPromise();await this.loadMailbox();}
     catch(e:any){this.error.set(e?.error?.message??'Unable to delete mail');}
     finally{this.mailboxBusy.set(false);}
   }
   async openPlayerMail(mail:any){
-    try{await this.api.get('/mail/'+mail.id).toPromise();await this.loadMailbox();}
-    catch(e:any){this.error.set(e?.error?.message??'Unable to open mail');}
+    try{const opened=await this.api.get<any>('/mail/'+mail.id).toPromise();await this.loadMailbox();return opened??mail;}
+    catch(e:any){this.error.set(e?.error?.message??'Unable to open mail');return null;}
   }
   async loadStock(id=this.selectedNpcId()){
     if(!id)return;
@@ -220,6 +221,7 @@ export class VendorStore {
     this.modal.set(null);
     this.cookingModal.set(false);
     this.error.set(null);
+    this.mailboxSendConfirm.set(false);
     void this.loadSelectedNpc();
   }
   async chooseDialogue(choiceId:string){
