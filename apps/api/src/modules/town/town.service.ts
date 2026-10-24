@@ -378,7 +378,7 @@ export class TownService {
     return { npcId: npc.id, types: npc.types, name: npc.name };
   }
 
-  private cookingThresholds(): number[] { return [0, 100, 220, 390, 640, 1640, 4140, 7890]; }
+  private cookingThresholds(): number[] { return [0, 20, 44, 78, 128, 328, 828, 1578]; }
 
   private cookingLevelForXp(xpValue: number): number {
     const xp = Math.max(0, Number(xpValue) || 0);

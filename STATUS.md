@@ -1,3 +1,7 @@
+### Cooking XP curve — 2026-10-24
+
+Cooking thresholds reduced to 20% of the previous curve: L2 20, L3 44, L4 78, L5 128, L6 328, L7 828, L8 1578 XP. Rate is defined in `apps/api/src/modules/town/town.service.ts`, `cookingThresholds()`. Updated root and OpenSpec SPEC. API build and `git diff --check` passed. No migration or deployment.
+
 ### Battle queue UI recovery after missed realtime updates — 2026-10-23
 
 Investigated the new Traveling freeze report against production logs and the frontend/backend flow. The backend queued the Venom Viper loss at 22:07:30.560 UTC, published `battle:queueUpdated` with one entry at 22:07:30.561, and the gateway logged forwarding it to the character socket at 22:07:30.563; death was committed and `battle:resolved` forwarded at 22:07:54.64. The available logs do not prove whether the browser received/applied the queue event, so the exact failure is not claimed as confirmed. The frontend had no periodic recovery of an empty local BattleStore queue while the character remained Grinding: if a queue push was missed or not applied, Grind Info could stay on `Searching for Monsters...` until another event (such as death) forced a resync.
