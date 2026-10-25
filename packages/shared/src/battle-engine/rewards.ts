@@ -47,10 +47,10 @@ export interface ItemsCatalog {
  */
 export function grindXpLevelMultiplier(characterLevel: number, monsterLevel: number): number {
   const gap = Math.max(0, Math.floor(Number(characterLevel) || 0) - Math.max(1, Math.floor(Number(monsterLevel) || 1)));
-  if (gap <= 3) return 1;
-  if (gap === 4) return 0.7;
-  if (gap === 5) return 0.5;
-  if (gap === 6) return 0.3;
+  if (gap <= 10) return 1;
+  if (gap <= 12) return 0.7;
+  if (gap <= 14) return 0.5;
+  if (gap <= 16) return 0.3;
   return 0.05;
 }
 

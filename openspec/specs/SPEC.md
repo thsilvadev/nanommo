@@ -897,7 +897,7 @@ The Market release is sell-only and gold-only. Buy orders, automatic cross-side 
 
 ### 13.3 Market UI
 
-Market is a child route inside the central play outlet, preserving Character Summary and Grind Info. The current UI offers Browse, My Orders, and My Deals, a full-stack sell composer with gross/fee/net preview, a suggested price (one gold below the lowest other-player offer, otherwise one below the latest completed unit price, otherwise manual entry), price/type/tier filters, pagination, purchase quantity confirmation, and cancellation confirmation. Purchased items, sale proceeds, and returns must be collected through Mail in Town.
+Market is a child route inside the central play outlet, preserving Character Summary and Grind Info. The current UI offers Browse, My Orders, and My Deals, a full-stack sell composer with gross/fee/net preview, a suggested price (one gold below the lowest other-player offer, otherwise one below the latest completed unit price, otherwise manual entry), price/type/tier filters, pagination, purchase quantity confirmation, and cancellation confirmation. Browse listings show the remaining units as a prominent bold quantity directly above the item icon; the same quantity is omitted from the small metadata line to avoid duplication. Purchased items, sale proceeds, and returns must be collected through Mail in Town.
 
 ---
 

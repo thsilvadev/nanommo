@@ -84,10 +84,10 @@
           </select></label><button type="button" (click)="search()">Search</button>
       </div>
       <div class="market-listings">
-        <article *ngFor="let row of listings()" class="market-listing" [class.own-listing]="own(row)"><img
-            [src]="itemIcon(row.itemId)" [alt]="row.itemName">
-          <div class="market-listing-info"><strong>{{row.itemName}}</strong><small>{{row.itemType}} · Tier {{row.tier}}
-              · Qty {{row.remainingQuantity}}</small><small
+        <article *ngFor="let row of listings()" class="market-listing" [class.own-listing]="own(row)">
+          <div class="market-listing-item"><strong class="market-listing-quantity" [attr.aria-label]="row.remainingQuantity + ' units available'">{{row.remainingQuantity | number}}×</strong><img
+              [src]="itemIcon(row.itemId)" [alt]="row.itemName"></div>
+          <div class="market-listing-info"><strong>{{row.itemName}}</strong><small>{{row.itemType}} · Tier {{row.tier}}</small><small
               [title]="tooltip(row.itemId,row.itemInstanceData)">{{tooltip(row.itemId,row.itemInstanceData)}}</small><small>Expires
               {{row.expiresAt | date:'short'}}</small></div>
           <div class="market-listing-price"><b>{{row.pricePerUnit | number}} G</b><small>per item</small><span

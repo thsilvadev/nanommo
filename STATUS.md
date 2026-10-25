@@ -1,3 +1,7 @@
+### Market listing quantity emphasis — 2026-10-24
+
+Browse listing cards now show the remaining available unit count in a larger bold gold-toned label directly above the item icon. Removed the repeated `Qty` value from the small item metadata line, keeping the quantity more visible and the card cleaner. Added the behavior to the root and OpenSpec Market UI specification. Frontend production build, strict OpenSpec validation, and `git diff --check` passed. No API, gameplay, inventory, database, migration, or deployment changes.
+
 ### NPC quest title label and interaction loading flash — 2026-10-24
 
 The active quest dialogue label now uses the quest title followed by `· IN PROGRESS` instead of the generic `QUEST` label. The frontend keeps ordinary `DIALOGUE` and idle greeting surfaces hidden until `/quests/npc/:npcId/interaction` successfully resolves, so Cecilia's default greeting cannot flash before the active quest line appears. A failed interaction request leaves the dialogue surfaces hidden and preserves the request error. Added a focused VendorStore regression test for the pending-to-resolved interaction state. No gameplay rules, API behavior, database, migration, or deployment changed.
