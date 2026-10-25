@@ -1,0 +1,441 @@
+{
+  "weapons": {
+    "t1": {
+      "id": "equip_sword_t1",
+      "name": "Worn Sword",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "sword",
+      "twoHanded": false,
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "atk": 8
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 5,
+            "max": 12
+          },
+          "matk": {
+            "min": 4,
+            "max": 10
+          },
+          "castTimeReduction": {
+            "min": 3,
+            "max": 8
+          },
+          "accuracy": {
+            "min": 4,
+            "max": 10
+          },
+          "criticalPercent": {
+            "min": 2,
+            "max": 5
+          },
+          "atkSpeed": {
+            "min": 3,
+            "max": 8
+          }
+        }
+      },
+      "sellPriceToVendor": 1800,
+      "marketBasePrice": 4500,
+      "dropPool": [
+        "map_lv_1",
+        "map_lv_6"
+      ],
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
+    },
+    "t2": {
+      "id": "equip_sword_t2",
+      "name": "Reinforced Sword",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "sword",
+      "twoHanded": false,
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "atk": 18
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 8,
+            "max": 16
+          },
+          "matk": {
+            "min": 7,
+            "max": 15
+          },
+          "castTimeReduction": {
+            "min": 5,
+            "max": 12
+          },
+          "accuracy": {
+            "min": 6,
+            "max": 15
+          },
+          "criticalPercent": {
+            "min": 3,
+            "max": 8
+          },
+          "atkSpeed": {
+            "min": 5,
+            "max": 12
+          }
+        }
+      },
+      "sellPriceToVendor": 4680,
+      "marketBasePrice": 11700,
+      "dropPool": [
+        "map_lv_11",
+        "map_lv_16"
+      ],
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
+    },
+    "t3": {
+      "id": "equip_sword_t3",
+      "name": "Ancient Sword",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "sword",
+      "twoHanded": false,
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "atk": 32
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 12,
+            "max": 24
+          },
+          "matk": {
+            "min": 11,
+            "max": 22
+          },
+          "castTimeReduction": {
+            "min": 8,
+            "max": 18
+          },
+          "accuracy": {
+            "min": 10,
+            "max": 20
+          },
+          "criticalPercent": {
+            "min": 5,
+            "max": 12
+          },
+          "atkSpeed": {
+            "min": 8,
+            "max": 18
+          }
+        }
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "dropPool": [
+        "map_lv_21",
+        "map_lv_26"
+      ],
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
+    }
+  },
+  "armor": {
+    "t1": {
+      "id": "equip_body_phys_t1",
+      "name": "Worn Chestplate",
+      "type": "equipment",
+      "slot": "body",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "def": 8,
+        "statBonus": {
+          "VIT": 1,
+          "STR": 0
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 20,
+            "max": 50
+          },
+          "sp": {
+            "min": 10,
+            "max": 25
+          },
+          "hpRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "spRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "evasion": {
+            "min": 3,
+            "max": 8
+          },
+          "defense": {
+            "min": 4,
+            "max": 10
+          }
+        }
+      },
+      "sellPriceToVendor": 1600,
+      "marketBasePrice": 4000,
+      "dropPool": [
+        "map_lv_1",
+        "map_lv_6"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
+    },
+    "t2": {
+      "id": "equip_body_phys_t2",
+      "name": "Reinforced Chestplate",
+      "type": "equipment",
+      "slot": "body",
+      "levelReq": 8,
+      "tier": 2,
+      "fixedStats": {
+        "def": 18,
+        "statBonus": {
+          "VIT": 2,
+          "STR": 1
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 40,
+            "max": 100
+          },
+          "sp": {
+            "min": 20,
+            "max": 50
+          },
+          "hpRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "spRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "evasion": {
+            "min": 5,
+            "max": 12
+          },
+          "defense": {
+            "min": 7,
+            "max": 15
+          }
+        }
+      },
+      "sellPriceToVendor": 4160,
+      "marketBasePrice": 10400,
+      "dropPool": [
+        "map_lv_11",
+        "map_lv_16"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
+    },
+    "t3": {
+      "id": "equip_body_phys_t3",
+      "name": "Ancient Chestplate",
+      "type": "equipment",
+      "slot": "body",
+      "levelReq": 15,
+      "tier": 3,
+      "fixedStats": {
+        "def": 32,
+        "statBonus": {
+          "VIT": 3,
+          "STR": 2
+        }
+      },
+      "randomRollOnDrop": {
+        "enabled": true,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 80,
+            "max": 200
+          },
+          "sp": {
+            "min": 40,
+            "max": 100
+          },
+          "hpRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "spRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "evasion": {
+            "min": 8,
+            "max": 18
+          },
+          "defense": {
+            "min": 11,
+            "max": 22
+          }
+        }
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "dropPool": [
+        "map_lv_21",
+        "map_lv_26"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
+    }
+  }
+}
