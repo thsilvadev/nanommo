@@ -30,7 +30,7 @@ describe('Town NPC selection state', () => {
           { id: 'william', name: 'William', location: 'town', types: ['vendor'] },
           { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['dialogue'] },
           { id: 'blacksmith_loren', name: 'Blacksmith Loren', location: 'town', types: ['vendor'] },
-          { id: 'cecilia', name: 'Cecilia', location: 'town', types: [] },
+          { id: 'cecilia', name: 'Cecilia', location: 'town', types: [], greeting: 'Fate has brought us together.' },
           { id: 'storage', name: 'Storage', location: 'town', types: ['storage'] },
         ]),
       }),
@@ -43,7 +43,7 @@ describe('Town NPC selection state', () => {
         { id: 'william', name: 'William', location: 'town', types: ['vendor'] },
         { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['dialogue'] },
         { id: 'blacksmith_loren', name: 'Blacksmith Loren', location: 'town', types: ['vendor'] },
-        { id: 'cecilia', name: 'Cecilia', location: 'town', types: [] },
+        { id: 'cecilia', name: 'Cecilia', location: 'town', types: [], greeting: 'Fate has brought us together.' },
         { id: 'storage', name: 'Storage', location: 'town', types: ['storage'] },
       ] : mapId === 'town_a' ? [{ id: 'town_a_vendor', name: 'Town A Vendor', location: 'town', types: ['vendor'] }] : mapId === 'town_b' ? [{ id: 'storage', name: 'Storage', location: 'town', types: ['storage'] }] : [],
     };
@@ -51,11 +51,14 @@ describe('Town NPC selection state', () => {
       { id: 'william', name: 'William', location: 'town', types: ['vendor'] },
       { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['dialogue'] },
       { id: 'blacksmith_loren', name: 'Blacksmith Loren', location: 'town', types: ['vendor'] },
-      { id: 'cecilia', name: 'Cecilia', location: 'town', types: [] },
+      { id: 'cecilia', name: 'Cecilia', location: 'town', types: [], greeting: 'Fate has brought us together.' },
       { id: 'storage', name: 'Storage', location: 'town', types: ['storage'] },
     ]);
     store.dialogue = signal<any>(null);
     store.questInteraction = signal<any>(null);
+    store.questInteractionResolved = signal(false);
+    store.questInteractionLoading = signal(false);
+    store.questInteractionRequestSequence = 0;
     store.selectedNpcId = signal('');
     store.stock = signal<any[]>([]);
     store.warehouse = signal<any[]>([]);
@@ -96,6 +99,29 @@ describe('Town NPC selection state', () => {
     expect(store.modal()).toBeNull();
     expect(store.error()).toBeNull();
     expect(store.npcs()).toEqual([], 'do not keep William as a fake fallback after a Town reset');
+  });
+
+  it('keeps Cecilia’s idle greeting hidden until the quest interaction response resolves', async () => {
+    const store = makeStore();
+    let resolveInteraction: (value: any) => void = () => {};
+    store.api.get.and.callFake((path: string) => ({
+      toPromise: () => path.includes('/quests/npc/')
+        ? new Promise(resolve => { resolveInteraction = resolve; })
+        : Promise.resolve(null),
+    } as any));
+    store.selectedNpcId.set('cecilia');
+
+    const pending = store.loadSelectedNpc();
+    expect(store.questInteractionLoading()).toBeTrue();
+    expect(store.questInteractionResolved()).toBeFalse();
+    expect(store.selectedNpc()?.greeting).toBe('Fate has brought us together.');
+
+    resolveInteraction({ kind: 'active', title: 'A Lucky Ring', npcText: 'Bring the requested items.' });
+    await pending;
+
+    expect(store.questInteractionResolved()).toBeTrue();
+    expect(store.questInteraction()?.title).toBe('A Lucky Ring');
+    expect(store.questInteractionLoading()).toBeFalse();
   });
 
   it('retries the catalogue for the newly settled Town when a response races with a map change', async () => {

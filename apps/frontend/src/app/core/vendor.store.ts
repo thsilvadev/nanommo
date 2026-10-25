@@ -25,6 +25,9 @@ export class VendorStore {
   readonly npcs=signal<TownNpc[]>([]);
   readonly dialogue=signal<NpcDialogueState|null>(null);
   readonly questInteraction=signal<any|null>(null);
+  /** True only after /interaction successfully establishes whether this NPC has quest dialogue. */
+  readonly questInteractionResolved=signal(false);
+  readonly questInteractionLoading=signal(false);
   readonly questBusy=signal(false);
   readonly selectedNpcId=signal('');
   readonly stock=signal<VendorStockItem[]>([]);
@@ -51,6 +54,7 @@ export class VendorStore {
   readonly busy=signal(false);
   readonly selectedNpc=computed(()=>this.npcs().find(n=>n.id===this.selectedNpcId())??null);
   private npcLoadSequence=0;
+  private questInteractionRequestSequence=0;
 
   /** Reset transient Town interaction state whenever the Town panel is entered. */
   resetForTownEntry(clearNpcCatalogue = true){
@@ -62,6 +66,8 @@ export class VendorStore {
     this.warehouse.set([]);
     this.dialogue.set(null);
     this.questInteraction.set(null);
+    this.questInteractionResolved.set(false);
+    this.questInteractionLoading.set(false);
     this.modal.set(null);
     this.cookingModal.set(false);
     this.error.set(null);
@@ -130,7 +136,9 @@ export class VendorStore {
     this.stock.set([]);
     this.warehouse.set([]);
     this.dialogue.set(null); this.questInteraction.set(null);
-    if(!npc)return;
+    this.questInteractionResolved.set(false);
+    this.questInteractionLoading.set(!!npc);
+    if(!npc){this.questInteractionLoading.set(false);return;}
     const requests: Promise<void>[]=[];
     if(npc.types.includes('vendor')) requests.push(this.loadStock(id));
     if(npc.types.includes('dialogue')) requests.push(this.loadDialogue(id));
@@ -142,10 +150,22 @@ export class VendorStore {
   }
   async loadQuestActions(npcId=this.selectedNpcId()){
     if(!npcId)return;
+    const requestSequence=++this.questInteractionRequestSequence;
+    if(this.selectedNpcId()===npcId){
+      this.questInteractionResolved.set(false);
+      this.questInteractionLoading.set(true);
+    }
     try{
       const interaction=await this.api.get<any>('/quests/npc/'+encodeURIComponent(npcId)+'/interaction').toPromise()??null;
-      if(this.selectedNpcId()===npcId)this.questInteraction.set(interaction);
-    }catch(e:any){if(this.selectedNpcId()===npcId)this.error.set(e?.error?.message??'Unable to load quest dialogue');}
+      if(requestSequence===this.questInteractionRequestSequence&&this.selectedNpcId()===npcId){
+        this.questInteraction.set(interaction);
+        this.questInteractionResolved.set(true);
+      }
+    }catch(e:any){
+      if(requestSequence===this.questInteractionRequestSequence&&this.selectedNpcId()===npcId)this.error.set(e?.error?.message??'Unable to load quest dialogue');
+    }finally{
+      if(requestSequence===this.questInteractionRequestSequence&&this.selectedNpcId()===npcId)this.questInteractionLoading.set(false);
+    }
   }
   async startQuestOffer(questId:string){
     if(this.questBusy())return;this.questBusy.set(true);this.error.set(null);

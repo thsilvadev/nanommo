@@ -236,7 +236,7 @@
     </div>
 
     <ng-container *ngIf="vendor.dialogue() as dialogue">
-    <div class="quest-dialogue" *ngIf="!vendor.questInteraction()">
+    <div class="quest-dialogue" *ngIf="vendor.questInteractionResolved() && !vendor.questInteraction()">
       <small class="quest-dialogue-label">DIALOGUE</small>
       <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
         (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
@@ -247,7 +247,7 @@
       </div>
     </div>
     </ng-container>
-    <section class="quest-dialogue" *ngIf="npc.types.length===0 && npc.greeting && !vendor.dialogue() && !vendor.questInteraction()">
+    <section class="quest-dialogue" *ngIf="vendor.questInteractionResolved() && npc.types.length===0 && npc.greeting && !vendor.dialogue() && !vendor.questInteraction()">
       <small class="quest-dialogue-label">DIALOGUE</small>
       <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
         (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
@@ -255,7 +255,7 @@
     </section>
 
     <section class="quest-dialogue quest-interaction" *ngIf="vendor.questInteraction() as interaction">
-      <small class="quest-dialogue-label">{{interaction.kind==='offer'?'QUEST · OFFER':interaction.kind==='active'?'QUEST · IN PROGRESS':interaction.kind==='completed'?'QUEST · COMPLETE':'QUEST ACTION'}}</small>
+      <small class="quest-dialogue-label">{{interaction.kind==='offer'?'QUEST · OFFER':interaction.kind==='active'?(interaction.title || 'QUEST')+' · IN PROGRESS':interaction.kind==='completed'?'QUEST · COMPLETE':'QUEST ACTION'}}</small>
       <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
         (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
         [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
