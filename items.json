@@ -1263,16 +1263,40 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 5,
+            "max": 12
+          },
+          "matk": {
+            "min": 4,
+            "max": 10
+          },
+          "castTimeReduction": {
+            "min": 3,
+            "max": 8
+          },
+          "accuracy": {
+            "min": 4,
+            "max": 10
+          },
+          "criticalPercent": {
+            "min": 2,
+            "max": 5
+          },
+          "atkSpeed": {
+            "min": 3,
+            "max": 8
+          }
+        }
       },
       "sellPriceToVendor": 1800,
       "marketBasePrice": 4500,
@@ -1284,7 +1308,20 @@
         "dagger",
         "shield",
         "rune"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_sword_t2",
@@ -1300,16 +1337,40 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 8,
+            "max": 16
+          },
+          "matk": {
+            "min": 7,
+            "max": 15
+          },
+          "castTimeReduction": {
+            "min": 5,
+            "max": 12
+          },
+          "accuracy": {
+            "min": 6,
+            "max": 15
+          },
+          "criticalPercent": {
+            "min": 3,
+            "max": 8
+          },
+          "atkSpeed": {
+            "min": 5,
+            "max": 12
+          }
+        }
       },
       "sellPriceToVendor": 4680,
       "marketBasePrice": 11700,
@@ -1321,7 +1382,20 @@
         "dagger",
         "shield",
         "rune"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_sword_t3",
@@ -1337,16 +1411,40 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 12,
+            "max": 24
+          },
+          "matk": {
+            "min": 11,
+            "max": 22
+          },
+          "castTimeReduction": {
+            "min": 8,
+            "max": 18
+          },
+          "accuracy": {
+            "min": 10,
+            "max": 20
+          },
+          "criticalPercent": {
+            "min": 5,
+            "max": 12
+          },
+          "atkSpeed": {
+            "min": 8,
+            "max": 18
+          }
+        }
       },
       "sellPriceToVendor": 8640,
       "marketBasePrice": 21600,
@@ -1358,7 +1456,20 @@
         "dagger",
         "shield",
         "rune"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_greatsword_t1",
@@ -1374,6 +1485,49 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 5,
+            "max": 12
+          },
+          "matk": {
+            "min": 4,
+            "max": 10
+          },
+          "castTimeReduction": {
+            "min": 3,
+            "max": 8
+          },
+          "accuracy": {
+            "min": 4,
+            "max": 10
+          },
+          "criticalPercent": {
+            "min": 2,
+            "max": 5
+          },
+          "atkSpeed": {
+            "min": 3,
+            "max": 8
+          }
+        }
+      },
+      "sellPriceToVendor": 2300,
+      "marketBasePrice": 5750,
+      "dropPool": [
+        "map_lv_1",
+        "map_lv_6"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
         "min": 1,
         "max": 6,
         "attributesPool": [
@@ -1384,13 +1538,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 2300,
-      "marketBasePrice": 5750,
-      "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
-      ]
+      }
     },
     {
       "id": "equip_greatsword_t2",
@@ -1406,8 +1554,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 8,
+            "max": 16
+          },
+          "matk": {
+            "min": 7,
+            "max": 15
+          },
+          "castTimeReduction": {
+            "min": 5,
+            "max": 12
+          },
+          "accuracy": {
+            "min": 6,
+            "max": 15
+          },
+          "criticalPercent": {
+            "min": 3,
+            "max": 8
+          },
+          "atkSpeed": {
+            "min": 5,
+            "max": 12
+          }
+        }
+      },
+      "sellPriceToVendor": 5980,
+      "marketBasePrice": 14950,
+      "dropPool": [
+        "map_lv_11",
+        "map_lv_16"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
         "attributesPool": [
           "STR",
           "AGI",
@@ -1416,13 +1607,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 5980,
-      "marketBasePrice": 14950,
-      "dropPool": [
-        "map_lv_11",
-        "map_lv_16"
-      ]
+      }
     },
     {
       "id": "equip_greatsword_t3",
@@ -1438,8 +1623,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 12,
+            "max": 24
+          },
+          "matk": {
+            "min": 11,
+            "max": 22
+          },
+          "castTimeReduction": {
+            "min": 8,
+            "max": 18
+          },
+          "accuracy": {
+            "min": 10,
+            "max": 20
+          },
+          "criticalPercent": {
+            "min": 5,
+            "max": 12
+          },
+          "atkSpeed": {
+            "min": 8,
+            "max": 18
+          }
+        }
+      },
+      "sellPriceToVendor": 11040,
+      "marketBasePrice": 27600,
+      "dropPool": [
+        "map_lv_21",
+        "map_lv_26"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
         "attributesPool": [
           "STR",
           "AGI",
@@ -1448,13 +1676,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 11040,
-      "marketBasePrice": 27600,
-      "dropPool": [
-        "map_lv_21",
-        "map_lv_26"
-      ]
+      }
     },
     {
       "id": "equip_knife",
@@ -1476,7 +1698,20 @@
         "rune"
       ],
       "secondaryHand": true,
-      "sameTypePairingAllowed": true
+      "sameTypePairingAllowed": true,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_dagger_t1",
@@ -1492,16 +1727,40 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 5,
+            "max": 12
+          },
+          "matk": {
+            "min": 4,
+            "max": 10
+          },
+          "castTimeReduction": {
+            "min": 3,
+            "max": 8
+          },
+          "accuracy": {
+            "min": 4,
+            "max": 10
+          },
+          "criticalPercent": {
+            "min": 2,
+            "max": 5
+          },
+          "atkSpeed": {
+            "min": 3,
+            "max": 8
+          }
+        }
       },
       "sellPriceToVendor": 1800,
       "marketBasePrice": 4500,
@@ -1515,7 +1774,20 @@
         "dagger",
         "shield",
         "rune"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_dagger_t2",
@@ -1531,16 +1803,40 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 8,
+            "max": 16
+          },
+          "matk": {
+            "min": 7,
+            "max": 15
+          },
+          "castTimeReduction": {
+            "min": 5,
+            "max": 12
+          },
+          "accuracy": {
+            "min": 6,
+            "max": 15
+          },
+          "criticalPercent": {
+            "min": 3,
+            "max": 8
+          },
+          "atkSpeed": {
+            "min": 5,
+            "max": 12
+          }
+        }
       },
       "sellPriceToVendor": 4680,
       "marketBasePrice": 11700,
@@ -1554,7 +1850,20 @@
         "dagger",
         "shield",
         "rune"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_dagger_t3",
@@ -1570,16 +1879,40 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 12,
+            "max": 24
+          },
+          "matk": {
+            "min": 11,
+            "max": 22
+          },
+          "castTimeReduction": {
+            "min": 8,
+            "max": 18
+          },
+          "accuracy": {
+            "min": 10,
+            "max": 20
+          },
+          "criticalPercent": {
+            "min": 5,
+            "max": 12
+          },
+          "atkSpeed": {
+            "min": 8,
+            "max": 18
+          }
+        }
       },
       "sellPriceToVendor": 8640,
       "marketBasePrice": 21600,
@@ -1593,7 +1926,20 @@
         "dagger",
         "shield",
         "rune"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_bow_t1",
@@ -1609,6 +1955,49 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 5,
+            "max": 12
+          },
+          "matk": {
+            "min": 4,
+            "max": 10
+          },
+          "castTimeReduction": {
+            "min": 3,
+            "max": 8
+          },
+          "accuracy": {
+            "min": 4,
+            "max": 10
+          },
+          "criticalPercent": {
+            "min": 2,
+            "max": 5
+          },
+          "atkSpeed": {
+            "min": 3,
+            "max": 8
+          }
+        }
+      },
+      "sellPriceToVendor": 1800,
+      "marketBasePrice": 4500,
+      "dropPool": [
+        "map_lv_1",
+        "map_lv_6"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
         "min": 1,
         "max": 6,
         "attributesPool": [
@@ -1619,13 +2008,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 1800,
-      "marketBasePrice": 4500,
-      "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
-      ]
+      }
     },
     {
       "id": "equip_bow_t2",
@@ -1641,8 +2024,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 8,
+            "max": 16
+          },
+          "matk": {
+            "min": 7,
+            "max": 15
+          },
+          "castTimeReduction": {
+            "min": 5,
+            "max": 12
+          },
+          "accuracy": {
+            "min": 6,
+            "max": 15
+          },
+          "criticalPercent": {
+            "min": 3,
+            "max": 8
+          },
+          "atkSpeed": {
+            "min": 5,
+            "max": 12
+          }
+        }
+      },
+      "sellPriceToVendor": 4680,
+      "marketBasePrice": 11700,
+      "dropPool": [
+        "map_lv_11",
+        "map_lv_16"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
         "attributesPool": [
           "STR",
           "AGI",
@@ -1651,13 +2077,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 4680,
-      "marketBasePrice": 11700,
-      "dropPool": [
-        "map_lv_11",
-        "map_lv_16"
-      ]
+      }
     },
     {
       "id": "equip_bow_t3",
@@ -1673,8 +2093,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 12,
+            "max": 24
+          },
+          "matk": {
+            "min": 11,
+            "max": 22
+          },
+          "castTimeReduction": {
+            "min": 8,
+            "max": 18
+          },
+          "accuracy": {
+            "min": 10,
+            "max": 20
+          },
+          "criticalPercent": {
+            "min": 5,
+            "max": 12
+          },
+          "atkSpeed": {
+            "min": 8,
+            "max": 18
+          }
+        }
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "dropPool": [
+        "map_lv_21",
+        "map_lv_26"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
         "attributesPool": [
           "STR",
           "AGI",
@@ -1683,13 +2146,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 8640,
-      "marketBasePrice": 21600,
-      "dropPool": [
-        "map_lv_21",
-        "map_lv_26"
-      ]
+      }
     },
     {
       "id": "equip_staff_t1",
@@ -1705,6 +2162,49 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 5,
+            "max": 12
+          },
+          "matk": {
+            "min": 4,
+            "max": 10
+          },
+          "castTimeReduction": {
+            "min": 3,
+            "max": 8
+          },
+          "accuracy": {
+            "min": 4,
+            "max": 10
+          },
+          "criticalPercent": {
+            "min": 2,
+            "max": 5
+          },
+          "atkSpeed": {
+            "min": 3,
+            "max": 8
+          }
+        }
+      },
+      "sellPriceToVendor": 1800,
+      "marketBasePrice": 4500,
+      "dropPool": [
+        "map_lv_1",
+        "map_lv_6"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
         "min": 1,
         "max": 6,
         "attributesPool": [
@@ -1715,13 +2215,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 1800,
-      "marketBasePrice": 4500,
-      "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
-      ]
+      }
     },
     {
       "id": "equip_staff_t2",
@@ -1737,8 +2231,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 8,
+            "max": 16
+          },
+          "matk": {
+            "min": 7,
+            "max": 15
+          },
+          "castTimeReduction": {
+            "min": 5,
+            "max": 12
+          },
+          "accuracy": {
+            "min": 6,
+            "max": 15
+          },
+          "criticalPercent": {
+            "min": 3,
+            "max": 8
+          },
+          "atkSpeed": {
+            "min": 5,
+            "max": 12
+          }
+        }
+      },
+      "sellPriceToVendor": 4680,
+      "marketBasePrice": 11700,
+      "dropPool": [
+        "map_lv_11",
+        "map_lv_16"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
         "attributesPool": [
           "STR",
           "AGI",
@@ -1747,13 +2284,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 4680,
-      "marketBasePrice": 11700,
-      "dropPool": [
-        "map_lv_11",
-        "map_lv_16"
-      ]
+      }
     },
     {
       "id": "equip_staff_t3",
@@ -1769,8 +2300,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 12,
+            "max": 24
+          },
+          "matk": {
+            "min": 11,
+            "max": 22
+          },
+          "castTimeReduction": {
+            "min": 8,
+            "max": 18
+          },
+          "accuracy": {
+            "min": 10,
+            "max": 20
+          },
+          "criticalPercent": {
+            "min": 5,
+            "max": 12
+          },
+          "atkSpeed": {
+            "min": 8,
+            "max": 18
+          }
+        }
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "dropPool": [
+        "map_lv_21",
+        "map_lv_26"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
         "attributesPool": [
           "STR",
           "AGI",
@@ -1779,13 +2353,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 8640,
-      "marketBasePrice": 21600,
-      "dropPool": [
-        "map_lv_21",
-        "map_lv_26"
-      ]
+      }
     },
     {
       "id": "equip_rod_t1",
@@ -1801,16 +2369,40 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 5,
+            "max": 12
+          },
+          "matk": {
+            "min": 4,
+            "max": 10
+          },
+          "castTimeReduction": {
+            "min": 3,
+            "max": 8
+          },
+          "accuracy": {
+            "min": 4,
+            "max": 10
+          },
+          "criticalPercent": {
+            "min": 2,
+            "max": 5
+          },
+          "atkSpeed": {
+            "min": 3,
+            "max": 8
+          }
+        }
       },
       "sellPriceToVendor": 1800,
       "marketBasePrice": 4500,
@@ -1822,7 +2414,20 @@
         "dagger",
         "shield",
         "rune"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_rod_t2",
@@ -1838,16 +2443,40 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 8,
+            "max": 16
+          },
+          "matk": {
+            "min": 7,
+            "max": 15
+          },
+          "castTimeReduction": {
+            "min": 5,
+            "max": 12
+          },
+          "accuracy": {
+            "min": 6,
+            "max": 15
+          },
+          "criticalPercent": {
+            "min": 3,
+            "max": 8
+          },
+          "atkSpeed": {
+            "min": 5,
+            "max": 12
+          }
+        }
       },
       "sellPriceToVendor": 4680,
       "marketBasePrice": 11700,
@@ -1859,7 +2488,20 @@
         "dagger",
         "shield",
         "rune"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_rod_t3",
@@ -1875,16 +2517,40 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "atk",
+          "matk",
+          "castTimeReduction",
+          "accuracy",
+          "criticalPercent",
+          "atkSpeed"
+        ],
+        "rolls": {
+          "atk": {
+            "min": 12,
+            "max": 24
+          },
+          "matk": {
+            "min": 11,
+            "max": 22
+          },
+          "castTimeReduction": {
+            "min": 8,
+            "max": 18
+          },
+          "accuracy": {
+            "min": 10,
+            "max": 20
+          },
+          "criticalPercent": {
+            "min": 5,
+            "max": 12
+          },
+          "atkSpeed": {
+            "min": 8,
+            "max": 18
+          }
+        }
       },
       "sellPriceToVendor": 8640,
       "marketBasePrice": 21600,
@@ -1896,7 +2562,20 @@
         "dagger",
         "shield",
         "rune"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_shield_t1",
@@ -1928,7 +2607,20 @@
       "dropPool": [
         "map_lv_1",
         "map_lv_6"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_shield_t2",
@@ -1960,7 +2652,20 @@
       "dropPool": [
         "map_lv_11",
         "map_lv_16"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_shield_t3",
@@ -1992,7 +2697,20 @@
       "dropPool": [
         "map_lv_21",
         "map_lv_26"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_rune_t1",
@@ -2025,7 +2743,20 @@
       "dropPool": [
         "map_lv_1",
         "map_lv_6"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_rune_t2",
@@ -2058,7 +2789,20 @@
       "dropPool": [
         "map_lv_11",
         "map_lv_16"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_rune_t3",
@@ -2091,7 +2835,20 @@
       "dropPool": [
         "map_lv_21",
         "map_lv_26"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_head_phys_t1",
@@ -2109,6 +2866,49 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 20,
+            "max": 50
+          },
+          "sp": {
+            "min": 10,
+            "max": 25
+          },
+          "hpRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "spRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "evasion": {
+            "min": 3,
+            "max": 8
+          },
+          "defense": {
+            "min": 4,
+            "max": 10
+          }
+        }
+      },
+      "sellPriceToVendor": 1600,
+      "marketBasePrice": 4000,
+      "dropPool": [
+        "map_lv_1",
+        "map_lv_6"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
         "min": 1,
         "max": 6,
         "attributesPool": [
@@ -2119,13 +2919,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 1600,
-      "marketBasePrice": 4000,
-      "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
-      ]
+      }
     },
     {
       "id": "equip_head_magic_t1",
@@ -2143,6 +2937,49 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 20,
+            "max": 50
+          },
+          "sp": {
+            "min": 10,
+            "max": 25
+          },
+          "hpRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "spRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "evasion": {
+            "min": 3,
+            "max": 8
+          },
+          "defense": {
+            "min": 4,
+            "max": 10
+          }
+        }
+      },
+      "sellPriceToVendor": 1600,
+      "marketBasePrice": 4000,
+      "dropPool": [
+        "map_lv_1",
+        "map_lv_6"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
         "min": 1,
         "max": 6,
         "attributesPool": [
@@ -2153,13 +2990,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 1600,
-      "marketBasePrice": 4000,
-      "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
-      ]
+      }
     },
     {
       "id": "equip_head_phys_t2",
@@ -2177,8 +3008,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 40,
+            "max": 100
+          },
+          "sp": {
+            "min": 20,
+            "max": 50
+          },
+          "hpRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "spRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "evasion": {
+            "min": 5,
+            "max": 12
+          },
+          "defense": {
+            "min": 7,
+            "max": 15
+          }
+        }
+      },
+      "sellPriceToVendor": 4160,
+      "marketBasePrice": 10400,
+      "dropPool": [
+        "map_lv_11",
+        "map_lv_16"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
         "attributesPool": [
           "STR",
           "AGI",
@@ -2187,13 +3061,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 4160,
-      "marketBasePrice": 10400,
-      "dropPool": [
-        "map_lv_11",
-        "map_lv_16"
-      ]
+      }
     },
     {
       "id": "equip_head_magic_t2",
@@ -2211,8 +3079,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 40,
+            "max": 100
+          },
+          "sp": {
+            "min": 20,
+            "max": 50
+          },
+          "hpRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "spRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "evasion": {
+            "min": 5,
+            "max": 12
+          },
+          "defense": {
+            "min": 7,
+            "max": 15
+          }
+        }
+      },
+      "sellPriceToVendor": 4160,
+      "marketBasePrice": 10400,
+      "dropPool": [
+        "map_lv_11",
+        "map_lv_16"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
         "attributesPool": [
           "STR",
           "AGI",
@@ -2221,13 +3132,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 4160,
-      "marketBasePrice": 10400,
-      "dropPool": [
-        "map_lv_11",
-        "map_lv_16"
-      ]
+      }
     },
     {
       "id": "equip_head_phys_t3",
@@ -2245,8 +3150,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 80,
+            "max": 200
+          },
+          "sp": {
+            "min": 40,
+            "max": 100
+          },
+          "hpRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "spRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "evasion": {
+            "min": 8,
+            "max": 18
+          },
+          "defense": {
+            "min": 11,
+            "max": 22
+          }
+        }
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "dropPool": [
+        "map_lv_21",
+        "map_lv_26"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
         "attributesPool": [
           "STR",
           "AGI",
@@ -2255,13 +3203,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 7680,
-      "marketBasePrice": 19200,
-      "dropPool": [
-        "map_lv_21",
-        "map_lv_26"
-      ]
+      }
     },
     {
       "id": "equip_head_magic_t3",
@@ -2279,8 +3221,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 80,
+            "max": 200
+          },
+          "sp": {
+            "min": 40,
+            "max": 100
+          },
+          "hpRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "spRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "evasion": {
+            "min": 8,
+            "max": 18
+          },
+          "defense": {
+            "min": 11,
+            "max": 22
+          }
+        }
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "dropPool": [
+        "map_lv_21",
+        "map_lv_26"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
         "attributesPool": [
           "STR",
           "AGI",
@@ -2289,13 +3274,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 7680,
-      "marketBasePrice": 19200,
-      "dropPool": [
-        "map_lv_21",
-        "map_lv_26"
-      ]
+      }
     },
     {
       "id": "equip_body_phys_t1",
@@ -2313,6 +3292,49 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 20,
+            "max": 50
+          },
+          "sp": {
+            "min": 10,
+            "max": 25
+          },
+          "hpRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "spRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "evasion": {
+            "min": 3,
+            "max": 8
+          },
+          "defense": {
+            "min": 4,
+            "max": 10
+          }
+        }
+      },
+      "sellPriceToVendor": 1600,
+      "marketBasePrice": 4000,
+      "dropPool": [
+        "map_lv_1",
+        "map_lv_6"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
         "min": 1,
         "max": 6,
         "attributesPool": [
@@ -2323,13 +3345,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 1600,
-      "marketBasePrice": 4000,
-      "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
-      ]
+      }
     },
     {
       "id": "equip_body_magic_t1",
@@ -2347,6 +3363,49 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 20,
+            "max": 50
+          },
+          "sp": {
+            "min": 10,
+            "max": 25
+          },
+          "hpRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "spRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "evasion": {
+            "min": 3,
+            "max": 8
+          },
+          "defense": {
+            "min": 4,
+            "max": 10
+          }
+        }
+      },
+      "sellPriceToVendor": 1600,
+      "marketBasePrice": 4000,
+      "dropPool": [
+        "map_lv_1",
+        "map_lv_6"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
         "min": 1,
         "max": 6,
         "attributesPool": [
@@ -2357,13 +3416,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 1600,
-      "marketBasePrice": 4000,
-      "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
-      ]
+      }
     },
     {
       "id": "equip_body_phys_t2",
@@ -2381,8 +3434,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 40,
+            "max": 100
+          },
+          "sp": {
+            "min": 20,
+            "max": 50
+          },
+          "hpRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "spRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "evasion": {
+            "min": 5,
+            "max": 12
+          },
+          "defense": {
+            "min": 7,
+            "max": 15
+          }
+        }
+      },
+      "sellPriceToVendor": 4160,
+      "marketBasePrice": 10400,
+      "dropPool": [
+        "map_lv_11",
+        "map_lv_16"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
         "attributesPool": [
           "STR",
           "AGI",
@@ -2391,13 +3487,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 4160,
-      "marketBasePrice": 10400,
-      "dropPool": [
-        "map_lv_11",
-        "map_lv_16"
-      ]
+      }
     },
     {
       "id": "equip_body_magic_t2",
@@ -2415,8 +3505,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 40,
+            "max": 100
+          },
+          "sp": {
+            "min": 20,
+            "max": 50
+          },
+          "hpRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "spRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "evasion": {
+            "min": 5,
+            "max": 12
+          },
+          "defense": {
+            "min": 7,
+            "max": 15
+          }
+        }
+      },
+      "sellPriceToVendor": 4160,
+      "marketBasePrice": 10400,
+      "dropPool": [
+        "map_lv_11",
+        "map_lv_16"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
         "attributesPool": [
           "STR",
           "AGI",
@@ -2425,13 +3558,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 4160,
-      "marketBasePrice": 10400,
-      "dropPool": [
-        "map_lv_11",
-        "map_lv_16"
-      ]
+      }
     },
     {
       "id": "equip_body_phys_t3",
@@ -2449,8 +3576,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 80,
+            "max": 200
+          },
+          "sp": {
+            "min": 40,
+            "max": 100
+          },
+          "hpRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "spRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "evasion": {
+            "min": 8,
+            "max": 18
+          },
+          "defense": {
+            "min": 11,
+            "max": 22
+          }
+        }
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "dropPool": [
+        "map_lv_21",
+        "map_lv_26"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
         "attributesPool": [
           "STR",
           "AGI",
@@ -2459,13 +3629,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 7680,
-      "marketBasePrice": 19200,
-      "dropPool": [
-        "map_lv_21",
-        "map_lv_26"
-      ]
+      }
     },
     {
       "id": "equip_body_magic_t3",
@@ -2483,8 +3647,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 80,
+            "max": 200
+          },
+          "sp": {
+            "min": 40,
+            "max": 100
+          },
+          "hpRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "spRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "evasion": {
+            "min": 8,
+            "max": 18
+          },
+          "defense": {
+            "min": 11,
+            "max": 22
+          }
+        }
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "dropPool": [
+        "map_lv_21",
+        "map_lv_26"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
         "attributesPool": [
           "STR",
           "AGI",
@@ -2493,13 +3700,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 7680,
-      "marketBasePrice": 19200,
-      "dropPool": [
-        "map_lv_21",
-        "map_lv_26"
-      ]
+      }
     },
     {
       "id": "equip_cape_phys_t1",
@@ -2533,7 +3734,20 @@
       "dropPool": [
         "map_lv_1",
         "map_lv_6"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_cape_magic_t1",
@@ -2567,7 +3781,20 @@
       "dropPool": [
         "map_lv_1",
         "map_lv_6"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_cape_phys_t2",
@@ -2601,7 +3828,20 @@
       "dropPool": [
         "map_lv_11",
         "map_lv_16"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_cape_magic_t2",
@@ -2635,7 +3875,20 @@
       "dropPool": [
         "map_lv_11",
         "map_lv_16"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_cape_phys_t3",
@@ -2669,7 +3922,20 @@
       "dropPool": [
         "map_lv_21",
         "map_lv_26"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_cape_magic_t3",
@@ -2703,7 +3969,20 @@
       "dropPool": [
         "map_lv_21",
         "map_lv_26"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_accessory_sor_t1",
@@ -2719,6 +3998,45 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 20,
+            "max": 50
+          },
+          "sp": {
+            "min": 10,
+            "max": 25
+          },
+          "hpRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "spRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "evasion": {
+            "min": 3,
+            "max": 8
+          },
+          "defense": {
+            "min": 4,
+            "max": 10
+          }
+        }
+      },
+      "sellPriceToVendor": 1200,
+      "marketBasePrice": 3000,
+      "randomRollOnCraft": {
+        "enabled": true,
         "min": 1,
         "max": 6,
         "attributesPool": [
@@ -2729,9 +4047,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 1200,
-      "marketBasePrice": 3000
+      }
     },
     {
       "id": "equip_accessory_dex_t1",
@@ -2747,6 +4063,49 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 20,
+            "max": 50
+          },
+          "sp": {
+            "min": 10,
+            "max": 25
+          },
+          "hpRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "spRegen": {
+            "min": 2,
+            "max": 5
+          },
+          "evasion": {
+            "min": 3,
+            "max": 8
+          },
+          "defense": {
+            "min": 4,
+            "max": 10
+          }
+        }
+      },
+      "sellPriceToVendor": 1200,
+      "marketBasePrice": 3000,
+      "dropPool": [
+        "map_lv_1",
+        "map_lv_6"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
         "min": 1,
         "max": 6,
         "attributesPool": [
@@ -2757,13 +4116,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 1200,
-      "marketBasePrice": 3000,
-      "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
-      ]
+      }
     },
     {
       "id": "equip_accessory_sor_t2",
@@ -2779,8 +4132,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 40,
+            "max": 100
+          },
+          "sp": {
+            "min": 20,
+            "max": 50
+          },
+          "hpRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "spRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "evasion": {
+            "min": 5,
+            "max": 12
+          },
+          "defense": {
+            "min": 7,
+            "max": 15
+          }
+        }
+      },
+      "sellPriceToVendor": 3120,
+      "marketBasePrice": 7800,
+      "dropPool": [
+        "map_lv_11",
+        "map_lv_16"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
         "attributesPool": [
           "STR",
           "AGI",
@@ -2789,13 +4185,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 3120,
-      "marketBasePrice": 7800,
-      "dropPool": [
-        "map_lv_11",
-        "map_lv_16"
-      ]
+      }
     },
     {
       "id": "equip_accessory_dex_t2",
@@ -2811,8 +4201,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 40,
+            "max": 100
+          },
+          "sp": {
+            "min": 20,
+            "max": 50
+          },
+          "hpRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "spRegen": {
+            "min": 4,
+            "max": 10
+          },
+          "evasion": {
+            "min": 5,
+            "max": 12
+          },
+          "defense": {
+            "min": 7,
+            "max": 15
+          }
+        }
+      },
+      "sellPriceToVendor": 3120,
+      "marketBasePrice": 7800,
+      "dropPool": [
+        "map_lv_11",
+        "map_lv_16"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
         "attributesPool": [
           "STR",
           "AGI",
@@ -2821,13 +4254,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 3120,
-      "marketBasePrice": 7800,
-      "dropPool": [
-        "map_lv_11",
-        "map_lv_16"
-      ]
+      }
     },
     {
       "id": "equip_accessory_sor_t3",
@@ -2843,8 +4270,51 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 80,
+            "max": 200
+          },
+          "sp": {
+            "min": 40,
+            "max": 100
+          },
+          "hpRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "spRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "evasion": {
+            "min": 8,
+            "max": 18
+          },
+          "defense": {
+            "min": 11,
+            "max": 22
+          }
+        }
+      },
+      "sellPriceToVendor": 5760,
+      "marketBasePrice": 14400,
+      "dropPool": [
+        "map_lv_21",
+        "map_lv_26"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
         "attributesPool": [
           "STR",
           "AGI",
@@ -2853,13 +4323,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 5760,
-      "marketBasePrice": 14400,
-      "dropPool": [
-        "map_lv_21",
-        "map_lv_26"
-      ]
+      }
     },
     {
       "id": "equip_accessory_dex_t3",
@@ -2875,6 +4339,84 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
+        "statsPool": [
+          "hp",
+          "sp",
+          "hpRegen",
+          "spRegen",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 80,
+            "max": 200
+          },
+          "sp": {
+            "min": 40,
+            "max": 100
+          },
+          "hpRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "spRegen": {
+            "min": 8,
+            "max": 20
+          },
+          "evasion": {
+            "min": 8,
+            "max": 18
+          },
+          "defense": {
+            "min": 11,
+            "max": 22
+          }
+        }
+      },
+      "sellPriceToVendor": 5760,
+      "marketBasePrice": 14400,
+      "dropPool": [
+        "map_lv_21",
+        "map_lv_26"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
+    },
+    {
+      "id": "equip_shoes_earth_t1",
+      "name": "Grounded Boots",
+      "type": "equipment",
+      "slot": "shoes",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "elementalImmunity": "earth",
+        "def": 2
+      },
+      "randomRollOnDrop": {
+        "enabled": false,
+        "attributesPool": []
+      },
+      "sellPriceToVendor": 1400,
+      "marketBasePrice": 3500,
+      "dropPool": [
+        "map_lv_1",
+        "map_lv_6"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
         "min": 1,
         "max": 6,
         "attributesPool": [
@@ -2885,34 +4427,7 @@
           "INT",
           "LUK"
         ]
-      },
-      "sellPriceToVendor": 5760,
-      "marketBasePrice": 14400,
-      "dropPool": [
-        "map_lv_21",
-        "map_lv_26"
-      ]
-    },
-    {
-      "id": "equip_shoes_earth_t1",
-      "name": "Grounded Boots",
-      "type": "equipment",
-      "slot": "shoes",
-      "levelReq": 1,
-      "tier": 1,
-      "fixedStats": {
-        "elementalImmunity": "earth"
-      },
-      "randomRollOnDrop": {
-        "enabled": false,
-        "attributesPool": []
-      },
-      "sellPriceToVendor": 1400,
-      "marketBasePrice": 3500,
-      "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
-      ]
+      }
     },
     {
       "id": "equip_shoes_water_t1",
@@ -2922,7 +4437,8 @@
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
-        "elementalImmunity": "water"
+        "elementalImmunity": "water",
+        "def": 2
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -2933,7 +4449,20 @@
       "dropPool": [
         "map_lv_1",
         "map_lv_6"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_shoes_fire_t2",
@@ -2943,7 +4472,8 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "elementalImmunity": "fire"
+        "elementalImmunity": "fire",
+        "def": 4
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -2954,7 +4484,20 @@
       "dropPool": [
         "map_lv_11",
         "map_lv_16"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_shoes_shadow_t2",
@@ -2964,7 +4507,8 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "elementalImmunity": "shadow"
+        "elementalImmunity": "shadow",
+        "def": 4
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -2975,7 +4519,20 @@
       "dropPool": [
         "map_lv_11",
         "map_lv_16"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 2,
+        "max": 8,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_shoes_wind_t3",
@@ -2985,7 +4542,8 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "elementalImmunity": "wind"
+        "elementalImmunity": "wind",
+        "def": 6
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -2996,7 +4554,20 @@
       "dropPool": [
         "map_lv_21",
         "map_lv_26"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     },
     {
       "id": "equip_shoes_holy_t3",
@@ -3006,7 +4577,8 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "elementalImmunity": "holy"
+        "elementalImmunity": "holy",
+        "def": 6
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -3017,7 +4589,20 @@
       "dropPool": [
         "map_lv_21",
         "map_lv_26"
-      ]
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 3,
+        "max": 10,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      }
     }
   ],
   "materials": [
