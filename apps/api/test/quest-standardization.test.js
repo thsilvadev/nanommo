@@ -92,12 +92,50 @@ async function run() {
   let state = await availableHarness.service.advanceOffer(availableHarness.character.id, locked.id);
   assert.strictEqual(state.accepted, false);
   state = await availableHarness.service.advanceOffer(availableHarness.character.id, locked.id);
-  assert.strictEqual(state.accepted, false);
-  state = await availableHarness.service.advanceOffer(availableHarness.character.id, locked.id);
   assert.strictEqual(state.accepted, true);
   assert.strictEqual(availableHarness.instanceRows.filter(row => row.status === 'active').length, 1);
   await assert.rejects(() => availableHarness.service.advanceOffer(availableHarness.character.id, locked.id), /Quest is not currently available/);
   assert.strictEqual(availableHarness.instanceRows.filter(row => row.status === 'active').length, 1);
+
+  // Cecilia opens directly in dialogue; the single button accepts at the last offer step,
+  // then the same panel switches into her active line with a readiness-sensitive action.
+  const ceciliaEmpty = harness();
+  let interaction = await ceciliaEmpty.service.getNpcInteraction(ceciliaEmpty.character.id, 'cecilia');
+  assert.strictEqual(interaction.kind, 'offer');
+  assert.strictEqual(interaction.npcText, baseQuest.offerDialogue[0].npcText);
+  assert.strictEqual(interaction.buttonText, 'What can you do?');
+  interaction = await ceciliaEmpty.service.advanceOffer(ceciliaEmpty.character.id, baseQuest.id);
+  assert.strictEqual(interaction.accepted, false);
+  assert.strictEqual(interaction.buttonText, 'I’ll take the job.');
+  interaction = await ceciliaEmpty.service.advanceOffer(ceciliaEmpty.character.id, baseQuest.id);
+  assert.strictEqual(interaction.accepted, true);
+  assert.strictEqual(interaction.interaction.kind, 'active');
+  assert.strictEqual(interaction.interaction.npcText, baseQuest.activeDialogue.npcText);
+  assert.strictEqual(interaction.interaction.buttonText, "Ok I'll be back");
+  assert.strictEqual(interaction.interaction.action, 'close');
+  const multiNpcQuest = { ...baseQuest, id: 'test_second_cecilia_quest', title: 'Second Cecilia quest' };
+  const multiQuestHarness = harness({ data: { ...harness().data, getQuests: () => ({ quests: [baseQuest, multiNpcQuest] }) } });
+  const multiChoice = await multiQuestHarness.service.getNpcInteraction(multiQuestHarness.character.id, 'cecilia');
+  assert.strictEqual(multiChoice.kind, 'select');
+  assert.deepStrictEqual(multiChoice.actions.map((action) => action.title), [baseQuest.title, multiNpcQuest.title]);
+
+  const fatherQuest = { ...baseQuest, id: 'test_father_offer', giverNpcId: 'father_marcelus', turnInNpcId: 'father_marcelus' };
+  const fatherHarness = harness({ data: { ...harness().data, getQuests: () => ({ quests: [fatherQuest] }) } });
+  const fatherChoice = await fatherHarness.service.getNpcInteraction(fatherHarness.character.id, 'father_marcelus');
+  assert.strictEqual(fatherChoice.kind, 'select');
+  assert.ok(fatherChoice.actions.some((action) => action.type === 'dialogue' && action.buttonText === 'Talk'));
+  assert.ok(fatherChoice.actions.some((action) => action.type === 'offer' && action.questId === fatherQuest.id));
+
+  const ceciliaReady = harness({ inventory: [
+    { id: 's-gel', characterId: 'char-q1', location: 'inventory', slotIndex: 0, itemId: 'part_slime_common', quantity: 20 },
+    { id: 'b-wings', characterId: 'char-q1', location: 'inventory', slotIndex: 1, itemId: 'part_fieldbat_common', quantity: 20 },
+    { id: 't-bark', characterId: 'char-q1', location: 'inventory', slotIndex: 2, itemId: 'part_thornsprout_common', quantity: 10 },
+  ] });
+  await ceciliaReady.service.getNpcInteraction(ceciliaReady.character.id, 'cecilia');
+  await ceciliaReady.service.advanceOffer(ceciliaReady.character.id, baseQuest.id);
+  const acceptedReady = await ceciliaReady.service.advanceOffer(ceciliaReady.character.id, baseQuest.id);
+  assert.strictEqual(acceptedReady.interaction.buttonText, '[Handle items]');
+  assert.strictEqual(acceptedReady.interaction.action, 'turn_in');
 
   // Active limit is checked transactionally at final acceptance.
   const many = Array.from({ length: 6 }, (_, i) => ({ ...baseQuest, id: `limit_quest_${i}`, title: `Limit ${i}` }));
@@ -105,14 +143,14 @@ async function run() {
   const limitHarness = harness({ data: limitData });
   for (let i = 0; i < 5; i++) {
     await limitHarness.service.getOffer(limitHarness.character.id, many[i].id);
-    await limitHarness.service.advanceOffer(limitHarness.character.id, many[i].id);
-    await limitHarness.service.advanceOffer(limitHarness.character.id, many[i].id);
     const accepted = await limitHarness.service.advanceOffer(limitHarness.character.id, many[i].id);
-    assert.strictEqual(accepted.accepted, true);
+    assert.strictEqual(accepted.accepted, false);
+    const final = await limitHarness.service.advanceOffer(limitHarness.character.id, many[i].id);
+    assert.strictEqual(final.accepted, true);
   }
   await limitHarness.service.getOffer(limitHarness.character.id, many[5].id);
-  await limitHarness.service.advanceOffer(limitHarness.character.id, many[5].id);
-  await limitHarness.service.advanceOffer(limitHarness.character.id, many[5].id);
+  const lastOfferStep = await limitHarness.service.advanceOffer(limitHarness.character.id, many[5].id);
+  assert.strictEqual(lastOfferStep.accepted, false);
   await assert.rejects(() => limitHarness.service.advanceOffer(limitHarness.character.id, many[5].id), /at most 5 active quests/);
   assert.strictEqual(limitHarness.instanceRows.filter(row => row.status === 'active').length, 5);
 
@@ -158,11 +196,14 @@ async function run() {
   ];
   const ceciliaInstance = { id: 'cecilia-instance', characterId: 'char-q1', questId: baseQuest.id, status: 'active', progress: {}, acceptedAt: new Date(), expiresAt: null, completedAt: null };
   const turnin = harness({ instances: [ceciliaInstance], inventory: required });
-  await turnin.service.turnIn(turnin.character.id, ceciliaInstance.id);
+  const turninResult = await turnin.service.turnIn(turnin.character.id, ceciliaInstance.id);
+  assert.strictEqual(turninResult.interaction.npcText, baseQuest.completionDialogue.npcText);
+  assert.strictEqual(turninResult.interaction.buttonText, baseQuest.completionDialogue.buttonText);
   assert.strictEqual(turnin.instanceRows[0].status, 'completed');
   assert.strictEqual(turnin.invRows.filter(row => ['part_slime_common', 'part_fieldbat_common', 'part_thornsprout_common'].includes(row.itemId)).length, 0);
   const rewardRing = turnin.invRows.find(row => row.itemId === 'equip_accessory_sor_t1');
   assert.deepStrictEqual(rewardRing.instanceData.questReward, { questId: baseQuest.id, marketTradable: false });
+  assert.strictEqual(baseQuest.completionDialogue.buttonText, 'Thank you!');
 
   // Successful battle resolution records multiple configured objectives in the same transaction.
   const combatQuest = { ...baseQuest, id: 'test_combat_objectives', objectives: [
@@ -287,6 +328,16 @@ async function run() {
   assert.match(textOf('apps/api/src/modules/inventory/inventory.service.ts'), /Quest-only items cannot be transferred to or from Storage/);
   assert.match(textOf('apps/frontend/src/app/features/play/market.component.ts'), /Quest-reward equipment cannot be listed on the Market/);
   assert.match(textOf('apps/frontend/src/app/core/vendor.store.ts'), /Quest-only items cannot be attached to Mail/);
+  const vendorTemplate = textOf('apps/frontend/src/app/features/play/vendor-panel.html');
+  const vendorStyles = textOf('apps/frontend/src/app/features/play/vendor-panel.css');
+  const vendorComponent = textOf('apps/frontend/src/app/features/play/components.ts');
+  assert.match(vendorTemplate, /interactionTyping\(\).*disabled|disabled[^>]*interactionTyping\(\)/);
+  assert.match(vendorTemplate, /revealInteractionText\(\)/);
+  assert.doesNotMatch(vendorTemplate, /quest-offer-row|quest-actions-panel|quest-offer-dialogue/);
+  assert.match(vendorStyles, /font:14px\/1\.5 Georgia/);
+  assert.match(vendorStyles, /quest-action-button/);
+  assert.match(vendorComponent, /this.displayedInteractionText.set\(this.interactionTextTarget\)/);
+  assert.match(vendorComponent, /this.interactionTyping.set\(false\)/);
 
   // Public mirrors and the no-normal-drop invariant are part of the catalogue contract.
   for (const name of ['items.json', 'npc_catalog.json', 'quests.json']) {

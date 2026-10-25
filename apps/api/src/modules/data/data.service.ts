@@ -155,6 +155,8 @@ export class DataService implements OnModuleInit {
       if (!Array.isArray(quest.requiresCompletedQuestIds) || quest.requiresCompletedQuestIds.some((id: string) => typeof id !== 'string')) throw new Error(`Quest ${quest.id} must define prerequisite IDs`);
       if (!Array.isArray(quest.offerDialogue) || !quest.offerDialogue.length || quest.offerDialogue.filter((step: any) => step?.acceptsQuest === true).length !== 1 || quest.offerDialogue[quest.offerDialogue.length - 1]?.acceptsQuest !== true) throw new Error(`Quest ${quest.id} must have exactly one decisive final offer step`);
       for (const step of quest.offerDialogue) if (!step?.npcText || !step?.buttonText) throw new Error(`Quest ${quest.id} has malformed offer dialogue`);
+      if (quest.activeDialogue !== undefined && (!quest.activeDialogue || typeof quest.activeDialogue.npcText !== 'string' || !quest.activeDialogue.npcText.trim() || typeof quest.activeDialogue.waitButtonText !== 'string' || !quest.activeDialogue.waitButtonText.trim())) throw new Error(`Quest ${quest.id} has malformed activeDialogue`);
+      if (quest.completionDialogue !== undefined && (!quest.completionDialogue || typeof quest.completionDialogue.npcText !== 'string' || !quest.completionDialogue.npcText.trim() || typeof quest.completionDialogue.buttonText !== 'string' || !quest.completionDialogue.buttonText.trim())) throw new Error(`Quest ${quest.id} has malformed completionDialogue`);
       if (!Array.isArray(quest.objectives) || !quest.objectives.length) throw new Error(`Quest ${quest.id} must define objectives`);
       const objectiveIds = new Set<string>();
       for (const objective of quest.objectives) {

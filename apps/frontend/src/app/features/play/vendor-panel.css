@@ -122,38 +122,15 @@
   box-sizing: border-box;
   pointer-events: none;
 }
-.quest-dialogue {
-  margin-top: 11px;
-  border-top: 1px solid #38281b;
-  padding-top: 9px;
-}
-.quest-text {
-  color: #d2ba86;
-  font: 22px Georgia;
-  line-height: 1.45;
-  margin: 0 0 9px;
-}
-.quest-choices {
-  display: grid;
-  gap: 5px;
-}
-.quest-choices button {
-  background: #100c09;
-  border: 1px solid #493521;
-  color: #b99759;
-  padding: 8px;
-  text-align: left;
-  font: 20px Arial;
-  cursor: pointer;
-}
-.quest-choices button:hover {
-  border-color: #8b6a3b;
-  color: #dfcfb3;
-}
-.quest-choices button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
+.quest-dialogue{padding:9px;border:1px solid #46331f;background:#17120d}
+.quest-interaction{border-color:#c49a50;background:#21180e}
+.quest-dialogue-label{display:block;color:#c09a5c;font:700 10px Arial;margin-bottom:6px}
+.quest-text{color:#d8cbb4;font:14px/1.5 Georgia,serif;margin:0 0 10px}
+.quest-text.is-typing{cursor:pointer}.quest-text.is-complete{cursor:default}
+.quest-choices{display:grid;gap:5px}
+.quest-choices button{background:#100c08;border:1px solid #6c512e;color:#e0c58b;padding:8px 10px;text-align:left;font:600 12px Arial;cursor:pointer}
+.quest-choices button.quest-action-button{background:#5a401f;border-color:#c49a50;color:#fff0c9}
+.quest-choices button:disabled{opacity:.48;cursor:not-allowed}
 .vendor-error {
   margin-top: 8px;
   color: #d18a77;

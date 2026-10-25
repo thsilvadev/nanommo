@@ -18,11 +18,7 @@
         },
         {
           "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and 10x Thorn Barks and I’ll give you something that’ll bring luck to your journey.",
-          "buttonText": "I’ll take the job."
-        },
-        {
-          "npcText": "Marvelous, darling! Bring me the parts when you have them, and we shall make a little luck of our own.",
-          "buttonText": "Accept quest",
+          "buttonText": "I’ll take the job.",
           "acceptsQuest": true
         }
       ],
@@ -56,6 +52,16 @@
           }
         ],
         "professionXp": []
+      },
+      "activeDialogue": {
+        "npcText": "Marvelous, darling! Bring me the parts when you have them, and we shall make a little luck of our own.",
+        "waitButtonText": "Ok I'll be back",
+        "handleItemsButtonText": "[Handle items]",
+        "readyButtonText": "[Continue]"
+      },
+      "completionDialogue": {
+        "npcText": "There you go, darling! May this little ring bring a little more luck to your journey.",
+        "buttonText": "Thank you!"
       }
     }
   ]

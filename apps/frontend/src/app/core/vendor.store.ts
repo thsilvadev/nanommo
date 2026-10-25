@@ -24,9 +24,7 @@ export class VendorStore {
   readonly catalog=inject(CatalogService);
   readonly npcs=signal<TownNpc[]>([]);
   readonly dialogue=signal<NpcDialogueState|null>(null);
-  readonly availableQuests=signal<any[]>([]);
-  readonly activeQuests=signal<any[]>([]);
-  readonly questOffer=signal<any|null>(null);
+  readonly questInteraction=signal<any|null>(null);
   readonly questBusy=signal(false);
   readonly selectedNpcId=signal('');
   readonly stock=signal<VendorStockItem[]>([]);
@@ -63,7 +61,7 @@ export class VendorStore {
     this.stock.set([]);
     this.warehouse.set([]);
     this.dialogue.set(null);
-    this.availableQuests.set([]); this.activeQuests.set([]); this.questOffer.set(null);
+    this.questInteraction.set(null);
     this.modal.set(null);
     this.cookingModal.set(false);
     this.error.set(null);
@@ -131,7 +129,7 @@ export class VendorStore {
     const npc=this.npcs().find(n=>n.id===id);
     this.stock.set([]);
     this.warehouse.set([]);
-    this.dialogue.set(null); this.availableQuests.set([]); this.activeQuests.set([]); this.questOffer.set(null);
+    this.dialogue.set(null); this.questInteraction.set(null);
     if(!npc)return;
     const requests: Promise<void>[]=[];
     if(npc.types.includes('vendor')) requests.push(this.loadStock(id));
@@ -145,28 +143,50 @@ export class VendorStore {
   async loadQuestActions(npcId=this.selectedNpcId()){
     if(!npcId)return;
     try{
-      const [available,state]=await Promise.all([
-        this.api.get<any[]>('/quests/available?npcId='+encodeURIComponent(npcId)).toPromise(),
-        this.api.get<any>('/quests').toPromise(),
-      ]);
-      if(this.selectedNpcId()!==npcId)return;
-      this.availableQuests.set(available??[]);this.activeQuests.set(state?.active??[]);
-    }catch(e:any){if(this.selectedNpcId()===npcId)this.error.set(e?.error?.message??'Unable to load quests');}
+      const interaction=await this.api.get<any>('/quests/npc/'+encodeURIComponent(npcId)+'/interaction').toPromise()??null;
+      if(this.selectedNpcId()===npcId)this.questInteraction.set(interaction);
+    }catch(e:any){if(this.selectedNpcId()===npcId)this.error.set(e?.error?.message??'Unable to load quest dialogue');}
   }
   async startQuestOffer(questId:string){
     if(this.questBusy())return;this.questBusy.set(true);this.error.set(null);
-    try{const offer=await this.api.get<any>('/quests/'+encodeURIComponent(questId)+'/offer').toPromise();this.questOffer.set(offer??null);}
+    try{const offer=await this.api.get<any>('/quests/'+encodeURIComponent(questId)+'/offer').toPromise();this.questInteraction.set(offer??null);}
     catch(e:any){this.error.set(e?.error?.message??'Unable to open quest offer');}
     finally{this.questBusy.set(false);}
   }
-  async chooseQuestOffer(){
-    const offer=this.questOffer();if(!offer||this.questBusy())return;this.questBusy.set(true);this.error.set(null);
+  async chooseQuestInteraction(action?:any){
+    const interaction=this.questInteraction();if(!interaction||this.questBusy())return;
+    if(interaction.kind==='select'){
+      if(!action)return;
+      if(action.type==='dialogue'){this.questInteraction.set(null);await this.loadDialogue();return;}
+      if(action.type==='active'&&action.interaction){this.questInteraction.set(action.interaction);return;}
+      if(action.questId){await this.startQuestOffer(action.questId);return;}
+      return;
+    }
+    if(interaction.kind==='completed'&&interaction.action==='close'){
+      this.questInteraction.set(null);await this.loadQuestActions();return;
+    }
+    if(interaction.kind==='active'&&interaction.action==='close'){
+      this.questInteraction.set(null);return;
+    }
+    this.questBusy.set(true);this.error.set(null);
     try{
-      const result=await this.api.post<any>('/quests/'+encodeURIComponent(offer.questId)+'/offer',{}).toPromise();
-      if(result?.accepted){this.questOffer.set(null);await this.character.load();await this.loadQuestActions();}
-      else this.questOffer.set(result??null);
-    }catch(e:any){this.error.set(e?.error?.message??'Quest acceptance rejected');}
+      if(interaction.kind==='offer'){
+        const result=await this.api.post<any>('/quests/'+encodeURIComponent(interaction.questId)+'/offer',{}).toPromise();
+        this.questInteraction.set(result?.accepted?(result.interaction??null):result??null);
+        if(result?.accepted)await Promise.all([this.character.load(),this.inventory.load()]);
+      }else if(interaction.kind==='active'&&interaction.action==='turn_in'){
+        const result=await this.api.post<any>('/quests/'+encodeURIComponent(interaction.instanceId)+'/turn-in',{}).toPromise();
+        this.questInteraction.set(result?.interaction??null);
+        await Promise.all([this.character.load(),this.inventory.load()]);
+      }
+      await this.loadQuestStateOnly();
+    }catch(e:any){this.error.set(e?.error?.message??'Quest interaction rejected');}
     finally{this.questBusy.set(false);}
+  }
+  async loadQuestStateOnly(){
+    // Character-page state is intentionally separate from the compact NPC dialogue.
+    // Reload the active NPC dialogue after external turn-ins only when no post-action line is showing.
+    if(!this.questInteraction()&&this.selectedNpcId())await this.loadQuestActions();
   }
   async performQuestAction(quest:any,objective:any){
     if(this.questBusy())return;this.questBusy.set(true);this.error.set(null);

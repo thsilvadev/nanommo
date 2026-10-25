@@ -681,8 +681,12 @@ export class InventoryGrid implements OnDestroy {
 }
 
 @Component({ selector: 'app-vendor-panel', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './vendor-panel.html', styleUrl: './vendor-panel.css' , styles: [".mailbox-attachment{display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:#d9c39e;font-size:11px}.mailbox-attachment img{width:24px;height:24px;object-fit:contain}.mailbox-tabs{display:flex;gap:5px;margin:10px 0}.mailbox-tabs button,.mailbox-actions button,.mailbox-compose button{background:#28221b;color:#d9c39e;border:1px solid #715532;padding:6px 8px;cursor:pointer}.mailbox-tabs button.active{background:#594225;border-color:#c49a53}.mailbox-compose{display:grid;gap:8px}.mailbox-compose label{display:grid;gap:3px;color:#bfa982;font-size:12px}.mailbox-compose input,.mailbox-compose textarea{width:100%;box-sizing:border-box;background:#100e0c;color:#e5d6b8;border:1px solid #57442d;padding:7px}.mailbox-list{display:grid;gap:7px;max-height:480px;overflow:auto}.mailbox-message{border:1px solid #57442d;background:#17130f;padding:7px}.mailbox-message.unread{border-color:#c49a53}.mailbox-open{display:grid;gap:4px;width:100%;text-align:left;color:#d9c39e;background:transparent;border:0;cursor:pointer}.mailbox-open small{color:#9b8a70}.mailbox-open span{white-space:pre-wrap;overflow-wrap:anywhere}.mailbox-actions{display:flex;gap:5px;margin-top:6px}.mail-attachment-drop{display:flex;align-items:center;justify-content:center;gap:9px;min-height:72px;padding:10px;margin:4px 0 10px;border:1px dashed #8c704a;background:linear-gradient(145deg,#211a13,#100e0c);color:#bca57e;text-align:center;transition:border-color .15s,background .15s}.mail-attachment-drop p{margin:0;font-size:11px;line-height:1.45}.mail-attachment-drop img{width:36px;height:36px;object-fit:contain}.mail-attachment-drop div{display:grid;gap:4px;text-align:left;min-width:0}.mail-attachment-drop small{color:#a9987c;font-size:11px}.mail-attachment-drop button{margin-left:auto;background:transparent;border:1px solid #715532;color:#d9c39e;padding:4px 7px;cursor:pointer}.mail-attachment-drop.cdk-drop-list-receiving{border-color:#d8b66c;background:#302315;box-shadow:0 0 0 2px #c49a5344}.mail-attachment-drop.has-item{border-style:solid;border-color:#78603c}", ".mail-attachment-row{display:flex;flex-direction:column;align-items:center;gap:6px;margin:8px 0}.mail-attachment-drop{position:relative;display:grid;place-items:center;box-sizing:border-box;width:48px;height:48px;min-height:48px;padding:2px;margin:0;border:1px dashed #8c704a;background:linear-gradient(145deg,#211a13,#100e0c);transition:border-color .15s,background .15s,box-shadow .15s;overflow:visible}.mail-attachment-drop.has-item{border-style:solid;border-color:#78603c}.mail-attachment-drop.drop-hover{border-color:#e2c17b;background:#332719;box-shadow:0 0 0 2px #c49a5344,inset 0 0 20px #c49a531f}.mail-attachment-drop .mailbox-item-icon{width:100%;height:100%}.mail-attachment-drop .mailbox-item-icon img{width:38px;height:38px;object-fit:contain}.mail-attachment-drop .mailbox-item-icon b{position:absolute;right:1px;bottom:0;font:700 11px Arial;color:#fff;text-shadow:0 1px 2px #000}.mail-attachment-drop .mail-attachment-remove{position:absolute;right:-7px;top:-7px;width:18px;height:18px;padding:0;margin:0;border-radius:50%;border:1px solid #9b7a46;background:#21170e;color:#f0d7a6;font-size:14px;line-height:16px}.mail-attachment-hint{margin:0 0 4px;text-align:center;font-size:10px;color:#8f7b5e}.mailbox-message{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'counterpart item' 'subject item';align-items:center;gap:4px 12px;width:100%;box-sizing:border-box;text-align:left;cursor:pointer;color:#d9c39e;background:#17130f;border:1px solid #57442d;padding:10px 11px;transition:border-color .14s,background .14s,box-shadow .14s}.mailbox-message:hover,.mailbox-message:focus-visible{border-color:#c49a53;background:#251b12;box-shadow:0 0 0 1px #c49a5333;outline:none}.mailbox-message.unread{border-color:#c49a53}.mailbox-message-counterpart{grid-area:counterpart;min-width:0;color:#bda780;font-size:10px;letter-spacing:.3px;overflow-wrap:anywhere}.mailbox-message-subject{grid-area:subject;min-width:0;font:15px Georgia,serif;color:#f0dfbf;overflow-wrap:anywhere}.mailbox-message-item{grid-area:item;display:flex;align-items:center;justify-content:center;min-width:36px}.mailbox-item-icon{position:relative;width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto}.mailbox-item-icon img{display:block;width:32px;height:32px;object-fit:contain}.mailbox-item-icon b{position:absolute;right:-2px;bottom:-2px;min-width:12px;text-align:center;font:700 10px Arial;color:#fff;text-shadow:0 1px 2px #000}.mailbox-item-icon .item-tooltip{position:absolute}.mailbox-message-no-item{grid-area:item;color:#b99759;font-size:11px}.mailbox-modal-backdrop,.mailbox-confirm-backdrop{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;padding:20px;box-sizing:border-box;background:#000b;backdrop-filter:blur(2px)}.mailbox-modal,.mailbox-confirm-modal{width:min(520px,100%);max-height:min(82vh,740px);overflow:auto;box-sizing:border-box;padding:20px;border:1px solid #9b7849;background:linear-gradient(180deg,#211710,#120e0b);color:#e5d5b9;box-shadow:0 18px 52px #000d,inset 0 0 0 1px #382719;font:13px Arial,sans-serif}.mailbox-modal-header,.mailbox-confirm-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #4d3823}.mailbox-modal-header small,.mailbox-confirm-header small{display:block;color:#b99759;letter-spacing:1.8px;text-transform:uppercase}.mailbox-modal h2,.mailbox-confirm-modal h2{margin:4px 0 0;color:#f0d9a7;font:22px Georgia,serif;overflow-wrap:anywhere}.mailbox-modal-close{width:28px;height:28px;border:1px solid #5e472e;background:#17110d;color:#d9bf8e;font-size:20px;cursor:pointer}.mailbox-modal-meta{margin:0 0 10px;color:#bda780;line-height:1.45}.mailbox-modal-body{padding:12px;background:#19130e;border:1px solid #43311f;color:#e5d5b9;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}.mailbox-modal-attachments{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}.mailbox-modal-attachment{display:flex;align-items:center;gap:8px;min-width:0;padding:8px 10px;background:#19130e;border:1px solid #43311f;color:#e0c998}.mailbox-modal-attachment small{display:block;color:#ad997a;margin-top:3px}.mailbox-modal-actions,.mailbox-confirm-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:18px}.mailbox-modal-actions button,.mailbox-confirm-actions button{border:1px solid #765632;background:#261c12;color:#d9c39e;padding:9px 13px;font:12px Arial;cursor:pointer}.mailbox-modal-actions .primary,.mailbox-confirm-actions .primary{background:linear-gradient(#76542b,#4d351c);border-color:#c49a53;color:#fff0c9;font-weight:bold}.mailbox-modal-actions button:disabled,.mailbox-confirm-actions button:disabled{opacity:.45;cursor:not-allowed}.mailbox-delete-confirm{margin-top:12px;padding:10px;border:1px solid #8e493b;background:#24130f;color:#e5b4a2}.mailbox-delete-confirm p{margin:0 0 8px}.mailbox-error{margin-top:10px;color:#e49a88;line-height:1.4}.mailbox-confirm-summary{display:grid;gap:6px;padding:10px;background:#19130e;border:1px solid #43311f;color:#d7c29f;overflow-wrap:anywhere}.mailbox-confirm-summary strong{color:#f0d9a7}"] })
-export class VendorPanel {
+export class VendorPanel implements OnDestroy {
   readonly openedMail = signal<any|null>(null);
+  readonly displayedInteractionText = signal('');
+  readonly interactionTyping = signal(false);
+  private interactionTypewriter: ReturnType<typeof setInterval> | null = null;
+  private interactionTextTarget = '';
   readonly mailboxDeleteConfirm = signal(false);
   readonly mailDropHovered = signal(false);
   mailAttachment(){ return this.inventory.items().find(row=>row.id===this.vendor.mailboxItemId())??null; }
@@ -731,9 +735,43 @@ export class VendorPanel {
       this.vendor.resetForTownEntry();
       void this.vendor.load();
     }, { allowSignalWrites: true });
+    effect(() => {
+      const questText = this.vendor.questInteraction()?.npcText;
+      const npcText = this.vendor.dialogue()?.npcText;
+      const idleGreeting = this.vendor.selectedNpc()?.greeting;
+      const text = String(questText ?? npcText ?? idleGreeting ?? '');
+      if (text === this.interactionTextTarget) return;
+      this.startInteractionTypewriter(text);
+    }, { allowSignalWrites: true });
+  }
+  private startInteractionTypewriter(text: string) {
+    if (this.interactionTypewriter) clearInterval(this.interactionTypewriter);
+    this.interactionTypewriter = null;
+    this.interactionTextTarget = text;
+    this.displayedInteractionText.set('');
+    this.interactionTyping.set(text.length > 0);
+    if (!text) return;
+    let index = 0;
+    this.interactionTypewriter = setInterval(() => {
+      index = Math.min(text.length, index + 1);
+      this.displayedInteractionText.set(text.slice(0, index));
+      if (index >= text.length) {
+        if (this.interactionTypewriter) clearInterval(this.interactionTypewriter);
+        this.interactionTypewriter = null;
+        this.interactionTyping.set(false);
+      }
+    }, 24);
+  }
+  revealInteractionText() {
+    if (!this.interactionTyping()) return;
+    if (this.interactionTypewriter) clearInterval(this.interactionTypewriter);
+    this.interactionTypewriter = null;
+    this.displayedInteractionText.set(this.interactionTextTarget);
+    this.interactionTyping.set(false);
   }
   npcPortrait(id: string) { return '/assets/npcs/' + id + '.png'; }
   mailTooltip(mail: any) { return this.catalog.itemTooltipLines(mail.itemId, mail.itemInstanceData).map(line => (line.label ? line.label + ': ' : '') + line.value).join(' · '); }
+  ngOnDestroy() { if (this.interactionTypewriter) clearInterval(this.interactionTypewriter); }
   stockAt(slot: number) { return this.vendor.stock().find(x => x.slotIndex === slot); }
   warehouseAt(slot:number) { return this.vendor.warehouse().find(x=>x.slotIndex===slot); }
   warehouseDragData(row:any) { return { source:'warehouse', ...row }; }

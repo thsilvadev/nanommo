@@ -235,29 +235,38 @@
       </section>
     </div>
 
-    <div class="quest-dialogue" *ngIf="npc.types.includes('dialogue') && vendor.dialogue() as dialogue">
-      <p class="quest-text">{{dialogue.npcText}}</p>
+    <ng-container *ngIf="vendor.dialogue() as dialogue">
+    <div class="quest-dialogue" *ngIf="!vendor.questInteraction()">
+      <small class="quest-dialogue-label">DIALOGUE</small>
+      <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
+        (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
+        [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
       <div class="quest-choices">
-        <button *ngFor="let choice of dialogue.choices" type="button" [disabled]="vendor.busy()"
+        <button *ngFor="let choice of dialogue.choices" type="button" [disabled]="vendor.busy()||interactionTyping()"
           (click)="vendor.chooseDialogue(choice.id)">{{choice.text}}</button>
       </div>
     </div>
+    </ng-container>
+    <section class="quest-dialogue" *ngIf="npc.types.length===0 && npc.greeting && !vendor.dialogue() && !vendor.questInteraction()">
+      <small class="quest-dialogue-label">DIALOGUE</small>
+      <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
+        (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
+        [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
+    </section>
 
-    <section class="quest-actions-panel" *ngIf="npc">
-      <article class="quest-offer-row" *ngFor="let quest of vendor.availableQuests()">
-        <div><strong>{{quest.title}}</strong><p>{{quest.description}}</p><small>Requires Character Lv. {{quest.minLevel}}</small></div>
-        <button type="button" [disabled]="vendor.questBusy()" (click)="vendor.startQuestOffer(quest.id)">QUEST</button>
-      </article>
-      <article class="quest-offer-dialogue" *ngIf="vendor.questOffer() as offer">
-        <h3>{{offer.title}}</h3><p>{{offer.npcText}}</p>
-        <button type="button" [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestOffer()">{{offer.buttonText}}</button>
-      </article>
-      <article class="quest-active-action" *ngFor="let quest of vendor.activeQuests()">
-        <ng-container *ngFor="let objective of quest.objectives">
-          <button *ngIf="objective.type==='npc_action' && objective.npcId===npc.id && !objective.completed" type="button" [disabled]="vendor.questBusy()" (click)="vendor.performQuestAction(quest, objective)">{{quest.title}}: {{objective.id.replace('_',' ')}}</button>
-        </ng-container>
-        <button *ngIf="quest.canTurnIn && quest.turnInNpcId===npc.id" type="button" [disabled]="vendor.questBusy()" (click)="vendor.turnInQuest(quest.id)">Turn in {{quest.title}}</button>
-      </article>
+    <section class="quest-dialogue quest-interaction" *ngIf="vendor.questInteraction() as interaction">
+      <small class="quest-dialogue-label">{{interaction.kind==='offer'?'QUEST · OFFER':interaction.kind==='active'?'QUEST · IN PROGRESS':interaction.kind==='completed'?'QUEST · COMPLETE':'QUEST ACTION'}}</small>
+      <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
+        (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
+        [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
+      <div class="quest-choices quest-action-choices" *ngIf="interaction.kind==='select'; else singleQuestAction">
+        <button *ngFor="let action of interaction.actions" type="button" class="quest-action-button" [disabled]="vendor.questBusy()||interactionTyping()"
+          (click)="vendor.chooseQuestInteraction(action)">{{action.buttonText}}</button>
+      </div>
+      <ng-template #singleQuestAction>
+        <div class="quest-choices"><button type="button" class="quest-action-button" [disabled]="vendor.questBusy()||interactionTyping()"
+          (click)="vendor.chooseQuestInteraction()">{{interaction.buttonText}}</button></div>
+      </ng-template>
     </section>
 
     <div class="vendor-error" *ngIf="vendor.error()">{{vendor.error()}}</div>

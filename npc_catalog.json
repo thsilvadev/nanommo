@@ -119,7 +119,8 @@
       "id": "cecilia",
       "name": "Cecilia",
       "location": "town",
-      "types": []
+      "types": [],
+      "greeting": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…"
     },
     {
       "id": "storage",

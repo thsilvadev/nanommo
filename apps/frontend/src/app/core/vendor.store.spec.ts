@@ -55,6 +55,7 @@ describe('Town NPC selection state', () => {
       { id: 'storage', name: 'Storage', location: 'town', types: ['storage'] },
     ]);
     store.dialogue = signal<any>(null);
+    store.questInteraction = signal<any>(null);
     store.selectedNpcId = signal('');
     store.stock = signal<any[]>([]);
     store.warehouse = signal<any[]>([]);
@@ -81,6 +82,7 @@ describe('Town NPC selection state', () => {
     store.stock.set([{ itemId: 'pot_hp_small' }]);
     store.warehouse.set([{ itemId: 'equip_sword_t1' }]);
     store.dialogue.set({ npcId: 'william', npcText: 'stale' });
+    store.questInteraction.set({ kind: 'active', npcText: 'stale quest' });
     store.modal.set({ mode: 'buy', itemId: 'pot_hp_small', quantity: 1, maxQuantity: 1, unitPrice: 10 });
     store.error.set('stale error');
 
@@ -90,6 +92,7 @@ describe('Town NPC selection state', () => {
     expect(store.stock()).toEqual([]);
     expect(store.warehouse()).toEqual([]);
     expect(store.dialogue()).toBeNull();
+    expect(store.questInteraction()).toBeNull();
     expect(store.modal()).toBeNull();
     expect(store.error()).toBeNull();
     expect(store.npcs()).toEqual([], 'do not keep William as a fake fallback after a Town reset');
