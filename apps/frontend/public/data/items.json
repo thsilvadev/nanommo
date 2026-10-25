@@ -2731,11 +2731,7 @@
         ]
       },
       "sellPriceToVendor": 1200,
-      "marketBasePrice": 3000,
-      "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
-      ]
+      "marketBasePrice": 3000
     },
     {
       "id": "equip_accessory_dex_t1",

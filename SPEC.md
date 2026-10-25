@@ -831,7 +831,7 @@ The authoritative encounter-search count is grinder-specific: `status = grinding
 | Equipment (tier-appropriate, from that map's pool) | 0.2% |
 | Monster part (rare) | 0.02% |
 
-Consumable/equipment drops are resolved to a **specific item id** at roll time by picking uniformly (same seeded PRNG) from the appropriate pool: for consumables, any of the 15 (foods included — yes, foods can drop, not just be bought); for equipment, `items.equipment` entries whose `dropPool` includes the current `mapId`. The reviewed Grind configuration doubles the four canonical rates above while preserving their relative rarity; the resolver performs exactly one deterministic roll per drop entry. Monsters provide **no gold reward** directly.
+Consumable/equipment drops are resolved to a **specific item id** at roll time by picking uniformly (same seeded PRNG) from the appropriate pool: for consumables, any of the 15 (foods included — yes, foods can drop, not just be bought); for equipment, `items.equipment` entries whose `dropPool` includes the current `mapId`. The reviewed Grind configuration doubles the four canonical rates above while preserving their relative rarity; the resolver performs exactly one deterministic roll per drop entry. Worn Lucky Ring (`equip_accessory_sor_t1`) intentionally has no `dropPool`, so it is never selected by normal monster equipment drops and future copies must come from a quest reward. Monsters provide **no gold reward** directly.
 
 ---
 
