@@ -33,11 +33,24 @@ export class MarketComponent implements OnInit {
     if(!row){this.error.set('That inventory stack is no longer available');return;}
     this.changeInventory(row.id);
   }
-  changeInventory(id:string){this.selectedInventoryId.set(id);this.unitPrice.set('');this.suggestion.set(null);const row=this.inventory.items().find(x=>x.id===id);if(row)void this.loadSuggestion(row.itemId)}
+  private tradeRestriction(row:any):string| null {
+    const item=this.catalog.item(row?.itemId);
+    if(item?.questOnly===true)return 'Quest-only items cannot be listed on the Market';
+    if(row?.instanceData?.questReward?.marketTradable===false&&typeof row?.instanceData?.questReward?.questId==='string')return 'Quest-reward equipment cannot be listed on the Market';
+    return null;
+  }
+  changeInventory(id:string){
+    this.error.set('');
+    const row=this.inventory.items().find(x=>x.id===id);
+    const restriction=row&&this.tradeRestriction(row);
+    if(restriction){this.selectedInventoryId.set('');this.unitPrice.set('');this.suggestion.set(null);this.error.set(restriction);return;}
+    this.selectedInventoryId.set(id);this.unitPrice.set('');this.suggestion.set(null);if(row)void this.loadSuggestion(row.itemId);
+  }
   async loadSuggestion(itemId:string){try{const result=await this.api.get<any>('/market/suggestion/'+itemId).toPromise();if(this.selectedInventory()?.itemId!==itemId)return;this.suggestion.set(result??null);if(result?.suggestedUnitPrice)this.unitPrice.set(String(result.suggestedUnitPrice))}catch{this.suggestion.set(null)}}
   async createListing(confirmed = false){
     const row=this.selectedInventory(); const price=Number(this.unitPrice());
     if(!row){this.error.set('Select an inventory stack first');return}
+    const restriction=this.tradeRestriction(row);if(restriction){this.error.set(restriction);return;}
     if(!Number.isSafeInteger(price)||price<1){this.error.set('Unit price must be a positive integer');return}
     const gross=Number(row.quantity)*price;
     if(!Number.isSafeInteger(gross)||gross>this.maxGold){this.error.set('Listing total cannot exceed 999,999,999 gold');return}

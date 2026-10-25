@@ -1,4 +1,7 @@
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const root = path.resolve(__dirname, '../../..');
 const { TownService } = require('../dist/apps/api/src/modules/town/town.service');
 const { Character } = require('../dist/apps/api/src/database/entities/character.entity');
 const { InventoryItem } = require('../dist/apps/api/src/database/entities/inventory-item.entity');
@@ -38,7 +41,10 @@ async function run() {
   let {service,character}=harness(rows);
   const npcs = await service.getTownNPCs('c1');
   assert.ok(npcs.some(n=>n.id==='blacksmith_loren' && n.types.includes('vendor')));
-  assert.ok(npcs.some(n=>n.id==='cecilia' && n.types.includes('quest')));
+  assert.ok(npcs.some(n=>n.id==='cecilia' && !n.types.includes('dialogue')));
+  assert.ok(npcs.some(n=>n.id==='father_marcelus' && n.types.includes('dialogue')));
+  const questCatalogue = JSON.parse(fs.readFileSync(path.join(root, 'quests.json'), 'utf8'));
+  assert.ok(questCatalogue.quests.some(q=>q.id==='cecilia_lucky_ring' && q.giverNpcId==='cecilia'));
   assert.ok(npcs.some(n=>n.id==='storage' && n.types.includes('storage') && n.monologue==="You know I have a name, right? But you'll keep calling me Storage anyway."));
 
   const stock = await service.getVendorStock('c1','blacksmith_loren');
@@ -48,24 +54,13 @@ async function run() {
   assert.strictEqual(stock.every(x=>x.infiniteStock), true);
   assert.strictEqual(stock.length, 9);
 
-  let state = await service.getNpcDialogue('c1','cecilia');
-  assert.strictEqual(state.nodeId,'greeting');
-  state = await service.chooseNpcDialogue('c1','cecilia','ask','greeting');
-  assert.strictEqual(state.nodeId,'offer');
-  assert.deepStrictEqual(state.choices.map(x=>x.id),['handle_items']);
-
-  state = await service.chooseNpcDialogue('c1','cecilia','handle_items','offer');
-  assert.strictEqual(state.nodeId,'reward');
-  assert.strictEqual(rows.some(r=>r.itemId==='part_slime_common' || r.itemId==='part_cindergolem_common' || r.itemId==='part_venomviper_common'),false);
-  assert.strictEqual(rows.some(r=>r.itemId==='equip_accessory_sor_t1' && r.quantity===1),true);
+  await assert.rejects(()=>service.getNpcDialogue('c1','cecilia'),/does not provide dialogue/);
+  await assert.rejects(()=>service.chooseNpcDialogue('c1','cecilia','ask','greeting'),/does not provide dialogue/);
 
   rows = [
     {id:'s',characterId:'c1',location:'inventory',slotIndex:0,itemId:'part_slime_common',quantity:2},
   ];
   ({service,character}=harness(rows));
-  state = await service.getNpcDialogue('c1','cecilia');
-  state = await service.chooseNpcDialogue('c1','cecilia','ask','greeting');
-  assert.deepStrictEqual(state.choices.map(x=>x.id),['return_later']);
 
   character.hpCurrent=1; character.spCurrent=2;
   await service.getNpcDialogue('c1','father_marcelus');
@@ -73,9 +68,9 @@ async function run() {
   assert.strictEqual(character.spCurrent,45);
 
   character.status='town'; character.currentMapId='map_green_grounds';
-  await assert.rejects(()=>service.getNpcDialogue('c1','cecilia'),/only available in Town/);
+  await assert.rejects(()=>service.getNpcDialogue('c1','father_marcelus'),/only available in Town/);
   character.currentMapId='map_town'; character.pendingMapTransition={destinationMapId:'map_town',reason:'town_request'};
-  await assert.rejects(()=>service.getNpcDialogue('c1','cecilia'),/only available in Town/);
+  await assert.rejects(()=>service.getNpcDialogue('c1','father_marcelus'),/only available in Town/);
 
   console.log('Town NPC additions: 15 assertions passed');
 }

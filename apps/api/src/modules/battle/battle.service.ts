@@ -35,6 +35,7 @@ import { IdleJournalService } from '../chat/chat-history.service';
 import { GatewayService, BattleResolvedPayload, CharacterLeveledUpPayload, CharacterDiedPayload } from '../gateway/gateway.service';
 import { MapPresenceService } from '../presence/map-presence.service';
 import { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
+import { QuestService } from '../quests/quest.service';
 export { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
 
 /** SPEC §11.2: epoch rollover once the counter reaches this many kills. */
@@ -112,6 +113,7 @@ export class BattleService {
     private readonly mapPresenceService: MapPresenceService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
     private readonly idleJournal: IdleJournalService,
+    private readonly questService: QuestService,
   ) {}
 
   /** Serialize operations that may change a character's encounter chain across API/worker replicas. */
@@ -1234,6 +1236,7 @@ export class BattleService {
       const autoFed = autoFedItems.length > 0;
       if (autoFed) await characterRepo.save(character);
 
+      await this.questService.recordBattleVictory(manager, character, battle);
       const killCounter = await this.incrementKillCounter(character.id, battle.mapId, battle.monsterId, manager);
       const previousMapId = character.currentMapId;
       const requestedDestinationId = character.pendingMapTransition?.destinationMapId;

@@ -157,6 +157,10 @@ export class Character {
   @Column({ type: 'timestamptz', nullable: true })
   resourceRegenAt?: Date | null;
 
+  /** Server-owned in-progress quest-offer dialogue step by quest ID. */
+  @Column({ type: 'jsonb', default: '{}' })
+  questOfferProgress!: Record<string, { stepIndex: number; startedAt: string }>;
+
   /** Absolute expiration timestamps, keyed exactly like battle-engine cooldown keys. */
   @Column({ type: 'jsonb', default: '{}' })
   consumableCooldowns!: Record<string, string>;

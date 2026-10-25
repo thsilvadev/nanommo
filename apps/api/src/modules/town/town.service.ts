@@ -224,6 +224,7 @@ export class TownService {
     this.assertPositiveInteger(quantity);
     const v = this.vendor(vendorId);
     const item = this.item(itemId);
+    if (item.questOnly === true) throw new BadRequestException('Quest-only items cannot be sold to vendors');
     if (!item.stackable && quantity !== 1) throw new BadRequestException('Non-stackable items can only be sold one at a time');
     const unitPrice = this.sellPrice(v, itemId);
     const total = unitPrice * quantity;
@@ -274,8 +275,8 @@ export class TownService {
   }
 
   private questNode(npc: any, nodeId?: string) {
-    const quest = npc.quest;
-    if (!quest?.nodes) throw new BadRequestException('NPC does not provide quest dialogue');
+    const quest = npc.dialogue;
+    if (!quest?.nodes) throw new BadRequestException('NPC does not provide dialogue');
     const id = nodeId ?? quest.entryNodeId;
     const node = quest.nodes[id];
     if (!node) throw new NotFoundException('Dialogue node not found');
@@ -302,7 +303,7 @@ export class TownService {
 
   private async dialogueState(character: Character, npcId: string, nodeId?: string) {
     const npc = this.npc(npcId);
-    if (!Array.isArray(npc.types) || !npc.types.includes('quest')) throw new BadRequestException('NPC does not provide quest dialogue');
+    if (!Array.isArray(npc.types) || !npc.types.includes('dialogue')) throw new BadRequestException('NPC does not provide dialogue');
     const node = this.questNode(npc, nodeId);
     return {
       npcId,
@@ -335,7 +336,7 @@ export class TownService {
 
   async chooseNpcDialogue(characterId: string, npcId: string, choiceId: string, nodeId = 'greeting') {
     const npc = this.npc(npcId);
-    if (!Array.isArray(npc.types) || !npc.types.includes('quest')) throw new BadRequestException('NPC does not provide quest dialogue');
+    if (!Array.isArray(npc.types) || !npc.types.includes('dialogue')) throw new BadRequestException('NPC does not provide dialogue');
 
     return this.characterRepo.manager.transaction(async manager => {
       const character = await manager.getRepository(Character).findOne({
@@ -353,18 +354,6 @@ export class TownService {
         if (!this.characterHungry(character)) throw new BadRequestException('Character is not hungry');
         const consumedItemId = await this.consumeFoodForNpc(manager, character);
         return { ...(await this.dialogueState(character, npcId, choice.nextNodeId ?? 'hungry_done')), consumedItemId };
-      }
-
-      if (choice.effect?.type === 'trade_items') {
-        const effect = choice.effect;
-        const requirements = Array.isArray(effect.remove) ? effect.remove : [];
-        const rows = await manager.getRepository(InventoryItem).find({ where: { characterId, location: 'inventory' }, lock: { mode: 'pessimistic_write' } });
-        for (const req of requirements) {
-          const owned = rows.filter(r => r.itemId === req.itemId).reduce((n, r) => n + Number(r.quantity ?? 0), 0);
-          if (owned < Number(req.quantity ?? 0)) throw new BadRequestException('Required quest items are missing');
-        }
-        for (const req of requirements) await this.removeInventoryAtomic(manager, characterId, req.itemId, Number(req.quantity));
-        for (const reward of (effect.add ?? [])) await this.addInventoryAtomic(manager, characterId, reward.itemId, Number(reward.quantity ?? 1));
       }
 
       return this.dialogueState(character, npcId, choice.nextNodeId ?? node.id);

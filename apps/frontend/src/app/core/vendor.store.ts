@@ -24,6 +24,10 @@ export class VendorStore {
   readonly catalog=inject(CatalogService);
   readonly npcs=signal<TownNpc[]>([]);
   readonly dialogue=signal<NpcDialogueState|null>(null);
+  readonly availableQuests=signal<any[]>([]);
+  readonly activeQuests=signal<any[]>([]);
+  readonly questOffer=signal<any|null>(null);
+  readonly questBusy=signal(false);
   readonly selectedNpcId=signal('');
   readonly stock=signal<VendorStockItem[]>([]);
   readonly warehouse=signal<import('./game.models').InventoryItem[]>([]);
@@ -59,6 +63,7 @@ export class VendorStore {
     this.stock.set([]);
     this.warehouse.set([]);
     this.dialogue.set(null);
+    this.availableQuests.set([]); this.activeQuests.set([]); this.questOffer.set(null);
     this.modal.set(null);
     this.cookingModal.set(false);
     this.error.set(null);
@@ -126,16 +131,56 @@ export class VendorStore {
     const npc=this.npcs().find(n=>n.id===id);
     this.stock.set([]);
     this.warehouse.set([]);
-    this.dialogue.set(null);
+    this.dialogue.set(null); this.availableQuests.set([]); this.activeQuests.set([]); this.questOffer.set(null);
     if(!npc)return;
     const requests: Promise<void>[]=[];
     if(npc.types.includes('vendor')) requests.push(this.loadStock(id));
-    if(npc.types.includes('quest')) requests.push(this.loadDialogue(id));
+    if(npc.types.includes('dialogue')) requests.push(this.loadDialogue(id));
     if(npc.types.includes('storage')) requests.push(this.loadWarehouse(id));
     if(npc.types.includes('cooking')) requests.push(this.loadCooking());
     if(npc.types.includes('mailbox')) requests.push(this.loadMailbox());
+    requests.push(this.loadQuestActions(id));
     await Promise.all(requests);
   }
+  async loadQuestActions(npcId=this.selectedNpcId()){
+    if(!npcId)return;
+    try{
+      const [available,state]=await Promise.all([
+        this.api.get<any[]>('/quests/available?npcId='+encodeURIComponent(npcId)).toPromise(),
+        this.api.get<any>('/quests').toPromise(),
+      ]);
+      if(this.selectedNpcId()!==npcId)return;
+      this.availableQuests.set(available??[]);this.activeQuests.set(state?.active??[]);
+    }catch(e:any){if(this.selectedNpcId()===npcId)this.error.set(e?.error?.message??'Unable to load quests');}
+  }
+  async startQuestOffer(questId:string){
+    if(this.questBusy())return;this.questBusy.set(true);this.error.set(null);
+    try{const offer=await this.api.get<any>('/quests/'+encodeURIComponent(questId)+'/offer').toPromise();this.questOffer.set(offer??null);}
+    catch(e:any){this.error.set(e?.error?.message??'Unable to open quest offer');}
+    finally{this.questBusy.set(false);}
+  }
+  async chooseQuestOffer(){
+    const offer=this.questOffer();if(!offer||this.questBusy())return;this.questBusy.set(true);this.error.set(null);
+    try{
+      const result=await this.api.post<any>('/quests/'+encodeURIComponent(offer.questId)+'/offer',{}).toPromise();
+      if(result?.accepted){this.questOffer.set(null);await this.character.load();await this.loadQuestActions();}
+      else this.questOffer.set(result??null);
+    }catch(e:any){this.error.set(e?.error?.message??'Quest acceptance rejected');}
+    finally{this.questBusy.set(false);}
+  }
+  async performQuestAction(quest:any,objective:any){
+    if(this.questBusy())return;this.questBusy.set(true);this.error.set(null);
+    try{await this.api.post('/quests/'+quest.id+'/action',{npcId:this.selectedNpcId(),objectiveId:objective.id}).toPromise();await this.loadQuestActions();}
+    catch(e:any){this.error.set(e?.error?.message??'Quest action rejected');}
+    finally{this.questBusy.set(false);}
+  }
+  async turnInQuest(instanceId:string){
+    if(this.questBusy())return;this.questBusy.set(true);this.error.set(null);
+    try{await this.api.post('/quests/'+instanceId+'/turn-in',{}).toPromise();await Promise.all([this.loadQuestActions(),this.inventory.load(),this.character.load()]);}
+    catch(e:any){this.error.set(e?.error?.message??'Quest turn-in rejected');}
+    finally{this.questBusy.set(false);}
+  }
+
   async loadMailbox(){
     if(!this.selectedNpc()?.types.includes('mailbox'))return;
     try {
@@ -153,6 +198,7 @@ export class VendorStore {
     const recipientName=this.mailboxRecipient().trim(),subject=this.mailboxSubject().trim(),body=this.mailboxBody().trim();
     const attachedGold=Number(this.mailboxGold()||0),selectedAttachment=this.inventory.items().find(row=>row.id===this.mailboxItemId());
     const attachedItemId=selectedAttachment?.itemId??'';
+    if(selectedAttachment && this.item(attachedItemId)?.questOnly===true){this.error.set('Quest-only items cannot be attached to Mail');return;}
     // Attach the complete selected Inventory stack. For a partial attachment, the player
     // can split the stack first using the inventory's Ctrl+click workflow.
     const attachedItemQuantity=selectedAttachment?Number(selectedAttachment.quantity):0;
@@ -200,6 +246,8 @@ export class VendorStore {
     }catch(e:any){if(this.selectedNpcId()===id)this.error.set(e?.error?.message??'Unable to load Storage');}
   }
   async transferWarehouseRow(rowId:string, direction:'deposit'|'withdraw'){
+    const source=(direction==='deposit'?this.inventory.items():this.warehouse()).find(row=>row.id===rowId);
+    if(source && this.item(source.itemId)?.questOnly===true){this.error.set('Quest-only items cannot be transferred to or from Storage');return;}
     if(this.busy()) return; this.busy.set(true); this.error.set(null);
     try { await this.api.post('/town/warehouse/transfer',{rowId,direction}).toPromise(); await Promise.all([this.inventory.load(),this.loadWarehouse(),this.character.load()]); }
     catch(e:any) { this.error.set(e?.error?.message ?? 'Storage transfer rejected'); await Promise.all([this.inventory.load(),this.loadWarehouse()]); }
@@ -267,6 +315,7 @@ export class VendorStore {
   }
   async openSell(itemId:string, selectedStackQuantity?:number, sourceInventoryItemId?:string){
     this.error.set(null);
+    if(this.item(itemId)?.questOnly===true){this.error.set('Quest-only items cannot be sold to vendors');return;}
     const owned=this.totalOwned(itemId);
     if(owned<=0)return;
     try{

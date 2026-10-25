@@ -19,6 +19,7 @@ const dataFiles = [
   'status_effects.json',
   'weapon_xp_curve.json',
   'char_xp_curve.json',
+  'quests.json',
 ];
 
 const rootDir = path.join(__dirname, '..');

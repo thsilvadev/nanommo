@@ -112,6 +112,7 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
         if (!Number.isSafeInteger(quantity) || quantity < 1) throw new BadRequestException('Invalid attachment quantity');
         const definition = this.dataService.getItemById(attachedItemId);
         if (!definition) throw new NotFoundException('Item definition not found');
+        if (definition.questOnly === true) throw new BadRequestException('Quest-only items cannot be attached to Mail');
         const rows = await manager.getRepository(InventoryItem).find({ where: { characterId: senderId, itemId: attachedItemId, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
         const reserved = (sender.cookingSession?.ingredients ?? []).filter((row: any) => row.itemId === attachedItemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
         itemRow = attachedInventoryItemId ? rows.find(row => row.id === attachedInventoryItemId) ?? null : rows.find(row => row.quantity >= quantity) ?? null;
@@ -176,6 +177,7 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
       if (mail.itemId && Number(mail.quantity) > 0) {
         const definition = this.dataService.getItemById(mail.itemId);
         if (!definition) throw new BadRequestException('Attached item definition no longer exists');
+        if (definition.questOnly === true) throw new BadRequestException('Quest-only item attachments cannot be collected from Mail');
         const quantity = Number(mail.quantity);
         const rows = await inventoryRepo.find({ where: { characterId, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
         const compatible = rows.filter(row => row.itemId === mail.itemId && JSON.stringify(row.instanceData ?? null) === JSON.stringify(mail.itemInstanceData ?? null));

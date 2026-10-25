@@ -18,6 +18,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { MailerModule } from './modules/mailer/mailer.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { DataModule } from './modules/data/data.module';
+import { QuestModule } from './modules/quests/quest.module';
 import { GatewayModule } from './modules/gateway/gateway.module';
 import { getMasteryXpPolicy } from './config/mastery-xp-policy';
 
@@ -28,6 +29,8 @@ import { getMasteryXpPolicy } from './config/mastery-xp-policy';
       envFilePath: '../../.env',
       validate: (env) => {
         getMasteryXpPolicy(env);
+        const questLimitRaw = env.QUEST_ACTIVE_LIMIT;
+        if (questLimitRaw !== undefined && (!/^\d+$/.test(String(questLimitRaw)) || Number(questLimitRaw) < 1 || !Number.isSafeInteger(Number(questLimitRaw)))) throw new Error('QUEST_ACTIVE_LIMIT must be a positive integer');
         return env;
       },
     }),
@@ -73,6 +76,7 @@ import { getMasteryXpPolicy } from './config/mastery-xp-policy';
     MailerModule,
     ChatModule,
     DataModule,
+    QuestModule,
     GatewayModule,
   ],
   providers: [

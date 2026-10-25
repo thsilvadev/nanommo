@@ -28,9 +28,9 @@ describe('Town NPC selection state', () => {
       get: jasmine.createSpy('get').and.returnValue({
         toPromise: () => Promise.resolve([
           { id: 'william', name: 'William', location: 'town', types: ['vendor'] },
-          { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['quest'] },
+          { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['dialogue'] },
           { id: 'blacksmith_loren', name: 'Blacksmith Loren', location: 'town', types: ['vendor'] },
-          { id: 'cecilia', name: 'Cecilia', location: 'town', types: ['quest'] },
+          { id: 'cecilia', name: 'Cecilia', location: 'town', types: [] },
           { id: 'storage', name: 'Storage', location: 'town', types: ['storage'] },
         ]),
       }),
@@ -41,17 +41,17 @@ describe('Town NPC selection state', () => {
       load: async () => {},
       townNpcsForMap: (mapId: string) => mapId === 'map_town' ? [
         { id: 'william', name: 'William', location: 'town', types: ['vendor'] },
-        { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['quest'] },
+        { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['dialogue'] },
         { id: 'blacksmith_loren', name: 'Blacksmith Loren', location: 'town', types: ['vendor'] },
-        { id: 'cecilia', name: 'Cecilia', location: 'town', types: ['quest'] },
+        { id: 'cecilia', name: 'Cecilia', location: 'town', types: [] },
         { id: 'storage', name: 'Storage', location: 'town', types: ['storage'] },
       ] : mapId === 'town_a' ? [{ id: 'town_a_vendor', name: 'Town A Vendor', location: 'town', types: ['vendor'] }] : mapId === 'town_b' ? [{ id: 'storage', name: 'Storage', location: 'town', types: ['storage'] }] : [],
     };
     store.npcs = signal<any[]>([
       { id: 'william', name: 'William', location: 'town', types: ['vendor'] },
-      { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['quest'] },
+      { id: 'father_marcelus', name: 'Father Marcelus', location: 'town', types: ['dialogue'] },
       { id: 'blacksmith_loren', name: 'Blacksmith Loren', location: 'town', types: ['vendor'] },
-      { id: 'cecilia', name: 'Cecilia', location: 'town', types: ['quest'] },
+      { id: 'cecilia', name: 'Cecilia', location: 'town', types: [] },
       { id: 'storage', name: 'Storage', location: 'town', types: ['storage'] },
     ]);
     store.dialogue = signal<any>(null);

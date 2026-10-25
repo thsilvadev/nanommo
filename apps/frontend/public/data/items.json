@@ -3150,6 +3150,32 @@
         "future_crafting",
         "future_recipes"
       ]
+    },
+    {
+      "id": "quest_spring_flask",
+      "name": "Quest Spring Flask",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 0,
+      "questOnly": true,
+      "usableFor": [
+        "quest_objective"
+      ]
+    },
+    {
+      "id": "quest_field_sample",
+      "name": "Quest Field Sample",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 0,
+      "questOnly": true,
+      "usableFor": [
+        "quest_objective"
+      ]
     }
   ]
 }

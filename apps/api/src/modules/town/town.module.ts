@@ -10,9 +10,10 @@ import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { DataModule } from '../data/data.module';
 import { CharacterModule } from '../character/character.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { QuestModule } from '../quests/quest.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Character, InventoryItem]), BullModule.registerQueue({ name: 'battle-queue' }), DataModule, CharacterModule, InventoryModule, forwardRef(() => BattleModule)],
+  imports: [TypeOrmModule.forFeature([Character, InventoryItem]), BullModule.registerQueue({ name: 'battle-queue' }), DataModule, CharacterModule, InventoryModule, QuestModule, forwardRef(() => BattleModule)],
   controllers: [TownController],
   providers: [TownService],
   exports: [TownService],

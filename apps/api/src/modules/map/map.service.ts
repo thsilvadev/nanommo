@@ -12,6 +12,7 @@ import { TOWN_MAP_ID, findCardinalRoute, findSavedTownWaypointIndex, isInstantTo
 import { EquipmentService } from '../equipment/equipment.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { IdleJournalService } from '../chat/chat-history.service';
+import { QuestService } from '../quests/quest.service';
 
 const TOWN_GUARD_HUNGER_MESSAGE = 'Town Guard: You are hungry! Eat something or go cleanse your sins for a change.';
 
@@ -33,6 +34,7 @@ export class MapService {
     private readonly inventoryService: InventoryService,
     private readonly mapPresenceService: MapPresenceService,
     private readonly idleJournal: IdleJournalService,
+    private readonly questService: QuestService,
   ) {}
 
   /**
@@ -802,6 +804,9 @@ export class MapService {
         const requiredSeconds = Math.max(0, (1 - progress) * duration);
         if (remainingSeconds + 1e-9 < requiredSeconds) { progress += remainingSeconds / duration; remainingSeconds = 0; break; }
         remainingSeconds -= requiredSeconds;
+        // Independent data-driven quest bonus rolls run for this persisted cycle and share
+        // the same transaction without changing the ordinary Gathering selection/output.
+        await this.questService.applyGatheringBonuses(manager, character, String(character.currentMapId), cycleIndex);
         if (Array.isArray(map.gatheringPool) && map.gatheringPool.length) {
           const roll = deterministicIntInclusive(`${character.id}:${character.currentMapId}:${cycleIndex}:material`, 1, 100);
           let total = 0; let selected: any = null;

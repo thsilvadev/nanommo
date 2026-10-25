@@ -19,6 +19,7 @@ export class DataService implements OnModuleInit {
   private npcVendor: any = null;
   private npcCatalog: any = null;
   private cookingRecipes: any = null;
+  private quests: any = null;
 
   onModuleInit() {
     this.loadAllData();
@@ -39,6 +40,7 @@ export class DataService implements OnModuleInit {
       this.npcVendor = this.loadJsonFile(path.join(dataDir, 'npc_vendor.json'));
       this.npcCatalog = this.loadJsonFile(path.join(dataDir, 'npc_catalog.json'));
       this.cookingRecipes = this.loadJsonFile(path.join(dataDir, 'cooking_recipes.json'));
+      this.quests = this.loadJsonFile(path.join(dataDir, 'quests.json'));
 
       this.validateCatalogues();
       this.logger.log('All data files loaded successfully');
@@ -80,6 +82,8 @@ export class DataService implements OnModuleInit {
     // referenced NPC. William lives in npc_vendor.json; quest/Storage IDs live in
     // npc_catalog.json.
     const npcRows = Array.isArray(this.npcCatalog?.npcs) ? this.npcCatalog.npcs : [];
+    const questRows = Array.isArray(this.quests?.quests) ? this.quests.quests : null;
+    if (!questRows) throw new Error('quests.json must define a quests array');
     const npcIds = new Set<string>();
     for (const npc of npcRows) {
       if (!npc?.id || npcIds.has(npc.id)) throw new Error(`Duplicate or missing NPC ID: ${npc?.id}`);
@@ -88,6 +92,7 @@ export class DataService implements OnModuleInit {
     const vendorId = String(this.npcVendor?.id ?? '');
     if (!vendorId || npcIds.has(vendorId)) throw new Error(`Duplicate or missing standalone Vendor NPC ID: ${vendorId}`);
     const validNpcIds = new Set([...npcIds, vendorId]);
+    const validTownNpcIds = new Set([...npcRows.filter((npc: any) => npc.location === 'town').map((npc: any) => npc.id), ...(this.npcVendor?.location === 'town' ? [vendorId] : [])]);
     const storageRows = npcRows.filter((npc: any) => npc.id === 'storage');
     const storageMonologue = "You know I have a name, right? But you'll keep calling me Storage anyway.";
     if (storageRows.length !== 1 || storageRows[0].name !== 'Storage' || storageRows[0].location !== 'town' ||
@@ -133,6 +138,67 @@ export class DataService implements OnModuleInit {
 
     const uncle = npcRows.filter((npc: any) => npc.id === 'uncle_phillip');
     if (uncle.length !== 1 || uncle[0].name !== 'Uncle Phillip' || uncle[0].location !== 'town' || JSON.stringify(uncle[0].types) !== '["cooking"]' || uncle[0].greeting !== 'Hmmm… delicious… this might go well with tha - Oy! Young traveler! I know you have a great taste for food. You wanna use my kitchen? Fell free to, oy!') throw new Error('npc_catalog.json must define Uncle Phillip with the canonical greeting and cooking-only capability');
+    const questIds = new Set<string>();
+    const validItemRows = [...(this.items.consumables || []), ...(this.items.equipment || []), ...(this.items.monsterParts || []), ...(this.items.materials || [])];
+    const validItemIds = new Set(validItemRows.map((x: any) => String(x.id)));
+    for (const item of validItemRows) {
+      if (item.questOnly !== undefined && typeof item.questOnly !== 'boolean') throw new Error(`Item ${item.id} questOnly must be boolean`);
+      if (item.questOnly === true && (item.stackable !== true || !Number.isInteger(Number(item.maxStack)) || Number(item.maxStack) < 2)) throw new Error(`Quest-only item ${item.id} must be a stackable Inventory item`);
+    }
+    for (const quest of questRows) {
+      if (!quest?.id || questIds.has(quest.id)) throw new Error(`Duplicate or missing quest ID: ${quest?.id}`);
+      questIds.add(quest.id);
+      if (!quest.title || !quest.description || !validNpcIds.has(quest.giverNpcId) || !validNpcIds.has(quest.turnInNpcId) || !validTownNpcIds.has(quest.giverNpcId) || !validTownNpcIds.has(quest.turnInNpcId)) throw new Error(`Quest ${quest.id} has invalid title/description/giver/turn-in Town NPC`);
+      if (!Number.isInteger(Number(quest.minLevel)) || Number(quest.minLevel) < 1) throw new Error(`Quest ${quest.id} has invalid minLevel`);
+      if (quest.timeLimitSeconds !== null && quest.timeLimitSeconds !== undefined && (!Number.isInteger(Number(quest.timeLimitSeconds)) || Number(quest.timeLimitSeconds) < 1)) throw new Error(`Quest ${quest.id} has invalid timeLimitSeconds`);
+      if (typeof quest.repeatable !== 'boolean' || typeof quest.allowReacceptAfterAbandon !== 'boolean') throw new Error(`Quest ${quest.id} must define repeatability and reacceptance policy`);
+      if (!Array.isArray(quest.requiresCompletedQuestIds) || quest.requiresCompletedQuestIds.some((id: string) => typeof id !== 'string')) throw new Error(`Quest ${quest.id} must define prerequisite IDs`);
+      if (!Array.isArray(quest.offerDialogue) || !quest.offerDialogue.length || quest.offerDialogue.filter((step: any) => step?.acceptsQuest === true).length !== 1 || quest.offerDialogue[quest.offerDialogue.length - 1]?.acceptsQuest !== true) throw new Error(`Quest ${quest.id} must have exactly one decisive final offer step`);
+      for (const step of quest.offerDialogue) if (!step?.npcText || !step?.buttonText) throw new Error(`Quest ${quest.id} has malformed offer dialogue`);
+      if (!Array.isArray(quest.objectives) || !quest.objectives.length) throw new Error(`Quest ${quest.id} must define objectives`);
+      const objectiveIds = new Set<string>();
+      for (const objective of quest.objectives) {
+        if (!objective?.id || objectiveIds.has(objective.id)) throw new Error(`Quest ${quest.id} has duplicate/missing objective ID`);
+        objectiveIds.add(objective.id);
+        if (!['kill_monster','npc_action','deliver_items','gathering_bonus','monster_drop'].includes(objective.type)) throw new Error(`Quest ${quest.id}/${objective.id} has unsupported objective type`);
+        if (objective.quantity !== undefined && (!Number.isInteger(Number(objective.quantity)) || Number(objective.quantity) < 1)) throw new Error(`Quest ${quest.id}/${objective.id} has invalid quantity`);
+        for (const id of [...(objective.monsterIds ?? []), ...(objective.mapIds ?? [])]) {
+          if (objective.monsterIds?.includes(id) && !monsterIds.has(id)) throw new Error(`Quest ${quest.id} references missing monster ${id}`);
+          if (objective.mapIds?.includes(id) && !maps.some((m: any) => m.id === id)) throw new Error(`Quest ${quest.id} references missing map ${id}`);
+        }
+        if (objective.npcId && (!validNpcIds.has(objective.npcId) || !validTownNpcIds.has(objective.npcId))) throw new Error(`Quest ${quest.id} references missing Town NPC ${objective.npcId}`);
+        if (objective.type === 'kill_monster' && (!Array.isArray(objective.monsterIds) || !objective.monsterIds.length || !Number.isInteger(Number(objective.quantity)) || Number(objective.quantity) < 1)) throw new Error(`Quest ${quest.id}/${objective.id} requires monsterIds and positive kill quantity`);
+        if (objective.type === 'npc_action' && !objective.npcId) throw new Error(`Quest ${quest.id}/${objective.id} requires npcId`);
+        if (objective.type === 'deliver_items') {
+          if (!Array.isArray(objective.items) || !objective.items.length) throw new Error(`Quest ${quest.id} delivery objective requires items`);
+          for (const req of objective.items) {
+            const deliveryItem = validItemRows.find((x: any) => x.id === req.itemId);
+            if (!validItemIds.has(req.itemId) || deliveryItem?.questOnly === true || !Number.isInteger(Number(req.quantity)) || Number(req.quantity) < 1) throw new Error(`Quest ${quest.id} has invalid ordinary delivery item ${req.itemId}`);
+          }
+        }
+        if (objective.type === 'gathering_bonus') {
+          if (!Array.isArray(objective.mapIds) || !objective.mapIds.length || !Number.isFinite(Number(objective.chancePercent)) || Number(objective.chancePercent) < 0 || Number(objective.chancePercent) > 100 || !validItemIds.has(objective.containerItem) || !validItemRows.find((x: any) => x.id === objective.containerItem && x.questOnly === true)) throw new Error(`Quest ${quest.id}/${objective.id} has invalid Gathering quest item/chance/maps`);
+          for (const mapId of objective.mapIds) if (!maps.some((m: any) => m.id === mapId && m.type === 'grind')) throw new Error(`Quest ${quest.id} Gathering objective references non-Grind map ${mapId}`);
+        }
+        if (objective.type === 'monster_drop' && (!objective.itemId || !validItemIds.has(objective.itemId) || !Number.isFinite(Number(objective.chancePercent)) || Number(objective.chancePercent) < 0 || Number(objective.chancePercent) > 100)) throw new Error(`Quest ${quest.id}/${objective.id} has invalid monster-drop item/chance`);
+        if (objective.itemQuantity !== undefined && (!Number.isInteger(Number(objective.itemQuantity)) || Number(objective.itemQuantity) < 1)) throw new Error(`Quest ${quest.id}/${objective.id} has invalid itemQuantity`);
+        if (objective.type === 'monster_drop' && validItemRows.find((x: any) => x.id === objective.itemId)?.questOnly !== true) throw new Error(`Quest ${quest.id}/${objective.id} monster drop must grant a quest-only item`);
+      }
+      const rewards = quest.rewards ?? {};
+      if (typeof rewards !== 'object' || Array.isArray(rewards)) throw new Error(`Quest ${quest.id} rewards must be an object`);
+      for (const key of Object.keys(rewards)) if (!['gold','characterXp','items','professionXp'].includes(key)) throw new Error(`Quest ${quest.id} has unsupported reward type ${key}`);
+      for (const field of ['gold','characterXp']) if (rewards[field] !== undefined && (!Number.isSafeInteger(Number(rewards[field])) || Number(rewards[field]) < 0)) throw new Error(`Quest ${quest.id} has invalid ${field} reward`);
+      if (rewards.gold !== undefined && Number(rewards.gold) > 999999999) throw new Error(`Quest ${quest.id} gold reward exceeds shared Market cap`);
+      if (rewards.items !== undefined && !Array.isArray(rewards.items)) throw new Error(`Quest ${quest.id} rewards.items must be an array`);
+      for (const reward of (rewards.items ?? [])) {
+        const rewardItem = validItemRows.find((x: any) => x.id === reward.itemId);
+        if (!validItemIds.has(reward.itemId) || !Number.isInteger(Number(reward.quantity)) || Number(reward.quantity) < 1 || (rewardItem?.type === 'equipment' && Number(reward.quantity) !== 1)) throw new Error(`Quest ${quest.id} has invalid item reward ${reward.itemId}`);
+      }
+      if (rewards.professionXp !== undefined && !Array.isArray(rewards.professionXp)) throw new Error(`Quest ${quest.id} rewards.professionXp must be an array`);
+      for (const reward of (rewards.professionXp ?? [])) if (!['gathering','cooking'].includes(reward.profession) || !Number.isSafeInteger(Number(reward.amount)) || Number(reward.amount) < 0) throw new Error(`Quest ${quest.id} has invalid profession XP reward`);
+    }
+    for (const quest of questRows) for (const prerequisite of quest.requiresCompletedQuestIds) if (!questIds.has(prerequisite) || prerequisite === quest.id) throw new Error(`Quest ${quest.id} has invalid prerequisite ${prerequisite}`);
+
     for (const map of maps) {
       const hasUncle = (map.npcIds ?? []).includes('uncle_phillip');
       if (hasUncle !== (map.id === 'map_town')) throw new Error('Uncle Phillip must be listed only in Sierra Village (map_town)');
@@ -243,6 +309,8 @@ export class DataService implements OnModuleInit {
   }
 
   getCookingRecipes() { return this.cookingRecipes; }
+
+  getQuests() { return this.quests; }
 
   // Specific getters
   getMonsterById(monsterId: string): any {

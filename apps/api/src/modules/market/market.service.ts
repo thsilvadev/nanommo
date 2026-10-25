@@ -124,6 +124,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       if (character.status === 'dead_pending_return') throw new BadRequestException('Cannot list items while dead');
       const itemDef = this.dataService.getItemById(itemId);
       if (!itemDef) throw new NotFoundException('Item definition not found');
+      if (itemDef.questOnly === true) throw new BadRequestException('Quest-only items cannot be listed on the Market');
       if (!Number.isSafeInteger(quantity) || quantity < 1 || !Number.isSafeInteger(pricePerUnit) || pricePerUnit < 1) throw new BadRequestException('Quantity and unit price must be positive integers');
       const gross = marketGrossValue(quantity, pricePerUnit);
       const activeCount = await orders.count({ where: { characterId, type: 'sell', status: 'active' } });
@@ -134,6 +135,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       } as any);
       if (!source) throw new NotFoundException('Selected inventory stack not found');
       if (source.quantity !== quantity) throw new BadRequestException('Market listing must use the full selected stack; split the stack in Inventory first');
+      if (source.instanceData?.questReward?.marketTradable === false && typeof source.instanceData?.questReward?.questId === 'string') throw new BadRequestException('Quest-reward equipment cannot be listed on the Market');
       if ((!itemDef.stackable || Number(itemDef.maxStack ?? 1) <= 1) && quantity !== 1) throw new BadRequestException('Non-stackable items must be listed one at a time');
       if (character.cookingSession) {
         const reserved = (character.cookingSession.ingredients ?? []).filter((row: any) => row.itemId === itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
@@ -168,6 +170,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > remaining) throw new BadRequestException('Purchase quantity exceeds the remaining listing quantity');
       const itemDef = this.dataService.getItemById(order.itemId);
       if (!itemDef) throw new BadRequestException('Listing references an unknown item');
+      if (itemDef.questOnly === true || (order.itemInstanceData?.questReward?.marketTradable === false && typeof order.itemInstanceData?.questReward?.questId === 'string')) throw new BadRequestException('Quest-only items and quest-reward equipment cannot be purchased through the Market');
       if ((!itemDef.stackable || Number(itemDef.maxStack ?? 1) <= 1) && quantity !== 1) throw new BadRequestException('Equipment listings must be purchased as a whole instance');
       const gross = marketGrossValue(quantity, Number(order.pricePerUnit));
       const buyer = await characters.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });

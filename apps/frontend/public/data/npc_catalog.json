@@ -5,9 +5,9 @@
       "name": "Father Marcelus",
       "location": "town",
       "types": [
-        "quest"
+        "dialogue"
       ],
-      "quest": {
+      "dialogue": {
         "entryNodeId": "greeting",
         "nodes": {
           "greeting": {
@@ -119,109 +119,7 @@
       "id": "cecilia",
       "name": "Cecilia",
       "location": "town",
-      "types": [
-        "quest"
-      ],
-      "quest": {
-        "entryNodeId": "greeting",
-        "nodes": {
-          "greeting": {
-            "npcText": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…",
-            "choices": [
-              {
-                "id": "ask",
-                "text": "Do you? What can you do?",
-                "nextNodeId": "offer"
-              }
-            ]
-          },
-          "offer": {
-            "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and 10x Thorn Barks and I’ll give you something that’ll bring luck to your journey.",
-            "choices": [
-              {
-                "id": "handle_items",
-                "text": "[Handle the items].",
-                "condition": {
-                  "type": "has_items",
-                  "items": [
-                    {
-                      "itemId": "part_slime_common",
-                      "quantity": 20
-                    },
-                    {
-                      "itemId": "part_fieldbat_common",
-                      "quantity": 20
-                    },
-                    {
-                      "itemId": "part_thornsprout_common",
-                      "quantity": 10
-                    }
-                  ]
-                },
-                "nextNodeId": "reward",
-                "effect": {
-                  "type": "trade_items",
-                  "remove": [
-                    {
-                      "itemId": "part_slime_common",
-                      "quantity": 20
-                    },
-                    {
-                      "itemId": "part_fieldbat_common",
-                      "quantity": 20
-                    },
-                    {
-                      "itemId": "part_thornsprout_common",
-                      "quantity": 10
-                    }
-                  ],
-                  "add": [
-                    {
-                      "itemId": "equip_accessory_sor_t1",
-                      "quantity": 1
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "return_later",
-                "text": "Sure! I’ll be back!",
-                "condition": {
-                  "type": "not_has_items",
-                  "items": [
-                    {
-                      "itemId": "part_slime_common",
-                      "quantity": 20
-                    },
-                    {
-                      "itemId": "part_fieldbat_common",
-                      "quantity": 20
-                    },
-                    {
-                      "itemId": "part_thornsprout_common",
-                      "quantity": 10
-                    }
-                  ]
-                },
-                "nextNodeId": "return_later"
-              }
-            ]
-          },
-          "return_later": {
-            "npcText": "Dear, come back when you have 20x Slime Gels, 20x Bat Wings and 10x Thorn Barks! You are lucky I’m pacient, but don’t keep me waiting!",
-            "choices": [
-              {
-                "id": "fast",
-                "text": "Ok! I’ll be fast!"
-              }
-            ]
-          },
-          "reward": {
-            "npcText": "ahn.. let me see..  *clink!* this… **ting!** I gues… **fwoosh**! it’s done! Here, have it! May fate bless your journey with luck, my dear.",
-            "choices": []
-          }
-        }
-      }
+      "types": []
     },
     {
       "id": "storage",

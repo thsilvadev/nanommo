@@ -235,13 +235,30 @@
       </section>
     </div>
 
-    <div class="quest-dialogue" *ngIf="npc.types.includes('quest') && vendor.dialogue() as dialogue">
+    <div class="quest-dialogue" *ngIf="npc.types.includes('dialogue') && vendor.dialogue() as dialogue">
       <p class="quest-text">{{dialogue.npcText}}</p>
       <div class="quest-choices">
         <button *ngFor="let choice of dialogue.choices" type="button" [disabled]="vendor.busy()"
           (click)="vendor.chooseDialogue(choice.id)">{{choice.text}}</button>
       </div>
     </div>
+
+    <section class="quest-actions-panel" *ngIf="npc">
+      <article class="quest-offer-row" *ngFor="let quest of vendor.availableQuests()">
+        <div><strong>{{quest.title}}</strong><p>{{quest.description}}</p><small>Requires Character Lv. {{quest.minLevel}}</small></div>
+        <button type="button" [disabled]="vendor.questBusy()" (click)="vendor.startQuestOffer(quest.id)">QUEST</button>
+      </article>
+      <article class="quest-offer-dialogue" *ngIf="vendor.questOffer() as offer">
+        <h3>{{offer.title}}</h3><p>{{offer.npcText}}</p>
+        <button type="button" [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestOffer()">{{offer.buttonText}}</button>
+      </article>
+      <article class="quest-active-action" *ngFor="let quest of vendor.activeQuests()">
+        <ng-container *ngFor="let objective of quest.objectives">
+          <button *ngIf="objective.type==='npc_action' && objective.npcId===npc.id && !objective.completed" type="button" [disabled]="vendor.questBusy()" (click)="vendor.performQuestAction(quest, objective)">{{quest.title}}: {{objective.id.replace('_',' ')}}</button>
+        </ng-container>
+        <button *ngIf="quest.canTurnIn && quest.turnInNpcId===npc.id" type="button" [disabled]="vendor.questBusy()" (click)="vendor.turnInQuest(quest.id)">Turn in {{quest.title}}</button>
+      </article>
+    </section>
 
     <div class="vendor-error" *ngIf="vendor.error()">{{vendor.error()}}</div>
   </ng-container>

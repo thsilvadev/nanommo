@@ -179,10 +179,18 @@ export interface XpCurveEntry {
   estDaysAtThisLevel: number;
 }
 
-export type NpcCapabilityType = 'vendor' | 'quest' | 'storage' | 'cooking' | 'mailbox';
+export type NpcCapabilityType = 'vendor' | 'dialogue' | 'storage' | 'cooking' | 'mailbox';
 export interface TownNpc { id: string; name: string; location: 'town'; types: NpcCapabilityType[]; greeting?: string; monologue?: string; }
 export interface VendorNpc extends TownNpc { types: ['vendor']; }
-export interface QuestNpc extends TownNpc { types: ['quest']; }
+export interface DialogueNpc extends TownNpc { types: ['dialogue']; }
+
+export type QuestStatus = 'active' | 'completed' | 'abandoned' | 'expired';
+export type QuestObjectiveType = 'kill_monster' | 'npc_action' | 'deliver_items' | 'gathering_bonus' | 'monster_drop';
+export type QuestProfession = 'gathering' | 'cooking';
+export interface QuestItemQuantity { itemId: string; quantity: number; }
+export interface QuestObjectiveDefinition { id: string; type: QuestObjectiveType; quantity?: number; monsterIds?: string[]; mapIds?: string[]; npcId?: string; items?: QuestItemQuantity[]; itemId?: string; itemQuantity?: number; chancePercent?: number; containerItem?: string; }
+export interface QuestRewardDefinition { gold?: number; characterXp?: number; items?: QuestItemQuantity[]; professionXp?: Array<{ profession: QuestProfession; amount: number }>; }
+export interface QuestDefinition { id: string; title: string; description: string; giverNpcId: string; turnInNpcId: string; minLevel: number; requiresCompletedQuestIds: string[]; repeatable: boolean; allowReacceptAfterAbandon: boolean; timeLimitSeconds: number | null; offerDialogue: Array<{ npcText: string; buttonText: string; acceptsQuest?: boolean }>; objectives: QuestObjectiveDefinition[]; rewards: QuestRewardDefinition; }
 export interface NpcDialogueChoice { id: string; text: string; nextNodeId?: string; }
 export interface NpcDialogueNode { id: string; npcText: string; choices: NpcDialogueChoice[]; }
 export interface NpcDialogueState { npcId: string; nodeId: string; npcText: string; choices: NpcDialogueChoice[]; }

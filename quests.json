@@ -1,0 +1,62 @@
+{
+  "quests": [
+    {
+      "id": "cecilia_lucky_ring",
+      "title": "A Little Something for Luck",
+      "description": "Bring Cecilia the monster parts she requested in exchange for a Worn Lucky Ring.",
+      "giverNpcId": "cecilia",
+      "turnInNpcId": "cecilia",
+      "minLevel": 1,
+      "requiresCompletedQuestIds": [],
+      "repeatable": false,
+      "allowReacceptAfterAbandon": true,
+      "timeLimitSeconds": null,
+      "offerDialogue": [
+        {
+          "npcText": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…",
+          "buttonText": "What can you do?"
+        },
+        {
+          "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and 10x Thorn Barks and I’ll give you something that’ll bring luck to your journey.",
+          "buttonText": "I’ll take the job."
+        },
+        {
+          "npcText": "Marvelous, darling! Bring me the parts when you have them, and we shall make a little luck of our own.",
+          "buttonText": "Accept quest",
+          "acceptsQuest": true
+        }
+      ],
+      "objectives": [
+        {
+          "id": "deliver_parts",
+          "type": "deliver_items",
+          "items": [
+            {
+              "itemId": "part_slime_common",
+              "quantity": 20
+            },
+            {
+              "itemId": "part_fieldbat_common",
+              "quantity": 20
+            },
+            {
+              "itemId": "part_thornsprout_common",
+              "quantity": 10
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 0,
+        "characterXp": 0,
+        "items": [
+          {
+            "itemId": "equip_accessory_sor_t1",
+            "quantity": 1
+          }
+        ],
+        "professionXp": []
+      }
+    }
+  ]
+}
