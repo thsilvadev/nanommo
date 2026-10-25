@@ -1,0 +1,133 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                        RANDOM ROLLS - QUICK REFERENCE                         ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  CRAFT (AttributesPool) - Bônus Genéricos
+
+    ┌─────┬───┬───┬──────────────────────────────────────┐
+    │ T1  │ 1 │ 6 │ STR, AGI, DEX, VIT, INT, LUK        │
+    │ T2  │ 2 │ 8 │ STR, AGI, DEX, VIT, INT, LUK        │
+    │ T3  │ 3 │10 │ STR, AGI, DEX, VIT, INT, LUK        │
+    └─────┴───┴───┴──────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2️⃣  DROP ARMAS (StatsPool) - Bônus Específicos
+
+    ATK / MATK
+    ┌─────────┬──────────┬──────────┬──────────┐
+    │ ATK     │ 5-12     │ 8-16     │ 12-24    │
+    │ MATK    │ 4-10     │ 7-15     │ 11-22    │
+    └─────────┴──────────┴──────────┴──────────┘
+
+    Buffs de Precisão & Velocidade
+    ┌──────────────────────┬──────────┬──────────┬──────────┐
+    │ Cast Time Reduction  │ 3-8      │ 5-12     │ 8-18     │
+    │ Accuracy             │ 4-10     │ 6-15     │ 10-20    │
+    │ Critical %           │ 2-5      │ 3-8      │ 5-12     │
+    │ Atk Speed %          │ 3-8      │ 5-12     │ 8-18     │
+    └──────────────────────┴──────────┴──────────┴──────────┘
+                             T1         T2         T3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3️⃣  DROP DEFESA (StatsPool) - Bônus Defensivos
+
+    HP & Mana
+    ┌────────────┬──────────┬──────────┬──────────┐
+    │ HP         │ 20-50    │ 40-100   │ 80-200   │
+    │ SP         │ 10-25    │ 20-50    │ 40-100   │
+    └────────────┴──────────┴──────────┴──────────┘
+
+    Regeneração & Defesa
+    ┌────────────┬──────────┬──────────┬──────────┐
+    │ HP Regen   │ 2-5      │ 4-10     │ 8-20     │
+    │ SP Regen   │ 2-5      │ 4-10     │ 8-20     │
+    │ Evasion    │ 3-8      │ 5-12     │ 8-18     │
+    │ Defense    │ 4-10     │ 7-15     │ 11-22    │
+    └────────────┴──────────┴──────────┴──────────┘
+                   T1         T2         T3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 JSON STRUCTURE - WEAPON EXAMPLE
+
+{
+  "randomRollOnCraft": {
+    "enabled": true,
+    "min": 1, "max": 6,
+    "attributesPool": ["STR", "AGI", "DEX", "VIT", "INT", "LUK"]
+  },
+  "randomRollOnDrop": {
+    "enabled": true,
+    "statsPool": ["atk", "matk", "castTimeReduction", "accuracy", "criticalPercent", "atkSpeed"],
+    "rolls": {
+      "atk": {"min": 5, "max": 12},
+      "matk": {"min": 4, "max": 10},
+      "castTimeReduction": {"min": 3, "max": 8},
+      "accuracy": {"min": 4, "max": 10},
+      "criticalPercent": {"min": 2, "max": 5},
+      "atkSpeed": {"min": 3, "max": 8}
+    }
+  }
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 JSON STRUCTURE - ARMOR EXAMPLE
+
+{
+  "randomRollOnCraft": {
+    "enabled": true,
+    "min": 1, "max": 6,
+    "attributesPool": ["STR", "AGI", "DEX", "VIT", "INT", "LUK"]
+  },
+  "randomRollOnDrop": {
+    "enabled": true,
+    "statsPool": ["hp", "sp", "hpRegen", "spRegen", "evasion", "defense"],
+    "rolls": {
+      "hp": {"min": 20, "max": 50},
+      "sp": {"min": 10, "max": 25},
+      "hpRegen": {"min": 2, "max": 5},
+      "spRegen": {"min": 2, "max": 5},
+      "evasion": {"min": 3, "max": 8},
+      "defense": {"min": 4, "max": 10}
+    }
+  }
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔑 KEY PRINCIPLES
+
+✓ Craft (1-6/1-10):     Genérico, afeta múltiplos cálculos
+✓ Drop (5-12/80-200):   Específico, 2.5x mais valioso
+✓ Growth:               T1→T2: 1.6x | T2→T3: 1.5x
+✓ HP > SP:              Sempre 2x maior
+✓ Defense ≈ ATK:        Balanço ofensivo/defensivo
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 WHEN TO USE WHAT
+
+CRAFT:
+  • Player crafts equipment
+  • Add random attribute (STR, AGI, etc)
+  • Use randomRollOnCraft config
+
+DROP:
+  • Monster drops equipment
+  • Add random specific stat (ATK, HP, etc)
+  • Use randomRollOnDrop config
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ℹ️  STATUS
+    ✅ 55 items updated
+    ✅ JSON validated
+    ✅ Git committed
+    ✅ Documentation created
+
+═══════════════════════════════════════════════════════════════════════════════════
