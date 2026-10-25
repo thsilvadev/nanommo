@@ -243,8 +243,6 @@
         "statsPool": [
           "hp",
           "sp",
-          "hpRegen",
-          "spRegen",
           "evasion",
           "defense"
         ],
@@ -256,14 +254,6 @@
           "sp": {
             "min": 10,
             "max": 25
-          },
-          "hpRegen": {
-            "min": 2,
-            "max": 5
-          },
-          "spRegen": {
-            "min": 2,
-            "max": 5
           },
           "evasion": {
             "min": 3,
@@ -314,8 +304,6 @@
         "statsPool": [
           "hp",
           "sp",
-          "hpRegen",
-          "spRegen",
           "evasion",
           "defense"
         ],
@@ -327,14 +315,6 @@
           "sp": {
             "min": 20,
             "max": 50
-          },
-          "hpRegen": {
-            "min": 4,
-            "max": 10
-          },
-          "spRegen": {
-            "min": 4,
-            "max": 10
           },
           "evasion": {
             "min": 5,
@@ -385,8 +365,6 @@
         "statsPool": [
           "hp",
           "sp",
-          "hpRegen",
-          "spRegen",
           "evasion",
           "defense"
         ],
@@ -398,14 +376,6 @@
           "sp": {
             "min": 40,
             "max": 100
-          },
-          "hpRegen": {
-            "min": 8,
-            "max": 20
-          },
-          "spRegen": {
-            "min": 8,
-            "max": 20
           },
           "evasion": {
             "min": 8,

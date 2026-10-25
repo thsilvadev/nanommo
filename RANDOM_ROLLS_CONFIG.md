@@ -115,12 +115,10 @@ Aplica-se a qualquer item com:
 {
   "randomRollOnDrop": {
     "enabled": true,
-    "statsPool": ["hp", "sp", "hpRegen", "spRegen", "evasion", "defense"],
+    "statsPool": ["hp", "sp", "evasion", "defense"],
     "rolls": {
       "hp": { "min": 20, "max": 50 },
       "sp": { "min": 10, "max": 25 },
-      "hpRegen": { "min": 2, "max": 5 },
-      "spRegen": { "min": 2, "max": 5 },
       "evasion": { "min": 3, "max": 8 },
       "defense": { "min": 4, "max": 10 }
     }
@@ -134,8 +132,6 @@ Aplica-se a qualquer item com:
 |------|----|----|-----|
 | **HP** | 20-50 | 40-100 | 80-200 |
 | **SP** | 10-25 | 20-50 | 40-100 |
-| **HP Regen** | 2-5 | 4-10 | 8-20 |
-| **SP Regen** | 2-5 | 4-10 | 8-20 |
 | **Evasion** | 3-8 | 5-12 | 8-18 |
 | **Defense** | 4-10 | 7-15 | 11-22 |
 
@@ -258,12 +254,10 @@ Os valores mínimos crescem mais lentamente para manter **variedade nos rolls**:
   },
   "randomRollOnDrop": {
     "enabled": true,
-    "statsPool": ["hp", "sp", "hpRegen", "spRegen", "evasion", "defense"],
+    "statsPool": ["hp", "sp", "evasion", "defense"],
     "rolls": {
       "hp": { "min": 20, "max": 50 },
       "sp": { "min": 10, "max": 25 },
-      "hpRegen": { "min": 2, "max": 5 },
-      "spRegen": { "min": 2, "max": 5 },
       "evasion": { "min": 3, "max": 8 },
       "defense": { "min": 4, "max": 10 }
     }
