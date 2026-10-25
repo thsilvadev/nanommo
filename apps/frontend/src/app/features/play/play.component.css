@@ -348,3 +348,5 @@
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+.locale-options{display:grid;grid-template-columns:1fr;gap:4px;padding:6px 0}.locale-options button{width:100%;text-align:left;background:transparent;border:1px solid transparent;color:#d5c0a0;padding:7px 9px;border-radius:3px;cursor:pointer}.locale-options button.active{border-color:#b89156;background:#302216;color:#ffe4b0}

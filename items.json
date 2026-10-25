@@ -998,10 +998,17 @@
       "maxStack": 20,
       "sellPriceToVendor": 520,
       "usableFor": [
-        "market_trade",
-        "future_crafting",
-        "future_quests"
-      ]
+        "quest_turn_in"
+      ],
+      "questOnly": true,
+      "locales": {
+        "pt-BR": {
+          "name": "Lágrima do Ancião da Floresta"
+        },
+        "en-US": {
+          "name": "Forest Ancient’s Teardrop"
+        }
+      }
     },
     {
       "id": "part_flamingtreant_rare",
@@ -1019,6 +1026,31 @@
         "future_crafting",
         "future_quests"
       ]
+    },
+    {
+      "id": "part_flamingtreant_bark",
+      "name": "Charred Treant Bark",
+      "type": "monster_part",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_flamingtreant"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 520,
+      "usableFor": [
+        "market_trade",
+        "future_crafting",
+        "future_quests"
+      ],
+      "locales": {
+        "pt-BR": {
+          "name": "Casca Carbonizada de Treant"
+        },
+        "en-US": {
+          "name": "Charred Treant Bark"
+        }
+      }
     }
   ],
   "consumables": [
@@ -1133,7 +1165,15 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 500,
-      "cooldownInSeconds": 10
+      "cooldownInSeconds": 10,
+      "locales": {
+        "pt-BR": {
+          "name": "Elixir Superior"
+        },
+        "en-US": {
+          "name": "Greater Elixir"
+        }
+      }
     },
     {
       "id": "food_bread",
@@ -4215,15 +4255,16 @@
       }
     },
     {
-      "id": "equip_shoes_earth_t1",
+      "id": "equip_shoes_earth_t2",
       "name": "Grounded Boots",
       "type": "equipment",
       "slot": "shoes",
-      "levelReq": 1,
-      "tier": 1,
+      "levelReq": 8,
+      "tier": 2,
       "fixedStats": {
         "elementalImmunity": "earth",
-        "def": 2
+        "def": 2,
+        "moveSpeed": 15
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -4232,8 +4273,8 @@
       "sellPriceToVendor": 1400,
       "marketBasePrice": 3500,
       "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
+        "map_lv_6",
+        "map_lv_11"
       ],
       "randomRollOnCraft": {
         "enabled": true,
@@ -4247,18 +4288,27 @@
           "INT",
           "LUK"
         ]
+      },
+      "locales": {
+        "pt-BR": {
+          "name": "Botas Terrenas"
+        },
+        "en-US": {
+          "name": "Grounded Boots"
+        }
       }
     },
     {
-      "id": "equip_shoes_water_t1",
+      "id": "equip_shoes_water_t2",
       "name": "Wading Boots",
       "type": "equipment",
       "slot": "shoes",
-      "levelReq": 1,
-      "tier": 1,
+      "levelReq": 8,
+      "tier": 2,
       "fixedStats": {
         "elementalImmunity": "water",
-        "def": 2
+        "def": 2,
+        "moveSpeed": 15
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -4267,8 +4317,8 @@
       "sellPriceToVendor": 1400,
       "marketBasePrice": 3500,
       "dropPool": [
-        "map_lv_1",
-        "map_lv_6"
+        "map_lv_6",
+        "map_lv_11"
       ],
       "randomRollOnCraft": {
         "enabled": true,
@@ -4282,18 +4332,27 @@
           "INT",
           "LUK"
         ]
+      },
+      "locales": {
+        "pt-BR": {
+          "name": "Botas das Marés"
+        },
+        "en-US": {
+          "name": "Tidal Boots"
+        }
       }
     },
     {
-      "id": "equip_shoes_fire_t2",
+      "id": "equip_shoes_fire_t3",
       "name": "Cinderproof Boots",
       "type": "equipment",
       "slot": "shoes",
-      "levelReq": 8,
-      "tier": 2,
+      "levelReq": 15,
+      "tier": 3,
       "fixedStats": {
         "elementalImmunity": "fire",
-        "def": 4
+        "def": 4,
+        "moveSpeed": 30
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -4302,8 +4361,8 @@
       "sellPriceToVendor": 3640,
       "marketBasePrice": 9100,
       "dropPool": [
-        "map_lv_11",
-        "map_lv_16"
+        "map_lv_16",
+        "map_lv_21"
       ],
       "randomRollOnCraft": {
         "enabled": true,
@@ -4317,18 +4376,27 @@
           "INT",
           "LUK"
         ]
+      },
+      "locales": {
+        "pt-BR": {
+          "name": "Botas Flamejantes"
+        },
+        "en-US": {
+          "name": "Flame Boots"
+        }
       }
     },
     {
-      "id": "equip_shoes_shadow_t2",
+      "id": "equip_shoes_shadow_t3",
       "name": "Umbral Boots",
       "type": "equipment",
       "slot": "shoes",
-      "levelReq": 8,
-      "tier": 2,
+      "levelReq": 15,
+      "tier": 3,
       "fixedStats": {
         "elementalImmunity": "shadow",
-        "def": 4
+        "def": 4,
+        "moveSpeed": 30
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -4337,8 +4405,8 @@
       "sellPriceToVendor": 3640,
       "marketBasePrice": 9100,
       "dropPool": [
-        "map_lv_11",
-        "map_lv_16"
+        "map_lv_16",
+        "map_lv_21"
       ],
       "randomRollOnCraft": {
         "enabled": true,
@@ -4352,18 +4420,27 @@
           "INT",
           "LUK"
         ]
+      },
+      "locales": {
+        "pt-BR": {
+          "name": "Botas Sombrias"
+        },
+        "en-US": {
+          "name": "Shadow Boots"
+        }
       }
     },
     {
-      "id": "equip_shoes_wind_t3",
+      "id": "equip_shoes_wind_t4",
       "name": "Stormtread Boots",
       "type": "equipment",
       "slot": "shoes",
-      "levelReq": 15,
-      "tier": 3,
+      "levelReq": 22,
+      "tier": 4,
       "fixedStats": {
         "elementalImmunity": "wind",
-        "def": 6
+        "def": 6,
+        "moveSpeed": 45
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -4372,8 +4449,8 @@
       "sellPriceToVendor": 6720,
       "marketBasePrice": 16800,
       "dropPool": [
-        "map_lv_21",
-        "map_lv_26"
+        "map_kwaioua_forest_6",
+        "map_kwaioua_forest_7"
       ],
       "randomRollOnCraft": {
         "enabled": true,
@@ -4387,18 +4464,27 @@
           "INT",
           "LUK"
         ]
+      },
+      "locales": {
+        "pt-BR": {
+          "name": "Botas do Vento"
+        },
+        "en-US": {
+          "name": "Wind Boots"
+        }
       }
     },
     {
-      "id": "equip_shoes_holy_t3",
+      "id": "equip_shoes_holy_t4",
       "name": "Sanctified Boots",
       "type": "equipment",
       "slot": "shoes",
-      "levelReq": 15,
-      "tier": 3,
+      "levelReq": 22,
+      "tier": 4,
       "fixedStats": {
         "elementalImmunity": "holy",
-        "def": 6
+        "def": 6,
+        "moveSpeed": 45
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -4407,8 +4493,8 @@
       "sellPriceToVendor": 6720,
       "marketBasePrice": 16800,
       "dropPool": [
-        "map_lv_21",
-        "map_lv_26"
+        "map_kwaioua_forest_6",
+        "map_kwaioua_forest_7"
       ],
       "randomRollOnCraft": {
         "enabled": true,
@@ -4422,6 +4508,50 @@
           "INT",
           "LUK"
         ]
+      },
+      "locales": {
+        "pt-BR": {
+          "name": "Botas Sagradas"
+        },
+        "en-US": {
+          "name": "Holy Boots"
+        }
+      }
+    },
+    {
+      "id": "equip_shoes_traveler_t1",
+      "name": "Traveler's Boots",
+      "type": "equipment",
+      "slot": "shoes",
+      "levelReq": 1,
+      "tier": 1,
+      "fixedStats": {
+        "def": 1,
+        "moveSpeed": 10
+      },
+      "sellPriceToVendor": 1400,
+      "marketBasePrice": 3500,
+      "dropPool": [],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 1,
+        "max": 6,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "locales": {
+        "pt-BR": {
+          "name": "Botas do Viajante"
+        },
+        "en-US": {
+          "name": "Traveler’s Boots"
+        }
       }
     }
   ],
@@ -4581,6 +4711,90 @@
       "usableFor": [
         "quest_objective"
       ]
+    },
+    {
+      "id": "mat_bronze_ore",
+      "name": "Bronze Ore",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 8,
+      "marketBasePrice": 20,
+      "usableFor": [
+        "blacksmithing"
+      ],
+      "locales": {
+        "pt-BR": {
+          "name": "Minério de Bronze"
+        },
+        "en-US": {
+          "name": "Bronze Ore"
+        }
+      }
+    },
+    {
+      "id": "mat_bronze_ingot",
+      "name": "Bronze Ingot",
+      "type": "material",
+      "rarity": "common",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 30,
+      "marketBasePrice": 75,
+      "usableFor": [
+        "blacksmithing"
+      ],
+      "locales": {
+        "pt-BR": {
+          "name": "Lingote de Bronze"
+        },
+        "en-US": {
+          "name": "Bronze Ingot"
+        }
+      }
+    },
+    {
+      "id": "mat_bliss_stone",
+      "name": "Bliss Stone",
+      "type": "material",
+      "rarity": "rare",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 500,
+      "marketBasePrice": 1250,
+      "usableFor": [
+        "equipment_refinement"
+      ],
+      "locales": {
+        "pt-BR": {
+          "name": "Pedra da Bem-Aventurança"
+        },
+        "en-US": {
+          "name": "Bliss Stone"
+        }
+      }
+    },
+    {
+      "id": "mat_divine_shard",
+      "name": "Divine Shard",
+      "type": "material",
+      "rarity": "epic",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 2500,
+      "marketBasePrice": 6250,
+      "usableFor": [
+        "equipment_refinement"
+      ],
+      "locales": {
+        "pt-BR": {
+          "name": "Fragmento Divino"
+        },
+        "en-US": {
+          "name": "Divine Shard"
+        }
+      }
     }
   ]
 }

@@ -74,6 +74,23 @@ export class TownController {
   @Post('npcs/uncle_phillip/cooking/cancel')
   async cancelCooking(@Request() req: any, @Body() body: { sessionId?: string }) { return this.townService.cancelCooking(await this.characterId(req), body?.sessionId); }
 
+  @Get('npcs/:npcId/:profession')
+  async getProfessionState(@Request() req: any, @Param('npcId') npcId: string, @Param('profession') profession: string) {
+    if (profession !== 'alchemy' && profession !== 'blacksmith') throw new BadRequestException('Unknown profession');
+    return this.townService.getProfessionState(await this.characterId(req), npcId, profession);
+  }
+  @Post('npcs/:npcId/:profession/start')
+  async startProfessionCrafting(@Request() req: any, @Param('npcId') npcId: string, @Param('profession') profession: string, @Body() body: { recipeId: string }) {
+    if (profession !== 'alchemy' && profession !== 'blacksmith') throw new BadRequestException('Unknown profession');
+    if (!body || typeof body.recipeId !== 'string' || !body.recipeId) throw new BadRequestException('recipeId is required');
+    return this.townService.startProfessionCrafting(await this.characterId(req), npcId, profession, body.recipeId);
+  }
+  @Post('npcs/:npcId/:profession/cancel')
+  async cancelProfessionCrafting(@Request() req: any, @Param('npcId') npcId: string, @Param('profession') profession: string, @Body() body: { sessionId?: string }) {
+    if (profession !== 'alchemy' && profession !== 'blacksmith') throw new BadRequestException('Unknown profession');
+    return this.townService.cancelProfessionCrafting(await this.characterId(req), npcId, profession, body?.sessionId);
+  }
+
   @Get('news')
   getTownNews() { return this.townService.getTownNews(); }
 }

@@ -604,3 +604,23 @@ select:focus-visible,
 @media(prefers-reduced-motion:reduce){.gambit-title-warning{animation:none}}
 .gambit-warning{display:inline-block;font-size:20px;line-height:1;cursor:help;transform-origin:center;animation:gambit-warning-pulse 3s infinite}
 @media(prefers-reduced-motion:reduce){.gambit-warning{animation:none}}
+
+/* Specialist crafting and refinement dialogs */
+.profession-overlay,.refinement-overlay{z-index:1300}
+.profession-modal,.refinement-modal{max-width:min(760px,calc(100vw - 28px));max-height:min(86vh,900px);overflow:auto}
+.refinement-item-select{display:grid;gap:7px;margin:14px 0;color:#dfc9a7;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.refinement-item-select select{padding:10px 12px;border:1px solid #705239;background:#211a15;color:#f5e4c6;border-radius:4px}
+.refinement-summary,.refinement-stats{display:grid;gap:7px;margin:12px 0;padding:12px;border:1px solid #59432e;background:#17120f;color:#e8d7b8}
+.refinement-shard-toggle{display:flex;gap:8px;align-items:center;margin:12px 0;color:#e8d7b8}
+.refinement-attempt{margin-top:14px;width:100%}
+
+.refinement-gain{color:#77df91;font-weight:700}
+
+.refinement-confirm-backdrop{position:fixed;inset:0;z-index:1450;display:grid;place-items:center;padding:18px;box-sizing:border-box;background:#000c;backdrop-filter:blur(2px)}
+.refinement-confirm-modal{width:min(430px,100%);padding:20px;box-sizing:border-box;border:1px solid #9b7849;background:linear-gradient(180deg,#211710,#120e0b);color:#e5d5b9;box-shadow:0 18px 52px #000d}
+.refinement-confirm-modal h3{margin:0 0 12px;color:#f0d9a7;font:20px Georgia,serif}
+.refinement-confirm-modal p{line-height:1.45;overflow-wrap:anywhere}
+.refinement-confirm-modal footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.refinement-confirm-modal button{border:1px solid #765632;background:#261c12;color:#d9c39e;padding:8px 12px;cursor:pointer}
+.refinement-confirm-modal button.primary{background:linear-gradient(#76542b,#4d351c);border-color:#c49a53;color:#fff0c9;font-weight:bold}
+.refinement-result{color:#9be2a6;margin:10px 0 0;font-weight:700}

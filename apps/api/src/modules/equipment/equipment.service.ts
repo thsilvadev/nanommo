@@ -9,6 +9,8 @@ import { BattleQueueEntry } from '../../database/entities/battle-queue-entry.ent
 import { DataService } from '../data/data.service';
 import { BattleEngine, effectiveWeaponAttack, validateHandLoadout, sumAttributeBonuses, applyAttributeBonuses } from '@nanommo/shared';
 import { BattleService } from '../battle/battle.service';
+import { createHash } from 'crypto';
+import { effectiveItemDefinition, refinementLevel, resolveRefinementFailure, rolledStatValue } from '@nanommo/shared';
 
 export interface EquipmentStats {
   def: number;
@@ -18,6 +20,10 @@ export interface EquipmentStats {
   weaponFixedAtk: number;
   weaponFixedMatk: number;
   accuracyModifier: number;
+  evasionModifier: number;
+  criticalChanceModifier: number;
+  attackSpeedModifier: number;
+  castTimeReductionModifier: number;
   accuracyMultiplier: number;
   statBonus: {
     STR?: number;
@@ -127,6 +133,10 @@ export class EquipmentService {
       weaponFixedAtk: 0,
       weaponFixedMatk: 0,
       accuracyModifier: 0,
+      evasionModifier: 0,
+      criticalChanceModifier: 0,
+      attackSpeedModifier: 0,
+      castTimeReductionModifier: 0,
       accuracyMultiplier: 1,
       statBonus: {
         STR: 0,
@@ -139,8 +149,9 @@ export class EquipmentService {
     };
 
     for (const equip of equipped) {
-      const itemDef = this.dataService.getItemById(equip.itemId);
-      if (!itemDef || itemDef.type !== 'equipment') continue;
+      const baseItemDef = this.dataService.getItemById(equip.itemId);
+      if (!baseItemDef || baseItemDef.type !== 'equipment') continue;
+      const itemDef = effectiveItemDefinition(baseItemDef, equip.instanceData);
 
       // Add fixed stats
       stats.def += Number(itemDef.fixedStats?.def ?? 0);
@@ -161,11 +172,21 @@ export class EquipmentService {
 
       // Add random roll bonus if present
       if (equip.instanceData?.rolledAttribute && equip.instanceData?.rolledValue) {
-        const attr = equip.instanceData.rolledAttribute as keyof typeof stats.statBonus;
-        if (stats.statBonus[attr] !== undefined) {
-          stats.statBonus[attr] += equip.instanceData.rolledValue;
-        }
+        const attr = (String(equip.instanceData.rolledAttribute).toUpperCase() === 'SOR' ? 'LUK' : String(equip.instanceData.rolledAttribute).toUpperCase()) as keyof typeof stats.statBonus;
+        if (stats.statBonus[attr] !== undefined) stats.statBonus[attr] += Number(equip.instanceData.rolledValue);
       }
+      stats.maxHp += rolledStatValue(equip.instanceData, 'hp');
+      stats.maxSp += rolledStatValue(equip.instanceData, 'sp');
+      stats.def += rolledStatValue(equip.instanceData, 'defense');
+      const rolledAtk = rolledStatValue(equip.instanceData, 'atk');
+      stats.weaponFixedAtk += equip.slot === 'offHand' && itemDef.weaponType && !['shield', 'rune'].includes(String(itemDef.weaponType))
+        ? Math.floor(rolledAtk / 2) : rolledAtk;
+      if (equip.slot === 'mainHand') stats.weaponFixedMatk += rolledStatValue(equip.instanceData, 'matk');
+      stats.accuracyModifier += rolledStatValue(equip.instanceData, 'accuracy');
+      stats.evasionModifier += rolledStatValue(equip.instanceData, 'evasion');
+      stats.criticalChanceModifier += rolledStatValue(equip.instanceData, 'criticalPercent');
+      stats.attackSpeedModifier += rolledStatValue(equip.instanceData, 'atkSpeed');
+      stats.castTimeReductionModifier += rolledStatValue(equip.instanceData, 'castTimeReduction');
 
       // Only weapon ATK is halved in the secondary hand. Other item properties
       // (including attribute and defensive bonuses) remain at full value.
@@ -191,6 +212,112 @@ export class EquipmentService {
     const equipStats = await this.calculateEquipmentStats(character.id);
     const attributes = applyAttributeBonuses(character, sumAttributeBonuses(equipStats.statBonus));
     return BattleEngine.calculateDerivedStats(character.level, attributes, equipStats);
+  }
+
+  private readonly refinementChances = [100, 100, 100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
+  private readonly refinementStatGain: Record<string, number> = {
+    atk: 5, matk: 5, defense: 4, hp: 10, sp: 10, atkSpeed: 10,
+    castTimeReduction: 5, evasion: 3, accuracy: 3, criticalPercent: 1,
+  };
+
+  private assertRefinementLocation(character: Character): void {
+    const map = this.dataService.getMapById(character.currentMapId);
+    if (!map || map.type !== 'town' || !(map.npcIds ?? []).includes('whitesmith_spitz')
+      || character.status !== 'town' || character.travelIntent || character.pendingMapTransition) {
+      throw new BadRequestException('Equipment refinement is only available at Whitesmith Spitz in Caelum');
+    }
+  }
+
+  async getRefinementPreview(characterId: string, inventoryItemId: string, useDivineShard = false): Promise<any> {
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (!character) throw new NotFoundException('Character not found');
+    this.assertRefinementLocation(character);
+    const row = await this.inventoryItemRepo.findOne({ where: { id: inventoryItemId, characterId, location: 'inventory' } });
+    if (!row) throw new NotFoundException('Equipment instance not found in Inventory');
+    const item = this.dataService.getItemById(row.itemId);
+    if (!item || item.type !== 'equipment') throw new BadRequestException('Only equipment can be refined');
+    const level = refinementLevel(row.instanceData);
+    if (level >= 12) throw new BadRequestException('Equipment is already at the maximum refinement level (+12)');
+    if (useDivineShard && (level < 6 || level > 11)) throw new BadRequestException('Divine Shards can only protect refinement attempts from +6 to +12');
+    const rows = await this.inventoryItemRepo.find({ where: { characterId, location: 'inventory' } });
+    const count = (id: string) => rows.filter(x => x.itemId === id).reduce((sum, x) => sum + Number(x.quantity), 0);
+    const nextLevel = level + 1;
+    const failure = level <= 2 ? 'No failure at this chance' : level <= 5
+      ? 'The Bliss Stone is lost; equipment refinement stays unchanged'
+      : level <= 8 ? (useDivineShard ? 'The Bliss Stone and Divine Shard are lost; refinement stays unchanged' : 'The Bliss Stone is lost; refinement resets to +0')
+      : (useDivineShard ? 'The Bliss Stone and Divine Shard are lost; refinement decreases by one' : 'The equipment is destroyed');
+    const directStats = ['atk', 'matk', 'def', 'mdefPercent'].filter(key => item.fixedStats?.[key] !== undefined && item.fixedStats?.[key] !== null && Number(item.fixedStats[key]) !== 0)
+      .map(key => ({ stat: key, current: Number(item.fixedStats[key]) + Number(item.fixedStats[key] !== 0 ? 3 * level : 0), increase: 3 }));
+    const rolledStat = String(row.instanceData?.rolledStat ?? '');
+    const rolledAttribute = String(row.instanceData?.rolledAttribute ?? '');
+    return {
+      inventoryItemId: row.id, itemId: row.itemId, itemName: item.name, refinementLevel: level, nextRefinementLevel: nextLevel,
+      chancePercent: this.refinementChances[level], useDivineShard, hasBlissStone: count('mat_bliss_stone') > 0,
+      hasDivineShard: count('mat_divine_shard') > 0, canAttempt: count('mat_bliss_stone') > 0 && (!useDivineShard || (level >= 6 && level <= 11 && count('mat_divine_shard') > 0)),
+      failureEffect: failure, directStats,
+      rolledBonus: nextLevel > 6 ? (rolledAttribute && row.instanceData?.craftedByProfession ? { type: 'attribute', stat: rolledAttribute, increase: 2 } :
+        rolledStat ? { type: 'stat', stat: rolledStat, increase: this.refinementStatGain[rolledStat] ?? 0 } : null) : null,
+      currentRolledValue: rolledAttribute ? Number(row.instanceData?.rolledValue ?? 0) : rolledStat ? Number(row.instanceData?.rolledStatValue ?? 0) : 0,
+    };
+  }
+
+  async refineItem(characterId: string, inventoryItemId: string, useDivineShard = false): Promise<any> {
+    return this.battleService.runFutureCombatMutation(characterId, () =>
+      this.inventoryItemRepo.manager.transaction(async manager => {
+        const characterRepo = manager.getRepository(Character);
+        const invRepo = manager.getRepository(InventoryItem);
+        const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+        if (!character) throw new NotFoundException('Character not found');
+        this.assertRefinementLocation(character);
+        const row = await invRepo.findOne({ where: { id: inventoryItemId, characterId, location: 'inventory' }, lock: { mode: 'pessimistic_write' } });
+        if (!row) throw new NotFoundException('Equipment instance not found in Inventory');
+        const item = this.dataService.getItemById(row.itemId);
+        if (!item || item.type !== 'equipment' || row.quantity !== 1) throw new BadRequestException('Select one equipment instance to refine');
+        const instanceData = { ...(row.instanceData ?? {}) };
+        const level = refinementLevel(instanceData);
+        if (level >= 12) throw new BadRequestException('Equipment is already at the maximum refinement level (+12)');
+        if (useDivineShard && (level < 6 || level > 11)) throw new BadRequestException('Divine Shards can only be used for attempts +6→+7 through +11→+12');
+        const materialRows = await invRepo.find({ where: { characterId, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
+        const consumeOne = async (itemId: string) => {
+          const stack = materialRows.find(x => x.itemId === itemId && Number(x.quantity) > 0);
+          if (!stack) throw new BadRequestException('Missing required material: ' + (this.dataService.getItemById(itemId)?.name ?? itemId));
+          stack.quantity = Number(stack.quantity) - 1;
+          if (stack.quantity <= 0) await invRepo.remove(stack); else await invRepo.save(stack);
+        };
+        await consumeOne('mat_bliss_stone');
+        if (useDivineShard) await consumeOne('mat_divine_shard');
+        const attempt = Math.max(0, Math.floor(Number(instanceData.refinementAttempts ?? 0))) + 1;
+        const roll = createHash('sha256').update(`${characterId}:${row.id}:refine:${attempt}:${level}`).digest().readUInt32BE(0) % 100;
+        const chance = this.refinementChances[level];
+        if (roll < chance) {
+          const nextLevel = level + 1;
+          instanceData.refinementAttempts = attempt;
+          instanceData.refinementLevel = nextLevel;
+          if (instanceData.rolledAttribute && instanceData.craftedByProfession && instanceData.rolledValue !== undefined) {
+            if (instanceData.refinementBaseRolledValue === undefined) instanceData.refinementBaseRolledValue = Number(instanceData.rolledValue);
+            instanceData.rolledValue = Number(instanceData.refinementBaseRolledValue) + Math.max(0, nextLevel - 6) * 2;
+          }
+          if (instanceData.rolledStat && instanceData.rolledStatValue !== undefined) {
+            if (instanceData.refinementBaseRolledStatValue === undefined) instanceData.refinementBaseRolledStatValue = Number(instanceData.rolledStatValue);
+            instanceData.rolledStatValue = Number(instanceData.refinementBaseRolledStatValue) + Math.max(0, nextLevel - 6) * (this.refinementStatGain[String(instanceData.rolledStat)] ?? 0);
+          }
+          row.instanceData = instanceData; await invRepo.save(row);
+          return { outcome: 'success', chancePercent: chance, roll, previousLevel: level, refinementLevel: nextLevel, itemId: row.itemId, destroyed: false, useDivineShard };
+        }
+        instanceData.refinementAttempts = attempt;
+        const failureOutcome = resolveRefinementFailure(level, useDivineShard);
+        if (failureOutcome.destroyed) {
+          await invRepo.remove(row);
+          return { outcome: 'destroyed', chancePercent: chance, roll, previousLevel: level, refinementLevel: null, itemId: row.itemId, destroyed: true, useDivineShard };
+        }
+        const nextLevel = failureOutcome.nextLevel;
+        instanceData.refinementLevel = nextLevel;
+        if (instanceData.rolledAttribute && instanceData.refinementBaseRolledValue !== undefined) instanceData.rolledValue = Number(instanceData.refinementBaseRolledValue) + Math.max(0, nextLevel - 6) * 2;
+        if (instanceData.rolledStat && instanceData.refinementBaseRolledStatValue !== undefined) instanceData.rolledStatValue = Number(instanceData.refinementBaseRolledStatValue) + Math.max(0, nextLevel - 6) * (this.refinementStatGain[String(instanceData.rolledStat)] ?? 0);
+        row.instanceData = instanceData; await invRepo.save(row);
+        return { outcome: 'failure', chancePercent: chance, roll, previousLevel: level, refinementLevel: nextLevel, itemId: row.itemId, destroyed: false, useDivineShard };
+      })
+    );
   }
 
   /**

@@ -23,9 +23,9 @@
             class="market-sell-drop" [class.has-item]="!!selectedInventory()"
             [class.drop-hover]="marketDropHovered()" aria-label="Drop item to sell">
             <ng-container *ngIf="selectedInventory() as row"><div class="market-slot-item">
-              <img [src]="itemIcon(row.itemId)" [alt]="catalog.item(row.itemId)?.name??row.itemId">
+              <img [src]="itemIcon(row.itemId)" [alt]="catalog.itemName(row.itemId,row.instanceData)">
               <b *ngIf="row.quantity>1">{{row.quantity}}</b>
-              <div class="item-tooltip"><strong>{{catalog.item(row.itemId)?.name??row.itemId}}</strong><span
+              <div class="item-tooltip"><strong>{{catalog.itemName(row.itemId,row.instanceData)}}</strong><span
                 *ngFor="let line of catalog.itemTooltipLines(row.itemId,row.instanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></div>
             </div><button type="button" aria-label="Remove selected item" title="Remove selected item"
               (click)="changeInventory('')">×</button></ng-container>
@@ -34,7 +34,7 @@
         <button class="market-primary market-listing-confirm" [disabled]="loading()||!selectedInventory()||listingGross()<=0||listingGross()>maxGold" (click)="createListing()">Confirm Listing</button>
       </div>
       <div class="market-selected-item" *ngIf="selectedInventory() as row">
-        <div><strong>{{catalog.item(row.itemId)?.name ?? row.itemId}}</strong><small>{{row.quantity}} in selected
+        <div><strong>{{catalog.itemName(row.itemId,row.instanceData)}}</strong><small>{{row.quantity}} in selected
             stack</small><small>{{tooltip(row.itemId,row.instanceData)}}</small></div>
       </div>
       <label>Unit price (gold)<input type="number" min="1" max="999999999" [value]="unitPrice()"
@@ -86,8 +86,8 @@
       <div class="market-listings">
         <article *ngFor="let row of listings()" class="market-listing" [class.own-listing]="own(row)">
           <div class="market-listing-item"><strong class="market-listing-quantity" [attr.aria-label]="row.remainingQuantity + ' units available'">{{row.remainingQuantity | number}}×</strong><img
-              [src]="itemIcon(row.itemId)" [alt]="row.itemName"></div>
-          <div class="market-listing-info"><strong>{{row.itemName}}</strong><small>{{row.itemType}} · Tier {{row.tier}}</small><small
+              [src]="itemIcon(row.itemId)" [alt]="catalog.itemName(row.itemId,row.itemInstanceData)"></div>
+          <div class="market-listing-info"><strong>{{catalog.itemName(row.itemId,row.itemInstanceData)}}</strong><small>{{row.itemType}} · Tier {{row.tier}}</small><small
               [title]="tooltip(row.itemId,row.itemInstanceData)">{{tooltip(row.itemId,row.itemInstanceData)}}</small><small>Expires
               {{row.expiresAt | date:'short'}}</small></div>
           <div class="market-listing-price"><b>{{row.pricePerUnit | number}} G</b><small>per item</small><span
@@ -104,8 +104,8 @@
   <section class="market-table-wrap" *ngIf="tab()==='orders'">
     <h2>My active listings</h2>
     <article class="market-order-row" *ngFor="let row of orders()"><img [src]="itemIcon(row.itemId)"
-        [alt]="catalog.item(row.itemId)?.name??row.itemId">
-      <div><strong>{{catalog.item(row.itemId)?.name??row.itemId}}</strong><small>{{row.escrowedItemQuantity}} remaining
+        [alt]="catalog.itemName(row.itemId,row.itemInstanceData)">
+      <div><strong>{{catalog.itemName(row.itemId,row.itemInstanceData)}}</strong><small>{{row.escrowedItemQuantity}} remaining
           of {{row.quantity}} · {{row.pricePerUnit | number}} G each</small><small>Fee paid: {{row.listingFeeGold |
           number}} G · Expires {{row.expiresAt | date:'short'}}</small></div><button [disabled]="busyId()===row.id"
         (click)="cancel(row)">Cancel</button>
@@ -115,8 +115,8 @@
   <section class="market-table-wrap" *ngIf="tab()==='deals'">
     <h2>Recent deals</h2>
     <article class="market-order-row" *ngFor="let row of deals()"><img [src]="itemIcon(row.itemId)"
-        [alt]="catalog.item(row.itemId)?.name??row.itemId">
-      <div><strong>{{catalog.item(row.itemId)?.name??row.itemId}}</strong><small>{{row.quantity}} × {{row.pricePerUnit |
+        [alt]="catalog.itemName(row.itemId,row.itemInstanceData)">
+      <div><strong>{{catalog.itemName(row.itemId,row.itemInstanceData)}}</strong><small>{{row.quantity}} × {{row.pricePerUnit |
           number}} G · {{row.buyerCharacterId===character.character()?.id?'Bought':'Sold'}}</small><small>{{row.dealAt |
           date:'short'}}</small></div><b>{{row.quantity*row.pricePerUnit | number}} G</b>
     </article>
@@ -128,7 +128,7 @@
   <div class="market-modal-backdrop" *ngIf="listingConfirmation()" (click)="listingConfirmation.set(false)">
     <section class="market-modal" role="dialog" aria-modal="true" aria-labelledby="market-listing-modal-title" (click)="$event.stopPropagation()">
       <header><div><small>PLAYER MARKET</small><h2 id="market-listing-modal-title">Confirm listing</h2></div><button class="market-modal-close" type="button" aria-label="Close" (click)="listingConfirmation.set(false)">×</button></header>
-      <div class="market-modal-item" *ngIf="selectedInventory() as row"><img [src]="itemIcon(row.itemId)" [alt]="catalog.item(row.itemId)?.name??row.itemId"><div><strong>{{catalog.item(row.itemId)?.name??row.itemId}}</strong><small>Stack quantity: {{row.quantity}}</small><small>{{tooltip(row.itemId,row.instanceData)}}</small></div></div>
+      <div class="market-modal-item" *ngIf="selectedInventory() as row"><img [src]="itemIcon(row.itemId)" [alt]="catalog.itemName(row.itemId,row.instanceData)"><div><strong>{{catalog.itemName(row.itemId,row.instanceData)}}</strong><small>Stack quantity: {{row.quantity}}</small><small>{{tooltip(row.itemId,row.instanceData)}}</small></div></div>
       <div class="market-modal-summary"><span>Unit price</span><b>{{unitPrice() | number}} G</b><span>Gross listing value</span><b>{{listingGross() | number}} G</b><span>Non-refundable 1% fee (minimum 1 G)</span><b>−{{listingFee() | number}} G</b><span>Expected net if fully sold</span><b>{{listingGross()-listingFee() | number}} G</b></div>
       <p class="market-modal-note">The full stack will be escrowed. The listing fee is charged when the listing is created and is not refunded if cancelled or expired.</p>
       <footer class="market-modal-actions"><button type="button" (click)="listingConfirmation.set(false)">Cancel</button><button type="button" class="primary" [disabled]="loading()" (click)="createListing(true)">Confirm Listing</button></footer>
@@ -137,7 +137,7 @@
   <div class="market-modal-backdrop" *ngIf="purchaseStep() as purchaseState" (click)="closePurchase()">
     <section class="market-modal" role="dialog" aria-modal="true" aria-labelledby="market-purchase-modal-title" (click)="$event.stopPropagation()">
       <header><div><small>PLAYER MARKET</small><h2 id="market-purchase-modal-title">{{purchaseState==='quantity'?'Purchase quantity':'Confirm purchase'}}</h2></div><button class="market-modal-close" type="button" aria-label="Close" (click)="closePurchase()">×</button></header>
-      <div class="market-modal-item" *ngIf="purchaseListing() as row"><img [src]="itemIcon(row.itemId)" [alt]="row.itemName"><div><strong>{{row.itemName}}</strong><small>{{row.itemType}} · Tier {{row.tier}}</small><small>{{tooltip(row.itemId,row.itemInstanceData)}}</small><small>{{row.pricePerUnit | number}} G per item · {{purchaseRemaining()}} available</small></div></div>
+      <div class="market-modal-item" *ngIf="purchaseListing() as row"><img [src]="itemIcon(row.itemId)" [alt]="catalog.itemName(row.itemId,row.itemInstanceData)"><div><strong>{{catalog.itemName(row.itemId,row.itemInstanceData)}}</strong><small>{{row.itemType}} · Tier {{row.tier}}</small><small>{{tooltip(row.itemId,row.itemInstanceData)}}</small><small>{{row.pricePerUnit | number}} G per item · {{purchaseRemaining()}} available</small></div></div>
       <div *ngIf="purchaseState==='quantity'"><label>Quantity to purchase<input type="number" min="1" [max]="purchaseRemaining()" step="1" [value]="purchaseQuantity()" (input)="purchaseQuantity.set($any($event.target).value)"></label><div class="market-modal-summary"><span>Unit price</span><b>{{purchaseListing()?.pricePerUnit | number}} G</b><span>Purchase total</span><b>{{purchaseGross() | number}} G</b></div><footer class="market-modal-actions"><button type="button" (click)="closePurchase()">Cancel</button><button type="button" class="primary" (click)="continuePurchase()">Review Purchase</button></footer></div>
       <div *ngIf="purchaseState==='confirm'"><div class="market-modal-summary"><span>Quantity</span><b>{{purchaseQuantity()}}</b><span>Unit price</span><b>{{purchaseListing()?.pricePerUnit | number}} G</b><span>Total due</span><b>{{purchaseGross() | number}} G</b></div><p class="market-modal-note">Purchased items will be delivered to your Mailbox. Confirm the quantity and total before proceeding.</p><footer class="market-modal-actions"><button type="button" (click)="purchaseStep.set('quantity')">Back</button><button type="button" class="primary" [disabled]="busyId()===purchaseListing()?.id" (click)="confirmPurchase()">Confirm Purchase</button></footer></div>
       <p class="market-modal-note" *ngIf="error()">{{error()}}</p>

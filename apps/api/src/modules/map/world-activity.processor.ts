@@ -33,6 +33,7 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
       try {
         const result = await this.maps.recoverPendingActivities();
         await this.town.reconcileCooking();
+        await this.town.reconcileCrafting();
         const regeneratedCharacters = await this.characters.regenerateOffBattleResourcesForAll();
         for (const characterId of regeneratedCharacters) await this.battles.publishQueueUpdated(characterId);
         if (result.travel || result.gathering || result.flee) this.logger.log(`Recovered world activity jobs: travel=${result.travel} gathering=${result.gathering} flee=${result.flee}`);
@@ -103,6 +104,12 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
   async completeCooking(job: Job<{ characterId: string; sessionId: string; generation: string }>) {
     await this.gate.assertReadyForProcessing();
     return this.town.completeCooking(job.data.characterId, job.data.sessionId);
+  }
+
+  @Process('complete-crafting')
+  async completeCrafting(job: Job<{ characterId: string; sessionId: string; generation: string }>) {
+    await this.gate.assertReadyForProcessing();
+    return this.town.completeCrafting(job.data.characterId, job.data.sessionId);
   }
 
 }

@@ -1,0 +1,18 @@
+{
+  "drops": [
+    {
+      "itemId": "mat_bliss_stone",
+      "baseChancePercent": 0.501,
+      "perLevelIncreasePercent": 0.001,
+      "baseMonsterLevel": 1,
+      "maxChancePercent": 0.6
+    },
+    {
+      "itemId": "mat_divine_shard",
+      "baseChancePercent": 0.0501,
+      "perLevelIncreasePercent": 0.0001,
+      "baseMonsterLevel": 1,
+      "maxChancePercent": 0.06
+    }
+  ]
+}

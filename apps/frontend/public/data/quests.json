@@ -14,12 +14,28 @@
       "offerDialogue": [
         {
           "npcText": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…",
-          "buttonText": "What can you do?"
+          "buttonText": "What can you do?",
+          "npcTextLocales": {
+            "pt-BR": "O destino é algo curioso, não é? Ele trouxe você até mim, e tenho exatamente o que procura. Mas será que é sorte? Talvez…",
+            "en-US": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…"
+          },
+          "buttonTextLocales": {
+            "pt-BR": "O que você pode fazer?",
+            "en-US": "What can you do?"
+          }
         },
         {
           "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and 10x Thorn Barks and I’ll give you something that’ll bring luck to your journey.",
           "buttonText": "I’ll take the job.",
-          "acceptsQuest": true
+          "acceptsQuest": true,
+          "npcTextLocales": {
+            "pt-BR": "Ah, querida! Está falando com a joalheira princesa deste mundo. Traga 20 Géis de Slime, 20 Asas de Morcego e 10 Cascas de Espinho e lhe darei algo que trará sorte à sua jornada.",
+            "en-US": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and 10x Thorn Barks and I’ll give you something that’ll bring luck to your journey."
+          },
+          "buttonTextLocales": {
+            "pt-BR": "Aceito o trabalho.",
+            "en-US": "I’ll take the job."
+          }
         }
       ],
       "objectives": [
@@ -57,11 +73,210 @@
         "npcText": "Marvelous, darling! Bring me the parts when you have them, and we shall make a little luck of our own.",
         "waitButtonText": "Ok I'll be back",
         "handleItemsButtonText": "[Handle items]",
-        "readyButtonText": "[Continue]"
+        "readyButtonText": "[Continue]",
+        "npcTextLocales": {
+          "pt-BR": "Maravilhoso, querida! Traga as partes quando as tiver, e faremos nossa própria sorte.",
+          "en-US": "Marvelous, darling! Bring me the parts when you have them, and we shall make a little luck of our own."
+        },
+        "waitButtonTextLocales": {
+          "pt-BR": "Certo, eu volto.",
+          "en-US": "Ok I'll be back"
+        },
+        "handleItemsButtonTextLocales": {
+          "pt-BR": "[Entregar itens]",
+          "en-US": "[Handle items]"
+        },
+        "readyButtonTextLocales": {
+          "pt-BR": "[Continuar]",
+          "en-US": "[Continue]"
+        }
       },
       "completionDialogue": {
         "npcText": "There you go, darling! May this little ring bring a little more luck to your journey.",
-        "buttonText": "Thank you!"
+        "buttonText": "Thank you!",
+        "npcTextLocales": {
+          "pt-BR": "Aqui está, querida! Que este anel traga um pouco mais de sorte à sua jornada.",
+          "en-US": "There you go, darling! May this little ring bring a little more luck to your journey."
+        },
+        "buttonTextLocales": {
+          "pt-BR": "Obrigado!",
+          "en-US": "Thank you!"
+        }
+      },
+      "titleLocales": {
+        "pt-BR": "Um Pequeno Presente para a Sorte",
+        "en-US": "A Little Something for Luck"
+      },
+      "descriptionLocales": {
+        "pt-BR": "Traga a Cecilia as partes de monstros que ela pediu em troca de um Anel da Sorte Gasto.",
+        "en-US": "Bring Cecilia the monster parts she requested in exchange for a Worn Lucky Ring."
+      }
+    },
+    {
+      "id": "forest_ancient_teardrop",
+      "title": "The Forest Ancient’s Teardrops",
+      "titleLocales": {
+        "pt-BR": "As Lágrimas do Ancião da Floresta",
+        "en-US": "The Forest Ancient’s Teardrops"
+      },
+      "description": "Bring Pajé Piatã five Forest Ancient’s Teardrops to help preserve the balance of the forest.",
+      "descriptionLocales": {
+        "pt-BR": "Traga cinco Lágrimas do Ancião da Floresta ao Pajé Piatã para ajudar a preservar o equilíbrio da mata.",
+        "en-US": "Bring Pajé Piatã five Forest Ancient’s Teardrops to help preserve the balance of the forest."
+      },
+      "giverNpcId": "paje_piata",
+      "turnInNpcId": "paje_piata",
+      "minLevel": 35,
+      "requiresCompletedQuestIds": [],
+      "repeatable": false,
+      "allowReacceptAfterAbandon": false,
+      "timeLimitSeconds": null,
+      "offerDialogue": [
+        {
+          "npcText": "Aruandê, traveler. The forest is growing weak. I need five of the ancient’s tears. Will you help?",
+          "npcTextLocales": {
+            "pt-BR": "Aruandê, viajante. A floresta está enfraquecendo. Preciso de cinco lágrimas do ancião. Você me ajudará?",
+            "en-US": "Aruandê, traveler. The forest is growing weak. I need five of the ancient’s tears. Will you help?"
+          },
+          "buttonText": "I am going to help.",
+          "buttonTextLocales": {
+            "pt-BR": "Estou indo!",
+            "en-US": "I am going to help."
+          },
+          "acceptsQuest": true
+        }
+      ],
+      "offerGraph": {
+        "entryNodeId": "start",
+        "nodes": {
+          "start": {
+            "npcText": "Aruandê, traveler. The forest is growing weak. I need five of the ancient’s tears. Will you help?",
+            "npcTextLocales": {
+              "pt-BR": "Aruandê, viajante. A floresta está enfraquecendo. Preciso de cinco lágrimas do ancião. Você me ajudará?",
+              "en-US": "Aruandê, traveler. The forest is growing weak. I need five of the ancient’s tears. Will you help?"
+            },
+            "choices": [
+              {
+                "id": "accept",
+                "text": "I am going to help.",
+                "textLocales": {
+                  "pt-BR": "Estou indo!",
+                  "en-US": "I am going to help."
+                },
+                "acceptsQuest": true
+              },
+              {
+                "id": "ask_tears",
+                "text": "What will you do with these tears?",
+                "textLocales": {
+                  "pt-BR": "O que o senhor fará com essas lágrimas?",
+                  "en-US": "What will you do with these tears?"
+                },
+                "nextNodeId": "explanation"
+              },
+              {
+                "id": "decline",
+                "text": "Not now.",
+                "textLocales": {
+                  "pt-BR": "Agora não.",
+                  "en-US": "Not now."
+                },
+                "close": true
+              }
+            ]
+          },
+          "explanation": {
+            "npcText": "The Flaming Treant holds the old memories of this forest. Its tears can help restore the balance.",
+            "npcTextLocales": {
+              "pt-BR": "O Treant Flamejante guarda as memórias antigas desta floresta. Suas lágrimas podem ajudar a restaurar o equilíbrio.",
+              "en-US": "The Flaming Treant holds the old memories of this forest. Its tears can help restore the balance."
+            },
+            "choices": [
+              {
+                "id": "accept_after_explanation",
+                "text": "I will help you, Pajé!",
+                "textLocales": {
+                  "pt-BR": "Nós vai, Pajé!",
+                  "en-US": "I will help you, Pajé!"
+                },
+                "acceptsQuest": true
+              },
+              {
+                "id": "decline_after_explanation",
+                "text": "Not now.",
+                "textLocales": {
+                  "pt-BR": "Agora não.",
+                  "en-US": "Not now."
+                },
+                "close": true
+              }
+            ]
+          }
+        }
+      },
+      "objectives": [
+        {
+          "id": "collect_tears",
+          "type": "monster_drop",
+          "monsterIds": [
+            "mon_flamingtreant"
+          ],
+          "itemId": "part_flamingtreant_common",
+          "itemQuantity": 1,
+          "quantity": 5,
+          "chancePercent": 35,
+          "description": "Collect Forest Ancient’s Teardrops from the Flaming Treant",
+          "descriptionLocales": {
+            "pt-BR": "Colete Lágrimas do Ancião da Floresta do Treant Flamejante",
+            "en-US": "Collect Forest Ancient’s Teardrops from the Flaming Treant"
+          }
+        }
+      ],
+      "rewards": {
+        "gold": 0,
+        "characterXp": 31630,
+        "items": [
+          {
+            "itemId": "equip_shoes_earth_t2",
+            "quantity": 1,
+            "disableRandomRoll": true
+          }
+        ],
+        "professionXp": []
+      },
+      "activeDialogue": {
+        "npcText": "The Flaming Treant holds the forest’s old memories. Bring me five tears, and guard your steps.",
+        "npcTextLocales": {
+          "pt-BR": "O Treant Flamejante guarda as memórias antigas da floresta. Traga-me cinco lágrimas e cuide de seus passos.",
+          "en-US": "The Flaming Treant holds the forest’s old memories. Bring me five tears, and guard your steps."
+        },
+        "waitButtonText": "I will return.",
+        "waitButtonTextLocales": {
+          "pt-BR": "Eu voltarei.",
+          "en-US": "I will return."
+        },
+        "handleItemsButtonText": "Offer the five tears",
+        "handleItemsButtonTextLocales": {
+          "pt-BR": "Entregar as cinco lágrimas",
+          "en-US": "Offer the five tears"
+        },
+        "readyButtonText": "Continue",
+        "readyButtonTextLocales": {
+          "pt-BR": "Continuar",
+          "en-US": "Continue"
+        }
+      },
+      "completionDialogue": {
+        "npcText": "You honored the forest. Take these boots; may they guide you safely.",
+        "npcTextLocales": {
+          "pt-BR": "Você honrou a floresta. Fique com estas botas; que elas guiem seus passos em segurança.",
+          "en-US": "You honored the forest. Take these boots; may they guide you safely."
+        },
+        "buttonText": "Thank you.",
+        "buttonTextLocales": {
+          "pt-BR": "Obrigado.",
+          "en-US": "Thank you."
+        }
       }
     }
   ]

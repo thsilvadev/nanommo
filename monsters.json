@@ -1255,7 +1255,7 @@
     },
     {
       "id": "mon_kwaiouaranger",
-      "name": "Kwaiou\u00e1 Ranger",
+      "name": "Kwaiouá Ranger",
       "level": 33,
       "hp": 1970,
       "atk": 93,
@@ -1278,7 +1278,7 @@
       "sustainPressure": false,
       "ability": null,
       "xpReward": 753,
-      "designNote": "Kwaiou\u00e1 Ranger: ranger role with data-driven weapon/element counterplay.",
+      "designNote": "Kwaiouá Ranger: ranger role with data-driven weapon/element counterplay.",
       "drops": [
         {
           "itemId": "part_kwaioua_ranger_common",
@@ -2125,7 +2125,7 @@
       "designNote": "An enraged ancient tree consumed by flames; its burning bark is impervious to fire.",
       "drops": [
         {
-          "itemId": "part_flamingtreant_common",
+          "itemId": "part_flamingtreant_bark",
           "chance": 0.35
         },
         {

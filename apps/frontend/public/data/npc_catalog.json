@@ -19,7 +19,11 @@
                 "condition": {
                   "type": "hungry"
                 },
-                "nextNodeId": "hungry"
+                "nextNodeId": "hungry",
+                "textLocales": {
+                  "pt-BR": "Estou com fome...",
+                  "en-US": "I'm hungry..."
+                }
               },
               {
                 "id": "fine_response",
@@ -27,9 +31,17 @@
                 "condition": {
                   "type": "not_hungry"
                 },
-                "nextNodeId": "fine"
+                "nextNodeId": "fine",
+                "textLocales": {
+                  "pt-BR": "Estou bem, padre. Vim receber uma bênção para a batalha.",
+                  "en-US": "I'm fine, prayer. Came to get blessed for battle."
+                }
               }
-            ]
+            ],
+            "npcTextLocales": {
+              "pt-BR": "Que a luz esteja conosco, amigo. Como vai, companheiro aventureiro?",
+              "en-US": "May the light be with us, friend. How are you, fellow adventurer?"
+            }
           },
           "hungry": {
             "npcText": "Eat and rest, for the love of god is forever, but you are not.",
@@ -39,18 +51,42 @@
                 "text": "Eat the bread.",
                 "effect": {
                   "type": "eat_bread"
+                },
+                "textLocales": {
+                  "pt-BR": "Comer o pão.",
+                  "en-US": "Eat the bread."
                 }
               }
-            ]
+            ],
+            "npcTextLocales": {
+              "pt-BR": "Coma e descanse, pois o amor de Deus é eterno, mas você não.",
+              "en-US": "Eat and rest, for the love of god is forever, but you are not."
+            }
           },
           "hungry_done": {
             "npcText": "Eat and rest, for the love of god is forever, but you are not.",
-            "choices": []
+            "choices": [],
+            "npcTextLocales": {
+              "pt-BR": "Coma e descanse, pois o amor de Deus é eterno, mas você não.",
+              "en-US": "Eat and rest, for the love of god is forever, but you are not."
+            }
           },
           "fine": {
             "npcText": "The Lord doesn't want blood to be spilled. But I pray you'll return in peace 🙏.",
-            "choices": []
+            "choices": [],
+            "npcTextLocales": {
+              "pt-BR": "O Senhor não quer que sangue seja derramado. Rezo para que retorne em paz 🙏.",
+              "en-US": "The Lord doesn't want blood to be spilled. But I pray you'll return in peace 🙏."
+            }
           }
+        }
+      },
+      "locales": {
+        "pt-BR": {
+          "name": "Padre Marcelus"
+        },
+        "en-US": {
+          "name": "Father Marcelus"
         }
       }
     },
@@ -113,6 +149,16 @@
             "infiniteStock": true
           }
         ]
+      },
+      "locales": {
+        "pt-BR": {
+          "name": "Ferreiro Loren",
+          "greeting": "Haha! Eu sei por que veio até aqui. Veja minhas excelentes peças. Se quiser vender algo, também compro!"
+        },
+        "en-US": {
+          "name": "Blacksmith Loren",
+          "greeting": "Haha! I know why you come here. Take a look at these fine crafts of mine. If you feel like selling stuff, I buy too!"
+        }
       }
     },
     {
@@ -120,7 +166,17 @@
       "name": "Cecilia",
       "location": "town",
       "types": [],
-      "greeting": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…"
+      "greeting": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…",
+      "locales": {
+        "pt-BR": {
+          "name": "Cecilia",
+          "greeting": "Ah, querida! Que destino a traz até mim?"
+        },
+        "en-US": {
+          "name": "Cecilia",
+          "greeting": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…"
+        }
+      }
     },
     {
       "id": "storage",
@@ -129,7 +185,17 @@
       "types": [
         "storage"
       ],
-      "monologue": "You know I have a name, right? But you'll keep calling me Storage anyway."
+      "monologue": "You know I have a name, right? But you'll keep calling me Storage anyway.",
+      "locales": {
+        "pt-BR": {
+          "name": "Armazenamento",
+          "monologue": "Você sabe que eu tenho um nome, não sabe? Mas continuará me chamando de Armazenamento."
+        },
+        "en-US": {
+          "name": "Storage",
+          "monologue": "You know I have a name, right? But you'll keep calling me Storage anyway."
+        }
+      }
     },
     {
       "id": "uncle_phillip",
@@ -138,7 +204,17 @@
       "types": [
         "cooking"
       ],
-      "greeting": "Hmmm… delicious… this might go well with tha - Oy! Young traveler! I know you have a great taste for food. You wanna use my kitchen? Fell free to, oy!"
+      "greeting": "Hmmm… delicious… this might go well with tha - Oy! Young traveler! I know you have a great taste for food. You wanna use my kitchen? Fell free to, oy!",
+      "locales": {
+        "pt-BR": {
+          "name": "Tio Phillip",
+          "greeting": "Venha para a cozinha! Vamos preparar algo delicioso."
+        },
+        "en-US": {
+          "name": "Uncle Phillip",
+          "greeting": "Hmmm… delicious… this might go well with tha - Oy! Young traveler! I know you have a great taste for food. You wanna use my kitchen? Fell free to, oy!"
+        }
+      }
     },
     {
       "id": "mailbox",
@@ -147,7 +223,236 @@
       "types": [
         "mailbox"
       ],
-      "monologue": "Letters, parcels, and Market deliveries are waiting here."
+      "monologue": "Letters, parcels, and Market deliveries are waiting here.",
+      "locales": {
+        "pt-BR": {
+          "name": "Caixa de Correio",
+          "monologue": "Cartas, encomendas e entregas do Mercado esperam aqui."
+        },
+        "en-US": {
+          "name": "Mailbox",
+          "monologue": "Letters, parcels, and Market deliveries are waiting here."
+        }
+      }
+    },
+    {
+      "id": "paje_piata",
+      "name": "Pajé Piatã",
+      "location": "town",
+      "types": [
+        "vendor",
+        "alchemy",
+        "dialogue"
+      ],
+      "greeting": "Aruandê, traveler. The forest has many gifts, and many stories still to tell.",
+      "dialogue": {
+        "entryNodeId": "greeting",
+        "nodes": {
+          "greeting": {
+            "npcText": "Aruandê, traveler. What brings you to Kwaiouá-Taba?",
+            "npcTextLocales": {
+              "pt-BR": "Aruandê, viajante. O que traz você a Kwaiouá-Taba?",
+              "en-US": "Aruandê, traveler. What brings you to Kwaiouá-Taba?"
+            },
+            "choices": [
+              {
+                "id": "alchemy",
+                "text": "I would like to brew a potion.",
+                "textLocales": {
+                  "pt-BR": "Quero preparar uma poção.",
+                  "en-US": "I would like to brew a potion."
+                },
+                "effect": {
+                  "type": "open_profession",
+                  "profession": "alchemy"
+                }
+              },
+              {
+                "id": "forest_quest",
+                "text": "I came to ask about the forest.",
+                "textLocales": {
+                  "pt-BR": "Vim perguntar sobre a floresta.",
+                  "en-US": "I came to ask about the forest."
+                },
+                "nextNodeId": "forest_lore"
+              },
+              {
+                "id": "farewell",
+                "text": "Nothing for now.",
+                "textLocales": {
+                  "pt-BR": "Nada por enquanto.",
+                  "en-US": "Nothing for now."
+                }
+              }
+            ]
+          },
+          "forest_lore": {
+            "npcText": "The Flaming Treant holds the old memories of this forest. Its tears can help restore the balance.",
+            "npcTextLocales": {
+              "pt-BR": "O Treant Flamejante guarda as memórias antigas desta floresta. Suas lágrimas podem ajudar a restaurar o equilíbrio.",
+              "en-US": "The Flaming Treant holds the old memories of this forest. Its tears can help restore the balance."
+            },
+            "choices": [
+              {
+                "id": "return",
+                "text": "I understand.",
+                "textLocales": {
+                  "pt-BR": "Entendi.",
+                  "en-US": "I understand."
+                },
+                "nextNodeId": "greeting"
+              }
+            ]
+          }
+        }
+      },
+      "vendor": {
+        "buysAnyItem": true,
+        "buyRatePercent": 40,
+        "slotCount": 10,
+        "greeting": "I trade in useful remedies and supplies. Take what you need.",
+        "sellStock": [
+          {
+            "itemId": "pot_hp_small",
+            "price": 15,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "pot_hp_medium",
+            "price": 40,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "pot_hp_large",
+            "price": 90,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "pot_sp_small",
+            "price": 15,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "pot_sp_medium",
+            "price": 40,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "pot_sp_large",
+            "price": 90,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "antidote",
+            "price": 100,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "elixir_greater",
+            "price": 1200,
+            "infiniteStock": true
+          }
+        ]
+      },
+      "locales": {
+        "pt-BR": {
+          "name": "Pajé Piatã",
+          "greeting": "Aruandê, viajante. A floresta guarda presentes e histórias."
+        },
+        "en-US": {
+          "name": "Pajé Piatã",
+          "greeting": "Aruandê, traveler. The forest has many gifts, and many stories still to tell."
+        }
+      }
+    },
+    {
+      "id": "whitesmith_spitz",
+      "name": "Whitesmith Spitz",
+      "location": "town",
+      "types": [
+        "vendor",
+        "blacksmith",
+        "refinement"
+      ],
+      "greeting": "Good steel, sound temper, precise work. What can I do for your equipment?",
+      "vendor": {
+        "buysAnyItem": true,
+        "buyRatePercent": 40,
+        "slotCount": 10,
+        "greeting": "Take a look at my equipment. I also buy loot.",
+        "sellStock": [
+          {
+            "itemId": "equip_sword_t1",
+            "price": 2000,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "equip_greatsword_t1",
+            "price": 2000,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "equip_dagger_t1",
+            "price": 2000,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "equip_bow_t1",
+            "price": 2000,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "equip_staff_t1",
+            "price": 2000,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "equip_rod_t1",
+            "price": 2000,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "equip_shield_t1",
+            "price": 2000,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "equip_body_phys_t1",
+            "priceFromItem": true,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "equip_body_magic_t1",
+            "priceFromItem": true,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "equip_rune_t1",
+            "priceFromItem": true,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "equip_head_phys_t1",
+            "priceFromItem": true,
+            "infiniteStock": true
+          },
+          {
+            "itemId": "equip_head_magic_t1",
+            "priceFromItem": true,
+            "infiniteStock": true
+          }
+        ]
+      },
+      "locales": {
+        "pt-BR": {
+          "name": "Mestre Ferreiro Spitz",
+          "greeting": "Aço bom, têmpera firme e trabalho preciso. Como posso ajudar seu equipamento?"
+        },
+        "en-US": {
+          "name": "Whitesmith Spitz",
+          "greeting": "Good steel, sound temper, precise work. What can I do for your equipment?"
+        }
+      }
     }
   ]
 }

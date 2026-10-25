@@ -61,7 +61,7 @@
 <div class="trade-modal-backdrop" *ngIf="vendor.modal() as modal" (click)="vendor.cancel()">
   <section class="trade-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
     <div class="trade-modal-title">
-      <span>{{modal.mode==='buy'?'BUY':'SELL'}}</span><strong>{{vendor.itemName(modal.itemId)}}</strong></div>
+      <span>{{modal.mode==='buy'?'BUY':'SELL'}}</span><strong>{{vendor.itemName(modal.itemId,modal.instanceData??modal.itemInstanceData)}}</strong></div>
     <div class="trade-summary"><span>UNIT PRICE <b>{{modal.unitPrice}} G</b></span><span>QUANTITY
         <b>{{modal.quantity}}</b></span><span>TOTAL <b>{{vendor.total()}} G</b></span></div>
     <div class="quantity-row" *ngIf="modal.maxQuantity>1"><button

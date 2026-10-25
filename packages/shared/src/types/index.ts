@@ -179,14 +179,14 @@ export interface XpCurveEntry {
   estDaysAtThisLevel: number;
 }
 
-export type NpcCapabilityType = 'vendor' | 'dialogue' | 'storage' | 'cooking' | 'mailbox';
+export type NpcCapabilityType = 'vendor' | 'dialogue' | 'storage' | 'cooking' | 'mailbox' | 'alchemy' | 'blacksmith' | 'refinement';
 export interface TownNpc { id: string; name: string; location: 'town'; types: NpcCapabilityType[]; greeting?: string; monologue?: string; }
 export interface VendorNpc extends TownNpc { types: ['vendor']; }
 export interface DialogueNpc extends TownNpc { types: ['dialogue']; }
 
 export type QuestStatus = 'active' | 'completed' | 'abandoned' | 'expired';
 export type QuestObjectiveType = 'kill_monster' | 'npc_action' | 'deliver_items' | 'gathering_bonus' | 'monster_drop';
-export type QuestProfession = 'gathering' | 'cooking';
+export type QuestProfession = 'gathering' | 'cooking' | 'alchemy' | 'blacksmith';
 export interface QuestItemQuantity { itemId: string; quantity: number; }
 export interface QuestObjectiveDefinition { id: string; type: QuestObjectiveType; quantity?: number; monsterIds?: string[]; mapIds?: string[]; npcId?: string; items?: QuestItemQuantity[]; itemId?: string; itemQuantity?: number; chancePercent?: number; containerItem?: string; }
 export interface QuestRewardDefinition { gold?: number; characterXp?: number; items?: QuestItemQuantity[]; professionXp?: Array<{ profession: QuestProfession; amount: number }>; }

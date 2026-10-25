@@ -399,16 +399,16 @@ export class BattleEngine {
     const matk = Math.floor(int * 2 + Number(equipment?.weaponFixedMatk ?? 0));
     const def = Math.floor(Number(equipment?.def ?? 0));
     const mdefPercent = Math.min(100, Math.max(0, Number(equipment?.mdefPercent ?? 0)));
-    const attackSpeed = 100 + Math.floor(agi * 2);
-    const castTimeReduction = Math.floor(dex * 2);
+    const attackSpeed = 100 + Math.floor(agi * 2) + Number(equipment?.attackSpeedModifier ?? 0);
+    const castTimeReduction = Math.floor(dex * 2) + Number(equipment?.castTimeReductionModifier ?? 0);
     // Canonical Precision/Evasion scale (SPEC §5.2): starting DEX/AGI 5 => 80/100.
-    const evasion = 99 + Math.floor(agi / 3);
+    const evasion = 99 + Math.floor(agi / 3) + Number(equipment?.evasionModifier ?? 0);
     const accuracyBeforeWeaponPenalty = 79 + Math.floor(dex / 3) + Number(equipment?.accuracyModifier ?? 0);
     const accuracyMultiplier = Math.max(0, Number(equipment?.accuracyMultiplier ?? 1));
     const accuracy = Math.floor(accuracyBeforeWeaponPenalty * accuracyMultiplier);
     const hpRegenPerTenTicks = 1 + Math.floor(vit / 2);
     const spRegenPerTenTicks = 1 + Math.floor(int / 2);
-    const critChance = 1 + Math.floor(luk * 0.3 * 10) / 10;
+    const critChance = 1 + Math.floor(luk * 0.3 * 10) / 10 + Number(equipment?.criticalChanceModifier ?? 0);
     return { maxHp, maxSp, atk, matk, def, mdefPercent, accuracy, evasion, critChance,
       attackSpeed, castTimeReduction, hpRegenPerTenTicks, spRegenPerTenTicks, agi, dex, luk, level };
   }

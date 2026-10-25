@@ -60,7 +60,64 @@ async function run() {
   // Full production catalogue boot validation catches dangling IDs and malformed data.
   const bootData = new DataService();
   bootData.onModuleInit();
-  assert.strictEqual(bootData.getQuests().quests.length, 1);
+  assert.strictEqual(bootData.getQuests().quests.length, 2);
+
+  // Pajé's Level 35 offer is branched: asking about the tears never silently accepts,
+  // while the explicit acceptance after the explanation starts one persistent instance.
+  const forestCharacter = {
+    id: 'char-forest', userId: 'user-forest', status: 'town', currentMapId: 'map_kwaioua_taba',
+    pendingMapTransition: null, travelIntent: null, level: 35, xp: 0, gold: 0,
+    unspentAttributePoints: 0, gatheringXp: 0, gatheringLevel: 1, cookingXp: 0, cookingLevel: 1,
+    knownItemIds: [], questOfferProgress: {},
+  };
+  const forest = harness({ character: forestCharacter });
+  const forestQuestId = 'forest_ancient_teardrop';
+  const npcInteraction = await forest.service.getNpcInteraction(forestCharacter.id, 'paje_piata');
+  assert.strictEqual(npcInteraction.kind, 'select');
+  assert(npcInteraction.actions.some(action => action.type === 'offer' && action.questId === forestQuestId));
+  const forestOffer = await forest.service.getOffer(forestCharacter.id, forestQuestId);
+  assert.strictEqual(forestOffer.nodeId, 'start');
+  assert(forestOffer.choices.some(choice => choice.id === 'ask_tears'));
+  const explanation = await forest.service.advanceOffer(forestCharacter.id, forestQuestId, 'ask_tears');
+  assert.strictEqual(explanation.nodeId, 'explanation');
+  assert.strictEqual(explanation.accepted, false);
+  assert.strictEqual(forest.instanceRows.length, 0, 'Question/explanation path must not accept automatically');
+
+  const forestInstanceResult = await forest.service.advanceOffer(forestCharacter.id, forestQuestId, 'accept_after_explanation');
+  assert.strictEqual(forestInstanceResult.accepted, true);
+  assert.strictEqual(forest.instanceRows.length, 1);
+  const forestInstance = forest.instanceRows[0];
+  assert.strictEqual(forestInstance.status, 'active');
+
+  // Simulate five independent successful deterministic 35% quest-only rolls, then
+  // turn in the exact matching instance stack and verify fixed XP/provenance/reward.
+  const createHash = require('crypto').createHash;
+  for (let ordinal = 0; ordinal < 5; ordinal++) {
+    let battleId = null;
+    for (let attempt = 0; attempt < 1000; attempt++) {
+      const candidate = 'forest-test-battle-' + ordinal + '-' + attempt;
+      const roll = createHash('sha256').update(candidate + ':' + forestInstance.id + ':collect_tears').digest().readUInt32BE(0) % 10000;
+      if (roll < 3500) { battleId = candidate; break; }
+    }
+    assert(battleId, 'Expected deterministic test seed under the 35% quest drop threshold');
+    await forest.service.recordBattleVictory(forest.manager, forestCharacter, {
+      id: battleId, monsterId: 'mon_flamingtreant', mapId: 'map_kwaioua_forest_1',
+      endAt: new Date(Date.now() + 10000 + ordinal),
+    });
+  }
+  assert.strictEqual(forestInstance.progress.collect_tears, 5);
+  const tears = forest.invRows.filter(row => row.itemId === 'part_flamingtreant_common');
+  assert.strictEqual(tears.reduce((sum, row) => sum + Number(row.quantity), 0), 5);
+  assert(tears.every(row => row.instanceData?.questInstanceId === forestInstance.id));
+  forest.data.getXpToNextLevel = () => 1000000;
+  await forest.service.turnIn(forestCharacter.id, forestInstance.id);
+  assert.strictEqual(forestInstance.status, 'completed');
+  assert.strictEqual(Number(forestCharacter.xp), 31630, 'Quest reward must grant the exact fixed Character XP');
+  assert.strictEqual(forest.invRows.some(row => row.itemId === 'part_flamingtreant_common'), false);
+  const groundedReward = forest.invRows.find(row => row.itemId === 'equip_shoes_earth_t2');
+  assert(groundedReward);
+  assert.deepStrictEqual(groundedReward.instanceData, { questReward: { questId: forestQuestId, marketTradable: false } });
+  assert.strictEqual(groundedReward.instanceData.rolledAttribute, undefined, 'Grounded Boots reward must not receive a random roll');
 
   // Cecilia's approved delivery contract and instance-specific item metadata.
   assert.strictEqual(baseQuest.repeatable, false);

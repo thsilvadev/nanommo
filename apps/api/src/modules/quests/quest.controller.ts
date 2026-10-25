@@ -14,7 +14,7 @@ export class QuestController {
   @Get('available') async available(@Request() req: any, @Query('npcId') npcId?: string) { return this.quests.getAvailable(await this.characterId(req), npcId); }
   @Get('npc/:npcId/interaction') async npcInteraction(@Request() req: any, @Param('npcId') npcId: string) { return this.quests.getNpcInteraction(await this.characterId(req), npcId); }
   @Get(':questId/offer') async offer(@Request() req: any, @Param('questId') questId: string) { return this.quests.getOffer(await this.characterId(req), questId); }
-  @Post(':questId/offer') async advanceOffer(@Request() req: any, @Param('questId') questId: string) { return this.quests.advanceOffer(await this.characterId(req), questId); }
+  @Post(':questId/offer') async advanceOffer(@Request() req: any, @Param('questId') questId: string, @Body() body?: { choiceId?: string }) { return this.quests.advanceOffer(await this.characterId(req), questId, body?.choiceId); }
   @Post(':instanceId/abandon') async abandon(@Request() req: any, @Param('instanceId') instanceId: string) { await this.quests.abandon(await this.characterId(req), instanceId); return { abandoned: true }; }
   @Post(':instanceId/turn-in') async turnIn(@Request() req: any, @Param('instanceId') instanceId: string) { return this.quests.turnIn(await this.characterId(req), instanceId); }
   @Post(':instanceId/action') async action(@Request() req: any, @Param('instanceId') instanceId: string, @Body() body: { npcId?: string; objectiveId?: string }) {

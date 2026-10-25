@@ -76,7 +76,7 @@ export class QuestService {
       if (rows.some(r => r.questId === quest.id && r.status === 'active')) continue;
       if (rows.some(r => r.questId === quest.id && r.status === 'completed') && !quest.repeatable) continue;
       if (rows.some(r => r.questId === quest.id && r.status === 'abandoned') && !quest.allowReacceptAfterAbandon) continue;
-      out.push({ id: quest.id, title: quest.title, description: quest.description, giverNpcId: quest.giverNpcId, turnInNpcId: quest.turnInNpcId, minLevel: quest.minLevel, rewards: quest.rewards });
+      out.push({ id: quest.id, title: quest.title, titleLocales: quest.titleLocales ?? null, description: quest.description, descriptionLocales: quest.descriptionLocales ?? null, giverNpcId: quest.giverNpcId, turnInNpcId: quest.turnInNpcId, minLevel: quest.minLevel, rewards: quest.rewards });
     }
     return out;
   }
@@ -90,20 +90,30 @@ export class QuestService {
     });
   }
 
-  private offerInteraction(quest: any, stepIndex: number): any {
+  private offerInteraction(quest: any, stepIndex: number, nodeId?: string): any {
+    const titleFields = { titleLocales: quest.titleLocales, descriptionLocales: quest.descriptionLocales };
+    if (quest.offerGraph?.nodes) {
+      const id = nodeId ?? quest.offerGraph.entryNodeId;
+      const node = quest.offerGraph.nodes[id];
+      if (!node) throw new BadRequestException('Quest offer dialogue state is invalid');
+      return { kind: 'offer', questId: quest.id, title: quest.title, ...titleFields, nodeId: id,
+        npcText: node.npcText, npcTextLocales: node.npcTextLocales,
+        choices: (node.choices ?? []).map((choice: any) => ({ id: choice.id, text: choice.text, textLocales: choice.textLocales })),
+        action: 'advance' };
+    }
     const step = quest.offerDialogue[stepIndex];
-    return { kind: 'offer', questId: quest.id, title: quest.title, stepIndex, totalSteps: quest.offerDialogue.length,
-      npcText: step.npcText, buttonText: step.buttonText, action: 'advance' };
+    return { kind: 'offer', questId: quest.id, title: quest.title, ...titleFields, stepIndex, totalSteps: quest.offerDialogue.length,
+      npcText: step.npcText, npcTextLocales: step.npcTextLocales, buttonText: step.buttonText, buttonTextLocales: step.buttonTextLocales, action: 'advance' };
   }
 
   private async activeInteraction(manager: EntityManager, instance: QuestInstance, quest: any, npcId: string): Promise<any> {
     const dialogue = quest.activeDialogue ?? {};
     const ready = npcId === quest.turnInNpcId && await this.objectiveReadyForNpc(manager, instance, quest);
     const action = ready ? 'turn_in' : 'close';
-    return { kind: 'active', questId: quest.id, instanceId: instance.id, title: quest.title,
-      npcText: dialogue.npcText ?? quest.description,
+    return { kind: 'active', questId: quest.id, instanceId: instance.id, title: quest.title, titleLocales: quest.titleLocales,
+      npcText: dialogue.npcText ?? quest.description, npcTextLocales: dialogue.npcTextLocales ?? quest.descriptionLocales,
       buttonText: ready ? (dialogue.handleItemsButtonText ?? dialogue.readyButtonText ?? '[Continue]') : (dialogue.waitButtonText ?? "I'll be back"),
-      action };
+      buttonTextLocales: ready ? (dialogue.handleItemsButtonTextLocales ?? dialogue.readyButtonTextLocales) : dialogue.waitButtonTextLocales, action };
   }
 
   async getNpcInteraction(characterId: string, npcId: string): Promise<any | null> {
@@ -123,13 +133,14 @@ export class QuestService {
         candidates.sort((a: any, b: any) => Number(b.ready) - Number(a.ready) || new Date(a.row.acceptedAt).getTime() - new Date(b.row.acceptedAt).getTime());
         if (candidates.length === 1 && !hasDialogue) return this.activeInteraction(manager, candidates[0].row, candidates[0].quest, npcId);
         const actions: any[] = [];
-        if (hasDialogue) actions.push({ type: 'dialogue', title: 'Talk', buttonText: 'Talk' });
+        if (hasDialogue) actions.push({ type: 'dialogue', title: 'Talk', titleLocales: { 'pt-BR': 'Conversar', 'en-US': 'Talk' }, buttonText: 'Talk', buttonTextLocales: { 'pt-BR': 'Conversar', 'en-US': 'Talk' } });
         for (const candidate of candidates) {
           const interaction = await this.activeInteraction(manager, candidate.row, candidate.quest, npcId);
-          actions.push({ type: 'active', questId: candidate.quest.id, instanceId: candidate.row.id, title: candidate.quest.title,
-            buttonText: `${interaction.action === 'turn_in' ? '[Handle items]' : 'Continue'} · ${candidate.quest.title}`, interaction });
+          actions.push({ type: 'active', questId: candidate.quest.id, instanceId: candidate.row.id, title: candidate.quest.title, titleLocales: candidate.quest.titleLocales ?? null,
+            buttonText: `${interaction.action === 'turn_in' ? '[Handle items]' : 'Continue'} · ${candidate.quest.title}`,
+            buttonTextLocales: { 'pt-BR': `${interaction.action === 'turn_in' ? '[Entregar itens]' : 'Continuar'} · ${candidate.quest.titleLocales?.['pt-BR'] ?? candidate.quest.title}`, 'en-US': `${interaction.action === 'turn_in' ? '[Handle items]' : 'Continue'} · ${candidate.quest.titleLocales?.['en-US'] ?? candidate.quest.title}` }, interaction });
         }
-        return { kind: 'select', npcId, npcText: 'What would you like to do?', actions };
+        return { kind: 'select', npcId, npcText: 'What would you like to do?', npcTextLocales: { 'pt-BR': 'O que você gostaria de fazer?', 'en-US': 'What would you like to do?' }, actions };
       }
 
       const available: any[] = [];
@@ -139,18 +150,18 @@ export class QuestService {
       if (!available.length) return null;
       if (available.length > 1 || hasDialogue) {
         const actions: any[] = [];
-        if (hasDialogue) actions.push({ type: 'dialogue', title: 'Talk', buttonText: 'Talk' });
-        actions.push(...available.map(quest => ({ type: 'offer', questId: quest.id, title: quest.title, buttonText: quest.title })));
-        return { kind: 'select', npcId, npcText: 'What can I help you with, darling?', actions };
+        if (hasDialogue) actions.push({ type: 'dialogue', title: 'Talk', titleLocales: { 'pt-BR': 'Conversar', 'en-US': 'Talk' }, buttonText: 'Talk', buttonTextLocales: { 'pt-BR': 'Conversar', 'en-US': 'Talk' } });
+        actions.push(...available.map(quest => ({ type: 'offer', questId: quest.id, title: quest.title, titleLocales: quest.titleLocales ?? null, buttonText: quest.title, buttonTextLocales: quest.titleLocales ?? null })));
+        return { kind: 'select', npcId, npcText: 'What can I help you with, darling?', npcTextLocales: { 'pt-BR': 'Como posso ajudar?', 'en-US': 'What can I help you with, darling?' }, actions };
       }
 
       const quest = available[0];
       const sessions = { ...(character.questOfferProgress ?? {}) };
-      if (!sessions[quest.id]) sessions[quest.id] = { stepIndex: 0, startedAt: new Date().toISOString() };
+      if (!sessions[quest.id]) sessions[quest.id] = { stepIndex: 0, nodeId: quest.offerGraph?.entryNodeId, startedAt: new Date().toISOString() };
       const index = Math.max(0, Math.min(quest.offerDialogue.length - 1, Number(sessions[quest.id].stepIndex ?? 0)));
       character.questOfferProgress = sessions;
       await manager.getRepository(Character).save(character);
-      return this.offerInteraction(quest, index);
+      return this.offerInteraction(quest, index, sessions[quest.id].nodeId);
     });
   }
 
@@ -170,14 +181,14 @@ export class QuestService {
           required = 1;
         }
         const requirements = objective.type === 'deliver_items' ? objective.items.map((req: any) => ({ ...req, owned: count(req.itemId) })) : undefined;
-        return { id: objective.id, type: objective.type, npcId: objective.npcId, progress: Math.min(required, progress), required, completed: objective.type === 'deliver_items' ? objective.items.every((req: any) => count(req.itemId) >= Number(req.quantity)) : progress >= required, items: requirements };
+        return { id: objective.id, type: objective.type, npcId: objective.npcId, description: objective.description, descriptionLocales: objective.descriptionLocales ?? null, progress: Math.min(required, progress), required, completed: objective.type === 'deliver_items' ? objective.items.every((req: any) => count(req.itemId) >= Number(req.quantity)) : progress >= required, items: requirements };
       }) : [];
       const map: any = this.data.getMapById(character.currentMapId);
       const objectivesReady = objectives.length === quest.objectives.length && objectives.every((objective: any) => objective.completed);
       const canTurnIn = row.status === 'active' && objectivesReady && !!quest.turnInNpcId && map?.type === 'town' && (map.npcIds ?? []).includes(quest.turnInNpcId) && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition;
-      return { id: row.id, questId: quest.id, title: quest.title, description: quest.description, giverNpcId: quest.giverNpcId, giverNpcName: this.npcName(quest.giverNpcId), turnInNpcId: quest.turnInNpcId, turnInNpcName: this.npcName(quest.turnInNpcId), status: row.status, acceptedAt: row.acceptedAt, expiresAt: row.expiresAt ?? null, completedAt: row.completedAt ?? null, objectives, rewards: quest.rewards, canTurnIn };
+      return { id: row.id, questId: quest.id, title: quest.title, titleLocales: quest.titleLocales ?? null, description: quest.description, descriptionLocales: quest.descriptionLocales ?? null, giverNpcId: quest.giverNpcId, giverNpcName: this.npcName(quest.giverNpcId), giverNpcNameLocales: (this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.giverNpcId)?.locales ? Object.fromEntries(Object.entries((this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.giverNpcId).locales).map(([locale,values]:any)=>[locale,values.name])) : null, turnInNpcId: quest.turnInNpcId, turnInNpcName: this.npcName(quest.turnInNpcId), turnInNpcNameLocales: (this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.turnInNpcId)?.locales ? Object.fromEntries(Object.entries((this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.turnInNpcId).locales).map(([locale,values]:any)=>[locale,values.name])) : null, status: row.status, acceptedAt: row.acceptedAt, expiresAt: row.expiresAt ?? null, completedAt: row.completedAt ?? null, objectives, rewards: quest.rewards, canTurnIn };
     };
-    return { active: rows.filter(r => r.status === 'active').map(questView), completed: rows.filter(r => r.status === 'completed').map(r => ({ id: r.id, questId: r.questId, title: this.definition(r.questId).title, giverNpcName: this.npcName(this.definition(r.questId).giverNpcId), status: 'completed' })), available: await this.getAvailable(characterId) };
+    return { active: rows.filter(r => r.status === 'active').map(questView), completed: rows.filter(r => r.status === 'completed').map(r => ({ id: r.id, questId: r.questId, title: this.definition(r.questId).title, titleLocales: this.definition(r.questId).titleLocales ?? null, giverNpcName: this.npcName(this.definition(r.questId).giverNpcId), giverNpcNameLocales: (this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===this.definition(r.questId).giverNpcId)?.locales ? Object.fromEntries(Object.entries((this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===this.definition(r.questId).giverNpcId).locales).map(([locale,values]:any)=>[locale,values.name])) : null, status: 'completed' })), available: await this.getAvailable(characterId) };
   }
   private npcName(id: string): string { const row = (this.data.getNpcCatalog()?.npcs ?? []).find((n: any) => n.id === id); const vendor = this.data.getNpcVendor(); return row?.name ?? (vendor?.id === id ? vendor.name : id); }
   private async withExpiry(characterId: string): Promise<void> { await this.instances.manager.transaction(async manager => this.expire(manager, characterId)); }
@@ -190,14 +201,14 @@ export class QuestService {
       await this.expire(manager, characterId);
       if (!await this.eligible(character, quest, manager)) throw new BadRequestException('Quest is not currently available');
       const sessions = { ...(character.questOfferProgress ?? {}) };
-      if (!sessions[questId]) sessions[questId] = { stepIndex: 0, startedAt: new Date().toISOString() };
+      if (!sessions[questId]) sessions[questId] = { stepIndex: 0, nodeId: quest.offerGraph?.entryNodeId, startedAt: new Date().toISOString() };
       character.questOfferProgress = sessions; await manager.getRepository(Character).save(character);
       const stepIndex = Math.max(0, Math.min(quest.offerDialogue.length - 1, Number(sessions[questId].stepIndex ?? 0)));
-      return this.offerInteraction(quest, stepIndex);
+      return this.offerInteraction(quest, stepIndex, sessions[questId].nodeId);
     });
   }
 
-  async advanceOffer(characterId: string, questId: string): Promise<any> {
+  async advanceOffer(characterId: string, questId: string, choiceId?: string): Promise<any> {
     await this.withExpiry(characterId);
     const quest = this.definition(questId);
     return this.characters.manager.transaction(async manager => {
@@ -206,6 +217,32 @@ export class QuestService {
       if (!await this.eligible(character, quest, manager)) throw new BadRequestException('Quest is not currently available');
       const sessions = { ...(character.questOfferProgress ?? {}) };
       const session = sessions[questId]; if (!session) throw new BadRequestException('Start the quest dialogue first');
+      if (quest.offerGraph?.nodes) {
+        const nodeId = String(session.nodeId ?? quest.offerGraph.entryNodeId);
+        const node = quest.offerGraph.nodes[nodeId];
+        if (!node) throw new BadRequestException('Quest offer dialogue state is invalid');
+        if (!choiceId) throw new BadRequestException('A dialogue choice is required');
+        const choice = (node.choices ?? []).find((row: any) => row.id === choiceId);
+        if (!choice) throw new BadRequestException('Invalid quest dialogue choice');
+        if (choice.close === true) {
+          delete sessions[questId]; character.questOfferProgress = sessions; await manager.getRepository(Character).save(character);
+          return { accepted: false, closed: true, interaction: null };
+        }
+        if (choice.acceptsQuest === true) {
+          const active = await manager.getRepository(QuestInstance).find({ where: { characterId, status: 'active' }, lock: { mode: 'pessimistic_write' } });
+          if (active.length >= this.activeQuestLimit) throw new BadRequestException('You can have at most ' + this.activeQuestLimit + ' active quests');
+          const acceptedAt = new Date();
+          const instance = manager.getRepository(QuestInstance).create({ characterId, questId, status: 'active', progress: {}, acceptedAt, expiresAt: quest.timeLimitSeconds ? new Date(acceptedAt.getTime() + Number(quest.timeLimitSeconds) * 1000) : null, completedAt: null });
+          const saved = await manager.getRepository(QuestInstance).save(instance);
+          delete sessions[questId]; character.questOfferProgress = sessions; await manager.getRepository(Character).save(character);
+          return { accepted: true, instanceId: saved.id, questId, title: quest.title, titleLocales: quest.titleLocales,
+            interaction: await this.activeInteraction(manager, saved, quest, quest.giverNpcId) };
+        }
+        if (!choice.nextNodeId || !quest.offerGraph.nodes[choice.nextNodeId]) throw new BadRequestException('Quest dialogue branch has no valid destination');
+        sessions[questId] = { ...session, nodeId: choice.nextNodeId };
+        character.questOfferProgress = sessions; await manager.getRepository(Character).save(character);
+        return { accepted: false, ...this.offerInteraction(quest, 0, choice.nextNodeId) };
+      }
       const index = Math.max(0, Math.floor(Number(session.stepIndex ?? 0)));
       const current = quest.offerDialogue[index]; if (!current) throw new BadRequestException('Quest dialogue state is invalid');
       if (current.acceptsQuest === true) {
@@ -256,7 +293,12 @@ export class QuestService {
     });
   }
 
-  private deliveryRequirements(quest: any): any[] { return quest.objectives.filter((x: any) => x.type === 'deliver_items').flatMap((x: any) => x.items ?? []); }
+  private deliveryRequirements(quest: any): any[] {
+    const deliveries = quest.objectives.filter((x: any) => x.type === 'deliver_items').flatMap((x: any) => x.items ?? []);
+    const questDrops = quest.objectives.filter((x: any) => x.type === 'monster_drop' && x.itemId)
+      .map((x: any) => ({ itemId: x.itemId, quantity: Math.max(1, Number(x.quantity ?? 1)) * Math.max(1, Number(x.itemQuantity ?? 1)) }));
+    return [...deliveries, ...questDrops];
+  }
   private async consumeRequirements(manager: EntityManager, characterId: string, instanceId: string, requirements: any[]): Promise<void> {
     const repo = manager.getRepository(InventoryItem);
     for (const req of requirements) {
@@ -274,7 +316,7 @@ export class QuestService {
       const def = this.data.getItemById(reward.itemId); if (!def) throw new BadRequestException(`Unknown reward item ${reward.itemId}`);
       if (def.type === 'equipment') {
         if (Number(reward.quantity) !== 1) throw new BadRequestException('Equipment rewards must be granted one instance at a time');
-        const random = def.randomRollOnDrop?.enabled ? createHash('sha256').update(`${instanceId}:${reward.itemId}:reward`).digest() : null;
+        const random = reward.disableRandomRoll !== true && def.randomRollOnDrop?.enabled ? createHash('sha256').update(`${instanceId}:${reward.itemId}:reward`).digest() : null;
         let instanceData: any = { questReward: { questId: quest.id, marketTradable: false } };
         if (random) { const pool: string[] = def.randomRollOnDrop.attributesPool ?? []; if (pool.length) { instanceData.rolledAttribute = pool[random.readUInt32BE(0) % pool.length]; instanceData.rolledValue = Number(def.randomRollOnDrop.min ?? 1) + random.readUInt32BE(4) % (Number(def.randomRollOnDrop.max ?? 1) - Number(def.randomRollOnDrop.min ?? 1) + 1); } }
         out.push({ itemId: reward.itemId, quantity: 1, instanceData });

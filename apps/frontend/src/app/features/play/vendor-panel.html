@@ -2,16 +2,16 @@
   <div class="npc-select"><label for="town-npc-select">Talk to:</label><select id="town-npc-select"
       aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)">
       <option value="">Choose NPC to interact</option>
-      <option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{npc.name}}</option>
+      <option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{vendor.localized(npc, 'name', npc.name)}}</option>
     </select></div>
   <div class="vendor-error" *ngIf="vendor.error() && !vendor.selectedNpc()">{{vendor.error()}}</div>
   <ng-container *ngIf="vendor.selectedNpc() as npc">
     <div class="npc-profile"><img class="npc-portrait" [src]="npcPortrait(npc.id)"
-        [alt]="npc.name" width="167" height="199"></div>
-    <div class="vendor-title"><strong>{{npc.name}}</strong><span>{{npc.types.join(' / ') | uppercase}}</span></div>
+        [alt]="vendor.localized(npc, 'name', npc.name)" width="167" height="199"></div>
+    <div class="vendor-title"><strong>{{vendor.localized(npc, 'name', npc.name)}}</strong><span>{{npc.types.join(' / ') | uppercase}}</span></div>
 
     <ng-container *ngIf="npc.types.includes('storage')">
-      <p class="vendor-greeting">{{npc.monologue}}</p>
+      <p class="vendor-greeting">{{vendor.localized(npc, 'monologue', npc.monologue)}}</p>
       <div id="storage-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
         cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid storage-grid"
         [class.drop-target-active]="shouldHighlightDropTarget()">
@@ -19,14 +19,14 @@
           <div *ngIf="warehouseAt(slot) as item" cdkDrag [cdkDragData]="warehouseDragData(item)"
             (cdkDragStarted)="onVendorDragStart(item)" (cdkDragEnded)="onVendorDragEnd()"
             (dblclick)="doubleClickWarehouse(item)" class="vendor-item">
-            <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)"
+            <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId,item.instanceData)"
               class="vendor-icon"><b *ngIf="item.quantity>1">{{item.quantity}}</b>
-            <div class="item-tooltip"><strong>{{vendor.itemName(item.itemId)}}</strong><span
+            <div class="item-tooltip"><strong>{{vendor.itemName(item.itemId,item.instanceData)}}</strong><span
                 *ngFor="let line of catalog.itemTooltipLines(item.itemId,item.instanceData)"
                 [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
             </div>
             <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)"
-                [alt]="vendor.itemName(item.itemId)"></ng-template><ng-template cdkDragPlaceholder><span
+                [alt]="vendor.itemName(item.itemId,item.instanceData)"></ng-template><ng-template cdkDragPlaceholder><span
                 class="vendor-placeholder"></span></ng-template>
           </div>
         </div>
@@ -35,7 +35,7 @@
     </ng-container>
 
     <ng-container *ngIf="npc.types.includes('vendor')">
-      <p class="vendor-greeting">{{npc.greeting || 'Hello, adventurer!'}}</p>
+      <p class="vendor-greeting">{{vendor.localized(npc, 'greeting', npc.greeting || 'Hello, adventurer!')}}</p>
       <div id="vendor-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
         cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid"
         [class.drop-target-active]="shouldHighlightDropTarget()">
@@ -85,9 +85,9 @@
             [class.drop-hover]="mailDropHovered()" aria-label="Drop item to attach to mail">
             <ng-container *ngIf="mailAttachment() as attached">
               <div class="mailbox-item-icon">
-                <img [src]="vendor.catalog.itemIcon(attached.itemId)" [alt]="vendor.itemName(attached.itemId)">
+                <img [src]="vendor.catalog.itemIcon(attached.itemId)" [alt]="vendor.itemName(attached.itemId,attached.instanceData)">
                 <b *ngIf="attached.quantity>1">{{attached.quantity}}</b>
-                <div class="item-tooltip"><strong>{{vendor.itemName(attached.itemId)}}</strong><span
+                <div class="item-tooltip"><strong>{{vendor.itemName(attached.itemId,attached.instanceData)}}</strong><span
                     *ngFor="let line of catalog.itemTooltipLines(attached.itemId,attached.instanceData)"
                     [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
                 </div>
@@ -110,9 +110,9 @@
             '+mail.recipientName}}</span>
           <strong class="mailbox-message-subject">{{mail.subject}}</strong>
           <span class="mailbox-message-item" *ngIf="mail.itemId"><span class="mailbox-item-icon">
-              <img [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId)">
+              <img [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId,mail.itemInstanceData)">
               <b *ngIf="mail.quantity>1">{{mail.quantity}}</b>
-              <span class="item-tooltip"><strong>{{vendor.itemName(mail.itemId)}}</strong><span
+              <span class="item-tooltip"><strong>{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><span
                   *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)"
                   [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' :
                   ''}}{{line.value}}</span></span>
@@ -136,12 +136,12 @@
           <div class="mailbox-modal-body">{{mail.body}}</div>
           <div class="mailbox-modal-attachments" *ngIf="mail.itemId||mail.attachedGold">
             <div class="mailbox-modal-attachment" *ngIf="mail.itemId"><span class="mailbox-item-icon"><img
-                  [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId)"><b
+                  [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId,mail.itemInstanceData)"><b
                   *ngIf="mail.quantity>1">{{mail.quantity}}</b><span
-                  class="item-tooltip"><strong>{{vendor.itemName(mail.itemId)}}</strong><span
+                  class="item-tooltip"><strong>{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><span
                     *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)"
                     [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' :
-                    ''}}{{line.value}}</span></span></span><span><strong>{{vendor.itemName(mail.itemId)}}</strong><small>Quantity:
+                    ''}}{{line.value}}</span></span></span><span><strong>{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><small>Quantity:
                   {{mail.quantity}}</small></span></div>
             <div class="mailbox-modal-attachment" *ngIf="mail.attachedGold"><img src="/assets/ui/coin.svg" alt="Gold"
                 width="28" height="28"><span><strong>{{mail.attachedGold | number}} gold</strong><small>Gold
@@ -180,7 +180,7 @@
           <div class="mailbox-confirm-summary">
             <span>Recipient</span><strong>{{vendor.mailboxRecipient()}}</strong><span>Subject</span><strong>{{vendor.mailboxSubject()}}</strong><span>Message</span><span>{{vendor.mailboxBody()}}</span><ng-container
               *ngIf="mailAttachment() as attached"><span>Item
-                attachment</span><strong>{{vendor.itemName(attached.itemId)}} ×
+                attachment</span><strong>{{vendor.itemName(attached.itemId,attached.instanceData)}} ×
                 {{attached.quantity}}</strong></ng-container><ng-container *ngIf="mailboxGoldAmount()>0"><span>Gold
                 attachment</span><strong>{{mailboxGoldAmount() | number}} gold</strong></ng-container></div>
           <p class="mailbox-modal-meta">The attached gold and complete item stack will be transferred when the message
@@ -193,9 +193,20 @@
       </div>
     </ng-container>
 
+    <ng-container *ngIf="npc.types.includes('alchemy')">
+      <p class="vendor-greeting">{{vendor.localized(npc, 'greeting', npc.greeting)}}</p>
+      <button type="button" class="cooking-open-button" (click)="vendor.openProfession('alchemy')">{{vendor.t('Brew a potion')}}</button>
+    </ng-container>
+    <ng-container *ngIf="npc.types.includes('blacksmith')">
+      <p class="vendor-greeting">{{vendor.localized(npc, 'greeting', npc.greeting)}}</p>
+      <button type="button" class="cooking-open-button" (click)="vendor.openProfession('blacksmith')">{{vendor.t('Craft equipment')}}</button>
+    </ng-container>
+    <ng-container *ngIf="npc.types.includes('refinement')">
+      <button type="button" class="cooking-open-button refinement-open-button" (click)="vendor.openRefinement()">{{vendor.t('Refine equipment')}}</button>
+    </ng-container>
     <ng-container *ngIf="npc.types.includes('cooking')">
-      <p class="vendor-greeting">{{npc.greeting}}</p>
-      <button type="button" class="cooking-open-button" (click)="vendor.openCooking()">I'd like to cook</button>
+      <p class="vendor-greeting">{{vendor.localized(npc, 'greeting', npc.greeting)}}</p>
+      <button type="button" class="cooking-open-button" (click)="vendor.openCooking()">{{vendor.t("I'd like to cook")}}</button>
     </ng-container>
 
     <div class="cooking-overlay" *ngIf="vendor.cookingModal() && npc.id==='uncle_phillip'"
@@ -204,7 +215,7 @@
         (click)="$event.stopPropagation()">
         <header class="cooking-modal-header">
           <div><small>UNCLE PHILLIP'S KITCHEN</small>
-            <h2>Cooking</h2><span>Level {{vendor.cookingState()?.progress?.level ?? 1}} ·
+            <h2>{{vendor.t('Cooking')}}</h2><span>Level {{vendor.cookingState()?.progress?.level ?? 1}} ·
               {{vendor.cookingState()?.progress?.xpIntoLevel ?? 0}} / {{vendor.cookingState()?.progress?.xpToNextLevel
               ?? 100}} XP</span>
           </div><button type="button" aria-label="Close Cooking" (click)="vendor.closeCooking()">×</button>
@@ -222,50 +233,144 @@
             <div class="cooking-recipe-info"><strong>{{recipe.name}}</strong><span class="cooking-required">Cooking Lv.
                 {{recipe.requiredLevel}} · {{recipe.xpReward}} XP</span><span class="cooking-ingredients"><ng-container
                   *ngFor="let ingredient of recipe.ingredients;let last=last">{{ingredient.quantity}}
-                  {{ingredient.item.name}} ({{ingredient.available}} available){{last?'':' ·
+                  {{vendor.itemName(ingredient.itemId)}} ({{ingredient.available}} {{vendor.t('Available')}}){{last?'':' ·
                   '}}</ng-container></span><span *ngIf="!recipe.canReserveOutput" class="cooking-warning">Not enough
                 inventory space</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients"
-                class="cooking-warning">Missing ingredients</span><span *ngIf="!recipe.unlocked"
+                class="cooking-warning">{{vendor.t('Missing ingredients')}}</span><span *ngIf="!recipe.unlocked"
                 class="cooking-locked-label">Unlock at Cooking level {{recipe.requiredLevel}}</span></div><button
               type="button" class="cooking-button"
               [disabled]="!recipe.available || vendor.busy() || !!vendor.cookingState()?.session"
-              (click)="vendor.startCooking(recipe.id)">COOK</button>
+              (click)="vendor.startCooking(recipe.id)">{{vendor.t('COOK')}}</button>
           </article>
         </div>
       </section>
     </div>
 
+    <div class="cooking-overlay profession-overlay" *ngIf="vendor.professionModal()" (click)="vendor.closeProfession()">
+      <section class="cooking-modal profession-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <header class="cooking-modal-header">
+          <div><small>{{vendor.t(vendor.professionType()==='alchemy'?'Alchemy':'Blacksmith')}}</small>
+            <h2>{{vendor.t(vendor.professionType()==='alchemy'?'Alchemy':'Blacksmith')}}</h2>
+            <span>{{vendor.t('Level')}} {{vendor.professionState()?.progress?.level ?? 1}} ·
+              {{vendor.professionState()?.progress?.xpIntoLevel ?? 0}} / {{vendor.professionState()?.progress?.xpToNextLevel ?? 100}} XP</span>
+          </div><button type="button" [attr.aria-label]="vendor.t('Close')" (click)="vendor.closeProfession()">×</button>
+        </header>
+        <p class="cooking-warning" *ngIf="vendor.professionState()?.otherSessionActive">{{vendor.t('Another crafting session is already active. Return to the NPC who started it to cancel it.')}}</p>
+        <div class="cooking-session" *ngIf="vendor.professionState()?.session as session">
+          <div class="cooking-session-row"><strong>{{session.recipeId}}</strong><span>{{vendor.professionRemaining()}}s</span></div>
+          <div class="cooking-progress"><i [style.width.%]="vendor.professionPercent()"></i></div>
+          <button type="button" class="cooking-cancel" (click)="vendor.cancelProfession()" [disabled]="vendor.busy()">{{vendor.t('Cancel')}}</button>
+        </div>
+        <div class="cooking-recipes">
+          <article *ngFor="let recipe of vendor.professionState()?.recipes" class="cooking-recipe"
+            [class.locked]="!recipe.unlocked" [class.unavailable]="!recipe.available">
+            <img [src]="vendor.catalog.itemIcon(recipe.outputItemId)" [alt]="vendor.itemName(recipe.outputItemId)" class="cooking-food-icon">
+            <div class="cooking-recipe-info"><strong>{{vendor.itemName(recipe.outputItemId)}}</strong>
+              <span class="cooking-required">{{vendor.t('Level')}} {{recipe.requiredLevel}} · {{recipe.xpReward}} XP</span>
+              <span class="cooking-ingredients"><ng-container *ngFor="let ingredient of recipe.ingredients;let last=last">
+                {{ingredient.quantity}} {{vendor.itemName(ingredient.itemId)}} ({{ingredient.available}} {{vendor.t('Available')}}){{last?'':' · '}}
+              </ng-container></span>
+              <span *ngIf="recipe.unlocked && !recipe.hasIngredients" class="cooking-warning">{{vendor.t('Missing ingredients')}}</span>
+              <span *ngIf="!recipe.canReserveOutput" class="cooking-warning">{{vendor.t('Not enough inventory space')}}</span>
+            </div>
+            <button type="button" class="cooking-button" [disabled]="!recipe.available || vendor.busy() || !!vendor.professionState()?.session"
+              (click)="vendor.startProfession(recipe.id)">{{vendor.t('Craft')}}</button>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <div class="cooking-overlay refinement-overlay" *ngIf="vendor.refinementModal()" (click)="vendor.closeRefinement()">
+      <section class="cooking-modal refinement-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <header class="cooking-modal-header">
+          <div><small>WHITESMITH SPITZ</small><h2>{{vendor.t('Refinement')}}</h2></div>
+          <button type="button" [attr.aria-label]="vendor.t('Close')" (click)="vendor.closeRefinement()">×</button>
+        </header>
+        <label class="refinement-item-select">{{vendor.t('Select equipment')}}
+          <select [value]="vendor.refinementSelectedId()" (change)="vendor.selectRefinement($any($event.target).value)">
+            <option value="">{{vendor.t('Select equipment')}}</option>
+            <option *ngFor="let item of vendor.refinableInventoryRows()" [value]="item.id">{{vendor.itemName(item.itemId,item.instanceData)}}</option>
+          </select>
+        </label>
+        <ng-container *ngIf="vendor.refinementPreview() as preview">
+          <div class="refinement-summary"><strong>{{vendor.itemName(preview.itemId,{refinementLevel:preview.refinementLevel})}}</strong>
+            <span>{{vendor.t('Current refinement')}}: +{{preview.refinementLevel}}</span>
+            <span>{{vendor.t('Next refinement')}}: +{{preview.nextRefinementLevel}}</span>
+            <span>{{vendor.t('Chance')}}: {{preview.chancePercent}}%</span>
+            <span>{{vendor.t('Failure effect')}}: {{vendor.t(preview.failureEffect)}}</span>
+          </div>
+          <label class="refinement-shard-toggle">
+            <input type="checkbox" [checked]="vendor.refinementUseDivineShard()" (change)="vendor.setRefinementShard($any($event.target).checked)"
+              [disabled]="preview.refinementLevel<6 || preview.refinementLevel>11">
+            {{vendor.t('Use Divine Shard')}}
+          </label>
+          <p class="cooking-warning" *ngIf="!preview.hasBlissStone">{{vendor.t('Not enough Bliss Stones')}}</p>
+          <p class="cooking-warning" *ngIf="vendor.refinementUseDivineShard() && !preview.hasDivineShard">{{vendor.t('Not enough Divine Shards')}}</p>
+          <div class="refinement-stats" *ngIf="preview.directStats?.length">
+            <strong>{{vendor.t('Current stats')}}</strong>
+            <span *ngFor="let stat of preview.directStats">{{vendor.t(stat.stat)}}: +{{stat.current}} → <b class="refinement-gain">+{{stat.current+stat.increase}}</b></span>
+          </div>
+          <div class="refinement-stats" *ngIf="preview.rolledBonus">
+            <strong>{{vendor.t('Stat gain')}}</strong><span>{{vendor.t(preview.rolledBonus.stat)}}: +{{preview.currentRolledValue}} → <b class="refinement-gain">+{{preview.currentRolledValue+preview.rolledBonus.increase}}</b></span>
+          </div>
+          <button type="button" class="cooking-button refinement-attempt" [disabled]="vendor.refinementBusy() || !preview.canAttempt || (vendor.refinementUseDivineShard()&&!preview.hasDivineShard)"
+            (click)="vendor.requestRefinement()">{{vendor.t('Refine')}} +{{preview.nextRefinementLevel}}</button>
+          <p class="refinement-result" *ngIf="vendor.refinementResult() as result">{{vendor.t(result)}}</p>
+          <div class="refinement-confirm-backdrop" *ngIf="vendor.refinementConfirm()" (click)="vendor.cancelRefinementConfirmation()">
+            <section class="refinement-confirm-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+              <h3>{{vendor.t('Confirm refinement attempt?')}}</h3>
+              <p>{{vendor.t('Chance')}}: {{preview.chancePercent}}%</p>
+              <p>{{vendor.t('Failure effect')}}: {{vendor.t(preview.failureEffect)}}</p>
+              <p *ngIf="vendor.refinementUseDivineShard() && preview.refinementLevel<=8">{{vendor.t('The equipment and current refinement level will be preserved if this attempt fails.')}}</p>
+              <p *ngIf="vendor.refinementUseDivineShard() && preview.refinementLevel>=9">{{vendor.t('The equipment will survive failure but lose one refinement level.')}}</p>
+              <footer><button type="button" (click)="vendor.cancelRefinementConfirmation()">{{vendor.t('Cancel')}}</button>
+                <button type="button" class="primary" [disabled]="vendor.refinementBusy()" (click)="vendor.confirmRefinement()">{{vendor.t('Confirm')}}</button></footer>
+            </section>
+          </div>
+        </ng-container>
+        <p *ngIf="!vendor.refinementPreview() && !vendor.refinableInventoryRows().length">{{vendor.t('Select equipment')}}</p>
+        <p class="vendor-error" *ngIf="vendor.error()">{{vendor.error()}}</p>
+      </section>
+    </div>
+
     <ng-container *ngIf="vendor.dialogue() as dialogue">
     <div class="quest-dialogue" *ngIf="vendor.questInteractionResolved() && !vendor.questInteraction()">
-      <small class="quest-dialogue-label">DIALOGUE</small>
+      <small class="quest-dialogue-label">{{vendor.t('Talk')}}</small>
       <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
         (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
         [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
       <div class="quest-choices">
         <button *ngFor="let choice of dialogue.choices" type="button" [disabled]="vendor.busy()||interactionTyping()"
-          (click)="vendor.chooseDialogue(choice.id)">{{choice.text}}</button>
+          (click)="vendor.chooseDialogue(choice.id)">{{vendor.localized(choice,'text',choice.text)}}</button>
       </div>
     </div>
     </ng-container>
     <section class="quest-dialogue" *ngIf="vendor.questInteractionResolved() && npc.types.length===0 && npc.greeting && !vendor.dialogue() && !vendor.questInteraction()">
-      <small class="quest-dialogue-label">DIALOGUE</small>
+      <small class="quest-dialogue-label">{{vendor.t('Talk')}}</small>
       <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
         (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
         [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
     </section>
 
     <section class="quest-dialogue quest-interaction" *ngIf="vendor.questInteraction() as interaction">
-      <small class="quest-dialogue-label">{{interaction.kind==='offer'?'QUEST · OFFER':interaction.kind==='active'?(interaction.title || 'QUEST')+' · IN PROGRESS':interaction.kind==='completed'?'QUEST · COMPLETE':'QUEST ACTION'}}</small>
+      <small class="quest-dialogue-label">{{interaction.kind==='offer'?vendor.t('Quest · Offer'):interaction.kind==='active'?vendor.localizedInteraction(interaction,'title')+' · '+vendor.t('Quest · In Progress'):interaction.kind==='completed'?vendor.t('Quest · Complete'):vendor.t('Talk')}}</small>
       <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
         (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
         [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
-      <div class="quest-choices quest-action-choices" *ngIf="interaction.kind==='select'; else singleQuestAction">
+      <div class="quest-choices quest-action-choices" *ngIf="interaction.kind==='select'; else offerBranchOrSingle">
         <button *ngFor="let action of interaction.actions" type="button" class="quest-action-button" [disabled]="vendor.questBusy()||interactionTyping()"
-          (click)="vendor.chooseQuestInteraction(action)">{{action.buttonText}}</button>
+          (click)="vendor.chooseQuestInteraction(action)">{{vendor.localized(action,'buttonText',action.buttonText)}}</button>
       </div>
+      <ng-template #offerBranchOrSingle>
+        <div class="quest-choices quest-action-choices" *ngIf="interaction.kind==='offer' && interaction.choices?.length; else singleQuestAction">
+          <button *ngFor="let choice of interaction.choices" type="button" class="quest-action-button"
+            [disabled]="vendor.questBusy()||interactionTyping()"
+            (click)="vendor.chooseQuestInteraction({id:choice.id})">{{vendor.localized(choice,'text',choice.text)}}</button>
+        </div>
+      </ng-template>
       <ng-template #singleQuestAction>
         <div class="quest-choices"><button type="button" class="quest-action-button" [disabled]="vendor.questBusy()||interactionTyping()"
-          (click)="vendor.chooseQuestInteraction()">{{interaction.buttonText}}</button></div>
+          (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}}</button></div>
       </ng-template>
     </section>
 

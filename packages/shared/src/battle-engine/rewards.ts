@@ -99,6 +99,15 @@ export function resolveEquipmentPool(
 export function rollEquipmentInstance(item: any, rng: Mulberry32): Record<string, unknown> | undefined {
   const roll = item?.randomRollOnDrop;
   if (!roll?.enabled) return undefined;
+  const statsPool: string[] = Array.isArray(roll.statsPool) ? roll.statsPool : [];
+  if (statsPool.length > 0) {
+    const stat = rng.pick(statsPool);
+    const range = roll.rolls?.[stat] ?? { min: roll.min ?? 1, max: roll.max ?? 1 };
+    return {
+      rolledStat: stat,
+      rolledStatValue: rng.nextIntInclusive(range.min ?? 1, range.max ?? 1),
+    };
+  }
   const pool: string[] = Array.isArray(roll.attributesPool) ? roll.attributesPool : [];
   if (pool.length === 0) return undefined;
   return {
@@ -170,6 +179,29 @@ export function resolveDrops(
 }
 
 /**
+ * Independent global item rolls. Percent rates are converted to probability only
+ * here, and each item uses its own stream so adding a global item never shifts
+ * any existing monster-drop result.
+ */
+export function resolveGlobalItemDrops(monster: any, definitions: any[], killIndex: number): ResolvedDrop[] {
+  const level = Math.max(1, Math.floor(Number(monster?.level ?? 1)));
+  const monsterId = String(monster?.id ?? 'unknown_monster');
+  const out: ResolvedDrop[] = [];
+  for (const rule of definitions ?? []) {
+    const itemId = String(rule?.itemId ?? '');
+    if (!itemId) continue;
+    const base = Math.max(0, Number(rule.baseChancePercent ?? 0));
+    const perLevel = Math.max(0, Number(rule.perLevelIncreasePercent ?? 0));
+    const baseLevel = Math.max(1, Math.floor(Number(rule.baseMonsterLevel ?? 1)));
+    const cap = Math.max(base, Number(rule.maxChancePercent ?? base));
+    const chancePercent = Math.min(cap, base + Math.max(0, level - baseLevel) * perLevel);
+    const rng = rngForIndex(`${monsterId}:${killIndex}:${itemId}:global-item-drop`, 0);
+    if (rng.chance(chancePercent / 100)) out.push({ itemId, quantity: 1 });
+  }
+  return out;
+}
+
+/**
  * Full reward bundle for a resolved battle.
  */
 export function resolveRewards(params: {
@@ -180,14 +212,18 @@ export function resolveRewards(params: {
   killIndex: number;
   seed: string;
   characterLevel?: number;
+  globalItemDrops?: any[];
 }): BattleRewards {
-  const { monster, mapId, outcome, items, killIndex, seed, characterLevel } = params;
+  const { monster, mapId, outcome, items, killIndex, seed, characterLevel, globalItemDrops } = params;
   if (outcome !== 'win') {
     return { xpGain: 0, goldGain: 0, drops: [] };
   }
   return {
     xpGain: resolveXpGain(monster, outcome, characterLevel ?? Number(monster?.level ?? 1)),
     goldGain: 0,
-    drops: resolveDrops(monster, mapId, items, killIndex),
+    drops: [
+      ...resolveDrops(monster, mapId, items, killIndex),
+      ...resolveGlobalItemDrops(monster, globalItemDrops ?? [], killIndex),
+    ],
   };
 }

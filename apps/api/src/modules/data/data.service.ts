@@ -19,6 +19,9 @@ export class DataService implements OnModuleInit {
   private npcVendor: any = null;
   private npcCatalog: any = null;
   private cookingRecipes: any = null;
+  private alchemyRecipes: any = null;
+  private blacksmithRecipes: any = null;
+  private globalItemDrops: any = null;
   private quests: any = null;
 
   onModuleInit() {
@@ -40,6 +43,9 @@ export class DataService implements OnModuleInit {
       this.npcVendor = this.loadJsonFile(path.join(dataDir, 'npc_vendor.json'));
       this.npcCatalog = this.loadJsonFile(path.join(dataDir, 'npc_catalog.json'));
       this.cookingRecipes = this.loadJsonFile(path.join(dataDir, 'cooking_recipes.json'));
+      this.alchemyRecipes = this.loadJsonFile(path.join(dataDir, 'alchemy_recipes.json'));
+      this.blacksmithRecipes = this.loadJsonFile(path.join(dataDir, 'blacksmith_recipes.json'));
+      this.globalItemDrops = this.loadJsonFile(path.join(dataDir, 'global_item_drops.json'));
       this.quests = this.loadJsonFile(path.join(dataDir, 'quests.json'));
 
       this.validateCatalogues();
@@ -197,7 +203,7 @@ export class DataService implements OnModuleInit {
         if (!validItemIds.has(reward.itemId) || !Number.isInteger(Number(reward.quantity)) || Number(reward.quantity) < 1 || (rewardItem?.type === 'equipment' && Number(reward.quantity) !== 1)) throw new Error(`Quest ${quest.id} has invalid item reward ${reward.itemId}`);
       }
       if (rewards.professionXp !== undefined && !Array.isArray(rewards.professionXp)) throw new Error(`Quest ${quest.id} rewards.professionXp must be an array`);
-      for (const reward of (rewards.professionXp ?? [])) if (!['gathering','cooking'].includes(reward.profession) || !Number.isSafeInteger(Number(reward.amount)) || Number(reward.amount) < 0) throw new Error(`Quest ${quest.id} has invalid profession XP reward`);
+      for (const reward of (rewards.professionXp ?? [])) if (!['gathering','cooking','alchemy','blacksmith'].includes(reward.profession) || !Number.isSafeInteger(Number(reward.amount)) || Number(reward.amount) < 0) throw new Error(`Quest ${quest.id} has invalid profession XP reward`);
     }
     for (const quest of questRows) for (const prerequisite of quest.requiresCompletedQuestIds) if (!questIds.has(prerequisite) || prerequisite === quest.id) throw new Error(`Quest ${quest.id} has invalid prerequisite ${prerequisite}`);
 
@@ -219,6 +225,9 @@ export class DataService implements OnModuleInit {
       ['map_menace_hills_3', new Set(['mat_wild_blueberries'])],
       ['map_ipora_beach_0', new Set(['mat_cooking_oil'])],
       ['map_ipora_beach_1', new Set(['mat_cooking_oil'])],
+      ['map_wastelands_0', new Set(['mat_bronze_ore'])],
+      ['map_wastelands_1', new Set(['mat_bronze_ore'])],
+      ['map_menace_hills_2', new Set(['mat_bronze_ore'])],
     ]);
     for (const map of maps) {
       if (/^map_kwaioua_forest_[0-7]$/.test(String(map.id)) || /^map_forest_ruins_[0-3]$/.test(String(map.id)) || /^map_caete_[0-7]$/.test(String(map.id))) {
@@ -260,6 +269,25 @@ export class DataService implements OnModuleInit {
         if (!monsterIds.has(entry.monsterId)) throw new Error(`Map ${map.id} references missing monster ${entry.monsterId}`);
         if (!Number.isFinite(Number(entry.presenceRate)) || Number(entry.presenceRate) < 0) throw new Error(`Invalid presenceRate in ${map.id}`);
       }
+    }
+
+    const validOutputIds = new Set(validItemRows.map((row: any) => String(row.id)));
+    for (const [label, catalogue] of [['Alchemy', this.alchemyRecipes], ['Blacksmith', this.blacksmithRecipes]] as const) {
+      if (!Array.isArray(catalogue?.recipes)) throw new Error(label + ' recipes must define a recipes array');
+      const recipeIds = new Set<string>();
+      for (const recipe of catalogue.recipes) {
+        if (!recipe?.id || recipeIds.has(String(recipe.id))) throw new Error(label + ' recipes have duplicate/missing recipe IDs');
+        recipeIds.add(String(recipe.id));
+        if (!Number.isInteger(Number(recipe.requiredLevel)) || Number(recipe.requiredLevel) < 1 || !Number.isFinite(Number(recipe.xpReward)) || Number(recipe.xpReward) < 0) throw new Error(label + ' recipe has invalid level/XP: ' + recipe.id);
+        if (!validOutputIds.has(String(recipe.outputItemId)) || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length) throw new Error(label + ' recipe has invalid output/ingredients: ' + recipe.id);
+        if (label === 'Alchemy' && this.getItemById(recipe.outputItemId)?.type !== 'consumable') throw new Error('Alchemy outputs must be consumables: ' + recipe.id);
+        if (label === 'Blacksmith' && !['material', 'equipment'].includes(String(this.getItemById(recipe.outputItemId)?.type))) throw new Error('Blacksmith output must be a material/equipment: ' + recipe.id);
+        for (const ingredient of recipe.ingredients) if (!validItemIds.has(String(ingredient.itemId)) || !Number.isInteger(Number(ingredient.quantity)) || Number(ingredient.quantity) < 1) throw new Error(label + ' recipe has invalid ingredient: ' + recipe.id);
+      }
+    }
+    if (!Array.isArray(this.globalItemDrops?.drops) || this.globalItemDrops.drops.length < 2) throw new Error('global_item_drops.json must define independent global drops');
+    for (const drop of this.globalItemDrops.drops) {
+      if (!validItemIds.has(String(drop.itemId)) || !Number.isFinite(Number(drop.baseChancePercent)) || !Number.isFinite(Number(drop.perLevelIncreasePercent)) || !Number.isFinite(Number(drop.maxChancePercent)) || Number(drop.baseChancePercent) < 0 || Number(drop.perLevelIncreasePercent) < 0 || Number(drop.maxChancePercent) < Number(drop.baseChancePercent)) throw new Error('Invalid global item drop definition: ' + drop.itemId);
     }
   }
 
@@ -311,6 +339,12 @@ export class DataService implements OnModuleInit {
   }
 
   getCookingRecipes() { return this.cookingRecipes; }
+
+  getAlchemyRecipes() { return this.alchemyRecipes; }
+
+  getBlacksmithRecipes() { return this.blacksmithRecipes; }
+
+  getGlobalItemDrops() { return this.globalItemDrops; }
 
   getQuests() { return this.quests; }
 

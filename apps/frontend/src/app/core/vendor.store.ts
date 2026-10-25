@@ -3,9 +3,11 @@ import { ApiService } from './api.service';
 import { CharacterStore, InventoryStore } from './game.store';
 import { CatalogService } from './catalog.service';
 import { TownNpc, VendorStockItem, VendorQuote, NpcDialogueState } from '@nanommo/shared';
+import { LocaleService } from './locale.service';
 
-export interface VendorModal { mode:'buy'|'sell'; itemId:string; quantity:number; maxQuantity:number; unitPrice:number; sourceInventoryItemId?:string; }
+export interface VendorModal { mode:'buy'|'sell'; itemId:string; quantity:number; maxQuantity:number; unitPrice:number; sourceInventoryItemId?:string; instanceData?:any; itemInstanceData?:any; }
 export interface CookingState { progress:{level:number;xp:number;xpIntoLevel:number;xpToNextLevel:number;nextLevelXp:number}; recipes:any[]; session:any|null; }
+export interface ProfessionState { progress:any; recipes:any[]; session:any|null; profession:'alchemy'|'blacksmith'; otherSessionActive?:boolean; }
 
 /** Maximum amount selectable when selling the Inventory row that was dragged. */
 export function sellModalMaxQuantity(ownedQuantity:number, selectedStackQuantity:number|undefined, stackable:boolean):number {
@@ -19,6 +21,7 @@ export function sellModalMaxQuantity(ownedQuantity:number, selectedStackQuantity
 @Injectable({providedIn:'root'})
 export class VendorStore {
   private readonly api=inject(ApiService);
+  readonly locale=inject(LocaleService);
   readonly character=inject(CharacterStore);
   readonly inventory=inject(InventoryStore);
   readonly catalog=inject(CatalogService);
@@ -36,6 +39,19 @@ export class VendorStore {
   readonly cookingModal=signal(false);
   readonly cookingState=signal<CookingState|null>(null);
   readonly cookingNow=signal(Date.now());
+  readonly professionModal=signal(false);
+  readonly professionType=signal<'alchemy'|'blacksmith'>('alchemy');
+  readonly professionState=signal<ProfessionState|null>(null);
+  readonly professionNow=signal(Date.now());
+  private professionTimer:ReturnType<typeof setInterval>|null=null;
+  private professionRefreshSessionId:string|null=null;
+  readonly refinementModal=signal(false);
+  readonly refinementSelectedId=signal('');
+  readonly refinementUseDivineShard=signal(false);
+  readonly refinementPreview=signal<any|null>(null);
+  readonly refinementBusy=signal(false);
+  readonly refinementConfirm=signal(false);
+  readonly refinementResult=signal<string|null>(null);
   private cookingTimer:ReturnType<typeof setInterval>|null=null;
   private cookingRefreshSessionId:string|null=null;
   readonly mailboxMode=signal<'inbox'|'sent'|'compose'>('inbox');
@@ -144,6 +160,8 @@ export class VendorStore {
     if(npc.types.includes('dialogue')) requests.push(this.loadDialogue(id));
     if(npc.types.includes('storage')) requests.push(this.loadWarehouse(id));
     if(npc.types.includes('cooking')) requests.push(this.loadCooking());
+    if(npc.types.includes('alchemy') && id==='paje_piata') { /* service opens from its specialist action */ }
+    if(npc.types.includes('blacksmith') && id==='whitesmith_spitz') { /* service opens from its specialist action */ }
     if(npc.types.includes('mailbox')) requests.push(this.loadMailbox());
     requests.push(this.loadQuestActions(id));
     await Promise.all(requests);
@@ -191,8 +209,9 @@ export class VendorStore {
     this.questBusy.set(true);this.error.set(null);
     try{
       if(interaction.kind==='offer'){
-        const result=await this.api.post<any>('/quests/'+encodeURIComponent(interaction.questId)+'/offer',{}).toPromise();
-        this.questInteraction.set(result?.accepted?(result.interaction??null):result??null);
+        const payload=interaction.choices?.length && action?.id ? {choiceId:action.id} : {};
+        const result=await this.api.post<any>('/quests/'+encodeURIComponent(interaction.questId)+'/offer',payload).toPromise();
+        this.questInteraction.set(result?.closed?null:result?.accepted?(result.interaction??null):result??null);
         if(result?.accepted)await Promise.all([this.character.load(),this.inventory.load()]);
       }else if(interaction.kind==='active'&&interaction.action==='turn_in'){
         const result=await this.api.post<any>('/quests/'+encodeURIComponent(interaction.instanceId)+'/turn-in',{}).toPromise();
@@ -317,8 +336,12 @@ export class VendorStore {
     if(!d||this.busy())return;
     this.busy.set(true);this.error.set(null);
     try{
-      const next=await this.api.post<NpcDialogueState & {consumedItemId?:string}>('/town/npcs/'+d.npcId+'/dialogue',{nodeId:d.nodeId,choiceId}).toPromise();
+      const next=await this.api.post<NpcDialogueState & {consumedItemId?:string;openProfession?:'alchemy'|'blacksmith'}>('/town/npcs/'+d.npcId+'/dialogue',{nodeId:d.nodeId,choiceId}).toPromise();
       this.dialogue.set(next??null);
+      if(next?.openProfession==='alchemy' || next?.openProfession==='blacksmith'){
+        this.dialogue.set(null);
+        this.openProfession(next.openProfession);
+      }
       await Promise.all([this.character.load(),this.inventory.load()]);
     }catch(e:any){this.error.set(e?.error?.message??'NPC interaction rejected');}
     finally{this.busy.set(false);}
@@ -341,8 +364,35 @@ export class VendorStore {
   cookingPercent(){const session=this.cookingState()?.session;if(!session)return 0;const start=Date.parse(session.startedAt),end=Date.parse(session.completesAt);return Math.max(0,Math.min(100,(this.cookingNow()-start)/Math.max(1,end-start)*100));}
   async startCooking(recipeId:string){if(this.busy())return;this.busy.set(true);this.error.set(null);try{const state=await this.api.post<CookingState>('/town/npcs/uncle_phillip/cooking/start',{recipeId}).toPromise();this.cookingState.set(state??null);this.cookingModal.set(true);if(!this.cookingTimer)this.cookingTimer=setInterval(()=>{this.cookingNow.set(Date.now());const session=this.cookingState()?.session;if(session&&this.cookingRemaining()===0&&this.cookingRefreshSessionId!==session.id){this.cookingRefreshSessionId=session.id;void this.loadCooking().then(()=>Promise.all([this.inventory.load(),this.character.load()]));}},100);}catch(e:any){this.error.set(e?.error?.message??'Unable to start Cooking');}finally{this.busy.set(false);}}
   async cancelCooking(){const session=this.cookingState()?.session;if(!session||this.busy())return;this.busy.set(true);this.error.set(null);try{const state=await this.api.post<CookingState>('/town/npcs/uncle_phillip/cooking/cancel',{sessionId:session.id}).toPromise();this.cookingState.set(state??null);await Promise.all([this.inventory.load(),this.character.load()]);if(!state?.session&&this.cookingTimer){clearInterval(this.cookingTimer);this.cookingTimer=null;}}catch(e:any){this.error.set(e?.error?.message??'Unable to cancel Cooking');await this.loadCooking();}finally{this.busy.set(false);}}
+  async loadProfession(profession=this.professionType()){
+    const npcId=this.selectedNpcId(); if(!npcId)return;
+    try { const state=await this.api.get<ProfessionState>('/town/npcs/'+encodeURIComponent(npcId)+'/'+profession).toPromise(); this.professionState.set(state??null);
+      const session=state?.session;
+      if(session&&!this.professionTimer)this.professionTimer=setInterval(()=>{this.professionNow.set(Date.now());const active=this.professionState()?.session;if(active&&this.professionRemaining()===0&&this.professionRefreshSessionId!==active.id){this.professionRefreshSessionId=active.id;void this.loadProfession(profession).then(()=>Promise.all([this.inventory.load(),this.character.load()]));}},100);
+      if(!session&&this.professionTimer){clearInterval(this.professionTimer);this.professionTimer=null;this.professionRefreshSessionId=null;}
+    } catch(e:any){this.error.set(e?.error?.message??'Unable to load profession');}
+  }
+  openProfession(profession:'alchemy'|'blacksmith'){this.professionType.set(profession);this.professionModal.set(true);void this.loadProfession(profession);}
+  professionRemaining(){const session=this.professionState()?.session;if(!session)return 0;return Math.max(0,Math.ceil((Date.parse(session.completesAt)-this.professionNow())/1000));}
+  professionPercent(){const session=this.professionState()?.session;if(!session)return 0;return Math.max(0,Math.min(100,(this.professionNow()-Date.parse(session.startedAt))/Math.max(1,Date.parse(session.completesAt)-Date.parse(session.startedAt))*100));}
+  async startProfession(recipeId:string){const profession=this.professionType();const npcId=this.selectedNpcId();if(!npcId||this.busy())return;this.busy.set(true);this.error.set(null);try{const state=await this.api.post<ProfessionState>('/town/npcs/'+encodeURIComponent(npcId)+'/'+profession+'/start',{recipeId}).toPromise();this.professionState.set(state??null);if(!this.professionTimer)this.professionTimer=setInterval(()=>{this.professionNow.set(Date.now());const active=this.professionState()?.session;if(active&&this.professionRemaining()===0&&this.professionRefreshSessionId!==active.id){this.professionRefreshSessionId=active.id;void this.loadProfession(profession).then(()=>Promise.all([this.inventory.load(),this.character.load()]));}},100);}catch(e:any){this.error.set(e?.error?.message??'Unable to start crafting');}finally{this.busy.set(false);}}
+  async cancelProfession(){const session=this.professionState()?.session;const npcId=this.selectedNpcId();if(!session||!npcId||this.busy())return;this.busy.set(true);try{const state=await this.api.post<ProfessionState>('/town/npcs/'+encodeURIComponent(npcId)+'/'+this.professionType()+'/cancel',{sessionId:session.id}).toPromise();this.professionState.set(state??null);await Promise.all([this.inventory.load(),this.character.load()]);if(!state?.session&&this.professionTimer){clearInterval(this.professionTimer);this.professionTimer=null;}}catch(e:any){this.error.set(e?.error?.message??'Unable to cancel crafting');}finally{this.busy.set(false);}}
+  async closeProfession(){if(this.professionState()?.session){await this.cancelProfession();if(this.professionState()?.session)return;}this.professionModal.set(false);}
+  async openRefinement(){this.refinementSelectedId.set(this.refinableInventoryRows()[0]?.id??'');this.refinementUseDivineShard.set(false);this.refinementModal.set(true);await this.refreshRefinementPreview();}
+  refinableInventoryRows(){return this.inventory.items().filter((row:any)=>row.location==='inventory'&&this.catalog.item(row.itemId)?.type==='equipment'&&Number(row.quantity)===1);}
+  selectRefinement(inventoryItemId:string){this.refinementSelectedId.set(inventoryItemId);this.refinementConfirm.set(false);this.refinementResult.set(null);void this.refreshRefinementPreview();}
+  setRefinementShard(use:boolean){this.refinementUseDivineShard.set(use);this.refinementConfirm.set(false);void this.refreshRefinementPreview();}
+  async refreshRefinementPreview(){const id=this.refinementSelectedId();if(!id||!this.refinementModal()){this.refinementPreview.set(null);return;}try{const use=this.refinementUseDivineShard();const preview=await this.api.get<any>('/equipment/refine/preview/'+encodeURIComponent(id)+'?useDivineShard='+use).toPromise();this.refinementPreview.set(preview??null);}catch(e:any){this.refinementPreview.set(null);this.error.set(e?.error?.message??'Unable to preview refinement');}}
+  requestRefinement(){const preview=this.refinementPreview();if(!preview||!preview.canAttempt||this.refinementBusy())return;if(Number(preview.chancePercent)<100){this.refinementConfirm.set(true);return;}void this.refineSelectedItem();}
+  async confirmRefinement(){if(!this.refinementConfirm())return;this.refinementConfirm.set(false);await this.refineSelectedItem();}
+  cancelRefinementConfirmation(){this.refinementConfirm.set(false);}
+  async refineSelectedItem(){const id=this.refinementSelectedId();if(!id||this.refinementBusy())return;this.refinementBusy.set(true);this.error.set(null);this.refinementResult.set(null);try{const result=await this.api.post<any>('/equipment/refine',{inventoryItemId:id,useDivineShard:this.refinementUseDivineShard()}).toPromise();const outcome=result?.refinement;this.refinementResult.set(outcome?.outcome==='success'?'Refinement succeeded':outcome?.outcome==='destroyed'?'Equipment destroyed':'Refinement failed');await Promise.all([this.character.load(),this.inventory.load()]);if(outcome?.destroyed){this.refinementSelectedId.set(this.refinableInventoryRows()[0]?.id??'');}await this.refreshRefinementPreview();}catch(e:any){this.error.set(e?.error?.message??'Refinement failed');await this.refreshRefinementPreview();}finally{this.refinementBusy.set(false);}}
+  closeRefinement(){this.refinementConfirm.set(false);this.refinementModal.set(false);this.refinementPreview.set(null);this.refinementResult.set(null);}
   item(id:string){return this.catalog.item(id);}
-  itemName(id:string){return this.item(id)?.name??id;}
+  itemName(id:string,instanceData?:any){return this.catalog.itemName(id,instanceData);}
+  t(text:string){return this.locale.t(text);}
+  localized(record:any,field:string,fallback?:string){return this.locale.localized(record,field,fallback);}
+  localizedInteraction(interaction:any,field:string){return this.locale.localized(interaction,field);}
   totalOwned(itemId:string){return this.inventory.items().filter(x=>x.itemId===itemId).reduce((n,x)=>n+Number(x.quantity??0),0);}
   inventoryCapacity(itemId:string){
     const def=this.item(itemId); if(!def)return 0;
@@ -365,7 +415,8 @@ export class VendorStore {
       // Selling from a dragged stack scopes the modal to that stack, not the
       // sum of every matching item across the whole Inventory.
       const max=sellModalMaxQuantity(owned,selectedStackQuantity,!!q?.stackable);
-      this.modal.set({mode:'sell',itemId,quantity:1,maxQuantity:max,unitPrice:unit,...(sourceInventoryItemId?{sourceInventoryItemId}:{})});
+      const sourceRow=sourceInventoryItemId?this.inventory.items().find((row:any)=>row.id===sourceInventoryItemId):undefined;
+      this.modal.set({mode:'sell',itemId,quantity:1,maxQuantity:max,unitPrice:unit,...(sourceInventoryItemId?{sourceInventoryItemId}:{}),...(sourceRow?.instanceData?{instanceData:sourceRow.instanceData}:{})});
     }catch(e:any){this.error.set(e?.error?.message??'Unable to price item');}
   }
   openBuy(entry:VendorStockItem){

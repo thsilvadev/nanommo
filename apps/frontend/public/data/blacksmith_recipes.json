@@ -1,0 +1,228 @@
+{
+  "recipes": [
+    {
+      "id": "bronze_ingot",
+      "name": "Bronze Ingot",
+      "requiredLevel": 1,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ore",
+          "quantity": 10
+        }
+      ],
+      "outputItemId": "mat_bronze_ingot",
+      "xpReward": 5,
+      "order": 1
+    },
+    {
+      "id": "head_phys_t2",
+      "name": "Reinforced Helm",
+      "requiredLevel": 2,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "equip_head_phys_t2",
+      "xpReward": 5,
+      "order": 2
+    },
+    {
+      "id": "head_magic_t2",
+      "name": "Reinforced Arcane Helm",
+      "requiredLevel": 2,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "equip_head_magic_t2",
+      "xpReward": 5,
+      "order": 3
+    },
+    {
+      "id": "cape_phys_t2",
+      "name": "Reinforced Cape",
+      "requiredLevel": 3,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 3
+        }
+      ],
+      "outputItemId": "equip_cape_phys_t2",
+      "xpReward": 5,
+      "order": 4
+    },
+    {
+      "id": "cape_magic_t2",
+      "name": "Reinforced Arcane Cape",
+      "requiredLevel": 3,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 3
+        }
+      ],
+      "outputItemId": "equip_cape_magic_t2",
+      "xpReward": 5,
+      "order": 5
+    },
+    {
+      "id": "body_phys_t2",
+      "name": "Reinforced Chestplate",
+      "requiredLevel": 4,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 4
+        }
+      ],
+      "outputItemId": "equip_body_phys_t2",
+      "xpReward": 5,
+      "order": 6
+    },
+    {
+      "id": "body_magic_t2",
+      "name": "Reinforced Arcane Chestplate",
+      "requiredLevel": 4,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 4
+        }
+      ],
+      "outputItemId": "equip_body_magic_t2",
+      "xpReward": 5,
+      "order": 7
+    },
+    {
+      "id": "traveler_boots_t1",
+      "name": "Traveler's Boots",
+      "requiredLevel": 5,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 5
+        }
+      ],
+      "outputItemId": "equip_shoes_traveler_t1",
+      "xpReward": 5,
+      "order": 8
+    },
+    {
+      "id": "sword_t2",
+      "name": "Reinforced Sword",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_sword_t2",
+      "xpReward": 5,
+      "order": 9
+    },
+    {
+      "id": "greatsword_t2",
+      "name": "Reinforced Greatsword",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_greatsword_t2",
+      "xpReward": 5,
+      "order": 10
+    },
+    {
+      "id": "dagger_t2",
+      "name": "Reinforced Dagger",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_dagger_t2",
+      "xpReward": 5,
+      "order": 11
+    },
+    {
+      "id": "bow_t2",
+      "name": "Reinforced Bow",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_bow_t2",
+      "xpReward": 5,
+      "order": 12
+    },
+    {
+      "id": "staff_t2",
+      "name": "Reinforced Staff",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_staff_t2",
+      "xpReward": 5,
+      "order": 13
+    },
+    {
+      "id": "rod_t2",
+      "name": "Reinforced Rod",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_rod_t2",
+      "xpReward": 5,
+      "order": 14
+    },
+    {
+      "id": "shield_t2",
+      "name": "Reinforced Shield",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_shield_t2",
+      "xpReward": 5,
+      "order": 15
+    },
+    {
+      "id": "rune_t2",
+      "name": "Runed Rune",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_rune_t2",
+      "xpReward": 5,
+      "order": 16
+    }
+  ]
+}

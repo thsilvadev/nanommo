@@ -96,6 +96,21 @@ export class Character {
   @Column({ name: 'cooking_session', type: 'jsonb', nullable: true })
   cookingSession?: any | null;
 
+  @Column({ name: 'alchemy_level', type: 'int', default: 1 })
+  alchemyLevel!: number;
+
+  @Column({ name: 'alchemy_xp', type: 'bigint', default: 0 })
+  alchemyXp!: number;
+
+  @Column({ name: 'blacksmith_level', type: 'int', default: 1 })
+  blacksmithLevel!: number;
+
+  @Column({ name: 'blacksmith_xp', type: 'bigint', default: 0 })
+  blacksmithXp!: number;
+
+  @Column({ name: 'crafting_session', type: 'jsonb', nullable: true })
+  craftingSession?: any | null;
+
   /** Persisted fractional Gathering cycle progress and deterministic per-cycle variance. */
   @Column({ type: 'jsonb', default: '{"progress":0,"cycleIndex":0,"varianceSeconds":null,"lastUpdatedAt":null}' })
   gatheringCycle!: any;
@@ -159,7 +174,7 @@ export class Character {
 
   /** Server-owned in-progress quest-offer dialogue step by quest ID. */
   @Column({ type: 'jsonb', default: '{}' })
-  questOfferProgress!: Record<string, { stepIndex: number; startedAt: string }>;
+  questOfferProgress!: Record<string, { stepIndex: number; nodeId?: string; startedAt: string }>;
 
   /** Absolute expiration timestamps, keyed exactly like battle-engine cooldown keys. */
   @Column({ type: 'jsonb', default: '{}' })

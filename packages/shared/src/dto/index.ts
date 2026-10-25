@@ -86,6 +86,12 @@ export class CharacterDto {
   cookingLevel!: number;
   cookingXp!: number;
   cookingSession?: any | null;
+  alchemyLevel!: number;
+  alchemyXp!: number;
+  blacksmithLevel!: number;
+  blacksmithXp!: number;
+  craftingSession?: any | null;
+  moveSpeed!: number;
   gatheringCycle!: any;
   encounterCycle!: any;
   fleeAttemptIndex!: number;

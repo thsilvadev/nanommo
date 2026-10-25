@@ -86,6 +86,21 @@ export class EquipmentController {
     };
   }
 
+  @Get('refine/preview/:inventoryItemId')
+  async refinementPreview(@Request() req: any, @Param('inventoryItemId') inventoryItemId: string, @Body() _body?: any) {
+    const characterId = await this.getCharacterId(req.user.userId);
+    const useDivineShard = String(req.query?.useDivineShard ?? 'false') === 'true';
+    return this.equipmentService.getRefinementPreview(characterId, inventoryItemId, useDivineShard);
+  }
+
+  @Post('refine')
+  async refine(@Request() req: any, @Body() body: { inventoryItemId: string; useDivineShard?: boolean }) {
+    const characterId = await this.getCharacterId(req.user.userId);
+    const result = await this.equipmentService.refineItem(characterId, body.inventoryItemId, body.useDivineShard === true);
+    const snapshot = await this.getMutationSnapshot(characterId);
+    return { ...snapshot, refinement: result };
+  }
+
   /**
    * Validate weapon combination
    */

@@ -269,7 +269,9 @@
       "isTown": true,
       "npcIds": [
         "storage",
-        "mailbox"
+        "mailbox",
+        "william",
+        "father_marcelus"
       ],
       "mapLength": 0
     },
@@ -699,8 +701,9 @@
       "isTown": true,
       "npcIds": [
         "storage",
-        "william",
-        "mailbox"
+        "mailbox",
+        "father_marcelus",
+        "paje_piata"
       ],
       "mapLength": 0
     },
@@ -1022,7 +1025,8 @@
       "npcIds": [
         "storage",
         "william",
-        "mailbox"
+        "mailbox",
+        "father_marcelus"
       ],
       "mapLength": 0
     },
@@ -1311,7 +1315,13 @@
       "unlockLevel": 0,
       "isTown": false,
       "recommendedLevel": 10,
-      "mapLength": 25
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_bronze_ore",
+          "weight": 100
+        }
+      ]
     },
     {
       "id": "map_menace_hills_3",
@@ -1387,7 +1397,13 @@
       "unlockLevel": 0,
       "isTown": false,
       "recommendedLevel": 20,
-      "mapLength": 25
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_bronze_ore",
+          "weight": 100
+        }
+      ]
     },
     {
       "id": "map_wastelands_1",
@@ -1422,7 +1438,13 @@
       "unlockLevel": 0,
       "isTown": false,
       "recommendedLevel": 25,
-      "mapLength": 25
+      "mapLength": 25,
+      "gatheringPool": [
+        {
+          "itemId": "mat_bronze_ore",
+          "weight": 100
+        }
+      ]
     },
     {
       "id": "map_wastelands_2",
@@ -1461,7 +1483,7 @@
     },
     {
       "id": "map_emperial_capital_caelum",
-      "name": "Imperial Capital Caelum",
+      "name": "Caelum",
       "coordinates": {
         "x": -6,
         "y": 5
@@ -1477,7 +1499,9 @@
       "npcIds": [
         "storage",
         "william",
-        "mailbox"
+        "mailbox",
+        "father_marcelus",
+        "whitesmith_spitz"
       ],
       "mapLength": 0
     }

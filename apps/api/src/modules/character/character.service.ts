@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem, BattleQueueEntry } from '@/database/entities';
 import { CharacterDto, Attribute, WeaponType, BattleEngine, effectiveWeaponAttack, sumAttributeBonuses, applyAttributeBonuses, masteryPassiveAttributeBonuses, type AttributeBonuses, effectiveFoodStatValue } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
+import { effectiveItemDefinition, rolledStatValue, calculateWorldMoveSpeed } from '@nanommo/shared';
 import { BattleService } from '../battle/battle.service';
 
 @Injectable()
@@ -43,12 +44,17 @@ export class CharacterService {
       weaponFixedAtk: 0,
       weaponFixedMatk: 0,
       accuracyModifier: 0,
+      evasionModifier: 0,
+      criticalChanceModifier: 0,
+      attackSpeedModifier: 0,
+      castTimeReductionModifier: 0,
       accuracyMultiplier: 1,
       statBonus: { STR: 0, AGI: 0, DEX: 0, VIT: 0, INT: 0, LUK: 0 },
     };
     for (const row of equipped) {
-      const item = this.dataService.getItemById(row.itemId);
-      if (!item || item.type !== 'equipment') continue;
+      const baseItem = this.dataService.getItemById(row.itemId);
+      if (!baseItem || baseItem.type !== 'equipment') continue;
+      const item = effectiveItemDefinition(baseItem, row.instanceData);
       equipment.def += Number(item.fixedStats?.def ?? 0);
       equipment.mdefPercent += Number(item.fixedStats?.mdefPercent ?? 0);
       equipment.maxHp += Number(item.fixedStats?.maxHp ?? 0);
@@ -66,6 +72,17 @@ export class CharacterService {
       if (rolledAttribute && rolledValue > 0 && rolledAttribute in equipment.statBonus) {
         (equipment.statBonus as any)[rolledAttribute] += rolledValue;
       }
+      equipment.maxHp += rolledStatValue(row.instanceData, 'hp');
+      equipment.maxSp += rolledStatValue(row.instanceData, 'sp');
+      equipment.def += rolledStatValue(row.instanceData, 'defense');
+      const rolledAtk = rolledStatValue(row.instanceData, 'atk');
+      equipment.weaponFixedAtk += row.slot === 'offHand' && item.weaponType && !['shield', 'rune'].includes(String(item.weaponType)) ? Math.floor(rolledAtk / 2) : rolledAtk;
+      if (row.slot === 'mainHand') equipment.weaponFixedMatk += rolledStatValue(row.instanceData, 'matk');
+      equipment.accuracyModifier += rolledStatValue(row.instanceData, 'accuracy');
+      equipment.evasionModifier += rolledStatValue(row.instanceData, 'evasion');
+      equipment.criticalChanceModifier += rolledStatValue(row.instanceData, 'criticalPercent');
+      equipment.attackSpeedModifier += rolledStatValue(row.instanceData, 'atkSpeed');
+      equipment.castTimeReductionModifier += rolledStatValue(row.instanceData, 'castTimeReduction');
     }
     equipment.mdefPercent = Math.min(100, Math.max(0, equipment.mdefPercent));
     return equipment;
@@ -568,6 +585,12 @@ export class CharacterService {
       cookingLevel: Math.max(1, Number(character.cookingLevel ?? 1)),
       cookingXp: Math.max(0, Number(character.cookingXp ?? 0)),
       cookingSession: character.cookingSession ?? null,
+      alchemyLevel: Math.max(1, Number(character.alchemyLevel ?? 1)),
+      alchemyXp: Math.max(0, Number(character.alchemyXp ?? 0)),
+      blacksmithLevel: Math.max(1, Number(character.blacksmithLevel ?? 1)),
+      blacksmithXp: Math.max(0, Number(character.blacksmithXp ?? 0)),
+      craftingSession: character.craftingSession ?? null,
+      moveSpeed: calculateWorldMoveSpeed(character, equipped.map(row => ({ definition: effectiveItemDefinition(this.dataService.getItemById(row.itemId), row.instanceData) }))),
       gatheringCycle: character.gatheringCycle ?? { progress: 0, cycleIndex: 0, varianceSeconds: null, lastUpdatedAt: null },
       encounterCycle: character.encounterCycle ?? { cycleIndex: 0, nextAt: null },
       fleeAttemptIndex: Math.max(0, Number(character.fleeAttemptIndex ?? 0)),

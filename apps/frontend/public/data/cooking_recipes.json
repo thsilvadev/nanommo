@@ -7,7 +7,7 @@
       "ingredients": [
         {
           "itemId": "mat_wheat",
-          "quantity": 5
+          "quantity": 1
         }
       ],
       "outputItemId": "food_bread",
@@ -21,7 +21,7 @@
       "ingredients": [
         {
           "itemId": "mat_wild_blueberries",
-          "quantity": 5
+          "quantity": 2
         }
       ],
       "outputItemId": "food_blueberry",
@@ -35,7 +35,7 @@
       "ingredients": [
         {
           "itemId": "mat_milk",
-          "quantity": 10
+          "quantity": 6
         }
       ],
       "outputItemId": "food_cheese",
@@ -49,7 +49,7 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 10
+          "quantity": 6
         }
       ],
       "outputItemId": "food_herbtea",
@@ -63,7 +63,7 @@
       "ingredients": [
         {
           "itemId": "mat_honeycomb",
-          "quantity": 15
+          "quantity": 10
         }
       ],
       "outputItemId": "food_honey",
@@ -77,15 +77,19 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 8
-        },
-        {
-          "itemId": "mat_carrot",
           "quantity": 6
         },
         {
-          "itemId": "mat_meat",
+          "itemId": "mat_carrot",
           "quantity": 4
+        },
+        {
+          "itemId": "mat_meat",
+          "quantity": 2
+        },
+        {
+          "itemId": "mat_cooking_oil",
+          "quantity": 1
         }
       ],
       "outputItemId": "food_stew",
@@ -99,11 +103,11 @@
       "ingredients": [
         {
           "itemId": "mat_meat",
-          "quantity": 10
+          "quantity": 8
         },
         {
           "itemId": "mat_carrot",
-          "quantity": 10
+          "quantity": 7
         }
       ],
       "outputItemId": "food_roast",

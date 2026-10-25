@@ -48,7 +48,7 @@ export class CharacterSummary implements OnDestroy {
   trackStatusEffect(_index: number, status: { id: string }) { return status.id; }
   freezeStatus() { return this.activeStatusEffects('character').find(status => status.id === 'freeze') ?? null; }
 
-  itemName(slot: string) { const e = this.equipped(slot); return e ? (this.catalog.item(e.itemId)?.name ?? e.itemId) : '' }
+  itemName(slot: string) { const e = this.equipped(slot); return e ? this.catalog.itemName(e.itemId, e.instanceData) : '' }
   itemDefinition(slot: string) { const e = this.equipped(slot); return e ? this.catalog.item(e.itemId) : null }
   itemTooltipLines(slot: string) { const e = this.equipped(slot); return e ? this.catalog.itemTooltipLines(e.itemId, e.instanceData, slot) : [] }
   formatItemEffect(effect: any) { if (!effect) return ''; if (effect.status) { const status = String(effect.status).replace(/_/g, ' '); return `Cures ${status}.` } if (effect.type === 'heal_hp') return `Restores ${Number(effect.amount) || 0} HP.`; if (effect.type === 'heal_sp') return `Restores ${Number(effect.amount) || 0} SP.`; if (effect.type === 'food_buff') return `Regenerates HP/SP for ${Math.round((Number(effect.durationSeconds) || 0) / 60)} minutes.`; return String(effect.type ?? '').replace(/_/g, ' ').replace(/^./, x => x.toUpperCase()) + '.' }
@@ -736,10 +736,13 @@ export class VendorPanel implements OnDestroy {
       void this.vendor.load();
     }, { allowSignalWrites: true });
     effect(() => {
-      const questText = this.vendor.questInteraction()?.npcText;
-      const npcText = this.vendor.dialogue()?.npcText;
-      const idleGreeting = this.vendor.selectedNpc()?.greeting;
-      const text = String(questText ?? npcText ?? idleGreeting ?? '');
+      const questInteraction = this.vendor.questInteraction();
+      const npcDialogue = this.vendor.dialogue();
+      const selectedNpc = this.vendor.selectedNpc();
+      const questText = this.vendor.localizedInteraction(questInteraction, 'npcText');
+      const npcText = this.vendor.localized(npcDialogue, 'npcText', npcDialogue?.npcText);
+      const idleGreeting = this.vendor.localized(selectedNpc, 'greeting', selectedNpc?.greeting);
+      const text = String(questText || npcText || idleGreeting || '');
       if (text === this.interactionTextTarget) return;
       this.startInteractionTypewriter(text);
     }, { allowSignalWrites: true });
@@ -917,7 +920,7 @@ export class GrindInfo implements OnDestroy {
     return String(e.action ?? 'event');
   }
   sessionDrops() { return this.battle.sessionDrops() }
-  sessionDropName(it: any) { return this.catalog.item(it.itemId)?.name ?? it.itemId }
+  sessionDropName(it: any) { return this.catalog.itemName(it.itemId, it.instanceData) }
   sessionDropIcon(it: any) { return this.catalog.itemIcon(it.itemId) }
   // Every food digests for the same duration, so the most recent entry always carries the
   // latest digestUntil. That makes the pruned diet length and the authoritative hungry flag

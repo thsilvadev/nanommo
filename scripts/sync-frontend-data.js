@@ -20,6 +20,10 @@ const dataFiles = [
   'weapon_xp_curve.json',
   'char_xp_curve.json',
   'quests.json',
+  'cooking_recipes.json',
+  'alchemy_recipes.json',
+  'blacksmith_recipes.json',
+  'global_item_drops.json',
 ];
 
 const rootDir = path.join(__dirname, '..');

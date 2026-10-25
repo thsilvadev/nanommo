@@ -542,37 +542,37 @@
    "w": 64,
    "h": 64
   },
-  "equip_shoes_earth_t1": {
+  "equip_shoes_earth_t2": {
    "x": 384,
    "y": 448,
    "w": 64,
    "h": 64
   },
-  "equip_shoes_water_t1": {
+  "equip_shoes_water_t2": {
    "x": 448,
    "y": 448,
    "w": 64,
    "h": 64
   },
-  "equip_shoes_fire_t2": {
+  "equip_shoes_fire_t3": {
    "x": 512,
    "y": 448,
    "w": 64,
    "h": 64
   },
-  "equip_shoes_shadow_t2": {
+  "equip_shoes_shadow_t3": {
    "x": 576,
    "y": 448,
    "w": 64,
    "h": 64
   },
-  "equip_shoes_wind_t3": {
+  "equip_shoes_wind_t4": {
    "x": 640,
    "y": 448,
    "w": 64,
    "h": 64
   },
-  "equip_shoes_holy_t3": {
+  "equip_shoes_holy_t4": {
    "x": 704,
    "y": 448,
    "w": 64,

@@ -9,7 +9,7 @@ import { CharacterService } from '../character/character.service';
 import { TOWN_MAP_ID } from '@nanommo/shared';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { BattleService } from '../battle/battle.service';
 
 const GOLD_CAP = 1_000_000_000_000;
@@ -101,14 +101,14 @@ export class TownService {
 
   private async addInventoryAtomic(manager: EntityManager, characterId: string, itemId: string, quantity: number) {
     const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
-    const active = character?.cookingSession;
+    const active = character?.cookingSession ?? character?.craftingSession;
     if (active) {
       const output = this.item(active.outputItemId);
       const rows = await manager.getRepository(InventoryItem).find({ where: { characterId, location: 'inventory' } });
       const granted = this.item(itemId);
       const rowCountAfter = rows.length + (granted.stackable && rows.some(row => row.itemId === itemId && row.quantity < Number(granted.maxStack ?? 1)) ? 0 : Math.ceil(quantity / Number(granted.maxStack ?? 1)));
       const outputCanMerge = output.stackable && rows.some(row => row.itemId === output.id && row.quantity < Number(output.maxStack ?? 1)) && !(itemId === output.id && rowCountAfter > rows.length);
-      if (!outputCanMerge && rowCountAfter >= INVENTORY_SLOTS) throw new BadRequestException('Inventory space is reserved for your active Cooking session');
+      if (!outputCanMerge && rowCountAfter >= INVENTORY_SLOTS) throw new BadRequestException('Inventory space is reserved for your active crafting session');
     }
     const item = this.item(itemId);
     let remaining = quantity;
@@ -138,12 +138,13 @@ export class TownService {
 
   private async removeInventoryAtomic(manager: EntityManager, characterId: string, itemId: string, quantity: number, sourceInventoryItemId?: string) {
     const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
-    const reservation = character?.cookingSession?.ingredients?.filter((row: any) => row.itemId === itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0) ?? 0;
+    const reservations = [character?.cookingSession, character?.craftingSession].filter(Boolean);
+    const reservation = reservations.flatMap((session: any) => session.ingredients ?? []).filter((row: any) => row.itemId === itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
     const repo = manager.getRepository(InventoryItem);
     const rows = await repo.find({ where: { characterId, location: 'inventory', itemId }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
     const owned = rows.reduce((sum, row) => sum + row.quantity, 0);
     if (owned < quantity) throw new BadRequestException('Insufficient item quantity');
-    if (owned - quantity < reservation) throw new BadRequestException('Items are reserved for your active Cooking session');
+    if (owned - quantity < reservation) throw new BadRequestException('Items are reserved for your active crafting session');
 
     if (sourceInventoryItemId) {
       const source = rows.find(row => row.id === sourceInventoryItemId);
@@ -232,6 +233,14 @@ export class TownService {
 
     return this.characterRepo.manager.transaction(async manager => {
       const character = await this.characterForTown(manager, characterId);
+      const selectedRows = await manager.getRepository(InventoryItem).find({ where: { characterId, itemId, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
+      const selected = sourceInventoryItemId ? selectedRows.find(row => row.id === sourceInventoryItemId) : selectedRows[0];
+      if (sourceInventoryItemId) {
+        const selected = selectedRows.find(row => row.id === sourceInventoryItemId);
+        if (selected?.instanceData?.questReward?.marketTradable === false) throw new BadRequestException('Non-tradable quest-reward equipment cannot be sold to vendors');
+      } else if (selectedRows.some(row => row.instanceData?.questReward?.marketTradable === false)) {
+        throw new BadRequestException('Select a specific tradable item instance before selling this item');
+      }
       await this.removeInventoryAtomic(manager, characterId, itemId, quantity, sourceInventoryItemId);
       character.gold = Math.min(Number(character.gold) + total, GOLD_CAP);
       await manager.getRepository(Character).save(character);
@@ -260,7 +269,7 @@ export class TownService {
 
   private npcPublic(npc: any) {
     const types = Array.isArray(npc.types) ? npc.types : [];
-    return { id: npc.id, name: npc.name, location: npc.location, types, greeting: npc.greeting ?? npc.vendor?.greeting, monologue: npc.monologue };
+    return { id: npc.id, name: npc.name, locales: npc.locales ?? null, location: npc.location, types, greeting: npc.greeting ?? npc.vendor?.greeting, monologue: npc.monologue, greetingLocales: npc.locales ? Object.fromEntries(Object.entries(npc.locales).map(([locale, values]: any) => [locale, values.greeting])) : null, monologueLocales: npc.locales ? Object.fromEntries(Object.entries(npc.locales).map(([locale, values]: any) => [locale, values.monologue])) : null };
   }
 
   async getTownNPCs(characterId: string) {
@@ -268,7 +277,7 @@ export class TownService {
     const map = this.dataService.getMapById(character.currentMapId);
     const ids: string[] = Array.isArray(map?.npcIds) ? map.npcIds : (character.currentMapId === TOWN_MAP_ID ? ['william', ...this.npcCatalog().map((npc: any) => npc.id)] : []);
     return ids.map(id => {
-      if (id === 'william') { const william = this.vendor(); return { id: william.id, name: william.name, location: william.location, types: ['vendor'], greeting: this.dataService.getNpcVendor()?.greeting }; }
+      if (id === 'william') { const william = this.vendor(); return { id: william.id, name: william.name, locales: this.dataService.getNpcVendor()?.locales ?? null, location: william.location, types: ['vendor'], greeting: this.dataService.getNpcVendor()?.greeting, greetingLocales: this.dataService.getNpcVendor()?.locales?.greeting ?? null }; }
       const npc = this.npcCatalog().find((entry: any) => entry.id === id && entry.location === 'town');
       return npc ? this.npcPublic(npc) : null;
     }).filter(Boolean);
@@ -308,9 +317,9 @@ export class TownService {
     return {
       npcId,
       nodeId: node.id,
-      npcText: node.npcText,
+      npcText: node.npcText, npcTextLocales: node.npcTextLocales ?? null,
       choices: (await Promise.all((node.choices ?? []).map(async (choice: any) => ({ choice, available: await this.choiceAvailable(choice, character) })))).filter(x => x.available).map(x => x.choice)
-        .map((choice: any) => ({ id: choice.id, text: choice.text, nextNodeId: choice.nextNodeId })),
+        .map((choice: any) => ({ id: choice.id, text: choice.text, textLocales: choice.textLocales ?? null, nextNodeId: choice.nextNodeId })),
     };
   }
 
@@ -355,6 +364,9 @@ export class TownService {
         const consumedItemId = await this.consumeFoodForNpc(manager, character);
         return { ...(await this.dialogueState(character, npcId, choice.nextNodeId ?? 'hungry_done')), consumedItemId };
       }
+      if (choice.effect?.type === 'open_profession' && ['alchemy', 'blacksmith'].includes(choice.effect.profession)) {
+        return { ...(await this.dialogueState(character, npcId, node.id)), openProfession: choice.effect.profession };
+      }
 
       return this.dialogueState(character, npcId, choice.nextNodeId ?? node.id);
     });
@@ -397,13 +409,15 @@ export class TownService {
     const progress = this.cookingProgress(character);
     const reservedIngredients: Record<string, number> = {};
     const session = character.cookingSession ?? null;
-    if (session) for (const req of session.ingredients ?? []) reservedIngredients[req.itemId] = Number(reservedIngredients[req.itemId] ?? 0) + Number(req.quantity);
+    for (const active of [character.cookingSession, character.craftingSession].filter(Boolean) as any[]) {
+      for (const req of active.ingredients ?? []) reservedIngredients[req.itemId] = Number(reservedIngredients[req.itemId] ?? 0) + Number(req.quantity);
+    }
     const recipeStates = recipes.map((recipe: any) => {
       const ingredients = recipe.ingredients.map((req: any) => ({ ...req, owned: totals.get(req.itemId) ?? 0, available: Math.max(0, (totals.get(req.itemId) ?? 0) - (reservedIngredients[req.itemId] ?? 0)), item: this.item(req.itemId) }));
       const output = this.item(recipe.outputItemId);
-      return { ...recipe, output, ingredients, unlocked: progress.level >= recipe.requiredLevel, hasIngredients: ingredients.every((req: any) => req.available >= req.quantity), canReserveOutput: this.canReserveCapacity(rows, output), available: character.currentMapId === TOWN_MAP_ID && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition && progress.level >= recipe.requiredLevel && ingredients.every((req: any) => req.available >= req.quantity) && this.canReserveCapacity(rows, output) && !session };
+      return { ...recipe, output, ingredients, unlocked: progress.level >= recipe.requiredLevel, hasIngredients: ingredients.every((req: any) => req.available >= req.quantity), canReserveOutput: this.canReserveCapacity(rows, output), available: character.currentMapId === TOWN_MAP_ID && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition && progress.level >= recipe.requiredLevel && ingredients.every((req: any) => req.available >= req.quantity) && this.canReserveCapacity(rows, output) && !session && !character.craftingSession };
     });
-    return { characterId: character.id, progress, recipes: recipeStates, session };
+    return { characterId: character.id, progress, recipes: recipeStates, session, otherSessionActive: !!character.craftingSession };
   }
 
   private canReserveCapacity(rows: InventoryItem[], item: any): boolean {
@@ -434,7 +448,7 @@ export class TownService {
     const result = await this.battleService.withCharacterQueueLock(characterId, () => this.characterRepo.manager.transaction(async manager => {
       const character = await this.characterForTown(manager, characterId);
       if (character.currentMapId !== TOWN_MAP_ID) throw new BadRequestException('Cooking is available only in Sierra Village');
-      if (character.cookingSession) throw new BadRequestException('Cooking session already active');
+      if (character.cookingSession || character.craftingSession) throw new BadRequestException('A crafting session is already active');
       const state = await this.cookingState(manager, character);
       const candidate = state.recipes.find((row: any) => row.id === recipeId);
       if (!candidate?.unlocked) throw new BadRequestException('Cooking level too low for this recipe');
@@ -503,6 +517,166 @@ export class TownService {
       await this.battleService.runFutureCombatMutation(characterId, async () => undefined);
       // The completion transaction is authoritative; clients re-read Inventory/Character on the modal deadline.
     }
+    return result;
+  }
+
+  private professionFields(profession: 'alchemy' | 'blacksmith') {
+    return profession === 'alchemy'
+      ? { recipes: this.dataService.getAlchemyRecipes()?.recipes ?? [], levelField: 'alchemyLevel', xpField: 'alchemyXp', label: 'Alchemy' }
+      : { recipes: this.dataService.getBlacksmithRecipes()?.recipes ?? [], levelField: 'blacksmithLevel', xpField: 'blacksmithXp', label: 'Blacksmith' };
+  }
+
+  private professionProgress(character: Character, profession: 'alchemy' | 'blacksmith') {
+    const fields = this.professionFields(profession);
+    const xp = Math.max(0, Number((character as any)[fields.xpField] ?? 0));
+    const level = Math.max(1, Number((character as any)[fields.levelField] ?? 1));
+    const current = this.cookingThreshold(level), next = this.cookingThreshold(level + 1);
+    return { level, xp, totalXp: xp, xpIntoLevel: Math.max(0, xp - current), xpToNextLevel: next - current, nextLevelXp: next,
+      progressPercent: Math.max(0, Math.min(100, (xp - current) / Math.max(1, next - current) * 100)) };
+  }
+
+  private assertProfessionNpc(character: Character, npcId: string, profession: 'alchemy' | 'blacksmith'): any {
+    const map = this.dataService.getMapById(character.currentMapId);
+    if (!map || map.type !== 'town' || character.status !== 'town' || character.travelIntent != null || character.pendingMapTransition != null) {
+      throw new BadRequestException('Profession services are only available while settled in Town');
+    }
+    if (!(map.npcIds ?? []).includes(npcId)) throw new BadRequestException('That specialist is not present in this Town');
+    const npc = this.npcCatalog().find((row: any) => row.id === npcId && row.location === 'town');
+    if (!npc?.types?.includes(profession)) throw new BadRequestException('This NPC does not offer ' + profession);
+    return npc;
+  }
+
+  private async professionState(manager: EntityManager, character: Character, npcId: string, profession: 'alchemy' | 'blacksmith') {
+    this.assertProfessionNpc(character, npcId, profession);
+    const fields = this.professionFields(profession);
+    const rows = await manager.getRepository(InventoryItem).find({ where: { characterId: character.id, location: 'inventory' }, order: { slotIndex: 'ASC' } });
+    const totals = new Map<string, number>();
+    for (const row of rows) totals.set(row.itemId, (totals.get(row.itemId) ?? 0) + Number(row.quantity));
+    const progress = this.professionProgress(character, profession);
+    const activeSessions = [character.cookingSession, character.craftingSession].filter(Boolean) as any[];
+    const reserved: Record<string, number> = {};
+    for (const session of activeSessions) for (const req of session.ingredients ?? []) reserved[req.itemId] = Number(reserved[req.itemId] ?? 0) + Number(req.quantity);
+    const active = character.craftingSession?.profession === profession ? character.craftingSession : null;
+    const recipes = fields.recipes.map((recipe: any) => {
+      const ingredients = (recipe.ingredients ?? []).map((req: any) => ({ ...req, owned: totals.get(req.itemId) ?? 0,
+        available: Math.max(0, (totals.get(req.itemId) ?? 0) - Number(reserved[req.itemId] ?? 0)), item: this.item(req.itemId) }));
+      const output = this.item(recipe.outputItemId);
+      const hasIngredients = ingredients.every((req: any) => req.available >= Number(req.quantity));
+      const canReserveOutput = this.canReserveCapacity(rows, output);
+      return { ...recipe, output, ingredients, unlocked: progress.level >= Number(recipe.requiredLevel), hasIngredients, canReserveOutput,
+        available: !active && !character.cookingSession && !character.craftingSession && this.dataService.getMapById(character.currentMapId)?.type === 'town' && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition
+          && progress.level >= Number(recipe.requiredLevel) && hasIngredients && canReserveOutput };
+    });
+    return { characterId: character.id, npcId, profession, progress, recipes, session: active, otherSessionActive: !!character.cookingSession || !!(character.craftingSession && !active) };
+  }
+
+  async getProfessionState(characterId: string, npcId: string, profession: 'alchemy' | 'blacksmith') {
+    await this.reconcileCrafting(characterId);
+    return this.characterRepo.manager.transaction(async manager => {
+      const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character) throw new NotFoundException('Character not found');
+      return this.professionState(manager, character, npcId, profession);
+    });
+  }
+
+  private async scheduleCraftingCompletion(characterId: string, session: any) {
+    const delay = Math.max(0, Date.parse(session.completesAt) - Date.now());
+    await this.bullQueue.add('complete-crafting', { characterId, sessionId: session.id, generation: session.generation },
+      { jobId: 'crafting-' + characterId + '-' + session.id, delay, removeOnComplete: true, attempts: 10, backoff: { type: 'exponential', delay: 1000 } });
+  }
+
+  async startProfessionCrafting(characterId: string, npcId: string, profession: 'alchemy' | 'blacksmith', recipeId: string) {
+    const fields = this.professionFields(profession);
+    const recipe = fields.recipes.find((row: any) => row.id === recipeId);
+    if (!recipe) throw new BadRequestException('Unknown ' + fields.label + ' recipe');
+    const result = await this.battleService.withCharacterQueueLock(characterId, () => this.characterRepo.manager.transaction(async manager => {
+      const character = await this.characterForTown(manager, characterId);
+      this.assertProfessionNpc(character, npcId, profession);
+      if (character.cookingSession || character.craftingSession) throw new BadRequestException('A crafting session is already active');
+      const state = await this.professionState(manager, character, npcId, profession);
+      const candidate = state.recipes.find((row: any) => row.id === recipeId);
+      if (!candidate?.unlocked) throw new BadRequestException(fields.label + ' level too low for this recipe');
+      if (!candidate.hasIngredients) throw new BadRequestException('Insufficient ingredients');
+      if (!candidate.canReserveOutput) throw new BadRequestException('Not enough inventory space for the crafted item');
+      const now = new Date();
+      const session = { id: randomUUID(), generation: randomUUID(), profession, npcId, recipeId, startedAt: now.toISOString(),
+        completesAt: new Date(now.getTime() + 10_000).toISOString(),
+        ingredients: recipe.ingredients.map((req: any) => ({ itemId: req.itemId, quantity: Number(req.quantity) })),
+        outputItemId: recipe.outputItemId, outputQuantity: 1, xpReward: Number(recipe.xpReward) };
+      character.craftingSession = session; await manager.getRepository(Character).save(character);
+      return { session };
+    }));
+    await this.scheduleCraftingCompletion(characterId, result.session);
+    return this.getProfessionState(characterId, npcId, profession);
+  }
+
+  async cancelProfessionCrafting(characterId: string, npcId: string, profession: 'alchemy' | 'blacksmith', sessionId?: string) {
+    const result = await this.battleService.withCharacterQueueLock(characterId, () => this.characterRepo.manager.transaction(async manager => {
+      const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character) throw new NotFoundException('Character not found');
+      this.assertProfessionNpc(character, npcId, profession);
+      const session = character.craftingSession;
+      if (!session || session.profession !== profession) throw new BadRequestException('No active ' + this.professionFields(profession).label + ' session');
+      if (sessionId && session.id !== sessionId) throw new BadRequestException('Crafting session has changed');
+      if (Date.now() >= Date.parse(session.completesAt)) return { complete: true, sessionId: session.id };
+      character.craftingSession = null; await manager.getRepository(Character).save(character);
+      return { complete: false, sessionId: session.id };
+    }));
+    if (result.complete) await this.completeCrafting(characterId, result.sessionId);
+    else { const job = await this.bullQueue.getJob('crafting-' + characterId + '-' + result.sessionId); if (job) await job.remove().catch(() => undefined); }
+    return this.getProfessionState(characterId, npcId, profession);
+  }
+
+  async reconcileCrafting(characterId?: string) {
+    const characters = characterId ? [await this.characterRepo.findOne({ where: { id: characterId } })].filter(Boolean) as Character[] : await this.characterRepo.find({ where: {} });
+    for (const character of characters) {
+      const session = character.craftingSession;
+      if (!session?.id || !session.completesAt) continue;
+      const jobId = 'crafting-' + character.id + '-' + session.id;
+      const job = await this.bullQueue.getJob(jobId).catch(() => null);
+      if (!job) await this.scheduleCraftingCompletion(character.id, session);
+      if (Date.now() >= Date.parse(session.completesAt)) await this.completeCrafting(character.id, session.id);
+    }
+  }
+
+  async completeCrafting(characterId: string, sessionId: string) {
+    const result = await this.battleService.withCharacterQueueLock(characterId, () => this.characterRepo.manager.transaction(async manager => {
+      const characterRepo = manager.getRepository(Character);
+      const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+      if (!character) throw new NotFoundException('Character not found');
+      const session = character.craftingSession;
+      if (!session || session.id !== sessionId) return null;
+      if (Date.now() < Date.parse(session.completesAt)) return null;
+      const profession = session.profession as 'alchemy' | 'blacksmith';
+      if (profession !== 'alchemy' && profession !== 'blacksmith') throw new BadRequestException('Unknown crafting profession');
+      const fields = this.professionFields(profession);
+      const recipe = fields.recipes.find((row: any) => row.id === session.recipeId);
+      if (!recipe || recipe.outputItemId !== session.outputItemId) throw new BadRequestException('Crafting recipe changed during session');
+      const invRepo = manager.getRepository(InventoryItem);
+      const rows = await invRepo.find({ where: { characterId, location: 'inventory' }, lock: { mode: 'pessimistic_write' } });
+      const totals = new Map<string, number>();
+      for (const row of rows) totals.set(row.itemId, (totals.get(row.itemId) ?? 0) + Number(row.quantity));
+      for (const req of session.ingredients ?? []) if ((totals.get(req.itemId) ?? 0) < Number(req.quantity)) throw new BadRequestException('Reserved ingredient missing: ' + req.itemId);
+      for (const req of session.ingredients ?? []) await this.inventoryService.removeItem(characterId, req.itemId, Number(req.quantity), manager, true);
+      const output = this.item(session.outputItemId);
+      let instanceData: any = null;
+      const roll = output.randomRollOnCraft;
+      if (output.type === 'equipment' && roll?.enabled) {
+        const pool: string[] = Array.isArray(roll.attributesPool) ? roll.attributesPool : [];
+        if (pool.length) {
+          const digest = createHash('sha256').update(session.id + ':' + session.recipeId + ':' + output.id + ':craft-roll').digest();
+          const min = Math.max(1, Math.floor(Number(roll.min ?? 1))), max = Math.max(min, Math.floor(Number(roll.max ?? min)));
+          instanceData = { rolledAttribute: pool[digest.readUInt32BE(0) % pool.length], rolledValue: min + digest.readUInt32BE(4) % (max - min + 1), craftedByProfession: profession, craftedRecipeId: recipe.id };
+        }
+      }
+      await this.inventoryService.addItem(characterId, session.outputItemId, Number(session.outputQuantity ?? 1), 'inventory', instanceData, manager, true);
+      const previousLevel = Math.max(1, Number((character as any)[fields.levelField] ?? 1));
+      (character as any)[fields.xpField] = Number((character as any)[fields.xpField] ?? 0) + Number(recipe.xpReward ?? 0);
+      (character as any)[fields.levelField] = this.cookingLevelForXp(Number((character as any)[fields.xpField]));
+      character.craftingSession = null; await characterRepo.save(character);
+      return { levelUp: Number((character as any)[fields.levelField]) > previousLevel };
+    }));
+    if (result) await this.battleService.runFutureCombatMutation(characterId, async () => undefined);
     return result;
   }
 

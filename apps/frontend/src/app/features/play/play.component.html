@@ -22,6 +22,12 @@
           <small class="settings-section-title">Sound</small>
           <app-login-music-control variant="header" />
           <div class="settings-divider"></div>
+          <small class="settings-section-title">{{localeService.t('Language')}}</small>
+          <div class="locale-options">
+            <button type="button" [class.active]="localeService.locale()==='pt-BR'" (click)="localeService.setLocale('pt-BR')">Português (Brasil)</button>
+            <button type="button" [class.active]="localeService.locale()==='en-US'" (click)="localeService.setLocale('en-US')">English (US)</button>
+          </div>
+          <div class="settings-divider"></div>
           <button class="delete-account-setting" (click)="openDeleteAccount()">Delete account</button>
         </div>
       </div><button (click)="auth.logout()">EXIT</button>

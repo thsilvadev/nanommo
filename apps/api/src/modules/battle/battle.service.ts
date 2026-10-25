@@ -955,6 +955,7 @@ export class BattleService {
         killIndex: projectedPerMonster[monsterId] ?? 0,
         seed,
         characterLevel: Number(snapshot?.level ?? 1),
+        globalItemDrops: this.dataService.getGlobalItemDrops()?.drops ?? [],
       });
 
       projectedMapKillCount += 1;

@@ -1,962 +1,1329 @@
 {
- "part_slime_common": {
-  "name": "Slime Gel",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_slime_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_slime_common.svg",
-  "png64": "png/64/part_slime_common.png",
-  "png128": "png/128/part_slime_common.png",
-  "png256": "png/256/part_slime_common.png"
- },
- "part_slime_rare": {
-  "name": "Pristine Slime Core",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_slime_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_slime_rare.svg",
-  "png64": "png/64/part_slime_rare.png",
-  "png128": "png/128/part_slime_rare.png",
-  "png256": "png/256/part_slime_rare.png"
- },
- "part_fieldbat_common": {
-  "name": "Bat Wing",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_fieldbat_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_fieldbat_common.svg",
-  "png64": "png/64/part_fieldbat_common.png",
-  "png128": "png/128/part_fieldbat_common.png",
-  "png256": "png/256/part_fieldbat_common.png"
- },
- "part_fieldbat_rare": {
-  "name": "Sonar Membrane",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_fieldbat_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_fieldbat_rare.svg",
-  "png64": "png/64/part_fieldbat_rare.png",
-  "png128": "png/128/part_fieldbat_rare.png",
-  "png256": "png/256/part_fieldbat_rare.png"
- },
- "part_thornsprout_common": {
-  "name": "Thorn Bark",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_thornsprout_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_thornsprout_common.svg",
-  "png64": "png/64/part_thornsprout_common.png",
-  "png128": "png/128/part_thornsprout_common.png",
-  "png256": "png/256/part_thornsprout_common.png"
- },
- "part_thornsprout_rare": {
-  "name": "Verdant Heartwood",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_thornsprout_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_thornsprout_rare.svg",
-  "png64": "png/64/part_thornsprout_rare.png",
-  "png128": "png/128/part_thornsprout_rare.png",
-  "png256": "png/256/part_thornsprout_rare.png"
- },
- "part_mudcrawler_common": {
-  "name": "Mud Carapace",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_mudcrawler_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_mudcrawler_common.svg",
-  "png64": "png/64/part_mudcrawler_common.png",
-  "png128": "png/128/part_mudcrawler_common.png",
-  "png256": "png/256/part_mudcrawler_common.png"
- },
- "part_mudcrawler_rare": {
-  "name": "Ever-Wet Sac",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_mudcrawler_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_mudcrawler_rare.svg",
-  "png64": "png/64/part_mudcrawler_rare.png",
-  "png128": "png/128/part_mudcrawler_rare.png",
-  "png256": "png/256/part_mudcrawler_rare.png"
- },
- "part_direwolf_common": {
-  "name": "Wolf Fang",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_direwolf_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_direwolf_common.svg",
-  "png64": "png/64/part_direwolf_common.png",
-  "png128": "png/128/part_direwolf_common.png",
-  "png256": "png/256/part_direwolf_common.png"
- },
- "part_direwolf_rare": {
-  "name": "Alpha's Claw",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_direwolf_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_direwolf_rare.svg",
-  "png64": "png/64/part_direwolf_rare.png",
-  "png128": "png/128/part_direwolf_rare.png",
-  "png256": "png/256/part_direwolf_rare.png"
- },
- "part_sandscorpion_common": {
-  "name": "Scorpion Claw",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_sandscorpion_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_sandscorpion_common.svg",
-  "png64": "png/64/part_sandscorpion_common.png",
-  "png128": "png/128/part_sandscorpion_common.png",
-  "png256": "png/256/part_sandscorpion_common.png"
- },
- "part_sandscorpion_rare": {
-  "name": "Venom Sac",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_sandscorpion_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_sandscorpion_rare.svg",
-  "png64": "png/64/part_sandscorpion_rare.png",
-  "png128": "png/128/part_sandscorpion_rare.png",
-  "png256": "png/256/part_sandscorpion_rare.png"
- },
- "part_duneraider_common": {
-  "name": "Raider Cloth",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_duneraider_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_duneraider_common.svg",
-  "png64": "png/64/part_duneraider_common.png",
-  "png128": "png/128/part_duneraider_common.png",
-  "png256": "png/256/part_duneraider_common.png"
- },
- "part_duneraider_rare": {
-  "name": "Raider's Signet",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_duneraider_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_duneraider_rare.svg",
-  "png64": "png/64/part_duneraider_rare.png",
-  "png128": "png/128/part_duneraider_rare.png",
-  "png256": "png/256/part_duneraider_rare.png"
- },
- "part_cindergolem_common": {
-  "name": "Golem Core Shard",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_cindergolem_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_cindergolem_common.svg",
-  "png64": "png/64/part_cindergolem_common.png",
-  "png128": "png/128/part_cindergolem_common.png",
-  "png256": "png/256/part_cindergolem_common.png"
- },
- "part_cindergolem_rare": {
-  "name": "Molten Heart",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_cindergolem_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_cindergolem_rare.svg",
-  "png64": "png/64/part_cindergolem_rare.png",
-  "png128": "png/128/part_cindergolem_rare.png",
-  "png256": "png/256/part_cindergolem_rare.png"
- },
- "part_venomviper_common": {
-  "name": "Viper Fang",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_venomviper_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_venomviper_common.svg",
-  "png64": "png/64/part_venomviper_common.png",
-  "png128": "png/128/part_venomviper_common.png",
-  "png256": "png/256/part_venomviper_common.png"
- },
- "part_venomviper_rare": {
-  "name": "Twin-Fang Gland",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_venomviper_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_venomviper_rare.svg",
-  "png64": "png/64/part_venomviper_rare.png",
-  "png128": "png/128/part_venomviper_rare.png",
-  "png256": "png/256/part_venomviper_rare.png"
- },
- "part_mirageStalker_common": {
-  "name": "Stalker Hide",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_mirageStalker_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_mirageStalker_common.svg",
-  "png64": "png/64/part_mirageStalker_common.png",
-  "png128": "png/128/part_mirageStalker_common.png",
-  "png256": "png/256/part_mirageStalker_common.png"
- },
- "part_mirageStalker_rare": {
-  "name": "Mirage Pelt",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_mirageStalker_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_mirageStalker_rare.svg",
-  "png64": "png/64/part_mirageStalker_rare.png",
-  "png128": "png/128/part_mirageStalker_rare.png",
-  "png256": "png/256/part_mirageStalker_rare.png"
- },
- "part_brokensentinel_common": {
-  "name": "Sentinel Rune",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_brokensentinel_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_brokensentinel_common.svg",
-  "png64": "png/64/part_brokensentinel_common.png",
-  "png128": "png/128/part_brokensentinel_common.png",
-  "png256": "png/256/part_brokensentinel_common.png"
- },
- "part_brokensentinel_rare": {
-  "name": "Intact Rune Core",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_brokensentinel_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_brokensentinel_rare.svg",
-  "png64": "png/64/part_brokensentinel_rare.png",
-  "png128": "png/128/part_brokensentinel_rare.png",
-  "png256": "png/256/part_brokensentinel_rare.png"
- },
- "part_wraith_common": {
-  "name": "Wraith Essence",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_wraith_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_wraith_common.svg",
-  "png64": "png/64/part_wraith_common.png",
-  "png128": "png/128/part_wraith_common.png",
-  "png256": "png/256/part_wraith_common.png"
- },
- "part_wraith_rare": {
-  "name": "Soulbound Chain",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_wraith_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_wraith_rare.svg",
-  "png64": "png/64/part_wraith_rare.png",
-  "png128": "png/128/part_wraith_rare.png",
-  "png256": "png/256/part_wraith_rare.png"
- },
- "part_arcanewisp_common": {
-  "name": "Wisp Spark",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_arcanewisp_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_arcanewisp_common.svg",
-  "png64": "png/64/part_arcanewisp_common.png",
-  "png128": "png/128/part_arcanewisp_common.png",
-  "png256": "png/256/part_arcanewisp_common.png"
- },
- "part_arcanewisp_rare": {
-  "name": "Condensed Mana Shard",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_arcanewisp_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_arcanewisp_rare.svg",
-  "png64": "png/64/part_arcanewisp_rare.png",
-  "png128": "png/128/part_arcanewisp_rare.png",
-  "png256": "png/256/part_arcanewisp_rare.png"
- },
- "part_boneknight_common": {
-  "name": "Knight Bone",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_boneknight_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_boneknight_common.svg",
-  "png64": "png/64/part_boneknight_common.png",
-  "png128": "png/128/part_boneknight_common.png",
-  "png256": "png/256/part_boneknight_common.png"
- },
- "part_boneknight_rare": {
-  "name": "Unbroken Femur",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_boneknight_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_boneknight_rare.svg",
-  "png64": "png/64/part_boneknight_rare.png",
-  "png128": "png/128/part_boneknight_rare.png",
-  "png256": "png/256/part_boneknight_rare.png"
- },
- "part_ruinsguardian_common": {
-  "name": "Guardian Sigil",
-  "category": "monster_parts",
-  "rarity": "common",
-  "svg": "svg/monster_parts/part_ruinsguardian_common.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_ruinsguardian_common.svg",
-  "png64": "png/64/part_ruinsguardian_common.png",
-  "png128": "png/128/part_ruinsguardian_common.png",
-  "png256": "png/256/part_ruinsguardian_common.png"
- },
- "part_ruinsguardian_rare": {
-  "name": "Guardian's Eye",
-  "category": "monster_parts",
-  "rarity": "rare",
-  "svg": "svg/monster_parts/part_ruinsguardian_rare.svg",
-  "svg_noframe": "svg-noframe/monster_parts/part_ruinsguardian_rare.svg",
-  "png64": "png/64/part_ruinsguardian_rare.png",
-  "png128": "png/128/part_ruinsguardian_rare.png",
-  "png256": "png/256/part_ruinsguardian_rare.png"
- },
- "pot_hp_small": {
-  "name": "Small HP Potion",
-  "category": "consumables",
-  "rarity": "common",
-  "svg": "svg/consumables/pot_hp_small.svg",
-  "svg_noframe": "svg-noframe/consumables/pot_hp_small.svg",
-  "png64": "png/64/pot_hp_small.png",
-  "png128": "png/128/pot_hp_small.png",
-  "png256": "png/256/pot_hp_small.png"
- },
- "pot_hp_medium": {
-  "name": "Medium HP Potion",
-  "category": "consumables",
-  "rarity": "uncommon",
-  "svg": "svg/consumables/pot_hp_medium.svg",
-  "svg_noframe": "svg-noframe/consumables/pot_hp_medium.svg",
-  "png64": "png/64/pot_hp_medium.png",
-  "png128": "png/128/pot_hp_medium.png",
-  "png256": "png/256/pot_hp_medium.png"
- },
- "pot_hp_large": {
-  "name": "Large HP Potion",
-  "category": "consumables",
-  "rarity": "rare",
-  "svg": "svg/consumables/pot_hp_large.svg",
-  "svg_noframe": "svg-noframe/consumables/pot_hp_large.svg",
-  "png64": "png/64/pot_hp_large.png",
-  "png128": "png/128/pot_hp_large.png",
-  "png256": "png/256/pot_hp_large.png"
- },
- "pot_sp_small": {
-  "name": "Small SP Potion",
-  "category": "consumables",
-  "rarity": "common",
-  "svg": "svg/consumables/pot_sp_small.svg",
-  "svg_noframe": "svg-noframe/consumables/pot_sp_small.svg",
-  "png64": "png/64/pot_sp_small.png",
-  "png128": "png/128/pot_sp_small.png",
-  "png256": "png/256/pot_sp_small.png"
- },
- "pot_sp_medium": {
-  "name": "Medium SP Potion",
-  "category": "consumables",
-  "rarity": "uncommon",
-  "svg": "svg/consumables/pot_sp_medium.svg",
-  "svg_noframe": "svg-noframe/consumables/pot_sp_medium.svg",
-  "png64": "png/64/pot_sp_medium.png",
-  "png128": "png/128/pot_sp_medium.png",
-  "png256": "png/256/pot_sp_medium.png"
- },
- "pot_sp_large": {
-  "name": "Large SP Potion",
-  "category": "consumables",
-  "rarity": "rare",
-  "svg": "svg/consumables/pot_sp_large.svg",
-  "svg_noframe": "svg-noframe/consumables/pot_sp_large.svg",
-  "png64": "png/64/pot_sp_large.png",
-  "png128": "png/128/pot_sp_large.png",
-  "png256": "png/256/pot_sp_large.png"
- },
- "antidote": {
-  "name": "Antidote",
-  "category": "consumables",
-  "rarity": "uncommon",
-  "svg": "svg/consumables/antidote.svg",
-  "svg_noframe": "svg-noframe/consumables/antidote.svg",
-  "png64": "png/64/antidote.png",
-  "png128": "png/128/antidote.png",
-  "png256": "png/256/antidote.png"
- },
- "elixir_greater": {
-  "name": "Greater Elixir",
-  "category": "consumables",
-  "rarity": "epic",
-  "svg": "svg/consumables/elixir_greater.svg",
-  "svg_noframe": "svg-noframe/consumables/elixir_greater.svg",
-  "png64": "png/64/elixir_greater.png",
-  "png128": "png/128/elixir_greater.png",
-  "png256": "png/256/elixir_greater.png"
- },
- "food_bread": {
-  "name": "Bread",
-  "category": "consumables",
-  "rarity": "common",
-  "svg": "svg/consumables/food_bread.svg",
-  "svg_noframe": "svg-noframe/consumables/food_bread.svg",
-  "png64": "png/64/food_bread.png",
-  "png128": "png/128/food_bread.png",
-  "png256": "png/256/food_bread.png"
- },
- "food_cheese": {
-  "name": "Aged Cheese",
-  "category": "consumables",
-  "rarity": "common",
-  "svg": "svg/consumables/food_cheese.svg",
-  "svg_noframe": "svg-noframe/consumables/food_cheese.svg",
-  "png64": "png/64/food_cheese.png",
-  "png128": "png/128/food_cheese.png",
-  "png256": "png/256/food_cheese.png"
- },
- "food_blueberry": {
-  "name": "Wild Blueberries",
-  "category": "consumables",
-  "rarity": "common",
-  "svg": "svg/consumables/food_blueberry.svg",
-  "svg_noframe": "svg-noframe/consumables/food_blueberry.svg",
-  "png64": "png/64/food_blueberry.png",
-  "png128": "png/128/food_blueberry.png",
-  "png256": "png/256/food_blueberry.png"
- },
- "food_herbtea": {
-  "name": "Herbal Tea",
-  "category": "consumables",
-  "rarity": "common",
-  "svg": "svg/consumables/food_herbtea.svg",
-  "svg_noframe": "svg-noframe/consumables/food_herbtea.svg",
-  "png64": "png/64/food_herbtea.png",
-  "png128": "png/128/food_herbtea.png",
-  "png256": "png/256/food_herbtea.png"
- },
- "food_stew": {
-  "name": "Hunter's Stew",
-  "category": "consumables",
-  "rarity": "uncommon",
-  "svg": "svg/consumables/food_stew.svg",
-  "svg_noframe": "svg-noframe/consumables/food_stew.svg",
-  "png64": "png/64/food_stew.png",
-  "png128": "png/128/food_stew.png",
-  "png256": "png/256/food_stew.png"
- },
- "food_honey": {
-  "name": "Wild Honey",
-  "category": "consumables",
-  "rarity": "uncommon",
-  "svg": "svg/consumables/food_honey.svg",
-  "svg_noframe": "svg-noframe/consumables/food_honey.svg",
-  "png64": "png/64/food_honey.png",
-  "png128": "png/128/food_honey.png",
-  "png256": "png/256/food_honey.png"
- },
- "food_roast": {
-  "name": "Roasted Boar Leg",
-  "category": "consumables",
-  "rarity": "uncommon",
-  "svg": "svg/consumables/food_roast.svg",
-  "svg_noframe": "svg-noframe/consumables/food_roast.svg",
-  "png64": "png/64/food_roast.png",
-  "png128": "png/128/food_roast.png",
-  "png256": "png/256/food_roast.png"
- },
- "equip_sword_t1": {
-  "name": "Worn Sword",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_sword_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_sword_t1.svg",
-  "png64": "png/64/equip_sword_t1.png",
-  "png128": "png/128/equip_sword_t1.png",
-  "png256": "png/256/equip_sword_t1.png"
- },
- "equip_sword_t2": {
-  "name": "Reinforced Sword",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_sword_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_sword_t2.svg",
-  "png64": "png/64/equip_sword_t2.png",
-  "png128": "png/128/equip_sword_t2.png",
-  "png256": "png/256/equip_sword_t2.png"
- },
- "equip_sword_t3": {
-  "name": "Ancient Sword",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_sword_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_sword_t3.svg",
-  "png64": "png/64/equip_sword_t3.png",
-  "png128": "png/128/equip_sword_t3.png",
-  "png256": "png/256/equip_sword_t3.png"
- },
- "equip_greatsword_t1": {
-  "name": "Worn Greatsword",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_greatsword_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_greatsword_t1.svg",
-  "png64": "png/64/equip_greatsword_t1.png",
-  "png128": "png/128/equip_greatsword_t1.png",
-  "png256": "png/256/equip_greatsword_t1.png"
- },
- "equip_greatsword_t2": {
-  "name": "Reinforced Greatsword",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_greatsword_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_greatsword_t2.svg",
-  "png64": "png/64/equip_greatsword_t2.png",
-  "png128": "png/128/equip_greatsword_t2.png",
-  "png256": "png/256/equip_greatsword_t2.png"
- },
- "equip_greatsword_t3": {
-  "name": "Ancient Greatsword",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_greatsword_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_greatsword_t3.svg",
-  "png64": "png/64/equip_greatsword_t3.png",
-  "png128": "png/128/equip_greatsword_t3.png",
-  "png256": "png/256/equip_greatsword_t3.png"
- },
- "equip_dagger_t1": {
-  "name": "Worn Dagger",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_dagger_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_dagger_t1.svg",
-  "png64": "png/64/equip_dagger_t1.png",
-  "png128": "png/128/equip_dagger_t1.png",
-  "png256": "png/256/equip_dagger_t1.png"
- },
- "equip_dagger_t2": {
-  "name": "Reinforced Dagger",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_dagger_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_dagger_t2.svg",
-  "png64": "png/64/equip_dagger_t2.png",
-  "png128": "png/128/equip_dagger_t2.png",
-  "png256": "png/256/equip_dagger_t2.png"
- },
- "equip_dagger_t3": {
-  "name": "Ancient Dagger",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_dagger_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_dagger_t3.svg",
-  "png64": "png/64/equip_dagger_t3.png",
-  "png128": "png/128/equip_dagger_t3.png",
-  "png256": "png/256/equip_dagger_t3.png"
- },
- "equip_bow_t1": {
-  "name": "Worn Bow",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_bow_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_bow_t1.svg",
-  "png64": "png/64/equip_bow_t1.png",
-  "png128": "png/128/equip_bow_t1.png",
-  "png256": "png/256/equip_bow_t1.png"
- },
- "equip_bow_t2": {
-  "name": "Reinforced Bow",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_bow_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_bow_t2.svg",
-  "png64": "png/64/equip_bow_t2.png",
-  "png128": "png/128/equip_bow_t2.png",
-  "png256": "png/256/equip_bow_t2.png"
- },
- "equip_bow_t3": {
-  "name": "Ancient Bow",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_bow_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_bow_t3.svg",
-  "png64": "png/64/equip_bow_t3.png",
-  "png128": "png/128/equip_bow_t3.png",
-  "png256": "png/256/equip_bow_t3.png"
- },
- "equip_staff_t1": {
-  "name": "Worn Staff",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_staff_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_staff_t1.svg",
-  "png64": "png/64/equip_staff_t1.png",
-  "png128": "png/128/equip_staff_t1.png",
-  "png256": "png/256/equip_staff_t1.png"
- },
- "equip_staff_t2": {
-  "name": "Reinforced Staff",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_staff_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_staff_t2.svg",
-  "png64": "png/64/equip_staff_t2.png",
-  "png128": "png/128/equip_staff_t2.png",
-  "png256": "png/256/equip_staff_t2.png"
- },
- "equip_staff_t3": {
-  "name": "Ancient Staff",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_staff_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_staff_t3.svg",
-  "png64": "png/64/equip_staff_t3.png",
-  "png128": "png/128/equip_staff_t3.png",
-  "png256": "png/256/equip_staff_t3.png"
- },
- "equip_rod_t1": {
-  "name": "Worn Rod",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_rod_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_rod_t1.svg",
-  "png64": "png/64/equip_rod_t1.png",
-  "png128": "png/128/equip_rod_t1.png",
-  "png256": "png/256/equip_rod_t1.png"
- },
- "equip_rod_t2": {
-  "name": "Reinforced Rod",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_rod_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_rod_t2.svg",
-  "png64": "png/64/equip_rod_t2.png",
-  "png128": "png/128/equip_rod_t2.png",
-  "png256": "png/256/equip_rod_t2.png"
- },
- "equip_rod_t3": {
-  "name": "Ancient Rod",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_rod_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_rod_t3.svg",
-  "png64": "png/64/equip_rod_t3.png",
-  "png128": "png/128/equip_rod_t3.png",
-  "png256": "png/256/equip_rod_t3.png"
- },
- "equip_shield_t1": {
-  "name": "Worn Shield",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_shield_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_shield_t1.svg",
-  "png64": "png/64/equip_shield_t1.png",
-  "png128": "png/128/equip_shield_t1.png",
-  "png256": "png/256/equip_shield_t1.png"
- },
- "equip_shield_t2": {
-  "name": "Reinforced Shield",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_shield_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_shield_t2.svg",
-  "png64": "png/64/equip_shield_t2.png",
-  "png128": "png/128/equip_shield_t2.png",
-  "png256": "png/256/equip_shield_t2.png"
- },
- "equip_shield_t3": {
-  "name": "Ancient Shield",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_shield_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_shield_t3.svg",
-  "png64": "png/64/equip_shield_t3.png",
-  "png128": "png/128/equip_shield_t3.png",
-  "png256": "png/256/equip_shield_t3.png"
- },
- "equip_head_phys_t1": {
-  "name": "Worn Helm",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_head_phys_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_head_phys_t1.svg",
-  "png64": "png/64/equip_head_phys_t1.png",
-  "png128": "png/128/equip_head_phys_t1.png",
-  "png256": "png/256/equip_head_phys_t1.png"
- },
- "equip_head_magic_t1": {
-  "name": "Worn Arcane Helm",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_head_magic_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_head_magic_t1.svg",
-  "png64": "png/64/equip_head_magic_t1.png",
-  "png128": "png/128/equip_head_magic_t1.png",
-  "png256": "png/256/equip_head_magic_t1.png"
- },
- "equip_head_phys_t2": {
-  "name": "Reinforced Helm",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_head_phys_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_head_phys_t2.svg",
-  "png64": "png/64/equip_head_phys_t2.png",
-  "png128": "png/128/equip_head_phys_t2.png",
-  "png256": "png/256/equip_head_phys_t2.png"
- },
- "equip_head_magic_t2": {
-  "name": "Reinforced Arcane Helm",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_head_magic_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_head_magic_t2.svg",
-  "png64": "png/64/equip_head_magic_t2.png",
-  "png128": "png/128/equip_head_magic_t2.png",
-  "png256": "png/256/equip_head_magic_t2.png"
- },
- "equip_head_phys_t3": {
-  "name": "Ancient Helm",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_head_phys_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_head_phys_t3.svg",
-  "png64": "png/64/equip_head_phys_t3.png",
-  "png128": "png/128/equip_head_phys_t3.png",
-  "png256": "png/256/equip_head_phys_t3.png"
- },
- "equip_head_magic_t3": {
-  "name": "Ancient Arcane Helm",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_head_magic_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_head_magic_t3.svg",
-  "png64": "png/64/equip_head_magic_t3.png",
-  "png128": "png/128/equip_head_magic_t3.png",
-  "png256": "png/256/equip_head_magic_t3.png"
- },
- "equip_body_phys_t1": {
-  "name": "Worn Chestplate",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_body_phys_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_body_phys_t1.svg",
-  "png64": "png/64/equip_body_phys_t1.png",
-  "png128": "png/128/equip_body_phys_t1.png",
-  "png256": "png/256/equip_body_phys_t1.png"
- },
- "equip_body_magic_t1": {
-  "name": "Worn Arcane Chestplate",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_body_magic_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_body_magic_t1.svg",
-  "png64": "png/64/equip_body_magic_t1.png",
-  "png128": "png/128/equip_body_magic_t1.png",
-  "png256": "png/256/equip_body_magic_t1.png"
- },
- "equip_body_phys_t2": {
-  "name": "Reinforced Chestplate",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_body_phys_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_body_phys_t2.svg",
-  "png64": "png/64/equip_body_phys_t2.png",
-  "png128": "png/128/equip_body_phys_t2.png",
-  "png256": "png/256/equip_body_phys_t2.png"
- },
- "equip_body_magic_t2": {
-  "name": "Reinforced Arcane Chestplate",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_body_magic_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_body_magic_t2.svg",
-  "png64": "png/64/equip_body_magic_t2.png",
-  "png128": "png/128/equip_body_magic_t2.png",
-  "png256": "png/256/equip_body_magic_t2.png"
- },
- "equip_body_phys_t3": {
-  "name": "Ancient Chestplate",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_body_phys_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_body_phys_t3.svg",
-  "png64": "png/64/equip_body_phys_t3.png",
-  "png128": "png/128/equip_body_phys_t3.png",
-  "png256": "png/256/equip_body_phys_t3.png"
- },
- "equip_body_magic_t3": {
-  "name": "Ancient Arcane Chestplate",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_body_magic_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_body_magic_t3.svg",
-  "png64": "png/64/equip_body_magic_t3.png",
-  "png128": "png/128/equip_body_magic_t3.png",
-  "png256": "png/256/equip_body_magic_t3.png"
- },
- "equip_cape_phys_t1": {
-  "name": "Worn Cape",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_cape_phys_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_cape_phys_t1.svg",
-  "png64": "png/64/equip_cape_phys_t1.png",
-  "png128": "png/128/equip_cape_phys_t1.png",
-  "png256": "png/256/equip_cape_phys_t1.png"
- },
- "equip_cape_magic_t1": {
-  "name": "Worn Arcane Cape",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_cape_magic_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_cape_magic_t1.svg",
-  "png64": "png/64/equip_cape_magic_t1.png",
-  "png128": "png/128/equip_cape_magic_t1.png",
-  "png256": "png/256/equip_cape_magic_t1.png"
- },
- "equip_cape_phys_t2": {
-  "name": "Reinforced Cape",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_cape_phys_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_cape_phys_t2.svg",
-  "png64": "png/64/equip_cape_phys_t2.png",
-  "png128": "png/128/equip_cape_phys_t2.png",
-  "png256": "png/256/equip_cape_phys_t2.png"
- },
- "equip_cape_magic_t2": {
-  "name": "Reinforced Arcane Cape",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_cape_magic_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_cape_magic_t2.svg",
-  "png64": "png/64/equip_cape_magic_t2.png",
-  "png128": "png/128/equip_cape_magic_t2.png",
-  "png256": "png/256/equip_cape_magic_t2.png"
- },
- "equip_cape_phys_t3": {
-  "name": "Ancient Cape",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_cape_phys_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_cape_phys_t3.svg",
-  "png64": "png/64/equip_cape_phys_t3.png",
-  "png128": "png/128/equip_cape_phys_t3.png",
-  "png256": "png/256/equip_cape_phys_t3.png"
- },
- "equip_cape_magic_t3": {
-  "name": "Ancient Arcane Cape",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_cape_magic_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_cape_magic_t3.svg",
-  "png64": "png/64/equip_cape_magic_t3.png",
-  "png128": "png/128/equip_cape_magic_t3.png",
-  "png256": "png/256/equip_cape_magic_t3.png"
- },
- "equip_accessory_sor_t1": {
-  "name": "Worn Lucky Ring",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_accessory_sor_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_accessory_sor_t1.svg",
-  "png64": "png/64/equip_accessory_sor_t1.png",
-  "png128": "png/128/equip_accessory_sor_t1.png",
-  "png256": "png/256/equip_accessory_sor_t1.png"
- },
- "equip_accessory_dex_t1": {
-  "name": "Worn Precise Ring",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_accessory_dex_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_accessory_dex_t1.svg",
-  "png64": "png/64/equip_accessory_dex_t1.png",
-  "png128": "png/128/equip_accessory_dex_t1.png",
-  "png256": "png/256/equip_accessory_dex_t1.png"
- },
- "equip_accessory_sor_t2": {
-  "name": "Reinforced Lucky Ring",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_accessory_sor_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_accessory_sor_t2.svg",
-  "png64": "png/64/equip_accessory_sor_t2.png",
-  "png128": "png/128/equip_accessory_sor_t2.png",
-  "png256": "png/256/equip_accessory_sor_t2.png"
- },
- "equip_accessory_dex_t2": {
-  "name": "Reinforced Precise Ring",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_accessory_dex_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_accessory_dex_t2.svg",
-  "png64": "png/64/equip_accessory_dex_t2.png",
-  "png128": "png/128/equip_accessory_dex_t2.png",
-  "png256": "png/256/equip_accessory_dex_t2.png"
- },
- "equip_accessory_sor_t3": {
-  "name": "Ancient Lucky Ring",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_accessory_sor_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_accessory_sor_t3.svg",
-  "png64": "png/64/equip_accessory_sor_t3.png",
-  "png128": "png/128/equip_accessory_sor_t3.png",
-  "png256": "png/256/equip_accessory_sor_t3.png"
- },
- "equip_accessory_dex_t3": {
-  "name": "Ancient Precise Ring",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_accessory_dex_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_accessory_dex_t3.svg",
-  "png64": "png/64/equip_accessory_dex_t3.png",
-  "png128": "png/128/equip_accessory_dex_t3.png",
-  "png256": "png/256/equip_accessory_dex_t3.png"
- },
- "equip_shoes_earth_t1": {
-  "name": "Grounded Boots",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_shoes_earth_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_shoes_earth_t1.svg",
-  "png64": "png/64/equip_shoes_earth_t1.png",
-  "png128": "png/128/equip_shoes_earth_t1.png",
-  "png256": "png/256/equip_shoes_earth_t1.png"
- },
- "equip_shoes_water_t1": {
-  "name": "Wading Boots",
-  "category": "equipment",
-  "rarity": "common",
-  "svg": "svg/equipment/equip_shoes_water_t1.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_shoes_water_t1.svg",
-  "png64": "png/64/equip_shoes_water_t1.png",
-  "png128": "png/128/equip_shoes_water_t1.png",
-  "png256": "png/256/equip_shoes_water_t1.png"
- },
- "equip_shoes_fire_t2": {
-  "name": "Cinderproof Boots",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_shoes_fire_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_shoes_fire_t2.svg",
-  "png64": "png/64/equip_shoes_fire_t2.png",
-  "png128": "png/128/equip_shoes_fire_t2.png",
-  "png256": "png/256/equip_shoes_fire_t2.png"
- },
- "equip_shoes_shadow_t2": {
-  "name": "Umbral Boots",
-  "category": "equipment",
-  "rarity": "rare",
-  "svg": "svg/equipment/equip_shoes_shadow_t2.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_shoes_shadow_t2.svg",
-  "png64": "png/64/equip_shoes_shadow_t2.png",
-  "png128": "png/128/equip_shoes_shadow_t2.png",
-  "png256": "png/256/equip_shoes_shadow_t2.png"
- },
- "equip_shoes_wind_t3": {
-  "name": "Stormtread Boots",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_shoes_wind_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_shoes_wind_t3.svg",
-  "png64": "png/64/equip_shoes_wind_t3.png",
-  "png128": "png/128/equip_shoes_wind_t3.png",
-  "png256": "png/256/equip_shoes_wind_t3.png"
- },
- "equip_shoes_holy_t3": {
-  "name": "Sanctified Boots",
-  "category": "equipment",
-  "rarity": "epic",
-  "svg": "svg/equipment/equip_shoes_holy_t3.svg",
-  "svg_noframe": "svg-noframe/equipment/equip_shoes_holy_t3.svg",
-  "png64": "png/64/equip_shoes_holy_t3.png",
-  "png128": "png/128/equip_shoes_holy_t3.png",
-  "png256": "png/256/equip_shoes_holy_t3.png"
- }
+  "part_slime_common": {
+    "name": "Slime Gel",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_slime_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_slime_common.svg",
+    "png64": "png/64/part_slime_common.png",
+    "png128": "png/128/part_slime_common.png",
+    "png256": "png/256/part_slime_common.png"
+  },
+  "part_slime_rare": {
+    "name": "Pristine Slime Core",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_slime_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_slime_rare.svg",
+    "png64": "png/64/part_slime_rare.png",
+    "png128": "png/128/part_slime_rare.png",
+    "png256": "png/256/part_slime_rare.png"
+  },
+  "part_fieldbat_common": {
+    "name": "Bat Wing",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_fieldbat_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_fieldbat_common.svg",
+    "png64": "png/64/part_fieldbat_common.png",
+    "png128": "png/128/part_fieldbat_common.png",
+    "png256": "png/256/part_fieldbat_common.png"
+  },
+  "part_fieldbat_rare": {
+    "name": "Sonar Membrane",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_fieldbat_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_fieldbat_rare.svg",
+    "png64": "png/64/part_fieldbat_rare.png",
+    "png128": "png/128/part_fieldbat_rare.png",
+    "png256": "png/256/part_fieldbat_rare.png"
+  },
+  "part_thornsprout_common": {
+    "name": "Thorn Bark",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_thornsprout_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_thornsprout_common.svg",
+    "png64": "png/64/part_thornsprout_common.png",
+    "png128": "png/128/part_thornsprout_common.png",
+    "png256": "png/256/part_thornsprout_common.png"
+  },
+  "part_thornsprout_rare": {
+    "name": "Verdant Heartwood",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_thornsprout_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_thornsprout_rare.svg",
+    "png64": "png/64/part_thornsprout_rare.png",
+    "png128": "png/128/part_thornsprout_rare.png",
+    "png256": "png/256/part_thornsprout_rare.png"
+  },
+  "part_mudcrawler_common": {
+    "name": "Mud Carapace",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_mudcrawler_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_mudcrawler_common.svg",
+    "png64": "png/64/part_mudcrawler_common.png",
+    "png128": "png/128/part_mudcrawler_common.png",
+    "png256": "png/256/part_mudcrawler_common.png"
+  },
+  "part_mudcrawler_rare": {
+    "name": "Ever-Wet Sac",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_mudcrawler_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_mudcrawler_rare.svg",
+    "png64": "png/64/part_mudcrawler_rare.png",
+    "png128": "png/128/part_mudcrawler_rare.png",
+    "png256": "png/256/part_mudcrawler_rare.png"
+  },
+  "part_direwolf_common": {
+    "name": "Wolf Fang",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_direwolf_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_direwolf_common.svg",
+    "png64": "png/64/part_direwolf_common.png",
+    "png128": "png/128/part_direwolf_common.png",
+    "png256": "png/256/part_direwolf_common.png"
+  },
+  "part_direwolf_rare": {
+    "name": "Alpha's Claw",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_direwolf_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_direwolf_rare.svg",
+    "png64": "png/64/part_direwolf_rare.png",
+    "png128": "png/128/part_direwolf_rare.png",
+    "png256": "png/256/part_direwolf_rare.png"
+  },
+  "part_sandscorpion_common": {
+    "name": "Scorpion Claw",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_sandscorpion_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_sandscorpion_common.svg",
+    "png64": "png/64/part_sandscorpion_common.png",
+    "png128": "png/128/part_sandscorpion_common.png",
+    "png256": "png/256/part_sandscorpion_common.png"
+  },
+  "part_sandscorpion_rare": {
+    "name": "Venom Sac",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_sandscorpion_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_sandscorpion_rare.svg",
+    "png64": "png/64/part_sandscorpion_rare.png",
+    "png128": "png/128/part_sandscorpion_rare.png",
+    "png256": "png/256/part_sandscorpion_rare.png"
+  },
+  "part_duneraider_common": {
+    "name": "Raider Cloth",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_duneraider_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_duneraider_common.svg",
+    "png64": "png/64/part_duneraider_common.png",
+    "png128": "png/128/part_duneraider_common.png",
+    "png256": "png/256/part_duneraider_common.png"
+  },
+  "part_duneraider_rare": {
+    "name": "Raider's Signet",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_duneraider_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_duneraider_rare.svg",
+    "png64": "png/64/part_duneraider_rare.png",
+    "png128": "png/128/part_duneraider_rare.png",
+    "png256": "png/256/part_duneraider_rare.png"
+  },
+  "part_cindergolem_common": {
+    "name": "Golem Core Shard",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_cindergolem_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_cindergolem_common.svg",
+    "png64": "png/64/part_cindergolem_common.png",
+    "png128": "png/128/part_cindergolem_common.png",
+    "png256": "png/256/part_cindergolem_common.png"
+  },
+  "part_cindergolem_rare": {
+    "name": "Molten Heart",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_cindergolem_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_cindergolem_rare.svg",
+    "png64": "png/64/part_cindergolem_rare.png",
+    "png128": "png/128/part_cindergolem_rare.png",
+    "png256": "png/256/part_cindergolem_rare.png"
+  },
+  "part_venomviper_common": {
+    "name": "Viper Fang",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_venomviper_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_venomviper_common.svg",
+    "png64": "png/64/part_venomviper_common.png",
+    "png128": "png/128/part_venomviper_common.png",
+    "png256": "png/256/part_venomviper_common.png"
+  },
+  "part_venomviper_rare": {
+    "name": "Twin-Fang Gland",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_venomviper_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_venomviper_rare.svg",
+    "png64": "png/64/part_venomviper_rare.png",
+    "png128": "png/128/part_venomviper_rare.png",
+    "png256": "png/256/part_venomviper_rare.png"
+  },
+  "part_mirageStalker_common": {
+    "name": "Stalker Hide",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_mirageStalker_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_mirageStalker_common.svg",
+    "png64": "png/64/part_mirageStalker_common.png",
+    "png128": "png/128/part_mirageStalker_common.png",
+    "png256": "png/256/part_mirageStalker_common.png"
+  },
+  "part_mirageStalker_rare": {
+    "name": "Mirage Pelt",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_mirageStalker_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_mirageStalker_rare.svg",
+    "png64": "png/64/part_mirageStalker_rare.png",
+    "png128": "png/128/part_mirageStalker_rare.png",
+    "png256": "png/256/part_mirageStalker_rare.png"
+  },
+  "part_brokensentinel_common": {
+    "name": "Sentinel Rune",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_brokensentinel_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_brokensentinel_common.svg",
+    "png64": "png/64/part_brokensentinel_common.png",
+    "png128": "png/128/part_brokensentinel_common.png",
+    "png256": "png/256/part_brokensentinel_common.png"
+  },
+  "part_brokensentinel_rare": {
+    "name": "Intact Rune Core",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_brokensentinel_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_brokensentinel_rare.svg",
+    "png64": "png/64/part_brokensentinel_rare.png",
+    "png128": "png/128/part_brokensentinel_rare.png",
+    "png256": "png/256/part_brokensentinel_rare.png"
+  },
+  "part_wraith_common": {
+    "name": "Wraith Essence",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_wraith_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_wraith_common.svg",
+    "png64": "png/64/part_wraith_common.png",
+    "png128": "png/128/part_wraith_common.png",
+    "png256": "png/256/part_wraith_common.png"
+  },
+  "part_wraith_rare": {
+    "name": "Soulbound Chain",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_wraith_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_wraith_rare.svg",
+    "png64": "png/64/part_wraith_rare.png",
+    "png128": "png/128/part_wraith_rare.png",
+    "png256": "png/256/part_wraith_rare.png"
+  },
+  "part_arcanewisp_common": {
+    "name": "Wisp Spark",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_arcanewisp_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_arcanewisp_common.svg",
+    "png64": "png/64/part_arcanewisp_common.png",
+    "png128": "png/128/part_arcanewisp_common.png",
+    "png256": "png/256/part_arcanewisp_common.png"
+  },
+  "part_arcanewisp_rare": {
+    "name": "Condensed Mana Shard",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_arcanewisp_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_arcanewisp_rare.svg",
+    "png64": "png/64/part_arcanewisp_rare.png",
+    "png128": "png/128/part_arcanewisp_rare.png",
+    "png256": "png/256/part_arcanewisp_rare.png"
+  },
+  "part_boneknight_common": {
+    "name": "Knight Bone",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_boneknight_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_boneknight_common.svg",
+    "png64": "png/64/part_boneknight_common.png",
+    "png128": "png/128/part_boneknight_common.png",
+    "png256": "png/256/part_boneknight_common.png"
+  },
+  "part_boneknight_rare": {
+    "name": "Unbroken Femur",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_boneknight_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_boneknight_rare.svg",
+    "png64": "png/64/part_boneknight_rare.png",
+    "png128": "png/128/part_boneknight_rare.png",
+    "png256": "png/256/part_boneknight_rare.png"
+  },
+  "part_ruinsguardian_common": {
+    "name": "Guardian Sigil",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_ruinsguardian_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_ruinsguardian_common.svg",
+    "png64": "png/64/part_ruinsguardian_common.png",
+    "png128": "png/128/part_ruinsguardian_common.png",
+    "png256": "png/256/part_ruinsguardian_common.png"
+  },
+  "part_ruinsguardian_rare": {
+    "name": "Guardian's Eye",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_ruinsguardian_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_ruinsguardian_rare.svg",
+    "png64": "png/64/part_ruinsguardian_rare.png",
+    "png128": "png/128/part_ruinsguardian_rare.png",
+    "png256": "png/256/part_ruinsguardian_rare.png"
+  },
+  "pot_hp_small": {
+    "name": "Small HP Potion",
+    "category": "consumables",
+    "rarity": "common",
+    "svg": "svg/consumables/pot_hp_small.svg",
+    "svg_noframe": "svg-noframe/consumables/pot_hp_small.svg",
+    "png64": "png/64/pot_hp_small.png",
+    "png128": "png/128/pot_hp_small.png",
+    "png256": "png/256/pot_hp_small.png"
+  },
+  "pot_hp_medium": {
+    "name": "Medium HP Potion",
+    "category": "consumables",
+    "rarity": "uncommon",
+    "svg": "svg/consumables/pot_hp_medium.svg",
+    "svg_noframe": "svg-noframe/consumables/pot_hp_medium.svg",
+    "png64": "png/64/pot_hp_medium.png",
+    "png128": "png/128/pot_hp_medium.png",
+    "png256": "png/256/pot_hp_medium.png"
+  },
+  "pot_hp_large": {
+    "name": "Large HP Potion",
+    "category": "consumables",
+    "rarity": "rare",
+    "svg": "svg/consumables/pot_hp_large.svg",
+    "svg_noframe": "svg-noframe/consumables/pot_hp_large.svg",
+    "png64": "png/64/pot_hp_large.png",
+    "png128": "png/128/pot_hp_large.png",
+    "png256": "png/256/pot_hp_large.png"
+  },
+  "pot_sp_small": {
+    "name": "Small SP Potion",
+    "category": "consumables",
+    "rarity": "common",
+    "svg": "svg/consumables/pot_sp_small.svg",
+    "svg_noframe": "svg-noframe/consumables/pot_sp_small.svg",
+    "png64": "png/64/pot_sp_small.png",
+    "png128": "png/128/pot_sp_small.png",
+    "png256": "png/256/pot_sp_small.png"
+  },
+  "pot_sp_medium": {
+    "name": "Medium SP Potion",
+    "category": "consumables",
+    "rarity": "uncommon",
+    "svg": "svg/consumables/pot_sp_medium.svg",
+    "svg_noframe": "svg-noframe/consumables/pot_sp_medium.svg",
+    "png64": "png/64/pot_sp_medium.png",
+    "png128": "png/128/pot_sp_medium.png",
+    "png256": "png/256/pot_sp_medium.png"
+  },
+  "pot_sp_large": {
+    "name": "Large SP Potion",
+    "category": "consumables",
+    "rarity": "rare",
+    "svg": "svg/consumables/pot_sp_large.svg",
+    "svg_noframe": "svg-noframe/consumables/pot_sp_large.svg",
+    "png64": "png/64/pot_sp_large.png",
+    "png128": "png/128/pot_sp_large.png",
+    "png256": "png/256/pot_sp_large.png"
+  },
+  "antidote": {
+    "name": "Antidote",
+    "category": "consumables",
+    "rarity": "uncommon",
+    "svg": "svg/consumables/antidote.svg",
+    "svg_noframe": "svg-noframe/consumables/antidote.svg",
+    "png64": "png/64/antidote.png",
+    "png128": "png/128/antidote.png",
+    "png256": "png/256/antidote.png"
+  },
+  "elixir_greater": {
+    "name": "Greater Elixir",
+    "category": "consumables",
+    "rarity": "epic",
+    "svg": "svg/consumables/elixir_greater.svg",
+    "svg_noframe": "svg-noframe/consumables/elixir_greater.svg",
+    "png64": "png/64/elixir_greater.png",
+    "png128": "png/128/elixir_greater.png",
+    "png256": "png/256/elixir_greater.png"
+  },
+  "food_bread": {
+    "name": "Bread",
+    "category": "consumables",
+    "rarity": "common",
+    "svg": "svg/consumables/food_bread.svg",
+    "svg_noframe": "svg-noframe/consumables/food_bread.svg",
+    "png64": "png/64/food_bread.png",
+    "png128": "png/128/food_bread.png",
+    "png256": "png/256/food_bread.png"
+  },
+  "food_cheese": {
+    "name": "Aged Cheese",
+    "category": "consumables",
+    "rarity": "common",
+    "svg": "svg/consumables/food_cheese.svg",
+    "svg_noframe": "svg-noframe/consumables/food_cheese.svg",
+    "png64": "png/64/food_cheese.png",
+    "png128": "png/128/food_cheese.png",
+    "png256": "png/256/food_cheese.png"
+  },
+  "food_blueberry": {
+    "name": "Wild Blueberries",
+    "category": "consumables",
+    "rarity": "common",
+    "svg": "svg/consumables/food_blueberry.svg",
+    "svg_noframe": "svg-noframe/consumables/food_blueberry.svg",
+    "png64": "png/64/food_blueberry.png",
+    "png128": "png/128/food_blueberry.png",
+    "png256": "png/256/food_blueberry.png"
+  },
+  "food_herbtea": {
+    "name": "Herbal Tea",
+    "category": "consumables",
+    "rarity": "common",
+    "svg": "svg/consumables/food_herbtea.svg",
+    "svg_noframe": "svg-noframe/consumables/food_herbtea.svg",
+    "png64": "png/64/food_herbtea.png",
+    "png128": "png/128/food_herbtea.png",
+    "png256": "png/256/food_herbtea.png"
+  },
+  "food_stew": {
+    "name": "Hunter's Stew",
+    "category": "consumables",
+    "rarity": "uncommon",
+    "svg": "svg/consumables/food_stew.svg",
+    "svg_noframe": "svg-noframe/consumables/food_stew.svg",
+    "png64": "png/64/food_stew.png",
+    "png128": "png/128/food_stew.png",
+    "png256": "png/256/food_stew.png"
+  },
+  "food_honey": {
+    "name": "Wild Honey",
+    "category": "consumables",
+    "rarity": "uncommon",
+    "svg": "svg/consumables/food_honey.svg",
+    "svg_noframe": "svg-noframe/consumables/food_honey.svg",
+    "png64": "png/64/food_honey.png",
+    "png128": "png/128/food_honey.png",
+    "png256": "png/256/food_honey.png"
+  },
+  "food_roast": {
+    "name": "Roasted Boar Leg",
+    "category": "consumables",
+    "rarity": "uncommon",
+    "svg": "svg/consumables/food_roast.svg",
+    "svg_noframe": "svg-noframe/consumables/food_roast.svg",
+    "png64": "png/64/food_roast.png",
+    "png128": "png/128/food_roast.png",
+    "png256": "png/256/food_roast.png"
+  },
+  "equip_sword_t1": {
+    "name": "Worn Sword",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_sword_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_sword_t1.svg",
+    "png64": "png/64/equip_sword_t1.png",
+    "png128": "png/128/equip_sword_t1.png",
+    "png256": "png/256/equip_sword_t1.png"
+  },
+  "equip_sword_t2": {
+    "name": "Reinforced Sword",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_sword_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_sword_t2.svg",
+    "png64": "png/64/equip_sword_t2.png",
+    "png128": "png/128/equip_sword_t2.png",
+    "png256": "png/256/equip_sword_t2.png"
+  },
+  "equip_sword_t3": {
+    "name": "Ancient Sword",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_sword_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_sword_t3.svg",
+    "png64": "png/64/equip_sword_t3.png",
+    "png128": "png/128/equip_sword_t3.png",
+    "png256": "png/256/equip_sword_t3.png"
+  },
+  "equip_greatsword_t1": {
+    "name": "Worn Greatsword",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_greatsword_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_greatsword_t1.svg",
+    "png64": "png/64/equip_greatsword_t1.png",
+    "png128": "png/128/equip_greatsword_t1.png",
+    "png256": "png/256/equip_greatsword_t1.png"
+  },
+  "equip_greatsword_t2": {
+    "name": "Reinforced Greatsword",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_greatsword_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_greatsword_t2.svg",
+    "png64": "png/64/equip_greatsword_t2.png",
+    "png128": "png/128/equip_greatsword_t2.png",
+    "png256": "png/256/equip_greatsword_t2.png"
+  },
+  "equip_greatsword_t3": {
+    "name": "Ancient Greatsword",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_greatsword_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_greatsword_t3.svg",
+    "png64": "png/64/equip_greatsword_t3.png",
+    "png128": "png/128/equip_greatsword_t3.png",
+    "png256": "png/256/equip_greatsword_t3.png"
+  },
+  "equip_dagger_t1": {
+    "name": "Worn Dagger",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_dagger_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_dagger_t1.svg",
+    "png64": "png/64/equip_dagger_t1.png",
+    "png128": "png/128/equip_dagger_t1.png",
+    "png256": "png/256/equip_dagger_t1.png"
+  },
+  "equip_dagger_t2": {
+    "name": "Reinforced Dagger",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_dagger_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_dagger_t2.svg",
+    "png64": "png/64/equip_dagger_t2.png",
+    "png128": "png/128/equip_dagger_t2.png",
+    "png256": "png/256/equip_dagger_t2.png"
+  },
+  "equip_dagger_t3": {
+    "name": "Ancient Dagger",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_dagger_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_dagger_t3.svg",
+    "png64": "png/64/equip_dagger_t3.png",
+    "png128": "png/128/equip_dagger_t3.png",
+    "png256": "png/256/equip_dagger_t3.png"
+  },
+  "equip_bow_t1": {
+    "name": "Worn Bow",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_bow_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_bow_t1.svg",
+    "png64": "png/64/equip_bow_t1.png",
+    "png128": "png/128/equip_bow_t1.png",
+    "png256": "png/256/equip_bow_t1.png"
+  },
+  "equip_bow_t2": {
+    "name": "Reinforced Bow",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_bow_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_bow_t2.svg",
+    "png64": "png/64/equip_bow_t2.png",
+    "png128": "png/128/equip_bow_t2.png",
+    "png256": "png/256/equip_bow_t2.png"
+  },
+  "equip_bow_t3": {
+    "name": "Ancient Bow",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_bow_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_bow_t3.svg",
+    "png64": "png/64/equip_bow_t3.png",
+    "png128": "png/128/equip_bow_t3.png",
+    "png256": "png/256/equip_bow_t3.png"
+  },
+  "equip_staff_t1": {
+    "name": "Worn Staff",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_staff_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_staff_t1.svg",
+    "png64": "png/64/equip_staff_t1.png",
+    "png128": "png/128/equip_staff_t1.png",
+    "png256": "png/256/equip_staff_t1.png"
+  },
+  "equip_staff_t2": {
+    "name": "Reinforced Staff",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_staff_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_staff_t2.svg",
+    "png64": "png/64/equip_staff_t2.png",
+    "png128": "png/128/equip_staff_t2.png",
+    "png256": "png/256/equip_staff_t2.png"
+  },
+  "equip_staff_t3": {
+    "name": "Ancient Staff",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_staff_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_staff_t3.svg",
+    "png64": "png/64/equip_staff_t3.png",
+    "png128": "png/128/equip_staff_t3.png",
+    "png256": "png/256/equip_staff_t3.png"
+  },
+  "equip_rod_t1": {
+    "name": "Worn Rod",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_rod_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_rod_t1.svg",
+    "png64": "png/64/equip_rod_t1.png",
+    "png128": "png/128/equip_rod_t1.png",
+    "png256": "png/256/equip_rod_t1.png"
+  },
+  "equip_rod_t2": {
+    "name": "Reinforced Rod",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_rod_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_rod_t2.svg",
+    "png64": "png/64/equip_rod_t2.png",
+    "png128": "png/128/equip_rod_t2.png",
+    "png256": "png/256/equip_rod_t2.png"
+  },
+  "equip_rod_t3": {
+    "name": "Ancient Rod",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_rod_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_rod_t3.svg",
+    "png64": "png/64/equip_rod_t3.png",
+    "png128": "png/128/equip_rod_t3.png",
+    "png256": "png/256/equip_rod_t3.png"
+  },
+  "equip_shield_t1": {
+    "name": "Worn Shield",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_shield_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_shield_t1.svg",
+    "png64": "png/64/equip_shield_t1.png",
+    "png128": "png/128/equip_shield_t1.png",
+    "png256": "png/256/equip_shield_t1.png"
+  },
+  "equip_shield_t2": {
+    "name": "Reinforced Shield",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_shield_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_shield_t2.svg",
+    "png64": "png/64/equip_shield_t2.png",
+    "png128": "png/128/equip_shield_t2.png",
+    "png256": "png/256/equip_shield_t2.png"
+  },
+  "equip_shield_t3": {
+    "name": "Ancient Shield",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_shield_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_shield_t3.svg",
+    "png64": "png/64/equip_shield_t3.png",
+    "png128": "png/128/equip_shield_t3.png",
+    "png256": "png/256/equip_shield_t3.png"
+  },
+  "equip_head_phys_t1": {
+    "name": "Worn Helm",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_head_phys_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_head_phys_t1.svg",
+    "png64": "png/64/equip_head_phys_t1.png",
+    "png128": "png/128/equip_head_phys_t1.png",
+    "png256": "png/256/equip_head_phys_t1.png"
+  },
+  "equip_head_magic_t1": {
+    "name": "Worn Arcane Helm",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_head_magic_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_head_magic_t1.svg",
+    "png64": "png/64/equip_head_magic_t1.png",
+    "png128": "png/128/equip_head_magic_t1.png",
+    "png256": "png/256/equip_head_magic_t1.png"
+  },
+  "equip_head_phys_t2": {
+    "name": "Reinforced Helm",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_head_phys_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_head_phys_t2.svg",
+    "png64": "png/64/equip_head_phys_t2.png",
+    "png128": "png/128/equip_head_phys_t2.png",
+    "png256": "png/256/equip_head_phys_t2.png"
+  },
+  "equip_head_magic_t2": {
+    "name": "Reinforced Arcane Helm",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_head_magic_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_head_magic_t2.svg",
+    "png64": "png/64/equip_head_magic_t2.png",
+    "png128": "png/128/equip_head_magic_t2.png",
+    "png256": "png/256/equip_head_magic_t2.png"
+  },
+  "equip_head_phys_t3": {
+    "name": "Ancient Helm",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_head_phys_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_head_phys_t3.svg",
+    "png64": "png/64/equip_head_phys_t3.png",
+    "png128": "png/128/equip_head_phys_t3.png",
+    "png256": "png/256/equip_head_phys_t3.png"
+  },
+  "equip_head_magic_t3": {
+    "name": "Ancient Arcane Helm",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_head_magic_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_head_magic_t3.svg",
+    "png64": "png/64/equip_head_magic_t3.png",
+    "png128": "png/128/equip_head_magic_t3.png",
+    "png256": "png/256/equip_head_magic_t3.png"
+  },
+  "equip_body_phys_t1": {
+    "name": "Worn Chestplate",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_body_phys_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_body_phys_t1.svg",
+    "png64": "png/64/equip_body_phys_t1.png",
+    "png128": "png/128/equip_body_phys_t1.png",
+    "png256": "png/256/equip_body_phys_t1.png"
+  },
+  "equip_body_magic_t1": {
+    "name": "Worn Arcane Chestplate",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_body_magic_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_body_magic_t1.svg",
+    "png64": "png/64/equip_body_magic_t1.png",
+    "png128": "png/128/equip_body_magic_t1.png",
+    "png256": "png/256/equip_body_magic_t1.png"
+  },
+  "equip_body_phys_t2": {
+    "name": "Reinforced Chestplate",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_body_phys_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_body_phys_t2.svg",
+    "png64": "png/64/equip_body_phys_t2.png",
+    "png128": "png/128/equip_body_phys_t2.png",
+    "png256": "png/256/equip_body_phys_t2.png"
+  },
+  "equip_body_magic_t2": {
+    "name": "Reinforced Arcane Chestplate",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_body_magic_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_body_magic_t2.svg",
+    "png64": "png/64/equip_body_magic_t2.png",
+    "png128": "png/128/equip_body_magic_t2.png",
+    "png256": "png/256/equip_body_magic_t2.png"
+  },
+  "equip_body_phys_t3": {
+    "name": "Ancient Chestplate",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_body_phys_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_body_phys_t3.svg",
+    "png64": "png/64/equip_body_phys_t3.png",
+    "png128": "png/128/equip_body_phys_t3.png",
+    "png256": "png/256/equip_body_phys_t3.png"
+  },
+  "equip_body_magic_t3": {
+    "name": "Ancient Arcane Chestplate",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_body_magic_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_body_magic_t3.svg",
+    "png64": "png/64/equip_body_magic_t3.png",
+    "png128": "png/128/equip_body_magic_t3.png",
+    "png256": "png/256/equip_body_magic_t3.png"
+  },
+  "equip_cape_phys_t1": {
+    "name": "Worn Cape",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_cape_phys_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_cape_phys_t1.svg",
+    "png64": "png/64/equip_cape_phys_t1.png",
+    "png128": "png/128/equip_cape_phys_t1.png",
+    "png256": "png/256/equip_cape_phys_t1.png"
+  },
+  "equip_cape_magic_t1": {
+    "name": "Worn Arcane Cape",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_cape_magic_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_cape_magic_t1.svg",
+    "png64": "png/64/equip_cape_magic_t1.png",
+    "png128": "png/128/equip_cape_magic_t1.png",
+    "png256": "png/256/equip_cape_magic_t1.png"
+  },
+  "equip_cape_phys_t2": {
+    "name": "Reinforced Cape",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_cape_phys_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_cape_phys_t2.svg",
+    "png64": "png/64/equip_cape_phys_t2.png",
+    "png128": "png/128/equip_cape_phys_t2.png",
+    "png256": "png/256/equip_cape_phys_t2.png"
+  },
+  "equip_cape_magic_t2": {
+    "name": "Reinforced Arcane Cape",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_cape_magic_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_cape_magic_t2.svg",
+    "png64": "png/64/equip_cape_magic_t2.png",
+    "png128": "png/128/equip_cape_magic_t2.png",
+    "png256": "png/256/equip_cape_magic_t2.png"
+  },
+  "equip_cape_phys_t3": {
+    "name": "Ancient Cape",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_cape_phys_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_cape_phys_t3.svg",
+    "png64": "png/64/equip_cape_phys_t3.png",
+    "png128": "png/128/equip_cape_phys_t3.png",
+    "png256": "png/256/equip_cape_phys_t3.png"
+  },
+  "equip_cape_magic_t3": {
+    "name": "Ancient Arcane Cape",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_cape_magic_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_cape_magic_t3.svg",
+    "png64": "png/64/equip_cape_magic_t3.png",
+    "png128": "png/128/equip_cape_magic_t3.png",
+    "png256": "png/256/equip_cape_magic_t3.png"
+  },
+  "equip_accessory_sor_t1": {
+    "name": "Worn Lucky Ring",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_accessory_sor_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_accessory_sor_t1.svg",
+    "png64": "png/64/equip_accessory_sor_t1.png",
+    "png128": "png/128/equip_accessory_sor_t1.png",
+    "png256": "png/256/equip_accessory_sor_t1.png"
+  },
+  "equip_accessory_dex_t1": {
+    "name": "Worn Precise Ring",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_accessory_dex_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_accessory_dex_t1.svg",
+    "png64": "png/64/equip_accessory_dex_t1.png",
+    "png128": "png/128/equip_accessory_dex_t1.png",
+    "png256": "png/256/equip_accessory_dex_t1.png"
+  },
+  "equip_accessory_sor_t2": {
+    "name": "Reinforced Lucky Ring",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_accessory_sor_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_accessory_sor_t2.svg",
+    "png64": "png/64/equip_accessory_sor_t2.png",
+    "png128": "png/128/equip_accessory_sor_t2.png",
+    "png256": "png/256/equip_accessory_sor_t2.png"
+  },
+  "equip_accessory_dex_t2": {
+    "name": "Reinforced Precise Ring",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_accessory_dex_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_accessory_dex_t2.svg",
+    "png64": "png/64/equip_accessory_dex_t2.png",
+    "png128": "png/128/equip_accessory_dex_t2.png",
+    "png256": "png/256/equip_accessory_dex_t2.png"
+  },
+  "equip_accessory_sor_t3": {
+    "name": "Ancient Lucky Ring",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_accessory_sor_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_accessory_sor_t3.svg",
+    "png64": "png/64/equip_accessory_sor_t3.png",
+    "png128": "png/128/equip_accessory_sor_t3.png",
+    "png256": "png/256/equip_accessory_sor_t3.png"
+  },
+  "equip_accessory_dex_t3": {
+    "name": "Ancient Precise Ring",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_accessory_dex_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_accessory_dex_t3.svg",
+    "png64": "png/64/equip_accessory_dex_t3.png",
+    "png128": "png/128/equip_accessory_dex_t3.png",
+    "png256": "png/256/equip_accessory_dex_t3.png"
+  },
+  "equip_shoes_earth_t2": {
+    "name": "Grounded Boots",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_shoes_earth_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_shoes_earth_t2.svg",
+    "png64": "png/64/equip_shoes_earth_t2.png",
+    "png128": "png/128/equip_shoes_earth_t2.png",
+    "png256": "png/256/equip_shoes_earth_t2.png"
+  },
+  "equip_shoes_water_t2": {
+    "name": "Wading Boots",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_shoes_water_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_shoes_water_t2.svg",
+    "png64": "png/64/equip_shoes_water_t2.png",
+    "png128": "png/128/equip_shoes_water_t2.png",
+    "png256": "png/256/equip_shoes_water_t2.png"
+  },
+  "equip_shoes_fire_t3": {
+    "name": "Cinderproof Boots",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_shoes_fire_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_shoes_fire_t3.svg",
+    "png64": "png/64/equip_shoes_fire_t3.png",
+    "png128": "png/128/equip_shoes_fire_t3.png",
+    "png256": "png/256/equip_shoes_fire_t3.png"
+  },
+  "equip_shoes_shadow_t3": {
+    "name": "Umbral Boots",
+    "category": "equipment",
+    "rarity": "rare",
+    "svg": "svg/equipment/equip_shoes_shadow_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_shoes_shadow_t3.svg",
+    "png64": "png/64/equip_shoes_shadow_t3.png",
+    "png128": "png/128/equip_shoes_shadow_t3.png",
+    "png256": "png/256/equip_shoes_shadow_t3.png"
+  },
+  "equip_shoes_wind_t4": {
+    "name": "Stormtread Boots",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_shoes_wind_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_shoes_wind_t4.svg",
+    "png64": "png/64/equip_shoes_wind_t4.png",
+    "png128": "png/128/equip_shoes_wind_t4.png",
+    "png256": "png/256/equip_shoes_wind_t4.png"
+  },
+  "equip_shoes_holy_t4": {
+    "name": "Sanctified Boots",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_shoes_holy_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_shoes_holy_t4.svg",
+    "png64": "png/64/equip_shoes_holy_t4.png",
+    "png128": "png/128/equip_shoes_holy_t4.png",
+    "png256": "png/256/equip_shoes_holy_t4.png"
+  },
+  "equip_knife": {
+    "name": "Knife",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_knife.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_knife.svg",
+    "png64": "png/64/equip_knife.png",
+    "png128": "png/128/equip_knife.png",
+    "png256": "png/256/equip_knife.png"
+  },
+  "equip_rune_t1": {
+    "name": "Worn Rune",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_rune_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_rune_t1.svg"
+  },
+  "equip_rune_t2": {
+    "name": "Runed Rune",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_rune_t2.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_rune_t2.svg"
+  },
+  "equip_rune_t3": {
+    "name": "Ancient Rune",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_rune_t3.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_rune_t3.svg"
+  },
+  "equip_shoes_traveler_t1": {
+    "name": "Traveler's Boots",
+    "category": "equipment",
+    "rarity": "common",
+    "svg": "svg/equipment/equip_shoes_traveler_t1.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_shoes_traveler_t1.svg"
+  },
+  "part_mudflatcrocodile_common": {
+    "name": "Mudflat Crocodile Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_mudflatcrocodile_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_mudflatcrocodile_common.svg"
+  },
+  "part_mudflatcrocodile_rare": {
+    "name": "Mudflat Crocodile Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_mudflatcrocodile_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_mudflatcrocodile_rare.svg"
+  },
+  "part_bandit_common": {
+    "name": "Bandit Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_bandit_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_bandit_common.svg"
+  },
+  "part_bandit_rare": {
+    "name": "Bandit Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_bandit_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_bandit_rare.svg"
+  },
+  "part_kwaioua_ranger_common": {
+    "name": "Kwaiouá Ranger Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_kwaioua_ranger_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_kwaioua_ranger_common.svg"
+  },
+  "part_kwaioua_ranger_rare": {
+    "name": "Kwaiouá Ranger Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_kwaioua_ranger_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_kwaioua_ranger_rare.svg"
+  },
+  "part_sacredforestguardian_common": {
+    "name": "Sacred Forest Guardian Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_sacredforestguardian_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_sacredforestguardian_common.svg"
+  },
+  "part_sacredforestguardian_rare": {
+    "name": "Sacred Forest Guardian Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_sacredforestguardian_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_sacredforestguardian_rare.svg"
+  },
+  "part_gravelhorn_common": {
+    "name": "Gravelhorn Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_gravelhorn_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_gravelhorn_common.svg"
+  },
+  "part_gravelhorn_rare": {
+    "name": "Gravelhorn Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_gravelhorn_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_gravelhorn_rare.svg"
+  },
+  "part_ridgebreaker_common": {
+    "name": "Ridgebreaker Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_ridgebreaker_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_ridgebreaker_common.svg"
+  },
+  "part_ridgebreaker_rare": {
+    "name": "Ridgebreaker Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_ridgebreaker_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_ridgebreaker_rare.svg"
+  },
+  "part_saltfangcrab_common": {
+    "name": "Saltfang Crab Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_saltfangcrab_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_saltfangcrab_common.svg"
+  },
+  "part_saltfangcrab_rare": {
+    "name": "Saltfang Crab Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_saltfangcrab_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_saltfangcrab_rare.svg"
+  },
+  "part_needlebackstalker_common": {
+    "name": "Needleback Stalker Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_needlebackstalker_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_needlebackstalker_common.svg"
+  },
+  "part_needlebackstalker_rare": {
+    "name": "Needleback Stalker Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_needlebackstalker_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_needlebackstalker_rare.svg"
+  },
+  "part_giantmosquito_common": {
+    "name": "Giant Mosquito Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_giantmosquito_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_giantmosquito_common.svg"
+  },
+  "part_giantmosquito_rare": {
+    "name": "Giant Mosquito Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_giantmosquito_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_giantmosquito_rare.svg"
+  },
+  "part_rootboundbrute_common": {
+    "name": "Rootbound Brute Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_rootboundbrute_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_rootboundbrute_common.svg"
+  },
+  "part_rootboundbrute_rare": {
+    "name": "Rootbound Brute Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_rootboundbrute_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_rootboundbrute_rare.svg"
+  },
+  "part_moonleafarcanist_common": {
+    "name": "Moonleaf Arcanist Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_moonleafarcanist_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_moonleafarcanist_common.svg"
+  },
+  "part_moonleafarcanist_rare": {
+    "name": "Moonleaf Arcanist Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_moonleafarcanist_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_moonleafarcanist_rare.svg"
+  },
+  "part_aramaianwarden_common": {
+    "name": "Aramaian Warden Common Part",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_aramaianwarden_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_aramaianwarden_common.svg"
+  },
+  "part_aramaianwarden_rare": {
+    "name": "Aramaian Warden Rare Part",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_aramaianwarden_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_aramaianwarden_rare.svg"
+  },
+  "part_mutantbee_common": {
+    "name": "Mutant Bee's Stinger",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_mutantbee_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_mutantbee_common.svg"
+  },
+  "part_mutantbee_rare": {
+    "name": "Mutant Bee Royal Jelly",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_mutantbee_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_mutantbee_rare.svg"
+  },
+  "part_giantmantis_common": {
+    "name": "Fun Purple Paint",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_giantmantis_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_giantmantis_common.svg"
+  },
+  "part_giantmantis_rare": {
+    "name": "Giant Mantis Scythe Blade",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_giantmantis_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_giantmantis_rare.svg"
+  },
+  "part_flamingtreant_common": {
+    "name": "Forest Ancient's Teardrop",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_flamingtreant_common.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_flamingtreant_common.svg"
+  },
+  "part_flamingtreant_rare": {
+    "name": "Flame-Hollow Heartwood",
+    "category": "monster_parts",
+    "rarity": "rare",
+    "svg": "svg/monster_parts/part_flamingtreant_rare.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_flamingtreant_rare.svg"
+  },
+  "part_flamingtreant_bark": {
+    "name": "Charred Treant Bark",
+    "category": "monster_parts",
+    "rarity": "common",
+    "svg": "svg/monster_parts/part_flamingtreant_bark.svg",
+    "svg_noframe": "svg-noframe/monster_parts/part_flamingtreant_bark.svg"
+  },
+  "mat_wild_blueberries": {
+    "name": "Wild Blueberries",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_wild_blueberries.svg",
+    "svg_noframe": "svg-noframe/materials/mat_wild_blueberries.svg"
+  },
+  "mat_wheat": {
+    "name": "Wheat",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_wheat.svg",
+    "svg_noframe": "svg-noframe/materials/mat_wheat.svg"
+  },
+  "mat_cooking_oil": {
+    "name": "Cooking Oil",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_cooking_oil.svg",
+    "svg_noframe": "svg-noframe/materials/mat_cooking_oil.svg"
+  },
+  "mat_milk": {
+    "name": "Milk",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_milk.svg",
+    "svg_noframe": "svg-noframe/materials/mat_milk.svg"
+  },
+  "mat_sugar": {
+    "name": "Sugar",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_sugar.svg",
+    "svg_noframe": "svg-noframe/materials/mat_sugar.svg"
+  },
+  "mat_carrot": {
+    "name": "Carrot",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_carrot.svg",
+    "svg_noframe": "svg-noframe/materials/mat_carrot.svg"
+  },
+  "mat_cabbage": {
+    "name": "Cabbage",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_cabbage.svg",
+    "svg_noframe": "svg-noframe/materials/mat_cabbage.svg"
+  },
+  "mat_herbs": {
+    "name": "Herbs",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_herbs.svg",
+    "svg_noframe": "svg-noframe/materials/mat_herbs.svg"
+  },
+  "mat_honeycomb": {
+    "name": "Honeycomb",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_honeycomb.svg",
+    "svg_noframe": "svg-noframe/materials/mat_honeycomb.svg"
+  },
+  "mat_meat": {
+    "name": "Meat",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_meat.svg",
+    "svg_noframe": "svg-noframe/materials/mat_meat.svg"
+  },
+  "quest_spring_flask": {
+    "name": "Quest Spring Flask",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/quest_spring_flask.svg",
+    "svg_noframe": "svg-noframe/materials/quest_spring_flask.svg"
+  },
+  "quest_field_sample": {
+    "name": "Quest Field Sample",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/quest_field_sample.svg",
+    "svg_noframe": "svg-noframe/materials/quest_field_sample.svg"
+  },
+  "mat_bronze_ore": {
+    "name": "Bronze Ore",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_bronze_ore.svg",
+    "svg_noframe": "svg-noframe/materials/mat_bronze_ore.svg"
+  },
+  "mat_bronze_ingot": {
+    "name": "Bronze Ingot",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_bronze_ingot.svg",
+    "svg_noframe": "svg-noframe/materials/mat_bronze_ingot.svg"
+  },
+  "mat_bliss_stone": {
+    "name": "Bliss Stone",
+    "category": "materials",
+    "rarity": "rare",
+    "svg": "svg/materials/mat_bliss_stone.svg",
+    "svg_noframe": "svg-noframe/materials/mat_bliss_stone.svg"
+  },
+  "mat_divine_shard": {
+    "name": "Divine Shard",
+    "category": "materials",
+    "rarity": "epic",
+    "svg": "svg/materials/mat_divine_shard.svg",
+    "svg_noframe": "svg-noframe/materials/mat_divine_shard.svg"
+  }
 }

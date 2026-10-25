@@ -1,0 +1,18 @@
+{
+  "recipes": [
+    {
+      "id": "greater_elixir",
+      "name": "Greater Elixir",
+      "requiredLevel": 1,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 5
+        }
+      ],
+      "outputItemId": "elixir_greater",
+      "xpReward": 5,
+      "order": 1
+    }
+  ]
+}

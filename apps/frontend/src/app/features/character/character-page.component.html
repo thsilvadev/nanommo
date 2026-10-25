@@ -8,7 +8,7 @@
     <nav class="sheet-tabs"><button type="button" [class.active]="tab==='character'"
             (click)="setTab('character')">Character</button><button type="button" [class.active]="tab==='gambits'"
             (click)="setTab('gambits')">Gambits</button><button type="button" [class.active]="tab==='mastery'"
-            (click)="setTab('mastery')">Mastery</button><button type="button" [class.active]="tab==='professions'" (click)="setTab('professions')">Professions</button><button type="button" [class.active]="tab==='quests'" (click)="setTab('quests')">Quests</button></nav>
+            (click)="setTab('mastery')">Mastery</button><button type="button" [class.active]="tab==='professions'" (click)="setTab('professions')">{{locale.t('Professions')}}</button><button type="button" [class.active]="tab==='quests'" (click)="setTab('quests')">{{locale.t('Quests')}}</button></nav>
     <div *ngIf="tab==='character'" class="character-grid">
         <section class="sheet-panel inventory-panel"><app-inventory-grid /></section>
         <section class="sheet-panel allocator">
@@ -73,20 +73,20 @@
         </section>
     </div>
     <div *ngIf="tab==='professions'" class="professions-page">
-        <section class="sheet-panel professions-panel"><h2>Professions</h2><article *ngFor="let row of professionRows()" class="profession-row"><div><strong>{{row.name}}</strong><span>Level {{row.level}} — {{row.xpIntoLevel}}/{{row.xpToNextLevel}}</span></div><div class="profession-progress"><i [style.width.%]="row.xpToNextLevel ? row.xpIntoLevel / row.xpToNextLevel * 100 : 0"></i></div></article></section>
+        <section class="sheet-panel professions-panel"><h2>{{locale.t('Professions')}}</h2><article *ngFor="let row of professionRows()" class="profession-row"><div><strong>{{locale.t(row.name)}}</strong><span>{{locale.t('Level')}} {{row.level}} — {{row.xpIntoLevel}}/{{row.xpToNextLevel}} XP</span></div><div class="profession-progress"><i [style.width.%]="row.xpToNextLevel ? row.xpIntoLevel / row.xpToNextLevel * 100 : 0"></i></div></article></section>
     </div>
     <div *ngIf="tab==='quests'" class="quests-page">
-        <section class="sheet-panel quests-panel"><h2>Active Quests</h2>
+        <section class="sheet-panel quests-panel"><h2>{{locale.t('Active Quests')}}</h2>
             <p class="quest-empty" *ngIf="!(questState()?.active?.length)">No active quests.</p>
             <article class="quest-card" *ngFor="let quest of questState()?.active">
-                <header><div><h3>{{quest.title}}</h3><p>{{quest.description}}</p></div><span *ngIf="quest.expiresAt">Deadline: {{questDeadline(quest.expiresAt)}}</span></header>
+                <header><div><h3>{{locale.localized(quest,'title',quest.title)}}</h3><p>{{locale.localized(quest,'description',quest.description)}}</p></div><span *ngIf="quest.expiresAt">{{locale.t('Deadline:')}} {{questDeadline(quest.expiresAt)}}</span></header>
                 <div class="quest-meta"><span>Given by <b>{{quest.giverNpcName}}</b></span><span>Turn in to <b>{{quest.turnInNpcName}}</b></span></div>
                 <div class="quest-objective" *ngFor="let objective of quest.objectives"><span>{{objective.id.replace('_',' ')}}</span><b>{{questObjectiveLabel(objective)}}</b><i [class.done]="objective.completed"></i></div>
-                <div class="quest-rewards"><strong>Rewards</strong><span *ngIf="quest.rewards?.gold">{{quest.rewards.gold}} gold</span><span *ngIf="quest.rewards?.characterXp">{{quest.rewards.characterXp}} Character XP</span><span *ngFor="let reward of quest.rewards?.items">{{reward.quantity}} × {{catalog.item(reward.itemId)?.name??reward.itemId}}</span><span *ngFor="let reward of quest.rewards?.professionXp">{{reward.amount}} {{reward.profession}} XP</span></div>
-                <footer><button *ngIf="quest.canTurnIn" type="button" class="gold-btn" [disabled]="saving()" (click)="turnInQuest(quest)">Turn in</button><button type="button" [disabled]="saving()" (click)="abandonQuest(quest)">Abandon</button></footer>
+                <div class="quest-rewards"><strong>{{locale.t('Rewards')}}</strong><span *ngIf="quest.rewards?.gold">{{quest.rewards.gold}} {{locale.t('Gold')}}</span><span *ngIf="quest.rewards?.characterXp">{{quest.rewards.characterXp}} {{locale.t('Character XP')}}</span><span *ngFor="let reward of quest.rewards?.items">{{reward.quantity}} × {{catalog.itemName(reward.itemId)}}</span><span *ngFor="let reward of quest.rewards?.professionXp">{{reward.amount}} {{locale.t(reward.profession==='gathering'?'Gathering':reward.profession==='cooking'?'Cooking':reward.profession==='alchemy'?'Alchemy':'Blacksmith')}} XP</span></div>
+                <footer><button *ngIf="quest.canTurnIn" type="button" class="gold-btn" [disabled]="saving()" (click)="turnInQuest(quest)">{{locale.t('Turn in')}}</button><button type="button" [disabled]="saving()" (click)="abandonQuest(quest)">{{locale.t('Abandon')}}</button></footer>
             </article>
         </section>
-        <section class="sheet-panel quests-panel completed-quests"><h2>Completed</h2><p class="quest-empty" *ngIf="!(questState()?.completed?.length)">No completed quests.</p><article class="completed-quest" *ngFor="let quest of questState()?.completed"><strong>{{quest.title}}</strong><span>Given by {{quest.giverNpcName}}</span></article></section>
+        <section class="sheet-panel quests-panel completed-quests"><h2>{{locale.t('Completed')}}</h2><p class="quest-empty" *ngIf="!(questState()?.completed?.length)">{{locale.t('No completed quests.')}}</p><article class="completed-quest" *ngFor="let quest of questState()?.completed"><strong>{{locale.localized(quest,'title',quest.title)}}</strong><span>{{locale.t('Given by')}} {{locale.localized(quest,'giverNpcName',quest.giverNpcName)}}</span></article></section>
         <p *ngIf="error()" class="error">{{error()}}</p>
     </div>
     <div *ngIf="tab==='gambits'" class="gambit-full"><app-gambit-editor /></div>

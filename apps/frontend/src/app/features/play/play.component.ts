@@ -7,6 +7,7 @@ import { CatalogService } from '../../core/catalog.service';
 import { ApiService } from '../../core/api.service';
 import { LoginMusicControlComponent } from '../../shared/login-music-control.component';
 import { GameSocketService } from '../../core/game.socket.service';
+import { LocaleService } from '../../core/locale.service';
 import { CharacterSummary, GrindInfo } from './components';
 @Component({
     selector: 'app-play', standalone: true, imports: [CommonModule, RouterOutlet, CharacterSummary, GrindInfo, LoginMusicControlComponent],
@@ -14,7 +15,7 @@ import { CharacterSummary, GrindInfo } from './components';
 })
 export class PlayComponent implements OnInit {
     readonly auth = inject(AuthStore); readonly character = inject(CharacterStore); private readonly battle = inject(BattleStore);
-    private readonly inventory = inject(InventoryStore); private readonly catalog = inject(CatalogService); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService);
+    private readonly inventory = inject(InventoryStore); private readonly catalog = inject(CatalogService); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService); readonly localeService = inject(LocaleService);
     private readonly router = inject(Router); readonly gambitPages = signal<any[]>([]); readonly masteryRows = signal<any[]>([]); readonly gambitTitle = computed(() => { const id = this.character.character()?.activeGambitPageId; const page = this.gambitPages().find(p => p.id === id); return page?.title?.trim() || 'No Gambit Active' }); readonly activeGambitEquipmentWarning = computed(() => { const id=this.character.character()?.activeGambitPageId; const page=this.gambitPages().find(p=>p.id===id); if(!page)return false; const ranks=new Map(this.masteryRows().map(row=>[row.weaponType,row.skillRanks??{}])); const equipped=new Set(this.inventory.equipment().map(row=>this.catalog.item(row.itemId)?.weaponType).filter(Boolean)); return (page.lines??[]).some((line:any)=>{ if(line?.action?.id!=='use_skill')return false; const skillId=line.action.params?.skillId??line.action.skillId; const skill=this.catalog.skills().find((row:any)=>row.id===skillId); if(!skill||skill.kind!=='active'||Number((ranks.get(skill.category) as any)?.[skill.id]??0)<1)return false; return !equipped.has(String(skill.requiresWeaponEquipped??skill.category)); }); }); readonly settingsOpen = signal(false); readonly deleteAccountOpen = signal(false); readonly deleteConfirm = signal(''); readonly deleteAccountError = signal<string | null>(null);
     ngOnInit() { this.socket.connect(); this.battle.bindEvents(this.character, this.inventory); void Promise.all([this.character.load(), this.inventory.load(), this.battle.load(), this.catalog.load()]).then(() => this.loadActiveGambitTitle()); }
     async loadActiveGambitTitle() { try { const [pages, mastery] = await Promise.all([this.api.get<any[]>('/gambits').toPromise(), this.api.get<any[]>('/characters/weapon-proficiency').toPromise()]); this.gambitPages.set(pages ?? []); this.masteryRows.set(mastery ?? []) } catch { this.gambitPages.set([]); this.masteryRows.set([]) } }
