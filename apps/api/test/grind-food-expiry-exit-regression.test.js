@@ -1,11 +1,15 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { BattleService } = require('../dist/apps/api/src/modules/battle/battle.service.js');
+const battleServiceSource = fs.readFileSync(path.join(__dirname, '../src/modules/battle/battle.service.ts'), 'utf8');
 
 function makeHarness({ remainingMs, queuedEndOffsetMs, queuedStartOffsetMs }) {
   const now = Date.now();
   const character = {
     id: 'char-food-regression',
     currentMapId: 'map_green_grounds',
+    savedTownMapId: 'map_town',
     status: 'grinding',
     pendingMapTransition: null,
     hpCurrent: 100,
@@ -50,8 +54,9 @@ function makeHarness({ remainingMs, queuedEndOffsetMs, queuedStartOffsetMs }) {
   service.buildInventoryMap = async () => ({});
   service.discardUnresolvedBattles = async id => { discarded.push(id); };
   service.safePublishQueueUpdated = async (...args) => { published.push(args); };
-  service.dataService = { getItemById: () => null, getMapById: id => ({ id, type: 'grind' }) };
+  service.dataService = { getItemById: () => null, getMapById: id => ({ id, type: id === 'map_town' || id === 'map_saved_town' ? 'town' : 'grind' }) };
   service.logger = { log() {}, warn() {}, debug() {}, error() {} };
+  service.idleJournal = { ate: async () => undefined };
   let lockHeld = false;
   service.redis = { set: async () => { if (lockHeld) return null; lockHeld = true; return 'OK'; }, eval: async script => { if (script.includes('del')) lockHeld = false; return 1; } };
   return { service, character, queued, presenceCalls, saved, published, discarded, now };
@@ -167,7 +172,7 @@ async function testAutoFeedGetsBoundaryOpportunityBeforeTown() {
       itemId: 'food_bread',
       expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
     };
-    return true;
+    return ['food_bread'];
   };
 
   const result = await h.service.queueBattles(h.character.id, 1, true);
@@ -180,23 +185,37 @@ async function testAutoFeedGetsBoundaryOpportunityBeforeTown() {
   assert.deepEqual(result, [rebuiltEntry], 'return the rebuilt queue after Auto Feed');
 }
 
-async function testAutoFeedWithoutEligibleFoodRoutesTown() {
+async function testAutoFeedWithoutEligibleFoodRoutesSavedTown() {
   const h = makeHarness({ remainingMs: -1, queuedStartOffsetMs: 30_000, queuedEndOffsetMs: 180_000 });
   h.character.autoFeed = true;
+  h.character.savedTownMapId = 'map_saved_town';
   const result = await h.service.queueBattles(h.character.id, 5, true);
   assert.deepEqual(result, []);
   assert.equal(h.character.status, 'town', 'enabled Auto Feed without eligible Diet food must fall back to Town');
-  assert.equal(h.character.currentMapId, 'map_town');
+  assert.equal(h.character.currentMapId, 'map_saved_town', 'food exhaustion returns to the saved Town');
   assert.equal(h.presenceCalls.length, 1);
   assert.equal(h.saved.length, 1);
 }
 
-async function testActuallyExpiredFoodStillRoutesTown() {
+async function testInvalidSavedTownFallsBackToSierraVillage() {
   const h = makeHarness({ remainingMs: -1, queuedStartOffsetMs: 30_000, queuedEndOffsetMs: 180_000 });
+  h.character.savedTownMapId = 'map_green_grounds';
+  const result = await h.service.queueBattles(h.character.id, 5, true);
+  assert.deepEqual(result, []);
+  assert.equal(h.character.currentMapId, 'map_town', 'invalid saved destination must fall back to Sierra Village');
+}
+
+async function testResolutionBranchUsesSavedTownWithValidation() {
+  assert.match(battleServiceSource, /const savedTown = this\.dataService\.getMapById\(String\(character\.savedTownMapId \?\? ''\)\);\s*const fallbackTownId = savedTown\?\.type === 'town' \? savedTown\.id : TOWN_MAP_ID;\s*character\.currentMapId = fallbackTownId;/, 'battle-resolution hunger routing must validate and use savedTownMapId');
+}
+
+async function testActuallyExpiredFoodStillRoutesSavedTown() {
+  const h = makeHarness({ remainingMs: -1, queuedStartOffsetMs: 30_000, queuedEndOffsetMs: 180_000 });
+  h.character.savedTownMapId = 'map_saved_town';
   const result = await h.service.queueBattles(h.character.id, 5, true);
   assert.deepEqual(result, [], 'expired food with no active battle must not retain future encounters');
   assert.equal(h.character.status, 'town');
-  assert.equal(h.character.currentMapId, 'map_town');
+  assert.equal(h.character.currentMapId, 'map_saved_town');
   assert.equal(h.presenceCalls.length, 1, 'real exhaustion synchronizes map presence once');
   assert.equal(h.saved.length, 1, 'real exhaustion persists Town exactly once');
   assert.deepEqual(h.discarded, ['char-food-regression']);
@@ -216,10 +235,14 @@ async function testActuallyExpiredFoodStillRoutesTown() {
   console.log('[PASS] an all-skipped Gathering encounter batch persists a new cycle and schedules the next search');
   await testAutoFeedGetsBoundaryOpportunityBeforeTown();
   console.log('[PASS] Auto Feed gets the actual exhaustion boundary before Town fallback');
-  await testAutoFeedWithoutEligibleFoodRoutesTown();
-  console.log('[PASS] enabled Auto Feed without eligible food falls back to Town');
-  await testActuallyExpiredFoodStillRoutesTown();
-  console.log('[PASS] actually expired food still routes Town when no battle is active');
+  await testAutoFeedWithoutEligibleFoodRoutesSavedTown();
+  console.log('[PASS] enabled Auto Feed without eligible food returns to the saved Town');
+  await testActuallyExpiredFoodStillRoutesSavedTown();
+  console.log('[PASS] actually expired food returns to the saved Town when no battle is active');
+  await testInvalidSavedTownFallsBackToSierraVillage();
+  console.log('[PASS] invalid saved Town falls back to Sierra Village');
+  await testResolutionBranchUsesSavedTownWithValidation();
+  console.log('[PASS] battle-resolution hunger branch validates and uses saved Town');
   console.log('Grind food-expiry early-exit regression tests passed.');
 })().catch(error => {
   console.error(error);

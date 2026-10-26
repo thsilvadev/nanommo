@@ -6,7 +6,7 @@
       "description": "Bring Cecilia the monster parts she requested in exchange for a Worn Lucky Ring.",
       "giverNpcId": "cecilia",
       "turnInNpcId": "cecilia",
-      "minLevel": 1,
+      "minLevel": 3,
       "requiresCompletedQuestIds": [],
       "repeatable": false,
       "allowReacceptAfterAbandon": true,
@@ -25,12 +25,12 @@
           }
         },
         {
-          "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and 10x Thorn Barks and I’ll give you something that’ll bring luck to your journey.",
+          "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and I’ll give you something that’ll bring luck to your journey.",
           "buttonText": "I’ll take the job.",
           "acceptsQuest": true,
           "npcTextLocales": {
-            "pt-BR": "Ah, querida! Está falando com a joalheira princesa deste mundo. Traga 20 Géis de Slime, 20 Asas de Morcego e 10 Cascas de Espinho e lhe darei algo que trará sorte à sua jornada.",
-            "en-US": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and 10x Thorn Barks and I’ll give you something that’ll bring luck to your journey."
+            "pt-BR": "Ah, querida! Está falando com a joalheira princesa deste mundo. Traga 20 Géis de Slime, 20 Asas de Morcego e lhe darei algo que trará sorte à sua jornada.",
+            "en-US": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and I’ll give you something that’ll bring luck to your journey."
           },
           "buttonTextLocales": {
             "pt-BR": "Aceito o trabalho.",
@@ -50,17 +50,13 @@
             {
               "itemId": "part_fieldbat_common",
               "quantity": 20
-            },
-            {
-              "itemId": "part_thornsprout_common",
-              "quantity": 10
             }
           ]
         }
       ],
       "rewards": {
         "gold": 0,
-        "characterXp": 0,
+        "characterXp": 500,
         "items": [
           {
             "itemId": "equip_accessory_sor_t1",

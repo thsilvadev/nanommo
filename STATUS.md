@@ -8,6 +8,10 @@ The automated locale completeness test (`apps/api/test/npc-quest-localization.te
 
 The additional baseline check `node apps/api/test/town-canonical-map-unification.test.js` still fails its expectation of exactly one `isTown` map: both HEAD and the current catalogue flag five town maps (`map_town`, Outpost, Kwaiouá-Taba, Ancient Aramaia City and Caelum). This apply did not modify those `isTown` flags; the existing `maps.json` working-tree edits were preserved rather than changing that unrelated map contract.
 
+### Hunger fallback respects the saved Town — 2026-10-25
+
+When food is genuinely exhausted and Auto Feed cannot consume an eligible item, both battle-resolution routing and the queue-generation exhaustion fallback now return the Character to their valid `savedTownMapId`. The destination is validated as a Town map; missing/invalid saved destinations safely fall back to `map_town` (Sierra Village). This is separate from the ordinary Return to Town action, which still targets Sierra Village. Added regression coverage for queue fallback with a saved Town and updated SPEC/ARCHITECTURE. No migration, deployment, or live database mutation.
+
 ## Crafting, equipment refinement, global drops and runtime localization — 2026-10-25
 
 - Added Pajé Piatã in Kwaiouá-Taba (Alchemy, dialogue and vendor) and Whitesmith Spitz in Caelum (Blacksmith, refinement and vendor). Pajé inherits William’s configured consumable stock and sells Greater Elixir for 1,200 Gold; Spitz inherits configured Loren stock and adds the Rune and two T1 headpieces. William and existing Town services remain in place.

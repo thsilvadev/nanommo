@@ -717,7 +717,9 @@ export class BattleService {
         }
 
         const leavingMapId = character.currentMapId;
-        character.currentMapId = TOWN_MAP_ID;
+        const savedTown = this.dataService.getMapById(String(character.savedTownMapId ?? ''));
+        const fallbackTownId = savedTown?.type === 'town' ? savedTown.id : TOWN_MAP_ID;
+        character.currentMapId = fallbackTownId;
         character.status = 'town';
         character.travelIntent = null;
         character.gatheringCycle = { ...(character.gatheringCycle ?? {}), progress: 0, cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) + 1, varianceSeconds: null, lastUpdatedAt: new Date().toISOString() };
@@ -1270,9 +1272,11 @@ export class BattleService {
         character.travelIntent = null;
         character.fleeNextAttemptAt = null;
         character.gatheringCycle = { ...(character.gatheringCycle ?? {}), progress: 0, cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) + 1, varianceSeconds: null, lastUpdatedAt: new Date().toISOString() };
-        character.currentMapId = TOWN_MAP_ID;
+        const savedTown = this.dataService.getMapById(String(character.savedTownMapId ?? ''));
+        const fallbackTownId = savedTown?.type === 'town' ? savedTown.id : TOWN_MAP_ID;
+        character.currentMapId = fallbackTownId;
         character.status = 'town';
-        character.discoveredMapIds = Array.from(new Set([...(character.discoveredMapIds ?? [TOWN_MAP_ID]), TOWN_MAP_ID]));
+        character.discoveredMapIds = Array.from(new Set([...(character.discoveredMapIds ?? [TOWN_MAP_ID]), fallbackTownId]));
         character.lastSeenAt = new Date();
         await characterRepo.save(character);
       }
