@@ -78,7 +78,9 @@ export class MapService {
       const knownMaps = discovered.map(id => this.dataService.getMapById(id)).filter(Boolean);
       const revealed = knownMaps.some((known: any) => Math.abs(Number(known.coordinates.x) - Number(map.coordinates.x)) + Math.abs(Number(known.coordinates.y) - Number(map.coordinates.y)) <= 1);
       if (!revealed && mapId !== character.savedTownMapId) throw new BadRequestException('Map has not been revealed');
-      if (map.type === 'grind' && mapId !== character.currentMapId) {
+      // Hunger blocks leaving Town for any destination, not only Grind maps.
+      // Keep this scoped to Town so a hungry character on a Grind map can still return to safety.
+      if (character.status === 'town' && mapId !== character.currentMapId) {
         const expiry = character.activeFoodBuff?.expiresAt ? Date.parse(String(character.activeFoodBuff.expiresAt)) : 0;
         const dietExpiry = (Array.isArray(character.diet) ? character.diet : []).reduce((max, row: any) => Math.max(max, Date.parse(String(row.digestUntil ?? '')) || 0), 0);
         if (Math.max(expiry, dietExpiry) <= Date.now()) throw new BadRequestException(TOWN_GUARD_HUNGER_MESSAGE);
@@ -159,7 +161,7 @@ export class MapService {
       }));
     } catch (error) {
       if (error instanceof BadRequestException && error.message === TOWN_GUARD_HUNGER_MESSAGE &&
-          beforeTravel?.status === 'town' && this.dataService.getMapById(mapId)?.type === 'grind') {
+          beforeTravel?.status === 'town' && mapId !== beforeTravel.currentMapId) {
         await this.idleJournal.townGuardHungry(characterId, `town-guard-hungry:${Date.now()}`);
       }
       throw error;
