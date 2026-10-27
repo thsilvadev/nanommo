@@ -21,7 +21,7 @@
               [alt]="monster(b.monsterId)?.name||b.monsterId" width="167" height="199">
             <span *ngIf="monster(b.monsterId)?.isAggressive === true" class="aggression-badge" tabindex="0" role="img"
               aria-label="Aggressive: this monster will try to interrupt your gathering or traveling">
-              <img src="/assets/ui/aggression-badge.svg" alt="">
+              <span class="aggression-emoji" aria-hidden="true">💢</span>
             </span>
           </div>
         </div>

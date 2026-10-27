@@ -1239,7 +1239,13 @@
       "unlockLevel": 0,
       "isTown": false,
       "recommendedLevel": 10,
-      "mapLength": 25
+      "mapLength": 25,
+            "gatheringPool": [
+        {
+          "itemId": "mat_wild_blueberries",
+          "weight": 100
+        }
+      ]
     },
     {
       "id": "map_menace_hills_1",
@@ -1479,7 +1485,13 @@
       "unlockLevel": 0,
       "isTown": false,
       "recommendedLevel": 20,
-      "mapLength": 25
+      "mapLength": 25,
+            "gatheringPool": [
+        {
+          "itemId": "mat_bronze_ore",
+          "weight": 100
+        }
+      ]
     },
     {
       "id": "map_emperial_capital_caelum",
