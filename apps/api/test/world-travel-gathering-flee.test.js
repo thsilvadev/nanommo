@@ -81,7 +81,7 @@ const items = require('../../../items.json');
 assert.equal(items.materials.length,10);
 assert.equal(items.consumables.find(item=>item.id==='food_blueberry').name,'Blueberry Jelly');
 assert.equal(items.consumables.find(item=>item.id==='food_honey').name,'Honey');
-assert.equal(maps.filter(map=>map.type==='grind' && Array.isArray(map.gatheringPool)).length,30, 'only regionally assigned grind maps have pools; unassigned maps are valid');
+assert.equal(maps.filter(map=>map.type==='grind' && Array.isArray(map.gatheringPool)).length,35, 'only regionally assigned grind maps have pools; unassigned maps are valid');
 const regionalGathering = new Map([
   ['map_green_grounds_0', {mat_wheat:50,mat_milk:50}],
   ['map_green_grounds_1', {mat_cabbage:40,mat_carrot:40,mat_honeycomb:20}],
@@ -89,7 +89,12 @@ const regionalGathering = new Map([
   ['map_green_grounds_3', {mat_wheat:100}],
   ['map_green_grounds_4', {mat_sugar:80,mat_honeycomb:20}],
   ['map_green_grounds_5', {mat_sugar:100}],
+  ['map_menace_hills_0', {mat_wild_blueberries:100}],
   ['map_menace_hills_1', {mat_wild_blueberries:100}],
+  ['map_menace_hills_2', {mat_bronze_ore:100}],
+  ['map_wastelands_0', {mat_bronze_ore:100}],
+  ['map_wastelands_1', {mat_bronze_ore:100}],
+  ['map_wastelands_2', {mat_bronze_ore:100}],
   ['map_menace_hills_3', {mat_wild_blueberries:100}],
   ['map_ipora_beach_0', {mat_cooking_oil:100}],
   ['map_ipora_beach_1', {mat_cooking_oil:100}],

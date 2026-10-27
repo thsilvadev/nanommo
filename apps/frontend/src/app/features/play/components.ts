@@ -14,7 +14,19 @@ import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkD
 export class CharacterSummary implements OnDestroy {
   readonly character = inject(CharacterStore); readonly inventory = inject(InventoryStore); readonly battle = inject(BattleStore); readonly catalog = inject(CatalogService); readonly router = inject(Router); readonly battleDisplayNow = signal(Date.now()); private readonly battleDisplayTimer = setInterval(() => this.battleDisplayNow.set(Date.now()), 250);
   private lastDietBoundary = 0;
-  private readonly townTimer = setInterval(() => { const c = this.character.character(); if (c?.status === 'town' && Date.parse(c.lastSeenAt) + 10000 <= Date.now()) void this.character.load(); this.checkDietBoundary() }, 1000);
+  private lastTownRefreshAt = 0;
+  private readonly townTimer = setInterval(() => {
+    const now = Date.now();
+    const c = this.character.character();
+    // lastSeenAt is a server snapshot and does not change locally. Without a local
+    // throttle, once it is 10s old this 1s timer would GET /characters every second.
+    if (c?.status === 'town' && Date.parse(c.lastSeenAt) + 10000 <= now
+      && now - this.lastTownRefreshAt >= 10000 && this.character.state() !== 'loading') {
+      this.lastTownRefreshAt = now;
+      void this.character.load();
+    }
+    this.checkDietBoundary();
+  }, 1000);
   // Fires once per digestUntil the server reported, so a slot empties at the boundary
   // instead of waiting for the next poll, snapshot or battle resolve. Nothing is decided
   // locally; this only schedules a re-read of authoritative state.

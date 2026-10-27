@@ -8,8 +8,8 @@ import { LoginMusicControlComponent } from '../../shared/login-music-control.com
   standalone: true,
   imports: [CommonModule, LoginMusicControlComponent],
   template: `
-    <div class="auth-screen"><app-login-music-control />
-      <main class="auth-panel auth-center ml-5" role="alert" aria-live="polite">
+    <div class="auth-screen auth-error-screen"><app-login-music-control />
+      <main class="auth-panel auth-center auth-error-panel" role="alert" aria-live="polite">
         <div class="mx-auto h-16 w-16 rounded-full bg-red-900/50 flex items-center justify-center text-3xl text-red-300" aria-hidden="true">!</div>
         <h1 class="text-2xl font-bold text-white mt-5 mb-3">{{ title() }}</h1>
         <p class="text-gray-300">{{ message() }}</p>

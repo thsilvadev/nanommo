@@ -221,12 +221,14 @@ export class DataService implements OnModuleInit {
       ['map_green_grounds_3', new Set(['mat_wheat'])],
       ['map_green_grounds_4', new Set(['mat_sugar', 'mat_honeycomb'])],
       ['map_green_grounds_5', new Set(['mat_sugar'])],
+      ['map_menace_hills_0', new Set(['mat_wild_blueberries'])],
       ['map_menace_hills_1', new Set(['mat_wild_blueberries'])],
       ['map_menace_hills_3', new Set(['mat_wild_blueberries'])],
       ['map_ipora_beach_0', new Set(['mat_cooking_oil'])],
       ['map_ipora_beach_1', new Set(['mat_cooking_oil'])],
       ['map_wastelands_0', new Set(['mat_bronze_ore'])],
       ['map_wastelands_1', new Set(['mat_bronze_ore'])],
+      ['map_wastelands_2', new Set(['mat_bronze_ore'])],
       ['map_menace_hills_2', new Set(['mat_bronze_ore'])],
     ]);
     for (const map of maps) {

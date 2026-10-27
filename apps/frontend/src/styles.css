@@ -624,3 +624,26 @@ select:focus-visible,
 .refinement-confirm-modal button{border:1px solid #765632;background:#261c12;color:#d9c39e;padding:8px 12px;cursor:pointer}
 .refinement-confirm-modal button.primary{background:linear-gradient(#76542b,#4d351c);border-color:#c49a53;color:#fff0c9;font-weight:bold}
 .refinement-result{color:#9be2a6;margin:10px 0 0;font-weight:700}
+
+/* The error message is taller than the auth/login cards. Keep it in normal flow
+   and allow vertical scrolling so the recovery action is never clipped. */
+.auth-screen.auth-error-screen {
+  height: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+.auth-screen.auth-error-screen .auth-error-panel {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: min(520px, 100%);
+  margin: 0 auto;
+  padding: 24px 12px 32px;
+}
