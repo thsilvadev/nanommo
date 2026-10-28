@@ -44,15 +44,15 @@
   ],
   "type": "vendor",
   "slotCount": 10,
-  "greeting": "Hello, adventurer! How can I help you? Wanna buy goods or sell me your loot? Just drag’n’drop items",
+  "greeting": "Hello, adventurer! How can I help you? Wanna buy goods or sell me your loot? Just drag’n’drop items.",
   "locales": {
     "pt-BR": {
       "name": "William",
-      "greeting": "Olá, aventureiro!"
+      "greeting": "Olá, amizade! Como posso te ajudar? Quer comprar mercadorias ou me vender seu saque? Basta arrastar e soltar os itens."
     },
     "en-US": {
       "name": "William",
-      "greeting": "Hello, adventurer! How can I help you? Wanna buy goods or sell me your loot? Just drag’n’drop items"
+      "greeting": "Hello, adventurer! How can I help you? Wanna buy goods or sell me your loot? Just drag’n’drop items."
     }
   }
 }

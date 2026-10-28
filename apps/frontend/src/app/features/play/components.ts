@@ -748,12 +748,21 @@ export class VendorPanel implements OnDestroy {
       void this.vendor.load();
     }, { allowSignalWrites: true });
     effect(() => {
+      const questSpeechOverride = this.vendor.questSpeechOverride();
       const questInteraction = this.vendor.questInteraction();
       const npcDialogue = this.vendor.dialogue();
       const selectedNpc = this.vendor.selectedNpc();
-      const questText = this.vendor.localizedInteraction(questInteraction, 'npcText');
-      const npcText = this.vendor.localized(npcDialogue, 'npcText', npcDialogue?.npcText);
-      const idleGreeting = this.vendor.localized(selectedNpc, 'greeting', selectedNpc?.greeting);
+      // A quest action list is not a spoken line. The active fallback override can
+      // update this shared speech surface without replacing the action list itself.
+      const speech = questSpeechOverride ?? (questInteraction && questInteraction.kind !== 'select' ? questInteraction : null);
+      const questText = speech ? this.vendor.localizedInteraction(speech, 'npcText') : '';
+      const hasCatalogGreeting = !!(selectedNpc?.greeting || selectedNpc?.locales?.['pt-BR']?.['greeting'] || selectedNpc?.locales?.['en-US']?.['greeting']);
+      const npcDialogueIsGreeting = npcDialogue?.nodeId === 'greeting' && hasCatalogGreeting;
+      const npcText = npcDialogueIsGreeting
+        ? this.vendor.localized(selectedNpc, 'greeting', selectedNpc?.greeting)
+        : this.vendor.localized(npcDialogue, 'npcText', npcDialogue?.npcText);
+      const greetingField = selectedNpc?.types?.some((type: string) => type === 'storage' || type === 'mailbox') ? 'monologue' : 'greeting';
+      const idleGreeting = this.vendor.localized(selectedNpc, greetingField, selectedNpc?.[greetingField]);
       const text = String(questText || npcText || idleGreeting || '');
       if (text === this.interactionTextTarget) return;
       this.startInteractionTypewriter(text);
@@ -783,6 +792,22 @@ export class VendorPanel implements OnDestroy {
     this.interactionTypewriter = null;
     this.displayedInteractionText.set(this.interactionTextTarget);
     this.interactionTyping.set(false);
+  }
+  npcConversationText(npc: any): string {
+    const override = this.vendor.questSpeechOverride();
+    if (override) return this.vendor.localizedInteraction(override, 'npcText');
+    const interaction = this.vendor.questInteraction();
+    if (interaction && interaction.kind !== 'select') return this.vendor.localizedInteraction(interaction, 'npcText');
+    const dialogue = this.vendor.dialogue();
+    const hasCatalogGreeting = !!(npc?.greeting || npc?.locales?.['pt-BR']?.greeting || npc?.locales?.['en-US']?.greeting);
+    if (dialogue?.nodeId === 'greeting' && hasCatalogGreeting) return this.vendor.localized(npc, 'greeting', npc?.greeting);
+    if (dialogue) return this.vendor.localized(dialogue, 'npcText', dialogue?.npcText);
+    const field = npc?.types?.some((type: string) => type === 'storage' || type === 'mailbox') ? 'monologue' : 'greeting';
+    return this.vendor.localized(npc, field, npc?.[field]);
+  }
+  showingQuestResponse(): boolean {
+    const kind = this.vendor.questInteraction()?.kind;
+    return !!this.vendor.questSpeechOverride() || (!!kind && kind !== 'select');
   }
   npcPortrait(id: string) { return '/assets/npcs/' + id + '.png'; }
   mailTooltip(mail: any) { return this.catalog.itemTooltipLines(mail.itemId, mail.itemInstanceData).map(line => (line.label ? line.label + ': ' : '') + line.value).join(' · '); }

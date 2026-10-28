@@ -28,6 +28,8 @@ export class VendorStore {
   readonly npcs=signal<TownNpc[]>([]);
   readonly dialogue=signal<NpcDialogueState|null>(null);
   readonly questInteraction=signal<any|null>(null);
+  /** Temporary speech override for an active quest fallback; the quest action list remains intact. */
+  readonly questSpeechOverride=signal<any|null>(null);
   /** True only after /interaction successfully establishes whether this NPC has quest dialogue. */
   readonly questInteractionResolved=signal(false);
   readonly questInteractionLoading=signal(false);
@@ -82,6 +84,7 @@ export class VendorStore {
     this.warehouse.set([]);
     this.dialogue.set(null);
     this.questInteraction.set(null);
+    this.questSpeechOverride.set(null);
     this.questInteractionResolved.set(false);
     this.questInteractionLoading.set(false);
     this.modal.set(null);
@@ -151,7 +154,7 @@ export class VendorStore {
     const npc=this.npcs().find(n=>n.id===id);
     this.stock.set([]);
     this.warehouse.set([]);
-    this.dialogue.set(null); this.questInteraction.set(null);
+    this.dialogue.set(null); this.questInteraction.set(null); this.questSpeechOverride.set(null);
     this.questInteractionResolved.set(false);
     this.questInteractionLoading.set(!!npc);
     if(!npc){this.questInteractionLoading.set(false);return;}
@@ -187,7 +190,7 @@ export class VendorStore {
   }
   async startQuestOffer(questId:string){
     if(this.questBusy())return;this.questBusy.set(true);this.error.set(null);
-    try{const offer=await this.api.get<any>('/quests/'+encodeURIComponent(questId)+'/offer').toPromise();this.questInteraction.set(offer??null);}
+    try{this.questSpeechOverride.set(null);const offer=await this.api.get<any>('/quests/'+encodeURIComponent(questId)+'/offer').toPromise();this.questInteraction.set(offer??null);}
     catch(e:any){this.error.set(e?.error?.message??'Unable to open quest offer');}
     finally{this.questBusy.set(false);}
   }
@@ -196,23 +199,46 @@ export class VendorStore {
     if(interaction.kind==='select'){
       if(!action)return;
       if(action.type==='dialogue'){this.questInteraction.set(null);await this.loadDialogue();return;}
-      if(action.type==='active'&&action.interaction){this.questInteraction.set(action.interaction);return;}
+      if(action.type==='active'&&action.interaction){
+        // The ready-state action is the real turn-in button: consume quest items and
+        // grant rewards in the server transaction, then show the post-turn-in line.
+        if(action.interaction.action==='turn_in') {
+          this.questSpeechOverride.set(null);
+          await this.turnInQuest(String(action.interaction.instanceId ?? action.instanceId));
+          return;
+        }
+        // Show the active fallback line in the shared speech area while keeping the
+        // state-aware quest action list and the NPC's ordinary choices available.
+        this.questSpeechOverride.set(action.interaction);
+        return;
+      }
       if(action.questId){await this.startQuestOffer(action.questId);return;}
       return;
     }
     if(interaction.kind==='completed'&&interaction.action==='close'){
-      this.questInteraction.set(null);await this.loadQuestActions();return;
+      this.questInteraction.set(null);this.questSpeechOverride.set(null);await this.loadQuestActions();return;
     }
     if(interaction.kind==='active'&&interaction.action==='close'){
-      this.questInteraction.set(null);return;
+      this.questInteraction.set(null);
+      await this.loadQuestActions();
+      return;
     }
     this.questBusy.set(true);this.error.set(null);
     try{
       if(interaction.kind==='offer'){
         const payload=interaction.choices?.length && action?.id ? {choiceId:action.id} : {};
         const result=await this.api.post<any>('/quests/'+encodeURIComponent(interaction.questId)+'/offer',payload).toPromise();
-        this.questInteraction.set(result?.closed?null:result?.accepted?(result.interaction??null):result??null);
-        if(result?.accepted)await Promise.all([this.character.load(),this.inventory.load()]);
+        if(result?.closed) {
+          this.questInteraction.set(null);
+          this.questSpeechOverride.set(null);
+        } else if(result?.accepted) {
+          // Acceptance starts the quest; it should return to the shared NPC panel
+          // with the readiness-sensitive quest action, rather than jumping straight
+          // into the active fallback dialogue.
+          this.questInteraction.set(null);
+          this.questSpeechOverride.set(null);
+          await Promise.all([this.character.load(),this.inventory.load()]);
+        } else { this.questSpeechOverride.set(null); this.questInteraction.set(result??null); }
       }else if(interaction.kind==='active'&&interaction.action==='turn_in'){
         const result=await this.api.post<any>('/quests/'+encodeURIComponent(interaction.instanceId)+'/turn-in',{}).toPromise();
         this.questInteraction.set(result?.interaction??null);
@@ -227,6 +253,7 @@ export class VendorStore {
     // Reload the active NPC dialogue after external turn-ins only when no post-action line is showing.
     if(!this.questInteraction()&&this.selectedNpcId())await this.loadQuestActions();
   }
+  closeQuestSpeech(){ this.questSpeechOverride.set(null); }
   async performQuestAction(quest:any,objective:any){
     if(this.questBusy())return;this.questBusy.set(true);this.error.set(null);
     try{await this.api.post('/quests/'+quest.id+'/action',{npcId:this.selectedNpcId(),objectiveId:objective.id}).toPromise();await this.loadQuestActions();}
@@ -235,7 +262,15 @@ export class VendorStore {
   }
   async turnInQuest(instanceId:string){
     if(this.questBusy())return;this.questBusy.set(true);this.error.set(null);
-    try{await this.api.post('/quests/'+instanceId+'/turn-in',{}).toPromise();await Promise.all([this.loadQuestActions(),this.inventory.load(),this.character.load()]);}
+    try{
+      this.questSpeechOverride.set(null);
+      const result=await this.api.post<any>('/quests/'+encodeURIComponent(instanceId)+'/turn-in',{}).toPromise();
+      // The server commits item consumption, rewards, XP and completion atomically.
+      // Keep the returned closing dialogue visible even though the quest is now complete.
+      this.questInteraction.set(result?.interaction??null);
+      await Promise.all([this.inventory.load(),this.character.load()]);
+      if(!result?.interaction) await this.loadQuestActions();
+    }
     catch(e:any){this.error.set(e?.error?.message??'Quest turn-in rejected');}
     finally{this.questBusy.set(false);}
   }
@@ -334,12 +369,12 @@ export class VendorStore {
   async chooseDialogue(choiceId:string){
     const d=this.dialogue();
     if(!d||this.busy())return;
+    this.questSpeechOverride.set(null);
     this.busy.set(true);this.error.set(null);
     try{
       const next=await this.api.post<NpcDialogueState & {consumedItemId?:string;openProfession?:'alchemy'|'blacksmith'}>('/town/npcs/'+d.npcId+'/dialogue',{nodeId:d.nodeId,choiceId}).toPromise();
       this.dialogue.set(next??null);
       if(next?.openProfession==='alchemy' || next?.openProfession==='blacksmith'){
-        this.dialogue.set(null);
         this.openProfession(next.openProfession);
       }
       await Promise.all([this.character.load(),this.inventory.load()]);

@@ -122,15 +122,6 @@
   box-sizing: border-box;
   pointer-events: none;
 }
-.quest-dialogue{padding:9px;border:1px solid #46331f;background:#17120d}
-.quest-interaction{border-color:#c49a50;background:#21180e}
-.quest-dialogue-label{display:block;color:#c09a5c;font:700 10px Arial;margin-bottom:6px}
-.quest-text{color:#d8cbb4;font:14px/1.5 Georgia,serif;margin:0 0 10px}
-.quest-text.is-typing{cursor:pointer}.quest-text.is-complete{cursor:default}
-.quest-choices{display:grid;gap:5px}
-.quest-choices button{background:#100c08;border:1px solid #6c512e;color:#e0c58b;padding:8px 10px;text-align:left;font:600 12px Arial;cursor:pointer}
-.quest-choices button.quest-action-button{background:#5a401f;border-color:#c49a50;color:#fff0c9}
-.quest-choices button:disabled{opacity:.48;cursor:not-allowed}
 .vendor-error {
   margin-top: 8px;
   color: #d18a77;
@@ -149,7 +140,6 @@
 .storage-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .storage-hint { display:block; margin-top:7px; color:#6f5d49; font:12px Arial; }
 
-.cooking-open-button { width:100%; margin:8px 0; padding:11px; color:#e8cf98; background:#2c1e11; border:1px solid #8d6936; font:20px Georgia; cursor:pointer; }
 .cooking-overlay { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; background:#000b; }
 .cooking-modal { width:min(50vw,1000px); min-width:min(620px,100%); max-height:88vh; overflow:auto; padding:20px; color:#d8c4a1; background:#140e0a; border:1px solid #8a6638; box-shadow:0 12px 60px #000; }
 .cooking-modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #493521; }

@@ -29,10 +29,22 @@ for (const npc of npcCatalog.npcs) {
   requireLocales(npc, 'name', Object.fromEntries(locales.map(locale => [locale, npc.locales?.[locale]?.name])), 'npc.' + npc.id);
   for (const field of ['greeting', 'monologue']) {
     const canonical = npc[field] ?? (field === 'greeting' ? npc.vendor?.greeting : undefined);
-    if (canonical) requireLocales(npc, field, Object.fromEntries(locales.map(locale => [locale, npc.locales?.[locale]?.[field]])), 'npc.' + npc.id);
+    // Locale-only greetings are valid: this avoids repeating en-US text in a top-level field.
+    const hasLocalizedValue = locales.some(locale => typeof npc.locales?.[locale]?.[field] === 'string' && npc.locales[locale][field].trim());
+    if (canonical || hasLocalizedValue) requireLocales(npc, field, Object.fromEntries(locales.map(locale => [locale, npc.locales?.[locale]?.[field]])), 'npc.' + npc.id);
   }
   for (const [nodeId, node] of Object.entries(npc.dialogue?.nodes ?? {})) dialogueNode(node, 'npc.' + npc.id + '.dialogue.' + nodeId);
 }
+const paje = npcCatalog.npcs.find(npc => npc.id === 'paje_piata');
+assert(paje, 'Pajé Piatã must exist in the Town NPC catalogue');
+assert.equal(Object.prototype.hasOwnProperty.call(paje, 'greeting'), false, 'Pajé greeting must have one locale-based source, not a duplicate top-level English field');
+assert.equal(paje.types.includes('dialogue'), true, 'Pajé keeps ordinary dialogue, unified with the quest speech surface');
+assert.equal(paje.dialogue.nodes.greeting.choices.some(choice => choice.id === 'forest_quest'), false, 'Quest start is supplied by the state-aware quest action, not a duplicate dialogue option');
+assert.equal(paje.dialogue.nodes.greeting.choices.some(choice => choice.id === 'alchemy'), true, 'Ordinary Alchemy choice remains in the unified conversation UI');
+assert.equal(paje.dialogue.nodes.greeting.choices.find(choice => choice.id === 'farewell')?.close, true, 'Farewell returns to the catalogue greeting instead of replaying the same dialogue node');
+assert.equal(paje.locales?.['pt-BR']?.greeting, 'Aruandê, viajante. A floresta guarda presentes e histórias.');
+assert.equal(paje.locales?.['en-US']?.greeting, 'Aruandê, traveler. The forest holds gifts and stories.');
+
 for (const quest of quests) {
   requireLocales(quest, 'title', quest.titleLocales, 'quest.' + quest.id);
   requireLocales(quest, 'description', quest.descriptionLocales, 'quest.' + quest.id);

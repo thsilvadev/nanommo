@@ -1,4 +1,4 @@
-<section class="vendor-panel" aria-label="Town NPC">
+<section class="vendor-panel" aria-label="Town NPC" (click)="revealInteractionText()">
   <div class="npc-select"><label for="town-npc-select">Talk to:</label><select id="town-npc-select"
       aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)">
       <option value="">Choose NPC to interact</option>
@@ -10,8 +10,13 @@
         [alt]="vendor.localized(npc, 'name', npc.name)" width="167" height="199"></div>
     <div class="vendor-title"><strong>{{vendor.localized(npc, 'name', npc.name)}}</strong><span>{{npc.types.join(' / ') | uppercase}}</span></div>
 
+    <section class="quest-dialogue npc-conversation" *ngIf="npcConversationText(npc)" [class.quest-interaction]="showingQuestResponse()">
+      <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
+        (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
+        [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
+    </section>
+
     <ng-container *ngIf="npc.types.includes('storage')">
-      <p class="vendor-greeting">{{vendor.localized(npc, 'monologue', npc.monologue)}}</p>
       <div id="storage-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
         cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid storage-grid"
         [class.drop-target-active]="shouldHighlightDropTarget()">
@@ -35,7 +40,6 @@
     </ng-container>
 
     <ng-container *ngIf="npc.types.includes('vendor')">
-      <p class="vendor-greeting">{{vendor.localized(npc, 'greeting', npc.greeting || 'Hello, adventurer!')}}</p>
       <div id="vendor-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
         cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid"
         [class.drop-target-active]="shouldHighlightDropTarget()">
@@ -58,7 +62,6 @@
     </ng-container>
 
     <ng-container *ngIf="npc.types.includes('mailbox')">
-      <p class="vendor-greeting">Letters, parcels, and Market deliveries are waiting here.</p>
       <div class="mailbox-tabs">
         <button type="button" [class.active]="vendor.mailboxMode()==='inbox'"
           (click)="vendor.mailboxMode.set('inbox')">Inbox <b
@@ -193,20 +196,17 @@
       </div>
     </ng-container>
 
-    <ng-container *ngIf="npc.types.includes('alchemy')">
-      <p class="vendor-greeting">{{vendor.localized(npc, 'greeting', npc.greeting)}}</p>
-      <button type="button" class="cooking-open-button" (click)="vendor.openProfession('alchemy')">{{vendor.t('Brew a potion')}}</button>
+    <ng-container *ngIf="npc.types.includes('alchemy') && !npc.types.includes('dialogue')">
+      <button type="button" class="cooking-open-button crafting-open-button" *ngIf="!interactionTyping()" (click)="vendor.openProfession('alchemy')">{{vendor.t('I want to brew a potion')}}</button>
     </ng-container>
     <ng-container *ngIf="npc.types.includes('blacksmith')">
-      <p class="vendor-greeting">{{vendor.localized(npc, 'greeting', npc.greeting)}}</p>
-      <button type="button" class="cooking-open-button" (click)="vendor.openProfession('blacksmith')">{{vendor.t('Craft equipment')}}</button>
+      <button type="button" class="cooking-open-button crafting-open-button" *ngIf="!interactionTyping()" (click)="vendor.openProfession('blacksmith')">{{vendor.t('Craft equipment')}}</button>
     </ng-container>
     <ng-container *ngIf="npc.types.includes('refinement')">
-      <button type="button" class="cooking-open-button refinement-open-button" (click)="vendor.openRefinement()">{{vendor.t('Refine equipment')}}</button>
+      <button type="button" class="cooking-open-button refinement-open-button" *ngIf="!interactionTyping()" (click)="vendor.openRefinement()">{{vendor.t('Refine equipment')}}</button>
     </ng-container>
     <ng-container *ngIf="npc.types.includes('cooking')">
-      <p class="vendor-greeting">{{vendor.localized(npc, 'greeting', npc.greeting)}}</p>
-      <button type="button" class="cooking-open-button" (click)="vendor.openCooking()">{{vendor.t("I'd like to cook")}}</button>
+      <button type="button" class="cooking-open-button crafting-open-button" *ngIf="!interactionTyping()" (click)="vendor.openCooking()">{{vendor.t("I'd like to cook")}}</button>
     </ng-container>
 
     <div class="cooking-overlay" *ngIf="vendor.cookingModal() && npc.id==='uncle_phillip'"
@@ -334,45 +334,48 @@
     </div>
 
     <ng-container *ngIf="vendor.dialogue() as dialogue">
-    <div class="quest-dialogue" *ngIf="vendor.questInteractionResolved() && !vendor.questInteraction()">
-      <small class="quest-dialogue-label">{{vendor.t('Talk')}}</small>
-      <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
-        (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
-        [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
-      <div class="quest-choices">
-        <button *ngFor="let choice of dialogue.choices" type="button" [disabled]="vendor.busy()||interactionTyping()"
-          (click)="vendor.chooseDialogue(choice.id)">{{vendor.localized(choice,'text',choice.text)}}</button>
+      <div class="quest-choices npc-dialogue-choices" *ngIf="!interactionTyping() && dialogue.choices?.length && (!vendor.questInteraction() || vendor.questInteraction()?.kind==='select')">
+        <button *ngFor="let choice of dialogue.choices" type="button" class="npc-dialogue-button"
+          [class.crafting-open-button]="choice.id==='alchemy'"
+          [class.crafting-dialogue-button]="choice.id==='alchemy'"
+          [disabled]="vendor.busy()" (click)="vendor.chooseDialogue(choice.id)">{{vendor.localized(choice,'text',choice.text)}}</button>
       </div>
-    </div>
     </ng-container>
-    <section class="quest-dialogue" *ngIf="vendor.questInteractionResolved() && npc.types.length===0 && npc.greeting && !vendor.dialogue() && !vendor.questInteraction()">
-      <small class="quest-dialogue-label">{{vendor.t('Talk')}}</small>
-      <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
-        (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
-        [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
-    </section>
 
-    <section class="quest-dialogue quest-interaction" *ngIf="vendor.questInteraction() as interaction">
-      <small class="quest-dialogue-label">{{interaction.kind==='offer'?vendor.t('Quest · Offer'):interaction.kind==='active'?vendor.localizedInteraction(interaction,'title')+' · '+vendor.t('Quest · In Progress'):interaction.kind==='completed'?vendor.t('Quest · Complete'):vendor.t('Talk')}}</small>
-      <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
-        (click)="revealInteractionText()" (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
-        [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
-      <div class="quest-choices quest-action-choices" *ngIf="interaction.kind==='select'; else offerBranchOrSingle">
-        <button *ngFor="let action of interaction.actions" type="button" class="quest-action-button" [disabled]="vendor.questBusy()||interactionTyping()"
-          (click)="vendor.chooseQuestInteraction(action)">{{vendor.localized(action,'buttonText',action.buttonText)}}</button>
+    <ng-container *ngIf="vendor.questSpeechOverride() as speech">
+      <div class="quest-choices" *ngIf="!interactionTyping()">
+        <button type="button" class="npc-dialogue-button" (click)="vendor.closeQuestSpeech()">
+          {{vendor.localizedInteraction(speech,'buttonText') || speech.buttonText}}
+        </button>
       </div>
-      <ng-template #offerBranchOrSingle>
-        <div class="quest-choices quest-action-choices" *ngIf="interaction.kind==='offer' && interaction.choices?.length; else singleQuestAction">
-          <button *ngFor="let choice of interaction.choices" type="button" class="quest-action-button"
-            [disabled]="vendor.questBusy()||interactionTyping()"
-            (click)="vendor.chooseQuestInteraction({id:choice.id})">{{vendor.localized(choice,'text',choice.text)}}</button>
-        </div>
-      </ng-template>
-      <ng-template #singleQuestAction>
-        <div class="quest-choices"><button type="button" class="quest-action-button" [disabled]="vendor.questBusy()||interactionTyping()"
-          (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}}</button></div>
-      </ng-template>
-    </section>
+    </ng-container>
+
+    <ng-container *ngIf="vendor.questInteraction() as interaction">
+      <div class="quest-choices quest-action-choices" *ngIf="interaction.kind==='select' && !interactionTyping()">
+        <button *ngFor="let action of interaction.actions" type="button"
+          [class.quest-action-button]="action.type==='offer'||action.type==='active'"
+          [class.quest-primary-action]="action.type==='offer'||(action.type==='active' && action.interaction?.action==='turn_in')"
+          [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestInteraction(action)">{{vendor.localized(action,'buttonText',action.buttonText)}}</button>
+      </div>
+
+      <div class="quest-choices quest-action-choices" *ngIf="interaction.kind==='offer' && interaction.choices?.length && !interactionTyping()">
+        <button *ngFor="let choice of interaction.choices" type="button" class="quest-action-button"
+          [class.quest-primary-action]="choice.acceptsQuest" [disabled]="vendor.questBusy()"
+          (click)="vendor.chooseQuestInteraction({id:choice.id})">{{vendor.localized(choice,'text',choice.text)}}</button>
+      </div>
+      <div class="quest-choices" *ngIf="interaction.kind==='offer' && !interaction.choices?.length && !interactionTyping()">
+        <button type="button" class="quest-action-button" [class.quest-primary-action]="interaction.acceptsQuest"
+          [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}}</button>
+      </div>
+      <div class="quest-choices" *ngIf="interaction.kind==='active' && !interactionTyping()">
+        <button type="button" class="quest-action-button" [class.quest-primary-action]="interaction.action==='turn_in'"
+          [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}}</button>
+      </div>
+      <div class="quest-choices" *ngIf="interaction.kind==='completed' && !interactionTyping()">
+        <button type="button" class="npc-dialogue-button" [disabled]="vendor.questBusy()"
+          (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}}</button>
+      </div>
+    </ng-container>
 
     <div class="vendor-error" *ngIf="vendor.error()">{{vendor.error()}}</div>
   </ng-container>

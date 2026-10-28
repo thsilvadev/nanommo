@@ -62,8 +62,8 @@ async function run() {
   bootData.onModuleInit();
   assert.strictEqual(bootData.getQuests().quests.length, 2);
 
-  // Pajé's Level 35 offer is branched: asking about the tears never silently accepts,
-  // while the explicit acceptance after the explanation starts one persistent instance.
+  // Pajé's existing Portuguese dialogue remains intact: asking about the tears
+  // leads to an explanation, and the explicit follow-up choice accepts the quest.
   const forestCharacter = {
     id: 'char-forest', userId: 'user-forest', status: 'town', currentMapId: 'map_kwaioua_taba',
     pendingMapTransition: null, travelIntent: null, level: 35, xp: 0, gold: 0,
@@ -74,13 +74,17 @@ async function run() {
   const forestQuestId = 'forest_ancient_teardrop';
   const npcInteraction = await forest.service.getNpcInteraction(forestCharacter.id, 'paje_piata');
   assert.strictEqual(npcInteraction.kind, 'select');
-  assert(npcInteraction.actions.some(action => action.type === 'offer' && action.questId === forestQuestId));
+  const forestOfferAction = npcInteraction.actions.find(action => action.type === 'offer' && action.questId === forestQuestId);
+  assert(forestOfferAction);
+  assert.strictEqual(forestOfferAction.buttonText, 'What bothers you, Pajé Piatã?');
+  assert.strictEqual(forestOfferAction.buttonTextLocales['pt-BR'], 'O que o entristece, Pajé Piatã?');
   const forestOffer = await forest.service.getOffer(forestCharacter.id, forestQuestId);
   assert.strictEqual(forestOffer.nodeId, 'start');
   assert(forestOffer.choices.some(choice => choice.id === 'ask_tears'));
   const explanation = await forest.service.advanceOffer(forestCharacter.id, forestQuestId, 'ask_tears');
   assert.strictEqual(explanation.nodeId, 'explanation');
   assert.strictEqual(explanation.accepted, false);
+  assert.strictEqual(explanation.npcTextLocales['pt-BR'], 'O Treant Flamejante guarda as memórias antigas desta floresta. Suas lágrimas podem ajudar a restaurar o equilíbrio.');
   assert.strictEqual(forest.instanceRows.length, 0, 'Question/explanation path must not accept automatically');
 
   const forestInstanceResult = await forest.service.advanceOffer(forestCharacter.id, forestQuestId, 'accept_after_explanation');
@@ -88,6 +92,11 @@ async function run() {
   assert.strictEqual(forest.instanceRows.length, 1);
   const forestInstance = forest.instanceRows[0];
   assert.strictEqual(forestInstance.status, 'active');
+  const forestActiveAction = await forest.service.getNpcInteraction(forestCharacter.id, 'paje_piata');
+  assert.strictEqual(forestActiveAction.kind, 'select');
+  assert.strictEqual(forestActiveAction.actions.length, 1);
+  assert.strictEqual(forestActiveAction.actions[0].buttonText, "About the forest ancestors' tears...");
+  assert.strictEqual(forestActiveAction.actions[0].interaction.action, 'close');
 
   // Simulate five independent successful deterministic 35% quest-only rolls, then
   // turn in the exact matching instance stack and verify fixed XP/provenance/reward.
@@ -109,8 +118,16 @@ async function run() {
   const tears = forest.invRows.filter(row => row.itemId === 'part_flamingtreant_common');
   assert.strictEqual(tears.reduce((sum, row) => sum + Number(row.quantity), 0), 5);
   assert(tears.every(row => row.instanceData?.questInstanceId === forestInstance.id));
+  const forestReadyAction = await forest.service.getNpcInteraction(forestCharacter.id, 'paje_piata');
+  assert.strictEqual(forestReadyAction.kind, 'select');
+  assert.strictEqual(forestReadyAction.actions.length, 1);
+  assert.strictEqual(forestReadyAction.actions[0].buttonText, 'What will you do with those tears? [handle items]');
+  assert.strictEqual(forestReadyAction.actions[0].interaction.action, 'turn_in');
+  assert.strictEqual(forestReadyAction.actions[0].interaction.instanceId, forestInstance.id);
   forest.data.getXpToNextLevel = () => 1000000;
-  await forest.service.turnIn(forestCharacter.id, forestInstance.id);
+  const completedQuestResult = await forest.service.turnIn(forestCharacter.id, forestInstance.id);
+  assert.strictEqual(completedQuestResult.interaction.npcTextLocales['pt-BR'], 'Você honrou a floresta. Fique com estas botas; que elas guiem seus passos em segurança.');
+  assert.strictEqual(completedQuestResult.interaction.buttonTextLocales['pt-BR'], 'Obrigado.');
   assert.strictEqual(forestInstance.status, 'completed');
   assert.strictEqual(Number(forestCharacter.xp), 31630, 'Quest reward must grant the exact fixed Character XP');
   assert.strictEqual(forest.invRows.some(row => row.itemId === 'part_flamingtreant_common'), false);
@@ -124,7 +141,6 @@ async function run() {
   assert.deepStrictEqual(baseQuest.objectives[0].items, [
     { itemId: 'part_slime_common', quantity: 20 },
     { itemId: 'part_fieldbat_common', quantity: 20 },
-    { itemId: 'part_thornsprout_common', quantity: 10 },
   ]);
   assert.strictEqual(baseQuest.rewards.items[0].itemId, 'equip_accessory_sor_t1');
   assert.strictEqual(itemById('quest_spring_flask').questOnly, true);
@@ -145,7 +161,7 @@ async function run() {
   availableHarness.character.level = 2;
   assert.strictEqual((await availableHarness.service.getAvailable(availableHarness.character.id)).some(row => row.id === locked.id), true);
   const offer = await availableHarness.service.getOffer(availableHarness.character.id, locked.id);
-  assert.strictEqual(offer.acceptsQuest, undefined);
+  assert.strictEqual(offer.acceptsQuest, false, 'Non-final dialogue steps must not be styled as quest acceptance actions');
   let state = await availableHarness.service.advanceOffer(availableHarness.character.id, locked.id);
   assert.strictEqual(state.accepted, false);
   state = await availableHarness.service.advanceOffer(availableHarness.character.id, locked.id);
@@ -157,7 +173,13 @@ async function run() {
   // Cecilia opens directly in dialogue; the single button accepts at the last offer step,
   // then the same panel switches into her active line with a readiness-sensitive action.
   const ceciliaEmpty = harness();
+  ceciliaEmpty.character.level = 3;
   let interaction = await ceciliaEmpty.service.getNpcInteraction(ceciliaEmpty.character.id, 'cecilia');
+  assert.strictEqual(interaction.kind, 'select');
+  assert.strictEqual(interaction.actions.length, 1);
+  assert.strictEqual(interaction.actions[0].type, 'offer');
+  assert.strictEqual(interaction.actions[0].buttonText, baseQuest.title);
+  interaction = await ceciliaEmpty.service.getOffer(ceciliaEmpty.character.id, baseQuest.id);
   assert.strictEqual(interaction.kind, 'offer');
   assert.strictEqual(interaction.npcText, baseQuest.offerDialogue[0].npcText);
   assert.strictEqual(interaction.buttonText, 'What can you do?');
@@ -171,24 +193,33 @@ async function run() {
   assert.strictEqual(interaction.interaction.buttonText, "Ok I'll be back");
   assert.strictEqual(interaction.interaction.action, 'close');
   const multiNpcQuest = { ...baseQuest, id: 'test_second_cecilia_quest', title: 'Second Cecilia quest' };
+  // Active quest actions and other still-eligible offers must coexist in the same NPC action list.
+  ceciliaEmpty.data.getQuests = () => ({ quests: [baseQuest, multiNpcQuest] });
+  const mixedActions = await ceciliaEmpty.service.getNpcInteraction(ceciliaEmpty.character.id, 'cecilia');
+  assert.deepStrictEqual(mixedActions.actions.map(action => `${action.type}:${action.questId}`).sort(), [
+    `active:${baseQuest.id}`, `offer:${multiNpcQuest.id}`,
+  ].sort());
   const multiQuestHarness = harness({ data: { ...harness().data, getQuests: () => ({ quests: [baseQuest, multiNpcQuest] }) } });
+  multiQuestHarness.character.level = 3;
   const multiChoice = await multiQuestHarness.service.getNpcInteraction(multiQuestHarness.character.id, 'cecilia');
   assert.strictEqual(multiChoice.kind, 'select');
   assert.deepStrictEqual(multiChoice.actions.map((action) => action.title), [baseQuest.title, multiNpcQuest.title]);
 
   const fatherQuest = { ...baseQuest, id: 'test_father_offer', giverNpcId: 'father_marcelus', turnInNpcId: 'father_marcelus' };
   const fatherHarness = harness({ data: { ...harness().data, getQuests: () => ({ quests: [fatherQuest] }) } });
+  fatherHarness.character.level = 3;
   const fatherChoice = await fatherHarness.service.getNpcInteraction(fatherHarness.character.id, 'father_marcelus');
   assert.strictEqual(fatherChoice.kind, 'select');
-  assert.ok(fatherChoice.actions.some((action) => action.type === 'dialogue' && action.buttonText === 'Talk'));
+  assert.ok(!fatherChoice.actions.some((action) => action.type === 'dialogue'), 'Quest framework should not create a generic Talk menu action');
   assert.ok(fatherChoice.actions.some((action) => action.type === 'offer' && action.questId === fatherQuest.id));
 
   const ceciliaReady = harness({ inventory: [
     { id: 's-gel', characterId: 'char-q1', location: 'inventory', slotIndex: 0, itemId: 'part_slime_common', quantity: 20 },
     { id: 'b-wings', characterId: 'char-q1', location: 'inventory', slotIndex: 1, itemId: 'part_fieldbat_common', quantity: 20 },
-    { id: 't-bark', characterId: 'char-q1', location: 'inventory', slotIndex: 2, itemId: 'part_thornsprout_common', quantity: 10 },
   ] });
+  ceciliaReady.character.level = 3;
   await ceciliaReady.service.getNpcInteraction(ceciliaReady.character.id, 'cecilia');
+  await ceciliaReady.service.getOffer(ceciliaReady.character.id, baseQuest.id);
   await ceciliaReady.service.advanceOffer(ceciliaReady.character.id, baseQuest.id);
   const acceptedReady = await ceciliaReady.service.advanceOffer(ceciliaReady.character.id, baseQuest.id);
   assert.strictEqual(acceptedReady.interaction.buttonText, '[Handle items]');
@@ -198,6 +229,7 @@ async function run() {
   const many = Array.from({ length: 6 }, (_, i) => ({ ...baseQuest, id: `limit_quest_${i}`, title: `Limit ${i}` }));
   const limitData = { ...harness().data, getQuests: () => ({ quests: many }) };
   const limitHarness = harness({ data: limitData });
+  limitHarness.character.level = 3;
   for (let i = 0; i < 5; i++) {
     await limitHarness.service.getOffer(limitHarness.character.id, many[i].id);
     const accepted = await limitHarness.service.advanceOffer(limitHarness.character.id, many[i].id);
@@ -218,6 +250,7 @@ async function run() {
   const other = { id: 'other', characterId: 'char-q1', location: 'inventory', slotIndex: 1, itemId: 'quest_spring_flask', quantity: 3, instanceData: { questInstanceId: 'different-instance' } };
   const cleanupData = { ...harness().data, getQuests: () => ({ quests: [abandonQuest] }) };
   const cleanup = harness({ data: cleanupData, instances: [abandonInstance], inventory: [owned, other] });
+  cleanup.character.level = 3;
   await cleanup.service.abandon(cleanup.character.id, abandonInstance.id);
   assert.strictEqual(cleanup.instanceRows[0].status, 'abandoned');
   assert.deepStrictEqual(cleanup.invRows.map(row => row.id), ['other']);
@@ -249,7 +282,6 @@ async function run() {
   const required = [
     { id: 'slime', characterId: 'char-q1', location: 'inventory', slotIndex: 0, itemId: 'part_slime_common', quantity: 20, instanceData: null },
     { id: 'bat', characterId: 'char-q1', location: 'inventory', slotIndex: 1, itemId: 'part_fieldbat_common', quantity: 20, instanceData: null },
-    { id: 'thorn', characterId: 'char-q1', location: 'inventory', slotIndex: 2, itemId: 'part_thornsprout_common', quantity: 10, instanceData: null },
   ];
   const ceciliaInstance = { id: 'cecilia-instance', characterId: 'char-q1', questId: baseQuest.id, status: 'active', progress: {}, acceptedAt: new Date(), expiresAt: null, completedAt: null };
   const turnin = harness({ instances: [ceciliaInstance], inventory: required });
@@ -257,7 +289,7 @@ async function run() {
   assert.strictEqual(turninResult.interaction.npcText, baseQuest.completionDialogue.npcText);
   assert.strictEqual(turninResult.interaction.buttonText, baseQuest.completionDialogue.buttonText);
   assert.strictEqual(turnin.instanceRows[0].status, 'completed');
-  assert.strictEqual(turnin.invRows.filter(row => ['part_slime_common', 'part_fieldbat_common', 'part_thornsprout_common'].includes(row.itemId)).length, 0);
+  assert.strictEqual(turnin.invRows.filter(row => ['part_slime_common', 'part_fieldbat_common'].includes(row.itemId)).length, 0);
   const rewardRing = turnin.invRows.find(row => row.itemId === 'equip_accessory_sor_t1');
   assert.deepStrictEqual(rewardRing.instanceData.questReward, { questId: baseQuest.id, marketTradable: false });
   assert.strictEqual(baseQuest.completionDialogue.buttonText, 'Thank you!');
@@ -325,10 +357,12 @@ async function run() {
   // Repeatability and reacceptance policies distinguish completed from abandoned instances.
   const completedOneOff = { id: 'complete-one-off', characterId: 'char-q1', questId: baseQuest.id, status: 'completed', progress: {}, acceptedAt: new Date(), expiresAt: null, completedAt: new Date() };
   const completedOnce = harness({ instances: [completedOneOff] });
+  completedOnce.character.level = 3;
   assert.strictEqual((await completedOnce.service.getAvailable(completedOnce.character.id)).some(row => row.id === baseQuest.id), false);
   const repeatable = { ...baseQuest, id: 'test_repeatable', repeatable: true };
   const priorCompletion = { ...completedOneOff, id: 'repeatable-completion', questId: repeatable.id };
   const repeats = harness({ data: { ...harness().data, getQuests: () => ({ quests: [repeatable] }) }, instances: [priorCompletion] });
+  repeats.character.level = 3;
   assert.strictEqual((await repeats.service.getAvailable(repeats.character.id)).some(row => row.id === repeatable.id), true);
 
   // Exercise the real service entry points: no quest-only item may be sold, mailed, or stored.
@@ -387,12 +421,19 @@ async function run() {
   assert.match(textOf('apps/frontend/src/app/core/vendor.store.ts'), /Quest-only items cannot be attached to Mail/);
   const vendorTemplate = textOf('apps/frontend/src/app/features/play/vendor-panel.html');
   const vendorStyles = textOf('apps/frontend/src/app/features/play/vendor-panel.css');
+  const globalStyles = textOf('apps/frontend/src/styles.css');
   const vendorComponent = textOf('apps/frontend/src/app/features/play/components.ts');
-  assert.match(vendorTemplate, /interactionTyping\(\).*disabled|disabled[^>]*interactionTyping\(\)/);
-  assert.match(vendorTemplate, /revealInteractionText\(\)/);
+  assert.match(vendorTemplate, /!interactionTyping\(\)/, 'Dialogue/action controls should only appear after the typewriter finishes');
+  assert.match(vendorTemplate, /revealInteractionText\(\)/, 'Clicking the NPC panel should reveal the full line');
   assert.doesNotMatch(vendorTemplate, /quest-offer-row|quest-actions-panel|quest-offer-dialogue/);
-  assert.match(vendorStyles, /font:14px\/1\.5 Georgia/);
-  assert.match(vendorStyles, /quest-action-button/);
+  assert.match(globalStyles, /font:14px\/1\.55 Georgia/);
+  assert.match(globalStyles, /quest-action-button/);
+  assert.match(globalStyles, /quest-primary-action:hover[^\{]*\{[^}]*0 0 18px/);
+  assert.match(globalStyles, /crafting-open-button:hover[^\{]*\{[^}]*#8ec99a/);
+  assert.match(globalStyles, /#2c1e11/);
+  assert.match(vendorTemplate, /choice.id==='alchemy'/);
+  assert.match(vendorTemplate, /npc-conversation/);
+  assert.match(vendorComponent, /npcDialogueIsGreeting/);
   assert.match(vendorComponent, /this.displayedInteractionText.set\(this.interactionTextTarget\)/);
   assert.match(vendorComponent, /this.interactionTyping.set\(false\)/);
 

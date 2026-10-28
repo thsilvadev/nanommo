@@ -98,12 +98,12 @@ export class QuestService {
       if (!node) throw new BadRequestException('Quest offer dialogue state is invalid');
       return { kind: 'offer', questId: quest.id, title: quest.title, ...titleFields, nodeId: id,
         npcText: node.npcText, npcTextLocales: node.npcTextLocales,
-        choices: (node.choices ?? []).map((choice: any) => ({ id: choice.id, text: choice.text, textLocales: choice.textLocales })),
+        choices: (node.choices ?? []).map((choice: any) => ({ id: choice.id, text: choice.text, textLocales: choice.textLocales, acceptsQuest: choice.acceptsQuest === true, close: choice.close === true })),
         action: 'advance' };
     }
     const step = quest.offerDialogue[stepIndex];
     return { kind: 'offer', questId: quest.id, title: quest.title, ...titleFields, stepIndex, totalSteps: quest.offerDialogue.length,
-      npcText: step.npcText, npcTextLocales: step.npcTextLocales, buttonText: step.buttonText, buttonTextLocales: step.buttonTextLocales, action: 'advance' };
+      npcText: step.npcText, npcTextLocales: step.npcTextLocales, buttonText: step.buttonText, buttonTextLocales: step.buttonTextLocales, acceptsQuest: step.acceptsQuest === true, action: 'advance' };
   }
 
   private async activeInteraction(manager: EntityManager, instance: QuestInstance, quest: any, npcId: string): Promise<any> {
@@ -123,45 +123,41 @@ export class QuestService {
       await this.expire(manager, characterId);
       const instanceRepo = manager.getRepository(QuestInstance);
       const rows = await instanceRepo.find({ where: { characterId } });
-      const npc = (this.data.getNpcCatalog()?.npcs ?? []).find((entry: any) => entry.id === npcId);
-      const hasDialogue = Array.isArray(npc?.types) && npc.types.includes('dialogue');
       const activeRows = rows.filter(row => row.status === 'active');
       const activeCandidates = activeRows.map(row => ({ row, quest: this.definitions().find(quest => quest.id === row.questId) }))
         .filter((entry: any) => entry.quest && (entry.quest.giverNpcId === npcId || entry.quest.turnInNpcId === npcId));
-      if (activeCandidates.length) {
-        const candidates = await Promise.all(activeCandidates.map(async (entry: any) => ({ ...entry, ready: npcId === entry.quest.turnInNpcId && await this.objectiveReadyForNpc(manager, entry.row, entry.quest) })));
-        candidates.sort((a: any, b: any) => Number(b.ready) - Number(a.ready) || new Date(a.row.acceptedAt).getTime() - new Date(b.row.acceptedAt).getTime());
-        if (candidates.length === 1 && !hasDialogue) return this.activeInteraction(manager, candidates[0].row, candidates[0].quest, npcId);
-        const actions: any[] = [];
-        if (hasDialogue) actions.push({ type: 'dialogue', title: 'Talk', titleLocales: { 'pt-BR': 'Conversar', 'en-US': 'Talk' }, buttonText: 'Talk', buttonTextLocales: { 'pt-BR': 'Conversar', 'en-US': 'Talk' } });
-        for (const candidate of candidates) {
-          const interaction = await this.activeInteraction(manager, candidate.row, candidate.quest, npcId);
-          actions.push({ type: 'active', questId: candidate.quest.id, instanceId: candidate.row.id, title: candidate.quest.title, titleLocales: candidate.quest.titleLocales ?? null,
-            buttonText: `${interaction.action === 'turn_in' ? '[Handle items]' : 'Continue'} · ${candidate.quest.title}`,
-            buttonTextLocales: { 'pt-BR': `${interaction.action === 'turn_in' ? '[Entregar itens]' : 'Continuar'} · ${candidate.quest.titleLocales?.['pt-BR'] ?? candidate.quest.title}`, 'en-US': `${interaction.action === 'turn_in' ? '[Handle items]' : 'Continue'} · ${candidate.quest.titleLocales?.['en-US'] ?? candidate.quest.title}` }, interaction });
-        }
-        return { kind: 'select', npcId, npcText: 'What would you like to do?', npcTextLocales: { 'pt-BR': 'O que você gostaria de fazer?', 'en-US': 'What would you like to do?' }, actions };
+      const candidates = await Promise.all(activeCandidates.map(async (entry: any) => ({ ...entry, ready: npcId === entry.quest.turnInNpcId && await this.objectiveReadyForNpc(manager, entry.row, entry.quest) })));
+      candidates.sort((a: any, b: any) => Number(b.ready) - Number(a.ready) || new Date(a.row.acceptedAt).getTime() - new Date(b.row.acceptedAt).getTime());
+      const actions: any[] = [];
+      for (const candidate of candidates) {
+        const interaction = await this.activeInteraction(manager, candidate.row, candidate.quest, npcId);
+        const fallbackButtonText = `${interaction.action === 'turn_in' ? '[Handle items]' : 'Continue'} · ${candidate.quest.title}`;
+        const fallbackButtonTextLocales = {
+          'pt-BR': `${interaction.action === 'turn_in' ? '[Entregar itens]' : 'Continuar'} · ${candidate.quest.titleLocales?.['pt-BR'] ?? candidate.quest.title}`,
+          'en-US': `${interaction.action === 'turn_in' ? '[Handle items]' : 'Continue'} · ${candidate.quest.titleLocales?.['en-US'] ?? candidate.quest.title}`,
+        };
+        actions.push({
+          type: 'active', questId: candidate.quest.id, instanceId: candidate.row.id,
+          title: candidate.quest.title, titleLocales: candidate.quest.titleLocales ?? null,
+          buttonText: interaction.action === 'turn_in' ? interaction.buttonText : (candidate.quest.activeActionButtonText ?? fallbackButtonText),
+          buttonTextLocales: interaction.action === 'turn_in' ? interaction.buttonTextLocales : (candidate.quest.activeActionButtonTextLocales ?? fallbackButtonTextLocales),
+          interaction,
+        });
       }
 
-      const available: any[] = [];
+      // Also expose other eligible quests offered by this NPC; a player's active
+      // quest must not hide a second available quest from the same NPC.
       for (const quest of this.definitions()) {
-        if (quest.giverNpcId === npcId && await this.eligible(character, quest, manager)) available.push(quest);
+        if (quest.giverNpcId !== npcId || candidates.some((candidate: any) => candidate.quest.id === quest.id)) continue;
+        if (await this.eligible(character, quest, manager)) actions.push({
+          type: 'offer', questId: quest.id, title: quest.title, titleLocales: quest.titleLocales ?? null,
+          buttonText: quest.npcActionButtonText ?? quest.title,
+          buttonTextLocales: quest.npcActionButtonTextLocales ?? quest.titleLocales ?? null,
+        });
       }
-      if (!available.length) return null;
-      if (available.length > 1 || hasDialogue) {
-        const actions: any[] = [];
-        if (hasDialogue) actions.push({ type: 'dialogue', title: 'Talk', titleLocales: { 'pt-BR': 'Conversar', 'en-US': 'Talk' }, buttonText: 'Talk', buttonTextLocales: { 'pt-BR': 'Conversar', 'en-US': 'Talk' } });
-        actions.push(...available.map(quest => ({ type: 'offer', questId: quest.id, title: quest.title, titleLocales: quest.titleLocales ?? null, buttonText: quest.title, buttonTextLocales: quest.titleLocales ?? null })));
-        return { kind: 'select', npcId, npcText: 'What can I help you with, darling?', npcTextLocales: { 'pt-BR': 'Como posso ajudar?', 'en-US': 'What can I help you with, darling?' }, actions };
-      }
-
-      const quest = available[0];
-      const sessions = { ...(character.questOfferProgress ?? {}) };
-      if (!sessions[quest.id]) sessions[quest.id] = { stepIndex: 0, nodeId: quest.offerGraph?.entryNodeId, startedAt: new Date().toISOString() };
-      const index = Math.max(0, Math.min(quest.offerDialogue.length - 1, Number(sessions[quest.id].stepIndex ?? 0)));
-      character.questOfferProgress = sessions;
-      await manager.getRepository(Character).save(character);
-      return this.offerInteraction(quest, index, sessions[quest.id].nodeId);
+      if (!actions.length) return null;
+      // Quests are actions in the shared NPC panel, not a second conversation/menu.
+      return { kind: 'select', npcId, actions };
     });
   }
 
@@ -391,7 +387,9 @@ export class QuestService {
       fresh.status = 'completed'; fresh.completedAt = new Date(); await repo.save(fresh); await manager.getRepository(Character).save(character);
       const completion = quest.completionDialogue;
       return { completed: true, questId: quest.id, title: quest.title,
-        interaction: completion ? { kind: 'completed', questId: quest.id, title: quest.title, npcText: completion.npcText, buttonText: completion.buttonText, action: 'close' } : null };
+        interaction: completion ? { kind: 'completed', questId: quest.id, title: quest.title,
+          npcText: completion.npcText, npcTextLocales: completion.npcTextLocales ?? quest.descriptionLocales ?? null,
+          buttonText: completion.buttonText, buttonTextLocales: completion.buttonTextLocales ?? null, action: 'close' } : null };
     });
   }
   private cookingThreshold(level: number): number { const known = [0,20,44,78,128,328,828,1578]; if (level <= 1) return 0; if (known[level-1] !== undefined) return known[level-1]; let total=known[known.length-1], increment=known[known.length-1]-known[known.length-2]; for(let current=known.length;current<level;current++){increment=Math.floor(increment*1.5);total+=increment;}return total; }

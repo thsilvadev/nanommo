@@ -10,7 +10,7 @@ const TRANSLATIONS: Record<GameLocale, Record<string, string>> = {
     "Português (Brasil)":"Português (Brasil)","English (US)":"Inglês (EUA)","Delete account":"Excluir conta",
     "Cooking":"Culinária","Level":"Nível","XP":"XP","Cancel":"Cancelar","Close":"Fechar",
     "Alchemy":"Alquimia","Blacksmith":"Ferreiro","Refinement":"Refinamento",
-    "Brew a potion":"Preparar uma poção","Craft equipment":"Fabricar equipamento","Refine equipment":"Refinar equipamento",
+    "Brew a potion":"Preparar uma poção","I want to brew a potion":"Quero preparar uma poção","Craft equipment":"Fabricar equipamento","Refine equipment":"Refinar equipamento",
     "Available":"Disponível","Missing ingredients":"Faltam ingredientes","Not enough inventory space":"Espaço insuficiente no inventário",
     "Start crafting":"Começar fabricação","Craft":"Fabricar","Refine":"Refinar","Select equipment":"Selecionar equipamento",
     "Bliss Stone":"Pedra da Bem-Aventurança","Divine Shard":"Fragmento Divino","Use Divine Shard":"Usar Fragmento Divino",

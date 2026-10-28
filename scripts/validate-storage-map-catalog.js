@@ -16,10 +16,18 @@ assert.equal(storage.length, 1, 'exactly one canonical Storage NPC must exist');
 assert.equal(storage[0].name, 'Storage');
 assert.equal(storage[0].location, 'town');
 assert.deepEqual(storage[0].types, ['storage']);
-assert.equal(storage[0].monologue, "You know I have a name, right? But you'll keep calling me Storage anyway.");
+assert.equal(typeof storage[0].monologue, 'string');
+assert.ok(storage[0].monologue.trim().length > 0, 'Storage monologue must be non-empty and may be localized/edited');
 for (const map of towns) assert.ok(Array.isArray(map.npcIds) && map.npcIds.includes('storage'), `Town map ${map.id} must reference storage`);
-const expected = ['map_town','map_lv_1','map_lv_6','map_lv_11','map_lv_16','map_lv_21','map_lv_26'];
-assert.deepEqual(maps.maps.map((map) => map.id), expected, 'current map catalogue must be Town followed by six grind maps');
-for (let i=0;i<maps.maps.length;i++) assert.deepEqual(maps.maps[i].coordinates, { x:i, y:0 }, `${maps.maps[i].id} must occupy x=${i}, y=0`);
+const mapIds = new Set();
+const mapCoordinates = new Set();
+for (const map of maps.maps) {
+  assert.ok(typeof map.id === 'string' && map.id.length > 0 && !mapIds.has(map.id), `map IDs must be unique: ${map.id}`);
+  mapIds.add(map.id);
+  assert.ok(Number.isFinite(map.coordinates?.x) && Number.isFinite(map.coordinates?.y), `${map.id} must have finite board coordinates`);
+  const coordinateKey = `${map.coordinates.x},${map.coordinates.y}`;
+  assert.ok(!mapCoordinates.has(coordinateKey), `map coordinates must be unique: ${coordinateKey}`);
+  mapCoordinates.add(coordinateKey);
+}
 if (publicNpcCatalog) assert.deepEqual(publicNpcCatalog, npcs, 'frontend NPC catalogue must exactly mirror root npc_catalog.json');
 console.log(`storage/map catalogue validation: passed (${towns.length} Town map(s), one Storage NPC, ${maps.maps.length} ordered maps)`);

@@ -251,10 +251,10 @@
           "pt-BR": "Eu voltarei.",
           "en-US": "I will return."
         },
-        "handleItemsButtonText": "Offer the five tears",
+        "handleItemsButtonText": "What will you do with those tears? [handle items]",
         "handleItemsButtonTextLocales": {
           "pt-BR": "Entregar as cinco lágrimas",
-          "en-US": "Offer the five tears"
+          "en-US": "What will you do with those tears? [handle items]"
         },
         "readyButtonText": "Continue",
         "readyButtonTextLocales": {
@@ -273,6 +273,16 @@
           "pt-BR": "Obrigado.",
           "en-US": "Thank you."
         }
+      },
+      "npcActionButtonText": "What bothers you, Pajé Piatã?",
+      "npcActionButtonTextLocales": {
+        "pt-BR": "O que o entristece, Pajé Piatã?",
+        "en-US": "What bothers you, Pajé Piatã?"
+      },
+      "activeActionButtonText": "About the forest ancestors' tears...",
+      "activeActionButtonTextLocales": {
+        "pt-BR": "Sobre as lágrimas dos ancestrais da floresta...",
+        "en-US": "About the forest ancestors' tears..."
       }
     }
   ]

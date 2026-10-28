@@ -267,12 +267,7 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": [
-        "storage",
-        "mailbox",
-        "william",
-        "father_marcelus"
-      ],
+      "npcIds": ["storage", "mailbox", "william", "father_marcelus"],
       "mapLength": 0
     },
     {
@@ -699,12 +694,7 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": [
-        "storage",
-        "mailbox",
-        "father_marcelus",
-        "paje_piata"
-      ],
+      "npcIds": ["storage", "mailbox", "father_marcelus", "paje_piata"],
       "mapLength": 0
     },
     {
@@ -1022,12 +1012,7 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": [
-        "storage",
-        "william",
-        "mailbox",
-        "father_marcelus"
-      ],
+      "npcIds": ["storage", "william", "mailbox", "father_marcelus"],
       "mapLength": 0
     },
     {
@@ -1240,7 +1225,7 @@
       "isTown": false,
       "recommendedLevel": 10,
       "mapLength": 25,
-            "gatheringPool": [
+      "gatheringPool": [
         {
           "itemId": "mat_wild_blueberries",
           "weight": 100
@@ -1486,7 +1471,7 @@
       "isTown": false,
       "recommendedLevel": 20,
       "mapLength": 25,
-            "gatheringPool": [
+      "gatheringPool": [
         {
           "itemId": "mat_bronze_ore",
           "weight": 100

@@ -39,7 +39,7 @@
               }
             ],
             "npcTextLocales": {
-              "pt-BR": "Que a luz esteja conosco, amigo. Como vai, companheiro aventureiro?",
+              "pt-BR": "Que a luz esteja conosco, fiel. Como vão as aventuras?",
               "en-US": "May the light be with us, friend. How are you, fellow adventurer?"
             }
           },
@@ -75,7 +75,7 @@
             "npcText": "The Lord doesn't want blood to be spilled. But I pray you'll return in peace 🙏.",
             "choices": [],
             "npcTextLocales": {
-              "pt-BR": "O Senhor não quer que sangue seja derramado. Rezo para que retorne em paz 🙏.",
+              "pt-BR": "O Senhor não quer que sangue seja derramado. Mas eu rezo para que retorne em paz 🙏.",
               "en-US": "The Lord doesn't want blood to be spilled. But I pray you'll return in peace 🙏."
             }
           }
@@ -83,7 +83,7 @@
       },
       "locales": {
         "pt-BR": {
-          "name": "Padre Marcelus"
+          "name": "Padre Marcelo"
         },
         "en-US": {
           "name": "Father Marcelus"
@@ -152,7 +152,7 @@
       },
       "locales": {
         "pt-BR": {
-          "name": "Ferreiro Loren",
+          "name": "Ferreira Loren",
           "greeting": "Haha! Eu sei por que veio até aqui. Veja minhas excelentes peças. Se quiser vender algo, também compro!"
         },
         "en-US": {
@@ -170,7 +170,7 @@
       "locales": {
         "pt-BR": {
           "name": "Cecilia",
-          "greeting": "Ah, querida! Que destino a traz até mim?"
+          "greeting": "O destino é uma coisa estranha, não é? Ele te trouxe até mim e eu tenho exatamente o que você veio buscar. Mas não seria sorte, afinal? Talvez…"
         },
         "en-US": {
           "name": "Cecilia",
@@ -185,15 +185,15 @@
       "types": [
         "storage"
       ],
-      "monologue": "You know I have a name, right? But you'll keep calling me Storage anyway.",
+      "monologue": "You know I have a name, right? But you'll keep calling me Storage anyway...",
       "locales": {
         "pt-BR": {
           "name": "Armazenamento",
-          "monologue": "Você sabe que eu tenho um nome, não sabe? Mas continuará me chamando de Armazenamento."
+          "monologue": "Você sabe que eu tenho um nome, não sabe? Mas continuará me chamando de Armazenamento de qualquer jeito..."
         },
         "en-US": {
           "name": "Storage",
-          "monologue": "You know I have a name, right? But you'll keep calling me Storage anyway."
+          "monologue": "You know I have a name, right? But you'll keep calling me Storage anyway..."
         }
       }
     },
@@ -208,7 +208,7 @@
       "locales": {
         "pt-BR": {
           "name": "Tio Phillip",
-          "greeting": "Venha para a cozinha! Vamos preparar algo delicioso."
+          "greeting": "Hmmm, que delícia... isso deve harmonizar bem com ess - Oy! Jovem viajante! Sei que você tem um ótimo gosto para comida. Quer usar minha cozinha? Fique à vontade, oy!"
         },
         "en-US": {
           "name": "Uncle Phillip",
@@ -227,7 +227,7 @@
       "locales": {
         "pt-BR": {
           "name": "Caixa de Correio",
-          "monologue": "Cartas, encomendas e entregas do Mercado esperam aqui."
+          "monologue": "Cartas, encomendas e entregas do Mercado chegam por aqui."
         },
         "en-US": {
           "name": "Mailbox",
@@ -244,68 +244,6 @@
         "alchemy",
         "dialogue"
       ],
-      "greeting": "Aruandê, traveler. The forest has many gifts, and many stories still to tell.",
-      "dialogue": {
-        "entryNodeId": "greeting",
-        "nodes": {
-          "greeting": {
-            "npcText": "Aruandê, traveler. What brings you to Kwaiouá-Taba?",
-            "npcTextLocales": {
-              "pt-BR": "Aruandê, viajante. O que traz você a Kwaiouá-Taba?",
-              "en-US": "Aruandê, traveler. What brings you to Kwaiouá-Taba?"
-            },
-            "choices": [
-              {
-                "id": "alchemy",
-                "text": "I would like to brew a potion.",
-                "textLocales": {
-                  "pt-BR": "Quero preparar uma poção.",
-                  "en-US": "I would like to brew a potion."
-                },
-                "effect": {
-                  "type": "open_profession",
-                  "profession": "alchemy"
-                }
-              },
-              {
-                "id": "forest_quest",
-                "text": "I came to ask about the forest.",
-                "textLocales": {
-                  "pt-BR": "Vim perguntar sobre a floresta.",
-                  "en-US": "I came to ask about the forest."
-                },
-                "nextNodeId": "forest_lore"
-              },
-              {
-                "id": "farewell",
-                "text": "Nothing for now.",
-                "textLocales": {
-                  "pt-BR": "Nada por enquanto.",
-                  "en-US": "Nothing for now."
-                }
-              }
-            ]
-          },
-          "forest_lore": {
-            "npcText": "The Flaming Treant holds the old memories of this forest. Its tears can help restore the balance.",
-            "npcTextLocales": {
-              "pt-BR": "O Treant Flamejante guarda as memórias antigas desta floresta. Suas lágrimas podem ajudar a restaurar o equilíbrio.",
-              "en-US": "The Flaming Treant holds the old memories of this forest. Its tears can help restore the balance."
-            },
-            "choices": [
-              {
-                "id": "return",
-                "text": "I understand.",
-                "textLocales": {
-                  "pt-BR": "Entendi.",
-                  "en-US": "I understand."
-                },
-                "nextNodeId": "greeting"
-              }
-            ]
-          }
-        }
-      },
       "vendor": {
         "buysAnyItem": true,
         "buyRatePercent": 40,
@@ -361,7 +299,42 @@
         },
         "en-US": {
           "name": "Pajé Piatã",
-          "greeting": "Aruandê, traveler. The forest has many gifts, and many stories still to tell."
+          "greeting": "Aruandê, traveler. The forest holds gifts and stories."
+        }
+      },
+      "dialogue": {
+        "entryNodeId": "greeting",
+        "nodes": {
+          "greeting": {
+            "npcText": "Aruandê, traveler. What brings you to Kwaiouá-Taba?",
+            "npcTextLocales": {
+              "pt-BR": "Aruandê, viajante. O que traz você a Kwaiouá-Taba?",
+              "en-US": "Aruandê, traveler. What brings you to Kwaiouá-Taba?"
+            },
+            "choices": [
+              {
+                "id": "alchemy",
+                "text": "I would like to brew a potion.",
+                "textLocales": {
+                  "pt-BR": "Quero preparar uma poção.",
+                  "en-US": "I would like to brew a potion."
+                },
+                "effect": {
+                  "type": "open_profession",
+                  "profession": "alchemy"
+                }
+              },
+              {
+                "id": "farewell",
+                "text": "Nothing for now.",
+                "textLocales": {
+                  "pt-BR": "Nada por enquanto.",
+                  "en-US": "Nothing for now."
+                },
+                "close": true
+              }
+            ]
+          }
         }
       }
     },

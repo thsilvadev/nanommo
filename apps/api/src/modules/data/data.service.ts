@@ -100,11 +100,10 @@ export class DataService implements OnModuleInit {
     const validNpcIds = new Set([...npcIds, vendorId]);
     const validTownNpcIds = new Set([...npcRows.filter((npc: any) => npc.location === 'town').map((npc: any) => npc.id), ...(this.npcVendor?.location === 'town' ? [vendorId] : [])]);
     const storageRows = npcRows.filter((npc: any) => npc.id === 'storage');
-    const storageMonologue = "You know I have a name, right? But you'll keep calling me Storage anyway.";
     if (storageRows.length !== 1 || storageRows[0].name !== 'Storage' || storageRows[0].location !== 'town' ||
       !Array.isArray(storageRows[0].types) || storageRows[0].types.length !== 1 || storageRows[0].types[0] !== 'storage' ||
-      storageRows[0].monologue !== storageMonologue) {
-      throw new Error('npc_catalog.json must define exactly one canonical Storage NPC with the approved name, town location, storage-only capability and exact monologue');
+      typeof storageRows[0].monologue !== 'string' || !storageRows[0].monologue.trim()) {
+      throw new Error('npc_catalog.json must define exactly one canonical Storage NPC with the approved name, town location, storage-only capability and a non-empty monologue');
     }
     const mailboxRows = npcRows.filter((npc: any) => npc.id === 'mailbox');
     if (mailboxRows.length !== 1 || mailboxRows[0].name !== 'Mailbox' || mailboxRows[0].location !== 'town' ||

@@ -358,6 +358,9 @@ export class TownService {
       const node = this.questNode(npc, nodeId);
       const choice = (node.choices ?? []).find((x: any) => x.id === choiceId);
       if (!choice || !(await this.choiceAvailable(choice, character))) throw new BadRequestException('Dialogue choice is not available');
+      // A farewell is a UI-only close action; return to the NPC greeting without
+      // inventing a new dialogue line or mutating gameplay state.
+      if (choice.close === true) return null;
 
       if (choice.effect?.type === 'eat_bread') {
         if (!this.characterHungry(character)) throw new BadRequestException('Character is not hungry');
