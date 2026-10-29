@@ -123,8 +123,8 @@
 }
 .resource img,
 .top-actions img {
-  width: 17px;
-  height: 17px;
+  width: 30px;
+  height: 30px;
   vertical-align: middle;
   filter: brightness(0) invert(1);
   opacity: 0.9;
