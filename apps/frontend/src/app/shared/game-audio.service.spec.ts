@@ -44,6 +44,28 @@ describe('GameAudioService battle event routing', () => {
     expect(audio.play).toHaveBeenCalledWith('poisonDamage');
   });
 
+  it('resolves an interrupted fade so a newer region transition is not blocked', async () => {
+    spyOn(window, 'requestAnimationFrame').and.returnValue(123);
+    spyOn(window, 'cancelAnimationFrame');
+    const element = { volume: 0.4 } as HTMLAudioElement;
+    (audio as any).music = element;
+    (audio as any).musicGeneration = 1;
+    const fade = (audio as any).fadeVolume(element, 0.4, 0, 850, 1) as Promise<void>;
+    (audio as any).cancelMusicFade();
+    await fade;
+    expect((audio as any).musicFadeFrame).toBe(0);
+  });
+
+  it('plays the potion sound for potion-use events', () => {
+    (audio as any).playBattleEvent({ actor: 'character', action: 'use_item', itemId: 'potion_minor', target: 'character' }, { log: { header: {} } });
+    expect(audio.play).toHaveBeenCalledWith('potion_drink');
+  });
+
+  it('plays flee audio only after a confirmed flee resolution', () => {
+    (audio as any).updateResolvedAudio({ lastResolved: () => ({ entryId: 'battle-flee-1', cancellationReason: 'flee', drops: [] }) });
+    expect(audio.play).toHaveBeenCalledWith('flee');
+  });
+
   it('maps Caelum and all numbered Green Grounds maps to the intended playlist', () => {
     expect((audio as any).regionFor('map_emperial_capital_caelum').id).toBe('caelum');
     expect((audio as any).regionFor('map_green_grounds_5').tracks).toEqual(['green-grounds.mp3', 'green-grounds_2.mp3', 'green-grounds_3.mp3']);

@@ -30,3 +30,10 @@
 
 - Frontend production build, OpenSpec validation, and `git diff --check` pass.
 - Karma test bundles compile, but this workstation lacks a ChromeHeadless binary, so browser test execution remains an environment limitation.
+
+## Follow-up: interrupted regional transition and new effects
+
+Regional fades now resolve their pending animation promise when a transition is superseded, so rapid intermediate map changes (including a saved-town teleport en route to the selected destination) cannot leave the next region waiting on a cancelled fade. When the map remains in the same region but its audio element is unexpectedly absent or paused, the service attempts to resume/restart that region's playlist.
+
+- potion_drink.mp3 plays after a successful potion/elixir consumable action, and for potion-use events in battle logs.
+- flee.mp3 plays only after the battle-resolution event confirms cancellationReason === 'flee'.

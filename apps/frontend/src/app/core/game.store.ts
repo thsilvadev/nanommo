@@ -66,8 +66,12 @@ export class InventoryStore {
  async useConsumable(itemId:string){
   const snapshot=await this.api.post<{character:Character;inventory:InventoryItem[];stateVersion:number}>('/inventory/use',{itemId}).toPromise();
   if(!snapshot)return;
+  // A successful response confirms the consume action even if a realtime snapshot
+  // with the same/newer revision arrived before this HTTP response.
+  const itemType=this.catalog.item(itemId)?.type;
+  if(itemType==='food'||itemId.startsWith('food_'))this.audio.play('eat');
+  else if(itemType==='consumable' && (itemId.includes('potion')||itemId.startsWith('elixir_')))this.audio.play('potion_drink');
   if(snapshot.stateVersion<=this.realtimeRevision)return;
-  if(this.catalog.item(itemId)?.type==='food')this.audio.play('eat');
   this.realtimeRevision=snapshot.stateVersion;
   this.realtimeGeneration++;
   this._items.set(snapshot.inventory??[]);

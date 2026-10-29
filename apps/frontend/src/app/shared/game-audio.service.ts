@@ -6,7 +6,7 @@ type SoundName =
   | 'greatsword_hit_1' | 'hand_hit_1' | 'levelUp' | 'light_hit_1'
   | 'npcDialogue' | 'poisonApply' | 'poisonDamage' | 'questAccepted'
   | 'questCompleted' | 'refineFail' | 'refineSuccess' | 'rod_hit_1'
-  | 'staff_hit_1' | 'sword_hit_1';
+  | 'staff_hit_1' | 'sword_hit_1' | 'potion_drink' | 'flee';
 
 @Injectable({ providedIn: 'root' })
 export class GameAudioService {
@@ -20,6 +20,7 @@ export class GameAudioService {
   private musicTrackIndex = -1;
   private musicGeneration = 0;
   private musicFadeFrame = 0;
+  private musicFadeResolve: (() => void) | null = null;
   private musicRetryBound = false;
   private lastEnemyHit: SoundName = 'enemy_hit_2';
   private started = false;
@@ -50,6 +51,7 @@ export class GameAudioService {
       questCompleted: 'questCompleted.mp3', refineFail: 'refineFail.mp3',
       refineSuccess: 'refineSuccess.mp3', rod_hit_1: 'rod_hit_1.wav',
       staff_hit_1: 'staff_hit_1.wav', sword_hit_1: 'sword_hit_1.wav',
+      potion_drink: 'potion_drink.mp3', flee: 'flee.mp3',
     };
     return files[name];
   }
@@ -113,12 +115,18 @@ export class GameAudioService {
   private updateMusic(mapId: string): void {
     const region = this.regionFor(mapId);
     const nextRegion = region?.id ?? '';
-    if (nextRegion === this.musicRegion) return;
+    if (nextRegion === this.musicRegion) {
+      // Recover if a transient map update or interrupted fade left a valid region silent.
+      if (nextRegion && this.musicTracks.length && !this.music && !this.musicFadeFrame) this.startNextTrack(this.musicGeneration);
+      else if (nextRegion && this.music?.paused && !this.musicFadeFrame) this.tryResumeMusic();
+      return;
+    }
     this.musicRegion = nextRegion;
     this.musicTracks = region?.tracks ?? [];
     this.musicTrackIndex = -1;
     const generation = ++this.musicGeneration;
-    void this.fadeCurrentMusic(850).then(() => {
+    this.cancelMusicFade();
+    void this.fadeCurrentMusic(850, generation).then(() => {
       if (generation !== this.musicGeneration || !this.musicTracks.length) return;
       this.startNextTrack(generation);
     });
@@ -144,35 +152,60 @@ export class GameAudioService {
     this.musicRetryBound = true;
     const retry = () => {
       this.musicRetryBound = false;
-      if (this.musicRegion && this.music && this.music.paused) {
-        const generation = this.musicGeneration;
-        void this.music.play().then(() => this.fadeVolume(this.music!, 0, 0.7, 900, generation)).catch(() => {});
-      }
+      document.removeEventListener('pointerdown', retry, true);
+      document.removeEventListener('keydown', retry, true);
+      this.tryResumeMusic();
     };
     document.addEventListener('pointerdown', retry, { once: true, capture: true });
     document.addEventListener('keydown', retry, { once: true, capture: true });
   }
 
-  private async fadeCurrentMusic(duration: number): Promise<void> {
+  private tryResumeMusic(): void {
+    const audio = this.music;
+    const generation = this.musicGeneration;
+    if (!this.musicRegion || !audio || !audio.paused) return;
+    void audio.play().then(() => this.fadeVolume(audio, audio.volume, this.muted() ? 0 : this.volume(), 900, generation)).catch(() => this.bindMusicRetry());
+  }
+
+  private async fadeCurrentMusic(duration: number, generation: number): Promise<void> {
     const audio = this.music;
     if (!audio) return;
     const initial = audio.volume;
-    await this.fadeVolume(audio, initial, 0, duration, this.musicGeneration);
+    await this.fadeVolume(audio, initial, 0, duration, generation);
+    if (generation !== this.musicGeneration) return;
     audio.pause();
     audio.currentTime = 0;
     if (this.music === audio) this.music = null;
   }
 
-  private fadeVolume(audio: HTMLAudioElement, from: number, to: number, duration: number, generation: number): Promise<void> {
+  private cancelMusicFade(): void {
     if (this.musicFadeFrame) cancelAnimationFrame(this.musicFadeFrame);
+    this.musicFadeFrame = 0;
+    const resolve = this.musicFadeResolve;
+    this.musicFadeResolve = null;
+    resolve?.();
+  }
+
+  private fadeVolume(audio: HTMLAudioElement, from: number, to: number, duration: number, generation: number): Promise<void> {
+    this.cancelMusicFade();
     const start = performance.now();
     return new Promise(resolve => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        if (this.musicFadeResolve === finish) this.musicFadeResolve = null;
+        if (this.musicFadeFrame) cancelAnimationFrame(this.musicFadeFrame);
+        this.musicFadeFrame = 0;
+        resolve();
+      };
+      this.musicFadeResolve = finish;
       const tick = (now: number) => {
-        if (generation !== this.musicGeneration || audio !== this.music) { resolve(); return; }
+        if (generation !== this.musicGeneration || audio !== this.music) { finish(); return; }
         const p = Math.min(1, (now - start) / Math.max(1, duration));
         audio.volume = from + (to - from) * p;
         if (p < 1) this.musicFadeFrame = requestAnimationFrame(tick);
-        else { this.musicFadeFrame = 0; resolve(); }
+        else finish();
       };
       this.musicFadeFrame = requestAnimationFrame(tick);
     });
@@ -180,7 +213,7 @@ export class GameAudioService {
 
   private async stopMusic(duration: number): Promise<void> {
     ++this.musicGeneration;
-    if (this.musicFadeFrame) cancelAnimationFrame(this.musicFadeFrame);
+    this.cancelMusicFade();
     const audio = this.music;
     if (!audio) return;
     const initial = audio.volume;
@@ -233,7 +266,10 @@ export class GameAudioService {
       this.play('poisonApply'); return;
     }
     if (action === 'status_damage' && (status === 'poison' || skill.includes('poison'))) { this.play('poisonDamage'); return; }
-    if (actor === 'character' && action === 'use_item' && itemId.startsWith('food_')) { this.play('eat'); return; }
+    if (actor === 'character' && action === 'use_item') {
+      if (itemId.startsWith('food_')) { this.play('eat'); return; }
+      if (itemId.includes('potion') || itemId.startsWith('elixir_')) { this.play('potion_drink'); return; }
+    }
     if ((skill.includes('bash') || skill.includes('ground_slam')) && Number(event?.damage ?? 0) > 0) { this.play('bash'); return; }
     if (actor === 'monster' && event?.target === 'character' && action !== 'status_damage' && event?.hit !== false && Number(event?.damage ?? 0) > 0) {
       this.lastEnemyHit = this.lastEnemyHit === 'enemy_hit_1' ? 'enemy_hit_2' : 'enemy_hit_1';
@@ -265,6 +301,7 @@ export class GameAudioService {
     const resolved = battleStore.lastResolved?.();
     if (!resolved?.entryId || resolved.entryId === this.seenResolvedId) return;
     this.seenResolvedId = resolved.entryId;
+    if (resolved.cancellationReason === 'flee') this.play('flee');
     for (const drop of resolved.drops ?? []) {
       const itemId = String((drop as any)?.itemId ?? '');
       if (itemId === 'bliss_stone' || itemId === 'divine_shard' || itemId === 'mat_bliss_stone' || itemId === 'mat_divine_shard') this.play('eGem');
@@ -272,6 +309,7 @@ export class GameAudioService {
     for (const consumed of resolved.itemsConsumed ?? []) {
       const itemId = String((consumed as any)?.itemId ?? '');
       if (itemId.startsWith('food_')) this.play('eat');
+      else if (itemId.startsWith('potion_') || itemId.startsWith('elixir_') || itemId.includes('potion')) this.play('potion_drink');
     }
   }
 }

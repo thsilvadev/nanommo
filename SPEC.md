@@ -1613,3 +1613,7 @@ Every item in items.json must have a human-readable name, stable ID, and useful 
 ## Frontend game audio — 2026-10-29
 
 The frontend gameplay audio layer is implemented in `apps/frontend/src/app/shared/game-audio.service.ts`. Region music is keyed by canonical map ID prefix, advances sequentially through named regional tracks, repeats the playlist, and uses fade-out/fade-in transitions on region changes. Short effects are driven by the battle event timeline or successful server responses: monster damage is keyed specifically to `actor === 'monster'` and `target === 'character'`; poison, weapon/skill hits, level-up, food consumption, Bliss Stone/Divine Shard drops, quest acceptance/completion, refinement result, NPC quest dialogue, and Father Marcelus healing each have their assigned effects. `Hit Sound Effect Ragnarok Online.mp3` and `hit_1.mp3` are intentionally unused. Login music must stop when gameplay mounts, and its deferred autoplay retry must not restart it after a successful transition.
+
+### Follow-up audio behavior — 2026-10-29
+
+Interrupted regional music transitions must resolve/cancel their fade cleanly and allow the latest region to start its playlist, including when route progress temporarily passes through the saved town. If the current region remains selected but its audio element is absent or paused, the service attempts recovery. Potion/elixir audio is triggered only after a successful consume response; flee audio is triggered only after a resolved battle confirms a flee cancellation.

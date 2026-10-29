@@ -856,3 +856,7 @@ The canonical item catalogue is root items.json and the frontend loads its synch
 ### Frontend gameplay audio — 2026-10-29
 
 Audio is presentation-only and does not change server authority. `GameAudioService` plays regional playlists from the authoritative current map ID and reads immutable battle queue logs by event tick so each event effect is played at most once per queue entry. Quest and refinement sounds are invoked only after successful API responses; monster incoming-damage effects are specifically keyed to monster actor/character target, leaving future PvP sound policy independent. Sound files are served from `apps/frontend/public/assets/sounds/`.
+
+### Audio transition recovery and additional effects — 2026-10-29
+
+GameAudioService explicitly resolves a cancelled animation-frame fade when a newer map-region transition supersedes it. This avoids stale fade promises blocking the latest region's music start. Potion/elixir consumption uses the successful /inventory/use response, while flee audio is driven by the authoritative battle:resolved event with cancellationReason === 'flee'.
