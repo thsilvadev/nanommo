@@ -108,6 +108,10 @@ nanommo/
 └── README.md (this file)
 ```
 
+## Documentation
+
+- [Quest Authoring Guide](docs/quests/README.md) — schema, localized dialogue, offer flows, objective types, rewards, validation workflow, and future Admin/Developer Experience ideas.
+
 ## Development Roadmap
 
 ### Immediate Next Steps (Critical Path to MVP)
