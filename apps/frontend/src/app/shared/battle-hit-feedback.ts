@@ -79,7 +79,7 @@ export class BattleHitFeedbackDirective implements OnInit, OnDestroy {
     el.setAttribute('aria-hidden', 'true');
     el.style.setProperty('--damage-offset-x', `${((serial % 5) - 2) * 12}px`);
     el.style.setProperty('--damage-offset-y', `${(serial % 3) * 7}px`);
-    el.style.setProperty('--damage-duration', `${1050 + (serial % 3) * 70}ms`);
+    el.style.setProperty('--damage-duration', `${(1050 + (serial % 3) * 70) * 1.25}ms`);
     this.host.appendChild(el);
     this.elements.add(el);
     let timer: ReturnType<typeof setTimeout> | null = null;
