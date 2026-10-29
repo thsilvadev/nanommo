@@ -444,25 +444,6 @@
           "monologue": "Six attributes return to their beginnings. Your spent points will be restored; 600 Soul Tokens are required."
         }
       }
-    },
-    {
-      "id": "oracle",
-      "name": "The Oracle",
-      "location": "town",
-      "types": [
-        "respec"
-      ],
-      "greeting": "The path may be rewritten, but the soul must pay its due.",
-      "locales": {
-        "pt-BR": {
-          "name": "Oráculo",
-          "greeting": "O caminho pode ser reescrito, mas a alma deve pagar seu preço."
-        },
-        "en-US": {
-          "name": "The Oracle",
-          "greeting": "The path may be rewritten, but the soul must pay its due."
-        }
-      }
     }
   ]
 }
