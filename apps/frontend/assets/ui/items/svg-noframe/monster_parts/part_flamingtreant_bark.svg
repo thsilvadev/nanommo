@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="32" cy="57" rx="22" ry="4" fill="#24180f" opacity=".35"/><path d="M12 7 L25 13 L23 26 L33 36 L28 54 L15 46 L8 29 Z" fill="#8b3a25" stroke="#4b241e" stroke-width="3"/><path d="M39 9 L54 18 L50 31 L56 42 L42 53 L36 37 L42 25 Z" fill="#b45431" stroke="#4b241e" stroke-width="3"/><path d="M18 18 L15 31 M45 19 L42 31 M23 43 L27 35" stroke="#e69a51" stroke-width="3"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Flaming Treant Bark">
+<title>Flaming Treant Bark</title>
+
+
+<defs><linearGradient id="bark" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9d5730"/><stop offset=".45" stop-color="#5a3022"/><stop offset="1" stop-color="#241a19"/></linearGradient><linearGradient id="ember" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff18a"/><stop offset=".45" stop-color="#ff7b24"/><stop offset="1" stop-color="#a51f18"/></linearGradient></defs>
+<ellipse cx="32" cy="55" rx="21" ry="4" fill="#080706" opacity=".55"/>
+<path d="M15 8 26 12 31 7 40 13 51 11 55 23 50 30 54 42 43 53 31 48 21 54 11 43 14 31 8 22Z" fill="url(#bark)" stroke="#271716" stroke-width="2.8" stroke-linejoin="round"/>
+<path d="M19 13 24 21 20 28 27 34 22 43 28 49M39 14 35 22 41 28 36 35 42 42 37 49M49 17 45 25 49 30" fill="none" stroke="#c17a43" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M29 16 31 24 27 30 33 36 30 43" fill="none" stroke="url(#ember)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M43 30 39 35 43 40" fill="none" stroke="#ff9b32" stroke-width="3" stroke-linecap="round"/>
+<path d="M17 20l4 2m23 21 3-4" stroke="#f6c17a" stroke-width="1.8" stroke-linecap="round"/>
+<path d="M27 8l3-4 3 5m13 41 2 4" fill="none" stroke="#ff7627" stroke-width="2.2" stroke-linecap="round"/>
+
+</svg>

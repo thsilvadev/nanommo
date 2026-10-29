@@ -1,15 +1,16 @@
 import { Component, inject, Input, OnInit } from '@angular/core';
 import { LoginMusicService } from './login-music.service';
+import { GameAudioService } from './game-audio.service';
 
 @Component({
   selector: 'app-login-music-control',
   standalone: true,
   template: `
     <div class="music-control" [class.auth-control]="variant==='auth'" [class.header-control]="variant==='header'">
-      <button type="button" class="music-button" (click)="music.toggleMute()" [attr.aria-label]="music.muted() ? 'Ativar música' : 'Silenciar música'" [title]="music.muted() ? 'Ativar música' : 'Silenciar música'">
+      <button type="button" class="music-button" (click)="toggleMute()" [attr.aria-label]="isMuted() ? 'Ativar música' : 'Silenciar música'" [title]="isMuted() ? 'Ativar música' : 'Silenciar música'">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zm11.5-1.5a1 1 0 0 0-1.4 1.4 4 4 0 0 1 0 5.2 1 1 0 1 0 1.4 1.4 6 6 0 0 0 0-8zm2.8-2.8a1 1 0 1 0-1.4 1.4 8 8 0 0 1 0 11.8 1 1 0 1 0 1.4 1.4 10 10 0 0 0 0-14.6z"/></svg>
       </button>
-      <input class="music-slider" type="range" min="0" max="1" step="0.01" [value]="music.volume()" (input)="setVolume($any($event.target).value)" aria-label="Volume da música" />
+      <input class="music-slider" type="range" min="0" max="1" step="0.01" [value]="volumeValue()" (input)="setVolume($any($event.target).value)" aria-label="Volume da música" />
     </div>
   `,
   styles: [`
@@ -19,12 +20,18 @@ import { LoginMusicService } from './login-music.service';
 export class LoginMusicControlComponent implements OnInit {
   @Input() variant: 'auth' | 'header' = 'auth';
   readonly music = inject(LoginMusicService);
+  readonly gameAudio = inject(GameAudioService);
+
+  volumeValue(): number { return this.variant === 'header' ? this.gameAudio.volume() : this.music.volume(); }
+  isMuted(): boolean { return this.variant === 'header' ? this.gameAudio.muted() : this.music.muted(); }
+  toggleMute(): void { if (this.variant === 'header') this.gameAudio.toggleMute(); else this.music.toggleMute(); }
 
   ngOnInit(): void {
     if (this.variant === 'auth') this.music.start();
   }
 
   setVolume(value: string): void {
-    this.music.setVolume(Number(value));
+    if (this.variant === 'header') this.gameAudio.setVolume(Number(value));
+    else this.music.setVolume(Number(value));
   }
 }

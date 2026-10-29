@@ -51,7 +51,7 @@
       "unlockLevel": 0,
       "isTown": false,
       "recommendedLevel": 1,
-      "mapLength": 25,
+      "mapLength": 20,
       "gatheringPool": [
         {
           "itemId": "mat_wheat",
@@ -92,7 +92,7 @@
       "unlockLevel": 0,
       "isTown": false,
       "recommendedLevel": 5,
-      "mapLength": 25,
+      "mapLength": 20,
       "gatheringPool": [
         {
           "itemId": "mat_cabbage",
@@ -133,7 +133,7 @@
       "unlockLevel": 0,
       "isTown": false,
       "recommendedLevel": 8,
-      "mapLength": 25,
+      "mapLength": 20,
       "gatheringPool": [
         {
           "itemId": "mat_cabbage",
@@ -170,7 +170,7 @@
       "unlockLevel": 0,
       "isTown": false,
       "recommendedLevel": 1,
-      "mapLength": 25,
+      "mapLength": 20,
       "gatheringPool": [
         {
           "itemId": "mat_wheat",
@@ -207,7 +207,7 @@
       "unlockLevel": 0,
       "isTown": false,
       "recommendedLevel": 7,
-      "mapLength": 25,
+      "mapLength": 20,
       "gatheringPool": [
         {
           "itemId": "mat_sugar",
@@ -244,7 +244,7 @@
       "unlockLevel": 0,
       "isTown": false,
       "recommendedLevel": 7,
-      "mapLength": 25,
+      "mapLength": 20,
       "gatheringPool": [
         {
           "itemId": "mat_sugar",

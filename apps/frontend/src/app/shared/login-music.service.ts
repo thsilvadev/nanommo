@@ -4,7 +4,9 @@ import { Injectable, signal } from '@angular/core';
 export class LoginMusicService {
   private audio: HTMLAudioElement | null = null;
   private gestureBound = false;
+  private gestureRetry: (() => void) | null = null;
   private fading = false;
+  private stopRequested = false;
   private readonly storageKey = 'nanommo:login-music-volume';
   readonly volume = signal(this.readVolume());
   readonly playing = signal(false);
@@ -29,7 +31,12 @@ export class LoginMusicService {
   }
 
   start(): void {
-    if (this.fading) return;
+    this.stopRequested = false;
+    this.startIfAllowed();
+  }
+
+  private startIfAllowed(): void {
+    if (this.fading || this.stopRequested) return;
     const audio = this.ensureAudio();
     audio.loop = true;
     audio.volume = this.muted() ? 0 : this.volume();
@@ -43,8 +50,12 @@ export class LoginMusicService {
     this.gestureBound = true;
     const retry = () => {
       this.gestureBound = false;
-      this.start();
+      document.removeEventListener('pointerdown', retry, true);
+      document.removeEventListener('keydown', retry, true);
+      this.gestureRetry = null;
+      if (!this.stopRequested) this.startIfAllowed();
     };
+    this.gestureRetry = retry;
     document.addEventListener('pointerdown', retry, { once: true, capture: true });
     document.addEventListener('keydown', retry, { once: true, capture: true });
   }
@@ -70,6 +81,13 @@ export class LoginMusicService {
   }
 
   async fadeOut(durationMs = 2000): Promise<void> {
+    this.stopRequested = true;
+    if (this.gestureRetry) {
+      document.removeEventListener('pointerdown', this.gestureRetry, true);
+      document.removeEventListener('keydown', this.gestureRetry, true);
+      this.gestureRetry = null;
+      this.gestureBound = false;
+    }
     const audio = this.audio;
     if (!audio || audio.paused) {
       this.playing.set(false);

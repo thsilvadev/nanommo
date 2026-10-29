@@ -3,6 +3,8 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { ApiService } from './api.service';
 import { GameSocketService } from './game.socket.service';
 import { Character, InventoryItem, EquippedItem, EquipmentMutationResponse, BattleQueueEntry, BattleQueueUpdated, BattleResolved, CharacterLeveledUp, CharacterDied, MapPresence } from './game.models';
+import { CatalogService } from './catalog.service';
+import { GameAudioService } from '../shared/game-audio.service';
 type LoadState='idle'|'loading'|'loaded'|'error'|'reconnecting';
 @Injectable({providedIn:'root'})
 export class CharacterStore {
@@ -24,7 +26,7 @@ export class CharacterStore {
 }
 @Injectable({providedIn:'root'})
 export class InventoryStore {
- private readonly api=inject(ApiService); private readonly character=inject(CharacterStore);private readonly _items=signal<InventoryItem[]>([]);private readonly _equipment=signal<EquippedItem[]>([]);private readonly _state=signal<LoadState>('idle');private readonly _draggedItemId=signal<string|null>(null);
+ private readonly api=inject(ApiService); private readonly character=inject(CharacterStore); private readonly catalog=inject(CatalogService); private readonly audio=inject(GameAudioService);private readonly _items=signal<InventoryItem[]>([]);private readonly _equipment=signal<EquippedItem[]>([]);private readonly _state=signal<LoadState>('idle');private readonly _draggedItemId=signal<string|null>(null);
  readonly items=this._items.asReadonly();readonly equipment=this._equipment.asReadonly();readonly state=this._state.asReadonly();readonly draggedItemId=this._draggedItemId.asReadonly();private loadSeq=0;private realtimeGeneration=0;private realtimeRevision=0;
  async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const [inventory,equipment]=await Promise.all([this.api.get<{items:InventoryItem[];stateVersion:number}>('/inventory').toPromise(),this.api.get<EquippedItem[]>('/equipment').toPromise()]);if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if((inventory?.stateVersion??0)<this.realtimeRevision)return;this.realtimeRevision=Math.max(this.realtimeRevision,inventory?.stateVersion??0);this._items.set(inventory?.items??[]);this._equipment.set(equipment??[]);this._state.set('loaded')}catch{if(seq===this.loadSeq&&generation===this.realtimeGeneration)this._state.set('error')}}
  applyRealtimeSnapshot(items:InventoryItem[],revision:number){if(revision<=this.realtimeRevision)return;this.realtimeRevision=revision;this.realtimeGeneration++;this._items.set(items);this._state.set('loaded');}
@@ -65,6 +67,7 @@ export class InventoryStore {
   const snapshot=await this.api.post<{character:Character;inventory:InventoryItem[];stateVersion:number}>('/inventory/use',{itemId}).toPromise();
   if(!snapshot)return;
   if(snapshot.stateVersion<=this.realtimeRevision)return;
+  if(this.catalog.item(itemId)?.type==='food')this.audio.play('eat');
   this.realtimeRevision=snapshot.stateVersion;
   this.realtimeGeneration++;
   this._items.set(snapshot.inventory??[]);

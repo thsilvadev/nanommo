@@ -1,1 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Rootboundbrute common monster part"><title>Rootboundbrute common monster part</title><defs><radialGradient id="bg"><stop stop-color="#5b7341"/><stop offset="1" stop-color="#100d12"/></radialGradient><linearGradient id="rim" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d4e4a5"/><stop offset="1" stop-color="#5b7341"/></linearGradient></defs><rect x="3" y="3" width="122" height="122" rx="16" fill="url(#bg)" stroke="url(#rim)" stroke-width="4"/><rect x="9" y="9" width="110" height="110" rx="12" fill="none" stroke="#d4e4a5" stroke-opacity=".35" stroke-width="2"/><circle cx="64" cy="64" r="51" fill="#5b7341" opacity=".23"/><circle cx="64" cy="64" r="40" fill="#5b7341" stroke="#d4e4a5" stroke-width="2" opacity=".9"/><path d="M64 101 Q54 79 59 59 Q35 65 28 43 Q48 45 59 54 Q47 32 53 20 Q69 35 67 55 Q81 36 100 39 Q91 60 70 62 Q80 80 64 101Z" fill="#d4e4a5" stroke="#18120f" stroke-width="3"/><path d="M64 98v-37" stroke="#f1e6c2" stroke-width="3"/><path d="M18 24h12M98 104h12M18 104h12M98 24h12" stroke="#d4e4a5" stroke-width="2" stroke-linecap="round"/><rect x="3" y="3" width="122" height="122" rx="16" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="1.5"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Rootbound Common">
+<title>Rootbound Common</title>
+<rect x="2" y="2" width="60" height="60" rx="7" fill="#21160f" stroke="#a97942" stroke-width="2"/><path d="M7 9h9M48 55h9" stroke="#e2b86e" stroke-width="1" opacity=".65"/>
+
+<defs><linearGradient id="root" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#b77b42"/><stop offset=".45" stop-color="#704329"/><stop offset="1" stop-color="#33251d"/></linearGradient></defs>
+<ellipse cx="32" cy="55" rx="22" ry="4" fill="#080706" opacity=".5"/>
+<path d="M28 47 22 55 18 51 23 43 13 40 7 32 17 34 23 29 16 19 21 12 29 24 34 31 41 23 47 12 53 17 47 29 54 32 59 29 57 38 47 41 43 51 37 56 33 47Z" fill="url(#root)" stroke="#332018" stroke-width="2.6" stroke-linejoin="round"/>
+<path d="M31 47 32 35 27 28 22 20M32 35l9-7 4-9M32 40l-11 3-7-5M35 42l9-4 8 1M28 49l-5 4M40 49l-3 6" fill="none" stroke="#d69b59" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M26 31l6 4 5-4M23 43l7-3m10-9 5 2" fill="none" stroke="#f0c27a" stroke-width="1.5" stroke-linecap="round"/>
+<path d="M18 15l3-3 3 5m26 2 3-2" fill="none" stroke="#e9b66c" stroke-width="1.8" stroke-linecap="round"/>
+
+</svg>

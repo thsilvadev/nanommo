@@ -36,7 +36,7 @@ const TRANSLATIONS: Record<GameLocale, Record<string, string>> = {
     "Aruandê, traveler. What brings you to Kwaiouá-Taba?":"Aruandê, viajante. O que traz você a Kwaiouá-Taba?",
     "I would like to brew a potion.":"Quero preparar uma poção.","I came to ask about the forest.":"Vim perguntar sobre a floresta.",
     "Nothing for now.":"Nada por enquanto","I'd like to cook":"Quero cozinhar","COOK":"COZINHAR","UNCLE PHILLIP'S KITCHEN":"COZINHA DO TIO PHILLIP",
-    "monster drop":"item de monstro","deliver items":"entregar itens","kill monster":"derrotar monstro","objective":"objetivo"
+    "monster drop":"item de monstro","deliver items":"entregar itens","kill monster":"derrotar monstro","objective":"objetivo","Type":"Tipo","Effect":"Efeito","Equipment":"Equipamento","Monster Part":"Parte de Monstro","Material":"Material","Consumable":"Consumível","Item":"Item"
   },
   'en-US': {}
 };

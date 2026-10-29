@@ -15,7 +15,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A glossy glob of resilient slime, useful to traders and alchemists."
     },
     {
       "id": "part_slime_rare",
@@ -32,7 +33,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A pristine, densely condensed slime core that retains unusual vitality."
     },
     {
       "id": "part_fieldbat_common",
@@ -49,7 +51,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A leathery bat wing with a thin membrane and sturdy supporting bones."
     },
     {
       "id": "part_fieldbat_rare",
@@ -66,7 +69,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A delicate sonar membrane prized for its unusual sensitivity to vibration."
     },
     {
       "id": "part_thornsprout_common",
@@ -83,7 +87,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A thorn-covered strip of bark with sharp natural barbs."
     },
     {
       "id": "part_thornsprout_rare",
@@ -100,7 +105,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A living piece of verdant heartwood threaded with persistent green energy."
     },
     {
       "id": "part_mudcrawler_common",
@@ -117,7 +123,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A mud-coated carapace plate, toughened by life in wet terrain."
     },
     {
       "id": "part_mudcrawler_rare",
@@ -134,7 +141,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A sealed, ever-wet sac that holds the creature’s dense muddy essence."
     },
     {
       "id": "part_direwolf_common",
@@ -151,7 +159,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A sharp wolf fang, still sturdy enough to be worked into a weapon or charm."
     },
     {
       "id": "part_direwolf_rare",
@@ -168,7 +177,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A curved claw bearing the strength and ferocity of an alpha predator."
     },
     {
       "id": "part_sandscorpion_common",
@@ -185,7 +195,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A heavy scorpion claw with a hard, ridged shell."
     },
     {
       "id": "part_sandscorpion_rare",
@@ -202,7 +213,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A venom sac containing concentrated toxin from a desert hunter."
     },
     {
       "id": "part_duneraider_common",
@@ -219,7 +231,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A durable piece of desert raider cloth, weathered by sand and sun."
     },
     {
       "id": "part_duneraider_rare",
@@ -236,7 +249,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A raider’s signet that marks rank among the desert bands."
     },
     {
       "id": "part_cindergolem_common",
@@ -253,7 +267,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A fragment of the golem’s core, warm with residual heat."
     },
     {
       "id": "part_cindergolem_rare",
@@ -270,7 +285,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A molten heart that glows with the lingering fire of a Cinder Golem."
     },
     {
       "id": "part_venomviper_common",
@@ -287,7 +303,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A sharp viper fang coated with traces of venom."
     },
     {
       "id": "part_venomviper_rare",
@@ -304,7 +321,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A rare gland built around twin fangs, rich in concentrated venom."
     },
     {
       "id": "part_mirageStalker_common",
@@ -321,7 +339,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A tough strip of hide that shimmers faintly in the light."
     },
     {
       "id": "part_mirageStalker_rare",
@@ -338,7 +357,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A mirage stalker pelt that seems to distort the air around its fibers."
     },
     {
       "id": "part_brokensentinel_common",
@@ -355,7 +375,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A rune fragment recovered from an ancient sentinel."
     },
     {
       "id": "part_brokensentinel_rare",
@@ -372,7 +393,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "An intact rune core that still holds a sentinel’s old enchantment."
     },
     {
       "id": "part_wraith_common",
@@ -389,7 +411,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A wisp of condensed spectral essence, cold to the touch."
     },
     {
       "id": "part_wraith_rare",
@@ -406,7 +429,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A soulbound chain link that hums with trapped spiritual energy."
     },
     {
       "id": "part_arcanewisp_common",
@@ -423,7 +447,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A small spark of arcane light left behind by a wandering wisp."
     },
     {
       "id": "part_arcanewisp_rare",
@@ -440,7 +465,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A condensed mana shard with unusually stable magical energy."
     },
     {
       "id": "part_boneknight_common",
@@ -457,7 +483,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A dense bone fragment left by an armored skeletal warrior."
     },
     {
       "id": "part_boneknight_rare",
@@ -474,7 +501,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "An unbroken femur preserved by unnatural strength."
     },
     {
       "id": "part_ruinsguardian_common",
@@ -491,7 +519,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A guardian sigil marked with the patterns of ancient ruins."
     },
     {
       "id": "part_ruinsguardian_rare",
@@ -508,14 +537,15 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A rare eye-like relic that once watched over forgotten ruins."
     },
     {
       "id": "part_mudflatcrocodile_common",
-      "name": "Mudflat Crocodile Common Part",
+      "name": "Crocodile Scale",
       "type": "monster_part",
       "tier": 2,
-      "description": "A common material harvested from Mudflat Crocodile.",
+      "description": "A thick, mud-stained crocodile scale with a naturally hardened surface.",
       "rarity": "common",
       "droppedBy": [
         "mon_mudflatcrocodile"
@@ -529,10 +559,10 @@
     },
     {
       "id": "part_mudflatcrocodile_rare",
-      "name": "Mudflat Crocodile Rare Part",
+      "name": "Crocodile's Vital Gland",
       "type": "monster_part",
       "tier": 2,
-      "description": "A rare material harvested from Mudflat Crocodile.",
+      "description": "A rare vital gland from a Mudflat Crocodile, prized for its concentrated natural essence.",
       "rarity": "rare",
       "droppedBy": [
         "mon_mudflatcrocodile"
@@ -546,10 +576,10 @@
     },
     {
       "id": "part_bandit_common",
-      "name": "Bandit Common Part",
+      "name": "Bandit Leather",
       "type": "monster_part",
       "tier": 3,
-      "description": "A common material harvested from Bandit.",
+      "description": "A strip of tough bandit leather, weathered by travel and combat.",
       "rarity": "common",
       "droppedBy": [
         "mon_bandit"
@@ -563,10 +593,10 @@
     },
     {
       "id": "part_bandit_rare",
-      "name": "Bandit Rare Part",
+      "name": "Bandit Captain's Insignia",
       "type": "monster_part",
       "tier": 3,
-      "description": "A rare material harvested from Bandit.",
+      "description": "A bandit captain’s insignia that marks authority within the raider ranks.",
       "rarity": "rare",
       "droppedBy": [
         "mon_bandit"
@@ -580,10 +610,10 @@
     },
     {
       "id": "part_kwaioua_ranger_common",
-      "name": "Kwaiouá Ranger Common Part",
+      "name": "Ranger's Feather",
       "type": "monster_part",
       "tier": 4,
-      "description": "A common material harvested from Kwaiouá Ranger.",
+      "description": "A sturdy ranger feather gathered from the hunters of Kwaiouá.",
       "rarity": "common",
       "droppedBy": [
         "mon_kwaiouaranger"
@@ -597,10 +627,10 @@
     },
     {
       "id": "part_kwaioua_ranger_rare",
-      "name": "Kwaiouá Ranger Rare Part",
+      "name": "Kwaiouá Ranger Totem",
       "type": "monster_part",
       "tier": 4,
-      "description": "A rare material harvested from Kwaiouá Ranger.",
+      "description": "A carved totem carried by an elite Kwaiouá Ranger.",
       "rarity": "rare",
       "droppedBy": [
         "mon_kwaiouaranger"
@@ -614,10 +644,10 @@
     },
     {
       "id": "part_sacredforestguardian_common",
-      "name": "Sacred Forest Guardian Common Part",
+      "name": "Sacred Bark",
       "type": "monster_part",
       "tier": 5,
-      "description": "A common material harvested from Sacred Forest Guardian.",
+      "description": "A piece of sacred bark carrying the scent of the old forest.",
       "rarity": "common",
       "droppedBy": [
         "mon_sacredforestguardian"
@@ -631,10 +661,10 @@
     },
     {
       "id": "part_sacredforestguardian_rare",
-      "name": "Sacred Forest Guardian Rare Part",
+      "name": "Guardian's Verdant Core",
       "type": "monster_part",
       "tier": 5,
-      "description": "A rare material harvested from Sacred Forest Guardian.",
+      "description": "A rare verdant core pulsing with the life-force of a Sacred Forest Guardian.",
       "rarity": "rare",
       "droppedBy": [
         "mon_sacredforestguardian"
@@ -648,10 +678,10 @@
     },
     {
       "id": "part_gravelhorn_common",
-      "name": "Gravelhorn Common Part",
+      "name": "Gravelhorn Horn Fragment",
       "type": "monster_part",
       "tier": 2,
-      "description": "A common material harvested from Gravelhorn.",
+      "description": "A chipped fragment of Gravelhorn horn, dense and stone-hard.",
       "rarity": "common",
       "droppedBy": [
         "mon_gravelhorn"
@@ -665,10 +695,10 @@
     },
     {
       "id": "part_gravelhorn_rare",
-      "name": "Gravelhorn Rare Part",
+      "name": "Gravelhorn Crown Horn",
       "type": "monster_part",
       "tier": 2,
-      "description": "A rare material harvested from Gravelhorn.",
+      "description": "A crown horn from a powerful Gravelhorn, polished by natural wear.",
       "rarity": "rare",
       "droppedBy": [
         "mon_gravelhorn"
@@ -682,10 +712,10 @@
     },
     {
       "id": "part_ridgebreaker_common",
-      "name": "Ridgebreaker Common Part",
+      "name": "Ridgebreaker Plate",
       "type": "monster_part",
       "tier": 2,
-      "description": "A common material harvested from Ridgebreaker.",
+      "description": "A heavy Ridgebreaker armor plate with a rugged, layered surface.",
       "rarity": "common",
       "droppedBy": [
         "mon_ridgebreaker"
@@ -699,10 +729,10 @@
     },
     {
       "id": "part_ridgebreaker_rare",
-      "name": "Ridgebreaker Rare Part",
+      "name": "Ridgebreaker's Core",
       "type": "monster_part",
       "tier": 2,
-      "description": "A rare material harvested from Ridgebreaker.",
+      "description": "A dense core from a Ridgebreaker, valued for its exceptional toughness.",
       "rarity": "rare",
       "droppedBy": [
         "mon_ridgebreaker"
@@ -716,10 +746,10 @@
     },
     {
       "id": "part_saltfangcrab_common",
-      "name": "Saltfang Crab Common Part",
+      "name": "Saltfang Shell",
       "type": "monster_part",
       "tier": 2,
-      "description": "A common material harvested from Saltfang Crab.",
+      "description": "A salt-crusted shell plate from a Saltfang Crab.",
       "rarity": "common",
       "droppedBy": [
         "mon_saltfangcrab"
@@ -733,10 +763,10 @@
     },
     {
       "id": "part_saltfangcrab_rare",
-      "name": "Saltfang Crab Rare Part",
+      "name": "Saltfang Pearl",
       "type": "monster_part",
       "tier": 2,
-      "description": "A rare material harvested from Saltfang Crab.",
+      "description": "A lustrous pearl formed within a Saltfang Crab’s shell.",
       "rarity": "rare",
       "droppedBy": [
         "mon_saltfangcrab"
@@ -750,10 +780,10 @@
     },
     {
       "id": "part_needlebackstalker_common",
-      "name": "Needleback Stalker Common Part",
+      "name": "Needleback Quill",
       "type": "monster_part",
       "tier": 3,
-      "description": "A common material harvested from Needleback Stalker.",
+      "description": "A rigid quill from a Needleback Stalker, sharp enough to pierce leather.",
       "rarity": "common",
       "droppedBy": [
         "mon_needlebackstalker"
@@ -767,10 +797,10 @@
     },
     {
       "id": "part_needlebackstalker_rare",
-      "name": "Needleback Stalker Rare Part",
+      "name": "Stalker's Barbed Spine",
       "type": "monster_part",
       "tier": 3,
-      "description": "A rare material harvested from Needleback Stalker.",
+      "description": "A rare barbed spine from a Needleback Stalker, lined with backward-facing hooks.",
       "rarity": "rare",
       "droppedBy": [
         "mon_needlebackstalker"
@@ -784,10 +814,10 @@
     },
     {
       "id": "part_giantmosquito_common",
-      "name": "Giant Mosquito Common Part",
+      "name": "Giant Mosquito Wing",
       "type": "monster_part",
       "tier": 3,
-      "description": "A common material harvested from Giant Mosquito.",
+      "description": "A pair of delicate giant mosquito wings with visible veins and a translucent sheen.",
       "rarity": "common",
       "droppedBy": [
         "mon_giantmosquito"
@@ -801,10 +831,10 @@
     },
     {
       "id": "part_giantmosquito_rare",
-      "name": "Giant Mosquito Rare Part",
+      "name": "Iridescent Mosquito Wing",
       "type": "monster_part",
       "tier": 3,
-      "description": "A rare material harvested from Giant Mosquito.",
+      "description": "A rare pair of iridescent giant mosquito wings, their fine veins flashing with color.",
       "rarity": "rare",
       "droppedBy": [
         "mon_giantmosquito"
@@ -818,10 +848,10 @@
     },
     {
       "id": "part_rootboundbrute_common",
-      "name": "Rootbound Brute Common Part",
+      "name": "Rootbound Tendril",
       "type": "monster_part",
       "tier": 3,
-      "description": "A common material harvested from Rootbound Brute.",
+      "description": "A tough root tendril pulled from a Rootbound Brute, threaded with woody fibers.",
       "rarity": "common",
       "droppedBy": [
         "mon_rootboundbrute"
@@ -835,10 +865,10 @@
     },
     {
       "id": "part_rootboundbrute_rare",
-      "name": "Rootbound Brute Rare Part",
+      "name": "Rootbound Heartwood",
       "type": "monster_part",
       "tier": 3,
-      "description": "A rare material harvested from Rootbound Brute.",
+      "description": "A dense knot of rare Rootbound heartwood, reinforced by pale, living root fibers.",
       "rarity": "rare",
       "droppedBy": [
         "mon_rootboundbrute"
@@ -852,10 +882,10 @@
     },
     {
       "id": "part_moonleafarcanist_common",
-      "name": "Moonleaf Arcanist Common Part",
+      "name": "Moonleaf Pollen",
       "type": "monster_part",
       "tier": 5,
-      "description": "A common material harvested from Moonleaf Arcanist.",
+      "description": "A pinch of moonleaf pollen gathered from a Moonleaf Arcanist.",
       "rarity": "common",
       "droppedBy": [
         "mon_moonleafarcanist"
@@ -869,10 +899,10 @@
     },
     {
       "id": "part_moonleafarcanist_rare",
-      "name": "Moonleaf Arcanist Rare Part",
+      "name": "Moonleaf Arcane Seed",
       "type": "monster_part",
       "tier": 5,
-      "description": "A rare material harvested from Moonleaf Arcanist.",
+      "description": "A rare arcane seed infused with the magic of a Moonleaf Arcanist.",
       "rarity": "rare",
       "droppedBy": [
         "mon_moonleafarcanist"
@@ -886,10 +916,10 @@
     },
     {
       "id": "part_aramaianwarden_common",
-      "name": "Aramaian Warden Common Part",
+      "name": "Aramaian Bark Fragment",
       "type": "monster_part",
       "tier": 5,
-      "description": "A common material harvested from Aramaian Warden.",
+      "description": "A fragment of ancient Aramaian bark, scored with natural grain lines.",
       "rarity": "common",
       "droppedBy": [
         "mon_aramaianwarden"
@@ -903,10 +933,10 @@
     },
     {
       "id": "part_aramaianwarden_rare",
-      "name": "Aramaian Warden Rare Part",
+      "name": "Aramaian Warden Sigil",
       "type": "monster_part",
       "tier": 5,
-      "description": "A rare material harvested from Aramaian Warden.",
+      "description": "A sigil carried by an Aramaian Warden, marked with old protective runes.",
       "rarity": "rare",
       "droppedBy": [
         "mon_aramaianwarden"
@@ -933,7 +963,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A sharp stinger from a Mutant Bee, still carrying traces of venom."
     },
     {
       "id": "part_mutantbee_rare",
@@ -950,11 +981,12 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A golden drop of royal jelly produced by a Mutant Bee queen."
     },
     {
       "id": "part_giantmantis_common",
-      "name": "Fun Purple Paint",
+      "name": "Violet Mantis Ink",
       "type": "monster_part",
       "rarity": "common",
       "droppedBy": [
@@ -967,7 +999,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A vivid violet ink droplet harvested from a Giant Mantis; glossy, thick, and strongly pigmented."
     },
     {
       "id": "part_giantmantis_rare",
@@ -984,7 +1017,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A sharp scythe blade shed by a Giant Mantis, light enough to keep an edge."
     },
     {
       "id": "part_flamingtreant_common",
@@ -1008,7 +1042,8 @@
         "en-US": {
           "name": "Forest Ancient’s Teardrop"
         }
-      }
+      },
+      "description": "A luminous tear carrying the memory and life-force of the ancient forest."
     },
     {
       "id": "part_flamingtreant_rare",
@@ -1025,7 +1060,8 @@
         "market_trade",
         "future_crafting",
         "future_quests"
-      ]
+      ],
+      "description": "A piece of flame-hollow heartwood with ember-like veins running through the grain."
     },
     {
       "id": "part_flamingtreant_bark",
@@ -1050,7 +1086,8 @@
         "en-US": {
           "name": "Charred Treant Bark"
         }
-      }
+      },
+      "description": "A charred strip of treant bark split by glowing ember fissures."
     }
   ],
   "consumables": [
@@ -1066,7 +1103,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
-      "cooldownInSeconds": 10
+      "cooldownInSeconds": 10,
+      "description": "Restores 70 HP when used."
     },
     {
       "id": "pot_hp_medium",
@@ -1080,7 +1118,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 20,
-      "cooldownInSeconds": 10
+      "cooldownInSeconds": 10,
+      "description": "Restores 180 HP when used."
     },
     {
       "id": "pot_hp_large",
@@ -1094,7 +1133,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 45,
-      "cooldownInSeconds": 10
+      "cooldownInSeconds": 10,
+      "description": "Restores 450 HP when used."
     },
     {
       "id": "pot_sp_small",
@@ -1108,7 +1148,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
-      "cooldownInSeconds": 10
+      "cooldownInSeconds": 10,
+      "description": "Restores 50 SP when used."
     },
     {
       "id": "pot_sp_medium",
@@ -1122,7 +1163,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 20,
-      "cooldownInSeconds": 10
+      "cooldownInSeconds": 10,
+      "description": "Restores 150 SP when used."
     },
     {
       "id": "pot_sp_large",
@@ -1136,7 +1178,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 45,
-      "cooldownInSeconds": 10
+      "cooldownInSeconds": 10,
+      "description": "Restores 380 SP when used."
     },
     {
       "id": "antidote",
@@ -1150,7 +1193,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 50,
-      "cooldownInSeconds": 10
+      "cooldownInSeconds": 10,
+      "description": "Removes the poison status effect."
     },
     {
       "id": "elixir_greater",
@@ -1173,7 +1217,8 @@
         "en-US": {
           "name": "Greater Elixir"
         }
-      }
+      },
+      "description": "Restores 300 HP and 200 SP when used."
     },
     {
       "id": "food_bread",
@@ -1189,7 +1234,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
-      "cooldownInSeconds": 0
+      "cooldownInSeconds": 0,
+      "description": "A prepared food that grants HP regeneration of 4 and SP regeneration of 1 per 10 ticks for 60 minutes."
     },
     {
       "id": "food_cheese",
@@ -1205,7 +1251,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
-      "cooldownInSeconds": 0
+      "cooldownInSeconds": 0,
+      "description": "A prepared food that grants HP regeneration of 8 and SP regeneration of 1 per 10 ticks for 60 minutes."
     },
     {
       "id": "food_blueberry",
@@ -1221,7 +1268,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
-      "cooldownInSeconds": 0
+      "cooldownInSeconds": 0,
+      "description": "A prepared food that grants HP regeneration of 1 and SP regeneration of 4 per 10 ticks for 60 minutes."
     },
     {
       "id": "food_herbtea",
@@ -1237,7 +1285,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
-      "cooldownInSeconds": 0
+      "cooldownInSeconds": 0,
+      "description": "A prepared food that grants HP regeneration of 1 and SP regeneration of 8 per 10 ticks for 60 minutes."
     },
     {
       "id": "food_honey",
@@ -1253,7 +1302,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
-      "cooldownInSeconds": 0
+      "cooldownInSeconds": 0,
+      "description": "A prepared food that grants HP regeneration of 4 and SP regeneration of 4 per 10 ticks for 60 minutes."
     },
     {
       "id": "food_stew",
@@ -1269,7 +1319,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
-      "cooldownInSeconds": 0
+      "cooldownInSeconds": 0,
+      "description": "A prepared food that grants HP regeneration of 6 and SP regeneration of 6 per 10 ticks for 60 minutes."
     },
     {
       "id": "food_roast",
@@ -1285,7 +1336,8 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 7,
-      "cooldownInSeconds": 0
+      "cooldownInSeconds": 0,
+      "description": "A prepared food that grants HP regeneration of 10 and SP regeneration of 2 per 10 ticks for 60 minutes."
     }
   ],
   "equipment": [
@@ -1361,7 +1413,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level sword for adventurers requiring level 1. Base attributes: +8 Attack. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_sword_t2",
@@ -1435,7 +1488,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced sword for adventurers requiring level 8. Base attributes: +18 Attack. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_sword_t3",
@@ -1509,7 +1563,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient sword for adventurers requiring level 15. Base attributes: +32 Attack. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_greatsword_t1",
@@ -1578,7 +1633,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level greatsword for adventurers requiring level 1. Base attributes: +14 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_greatsword_t2",
@@ -1647,7 +1703,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced greatsword for adventurers requiring level 8. Base attributes: +31 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_greatsword_t3",
@@ -1716,7 +1773,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient greatsword for adventurers requiring level 15. Base attributes: +56 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_knife",
@@ -1751,7 +1809,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level dagger for adventurers requiring level 1. Base attributes: +8 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_dagger_t1",
@@ -1827,7 +1886,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level dagger for adventurers requiring level 1. Base attributes: +6 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_dagger_t2",
@@ -1903,7 +1963,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced dagger for adventurers requiring level 8. Base attributes: +13 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_dagger_t3",
@@ -1979,7 +2040,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient dagger for adventurers requiring level 15. Base attributes: +24 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_bow_t1",
@@ -2048,7 +2110,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level bow for adventurers requiring level 1. Base attributes: +18 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_bow_t2",
@@ -2117,7 +2180,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced bow for adventurers requiring level 8. Base attributes: +35 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_bow_t3",
@@ -2186,7 +2250,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient bow for adventurers requiring level 15. Base attributes: +59 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_staff_t1",
@@ -2255,7 +2320,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level staff for adventurers requiring level 1. Base attributes: +12 Magic Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_staff_t2",
@@ -2324,7 +2390,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced staff for adventurers requiring level 8. Base attributes: +26 Magic Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_staff_t3",
@@ -2393,7 +2460,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient staff for adventurers requiring level 15. Base attributes: +48 Magic Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_rod_t1",
@@ -2467,7 +2535,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level rod for adventurers requiring level 1. Base attributes: +8 Magic Attack. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_rod_t2",
@@ -2541,7 +2610,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced rod for adventurers requiring level 8. Base attributes: +18 Magic Attack. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_rod_t3",
@@ -2615,7 +2685,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient rod for adventurers requiring level 15. Base attributes: +32 Magic Attack. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_shield_t1",
@@ -2660,7 +2731,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level shield for adventurers requiring level 1. Base attributes: +10 Defense. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_shield_t2",
@@ -2705,7 +2777,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced shield for adventurers requiring level 8. Base attributes: +22 Defense. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_shield_t3",
@@ -2750,7 +2823,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient shield for adventurers requiring level 15. Base attributes: +40 Defense. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_rune_t1",
@@ -2796,7 +2870,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level rune for adventurers requiring level 1. Base attributes: +2 Defense, +10 Magic Defense. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_rune_t2",
@@ -2842,7 +2917,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced rune for adventurers requiring level 8. Base attributes: +5 Defense, +20 Magic Defense. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_rune_t3",
@@ -2888,7 +2964,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient rune for adventurers requiring level 15. Base attributes: +10 Defense, +35 Magic Defense. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_head_phys_t1",
@@ -2949,7 +3026,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level head armor for adventurers requiring level 1. Base attributes: +4 Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_head_magic_t1",
@@ -3010,7 +3088,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level head armor for adventurers requiring level 1. Base attributes: +3 Magic Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_head_phys_t2",
@@ -3071,7 +3150,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced head armor for adventurers requiring level 8. Base attributes: +9 Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_head_magic_t2",
@@ -3132,7 +3212,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced head armor for adventurers requiring level 8. Base attributes: +6 Magic Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_head_phys_t3",
@@ -3193,7 +3274,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient head armor for adventurers requiring level 15. Base attributes: +16 Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_head_magic_t3",
@@ -3254,7 +3336,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient head armor for adventurers requiring level 15. Base attributes: +9 Magic Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_body_phys_t1",
@@ -3315,7 +3398,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level chest armor for adventurers requiring level 1. Base attributes: +8 Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_body_magic_t1",
@@ -3376,7 +3460,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level chest armor for adventurers requiring level 1. Base attributes: +6 Magic Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_body_phys_t2",
@@ -3437,7 +3522,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced chest armor for adventurers requiring level 8. Base attributes: +18 Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_body_magic_t2",
@@ -3498,7 +3584,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced chest armor for adventurers requiring level 8. Base attributes: +12 Magic Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_body_phys_t3",
@@ -3559,7 +3646,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient chest armor for adventurers requiring level 15. Base attributes: +32 Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_body_magic_t3",
@@ -3620,7 +3708,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient chest armor for adventurers requiring level 15. Base attributes: +18 Magic Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_cape_phys_t1",
@@ -3667,7 +3756,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level cape for adventurers requiring level 1. Base attributes: +3 Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_cape_magic_t1",
@@ -3714,7 +3804,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level cape for adventurers requiring level 1. Base attributes: +2 Magic Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_cape_phys_t2",
@@ -3761,7 +3852,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced cape for adventurers requiring level 8. Base attributes: +7 Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_cape_magic_t2",
@@ -3808,7 +3900,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced cape for adventurers requiring level 8. Base attributes: +4 Magic Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_cape_phys_t3",
@@ -3855,7 +3948,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient cape for adventurers requiring level 15. Base attributes: +12 Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_cape_magic_t3",
@@ -3902,7 +3996,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient cape for adventurers requiring level 15. Base attributes: +6 Magic Defense. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_accessory_sor_t1",
@@ -3957,7 +4052,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level accessory for adventurers requiring level 1. Base attributes: balanced basic attributes. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_accessory_dex_t1",
@@ -4016,7 +4112,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An entry-level accessory for adventurers requiring level 1. Base attributes: balanced basic attributes. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_accessory_sor_t2",
@@ -4075,7 +4172,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced accessory for adventurers requiring level 8. Base attributes: balanced basic attributes. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_accessory_dex_t2",
@@ -4134,7 +4232,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "A reinforced accessory for adventurers requiring level 8. Base attributes: balanced basic attributes. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_accessory_sor_t3",
@@ -4193,7 +4292,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient accessory for adventurers requiring level 15. Base attributes: balanced basic attributes. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_accessory_dex_t3",
@@ -4252,7 +4352,8 @@
           "INT",
           "LUK"
         ]
-      }
+      },
+      "description": "An ancient accessory for adventurers requiring level 15. Base attributes: balanced basic attributes. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_shoes_earth_t2",
@@ -4296,7 +4397,8 @@
         "en-US": {
           "name": "Grounded Boots"
         }
-      }
+      },
+      "description": "A reinforced pair of boots for adventurers requiring level 8. Base attributes: +2 Defense, +15 Move Speed. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_shoes_water_t2",
@@ -4340,7 +4442,8 @@
         "en-US": {
           "name": "Tidal Boots"
         }
-      }
+      },
+      "description": "A reinforced pair of boots for adventurers requiring level 8. Base attributes: +2 Defense, +15 Move Speed. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_shoes_fire_t3",
@@ -4384,7 +4487,8 @@
         "en-US": {
           "name": "Flame Boots"
         }
-      }
+      },
+      "description": "An ancient pair of boots for adventurers requiring level 15. Base attributes: +4 Defense, +30 Move Speed. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_shoes_shadow_t3",
@@ -4428,7 +4532,8 @@
         "en-US": {
           "name": "Shadow Boots"
         }
-      }
+      },
+      "description": "An ancient pair of boots for adventurers requiring level 15. Base attributes: +4 Defense, +30 Move Speed. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_shoes_wind_t4",
@@ -4472,7 +4577,8 @@
         "en-US": {
           "name": "Wind Boots"
         }
-      }
+      },
+      "description": "A masterwork pair of boots for adventurers requiring level 22. Base attributes: +6 Defense, +45 Move Speed. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_shoes_holy_t4",
@@ -4516,7 +4622,8 @@
         "en-US": {
           "name": "Holy Boots"
         }
-      }
+      },
+      "description": "A masterwork pair of boots for adventurers requiring level 22. Base attributes: +6 Defense, +45 Move Speed. It may gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_shoes_traveler_t1",
@@ -4552,7 +4659,8 @@
         "en-US": {
           "name": "Traveler’s Boots"
         }
-      }
+      },
+      "description": "An entry-level pair of boots for adventurers requiring level 1. Base attributes: +1 Defense, +10 Move Speed. It may gain bonus attributes when dropped or crafted."
     }
   ],
   "materials": [
@@ -4567,7 +4675,8 @@
       "usableFor": [
         "future_crafting",
         "future_recipes"
-      ]
+      ],
+      "description": "Fresh wild blueberries, gathered for cooking and sweet recipes."
     },
     {
       "id": "mat_wheat",
@@ -4580,7 +4689,8 @@
       "usableFor": [
         "future_crafting",
         "future_recipes"
-      ]
+      ],
+      "description": "Golden wheat grains used to prepare staple foods."
     },
     {
       "id": "mat_cooking_oil",
@@ -4593,7 +4703,8 @@
       "usableFor": [
         "future_crafting",
         "future_recipes"
-      ]
+      ],
+      "description": "Cooking oil used to fry and prepare recipes."
     },
     {
       "id": "mat_milk",
@@ -4606,7 +4717,8 @@
       "usableFor": [
         "future_crafting",
         "future_recipes"
-      ]
+      ],
+      "description": "Fresh milk used in several cooking recipes."
     },
     {
       "id": "mat_sugar",
@@ -4619,7 +4731,8 @@
       "usableFor": [
         "future_crafting",
         "future_recipes"
-      ]
+      ],
+      "description": "Refined sugar for sweet dishes and preserves."
     },
     {
       "id": "mat_carrot",
@@ -4632,7 +4745,8 @@
       "usableFor": [
         "future_crafting",
         "future_recipes"
-      ]
+      ],
+      "description": "A crisp carrot harvested for cooking."
     },
     {
       "id": "mat_cabbage",
@@ -4645,7 +4759,8 @@
       "usableFor": [
         "future_crafting",
         "future_recipes"
-      ]
+      ],
+      "description": "A fresh cabbage used in hearty meals."
     },
     {
       "id": "mat_herbs",
@@ -4658,7 +4773,8 @@
       "usableFor": [
         "future_crafting",
         "future_recipes"
-      ]
+      ],
+      "description": "Aromatic herbs used to season food and prepare infusions."
     },
     {
       "id": "mat_honeycomb",
@@ -4671,7 +4787,8 @@
       "usableFor": [
         "future_crafting",
         "future_recipes"
-      ]
+      ],
+      "description": "A honey-filled comb gathered from a hive."
     },
     {
       "id": "mat_meat",
@@ -4684,7 +4801,8 @@
       "usableFor": [
         "future_crafting",
         "future_recipes"
-      ]
+      ],
+      "description": "A hearty cut of meat, ready to be cooked into a filling meal."
     },
     {
       "id": "quest_spring_flask",
@@ -4697,7 +4815,8 @@
       "questOnly": true,
       "usableFor": [
         "quest_objective"
-      ]
+      ],
+      "description": "A sealed flask of spring water collected for a quest."
     },
     {
       "id": "quest_field_sample",
@@ -4710,7 +4829,8 @@
       "questOnly": true,
       "usableFor": [
         "quest_objective"
-      ]
+      ],
+      "description": "A field sample preserved for delivery and research."
     },
     {
       "id": "mat_bronze_ore",
@@ -4731,7 +4851,8 @@
         "en-US": {
           "name": "Bronze Ore"
         }
-      }
+      },
+      "description": "A rough stone rich with warm bronze-colored mineral veins."
     },
     {
       "id": "mat_bronze_ingot",
@@ -4752,7 +4873,8 @@
         "en-US": {
           "name": "Bronze Ingot"
         }
-      }
+      },
+      "description": "A solid bronze ingot smelted from refined ore, ready for metalworking."
     },
     {
       "id": "mat_bliss_stone",
@@ -4773,7 +4895,8 @@
         "en-US": {
           "name": "Bliss Stone"
         }
-      }
+      },
+      "description": "A protective stone used to safeguard equipment during refinement."
     },
     {
       "id": "mat_divine_shard",
@@ -4794,7 +4917,8 @@
         "en-US": {
           "name": "Divine Shard"
         }
-      }
+      },
+      "description": "A shard of divine crystal used in advanced equipment refinement."
     }
   ]
 }

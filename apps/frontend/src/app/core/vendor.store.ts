@@ -4,6 +4,7 @@ import { CharacterStore, InventoryStore } from './game.store';
 import { CatalogService } from './catalog.service';
 import { TownNpc, VendorStockItem, VendorQuote, NpcDialogueState } from '@nanommo/shared';
 import { LocaleService } from './locale.service';
+import { GameAudioService } from '../shared/game-audio.service';
 
 export interface VendorModal { mode:'buy'|'sell'; itemId:string; quantity:number; maxQuantity:number; unitPrice:number; sourceInventoryItemId?:string; instanceData?:any; itemInstanceData?:any; }
 export interface CookingState { progress:{level:number;xp:number;xpIntoLevel:number;xpToNextLevel:number;nextLevelXp:number}; recipes:any[]; session:any|null; }
@@ -21,6 +22,7 @@ export function sellModalMaxQuantity(ownedQuantity:number, selectedStackQuantity
 @Injectable({providedIn:'root'})
 export class VendorStore {
   private readonly api=inject(ApiService);
+  private readonly audio=inject(GameAudioService);
   readonly locale=inject(LocaleService);
   readonly character=inject(CharacterStore);
   readonly inventory=inject(InventoryStore);
@@ -223,6 +225,7 @@ export class VendorStore {
           });
         }
         this.questSpeechOverride.set(action.interaction);
+        this.audio.play('npcDialogue');
         return;
       }
       if(action.questId){await this.startQuestOffer(action.questId);return;}
@@ -245,16 +248,18 @@ export class VendorStore {
           this.questInteraction.set(null);
           this.questSpeechOverride.set(null);
         } else if(result?.accepted) {
+          this.audio.play('questAccepted');
           // Acceptance starts the quest; it should return to the shared NPC panel
           // with the readiness-sensitive quest action, rather than jumping straight
           // into the active fallback dialogue.
           this.questInteraction.set(null);
           this.questSpeechOverride.set(null);
           await Promise.all([this.character.load(),this.inventory.load()]);
-        } else { this.questSpeechOverride.set(null); this.questInteraction.set(result??null); }
+        } else { this.questSpeechOverride.set(null); this.questInteraction.set(result??null); if(result?.kind && result.kind !== 'select') this.audio.play('npcDialogue'); }
       }else if(interaction.kind==='active'&&interaction.action==='turn_in'){
         const result=await this.api.post<any>('/quests/'+encodeURIComponent(interaction.instanceId)+'/turn-in',{}).toPromise();
         this.questInteraction.set(result?.interaction??null);
+        if(result?.interaction?.kind==='completed' || result?.completed) this.audio.play('questCompleted');
         await Promise.all([this.character.load(),this.inventory.load()]);
       }
       await this.loadQuestStateOnly();
@@ -278,6 +283,7 @@ export class VendorStore {
     try{
       this.questSpeechOverride.set(null);
       const result=await this.api.post<any>('/quests/'+encodeURIComponent(instanceId)+'/turn-in',{}).toPromise();
+      if(result?.interaction?.kind==='completed' || result?.completed) this.audio.play('questCompleted');
       // The server commits item consumption, rewards, XP and completion atomically.
       // Keep the returned closing dialogue visible even though the quest is now complete.
       this.questInteraction.set(result?.interaction??null);
@@ -385,12 +391,14 @@ export class VendorStore {
     this.questSpeechOverride.set(null);
     this.busy.set(true);this.error.set(null);
     try{
+      const fatherHealingAction=d.npcId==='father_marcelus' && d.choices?.[0]?.id===choiceId;
       const next=await this.api.post<NpcDialogueState & {consumedItemId?:string;openProfession?:'alchemy'|'blacksmith'}>('/town/npcs/'+d.npcId+'/dialogue',{nodeId:d.nodeId,choiceId}).toPromise();
       this.dialogue.set(next??null);
       if(next?.openProfession==='alchemy' || next?.openProfession==='blacksmith'){
         this.openProfession(next.openProfession);
       }
       await Promise.all([this.character.load(),this.inventory.load()]);
+      if(fatherHealingAction) this.audio.play('fatherMarcelus');
     }catch(e:any){this.error.set(e?.error?.message??'NPC interaction rejected');}
     finally{this.busy.set(false);}
   }
@@ -436,7 +444,8 @@ export class VendorStore {
   requestRefinement(){const preview=this.refinementPreview();if(!preview||!preview.canAttempt||this.refinementBusy())return;if(Number(preview.chancePercent)<100){this.refinementConfirm.set(true);return;}void this.refineSelectedItem();}
   async confirmRefinement(){if(!this.refinementConfirm())return;this.refinementConfirm.set(false);await this.refineSelectedItem();}
   cancelRefinementConfirmation(){this.refinementConfirm.set(false);}
-  async refineSelectedItem(){const id=this.refinementSelectedId();if(!id||this.refinementBusy())return;this.refinementBusy.set(true);this.error.set(null);this.refinementResult.set(null);try{const result=await this.api.post<any>('/equipment/refine',{inventoryItemId:id,useDivineShard:this.refinementUseDivineShard()}).toPromise();const outcome=result?.refinement;this.refinementResult.set(outcome?.outcome==='success'?'Refinement succeeded':outcome?.outcome==='destroyed'?'Equipment destroyed':'Refinement failed');await Promise.all([this.character.load(),this.inventory.load()]);if(outcome?.destroyed){this.refinementSelectedId.set(this.refinableInventoryRows()[0]?.id??'');}await this.refreshRefinementPreview();}catch(e:any){this.error.set(e?.error?.message??'Refinement failed');await this.refreshRefinementPreview();}finally{this.refinementBusy.set(false);}}
+  async refineSelectedItem(){const id=this.refinementSelectedId();if(!id||this.refinementBusy())return;this.refinementBusy.set(true);this.error.set(null);this.refinementResult.set(null);try{const result=await this.api.post<any>('/equipment/refine',{inventoryItemId:id,useDivineShard:this.refinementUseDivineShard()}).toPromise();const outcome=result?.refinement;this.refinementResult.set(outcome?.outcome==='success'?'Refinement succeeded':outcome?.outcome==='destroyed'?'Equipment destroyed':'Refinement failed');
+      if(outcome?.outcome==='success') this.audio.play('refineSuccess'); else if(outcome?.outcome) this.audio.play('refineFail');await Promise.all([this.character.load(),this.inventory.load()]);if(outcome?.destroyed){this.refinementSelectedId.set(this.refinableInventoryRows()[0]?.id??'');}await this.refreshRefinementPreview();}catch(e:any){this.error.set(e?.error?.message??'Refinement failed');await this.refreshRefinementPreview();}finally{this.refinementBusy.set(false);}}
   closeRefinement(){this.refinementConfirm.set(false);this.refinementModal.set(false);this.refinementPreview.set(null);this.refinementResult.set(null);}
   item(id:string){return this.catalog.item(id);}
   itemName(id:string,instanceData?:any){return this.catalog.itemName(id,instanceData);}

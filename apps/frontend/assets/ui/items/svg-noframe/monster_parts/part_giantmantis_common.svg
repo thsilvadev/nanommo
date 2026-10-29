@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><title>Fun Purple Paint</title><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a76bd4"/><stop offset="1" stop-color="#24151b"/></linearGradient></defs><rect x="3" y="3" width="58" height="58" rx="8" fill="#161014" stroke="#9b7647" stroke-width="2"/><path d="M14 42 L18 20 L28 13 L43 18 L50 39 L40 49 L21 48Z" fill="#542c70" stroke="#d6adf0" stroke-width="2"/><path d="M22 24 L43 25 L40 36 L21 36Z" fill="#b66ee7"/><path d="M19 41 L47 18" stroke="#e7d0ff" stroke-width="3"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Giant Mantis Purple Ink">
+<title>Giant Mantis Purple Ink</title>
+
+
+<defs><linearGradient id="ink" x1="0" y1="0" x2=".85" y2="1"><stop stop-color="#f3b5ff"/><stop offset=".3" stop-color="#b23fe0"/><stop offset=".72" stop-color="#7122b4"/><stop offset="1" stop-color="#351052"/></linearGradient></defs>
+<ellipse cx="32" cy="55" rx="16" ry="3.5" fill="#080706" opacity=".42"/>
+<path d="M31 7Q28 16 20 26Q12 36 18 46Q22 54 33 53Q46 52 49 42Q52 33 43 23Q36 14 31 7Z" fill="url(#ink)" stroke="#42145c" stroke-width="2.7" stroke-linejoin="round"/>
+<path d="M30 12Q27 22 22 29Q18 36 22 42" fill="none" stroke="#f8d6ff" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+<path d="M35 25Q42 32 42 39" fill="none" stroke="#e88aff" stroke-width="2" stroke-linecap="round"/>
+<path d="M25 47Q32 51 40 45" fill="none" stroke="#5b1689" stroke-width="2.2" stroke-linecap="round"/>
+<path d="M49 43Q56 47 51 52Q46 54 45 49" fill="#8d2bc6" stroke="#42145c" stroke-width="1.8"/>
+<circle cx="23" cy="45" r="2" fill="#f7c5ff"/><circle cx="44" cy="39" r="1.6" fill="#f7c5ff"/>
+
+</svg>

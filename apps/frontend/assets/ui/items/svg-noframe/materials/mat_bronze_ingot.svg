@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="32" cy="57" rx="22" ry="4" fill="#24180f" opacity=".35"/><path d="M12 17 L43 8 L59 20 L52 45 L20 53 L7 39 Z" fill="#b97843" stroke="#75452e" stroke-width="3"/><path d="M12 17 L34 27 L59 20 M34 27 L20 53" fill="none" stroke="#e6b77a" stroke-width="3"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bronze Ingot">
+<title>Bronze Ingot</title>
+
+
+<defs><linearGradient id="ingotTop" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#ffe28a"/><stop offset=".5" stop-color="#d98932"/><stop offset="1" stop-color="#8b421f"/></linearGradient><linearGradient id="ingotFront" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#c7792d"/><stop offset="1" stop-color="#633018"/></linearGradient></defs>
+<ellipse cx="32" cy="54" rx="23" ry="4" fill="#080706" opacity=".5"/>
+<path d="M12 19 22 10h25l8 9-5 9H17Z" fill="url(#ingotTop)" stroke="#572b19" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M17 28h33l5-9-5 24-8 8H19l-2-23Z" fill="url(#ingotFront)" stroke="#572b19" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M17 28 12 19l5 23 2 9M17 28h33" fill="none" stroke="#f8c76a" stroke-width="2"/>
+<path d="M22 15h20l4 4H18Z" fill="#fff0a9" opacity=".75"/>
+<path d="M24 33h17l-2 10H26Z" fill="#e99a3c" stroke="#7e3b1d" stroke-width="1.5"/>
+<path d="M29 36h7m-6 3h5" stroke="#ffdb7c" stroke-width="1.5" stroke-linecap="round"/>
+
+</svg>

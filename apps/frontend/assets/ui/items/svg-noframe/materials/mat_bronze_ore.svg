@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="32" cy="57" rx="22" ry="4" fill="#24180f" opacity=".35"/><path d="M16 9 L38 4 L56 20 L47 48 L23 53 L7 30 Z" fill="#b86f3b" stroke="#75452e" stroke-width="3"/><path d="M16 9 L32 24 L56 20 M32 24 L23 53 M32 24 L47 48" fill="none" stroke="#e6ac6d" stroke-width="3"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bronze Ore">
+<title>Bronze Ore</title>
+
+
+<defs><linearGradient id="rock" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#65717a"/><stop offset=".45" stop-color="#343d45"/><stop offset="1" stop-color="#171b22"/></linearGradient><linearGradient id="copper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0a0"/><stop offset=".35" stop-color="#f4a43b"/><stop offset="1" stop-color="#9c3d1e"/></linearGradient></defs>
+<ellipse cx="32" cy="55" rx="22" ry="4" fill="#080706" opacity=".55"/>
+<path d="M8 25 18 10 34 7 48 15 57 30 50 48 34 55 15 49 6 37Z" fill="url(#rock)" stroke="#17171a" stroke-width="2.8" stroke-linejoin="round"/>
+<path d="M18 10 27 24 8 25M27 24 42 20 48 15M27 24 23 43 15 49M27 24 39 35 50 48" fill="none" stroke="#87919a" stroke-width="2" stroke-linejoin="round"/>
+<path d="M18 17 23 20 20 27 26 32 22 40 28 46" fill="none" stroke="url(#copper)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M36 14 32 22 39 27 35 34 43 39" fill="none" stroke="url(#copper)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12 32 17 30M40 12l4 3M43 45l4-2" stroke="#ffdc77" stroke-width="2.2" stroke-linecap="round"/>
+<path d="M13 35l5 3m20-18 3 3" stroke="#f7b84f" stroke-width="2" stroke-linecap="round"/>
+
+</svg>

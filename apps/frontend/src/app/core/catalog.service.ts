@@ -10,16 +10,25 @@ export class CatalogService {
  statusEffect(id:string){return this.statusEffects().find(x=>x.id===id);}
  item(id:string){return this.items().find(x=>x.id===id);}
  itemName(id:string,instanceData?:any){const item:any=this.item(id);if(!item)return id;const name=this.locale.localized(item,'name',item.name)||id;const level=Math.max(0,Math.min(12,Math.floor(Number(instanceData?.refinementLevel??0))));return level?name+' +'+level:name;}
+ itemTypeLabel(idOrType:string){
+  const item:any=this.item(idOrType);const type=String(item?.type??idOrType??'');
+  const labels:Record<string,string>={equipment:'Equipment',monster_part:'Monster Part',material:'Material',consumable:'Consumable',food:'Consumable'};
+  return this.locale.t(labels[type]??'Item');
+ }
  itemTooltipLines(itemId:string,instanceData?:any,equippedSlot?:string){
   const d:any=this.item(itemId);if(!d)return [];
+  const category={label:this.locale.t('Type'),value:this.itemTypeLabel(d.type)};
+  const description=this.locale.localized(d,'description',d.description);
+  const descriptionLine=description?{label:'',value:description}:null;
   if(d.type==='equipment'){
    const lines=this.equipmentStatLines(itemId,instanceData,equippedSlot);
    if(String(d.weaponType??'').toLowerCase()==='bow')lines.push({label:'',value:'Bows reduce precision by a half',warning:true});
-   return lines;
+   return [category,...(descriptionLine?[descriptionLine]:[]),...lines];
   }
-  const hidden=d.type==='consumable'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor']):d.type==='monster_part'||d.type==='material'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();
+  const hidden=d.type==='consumable'||d.type==='food'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor']):d.type==='monster_part'||d.type==='material'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();
   const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;
-  return visible.filter(k=>k!=='id'&&k!=='name'&&!hidden.has(k)&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k==='effect'?'Effect':k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:k==='effect'?this.formatItemEffect(d[k]):typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}));
+  const details=visible.filter(k=>!['id','name','type','description','locales'].includes(k)&&!hidden.has(k)&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k==='effect'?this.locale.t('Effect'):k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:k==='effect'?this.formatItemEffect(d[k]):typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}));
+  return [category,...(descriptionLine?[descriptionLine]:[]),...details];
  }
  formatItemEffect(effect:any){if(!effect)return '';if(effect.status){const status=String(effect.status).replace(/_/g,' ');return `Cures ${status}.`;}if(effect.type==='heal_hp')return `Restores ${Number(effect.amount)||0} HP.`;if(effect.type==='heal_sp')return `Restores ${Number(effect.amount)||0} SP.`;if(effect.type==='food_buff'){
  const lines:string[]=[];

@@ -843,3 +843,16 @@ LocaleService provides a runtime pt-BR/en-US signal and persistent browser prefe
 ## Session loot and crafting/refinement presentation update — 2026-10-28
 
 The frontend BattleStore's session loot aggregation is client-local and reset by the map board only when physical map arrival is confirmed. Both immediate accepted transitions and the deferred-transition polling reconciliation apply the same per-visit rule across map types. Alchemy/Blacksmith batch size is sent by the frontend but validated in TownService against the profession-state calculation (maxCraftQuantity), which accounts for unreserved ingredient totals and output capacity. A single persisted crafting session reserves multiplied ingredient quantities and carries the batch output/XP values to the existing atomic completion path. Refinement selection remains server-preview/attempt driven; the modal's inventory workbench uses Angular CDK drag/drop while selection by click remains available as an accessible alternative.
+
+
+## Item SVG art update — 2026-10-28
+
+Item art is served from `apps/frontend/assets/ui/items/svg/` (framed) and `apps/frontend/assets/ui/items/svg-noframe/` (normal inventory icon). Keep both variants in sync for any item whose art is changed; `CatalogService.itemIcon(id, framed)` selects the directory from the `framed` flag and derives the asset filename from the item ID. The current art pass covers boots, bronze ore/ingot, meat, Flaming Treant Bark, Rootbound Brute common/rare, Giant Mosquito common/rare wings, and Giant Mantis common purple ink. Bliss Stone and Divine Shard are intentionally unchanged by this pass.
+
+## Item catalogue data and display — 2026-10-28
+
+The canonical item catalogue is root items.json and the frontend loads its synchronized mirror from apps/frontend/public/data/items.json. Both files must remain synchronized. The full name/ID/description reference is docs/item-catalog.md. CatalogService.itemTypeLabel resolves an item's human-readable category from the catalogue; item tooltips show that category and description explicitly, and market listing type labels use the catalogue rather than relying on optional API row metadata.
+
+### Frontend gameplay audio — 2026-10-29
+
+Audio is presentation-only and does not change server authority. `GameAudioService` plays regional playlists from the authoritative current map ID and reads immutable battle queue logs by event tick so each event effect is played at most once per queue entry. Quest and refinement sounds are invoked only after successful API responses; monster incoming-damage effects are specifically keyed to monster actor/character target, leaving future PvP sound policy independent. Sound files are served from `apps/frontend/public/assets/sounds/`.
