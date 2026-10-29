@@ -3,6 +3,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { StatusEffectDefinition } from '@nanommo/shared';
 
+const hasLocalizedText = (value: any): boolean =>
+  typeof value === 'string'
+    ? value.trim().length > 0
+    : !!value && typeof value === 'object' && !!value.locales &&
+      Object.values(value.locales).some((text: any) => typeof text === 'string' && text.trim().length > 0);
+
 @Injectable()
 export class DataService implements OnModuleInit {
   private readonly logger = new Logger(DataService.name);
@@ -158,10 +164,16 @@ export class DataService implements OnModuleInit {
       if (quest.timeLimitSeconds !== null && quest.timeLimitSeconds !== undefined && (!Number.isInteger(Number(quest.timeLimitSeconds)) || Number(quest.timeLimitSeconds) < 1)) throw new Error(`Quest ${quest.id} has invalid timeLimitSeconds`);
       if (typeof quest.repeatable !== 'boolean' || typeof quest.allowReacceptAfterAbandon !== 'boolean') throw new Error(`Quest ${quest.id} must define repeatability and reacceptance policy`);
       if (!Array.isArray(quest.requiresCompletedQuestIds) || quest.requiresCompletedQuestIds.some((id: string) => typeof id !== 'string')) throw new Error(`Quest ${quest.id} must define prerequisite IDs`);
-      if (!Array.isArray(quest.offerDialogue) || !quest.offerDialogue.length || quest.offerDialogue.filter((step: any) => step?.acceptsQuest === true).length !== 1 || quest.offerDialogue[quest.offerDialogue.length - 1]?.acceptsQuest !== true) throw new Error(`Quest ${quest.id} must have exactly one decisive final offer step`);
-      for (const step of quest.offerDialogue) if (!step?.npcText || !step?.buttonText) throw new Error(`Quest ${quest.id} has malformed offer dialogue`);
-      if (quest.activeDialogue !== undefined && (!quest.activeDialogue || typeof quest.activeDialogue.npcText !== 'string' || !quest.activeDialogue.npcText.trim() || typeof quest.activeDialogue.waitButtonText !== 'string' || !quest.activeDialogue.waitButtonText.trim())) throw new Error(`Quest ${quest.id} has malformed activeDialogue`);
-      if (quest.completionDialogue !== undefined && (!quest.completionDialogue || typeof quest.completionDialogue.npcText !== 'string' || !quest.completionDialogue.npcText.trim() || typeof quest.completionDialogue.buttonText !== 'string' || !quest.completionDialogue.buttonText.trim())) throw new Error(`Quest ${quest.id} has malformed completionDialogue`);
+      const offerGraph = quest.offerGraph;
+      const hasOfferGraph = !!offerGraph?.nodes && typeof offerGraph.entryNodeId === 'string' && !!offerGraph.nodes[offerGraph.entryNodeId];
+      if (!hasOfferGraph && (!Array.isArray(quest.offerDialogue) || !quest.offerDialogue.length || quest.offerDialogue.filter((step: any) => step?.acceptsQuest === true).length !== 1 || quest.offerDialogue[quest.offerDialogue.length - 1]?.acceptsQuest !== true)) throw new Error(`Quest ${quest.id} must have either a valid offer graph or exactly one decisive final offer step`);
+      if (Array.isArray(quest.offerDialogue)) for (const step of quest.offerDialogue) if (!hasLocalizedText(step?.npcText) || !step?.buttonText) throw new Error(`Quest ${quest.id} has malformed offer dialogue`);
+      if (hasOfferGraph) for (const [nodeId, node] of Object.entries(offerGraph.nodes) as Array<[string, any]>) {
+        if (!hasLocalizedText(node?.npcText) || !Array.isArray(node.choices) || !node.choices.length) throw new Error(`Quest ${quest.id} has malformed offer graph node ${nodeId}`);
+        for (const choice of node.choices) if (!choice?.id || !hasLocalizedText(choice.text) || (choice.acceptsQuest === true && choice.close === true)) throw new Error(`Quest ${quest.id} has malformed offer graph choice in ${nodeId}`);
+      }
+      if (quest.activeDialogue !== undefined && (!quest.activeDialogue || !hasLocalizedText(quest.activeDialogue.npcText) || (quest.activeDialogue.handleItemsButtonText !== undefined && !hasLocalizedText(quest.activeDialogue.handleItemsButtonText)))) throw new Error(`Quest ${quest.id} has malformed activeDialogue`);
+      if (quest.completionDialogue !== undefined && (!quest.completionDialogue || !hasLocalizedText(quest.completionDialogue.npcText) || !hasLocalizedText(quest.completionDialogue.buttonText))) throw new Error(`Quest ${quest.id} has malformed completionDialogue`);
       if (!Array.isArray(quest.objectives) || !quest.objectives.length) throw new Error(`Quest ${quest.id} must define objectives`);
       const objectiveIds = new Set<string>();
       for (const objective of quest.objectives) {

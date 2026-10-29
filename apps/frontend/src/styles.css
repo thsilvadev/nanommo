@@ -651,7 +651,7 @@ select:focus-visible,
 /* Shared Town NPC dialogue, quest-call-to-action, and profession button states. */
 .vendor-panel .quest-dialogue{margin:9px 0;padding:11px 12px;border:1px solid #46331f;background:linear-gradient(135deg,#17120d,#120e0a);box-shadow:inset 0 1px #ffffff05}
 .vendor-panel .quest-interaction{border-color:#b38a3c;background:linear-gradient(135deg,#2b2112,#18120b);box-shadow:inset 0 0 0 1px #b88c3720}
-.vendor-panel .quest-text{color:#d8cbb4;font:14px/1.55 Georgia,serif;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.vendor-panel .quest-text{color:#d8cbb4;font:18px/1.55 Georgia,serif;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .vendor-panel .quest-text.is-typing{cursor:pointer;user-select:none}
 .vendor-panel .quest-text.is-complete{cursor:default}
 .vendor-panel .quest-choices{display:grid;gap:6px;margin:8px 0}
@@ -670,8 +670,8 @@ select:focus-visible,
 .vendor-panel .cooking-open-button:hover:not(:disabled){ background:#3a2818; border-color:#c49a50; box-shadow:0 0 10px #c49a5022; transform:translateY(-1px); }
 .vendor-panel .cooking-open-button:active:not(:disabled){ background:#1b120b; transform:translateY(1px); box-shadow:inset 0 2px 5px #0008; }
 .vendor-panel .cooking-open-button.crafting-open-button{ background:linear-gradient(135deg,#183323,#244b32); border-color:#4d805b; color:#d9f0d8; text-shadow:0 1px #0d2113; }
-.vendor-panel .cooking-open-button.crafting-open-button:hover:not(:disabled){ background:linear-gradient(135deg,#21472f,#326d45); border-color:#8ec99a; color:#f1fff0; box-shadow:0 0 13px #4fbd7044,inset 0 1px #c9f8d022; }
-.vendor-panel .cooking-open-button.crafting-open-button:active:not(:disabled){ background:linear-gradient(135deg,#10251a,#1b3825); border-color:#6eab7d; box-shadow:inset 0 3px 7px #061209bb; transform:translateY(1px); }
+.vendor-panel .cooking-open-button.crafting-open-button:hover:not(:disabled){ background:linear-gradient(135deg,#211b1b,#484b24); border-color:#9b7417; color:#f1fff0; box-shadow:0 0 13px #4fbd7044,inset 0 1px #c9f8d022; }
+.vendor-panel .cooking-open-button.crafting-open-button:active:not(:disabled){ background:linear-gradient(135deg,#211b1b,#484b24); border-color:#9b7417; box-shadow:inset 0 3px 7px #061209bb; transform:translateY(1px); }
 .vendor-panel .cooking-button:not(.refinement-attempt){ border-color:#4d805b;background:linear-gradient(135deg,#183323,#244b32);color:#e2f5df;transition:background .17s,border-color .17s,box-shadow .17s,transform .12s; }
 .vendor-panel .cooking-button:not(.refinement-attempt):hover:not(:disabled){ border-color:#8ec99a;background:linear-gradient(135deg,#21472f,#326d45);box-shadow:0 0 12px #4fbd7044;transform:translateY(-1px); }
 .vendor-panel .cooking-button:not(.refinement-attempt):active:not(:disabled){ background:linear-gradient(135deg,#10251a,#1b3825);box-shadow:inset 0 3px 7px #061209bb;transform:translateY(1px); }

@@ -323,15 +323,6 @@
                   "type": "open_profession",
                   "profession": "alchemy"
                 }
-              },
-              {
-                "id": "farewell",
-                "text": "Nothing for now.",
-                "textLocales": {
-                  "pt-BR": "Nada por enquanto.",
-                  "en-US": "Nothing for now."
-                },
-                "close": true
               }
             ]
           }

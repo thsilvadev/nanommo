@@ -62,11 +62,13 @@ export class LocaleService {
 
   localized(record: any, field: string, fallback?: string): string {
     const locale = this.locale();
-    const value = record?.locales?.[locale]?.[field]
+    const fieldValue = record?.[field];
+    const value = fieldValue?.locales?.[locale]
+      ?? record?.locales?.[locale]?.[field]
       ?? record?.[field + 'Locales']?.[locale]
-      ?? record?.[field]
+      ?? (typeof fieldValue === 'string' ? fieldValue : undefined)
       ?? fallback
       ?? '';
-    return typeof value === 'string' ? value : String(value);
+    return typeof value === 'string' ? value : '';
   }
 }

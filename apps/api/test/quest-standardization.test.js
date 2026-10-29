@@ -76,15 +76,15 @@ async function run() {
   assert.strictEqual(npcInteraction.kind, 'select');
   const forestOfferAction = npcInteraction.actions.find(action => action.type === 'offer' && action.questId === forestQuestId);
   assert(forestOfferAction);
-  assert.strictEqual(forestOfferAction.buttonText, 'What bothers you, Pajé Piatã?');
-  assert.strictEqual(forestOfferAction.buttonTextLocales['pt-BR'], 'O que o entristece, Pajé Piatã?');
+  assert.strictEqual(forestOfferAction.buttonText.locales['en-US'], 'What bothers you, Pajé Piatã?');
+  assert.strictEqual(forestOfferAction.buttonText.locales['pt-BR'], 'O que o entristece, Pajé Piatã?');
   const forestOffer = await forest.service.getOffer(forestCharacter.id, forestQuestId);
   assert.strictEqual(forestOffer.nodeId, 'start');
   assert(forestOffer.choices.some(choice => choice.id === 'ask_tears'));
   const explanation = await forest.service.advanceOffer(forestCharacter.id, forestQuestId, 'ask_tears');
   assert.strictEqual(explanation.nodeId, 'explanation');
   assert.strictEqual(explanation.accepted, false);
-  assert.strictEqual(explanation.npcTextLocales['pt-BR'], 'O Treant Flamejante guarda as memórias antigas desta floresta. Suas lágrimas podem ajudar a restaurar o equilíbrio.');
+  assert.strictEqual(explanation.npcText.locales['pt-BR'], 'Tu! Tu vai ajudar. Nossos rangers estão na floresta, livrando os sagrados Treants de seu sofrimento. Livra o sofrimento deles! Traga-me 5 lágrimas de ancião da floresta. Lágrima de ancião vai trazer peso e dor pro inimigo. Floresta vai ficar de pé. Lágrima pesa. Poupe fôlego para carregá-las. Vai! Apague o sofrimento dos ancestrais!');
   assert.strictEqual(forest.instanceRows.length, 0, 'Question/explanation path must not accept automatically');
 
   const forestInstanceResult = await forest.service.advanceOffer(forestCharacter.id, forestQuestId, 'accept_after_explanation');
@@ -95,7 +95,7 @@ async function run() {
   const forestActiveAction = await forest.service.getNpcInteraction(forestCharacter.id, 'paje_piata');
   assert.strictEqual(forestActiveAction.kind, 'select');
   assert.strictEqual(forestActiveAction.actions.length, 1);
-  assert.strictEqual(forestActiveAction.actions[0].buttonText, "About the forest ancestors' tears...");
+  assert.strictEqual(forestActiveAction.actions[0].buttonText.locales['en-US'], "About the forest ancestors' tears...");
   assert.strictEqual(forestActiveAction.actions[0].interaction.action, 'close');
 
   // Simulate five independent successful deterministic 35% quest-only rolls, then
@@ -121,13 +121,13 @@ async function run() {
   const forestReadyAction = await forest.service.getNpcInteraction(forestCharacter.id, 'paje_piata');
   assert.strictEqual(forestReadyAction.kind, 'select');
   assert.strictEqual(forestReadyAction.actions.length, 1);
-  assert.strictEqual(forestReadyAction.actions[0].buttonText, 'What will you do with those tears? [handle items]');
+  assert.strictEqual(forestReadyAction.actions[0].buttonText.locales['en-US'], 'What will you do with those tears? [handle items]');
   assert.strictEqual(forestReadyAction.actions[0].interaction.action, 'turn_in');
   assert.strictEqual(forestReadyAction.actions[0].interaction.instanceId, forestInstance.id);
   forest.data.getXpToNextLevel = () => 1000000;
   const completedQuestResult = await forest.service.turnIn(forestCharacter.id, forestInstance.id);
-  assert.strictEqual(completedQuestResult.interaction.npcTextLocales['pt-BR'], 'Você honrou a floresta. Fique com estas botas; que elas guiem seus passos em segurança.');
-  assert.strictEqual(completedQuestResult.interaction.buttonTextLocales['pt-BR'], 'Obrigado.');
+  assert.strictEqual(completedQuestResult.interaction.npcText.locales['pt-BR'], 'Você honrou a floresta. Fique com estas botas; que elas guiem seus passos em segurança.');
+  assert.strictEqual(completedQuestResult.interaction.buttonText.locales['pt-BR'], 'Obrigado, Pajé.');
   assert.strictEqual(forestInstance.status, 'completed');
   assert.strictEqual(Number(forestCharacter.xp), 31630, 'Quest reward must grant the exact fixed Character XP');
   assert.strictEqual(forest.invRows.some(row => row.itemId === 'part_flamingtreant_common'), false);
@@ -182,15 +182,15 @@ async function run() {
   interaction = await ceciliaEmpty.service.getOffer(ceciliaEmpty.character.id, baseQuest.id);
   assert.strictEqual(interaction.kind, 'offer');
   assert.strictEqual(interaction.npcText, baseQuest.offerDialogue[0].npcText);
-  assert.strictEqual(interaction.buttonText, 'What can you do?');
+  assert.strictEqual(interaction.buttonText.locales['en-US'], 'What can you do?');
   interaction = await ceciliaEmpty.service.advanceOffer(ceciliaEmpty.character.id, baseQuest.id);
   assert.strictEqual(interaction.accepted, false);
-  assert.strictEqual(interaction.buttonText, 'I’ll take the job.');
+  assert.strictEqual(interaction.buttonText.locales['en-US'], 'I’ll take the job.');
   interaction = await ceciliaEmpty.service.advanceOffer(ceciliaEmpty.character.id, baseQuest.id);
   assert.strictEqual(interaction.accepted, true);
   assert.strictEqual(interaction.interaction.kind, 'active');
   assert.strictEqual(interaction.interaction.npcText, baseQuest.activeDialogue.npcText);
-  assert.strictEqual(interaction.interaction.buttonText, "Ok I'll be back");
+  assert.strictEqual(interaction.interaction.buttonText, "I'll be back");
   assert.strictEqual(interaction.interaction.action, 'close');
   const multiNpcQuest = { ...baseQuest, id: 'test_second_cecilia_quest', title: 'Second Cecilia quest' };
   // Active quest actions and other still-eligible offers must coexist in the same NPC action list.
@@ -222,7 +222,7 @@ async function run() {
   await ceciliaReady.service.getOffer(ceciliaReady.character.id, baseQuest.id);
   await ceciliaReady.service.advanceOffer(ceciliaReady.character.id, baseQuest.id);
   const acceptedReady = await ceciliaReady.service.advanceOffer(ceciliaReady.character.id, baseQuest.id);
-  assert.strictEqual(acceptedReady.interaction.buttonText, '[Handle items]');
+  assert.strictEqual(acceptedReady.interaction.buttonText.locales['en-US'], '[Handle items]');
   assert.strictEqual(acceptedReady.interaction.action, 'turn_in');
 
   // Active limit is checked transactionally at final acceptance.
@@ -292,7 +292,7 @@ async function run() {
   assert.strictEqual(turnin.invRows.filter(row => ['part_slime_common', 'part_fieldbat_common'].includes(row.itemId)).length, 0);
   const rewardRing = turnin.invRows.find(row => row.itemId === 'equip_accessory_sor_t1');
   assert.deepStrictEqual(rewardRing.instanceData.questReward, { questId: baseQuest.id, marketTradable: false });
-  assert.strictEqual(baseQuest.completionDialogue.buttonText, 'Thank you!');
+  assert.strictEqual(baseQuest.completionDialogue.buttonText.locales['en-US'], 'Thank you!');
 
   // Successful battle resolution records multiple configured objectives in the same transaction.
   const combatQuest = { ...baseQuest, id: 'test_combat_objectives', objectives: [
@@ -424,16 +424,18 @@ async function run() {
   const globalStyles = textOf('apps/frontend/src/styles.css');
   const vendorComponent = textOf('apps/frontend/src/app/features/play/components.ts');
   assert.match(vendorTemplate, /!interactionTyping\(\)/, 'Dialogue/action controls should only appear after the typewriter finishes');
-  assert.match(vendorTemplate, /revealInteractionText\(\)/, 'Clicking the NPC panel should reveal the full line');
+  assert.match(vendorTemplate, /npc-conversation[^>]*[\s\S]*?click.*revealInteractionText\(\)/, 'Clicking the speech box should reveal the full line');
   assert.doesNotMatch(vendorTemplate, /quest-offer-row|quest-actions-panel|quest-offer-dialogue/);
-  assert.match(globalStyles, /font:14px\/1\.55 Georgia/);
+  assert.match(globalStyles, /font:18px\/1\.55 Georgia/);
   assert.match(globalStyles, /quest-action-button/);
   assert.match(globalStyles, /quest-primary-action:hover[^\{]*\{[^}]*0 0 18px/);
-  assert.match(globalStyles, /crafting-open-button:hover[^\{]*\{[^}]*#8ec99a/);
+  assert.match(globalStyles, /crafting-open-button:hover[^\{]*\{[^}]*#9b7417/);
   assert.match(globalStyles, /#2c1e11/);
   assert.match(vendorTemplate, /choice.id==='alchemy'/);
   assert.match(vendorTemplate, /npc-conversation/);
-  assert.match(vendorComponent, /npcDialogueIsGreeting/);
+  assert.match(vendorComponent, /The dialogue node is the source of truth for spoken text/);
+  assert.doesNotMatch(vendorTemplate, /vendor\.questSpeechOverride\(\) as speech/);
+  assert.doesNotMatch(vendorTemplate, /interaction\.kind==='active' && !interactionTyping\(\)/);
   assert.match(vendorComponent, /this.displayedInteractionText.set\(this.interactionTextTarget\)/);
   assert.match(vendorComponent, /this.interactionTyping.set\(false\)/);
 

@@ -295,11 +295,11 @@
       "locales": {
         "pt-BR": {
           "name": "Pajé Piatã",
-          "greeting": "Aruandê, viajante. A floresta guarda presentes e histórias."
+          "greeting": "Aruandê, viajante. A floresta guarda mistérios e histórias."
         },
         "en-US": {
           "name": "Pajé Piatã",
-          "greeting": "Aruandê, traveler. The forest holds gifts and stories."
+          "greeting": "Aruandê, traveler. The forest holds mysteries and stories."
         }
       },
       "dialogue": {
@@ -323,15 +323,6 @@
                   "type": "open_profession",
                   "profession": "alchemy"
                 }
-              },
-              {
-                "id": "farewell",
-                "text": "Nothing for now.",
-                "textLocales": {
-                  "pt-BR": "Nada por enquanto.",
-                  "en-US": "Nothing for now."
-                },
-                "close": true
               }
             ]
           }

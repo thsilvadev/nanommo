@@ -1,4 +1,4 @@
-<section class="vendor-panel" aria-label="Town NPC" (click)="revealInteractionText()">
+<section class="vendor-panel" aria-label="Town NPC">
   <div class="npc-select"><label for="town-npc-select">Talk to:</label><select id="town-npc-select"
       aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)">
       <option value="">Choose NPC to interact</option>
@@ -10,7 +10,8 @@
         [alt]="vendor.localized(npc, 'name', npc.name)" width="167" height="199"></div>
     <div class="vendor-title"><strong>{{vendor.localized(npc, 'name', npc.name)}}</strong><span>{{npc.types.join(' / ') | uppercase}}</span></div>
 
-    <section class="quest-dialogue npc-conversation" *ngIf="npcConversationText(npc)" [class.quest-interaction]="showingQuestResponse()">
+    <section class="quest-dialogue npc-conversation" *ngIf="npcConversationText(npc)" [class.quest-interaction]="showingQuestResponse()"
+      (click)="revealInteractionText()">
       <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
         (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
         [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
@@ -342,14 +343,6 @@
       </div>
     </ng-container>
 
-    <ng-container *ngIf="vendor.questSpeechOverride() as speech">
-      <div class="quest-choices" *ngIf="!interactionTyping()">
-        <button type="button" class="npc-dialogue-button" (click)="vendor.closeQuestSpeech()">
-          {{vendor.localizedInteraction(speech,'buttonText') || speech.buttonText}}
-        </button>
-      </div>
-    </ng-container>
-
     <ng-container *ngIf="vendor.questInteraction() as interaction">
       <div class="quest-choices quest-action-choices" *ngIf="interaction.kind==='select' && !interactionTyping()">
         <button *ngFor="let action of interaction.actions" type="button"
@@ -367,8 +360,8 @@
         <button type="button" class="quest-action-button" [class.quest-primary-action]="interaction.acceptsQuest"
           [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}}</button>
       </div>
-      <div class="quest-choices" *ngIf="interaction.kind==='active' && !interactionTyping()">
-        <button type="button" class="quest-action-button" [class.quest-primary-action]="interaction.action==='turn_in'"
+      <div class="quest-choices" *ngIf="interaction.kind==='active' && interaction.action==='turn_in' && !interactionTyping()">
+        <button type="button" class="quest-action-button quest-primary-action"
           [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}}</button>
       </div>
       <div class="quest-choices" *ngIf="interaction.kind==='completed' && !interactionTyping()">

@@ -756,13 +756,12 @@ export class VendorPanel implements OnDestroy {
       // update this shared speech surface without replacing the action list itself.
       const speech = questSpeechOverride ?? (questInteraction && questInteraction.kind !== 'select' ? questInteraction : null);
       const questText = speech ? this.vendor.localizedInteraction(speech, 'npcText') : '';
-      const hasCatalogGreeting = !!(selectedNpc?.greeting || selectedNpc?.locales?.['pt-BR']?.['greeting'] || selectedNpc?.locales?.['en-US']?.['greeting']);
-      const npcDialogueIsGreeting = npcDialogue?.nodeId === 'greeting' && hasCatalogGreeting;
-      const npcText = npcDialogueIsGreeting
-        ? this.vendor.localized(selectedNpc, 'greeting', selectedNpc?.greeting)
-        : this.vendor.localized(npcDialogue, 'npcText', npcDialogue?.npcText);
+      // The dialogue node is the source of truth for spoken text. The catalog greeting
+      // is only a fallback before the dialogue graph has loaded; never replace its
+      // localized Portuguese line with a different catalog greeting.
+      const npcText = this.vendor.localized(npcDialogue, 'npcText', npcDialogue?.npcText);
       const greetingField = selectedNpc?.types?.some((type: string) => type === 'storage' || type === 'mailbox') ? 'monologue' : 'greeting';
-      const idleGreeting = this.vendor.localized(selectedNpc, greetingField, selectedNpc?.[greetingField]);
+      const idleGreeting = selectedNpc?.types?.includes('dialogue') ? '' : this.vendor.localized(selectedNpc, greetingField, selectedNpc?.[greetingField]);
       const text = String(questText || npcText || idleGreeting || '');
       if (text === this.interactionTextTarget) return;
       this.startInteractionTypewriter(text);
@@ -799,9 +798,8 @@ export class VendorPanel implements OnDestroy {
     const interaction = this.vendor.questInteraction();
     if (interaction && interaction.kind !== 'select') return this.vendor.localizedInteraction(interaction, 'npcText');
     const dialogue = this.vendor.dialogue();
-    const hasCatalogGreeting = !!(npc?.greeting || npc?.locales?.['pt-BR']?.greeting || npc?.locales?.['en-US']?.greeting);
-    if (dialogue?.nodeId === 'greeting' && hasCatalogGreeting) return this.vendor.localized(npc, 'greeting', npc?.greeting);
     if (dialogue) return this.vendor.localized(dialogue, 'npcText', dialogue?.npcText);
+    if (npc?.types?.includes('dialogue')) return '';
     const field = npc?.types?.some((type: string) => type === 'storage' || type === 'mailbox') ? 'monologue' : 'greeting';
     return this.vendor.localized(npc, field, npc?.[field]);
   }

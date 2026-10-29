@@ -43,9 +43,10 @@
 .vendor-title {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   border-bottom: 1px solid #38281b;
   padding-bottom: 8px;
+  flex-direction: column;
 }
 .vendor-title strong {
   color: #dfcfb3;

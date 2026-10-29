@@ -3,7 +3,12 @@
     {
       "id": "cecilia_lucky_ring",
       "title": "A Little Something for Luck",
-      "description": "Bring Cecilia the monster parts she requested in exchange for a Worn Lucky Ring.",
+      "description": {
+        "locales": {
+          "pt-BR": "Traga a Cecilia as partes de monstros que ela pediu em troca de um Anel da Sorte Gasto.",
+          "en-US": "Bring Cecilia the monster parts she requested in exchange for a Worn Lucky Ring."
+        }
+      },
       "giverNpcId": "cecilia",
       "turnInNpcId": "cecilia",
       "minLevel": 3,
@@ -13,29 +18,33 @@
       "timeLimitSeconds": null,
       "offerDialogue": [
         {
-          "npcText": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…",
-          "buttonText": "What can you do?",
-          "npcTextLocales": {
-            "pt-BR": "O destino é algo curioso, não é? Ele trouxe você até mim, e tenho exatamente o que procura. Mas será que é sorte? Talvez…",
-            "en-US": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…"
+          "npcText": {
+            "locales": {
+              "pt-BR": "O destino é algo curioso, não é? Ele trouxe você até mim, e tenho exatamente o que procura. Mas será que é sorte? Talvez…",
+              "en-US": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…"
+            }
           },
-          "buttonTextLocales": {
-            "pt-BR": "O que você pode fazer?",
-            "en-US": "What can you do?"
+          "buttonText": {
+            "locales": {
+              "pt-BR": "O que você pode fazer?",
+              "en-US": "What can you do?"
+            }
           }
         },
         {
-          "npcText": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and I’ll give you something that’ll bring luck to your journey.",
-          "buttonText": "I’ll take the job.",
-          "acceptsQuest": true,
-          "npcTextLocales": {
-            "pt-BR": "Ah, querida! Está falando com a joalheira princesa deste mundo. Traga 20 Géis de Slime, 20 Asas de Morcego e lhe darei algo que trará sorte à sua jornada.",
-            "en-US": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and I’ll give you something that’ll bring luck to your journey."
+          "npcText": {
+            "locales": {
+              "pt-BR": "Ah! Está falando com a joalheira princesa deste mundo. Traga 20 Géis de Slime, 20 Asas de Morcego e lhe darei algo que trará sorte à sua jornada.",
+              "en-US": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and I’ll give you something that’ll bring luck to your journey."
+            }
           },
-          "buttonTextLocales": {
-            "pt-BR": "Aceito o trabalho.",
-            "en-US": "I’ll take the job."
-          }
+          "buttonText": {
+            "locales": {
+              "pt-BR": "Aceito o trabalho.",
+              "en-US": "I’ll take the job."
+            }
+          },
+          "acceptsQuest": true
         }
       ],
       "objectives": [
@@ -66,46 +75,36 @@
         "professionXp": []
       },
       "activeDialogue": {
-        "npcText": "Marvelous, darling! Bring me the parts when you have them, and we shall make a little luck of our own.",
-        "waitButtonText": "Ok I'll be back",
-        "handleItemsButtonText": "[Handle items]",
-        "readyButtonText": "[Continue]",
-        "npcTextLocales": {
-          "pt-BR": "Maravilhoso, querida! Traga as partes quando as tiver, e faremos nossa própria sorte.",
-          "en-US": "Marvelous, darling! Bring me the parts when you have them, and we shall make a little luck of our own."
+        "npcText": {
+          "locales": {
+            "pt-BR": "Maravilhoso! Traga as partes quando as tiver, e faremos nossa própria sorte.",
+            "en-US": "Marvelous, darling! Bring me the parts when you have them, and we shall make a little luck of our own."
+          }
         },
-        "waitButtonTextLocales": {
-          "pt-BR": "Certo, eu volto.",
-          "en-US": "Ok I'll be back"
-        },
-        "handleItemsButtonTextLocales": {
-          "pt-BR": "[Entregar itens]",
-          "en-US": "[Handle items]"
-        },
-        "readyButtonTextLocales": {
-          "pt-BR": "[Continuar]",
-          "en-US": "[Continue]"
+        "handleItemsButtonText": {
+          "locales": {
+            "pt-BR": "[Entregar itens]",
+            "en-US": "[Handle items]"
+          }
         }
       },
       "completionDialogue": {
-        "npcText": "There you go, darling! May this little ring bring a little more luck to your journey.",
-        "buttonText": "Thank you!",
-        "npcTextLocales": {
-          "pt-BR": "Aqui está, querida! Que este anel traga um pouco mais de sorte à sua jornada.",
-          "en-US": "There you go, darling! May this little ring bring a little more luck to your journey."
+        "npcText": {
+          "locales": {
+            "pt-BR": "Aqui está! Que este anel traga um pouco mais de sorte à sua jornada.",
+            "en-US": "There you go, darling! May this little ring bring a little more luck to your journey."
+          }
         },
-        "buttonTextLocales": {
-          "pt-BR": "Obrigado!",
-          "en-US": "Thank you!"
+        "buttonText": {
+          "locales": {
+            "pt-BR": "Obrigado!",
+            "en-US": "Thank you!"
+          }
         }
       },
       "titleLocales": {
         "pt-BR": "Um Pequeno Presente para a Sorte",
         "en-US": "A Little Something for Luck"
-      },
-      "descriptionLocales": {
-        "pt-BR": "Traga a Cecilia as partes de monstros que ela pediu em troca de um Anel da Sorte Gasto.",
-        "en-US": "Bring Cecilia the monster parts she requested in exchange for a Worn Lucky Ring."
       }
     },
     {
@@ -115,10 +114,11 @@
         "pt-BR": "As Lágrimas do Ancião da Floresta",
         "en-US": "The Forest Ancient’s Teardrops"
       },
-      "description": "Bring Pajé Piatã five Forest Ancient’s Teardrops to help preserve the balance of the forest.",
-      "descriptionLocales": {
-        "pt-BR": "Traga cinco Lágrimas do Ancião da Floresta ao Pajé Piatã para ajudar a preservar o equilíbrio da mata.",
-        "en-US": "Bring Pajé Piatã five Forest Ancient’s Teardrops to help preserve the balance of the forest."
+      "description": {
+        "locales": {
+          "pt-BR": "Traga cinco Lágrimas do Ancião da Floresta ao Pajé Piatã para ajudar a preservar o equilíbrio da mata.",
+          "en-US": "Bring Pajé Piatã five Forest Ancient’s Teardrops to help preserve the balance of the forest."
+        }
       },
       "giverNpcId": "paje_piata",
       "turnInNpcId": "paje_piata",
@@ -127,84 +127,56 @@
       "repeatable": false,
       "allowReacceptAfterAbandon": false,
       "timeLimitSeconds": null,
-      "offerDialogue": [
-        {
-          "npcText": "Aruandê, traveler. The forest is growing weak. I need five of the ancient’s tears. Will you help?",
-          "npcTextLocales": {
-            "pt-BR": "Aruandê, viajante. A floresta está enfraquecendo. Preciso de cinco lágrimas do ancião. Você me ajudará?",
-            "en-US": "Aruandê, traveler. The forest is growing weak. I need five of the ancient’s tears. Will you help?"
-          },
-          "buttonText": "I am going to help.",
-          "buttonTextLocales": {
-            "pt-BR": "Estou indo!",
-            "en-US": "I am going to help."
-          },
-          "acceptsQuest": true
-        }
-      ],
       "offerGraph": {
         "entryNodeId": "start",
         "nodes": {
           "start": {
-            "npcText": "Aruandê, traveler. The forest is growing weak. I need five of the ancient’s tears. Will you help?",
-            "npcTextLocales": {
-              "pt-BR": "Aruandê, viajante. A floresta está enfraquecendo. Preciso de cinco lágrimas do ancião. Você me ajudará?",
-              "en-US": "Aruandê, traveler. The forest is growing weak. I need five of the ancient’s tears. Will you help?"
+            "npcText": {
+              "locales": {
+                "pt-BR": "Infelizmente, jovem, Rangers Kwaiouá avistaram humanos queimar nossa floresta. É isso que eles quer fazer, acha que nós não vê. Nós vê. Nós ouve a floresta chorar. Os uirros dos nossos ancestrais. Aqui na Taba, minha filha Jandira está com tosse, sofre com a fumaça preta.",
+                "en-US": "Unfortunately, young one, the Kwaiouá Rangers have spotted humans burning our forest. This is what they want to do, thinking we do not see. We see. We hear the forest crying. The wails of our ancestors. Here in the Taba, my daughter Jandira has a cough, suffering from the black smoke."
+              }
             },
             "choices": [
               {
                 "id": "accept",
-                "text": "I am going to help.",
-                "textLocales": {
-                  "pt-BR": "Estou indo!",
-                  "en-US": "I am going to help."
-                },
-                "acceptsQuest": true
-              },
-              {
-                "id": "ask_tears",
-                "text": "What will you do with these tears?",
-                "textLocales": {
-                  "pt-BR": "O que o senhor fará com essas lágrimas?",
-                  "en-US": "What will you do with these tears?"
+                "text": {
+                  "locales": {
+                    "pt-BR": "Eu ouvi também! Eles estão enfurecidos!",
+                    "en-US": "I heard too! They are enraged!"
+                  }
                 },
                 "nextNodeId": "explanation"
               },
               {
-                "id": "decline",
-                "text": "Not now.",
-                "textLocales": {
-                  "pt-BR": "Agora não.",
-                  "en-US": "Not now."
+                "id": "ask_tears",
+                "text": {
+                  "locales": {
+                    "pt-BR": "Não vi, mas quero ajudar. O que podemos fazer?",
+                    "en-US": "I haven't seen, but I want to help. What can we do?"
+                  }
                 },
-                "close": true
+                "nextNodeId": "explanation"
               }
             ]
           },
           "explanation": {
-            "npcText": "The Flaming Treant holds the old memories of this forest. Its tears can help restore the balance.",
-            "npcTextLocales": {
-              "pt-BR": "O Treant Flamejante guarda as memórias antigas desta floresta. Suas lágrimas podem ajudar a restaurar o equilíbrio.",
-              "en-US": "The Flaming Treant holds the old memories of this forest. Its tears can help restore the balance."
+            "npcText": {
+              "locales": {
+                "pt-BR": "Tu! Tu vai ajudar. Nossos rangers estão na floresta, livrando os sagrados Treants de seu sofrimento. Livra o sofrimento deles! Traga-me 5 lágrimas de ancião da floresta. Lágrima de ancião vai trazer peso e dor pro inimigo. Floresta vai ficar de pé. Lágrima pesa. Poupe fôlego para carregá-las. Vai! Apague o sofrimento dos ancestrais!",
+                "en-US": "You! You will help. Our rangers are in the forest, freeing the sacred Treants from their suffering. Free their suffering! Bring me 5 Forest Ancient’s Tears. The Ancient’s Tear will bring weight and pain to the enemy. The forest will stand. The tear is heavy. Save your breath to carry them. Go! Erase the suffering of the ancestors!"
+              }
             },
             "choices": [
               {
                 "id": "accept_after_explanation",
-                "text": "I will help you, Pajé!",
-                "textLocales": {
-                  "pt-BR": "Nós vai, Pajé!",
-                  "en-US": "I will help you, Pajé!"
+                "text": {
+                  "locales": {
+                    "pt-BR": "Estou indo, Pajé!",
+                    "en-US": "I am going, Pajé!"
+                  }
                 },
                 "acceptsQuest": true
-              },
-              {
-                "id": "decline_after_explanation",
-                "text": "Not now.",
-                "textLocales": {
-                  "pt-BR": "Agora não.",
-                  "en-US": "Not now."
-                },
-                "close": true
               }
             ]
           }
@@ -221,10 +193,11 @@
           "itemQuantity": 1,
           "quantity": 5,
           "chancePercent": 35,
-          "description": "Collect Forest Ancient’s Teardrops from the Flaming Treant",
-          "descriptionLocales": {
-            "pt-BR": "Colete Lágrimas do Ancião da Floresta do Treant Flamejante",
-            "en-US": "Collect Forest Ancient’s Teardrops from the Flaming Treant"
+          "description": {
+            "locales": {
+              "pt-BR": "Colete Lágrimas do Ancião da Floresta do Treant Flamejante",
+              "en-US": "Collect Forest Ancient’s Teardrops from the Flaming Treant"
+            }
           }
         }
       ],
@@ -241,48 +214,44 @@
         "professionXp": []
       },
       "activeDialogue": {
-        "npcText": "The Flaming Treant holds the forest’s old memories. Bring me five tears, and guard your steps.",
-        "npcTextLocales": {
-          "pt-BR": "O Treant Flamejante guarda as memórias antigas da floresta. Traga-me cinco lágrimas e cuide de seus passos.",
-          "en-US": "The Flaming Treant holds the forest’s old memories. Bring me five tears, and guard your steps."
+        "npcText": {
+          "locales": {
+            "pt-BR": "O Treant Flamejante guarda as memórias antigas da floresta. Traga-me cinco lágrimas e cuide de seus passos.",
+            "en-US": "The Flaming Treant holds the forest’s old memories. Bring me five tears, and guard your steps."
+          }
         },
-        "waitButtonText": "I will return.",
-        "waitButtonTextLocales": {
-          "pt-BR": "Eu voltarei.",
-          "en-US": "I will return."
-        },
-        "handleItemsButtonText": "What will you do with those tears? [handle items]",
-        "handleItemsButtonTextLocales": {
-          "pt-BR": "Entregar as cinco lágrimas",
-          "en-US": "What will you do with those tears? [handle items]"
-        },
-        "readyButtonText": "Continue",
-        "readyButtonTextLocales": {
-          "pt-BR": "Continuar",
-          "en-US": "Continue"
+        "handleItemsButtonText": {
+          "locales": {
+            "pt-BR": "O que o senhor fará com essas lágrimas? [Entregar itens]",
+            "en-US": "What will you do with those tears? [handle items]"
+          }
         }
       },
       "completionDialogue": {
-        "npcText": "You honored the forest. Take these boots; may they guide you safely.",
-        "npcTextLocales": {
-          "pt-BR": "Você honrou a floresta. Fique com estas botas; que elas guiem seus passos em segurança.",
-          "en-US": "You honored the forest. Take these boots; may they guide you safely."
+        "npcText": {
+          "locales": {
+            "pt-BR": "Você honrou a floresta. Fique com estas botas; que elas guiem seus passos em segurança.",
+            "en-US": "You honored the forest. Take these boots; may they guide you safely."
+          }
         },
-        "buttonText": "Thank you.",
-        "buttonTextLocales": {
-          "pt-BR": "Obrigado.",
-          "en-US": "Thank you."
+        "buttonText": {
+          "locales": {
+            "pt-BR": "Obrigado, Pajé.",
+            "en-US": "Thank you, Pajé."
+          }
         }
       },
-      "npcActionButtonText": "What bothers you, Pajé Piatã?",
-      "npcActionButtonTextLocales": {
-        "pt-BR": "O que o entristece, Pajé Piatã?",
-        "en-US": "What bothers you, Pajé Piatã?"
+      "npcActionButtonText": {
+        "locales": {
+          "pt-BR": "O que o entristece, Pajé Piatã?",
+          "en-US": "What bothers you, Pajé Piatã?"
+        }
       },
-      "activeActionButtonText": "About the forest ancestors' tears...",
-      "activeActionButtonTextLocales": {
-        "pt-BR": "Sobre as lágrimas dos ancestrais da floresta...",
-        "en-US": "About the forest ancestors' tears..."
+      "activeActionButtonText": {
+        "locales": {
+          "pt-BR": "Sobre as lágrimas dos ancestrais da floresta...",
+          "en-US": "About the forest ancestors' tears..."
+        }
       }
     }
   ]

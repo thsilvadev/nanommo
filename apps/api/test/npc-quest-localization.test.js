@@ -14,15 +14,15 @@ function requireLocales(owner, field, metadata, pathLabel) {
   }
 }
 function dialogueNode(node, pathLabel) {
-  if (node.npcText) requireLocales(node, 'npcText', node.npcTextLocales, pathLabel);
+  if (node.npcText) requireLocales(node, 'npcText', node.npcText?.locales ?? node.npcTextLocales, pathLabel);
   for (const choice of node.choices ?? []) {
-    if (choice.text) requireLocales(choice, 'text', choice.textLocales, pathLabel + '.choice.' + choice.id);
+    if (choice.text) requireLocales(choice, 'text', choice.text?.locales ?? choice.textLocales, pathLabel + '.choice.' + choice.id);
   }
 }
 function localizedFields(record, fields, pathLabel) {
   for (const field of fields) {
     const key = field + 'Locales';
-    if (record[field]) requireLocales(record, field, record[key], pathLabel);
+    if (record[field]) requireLocales(record, field, record[field]?.locales ?? record[key], pathLabel);
   }
 }
 for (const npc of npcCatalog.npcs) {
@@ -41,16 +41,16 @@ assert.equal(Object.prototype.hasOwnProperty.call(paje, 'greeting'), false, 'Paj
 assert.equal(paje.types.includes('dialogue'), true, 'Pajé keeps ordinary dialogue, unified with the quest speech surface');
 assert.equal(paje.dialogue.nodes.greeting.choices.some(choice => choice.id === 'forest_quest'), false, 'Quest start is supplied by the state-aware quest action, not a duplicate dialogue option');
 assert.equal(paje.dialogue.nodes.greeting.choices.some(choice => choice.id === 'alchemy'), true, 'Ordinary Alchemy choice remains in the unified conversation UI');
-assert.equal(paje.dialogue.nodes.greeting.choices.find(choice => choice.id === 'farewell')?.close, true, 'Farewell returns to the catalogue greeting instead of replaying the same dialogue node');
-assert.equal(paje.locales?.['pt-BR']?.greeting, 'Aruandê, viajante. A floresta guarda presentes e histórias.');
-assert.equal(paje.locales?.['en-US']?.greeting, 'Aruandê, traveler. The forest holds gifts and stories.');
+assert.equal(paje.dialogue.nodes.greeting.choices.some(choice => choice.id === 'farewell'), false, 'Pajé does not show a generic farewell choice in the shared dialogue');
+assert.equal(paje.locales?.['pt-BR']?.greeting, 'Aruandê, viajante. A floresta guarda mistérios e histórias.');
+assert.equal(paje.locales?.['en-US']?.greeting, 'Aruandê, traveler. The forest holds mysteries and stories.');
 
 for (const quest of quests) {
   requireLocales(quest, 'title', quest.titleLocales, 'quest.' + quest.id);
-  requireLocales(quest, 'description', quest.descriptionLocales, 'quest.' + quest.id);
+  requireLocales(quest, 'description', quest.description?.locales ?? quest.descriptionLocales, 'quest.' + quest.id);
   for (let i = 0; i < (quest.offerDialogue ?? []).length; i++) localizedFields(quest.offerDialogue[i], ['npcText', 'buttonText'], 'quest.' + quest.id + '.offerDialogue[' + i + ']');
   for (const [nodeId, node] of Object.entries(quest.offerGraph?.nodes ?? {})) dialogueNode(node, 'quest.' + quest.id + '.offerGraph.' + nodeId);
-  localizedFields(quest.activeDialogue ?? {}, ['npcText', 'waitButtonText', 'handleItemsButtonText', 'readyButtonText'], 'quest.' + quest.id + '.activeDialogue');
+  localizedFields(quest.activeDialogue ?? {}, ['npcText', 'handleItemsButtonText'], 'quest.' + quest.id + '.activeDialogue');
   localizedFields(quest.completionDialogue ?? {}, ['npcText', 'buttonText'], 'quest.' + quest.id + '.completionDialogue');
   for (const objective of quest.objectives ?? []) localizedFields(objective, ['description'], 'quest.' + quest.id + '.objective.' + objective.id);
 }

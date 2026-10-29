@@ -76,7 +76,7 @@ export class QuestService {
       if (rows.some(r => r.questId === quest.id && r.status === 'active')) continue;
       if (rows.some(r => r.questId === quest.id && r.status === 'completed') && !quest.repeatable) continue;
       if (rows.some(r => r.questId === quest.id && r.status === 'abandoned') && !quest.allowReacceptAfterAbandon) continue;
-      out.push({ id: quest.id, title: quest.title, titleLocales: quest.titleLocales ?? null, description: quest.description, descriptionLocales: quest.descriptionLocales ?? null, giverNpcId: quest.giverNpcId, turnInNpcId: quest.turnInNpcId, minLevel: quest.minLevel, rewards: quest.rewards });
+      out.push({ id: quest.id, title: quest.title, titleLocales: quest.titleLocales ?? null, description: quest.description, giverNpcId: quest.giverNpcId, turnInNpcId: quest.turnInNpcId, minLevel: quest.minLevel, rewards: quest.rewards });
     }
     return out;
   }
@@ -91,19 +91,19 @@ export class QuestService {
   }
 
   private offerInteraction(quest: any, stepIndex: number, nodeId?: string): any {
-    const titleFields = { titleLocales: quest.titleLocales, descriptionLocales: quest.descriptionLocales };
+    const titleFields = { titleLocales: quest.titleLocales };
     if (quest.offerGraph?.nodes) {
       const id = nodeId ?? quest.offerGraph.entryNodeId;
       const node = quest.offerGraph.nodes[id];
       if (!node) throw new BadRequestException('Quest offer dialogue state is invalid');
       return { kind: 'offer', questId: quest.id, title: quest.title, ...titleFields, nodeId: id,
-        npcText: node.npcText, npcTextLocales: node.npcTextLocales,
-        choices: (node.choices ?? []).map((choice: any) => ({ id: choice.id, text: choice.text, textLocales: choice.textLocales, acceptsQuest: choice.acceptsQuest === true, close: choice.close === true })),
+        npcText: node.npcText,
+        choices: (node.choices ?? []).map((choice: any) => ({ id: choice.id, text: choice.text, acceptsQuest: choice.acceptsQuest === true, close: choice.close === true })),
         action: 'advance' };
     }
     const step = quest.offerDialogue[stepIndex];
     return { kind: 'offer', questId: quest.id, title: quest.title, ...titleFields, stepIndex, totalSteps: quest.offerDialogue.length,
-      npcText: step.npcText, npcTextLocales: step.npcTextLocales, buttonText: step.buttonText, buttonTextLocales: step.buttonTextLocales, acceptsQuest: step.acceptsQuest === true, action: 'advance' };
+      npcText: step.npcText, buttonText: step.buttonText, acceptsQuest: step.acceptsQuest === true, action: 'advance' };
   }
 
   private async activeInteraction(manager: EntityManager, instance: QuestInstance, quest: any, npcId: string): Promise<any> {
@@ -111,9 +111,8 @@ export class QuestService {
     const ready = npcId === quest.turnInNpcId && await this.objectiveReadyForNpc(manager, instance, quest);
     const action = ready ? 'turn_in' : 'close';
     return { kind: 'active', questId: quest.id, instanceId: instance.id, title: quest.title, titleLocales: quest.titleLocales,
-      npcText: dialogue.npcText ?? quest.description, npcTextLocales: dialogue.npcTextLocales ?? quest.descriptionLocales,
-      buttonText: ready ? (dialogue.handleItemsButtonText ?? dialogue.readyButtonText ?? '[Continue]') : (dialogue.waitButtonText ?? "I'll be back"),
-      buttonTextLocales: ready ? (dialogue.handleItemsButtonTextLocales ?? dialogue.readyButtonTextLocales) : dialogue.waitButtonTextLocales, action };
+      npcText: dialogue.npcText ?? quest.description,
+      buttonText: ready ? (dialogue.handleItemsButtonText ?? '[Continue]') : "I'll be back", action };
   }
 
   async getNpcInteraction(characterId: string, npcId: string): Promise<any | null> {
@@ -132,15 +131,10 @@ export class QuestService {
       for (const candidate of candidates) {
         const interaction = await this.activeInteraction(manager, candidate.row, candidate.quest, npcId);
         const fallbackButtonText = `${interaction.action === 'turn_in' ? '[Handle items]' : 'Continue'} · ${candidate.quest.title}`;
-        const fallbackButtonTextLocales = {
-          'pt-BR': `${interaction.action === 'turn_in' ? '[Entregar itens]' : 'Continuar'} · ${candidate.quest.titleLocales?.['pt-BR'] ?? candidate.quest.title}`,
-          'en-US': `${interaction.action === 'turn_in' ? '[Handle items]' : 'Continue'} · ${candidate.quest.titleLocales?.['en-US'] ?? candidate.quest.title}`,
-        };
-        actions.push({
+                actions.push({
           type: 'active', questId: candidate.quest.id, instanceId: candidate.row.id,
           title: candidate.quest.title, titleLocales: candidate.quest.titleLocales ?? null,
           buttonText: interaction.action === 'turn_in' ? interaction.buttonText : (candidate.quest.activeActionButtonText ?? fallbackButtonText),
-          buttonTextLocales: interaction.action === 'turn_in' ? interaction.buttonTextLocales : (candidate.quest.activeActionButtonTextLocales ?? fallbackButtonTextLocales),
           interaction,
         });
       }
@@ -152,7 +146,6 @@ export class QuestService {
         if (await this.eligible(character, quest, manager)) actions.push({
           type: 'offer', questId: quest.id, title: quest.title, titleLocales: quest.titleLocales ?? null,
           buttonText: quest.npcActionButtonText ?? quest.title,
-          buttonTextLocales: quest.npcActionButtonTextLocales ?? quest.titleLocales ?? null,
         });
       }
       if (!actions.length) return null;
@@ -177,12 +170,12 @@ export class QuestService {
           required = 1;
         }
         const requirements = objective.type === 'deliver_items' ? objective.items.map((req: any) => ({ ...req, owned: count(req.itemId) })) : undefined;
-        return { id: objective.id, type: objective.type, npcId: objective.npcId, description: objective.description, descriptionLocales: objective.descriptionLocales ?? null, progress: Math.min(required, progress), required, completed: objective.type === 'deliver_items' ? objective.items.every((req: any) => count(req.itemId) >= Number(req.quantity)) : progress >= required, items: requirements };
+        return { id: objective.id, type: objective.type, npcId: objective.npcId, description: objective.description, progress: Math.min(required, progress), required, completed: objective.type === 'deliver_items' ? objective.items.every((req: any) => count(req.itemId) >= Number(req.quantity)) : progress >= required, items: requirements };
       }) : [];
       const map: any = this.data.getMapById(character.currentMapId);
       const objectivesReady = objectives.length === quest.objectives.length && objectives.every((objective: any) => objective.completed);
       const canTurnIn = row.status === 'active' && objectivesReady && !!quest.turnInNpcId && map?.type === 'town' && (map.npcIds ?? []).includes(quest.turnInNpcId) && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition;
-      return { id: row.id, questId: quest.id, title: quest.title, titleLocales: quest.titleLocales ?? null, description: quest.description, descriptionLocales: quest.descriptionLocales ?? null, giverNpcId: quest.giverNpcId, giverNpcName: this.npcName(quest.giverNpcId), giverNpcNameLocales: (this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.giverNpcId)?.locales ? Object.fromEntries(Object.entries((this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.giverNpcId).locales).map(([locale,values]:any)=>[locale,values.name])) : null, turnInNpcId: quest.turnInNpcId, turnInNpcName: this.npcName(quest.turnInNpcId), turnInNpcNameLocales: (this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.turnInNpcId)?.locales ? Object.fromEntries(Object.entries((this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.turnInNpcId).locales).map(([locale,values]:any)=>[locale,values.name])) : null, status: row.status, acceptedAt: row.acceptedAt, expiresAt: row.expiresAt ?? null, completedAt: row.completedAt ?? null, objectives, rewards: quest.rewards, canTurnIn };
+      return { id: row.id, questId: quest.id, title: quest.title, titleLocales: quest.titleLocales ?? null, description: quest.description, giverNpcId: quest.giverNpcId, giverNpcName: this.npcName(quest.giverNpcId), giverNpcNameLocales: (this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.giverNpcId)?.locales ? Object.fromEntries(Object.entries((this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.giverNpcId).locales).map(([locale,values]:any)=>[locale,values.name])) : null, turnInNpcId: quest.turnInNpcId, turnInNpcName: this.npcName(quest.turnInNpcId), turnInNpcNameLocales: (this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.turnInNpcId)?.locales ? Object.fromEntries(Object.entries((this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===quest.turnInNpcId).locales).map(([locale,values]:any)=>[locale,values.name])) : null, status: row.status, acceptedAt: row.acceptedAt, expiresAt: row.expiresAt ?? null, completedAt: row.completedAt ?? null, objectives, rewards: quest.rewards, canTurnIn };
     };
     return { active: rows.filter(r => r.status === 'active').map(questView), completed: rows.filter(r => r.status === 'completed').map(r => ({ id: r.id, questId: r.questId, title: this.definition(r.questId).title, titleLocales: this.definition(r.questId).titleLocales ?? null, giverNpcName: this.npcName(this.definition(r.questId).giverNpcId), giverNpcNameLocales: (this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===this.definition(r.questId).giverNpcId)?.locales ? Object.fromEntries(Object.entries((this.data.getNpcCatalog()?.npcs ?? []).find((n:any)=>n.id===this.definition(r.questId).giverNpcId).locales).map(([locale,values]:any)=>[locale,values.name])) : null, status: 'completed' })), available: await this.getAvailable(characterId) };
   }
@@ -199,7 +192,10 @@ export class QuestService {
       const sessions = { ...(character.questOfferProgress ?? {}) };
       if (!sessions[questId]) sessions[questId] = { stepIndex: 0, nodeId: quest.offerGraph?.entryNodeId, startedAt: new Date().toISOString() };
       character.questOfferProgress = sessions; await manager.getRepository(Character).save(character);
-      const stepIndex = Math.max(0, Math.min(quest.offerDialogue.length - 1, Number(sessions[questId].stepIndex ?? 0)));
+      const offerStepCount = Array.isArray(quest.offerDialogue) ? quest.offerDialogue.length : 0;
+      const stepIndex = quest.offerGraph?.nodes || offerStepCount === 0
+        ? 0
+        : Math.max(0, Math.min(offerStepCount - 1, Number(sessions[questId].stepIndex ?? 0)));
       return this.offerInteraction(quest, stepIndex, sessions[questId].nodeId);
     });
   }
@@ -388,8 +384,8 @@ export class QuestService {
       const completion = quest.completionDialogue;
       return { completed: true, questId: quest.id, title: quest.title,
         interaction: completion ? { kind: 'completed', questId: quest.id, title: quest.title,
-          npcText: completion.npcText, npcTextLocales: completion.npcTextLocales ?? quest.descriptionLocales ?? null,
-          buttonText: completion.buttonText, buttonTextLocales: completion.buttonTextLocales ?? null, action: 'close' } : null };
+          npcText: completion.npcText ?? quest.description,
+          buttonText: completion.buttonText, action: 'close' } : null };
     });
   }
   private cookingThreshold(level: number): number { const known = [0,20,44,78,128,328,828,1578]; if (level <= 1) return 0; if (known[level-1] !== undefined) return known[level-1]; let total=known[known.length-1], increment=known[known.length-1]-known[known.length-2]; for(let current=known.length;current<level;current++){increment=Math.floor(increment*1.5);total+=increment;}return total; }
