@@ -207,8 +207,20 @@ export class VendorStore {
           await this.turnInQuest(String(action.interaction.instanceId ?? action.instanceId));
           return;
         }
-        // Show the active fallback line in the shared speech area while keeping the
-        // state-aware quest action list and the NPC's ordinary choices available.
+        // Show this quest's active line once per NPC selection. Remove only the
+        // clicked quest action from the current local action list; changing NPCs
+        // reloads the list from the API, so the action is available again on return.
+        const current = this.questInteraction();
+        if (current?.kind === 'select' && Array.isArray(current.actions)) {
+          this.questInteraction.set({
+            ...current,
+            actions: current.actions.filter((entry: any) => {
+              if (entry.type !== 'active') return true;
+              if (action.instanceId != null && entry.instanceId != null) return entry.instanceId !== action.instanceId;
+              return entry.questId !== action.questId;
+            }),
+          });
+        }
         this.questSpeechOverride.set(action.interaction);
         return;
       }

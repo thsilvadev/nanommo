@@ -56,6 +56,8 @@ describe('Town NPC selection state', () => {
     ]);
     store.dialogue = signal<any>(null);
     store.questInteraction = signal<any>(null);
+    store.questSpeechOverride = signal<any>(null);
+    store.questBusy = signal(false);
     store.questInteractionResolved = signal(false);
     store.questInteractionLoading = signal(false);
     store.questInteractionRequestSequence = 0;
@@ -99,6 +101,32 @@ describe('Town NPC selection state', () => {
     expect(store.modal()).toBeNull();
     expect(store.error()).toBeNull();
     expect(store.npcs()).toEqual([], 'do not keep William as a fake fallback after a Town reset');
+  });
+
+  it('hides an active quest action after speaking once, while preserving other NPC actions', async () => {
+    const store = makeStore();
+    const clickedAction = {
+      type: 'active', questId: 'forest_tears', instanceId: 'instance-1',
+      interaction: { kind: 'active', questId: 'forest_tears', instanceId: 'instance-1', action: 'close', npcText: { locales: { 'pt-BR': 'Volte com as lágrimas.', 'en-US': 'Come back with the tears.' } } },
+    };
+    const otherAction = { type: 'offer', questId: 'another_quest', buttonText: 'Another quest' };
+    const initial = { kind: 'select', npcId: 'paje_piata', actions: [clickedAction, otherAction] };
+    store.questInteraction.set(initial);
+
+    await store.chooseQuestInteraction(clickedAction);
+
+    expect(store.questSpeechOverride()).toBe(clickedAction.interaction);
+    expect(store.questInteraction().kind).toBe('select');
+    expect(store.questInteraction().actions).toEqual([otherAction]);
+
+    // Returning to this NPC performs a fresh interaction request, restoring the action.
+    store.api.get.and.returnValue({ toPromise: () => Promise.resolve(initial) });
+    store.selectedNpcId.set('paje_piata');
+    store.questSpeechOverride.set(null);
+    store.questInteraction.set(null);
+    await store.loadQuestActions('paje_piata');
+    expect(store.questInteraction().actions).toEqual([clickedAction, otherAction]);
+    expect(store.questSpeechOverride()).toBeNull();
   });
 
   it('keeps Cecilia’s idle greeting hidden until the quest interaction response resolves', async () => {

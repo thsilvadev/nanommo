@@ -105,6 +105,12 @@
       "titleLocales": {
         "pt-BR": "Um Pequeno Presente para a Sorte",
         "en-US": "A Little Something for Luck"
+      },
+      "activeActionButtonText": {
+        "locales": {
+          "pt-BR": "Volterei com os itens!",
+          "en-US": "I’ll return with the items!"
+        }
       }
     },
     {
@@ -186,9 +192,7 @@
         {
           "id": "collect_tears",
           "type": "monster_drop",
-          "monsterIds": [
-            "mon_flamingtreant"
-          ],
+          "monsterIds": ["mon_flamingtreant"],
           "itemId": "part_flamingtreant_common",
           "itemQuantity": 1,
           "quantity": 5,
@@ -216,8 +220,8 @@
       "activeDialogue": {
         "npcText": {
           "locales": {
-            "pt-BR": "O Treant Flamejante guarda as memórias antigas da floresta. Traga-me cinco lágrimas e cuide de seus passos.",
-            "en-US": "The Flaming Treant holds the forest’s old memories. Bring me five tears, and guard your steps."
+            "pt-BR": "Volte quando tiver apagado o sofrimento dos nossos ancestrais. Traga-me 5 lágrimas de ancião da floresta!",
+            "en-US": "Come back when you have wiped away the suffering of our forest ancestors. Bring me 5 Forest Ancient’s Teardrops!"
           }
         },
         "handleItemsButtonText": {
