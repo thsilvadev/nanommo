@@ -21,7 +21,7 @@
       </div>
     </div>
     <div class="portrait-wrap">
-      <div class="portrait">{{initial()}}</div>
+      <div class="portrait" [battleHitFeedback]="'character'">{{initial()}}</div>
     </div>
     <div class="equip-column equip-column-right">
       <div *ngFor="let slot of slots.slice(4)" [class.focused]="isSlotFocused(slot.key)" class="equip-slot" cdkDropList

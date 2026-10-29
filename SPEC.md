@@ -1617,3 +1617,8 @@ The frontend gameplay audio layer is implemented in `apps/frontend/src/app/share
 ### Follow-up audio behavior — 2026-10-29
 
 Interrupted regional music transitions must resolve/cancel their fade cleanly and allow the latest region to start its playlist, including when route progress temporarily passes through the saved town. If the current region remains selected but its audio element is absent or paused, the service attempts recovery. Potion/elixir audio is triggered only after a successful consume response; flee audio is triggered only after a resolved battle confirms a flee cancellation.
+
+
+## Live battle damage feedback — 2026-10-29
+
+The live battle view renders floating damage numbers from immutable battle queue events, anchored at the Character portrait for `target: character` and the monster sprite for `target: monster`. Numbers rise in an outward parabola and fade; character damage is red, ordinary monster damage white, critical monster damage yellow with a stronger black outline and 60% larger type, general/burn DoT orange, poison dark green, and bleed a brighter distinct red. Each positive damage event gets its own number, including multiple events on one tick; misses and fully absorbed hits (zero HP damage) produce neither a number nor a hit flash. Character-targeted damage briefly flashes the portrait red. Monster-targeted damage briefly flashes the visible sprite pixels white while preserving transparent alpha. Effects are presentation-only, skip historical events on initial view mount, and never infer damage from HP differences or modify battle state.

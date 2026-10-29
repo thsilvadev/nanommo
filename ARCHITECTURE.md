@@ -860,3 +860,8 @@ Audio is presentation-only and does not change server authority. `GameAudioServi
 ### Audio transition recovery and additional effects — 2026-10-29
 
 GameAudioService explicitly resolves a cancelled animation-frame fade when a newer map-region transition supersedes it. This avoids stale fade promises blocking the latest region's music start. Potion/elixir consumption uses the successful /inventory/use response, while flee audio is driven by the authoritative battle:resolved event with cancellationReason === 'flee'.
+
+
+## Live battle damage feedback — 2026-10-29
+
+`apps/frontend/src/app/shared/battle-hit-feedback.ts` provides the shared event classifier and standalone `BattleHitFeedbackDirective`. The directive advances an event-index cursor against `BattleQueueEntry.log.events` and `startAt`, initializes past events as consumed when mounted mid-battle, and only renders positive damage for its exact `target`. It creates a separate transient DOM number per event with deterministic overlap offsets and removes it after animation. Styling is in global frontend styles so Character Summary and Grind Info share the presentation. The monster flash applies a brightness/invert filter to the actual `.foe-sprite` image rather than overlaying the sprite's rectangular wrapper, preserving transparent regions. No backend or battle engine behavior is involved.

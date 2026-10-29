@@ -16,7 +16,7 @@
         <div class="foe">
           <strong>{{monster(b.monsterId)?.name||b.monsterId}} Lv.{{monsterLevel(b)}}</strong>
           <small>Battle #{{b.sequenceIndex+1}} · {{elapsedTicks(b)}}s</small>
-          <div class="foe-sprite-wrap">
+          <div class="foe-sprite-wrap" [battleHitFeedback]="'monster'">
             <img class="foe-sprite" [src]="monsterSprite(b.monsterId)"
               [alt]="monster(b.monsterId)?.name||b.monsterId" width="167" height="199">
             <span *ngIf="monster(b.monsterId)?.isAggressive === true" class="aggression-badge" tabindex="0" role="img"
