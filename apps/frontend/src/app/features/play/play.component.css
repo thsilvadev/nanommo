@@ -136,6 +136,11 @@
 .resource.gold img {
   filter: none;
 }
+.resource.gold {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
 /* Soul Token is a colored currency sprite too; the top-actions icon rule turns SVGs white. */
 .resource.soul-token img {
   filter: none !important;
@@ -355,4 +360,24 @@
   cursor: not-allowed;
 }
 
-.locale-options{display:grid;grid-template-columns:1fr;gap:4px;padding:6px 0}.locale-options button{width:100%;text-align:left;background:transparent;border:1px solid transparent;color:#d5c0a0;padding:7px 9px;border-radius:3px;cursor:pointer}.locale-options button.active{border-color:#b89156;background:#302216;color:#ffe4b0}
+.locale-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  padding: 6px 0;
+}
+.locale-options button {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #d5c0a0;
+  padding: 7px 9px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.locale-options button.active {
+  border-color: #b89156;
+  background: #302216;
+  color: #ffe4b0;
+}
