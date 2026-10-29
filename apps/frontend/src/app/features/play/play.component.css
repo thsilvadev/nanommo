@@ -136,6 +136,12 @@
 .resource.gold img {
   filter: none;
 }
+/* Soul Token is a colored currency sprite too; the top-actions icon rule turns SVGs white. */
+.resource.soul-token img {
+  filter: none !important;
+  mix-blend-mode: normal;
+  opacity: 1;
+}
 .game-board {
   height: calc(100dvh - var(--nm-topbar-height));
   display: grid;
