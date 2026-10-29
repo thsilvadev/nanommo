@@ -309,19 +309,15 @@
       "monsters": [
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 40
+          "presenceRate": 35
         },
         {
           "monsterId": "mon_sandscorpion",
-          "presenceRate": 10
+          "presenceRate": 60
         },
         {
           "monsterId": "mon_thornsprout",
           "presenceRate": 5
-        },
-        {
-          "monsterId": "mon_saltfangcrab",
-          "presenceRate": 45
         }
       ],
       "unlockLevel": 0,
@@ -354,16 +350,16 @@
         },
         {
           "monsterId": "mon_sandscorpion",
-          "presenceRate": 5
+          "presenceRate": 15
         },
         {
           "monsterId": "mon_saltfangcrab",
-          "presenceRate": 65
+          "presenceRate": 55
         }
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 14,
+      "recommendedLevel": 18,
       "mapLength": 25,
       "gatheringPool": [
         {
