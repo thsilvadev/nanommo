@@ -105,7 +105,7 @@ export class MapBoard implements OnDestroy {
       this.rebuildDiscovery(c.discoveredMapIds);
       this.centerOnCurrentMap();
       this.reconcileDestinationPreview(c);
-    });
+    }, { allowSignalWrites: true });
     effect(()=>{
       const resolved=this.battle.lastResolved();
       if(!resolved||resolved.entryId===this.lastFleeNoticeEntryId)return;
