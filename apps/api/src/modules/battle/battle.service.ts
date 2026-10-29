@@ -1129,6 +1129,15 @@ export class BattleService {
       if (!battle) throw new NotFoundException('Battle not found');
       if (battle.resolved) return { alreadyResolved: true as const };
 
+      // A stale queue row must never restore HP/SP from an old map after the
+      // Character has already settled elsewhere (especially in Town). Normal
+      // travel waits for the active battle, so a map/status mismatch here means
+      // this immutable simulation is no longer eligible to resolve.
+      if (character.status !== 'grinding' || character.currentMapId !== battle.mapId) {
+        await battleRepo.delete({ id: battle.id, resolved: false });
+        return { alreadyResolved: true as const, staleLocation: true as const };
+      }
+
       // Rewards are derived from the immutable precomputed snapshot and events,
       // then committed under this battle's existing exactly-once transaction.
       await this.applyMasteryRewards(battle, manager);
@@ -1318,9 +1327,18 @@ export class BattleService {
     }));
 
     if (result.alreadyResolved) {
-      this.logger.log(`Battle ${battleId} already resolved - skipping`);
-      // Tell callers not to run their post-resolution queue top-up for a
-      // duplicate delivery while the winning caller is maintaining the queue.
+      if ('staleLocation' in result && result.staleLocation) {
+        this.logger.warn(`Discarded stale battle ${battleId}: character is no longer grinding on map ${reference.mapId ?? 'unknown'}`);
+        try {
+          await this.safePublishQueueUpdated(reference.characterId, await this.getBattleQueue(reference.characterId, 5), await this.buildAuthoritativeBattleSnapshot(reference.characterId));
+        } catch (error) {
+          this.logger.warn(`Could not publish queue after discarding stale battle ${battleId}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      } else {
+        this.logger.log(`Battle ${battleId} already resolved - skipping`);
+      }
+      // Do not let a duplicate or stale delivery perform a second payout or
+      // trigger the processor's normal queue top-up path.
       return false;
     }
 

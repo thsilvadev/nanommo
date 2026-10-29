@@ -224,6 +224,31 @@ describe('realtime resource synchronization', () => {
     expect(battleStore.active()?.id).toBe('battle-next');
   });
 
+  it('never projects an old map battle as active after the Character settles in Town', () => {
+    const characterStore = TestBed.inject(CharacterStore);
+    const inventoryStore = TestBed.inject(InventoryStore);
+    const battleStore = TestBed.inject(BattleStore);
+    characterStore.applyRealtimeSnapshot(character(824, 50), 10);
+    battleStore.bindEvents(characterStore, inventoryStore);
+    const staleBattle = {
+      id: 'battle-old-map', characterId: 'char-1', sequenceIndex: 0,
+      mapId: 'map_lv_1', monsterId: 'mon_slime',
+      startAt: new Date(Date.now() - 1000).toISOString(), endAt: new Date(Date.now() + 10000).toISOString(),
+      outcome: 'loss', log: { header: { characterSnapshot: { hp: 158, sp: 20 } }, events: [{ tick: 1, action: 'status_damage', target: 'character', damage: 3, hpRemaining: { character: 155 } }] },
+      hpAfter: 152, spAfter: 20, resolved: false, seedUsed: 'stale',
+    };
+    gameSocketEvents.get('battle:queueUpdated')!.next({entries: [staleBattle]});
+    expect(battleStore.active()?.id).toBe('battle-old-map');
+
+    characterStore.applyRealtimeSnapshot({
+      ...character(824, 50), status: 'town', currentMapId: 'map_town', stateVersion: 11,
+    }, 11);
+
+    expect(battleStore.active()).toBeNull();
+    expect(battleStore.currentBattleCharacterResources()).toBeNull();
+    battleStore.ngOnDestroy();
+  });
+
   it('removes a battle from the visible queue as soon as battle:resolved arrives and ignores stale re-adds', () => {
     const characterStore = TestBed.inject(CharacterStore);
     const inventoryStore = TestBed.inject(InventoryStore);

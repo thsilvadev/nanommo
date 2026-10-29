@@ -391,14 +391,14 @@ export class VendorStore {
     this.questSpeechOverride.set(null);
     this.busy.set(true);this.error.set(null);
     try{
-      const fatherHealingAction=d.npcId==='father_marcelus' && d.choices?.[0]?.id===choiceId;
       const next=await this.api.post<NpcDialogueState & {consumedItemId?:string;openProfession?:'alchemy'|'blacksmith'}>('/town/npcs/'+d.npcId+'/dialogue',{nodeId:d.nodeId,choiceId}).toPromise();
       this.dialogue.set(next??null);
       if(next?.openProfession==='alchemy' || next?.openProfession==='blacksmith'){
         this.openProfession(next.openProfession);
       }
       await Promise.all([this.character.load(),this.inventory.load()]);
-      if(fatherHealingAction) this.audio.play('fatherMarcelus');
+      if(choiceId==='hungry_response' || choiceId==='fine_response') this.audio.play('fatherMarcelus');
+      else if(choiceId==='eat_bread') this.audio.play('eat');
     }catch(e:any){this.error.set(e?.error?.message??'NPC interaction rejected');}
     finally{this.busy.set(false);}
   }

@@ -85,6 +85,7 @@ export class BattleStore {
  readonly queue=this._queue.asReadonly();readonly state=this._state.asReadonly();readonly lastResolved=this._lastResolved.asReadonly();readonly death=this._death.asReadonly();readonly mapPresence=this._mapPresence.asReadonly();
  private readonly _sessionDrops=signal<Array<{itemId:string;quantity:number}>>([]);
  private readonly _recentBattleIntervals=signal<Array<{entryId:string;startAt:string;endAt:string}>>([]); private recoveryCharacter:CharacterStore|null=null; private queueRecoveryTimer:ReturnType<typeof setInterval>|null=null; private queueRecoveryInFlight=false;
+ private readonly characterStore=inject(CharacterStore);
  readonly recentBattleIntervals=this._recentBattleIntervals.asReadonly();
  readonly sessionDrops=this._sessionDrops.asReadonly();
  beginGrindSession(){this._sessionDrops.set([]);}
@@ -92,7 +93,7 @@ export class BattleStore {
   const next=[...this._sessionDrops()];
   for(const drop of drops??[]){const itemId=String(drop?.itemId??'');const quantity=Number(drop?.quantity??0);if(!itemId||quantity<=0)continue;const existing=next.find(x=>x.itemId===itemId);if(existing)existing.quantity+=quantity;else next.push({itemId,quantity});}
   this._sessionDrops.set(next);
- }readonly active=computed(()=>this._queue().slice().sort((a,b)=>a.sequenceIndex-b.sequenceIndex)[0]??null);
+ }readonly active=computed(()=>{const character=this.characterStore.character();if(!character||character.status!=='grinding'||!character.currentMapId)return null;return this._queue().filter(entry=>entry.mapId===character.currentMapId).slice().sort((a,b)=>a.sequenceIndex-b.sequenceIndex)[0]??null;});
  async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const value=await this.api.get<BattleQueueEntry[]>('/battles/queue').toPromise()??[];if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;this._queue.set(value.filter(entry=>!this.resolvedEntryIds.has(entry.id)));this._state.set('loaded')}catch{if(seq===this.loadSeq&&generation===this.realtimeGeneration)this._state.set('error')}}
  private rememberBattleInterval(v:BattleResolved){
   if(!v.entryId||!v.startAt||!v.endAt||this._recentBattleIntervals().some(row=>row.entryId===v.entryId))return;
