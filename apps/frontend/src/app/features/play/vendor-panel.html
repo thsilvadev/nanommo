@@ -1,4 +1,4 @@
-<section class="vendor-panel" aria-label="Town NPC">
+<section class="vendor-panel" aria-label="Town NPC" (click)="revealInteractionText()">
   <div class="npc-select"><label for="town-npc-select">Talk to:</label><select id="town-npc-select"
       aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)">
       <option value="">Choose NPC to interact</option>
@@ -10,8 +10,7 @@
         [alt]="vendor.localized(npc, 'name', npc.name)" width="167" height="199"></div>
     <div class="vendor-title"><strong>{{vendor.localized(npc, 'name', npc.name)}}</strong><span>{{npc.types.join(' / ') | uppercase}}</span></div>
 
-    <section class="quest-dialogue npc-conversation" *ngIf="npcConversationText(npc)" [class.quest-interaction]="showingQuestResponse()"
-      (click)="revealInteractionText()">
+    <section class="quest-dialogue npc-conversation" *ngIf="npcConversationText(npc)" [class.quest-interaction]="showingQuestResponse()">
       <p class="quest-text" [class.is-typing]="interactionTyping()" [class.is-complete]="!interactionTyping()"
         (keydown.enter)="revealInteractionText()" [attr.tabindex]="interactionTyping()?0:null"
         [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
