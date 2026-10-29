@@ -699,6 +699,7 @@ export class VendorPanel implements OnDestroy {
   readonly interactionTyping = signal(false);
   private interactionTypewriter: ReturnType<typeof setInterval> | null = null;
   private interactionTextTarget = '';
+  private interactionNpcTarget: string | null = null;
   readonly mailboxDeleteConfirm = signal(false);
   readonly mailDropHovered = signal(false);
   mailAttachment(){ return this.inventory.items().find(row=>row.id===this.vendor.mailboxItemId())??null; }
@@ -752,6 +753,9 @@ export class VendorPanel implements OnDestroy {
       const questInteraction = this.vendor.questInteraction();
       const npcDialogue = this.vendor.dialogue();
       const selectedNpc = this.vendor.selectedNpc();
+      const selectedNpcId = selectedNpc?.id ?? null;
+      const npcChanged = selectedNpcId !== this.interactionNpcTarget;
+      this.interactionNpcTarget = selectedNpcId;
       // A quest action list is not a spoken line. The active fallback override can
       // update this shared speech surface without replacing the action list itself.
       const speech = questSpeechOverride ?? (questInteraction && questInteraction.kind !== 'select' ? questInteraction : null);
@@ -763,7 +767,8 @@ export class VendorPanel implements OnDestroy {
       const greetingField = selectedNpc?.types?.some((type: string) => type === 'storage' || type === 'mailbox') ? 'monologue' : 'greeting';
       const idleGreeting = selectedNpc?.types?.includes('dialogue') ? '' : this.vendor.localized(selectedNpc, greetingField, selectedNpc?.[greetingField]);
       const text = String(questText || npcText || idleGreeting || '');
-      if (text === this.interactionTextTarget) return;
+      // Restart for every NPC selection, even when two NPCs share the same line.
+      if (!npcChanged && text === this.interactionTextTarget) return;
       this.startInteractionTypewriter(text);
     }, { allowSignalWrites: true });
   }

@@ -1,5 +1,5 @@
 <section class="vendor-panel" aria-label="Town NPC" (click)="revealInteractionText()">
-  <div class="npc-select"><label for="town-npc-select">Talk to:</label><select id="town-npc-select"
+  <div class="npc-select" (click)="$event.stopPropagation()"><label for="town-npc-select">Talk to:</label><select id="town-npc-select"
       aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)">
       <option value="">Choose NPC to interact</option>
       <option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{vendor.localized(npc, 'name', npc.name)}}</option>
