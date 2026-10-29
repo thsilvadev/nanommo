@@ -26,7 +26,7 @@ export interface ResolvedDrop {
 }
 
 /** Global Grind XP pacing multiplier. The monster catalog keeps the canonical base rewards. */
-export const GRIND_XP_RATE = 0.25;
+export const GRIND_XP_RATE = 0.8;
 
 export interface BattleRewards {
   xpGain: number;
