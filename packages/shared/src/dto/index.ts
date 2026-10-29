@@ -58,6 +58,7 @@ export class CharacterDto {
   luk!: number;
   attributeBonuses!: Record<string, number>;
   gold!: number;
+  soulTokens!: number;
   hpCurrent!: number;
   spCurrent!: number;
   maxHp!: number;

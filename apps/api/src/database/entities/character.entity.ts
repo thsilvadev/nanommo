@@ -57,6 +57,9 @@ export class Character {
   @Column({ type: 'numeric', precision: 15, scale: 0, default: 0 })
   gold!: number;
 
+  @Column({ name: 'soul_tokens', type: 'int', default: 1000 })
+  soulTokens!: number;
+
   @Column({ type: 'int' })
   hpCurrent!: number;
 

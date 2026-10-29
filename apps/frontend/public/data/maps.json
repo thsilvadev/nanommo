@@ -22,7 +22,8 @@
         "cecilia",
         "storage",
         "uncle_phillip",
-        "mailbox"
+        "mailbox",
+        "oracle"
       ],
       "mapLength": 0
     },
@@ -694,7 +695,13 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": ["storage", "mailbox", "father_marcelus", "paje_piata"],
+      "npcIds": [
+        "storage",
+        "mailbox",
+        "father_marcelus",
+        "paje_piata",
+        "oracle"
+      ],
       "mapLength": 0
     },
     {
@@ -1012,7 +1019,13 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": ["storage", "william", "mailbox", "father_marcelus"],
+      "npcIds": [
+        "storage",
+        "william",
+        "mailbox",
+        "father_marcelus",
+        "oracle"
+      ],
       "mapLength": 0
     },
     {
@@ -1486,7 +1499,8 @@
         "william",
         "mailbox",
         "father_marcelus",
-        "whitesmith_spitz"
+        "whitesmith_spitz",
+        "oracle"
       ],
       "mapLength": 0
     }

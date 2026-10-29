@@ -73,6 +73,7 @@ export class VendorStore {
   readonly mailboxIdempotencyKey=signal('');
   readonly error=signal<string|null>(null);
   readonly busy=signal(false);
+  readonly respecConfirm=signal(false);
   readonly selectedNpc=computed(()=>this.npcs().find(n=>n.id===this.selectedNpcId())??null);
   private npcLoadSequence=0;
   private questInteractionRequestSequence=0;
@@ -94,6 +95,7 @@ export class VendorStore {
     this.cookingModal.set(false);
     this.error.set(null);
     this.mailboxSendConfirm.set(false);
+    this.respecConfirm.set(false);
   }
   private async loadTownNpcFallback(mapId:string):Promise<TownNpc[]> {
     const get=async(path:string)=>{const response=await fetch('/data/'+path);if(!response.ok)throw new Error('Unable to load Town NPC fallback '+path);return response.json();};
@@ -373,6 +375,17 @@ export class VendorStore {
       if(this.selectedNpcId()===id) this.dialogue.set(dialogue);
     }catch(e:any){if(this.selectedNpcId()===id)this.error.set(e?.error?.message??'Unable to load NPC dialogue');}
   }
+  async performOracleRespec(){
+    if(this.busy() || this.selectedNpcId()!=='oracle') return;
+    this.busy.set(true); this.error.set(null);
+    try {
+      await this.api.post('/town/npcs/oracle/respec',{}).toPromise();
+      await this.character.load();
+      this.audio.play('respec');
+      this.respecConfirm.set(false);
+    } catch(e:any) { this.error.set(e?.error?.message ?? 'Respec rejected'); }
+    finally { this.busy.set(false); }
+  }
   selectNpc(id:string){
     if(!id){this.resetForTownEntry(false);return;}
     this.selectedNpcId.set(id);
@@ -383,6 +396,7 @@ export class VendorStore {
     this.cookingModal.set(false);
     this.error.set(null);
     this.mailboxSendConfirm.set(false);
+    this.respecConfirm.set(false);
     void this.loadSelectedNpc();
   }
   async chooseDialogue(choiceId:string){

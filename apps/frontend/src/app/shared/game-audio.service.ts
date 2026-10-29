@@ -5,7 +5,7 @@ type SoundName =
   | 'eGem' | 'eat' | 'fatherMarcelus' | 'fire_hit_1' | 'fire_hit_2'
   | 'greatsword_hit_1' | 'hand_hit_1' | 'levelUp' | 'light_hit_1'
   | 'npcDialogue' | 'poisonApply' | 'poisonDamage' | 'questAccepted'
-  | 'questCompleted' | 'refineFail' | 'refineSuccess' | 'rod_hit_1'
+  | 'questCompleted' | 'respec' | 'refineFail' | 'refineSuccess' | 'rod_hit_1'
   | 'staff_hit_1' | 'sword_hit_1' | 'potion_drink' | 'flee';
 
 @Injectable({ providedIn: 'root' })
@@ -75,7 +75,7 @@ export class GameAudioService {
       hand_hit_1: 'hand_hit_1.wav', levelUp: 'levelUp.mp3', light_hit_1: 'light_hit_1.wav',
       npcDialogue: 'npcDialogue.mp3', poisonApply: 'poisonApply.mp3',
       poisonDamage: 'poisonDamage.mp3', questAccepted: 'questAccepted.mp3',
-      questCompleted: 'questCompleted.mp3', refineFail: 'refineFail.mp3',
+      questCompleted: 'questCompleted.mp3', respec: 'respec.mp3', refineFail: 'refineFail.mp3',
       refineSuccess: 'refineSuccess.mp3', rod_hit_1: 'rod_hit_1.wav',
       staff_hit_1: 'staff_hit_1.wav', sword_hit_1: 'sword_hit_1.wav',
       potion_drink: 'potion_drink.mp3', flee: 'flee.mp3',

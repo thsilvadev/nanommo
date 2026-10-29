@@ -16,6 +16,16 @@
         [attr.role]="interactionTyping()?'button':null">{{displayedInteractionText()}}</p>
     </section>
 
+    <ng-container *ngIf="npc.types.includes('respec')">
+      <div class="oracle-respec">
+        <p>{{vendor.localized(npc, 'monologue', npc.monologue)}}</p>
+        <strong class="oracle-cost"><img src="/assets/ui/soul-token.svg" alt=""> 600 Soul Tokens</strong>
+        <button type="button" class="oracle-respec-button" *ngIf="!vendor.respecConfirm()" [disabled]="vendor.busy() || (character.character()?.soulTokens ?? 0) < 600" (click)="vendor.respecConfirm.set(true)">{{vendor.locale.t('Request respec')}}</button>
+        <small *ngIf="(character.character()?.soulTokens ?? 0) < 600">{{vendor.locale.t('Not enough Soul Tokens.')}}</small>
+        <div class="oracle-confirm" *ngIf="vendor.respecConfirm()"><span>{{vendor.locale.t('Reset all six attributes to 5 and refund spent points for 600 Soul Tokens?')}}</span><button type="button" [disabled]="vendor.busy()" (click)="vendor.performOracleRespec()">{{vendor.busy() ? vendor.locale.t('Working...') : vendor.locale.t('Confirm respec')}}</button><button type="button" [disabled]="vendor.busy()" (click)="vendor.respecConfirm.set(false)">{{vendor.locale.t('Cancel')}}</button></div>
+      </div>
+    </ng-container>
+
     <ng-container *ngIf="npc.types.includes('storage')">
       <div id="storage-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
         cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid storage-grid"
@@ -224,7 +234,7 @@
           <div class="cooking-session-row"><strong>Cooking {{session.recipeId.replace('_', '
               ')}}</strong><span>{{vendor.cookingRemaining()}}s</span></div>
           <div class="cooking-progress"><i [style.width.%]="vendor.cookingPercent()"></i></div><button type="button"
-            class="cooking-cancel" (click)="vendor.cancelCooking()" [disabled]="vendor.busy()">Cancel</button>
+            class="cooking-cancel" (click)="vendor.cancelCooking()" [disabled]="vendor.busy()">{{vendor.locale.t('Cancel')}}</button>
         </div>
         <div class="cooking-recipes">
           <article *ngFor="let recipe of vendor.cookingState()?.recipes" class="cooking-recipe"

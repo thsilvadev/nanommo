@@ -852,7 +852,7 @@ export class VendorPanel implements OnDestroy {
     const kind = this.vendor.questInteraction()?.kind;
     return !!this.vendor.questSpeechOverride() || (!!kind && kind !== 'select');
   }
-  npcPortrait(id: string) { return '/assets/npcs/' + id + '.png'; }
+  npcPortrait(id: string) { return id === 'oracle' ? '/assets/npcs/oracle.svg' : '/assets/npcs/' + id + '.png'; }
   mailTooltip(mail: any) { return this.catalog.itemTooltipLines(mail.itemId, mail.itemInstanceData).map(line => (line.label ? line.label + ': ' : '') + line.value).join(' · '); }
   ngOnDestroy() { if (this.interactionTypewriter) clearInterval(this.interactionTypewriter); }
   stockAt(slot: number) { return this.vendor.stock().find(x => x.slotIndex === slot); }

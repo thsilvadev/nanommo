@@ -1622,3 +1622,10 @@ Interrupted regional music transitions must resolve/cancel their fade cleanly an
 ## Live battle damage feedback — 2026-10-29
 
 The live battle view renders floating damage numbers from immutable battle queue events, anchored at the Character portrait for `target: character` and the monster sprite for `target: monster`. Numbers rise in an outward parabola and fade; character damage is red, ordinary monster damage white, critical monster damage yellow with a stronger black outline and 60% larger type, general/burn DoT orange, poison dark green, and bleed a brighter distinct red. Each positive damage event gets its own number, including multiple events on one tick; misses and fully absorbed hits (zero HP damage) produce neither a number nor a hit flash. Character-targeted damage briefly flashes the portrait red. Monster-targeted damage briefly flashes the visible sprite pixels white while preserving transparent alpha. Effects are presentation-only, skip historical events on initial view mount, and never infer damage from HP differences or modify battle state.
+
+
+## Soul Tokens and Oracle respec — 2026-10-29
+
+Character has a separate integer `soulTokens` wallet. Existing characters receive 1,000 through forward-only migration `1800100000000-SoulTokensAndOracleRespec`; newly created characters start with 1,000. The current release has no acquisition, trading, mail, vendor or drop path. The topbar shows a glowing blue-violet square-holed token icon next to Gold.
+
+The Oracle is declared in `npc_catalog.json` and included in every `type: town` map except Outpost. The API respec endpoint verifies settled Town state and map NPC placement, then uses the BattleService future-combat mutation boundary and a pessimistic Character row lock. It charges 600 Soul Tokens and atomically resets STR/AGI/DEX/VIT/INT/LUK to 5 while refunding the sum of each base attribute above 5 into unspent points. The UI requires confirmation and plays `respec.mp3` only after success. The migration is not run automatically as part of development.

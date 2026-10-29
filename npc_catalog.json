@@ -148,7 +148,7 @@
             "priceFromItem": true,
             "infiniteStock": true
           },
-                    {
+          {
             "itemId": "equip_rune_t1",
             "price": 1000,
             "infiniteStock": true
@@ -420,6 +420,47 @@
         "en-US": {
           "name": "Whitesmith Spitz",
           "greeting": "Good steel, sound temper, precise work. What can I do for your equipment?"
+        }
+      }
+    },
+    {
+      "id": "oracle",
+      "name": "Oracle",
+      "location": "town",
+      "types": [
+        "respec"
+      ],
+      "greeting": "The threads of your fate may be rewoven, for a price.",
+      "monologue": "Six attributes return to their beginnings. Your spent points will be restored; 600 Soul Tokens are required.",
+      "locales": {
+        "pt-BR": {
+          "name": "Oráculo",
+          "greeting": "Os fios do seu destino podem ser tecidos novamente, por um preço.",
+          "monologue": "Seus seis atributos voltarão ao início. Os pontos gastos serão devolvidos; são necessários 600 Soul Tokens."
+        },
+        "en-US": {
+          "name": "Oracle",
+          "greeting": "The threads of your fate may be rewoven, for a price.",
+          "monologue": "Six attributes return to their beginnings. Your spent points will be restored; 600 Soul Tokens are required."
+        }
+      }
+    },
+    {
+      "id": "oracle",
+      "name": "The Oracle",
+      "location": "town",
+      "types": [
+        "respec"
+      ],
+      "greeting": "The path may be rewritten, but the soul must pay its due.",
+      "locales": {
+        "pt-BR": {
+          "name": "Oráculo",
+          "greeting": "O caminho pode ser reescrito, mas a alma deve pagar seu preço."
+        },
+        "en-US": {
+          "name": "The Oracle",
+          "greeting": "The path may be rewritten, but the soul must pay its due."
         }
       }
     }

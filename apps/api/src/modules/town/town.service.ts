@@ -283,6 +283,27 @@ export class TownService {
     }).filter(Boolean);
   }
 
+  async respecAtOracle(characterId: string) {
+    const result = await this.battleService.runFutureCombatMutation(characterId, () => this.characterRepo.manager.transaction(async manager => {
+      const character = await this.characterForTown(manager, characterId);
+      const map = this.dataService.getMapById(character.currentMapId);
+      if (map?.id === 'map_outpost' || !(map?.npcIds ?? []).includes('oracle')) throw new BadRequestException('The Oracle is not available in this town');
+      const cost = 600;
+      if (Number(character.soulTokens ?? 0) < cost) throw new BadRequestException('Not enough Soul Tokens (600 required)');
+      const attributes = ['str', 'agi', 'dex', 'vit', 'int', 'luk'] as const;
+      const refunded = attributes.reduce((sum, key) => sum + Math.max(0, Number(character[key] ?? 5) - 5), 0);
+      character.soulTokens = Number(character.soulTokens) - cost;
+      for (const key of attributes) character[key] = 5;
+      character.unspentAttributePoints = Number(character.unspentAttributePoints ?? 0) + refunded;
+      const derived = await this.characterService.getDerivedStatsForCharacter(character);
+      character.hpCurrent = Math.min(Number(character.hpCurrent ?? derived.maxHp), derived.maxHp);
+      character.spCurrent = Math.min(Number(character.spCurrent ?? derived.maxSp), derived.maxSp);
+      await manager.getRepository(Character).save(character);
+      return { soulTokens: Number(character.soulTokens), refundedAttributePoints: refunded };
+    }));
+    return { ...result, character: await this.characterService.getCharacterDtoById(characterId) };
+  }
+
   private questNode(npc: any, nodeId?: string) {
     const quest = npc.dialogue;
     if (!quest?.nodes) throw new BadRequestException('NPC does not provide dialogue');

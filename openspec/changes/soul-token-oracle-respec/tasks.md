@@ -1,0 +1,11 @@
+## Implementation
+- [x] Define Soul Token and Oracle respec behavior in OpenSpec proposal.
+- [x] Add persisted Soul Token field, migration, DTO projection, and 1,000 starting balance.
+- [x] Add Oracle catalogue entry and list it on every Town except Outpost in canonical and frontend data.
+- [x] Implement atomic, server-authoritative respec and refund.
+- [x] Add Soul Token topbar icon/balance and Oracle confirmation UI.
+- [x] Add Oracle portrait and copy the respec sound into frontend public assets.
+- [x] Update SPEC/ARCHITECTURE and focused catalogue checks.
+- [x] Complete production builds and strict OpenSpec validation.
+- [x] Focused Oracle map/catalogue contract and migration-history safety checks passed.
+- [ ] Manual browser verification and migration execution remain separate.

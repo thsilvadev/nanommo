@@ -179,7 +179,7 @@ export interface XpCurveEntry {
   estDaysAtThisLevel: number;
 }
 
-export type NpcCapabilityType = 'vendor' | 'dialogue' | 'storage' | 'cooking' | 'mailbox' | 'alchemy' | 'blacksmith' | 'refinement';
+export type NpcCapabilityType = 'vendor' | 'dialogue' | 'storage' | 'cooking' | 'mailbox' | 'alchemy' | 'blacksmith' | 'refinement' | 'respec';
 export interface TownNpc { id: string; name: string; location: 'town'; types: NpcCapabilityType[]; greeting?: string; monologue?: string; locales?: Record<string, Record<string, string>>; }
 export interface VendorNpc extends TownNpc { types: ['vendor']; }
 export interface DialogueNpc extends TownNpc { types: ['dialogue']; }

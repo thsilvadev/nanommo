@@ -52,6 +52,12 @@ export class TownController {
 
   @Get('npcs')
   async getTownNPCs(@Request() req: any) { return this.townService.getTownNPCs(await this.characterId(req)); }
+  @Post('npcs/:npcId/respec')
+  async respecAtOracle(@Request() req: any, @Param('npcId') npcId: string) {
+    if (npcId !== 'oracle') throw new NotFoundException('Respec service not found');
+    return this.townService.respecAtOracle(await this.characterId(req));
+  }
+
   @Get('npcs/:npcId/dialogue')
   async getNpcDialogue(@Request() req: any, @Param('npcId') npcId: string) {
     return this.townService.getNpcDialogue(await this.characterId(req), npcId);
