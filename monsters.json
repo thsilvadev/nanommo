@@ -38,12 +38,31 @@
         },
         {
           "itemId": "part_slime_rare",
-          "chance": 0.0002
+          "chance": 0.02
         },
         {
-          "itemId": "equip_green_grounds_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -111,12 +130,31 @@
         },
         {
           "itemId": "part_fieldbat_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_green_grounds_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -179,12 +217,31 @@
         },
         {
           "itemId": "part_thornsprout_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_green_grounds_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -251,12 +308,31 @@
         },
         {
           "itemId": "part_mudcrawler_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_green_grounds_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -317,16 +393,35 @@
         },
         {
           "itemId": "part_direwolf_rare",
-          "chance": 0.0002
-        },
-        {
-          "itemId": "equip_green_grounds_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "chance": 0.002
         },
         {
           "itemId": "mat_meat",
           "chance": 0.2
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -400,12 +495,31 @@
         },
         {
           "itemId": "part_sandscorpion_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_menace_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -474,12 +588,75 @@
         },
         {
           "itemId": "part_duneraider_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_menace_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -542,12 +719,83 @@
         },
         {
           "itemId": "part_cindergolem_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_menace_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -610,12 +858,75 @@
         },
         {
           "itemId": "part_venomviper_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_menace_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -689,12 +1000,83 @@
         },
         {
           "itemId": "part_mirageStalker_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_menace_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -755,12 +1137,83 @@
         },
         {
           "itemId": "part_brokensentinel_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -831,12 +1284,83 @@
         },
         {
           "itemId": "part_wraith_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -910,12 +1434,83 @@
         },
         {
           "itemId": "part_arcanewisp_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -994,12 +1589,83 @@
         },
         {
           "itemId": "part_boneknight_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -1071,12 +1737,83 @@
         },
         {
           "itemId": "part_ruinsguardian_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time, see items.json equipmentPools"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -1143,7 +1880,7 @@
         },
         {
           "itemId": "part_mudflatcrocodile_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1151,9 +1888,28 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_menace_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -1209,7 +1965,7 @@
         },
         {
           "itemId": "part_bandit_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1217,9 +1973,72 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -1286,7 +2105,7 @@
         },
         {
           "itemId": "part_kwaioua_ranger_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1294,9 +2113,80 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -1364,7 +2254,7 @@
         },
         {
           "itemId": "part_sacredforestguardian_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1372,9 +2262,80 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -1440,7 +2401,7 @@
         },
         {
           "itemId": "part_gravelhorn_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1448,9 +2409,28 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_menace_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -1506,7 +2486,7 @@
         },
         {
           "itemId": "part_ridgebreaker_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1514,9 +2494,72 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_menace_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -1572,7 +2615,7 @@
         },
         {
           "itemId": "part_saltfangcrab_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1580,9 +2623,72 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_menace_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -1638,7 +2744,7 @@
         },
         {
           "itemId": "part_needlebackstalker_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1646,13 +2752,76 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
-        },
-        {
           "itemId": "mat_meat",
           "chance": 0.2
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -1708,7 +2877,7 @@
         },
         {
           "itemId": "part_giantmosquito_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1716,9 +2885,72 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -1774,7 +3006,7 @@
         },
         {
           "itemId": "part_rootboundbrute_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1782,9 +3014,72 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -1850,7 +3145,7 @@
         },
         {
           "itemId": "part_moonleafarcanist_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1858,9 +3153,80 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -1916,7 +3282,7 @@
         },
         {
           "itemId": "part_aramaianwarden_rare",
-          "chance": 0.0002
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1924,9 +3290,80 @@
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -1990,9 +3427,28 @@
           "chance": 0.001
         },
         {
-          "itemId": "equip_green_grounds_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.01
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
         }
       ],
       "gambit": [
@@ -2067,9 +3523,80 @@
           "chance": 0.001
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -2138,9 +3665,80 @@
           "chance": 0.0008
         },
         {
-          "itemId": "equip_ruins_roll",
-          "chance": 0.002,
-          "note": "resolved to a tier-appropriate equipment piece at roll time"
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
         }
       ],
       "gambit": [

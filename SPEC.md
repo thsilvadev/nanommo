@@ -828,10 +828,10 @@ The authoritative encounter-search count is grinder-specific: `status = grinding
 |---|---|
 | Monster part (common) | 10% |
 | Consumable (tier-appropriate) | 2% |
-| Equipment (tier-appropriate, from that map's pool) | 0.2% |
+| Equipment (individual item entries; monster-level-specific rates) | See rules below |
 | Monster part (rare) | 0.02% |
 
-Consumable/equipment drops are resolved to a **specific item id** at roll time by picking uniformly (same seeded PRNG) from the appropriate pool: for consumables, any of the 15 (foods included — yes, foods can drop, not just be bought); for equipment, `items.equipment` entries whose `dropPool` includes the current `mapId`. The reviewed Grind configuration doubles the four canonical rates above while preserving their relative rarity; the resolver performs exactly one deterministic roll per drop entry. Worn Lucky Ring (`equip_accessory_sor_t1`) intentionally has no `dropPool`, so it is never selected by normal monster equipment drops and future copies must come from a quest reward. Monsters provide **no gold reward** directly.
+Consumable drops remain pool-resolved at roll time (any of the 15 consumables, including foods). Equipment drops are **monster-specific concrete item IDs** in each `monsters.json` entry; each equipment entry has its own independent deterministic roll, so a kill can award multiple pieces. Equipment eligibility is based on monster level, not map/tier pools: below level 15, each physical/magic head or cape T1 rolls at 1%, DEX ring T1 at 0.5%, and T1 boots at 0.1%; levels 15–29 use T2 head/cape at 0.1%, DEX ring at 0.05%, boots at 0.01%, body armor at 0.1%, and each hand equipment (main/off-hand) at 0.1%; level 30+ uses the same rates for T3, plus each T4 boots item at 0.005%. The resolver preserves deterministic per-entry streams and equipment-instance stat rolls. Legacy `equip_*_roll` sentinels remain supported for already queued/catalogued data, but are no longer assigned to monsters. Worn Lucky Ring (`equip_accessory_sor_t1`) is excluded from normal drops. Monsters provide **no gold reward** directly.
 
 ---
 

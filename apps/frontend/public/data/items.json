@@ -10,7 +10,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 410,
+      "sellPriceToVendor": 210,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -46,7 +46,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 590,
+      "sellPriceToVendor": 290,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -118,7 +118,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 910,
+      "sellPriceToVendor": 410,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -154,7 +154,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 270,
+      "sellPriceToVendor": 470,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -190,7 +190,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 1815,
+      "sellPriceToVendor": 515,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -226,7 +226,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 2305,
+      "sellPriceToVendor": 605,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -262,7 +262,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 2550,
+      "sellPriceToVendor": 750,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -298,7 +298,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 3040,
+      "sellPriceToVendor": 640,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -388,7 +388,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 17000,
+      "sellPriceToVendor": 50000,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -424,7 +424,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 18000,
+      "sellPriceToVendor": 55000,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -460,7 +460,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 18500,
+      "sellPriceToVendor": 28500,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -496,7 +496,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 19500,
+      "sellPriceToVendor": 29500,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -552,7 +552,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 24,
+      "sellPriceToVendor": 470,
       "usableFor": [
         "market_trade"
       ]
@@ -569,7 +569,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 240,
+      "sellPriceToVendor": 4040,
       "usableFor": [
         "market_trade"
       ]
@@ -586,7 +586,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 50,
+      "sellPriceToVendor": 650,
       "usableFor": [
         "market_trade"
       ]
@@ -603,7 +603,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 500,
+      "sellPriceToVendor": 5000,
       "usableFor": [
         "market_trade"
       ]
@@ -620,7 +620,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 66,
+      "sellPriceToVendor": 965,
       "usableFor": [
         "market_trade"
       ]
@@ -637,7 +637,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 660,
+      "sellPriceToVendor": 9660,
       "usableFor": [
         "market_trade"
       ]
@@ -654,7 +654,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 100,
+      "sellPriceToVendor": 1530,
       "usableFor": [
         "market_trade"
       ]
@@ -671,7 +671,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 1000,
+      "sellPriceToVendor": 10000,
       "usableFor": [
         "market_trade"
       ]
@@ -688,7 +688,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 22,
+      "sellPriceToVendor": 525,
       "usableFor": [
         "market_trade"
       ]
@@ -705,7 +705,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 220,
+      "sellPriceToVendor": 2200,
       "usableFor": [
         "market_trade"
       ]
@@ -722,7 +722,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 36,
+      "sellPriceToVendor": 360,
       "usableFor": [
         "market_trade"
       ]
@@ -739,7 +739,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 360,
+      "sellPriceToVendor": 3600,
       "usableFor": [
         "market_trade"
       ]
@@ -756,7 +756,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 36,
+      "sellPriceToVendor": 460,
       "usableFor": [
         "market_trade"
       ]
@@ -773,7 +773,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 360,
+      "sellPriceToVendor": 3600,
       "usableFor": [
         "market_trade"
       ]
@@ -790,7 +790,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 42,
+      "sellPriceToVendor": 770,
       "usableFor": [
         "market_trade"
       ]
@@ -807,7 +807,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 420,
+      "sellPriceToVendor": 4200,
       "usableFor": [
         "market_trade"
       ]
@@ -824,7 +824,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 54,
+      "sellPriceToVendor": 641,
       "usableFor": [
         "market_trade"
       ]
@@ -841,7 +841,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 540,
+      "sellPriceToVendor": 5400,
       "usableFor": [
         "market_trade"
       ]
@@ -858,7 +858,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 58,
+      "sellPriceToVendor": 858,
       "usableFor": [
         "market_trade"
       ]
@@ -875,7 +875,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 580,
+      "sellPriceToVendor": 5800,
       "usableFor": [
         "market_trade"
       ]
@@ -892,7 +892,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 82,
+      "sellPriceToVendor": 1120,
       "usableFor": [
         "market_trade"
       ]
@@ -909,7 +909,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 820,
+      "sellPriceToVendor": 8200,
       "usableFor": [
         "market_trade"
       ]
@@ -926,7 +926,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 110,
+      "sellPriceToVendor": 1434,
       "usableFor": [
         "market_trade"
       ]
@@ -943,7 +943,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 1100,
+      "sellPriceToVendor": 11000,
       "usableFor": [
         "market_trade"
       ]
@@ -958,7 +958,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 18,
+      "sellPriceToVendor": 380,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -976,7 +976,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 220,
+      "sellPriceToVendor": 2200,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -1030,7 +1030,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 520,
+      "sellPriceToVendor": 920,
       "usableFor": [
         "quest_turn_in"
       ],
@@ -4009,7 +4009,8 @@
       "fixedStats": {
         "statBonus": {
           "LUK": 5
-        }
+        },
+        "mdefPercent": 1
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -4064,8 +4065,9 @@
       "tier": 1,
       "fixedStats": {
         "statBonus": {
-          "DEX": 2
-        }
+          "DEX": 5
+        },
+        "def": 1
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -4125,7 +4127,8 @@
       "fixedStats": {
         "statBonus": {
           "LUK": 10
-        }
+        },
+        "mdefPercent": 2
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -4184,8 +4187,9 @@
       "tier": 2,
       "fixedStats": {
         "statBonus": {
-          "DEX": 4
-        }
+          "DEX": 10
+        },
+        "def": 2
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -4245,7 +4249,8 @@
       "fixedStats": {
         "statBonus": {
           "LUK": 15
-        }
+        },
+        "mdefPercent": 3
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -4304,8 +4309,9 @@
       "tier": 3,
       "fixedStats": {
         "statBonus": {
-          "DEX": 6
-        }
+          "DEX": 15
+        },
+        "def": 3
       },
       "randomRollOnDrop": {
         "enabled": true,

@@ -105,37 +105,37 @@
         "sellStock": [
           {
             "itemId": "equip_sword_t1",
-            "price": 2000,
+            "price": 1000,
             "infiniteStock": true
           },
           {
             "itemId": "equip_greatsword_t1",
-            "price": 2000,
+            "price": 1000,
             "infiniteStock": true
           },
           {
             "itemId": "equip_dagger_t1",
-            "price": 2000,
+            "price": 1000,
             "infiniteStock": true
           },
           {
             "itemId": "equip_bow_t1",
-            "price": 2000,
+            "price": 1000,
             "infiniteStock": true
           },
           {
             "itemId": "equip_staff_t1",
-            "price": 2000,
+            "price": 1000,
             "infiniteStock": true
           },
           {
             "itemId": "equip_rod_t1",
-            "price": 2000,
+            "price": 1000,
             "infiniteStock": true
           },
           {
             "itemId": "equip_shield_t1",
-            "price": 2000,
+            "price": 1000,
             "infiniteStock": true
           },
           {
@@ -146,6 +146,11 @@
           {
             "itemId": "equip_body_magic_t1",
             "priceFromItem": true,
+            "infiniteStock": true
+          },
+                    {
+            "itemId": "equip_rune_t1",
+            "price": 1000,
             "infiniteStock": true
           }
         ]

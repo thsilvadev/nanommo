@@ -48,10 +48,10 @@ export interface ItemsCatalog {
 export function grindXpLevelMultiplier(characterLevel: number, monsterLevel: number): number {
   const gap = Math.max(0, Math.floor(Number(characterLevel) || 0) - Math.max(1, Math.floor(Number(monsterLevel) || 1)));
   if (gap <= 10) return 1;
-  if (gap <= 12) return 0.7;
-  if (gap <= 14) return 0.5;
-  if (gap <= 16) return 0.3;
-  return 0.05;
+  if (gap <= 12) return 0.8;
+  if (gap <= 14) return 0.6;
+  if (gap <= 16) return 0.4;
+  return 0.1;
 }
 
 export function resolveXpGain(monster: any, outcome: 'win' | 'loss', characterLevel = Number(monster?.level ?? 1)): number {
@@ -159,6 +159,8 @@ export function resolveDrops(
     }
 
     if (itemId.startsWith(EQUIPMENT_POOL_SENTINEL_PREFIX) && itemId.endsWith(EQUIPMENT_POOL_SENTINEL_SUFFIX)) {
+      // Legacy sentinel support for already queued/catalogued data. New equipment
+      // drops are concrete item IDs declared per monster in monsters.json.
       const pickRng = rngForIndex(`${monsterId}:${killIndex}:${entryIndex}:equipment`, 0);
       const equip = resolveEquipmentPool(items, effectiveMapId, pickRng);
       if (!equip) return;
@@ -171,7 +173,17 @@ export function resolveDrops(
       return;
     }
 
-    // Concrete item (monster parts)
+    // Concrete equipment IDs get the same per-instance stat roll as legacy
+    // pool-resolved equipment; ordinary materials/monster parts stay unchanged.
+    const equipment = (items?.equipment ?? []).find((item: any) => item?.id === itemId);
+    if (equipment) {
+      const equipmentRng = rngForIndex(`${monsterId}:${killIndex}:${entryIndex}:equipment-instance`, 0);
+      const instanceData = rollEquipmentInstance(equipment, equipmentRng);
+      drops.push({ itemId, quantity: 1, ...(instanceData ? { instanceData } : {}) });
+      return;
+    }
+
+    // Concrete non-equipment item (monster parts, materials, etc.)
     drops.push({ itemId, quantity: 1 });
   });
 

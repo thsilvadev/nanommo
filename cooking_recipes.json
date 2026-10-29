@@ -35,7 +35,7 @@
       "ingredients": [
         {
           "itemId": "mat_milk",
-          "quantity": 6
+          "quantity": 3
         }
       ],
       "outputItemId": "food_cheese",
@@ -49,7 +49,7 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 6
+          "quantity": 4
         }
       ],
       "outputItemId": "food_herbtea",
@@ -63,7 +63,7 @@
       "ingredients": [
         {
           "itemId": "mat_honeycomb",
-          "quantity": 10
+          "quantity": 5
         }
       ],
       "outputItemId": "food_honey",
@@ -106,8 +106,8 @@
           "quantity": 8
         },
         {
-          "itemId": "mat_carrot",
-          "quantity": 7
+          "itemId": "mat_cooking_oil",
+          "quantity": 4
         }
       ],
       "outputItemId": "food_roast",

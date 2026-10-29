@@ -1,3 +1,7 @@
+## Monster-specific equipment drops — 2026-10-29
+
+`monsters.json` now declares concrete equipment item IDs and independent per-kill chances on each monster; eligibility follows monster level, not map pools. Below level 15, T1 head/cape pieces roll at 1%, DEX ring at 0.5%, and T1 boots at 0.1%. Levels 15–29 use T2 head/cape/body/hand equipment at 0.1%, DEX ring at 0.05%, and boots at 0.01%. Level 30+ uses the same rates for T3 and adds each T4 boots item at 0.005%. `resolveDrops()` recognizes concrete equipment IDs and retains deterministic per-entry rolls plus `randomRollOnDrop` instance data. Legacy pool sentinels remain understood for compatibility but are no longer present on monsters. Root and frontend public `monsters.json` are synchronized.
+
 ## Worn Lucky Ring drop-source restriction — 2026-10-24
 
 The canonical `items.json` entry for Worn Lucky Ring (`equip_accessory_sor_t1`) no longer declares `dropPool`. The shared deterministic equipment resolver selects only equipment whose `dropPool` includes the active map, so the ring is no longer obtainable from normal monster equipment drops. Root and frontend public item catalogues are synchronized. This does not impose an item-ID-wide Market restriction: existing/non-quest instances remain tradable, and future quest-reward instances must be blocked via per-instance quest-reward provenance. No InventoryItem data was rewritten; no migration or deployment was performed.
