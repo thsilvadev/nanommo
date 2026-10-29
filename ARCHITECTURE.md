@@ -838,3 +838,8 @@ LocaleService provides a runtime pt-BR/en-US signal and persistent browser prefe
 - World travel reads the shared `calculateWorldMoveSpeed` formula and item `fixedStats.moveSpeed`; the boot tier changes now contribute the configured flat +10/+15/+30/+45. Character projection returns the derived world speed.
 - `LocaleService` stores the runtime `pt-BR`/`en-US` choice in local storage and exposes signal-based text/catalogue lookup. NPC public data, dialogue choices and quest interactions/logs carry localized fields; the typewriter renders the selected locale and responds to changes without a reload.
 - The forward-only migration `1800000000000-ProfessionCraftingRefinement` adds Alchemy/Blacksmith progress and the shared crafting session. It is intentionally not run as part of coding; deployment remains a separate authorized activity.
+
+
+## Session loot and crafting/refinement presentation update — 2026-10-28
+
+The frontend BattleStore's session loot aggregation is client-local and reset by the map board only when physical map arrival is confirmed. Both immediate accepted transitions and the deferred-transition polling reconciliation apply the same per-visit rule across map types. Alchemy/Blacksmith batch size is sent by the frontend but validated in TownService against the profession-state calculation (maxCraftQuantity), which accounts for unreserved ingredient totals and output capacity. A single persisted crafting session reserves multiplied ingredient quantities and carries the batch output/XP values to the existing atomic completion path. Refinement selection remains server-preview/attempt driven; the modal's inventory workbench uses Angular CDK drag/drop while selection by click remains available as an accessible alternative.

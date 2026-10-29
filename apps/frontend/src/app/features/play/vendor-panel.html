@@ -273,8 +273,13 @@
               <span *ngIf="recipe.unlocked && !recipe.hasIngredients" class="cooking-warning">{{vendor.t('Missing ingredients')}}</span>
               <span *ngIf="!recipe.canReserveOutput" class="cooking-warning">{{vendor.t('Not enough inventory space')}}</span>
             </div>
+            <div class="craft-quantity-control" *ngIf="recipe.maxCraftQuantity>1">
+              <label>{{vendor.t('Quantity')}} <input type="number" min="1" [max]="recipe.maxCraftQuantity"
+                [value]="vendor.professionQuantity(recipe)" (input)="vendor.setProfessionCraftQuantity(recipe,$any($event.target).value)"></label>
+              <small>Max {{recipe.maxCraftQuantity}}</small>
+            </div>
             <button type="button" class="cooking-button" [disabled]="!recipe.available || vendor.busy() || !!vendor.professionState()?.session"
-              (click)="vendor.startProfession(recipe.id)">{{vendor.t('Craft')}}</button>
+              (click)="vendor.startProfession(recipe.id)">{{vendor.t('Craft')}} <ng-container *ngIf="vendor.professionQuantity(recipe)>1">×{{vendor.professionQuantity(recipe)}}</ng-container></button>
           </article>
         </div>
       </section>
@@ -286,12 +291,24 @@
           <div><small>WHITESMITH SPITZ</small><h2>{{vendor.t('Refinement')}}</h2></div>
           <button type="button" [attr.aria-label]="vendor.t('Close')" (click)="vendor.closeRefinement()">×</button>
         </header>
-        <label class="refinement-item-select">{{vendor.t('Select equipment')}}
-          <select [value]="vendor.refinementSelectedId()" (change)="vendor.selectRefinement($any($event.target).value)">
-            <option value="">{{vendor.t('Select equipment')}}</option>
-            <option *ngFor="let item of vendor.refinableInventoryRows()" [value]="item.id">{{vendor.itemName(item.itemId,item.instanceData)}}</option>
-          </select>
-        </label>
+        <div class="refinement-workbench">
+          <section class="refinement-inventory">
+            <div class="refinement-section-heading"><strong>{{vendor.t('Inventory')}}</strong><small>{{vendor.refinableInventoryRows().length}} {{vendor.t('equipment')}}</small></div>
+            <div id="refinement-inventory-drop" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
+              cdkDropListSortingDisabled (cdkDropListDropped)="dropRefinementEquipment($event)" class="refinement-inventory-grid">
+              <button type="button" *ngFor="let item of vendor.refinableInventoryRows()" cdkDrag [cdkDragData]="refinementDragData(item)"
+                (cdkDragStarted)="onRefinementDragStart(item)" (cdkDragEnded)="onRefinementDragEnd()"
+                class="refinement-inventory-item" [class.selected]="vendor.refinementSelectedId()===item.id"
+                (click)="vendor.selectRefinement(item.id)" [title]="vendor.itemName(item.itemId,item.instanceData)">
+                <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId,item.instanceData)">
+                <span>{{vendor.itemName(item.itemId,item.instanceData)}}</span>
+                <small>+{{item.instanceData?.refinementLevel ?? 0}}</small>
+                <ng-template cdkDragPreview><img class="refinement-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId,item.instanceData)"></ng-template>
+              </button>
+            </div>
+            <small class="refinement-drag-hint">{{vendor.t('Drag equipment here or click an item to select it.')}}</small>
+          </section>
+          <section class="refinement-details">
         <ng-container *ngIf="vendor.refinementPreview() as preview">
           <div class="refinement-summary"><strong>{{vendor.itemName(preview.itemId,{refinementLevel:preview.refinementLevel})}}</strong>
             <span>{{vendor.t('Current refinement')}}: +{{preview.refinementLevel}}</span>
@@ -328,7 +345,9 @@
             </section>
           </div>
         </ng-container>
-        <p *ngIf="!vendor.refinementPreview() && !vendor.refinableInventoryRows().length">{{vendor.t('Select equipment')}}</p>
+        <p *ngIf="!vendor.refinementPreview()">{{vendor.refinableInventoryRows().length ? vendor.t('Select equipment') : vendor.t('No equipment available for refinement')}}</p>
+          </section>
+        </div>
         <p class="vendor-error" *ngIf="vendor.error()">{{vendor.error()}}</p>
       </section>
     </div>

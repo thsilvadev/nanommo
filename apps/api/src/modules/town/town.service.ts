@@ -423,6 +423,15 @@ export class TownService {
     return { characterId: character.id, progress, recipes: recipeStates, session, otherSessionActive: !!character.craftingSession };
   }
 
+  private maxReservableOutputQuantity(rows: InventoryItem[], item: any): number {
+    if (!item) return 0;
+    const freeSlots = Math.max(0, INVENTORY_SLOTS - rows.length);
+    if (!item.stackable) return freeSlots;
+    const maxStack = Math.max(1, Number(item.maxStack ?? 1));
+    const existingRoom = rows.filter(row => row.itemId === item.id).reduce((sum, row) => sum + Math.max(0, maxStack - Number(row.quantity)), 0);
+    return existingRoom + freeSlots * maxStack;
+  }
+
   private canReserveCapacity(rows: InventoryItem[], item: any): boolean {
     if (item?.stackable) {
       if (rows.some(row => row.itemId === item.id && row.quantity < Number(item.maxStack ?? 1))) return true;
@@ -455,7 +464,7 @@ export class TownService {
       const state = await this.cookingState(manager, character);
       const candidate = state.recipes.find((row: any) => row.id === recipeId);
       if (!candidate?.unlocked) throw new BadRequestException('Cooking level too low for this recipe');
-      if (!candidate.hasIngredients) throw new BadRequestException('Insufficient ingredients');
+      if (!candidate?.hasIngredients) throw new BadRequestException('Insufficient ingredients');
       if (!candidate.canReserveOutput) throw new BadRequestException('Not enough inventory space for the cooked food');
       const now = new Date(); const session = { id: randomUUID(), generation: randomUUID(), recipeId, startedAt: now.toISOString(), completesAt: new Date(now.getTime() + 10_000).toISOString(), ingredients: recipe.ingredients.map((req: any) => ({ itemId: req.itemId, quantity: Number(req.quantity) })), outputItemId: recipe.outputItemId, outputQuantity: 1, xpReward: Number(recipe.xpReward) };
       character.cookingSession = session; await manager.getRepository(Character).save(character);
@@ -566,8 +575,10 @@ export class TownService {
       const output = this.item(recipe.outputItemId);
       const hasIngredients = ingredients.every((req: any) => req.available >= Number(req.quantity));
       const canReserveOutput = this.canReserveCapacity(rows, output);
-      return { ...recipe, output, ingredients, unlocked: progress.level >= Number(recipe.requiredLevel), hasIngredients, canReserveOutput,
-        available: !active && !character.cookingSession && !character.craftingSession && this.dataService.getMapById(character.currentMapId)?.type === 'town' && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition
+      const maxByIngredients = ingredients.length ? Math.min(...ingredients.map((req: any) => Math.floor(req.available / Math.max(1, Number(req.quantity))))) : 0;
+      const maxCraftQuantity = Math.max(0, Math.min(99, maxByIngredients, this.maxReservableOutputQuantity(rows, output)));
+      return { ...recipe, output, ingredients, maxCraftQuantity, unlocked: progress.level >= Number(recipe.requiredLevel), hasIngredients, canReserveOutput,
+        available: !active && !character.cookingSession && !character.craftingSession && maxCraftQuantity >= 1 && this.dataService.getMapById(character.currentMapId)?.type === 'town' && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition
           && progress.level >= Number(recipe.requiredLevel) && hasIngredients && canReserveOutput };
     });
     return { characterId: character.id, npcId, profession, progress, recipes, session: active, otherSessionActive: !!character.cookingSession || !!(character.craftingSession && !active) };
@@ -588,7 +599,8 @@ export class TownService {
       { jobId: 'crafting-' + characterId + '-' + session.id, delay, removeOnComplete: true, attempts: 10, backoff: { type: 'exponential', delay: 1000 } });
   }
 
-  async startProfessionCrafting(characterId: string, npcId: string, profession: 'alchemy' | 'blacksmith', recipeId: string) {
+  async startProfessionCrafting(characterId: string, npcId: string, profession: 'alchemy' | 'blacksmith', recipeId: string, quantity = 1) {
+    quantity = Math.max(1, Math.min(99, Math.floor(Number(quantity) || 1)));
     const fields = this.professionFields(profession);
     const recipe = fields.recipes.find((row: any) => row.id === recipeId);
     if (!recipe) throw new BadRequestException('Unknown ' + fields.label + ' recipe');
@@ -599,13 +611,13 @@ export class TownService {
       const state = await this.professionState(manager, character, npcId, profession);
       const candidate = state.recipes.find((row: any) => row.id === recipeId);
       if (!candidate?.unlocked) throw new BadRequestException(fields.label + ' level too low for this recipe');
-      if (!candidate.hasIngredients) throw new BadRequestException('Insufficient ingredients');
-      if (!candidate.canReserveOutput) throw new BadRequestException('Not enough inventory space for the crafted item');
+      if (quantity > Number(candidate?.maxCraftQuantity ?? 0)) throw new BadRequestException('Not enough ingredients or inventory capacity for that batch');
+
       const now = new Date();
-      const session = { id: randomUUID(), generation: randomUUID(), profession, npcId, recipeId, startedAt: now.toISOString(),
+      const session = { id: randomUUID(), generation: randomUUID(), profession, npcId, recipeId, quantity, startedAt: now.toISOString(),
         completesAt: new Date(now.getTime() + 10_000).toISOString(),
-        ingredients: recipe.ingredients.map((req: any) => ({ itemId: req.itemId, quantity: Number(req.quantity) })),
-        outputItemId: recipe.outputItemId, outputQuantity: 1, xpReward: Number(recipe.xpReward) };
+        ingredients: recipe.ingredients.map((req: any) => ({ itemId: req.itemId, quantity: Number(req.quantity) * quantity })),
+        outputItemId: recipe.outputItemId, outputQuantity: quantity, xpReward: Number(recipe.xpReward) * quantity };
       character.craftingSession = session; await manager.getRepository(Character).save(character);
       return { session };
     }));
