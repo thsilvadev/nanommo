@@ -17,6 +17,7 @@ export class GameAudioService {
   readonly muted = signal(this.readStoredMuted());
   private readonly effects = new Map<SoundName, string>();
   private music: HTMLAudioElement | null = null;
+  private readonly musicInstances = new Set<HTMLAudioElement>();
   private musicRegion = '';
   private musicTracks: string[] = [];
   private musicTrackIndex = -1;
@@ -163,17 +164,51 @@ export class GameAudioService {
 
   private startNextTrack(generation: number): void {
     if (generation !== this.musicGeneration || !this.musicTracks.length) return;
+
+    // A play() promise can settle after a region change or after the page resumes
+    // from suspension. Never allow an older track instance to overlap the new one.
+    this.stopOtherMusicInstances();
     this.musicTrackIndex = (this.musicTrackIndex + 1) % this.musicTracks.length;
     const track = this.musicTracks[this.musicTrackIndex];
     const audio = new Audio(this.base + track);
     this.music = audio;
+    this.musicInstances.add(audio);
     audio.loop = false;
     audio.preload = 'auto';
     audio.volume = 0;
     audio.addEventListener('ended', () => {
-      if (this.music === audio && generation === this.musicGeneration) this.startNextTrack(generation);
+      this.musicInstances.delete(audio);
+      if (this.music === audio && generation === this.musicGeneration) {
+        this.music = null;
+        this.startNextTrack(generation);
+      }
     });
-    void audio.play().then(() => this.fadeVolume(audio, 0, this.muted() ? 0 : this.volume(), 900, generation)).catch(() => this.bindMusicRetry());
+    void audio.play().then(() => {
+      if (generation !== this.musicGeneration || this.music !== audio || !this.musicRegion) {
+        this.stopMusicElement(audio);
+        return;
+      }
+      void this.fadeVolume(audio, 0, this.muted() ? 0 : this.volume(), 900, generation);
+    }).catch(() => {
+      if (generation !== this.musicGeneration || this.music !== audio || !this.musicRegion) {
+        this.stopMusicElement(audio);
+        return;
+      }
+      this.bindMusicRetry();
+    });
+  }
+
+  private stopOtherMusicInstances(keep?: HTMLAudioElement): void {
+    for (const audio of this.musicInstances) {
+      if (audio !== keep) this.stopMusicElement(audio);
+    }
+  }
+
+  private stopMusicElement(audio: HTMLAudioElement): void {
+    audio.pause();
+    try { audio.currentTime = 0; } catch { /* Some media elements cannot seek before metadata loads. */ }
+    this.musicInstances.delete(audio);
+    if (this.music === audio) this.music = null;
   }
 
   private bindMusicRetry(): void {
@@ -193,7 +228,16 @@ export class GameAudioService {
     const audio = this.music;
     const generation = this.musicGeneration;
     if (!this.musicRegion || !audio || !audio.paused) return;
-    void audio.play().then(() => this.fadeVolume(audio, audio.volume, this.muted() ? 0 : this.volume(), 900, generation)).catch(() => this.bindMusicRetry());
+    void audio.play().then(() => {
+      if (generation !== this.musicGeneration || this.music !== audio || !this.musicRegion) {
+        this.stopMusicElement(audio);
+        return;
+      }
+      void this.fadeVolume(audio, audio.volume, this.muted() ? 0 : this.volume(), 900, generation);
+    }).catch(() => {
+      if (generation !== this.musicGeneration || this.music !== audio || !this.musicRegion) this.stopMusicElement(audio);
+      else this.bindMusicRetry();
+    });
   }
 
   private async fadeCurrentMusic(duration: number, generation: number): Promise<void> {
@@ -202,9 +246,7 @@ export class GameAudioService {
     const initial = audio.volume;
     await this.fadeVolume(audio, initial, 0, duration, generation);
     if (generation !== this.musicGeneration) return;
-    audio.pause();
-    audio.currentTime = 0;
-    if (this.music === audio) this.music = null;
+    this.stopMusicElement(audio);
   }
 
   private cancelMusicFade(): void {
@@ -244,7 +286,11 @@ export class GameAudioService {
     ++this.musicGeneration;
     this.cancelMusicFade();
     const audio = this.music;
-    if (!audio) return;
+    if (!audio) {
+      this.stopOtherMusicInstances();
+      return;
+    }
+    this.stopOtherMusicInstances(audio);
     const initial = audio.volume;
     const start = performance.now();
     await new Promise<void>(resolve => {
@@ -256,9 +302,7 @@ export class GameAudioService {
       };
       requestAnimationFrame(tick);
     });
-    audio.pause();
-    audio.currentTime = 0;
-    if (this.music === audio) this.music = null;
+    this.stopMusicElement(audio);
   }
 
   private updateBattleAudio(battleStore: any): void {

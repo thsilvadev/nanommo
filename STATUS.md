@@ -232,6 +232,8 @@ Verification passed: shared/API builds, frontend production build, `node scripts
 
 # NanoMMO — Implementation Status
 
+- **Música duplicada após ficar muito tempo parado — 2026-10-29:** `GameAudioService` agora rastreia instâncias de música e interrompe qualquer reprodução antiga antes de iniciar outra. As resoluções assíncronas de `audio.play()` e as tentativas de retomada validam a geração/região atual; se uma promessa antiga resolver depois de uma troca de mapa ou retomada da página, o áudio obsoleto é pausado. Adicionado teste de regressão para essa corrida assíncrona.
+
 ### Unified monster Move Speed across combat and FLEE (2026-10-20)
 
 Monster `moveSpd` is now hard-coded in both `monsters.json` copies to the previous combat formula `moveSpeedBase + level - 1`. BattleEngine reads this final catalog value instead of independently scaling the species base, so the same monster speed is used for in-battle lane movement, pre-encounter FLEE in Gathering/Traveling, and during-battle FLEE while Traveling/FLEEing. Updated the monster catalogue validator and SPEC/ARCHITECTURE/proposal wording to remove the contradictory fixed-world-speed rule.

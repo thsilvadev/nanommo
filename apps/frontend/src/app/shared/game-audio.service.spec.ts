@@ -56,6 +56,38 @@ describe('GameAudioService battle event routing', () => {
     expect((audio as any).musicFadeFrame).toBe(0);
   });
 
+  it('stops a music instance when its play promise resolves after a region change', async () => {
+    let resolvePlay!: () => void;
+    const playPromise = new Promise<void>(resolve => { resolvePlay = resolve; });
+    const pause = jasmine.createSpy('pause');
+    const fakeAudio = {
+      volume: 0,
+      currentTime: 0,
+      paused: false,
+      loop: false,
+      preload: '',
+      play: () => playPromise,
+      pause,
+      addEventListener: () => {},
+    } as unknown as HTMLAudioElement;
+    spyOn(window, 'Audio').and.returnValue(fakeAudio);
+
+    (audio as any).musicGeneration = 4;
+    (audio as any).musicRegion = 'sierra-village';
+    (audio as any).musicTracks = ['sierra-village.mp3'];
+    (audio as any).startNextTrack(4);
+
+    (audio as any).musicGeneration = 5;
+    (audio as any).musicRegion = 'green-grounds';
+    (audio as any).musicTracks = ['green-grounds.mp3'];
+    resolvePlay();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(pause).toHaveBeenCalled();
+    expect((audio as any).musicInstances.size).toBe(0);
+  });
+
   it('persists game audio volume and mute preferences', () => {
     audio.setVolume(0.42);
     expect(localStorage.getItem('nanommo:game-audio-volume')).toBe('0.42');
