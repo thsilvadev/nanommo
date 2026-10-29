@@ -70,7 +70,7 @@ export class InventoryStore {
   // with the same/newer revision arrived before this HTTP response.
   const itemType=this.catalog.item(itemId)?.type;
   if(itemType==='food'||itemId.startsWith('food_'))this.audio.play('eat');
-  else if(itemType==='consumable' && (itemId.includes('potion')||itemId.startsWith('elixir_')))this.audio.play('potion_drink');
+  else if(itemType==='consumable' && (itemId.startsWith('pot_')||itemId.includes('potion')||itemId.startsWith('elixir_')))this.audio.play('potion_drink');
   if(snapshot.stateVersion<=this.realtimeRevision)return;
   this.realtimeRevision=snapshot.stateVersion;
   this.realtimeGeneration++;

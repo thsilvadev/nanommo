@@ -268,7 +268,7 @@ export class GameAudioService {
     if (action === 'status_damage' && (status === 'poison' || skill.includes('poison'))) { this.play('poisonDamage'); return; }
     if (actor === 'character' && action === 'use_item') {
       if (itemId.startsWith('food_')) { this.play('eat'); return; }
-      if (itemId.includes('potion') || itemId.startsWith('elixir_')) { this.play('potion_drink'); return; }
+      if (itemId.startsWith('pot_') || itemId.includes('potion') || itemId.startsWith('elixir_')) { this.play('potion_drink'); return; }
     }
     if ((skill.includes('bash') || skill.includes('ground_slam')) && Number(event?.damage ?? 0) > 0) { this.play('bash'); return; }
     if (actor === 'monster' && event?.target === 'character' && action !== 'status_damage' && event?.hit !== false && Number(event?.damage ?? 0) > 0) {
@@ -309,7 +309,7 @@ export class GameAudioService {
     for (const consumed of resolved.itemsConsumed ?? []) {
       const itemId = String((consumed as any)?.itemId ?? '');
       if (itemId.startsWith('food_')) this.play('eat');
-      else if (itemId.startsWith('potion_') || itemId.startsWith('elixir_') || itemId.includes('potion')) this.play('potion_drink');
+      else if (itemId.startsWith('pot_') || itemId.startsWith('potion_') || itemId.startsWith('elixir_') || itemId.includes('potion')) this.play('potion_drink');
     }
   }
 }

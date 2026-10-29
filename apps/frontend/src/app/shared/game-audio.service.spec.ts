@@ -57,7 +57,7 @@ describe('GameAudioService battle event routing', () => {
   });
 
   it('plays the potion sound for potion-use events', () => {
-    (audio as any).playBattleEvent({ actor: 'character', action: 'use_item', itemId: 'potion_minor', target: 'character' }, { log: { header: {} } });
+    (audio as any).playBattleEvent({ actor: 'character', action: 'use_item', itemId: 'pot_hp_small', target: 'character' }, { log: { header: {} } });
     expect(audio.play).toHaveBeenCalledWith('potion_drink');
   });
 
