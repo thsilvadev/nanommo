@@ -11,8 +11,10 @@ type SoundName =
 @Injectable({ providedIn: 'root' })
 export class GameAudioService {
   private readonly base = '/assets/sounds/';
-  readonly volume = signal(0.7);
-  readonly muted = signal(false);
+  private readonly volumeStorageKey = 'nanommo:game-audio-volume';
+  private readonly mutedStorageKey = 'nanommo:game-audio-muted';
+  readonly volume = signal(this.readStoredVolume());
+  readonly muted = signal(this.readStoredMuted());
   private readonly effects = new Map<SoundName, string>();
   private music: HTMLAudioElement | null = null;
   private musicRegion = '';
@@ -30,6 +32,30 @@ export class GameAudioService {
   private lastBattleEventIndex = -1;
   private seenResolvedId = '';
   private previousLevel: number | null = null;
+
+  private readStoredVolume(): number {
+    try {
+      const stored = localStorage.getItem(this.volumeStorageKey);
+      if (stored === null) return 0.7;
+      const value = Number(stored);
+      return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0.7;
+    } catch { return 0.7; }
+  }
+
+  private readStoredMuted(): boolean {
+    try {
+      const stored = localStorage.getItem(this.mutedStorageKey);
+      if (stored !== null) return stored === 'true';
+      return this.volume() === 0;
+    } catch { return this.volume() === 0; }
+  }
+
+  private persistAudioSettings(): void {
+    try {
+      localStorage.setItem(this.volumeStorageKey, String(this.volume()));
+      localStorage.setItem(this.mutedStorageKey, String(this.muted()));
+    } catch { /* Audio still works when browser storage is unavailable. */ }
+  }
 
   play(name: SoundName): void {
     const audio = new Audio(this.base + this.fileName(name));
@@ -60,7 +86,8 @@ export class GameAudioService {
     const next = Math.max(0, Math.min(1, Number(value)));
     this.volume.set(next);
     this.muted.set(next === 0);
-    if (this.music) this.music.volume = next;
+    this.persistAudioSettings();
+    if (this.music) this.music.volume = this.muted() ? 0 : next;
   }
 
   toggleMute(): void {
@@ -68,9 +95,11 @@ export class GameAudioService {
       const restored = this.volume() > 0 ? this.volume() : 0.38;
       this.volume.set(restored);
       this.muted.set(false);
+      this.persistAudioSettings();
       if (this.music) this.music.volume = restored;
     } else {
       this.muted.set(true);
+      this.persistAudioSettings();
       if (this.music) this.music.volume = 0;
     }
   }

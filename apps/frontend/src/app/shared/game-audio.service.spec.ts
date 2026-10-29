@@ -56,6 +56,16 @@ describe('GameAudioService battle event routing', () => {
     expect((audio as any).musicFadeFrame).toBe(0);
   });
 
+  it('persists game audio volume and mute preferences', () => {
+    audio.setVolume(0.42);
+    expect(localStorage.getItem('nanommo:game-audio-volume')).toBe('0.42');
+    expect(localStorage.getItem('nanommo:game-audio-muted')).toBe('false');
+    audio.toggleMute();
+    expect(localStorage.getItem('nanommo:game-audio-muted')).toBe('true');
+    audio.toggleMute();
+    expect(localStorage.getItem('nanommo:game-audio-muted')).toBe('false');
+  });
+
   it('plays the potion sound for potion-use events', () => {
     (audio as any).playBattleEvent({ actor: 'character', action: 'use_item', itemId: 'pot_hp_small', target: 'character' }, { log: { header: {} } });
     expect(audio.play).toHaveBeenCalledWith('potion_drink');
