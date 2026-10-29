@@ -256,7 +256,7 @@ export class DataService implements OnModuleInit {
       if (!Array.isArray(map.monsters)) throw new Error(`Map ${map.id} must define a monster roster`);
       if (map.mapLength === undefined || !Number.isFinite(Number(map.mapLength)) || Number(map.mapLength) < 0) throw new Error(`Invalid mapLength for ${map.id}`);
       if (map.type === 'town' && Number(map.mapLength) !== 0) throw new Error(`Town map ${map.id} must have mapLength 0`);
-      if (map.type === 'grind' && Number(map.mapLength) < 25) throw new Error(`Grind map ${map.id} must have mapLength >= 25`);
+      if (map.type === 'grind' && Number(map.mapLength) < 20) throw new Error(`Grind map ${map.id} must have mapLength >= 20`);
       if (map.type === 'town' && map.gatheringPool !== undefined) throw new Error(`Town map ${map.id} must not define a gatheringPool`);
       const allowedGatherables = exactGatheringAllowList.get(String(map.id)) ?? new Set<string>();
       if (map.type === 'grind' && allowedGatherables.size === 0 && map.gatheringPool !== undefined) throw new Error(`Grind map ${map.id} has no regional assignment and must omit gatheringPool`);
