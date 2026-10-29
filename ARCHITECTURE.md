@@ -1,3 +1,7 @@
+## Travel encounter queue snapshot — 2026-10-29
+
+When `MapService.advanceTravel()` detects a hostile encounter, `BattleService.queueTravelEncounter()` publishes the active queue together with the authoritative Character and Inventory snapshot. Queue-only publication is insufficient here because the client is extrapolating a travel bar and may still hold a stale status/map snapshot; the stale snapshot can cause `BattleStore.active()` to hide the newly queued, legitimate fight. This is a presentation synchronization fix and does not relax the Town/map guard that prevents stale battles from showing after arrival or death.
+
 ## Monster-specific equipment drops — 2026-10-29
 
 `monsters.json` now declares concrete equipment item IDs and independent per-kill chances on each monster; eligibility follows monster level, not map pools. Below level 15, T1 head/cape pieces roll at 1%, DEX ring at 0.5%, and T1 boots at 0.1%. Levels 15–29 use T2 head/cape/body/hand equipment at 0.1%, DEX ring at 0.05%, and boots at 0.01%. Level 30+ uses the same rates for T3 and adds each T4 boots item at 0.005%. `resolveDrops()` recognizes concrete equipment IDs and retains deterministic per-entry rolls plus `randomRollOnDrop` instance data. Legacy pool sentinels remain understood for compatibility but are no longer present on monsters. Root and frontend public `monsters.json` are synchronized.

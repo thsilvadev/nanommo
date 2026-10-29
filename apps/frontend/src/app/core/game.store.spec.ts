@@ -273,6 +273,39 @@ describe('realtime resource synchronization', () => {
     expect(battleStore.active()?.id).toBe('battle-next');
   });
 
+  it('shows a travel encounter when queueUpdated carries the authoritative source-map snapshot', () => {
+    const characterStore = TestBed.inject(CharacterStore);
+    const inventoryStore = TestBed.inject(InventoryStore);
+    const battleStore = TestBed.inject(BattleStore);
+    characterStore.applyRealtimeSnapshot({
+      ...character(824, 50), status: 'town', currentMapId: 'map_town', stateVersion: 10,
+    }, 10);
+    battleStore.bindEvents(characterStore, inventoryStore);
+
+    const startedAt = new Date(Date.now() - 1000).toISOString();
+    const endsAt = new Date(Date.now() + 14000).toISOString();
+    gameSocketEvents.get('battle:queueUpdated')!.next({
+      entries: [{
+        id: 'travel-encounter', characterId: 'char-1', sequenceIndex: 0,
+        mapId: 'map_lv_1', monsterId: 'mon_slime',
+        startAt: startedAt, endAt: endsAt, outcome: 'loss', log: {},
+        xpGain: 0, goldGain: 0, drops: [], itemsConsumed: [],
+        hpAfter: 0, spAfter: 0, resolved: false, seedUsed: 'travel-seed',
+      }],
+      stateRevision: 11,
+      characterAfter: {
+        ...character(824, 50), status: 'grinding', currentMapId: 'map_lv_1',
+        travelIntent: { kind: 'route', waitingForBattle: true, segmentProgress: 0.99 },
+        stateVersion: 11,
+      },
+      inventoryAfter: [item(1)],
+    });
+
+    expect(characterStore.character()?.travelIntent?.waitingForBattle).toBeTrue();
+    expect(battleStore.active()?.id).toBe('travel-encounter');
+    battleStore.ngOnDestroy();
+  });
+
   it('applies the authoritative Character and Inventory snapshot from queueUpdated before searching', () => {
     const characterStore = TestBed.inject(CharacterStore);
     const inventoryStore = TestBed.inject(InventoryStore);

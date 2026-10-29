@@ -10,7 +10,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 210,
+      "sellPriceToVendor": 90,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -46,7 +46,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 290,
+      "sellPriceToVendor": 110,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -1390,7 +1390,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1800,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4500,
       "dropPool": [
         "map_lv_1",
@@ -1861,7 +1861,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1800,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4500,
       "dropPool": [
         "map_lv_1",
@@ -2092,7 +2092,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1800,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4500,
       "dropPool": [
         "map_lv_1",
@@ -2302,7 +2302,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1800,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4500,
       "dropPool": [
         "map_lv_1",
@@ -2512,7 +2512,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1800,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4500,
       "dropPool": [
         "map_lv_1",
@@ -2713,7 +2713,7 @@
           "LUK"
         ]
       },
-      "sellPriceToVendor": 1800,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4500,
       "dropPool": [
         "map_lv_1",
@@ -2852,8 +2852,8 @@
           "LUK"
         ]
       },
-      "sellPriceToVendor": 1800,
-      "marketBasePrice": 4500,
+      "sellPriceToVendor": 500,
+      "marketBasePrice": 1000,
       "dropPool": [
         "map_lv_1",
         "map_lv_6"

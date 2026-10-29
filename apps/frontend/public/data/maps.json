@@ -1205,20 +1205,16 @@
       "monsters_quantity": 100,
       "monsters": [
         {
-          "monsterId": "mon_sandscorpion",
-          "presenceRate": 30
-        },
-        {
           "monsterId": "mon_gravelhorn",
           "presenceRate": 30
         },
         {
           "monsterId": "mon_mudcrawler",
-          "presenceRate": 20
+          "presenceRate": 45
         },
         {
           "monsterId": "mon_direwolf",
-          "presenceRate": 20
+          "presenceRate": 25
         }
       ],
       "unlockLevel": 0,
@@ -1246,20 +1242,16 @@
       "monsters_quantity": 100,
       "monsters": [
         {
-          "monsterId": "mon_sandscorpion",
-          "presenceRate": 25
-        },
-        {
           "monsterId": "mon_gravelhorn",
           "presenceRate": 35
         },
         {
           "monsterId": "mon_mudcrawler",
-          "presenceRate": 20
+          "presenceRate": 25
         },
         {
           "monsterId": "mon_direwolf",
-          "presenceRate": 20
+          "presenceRate": 40
         }
       ],
       "unlockLevel": 0,
@@ -1287,12 +1279,8 @@
       "monsters_quantity": 100,
       "monsters": [
         {
-          "monsterId": "mon_sandscorpion",
-          "presenceRate": 35
-        },
-        {
           "monsterId": "mon_gravelhorn",
-          "presenceRate": 25
+          "presenceRate": 45
         },
         {
           "monsterId": "mon_mudcrawler",
@@ -1300,7 +1288,7 @@
         },
         {
           "monsterId": "mon_direwolf",
-          "presenceRate": 20
+          "presenceRate": 35
         }
       ],
       "unlockLevel": 0,
@@ -1346,7 +1334,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 10,
+      "recommendedLevel": 14,
       "mapLength": 25,
       "gatheringPool": [
         {

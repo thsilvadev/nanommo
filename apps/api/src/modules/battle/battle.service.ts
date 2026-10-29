@@ -577,7 +577,21 @@ export class BattleService {
   }
 
   async queueTravelEncounter(characterId: string, monsterId: string): Promise<BattleQueueEntry | null> {
-    const rows = await this.withCharacterQueueLock(characterId, () => this.queueBattlesLocked(characterId, 1, true, { allowTravel: true, immediateEncounter: true, forcedMonsterId: monsterId }));
+    // A travel encounter can begin while the frontend is extrapolating Traveling
+    // from an older Character snapshot. Publish the queue and authoritative
+    // Character/Inventory together so BattleStore sees the still-current source
+    // map and can render the encounter instead of leaving only the travel gauge
+    // visible until the battle has already resolved.
+    const rows = await this.withCharacterQueueLock(characterId, () =>
+      this.queueBattlesLocked(characterId, 1, false, {
+        allowTravel: true,
+        immediateEncounter: true,
+        forcedMonsterId: monsterId,
+      }),
+    );
+    const liveQueue = await this.getBattleQueue(characterId, 5);
+    const snapshot = await this.buildAuthoritativeBattleSnapshot(characterId);
+    await this.safePublishQueueUpdated(characterId, liveQueue, snapshot);
     return rows[0] ?? null;
   }
 
