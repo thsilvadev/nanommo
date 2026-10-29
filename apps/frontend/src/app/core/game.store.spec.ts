@@ -8,7 +8,7 @@ import { GameSocketService } from './game.socket.service';
 const character = (hp: number, sp: number): Character => ({
   id: 'char-1', userId: 'user-1', name: 'Tester', dominantHand: 'right', level: 1, xp: 0, xpToNext: 10,
   unspentAttributePoints: 0, attributeBonuses: {}, str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5,
-  gold: 0, hpCurrent: hp, spCurrent: sp, maxHp: 100, maxSp: 50, attack: 10, magicAttack: 0,
+  gold: 0, soulTokens: 0, hpCurrent: hp, spCurrent: sp, maxHp: 100, maxSp: 50, attack: 10, magicAttack: 0,
   defense: 0, attackSpeed: 1, castTimeReduction: 10, evasion: 5, accuracy: 5,
   hpRegenPerTenTicks: 3, spRegenPerTenTicks: 3, criticalChance: 1,
   hungry: false, foodBuffExpiresAt: new Date(Date.now()+3600000).toISOString(), diet: [], dietLevels: {}, autoFeed: false, status: 'grinding', currentMapId: 'map_lv_1',
@@ -59,6 +59,23 @@ describe('realtime resource synchronization', () => {
 
     expect(store.character()?.hpCurrent).toBe(70);
     expect(store.character()?.spCurrent).toBe(35);
+  });
+
+  it('shares one in-flight /characters request between load and diet refresh', async () => {
+    const response = new Subject<Character | null>();
+    api.get.and.returnValue(response.asObservable() as any);
+    const store = TestBed.inject(CharacterStore);
+
+    const load = store.load();
+    const refresh = store.refreshDiet();
+    expect(api.get).toHaveBeenCalledTimes(1);
+
+    response.next(character(50, 25));
+    response.complete();
+    await Promise.all([load, refresh]);
+
+    expect(store.character()?.hpCurrent).toBe(50);
+    expect(store.character()?.spCurrent).toBe(25);
   });
 
   it('refreshes a persisted stance from a same-revision Character GET', async () => {
