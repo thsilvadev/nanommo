@@ -33,6 +33,8 @@ export class CharacterPageComponent implements OnInit {
     private professionProgress(levelValue:any,xpValue:any) { const level=Math.max(1,Number(levelValue??1)),xp=Math.max(0,Number(xpValue??0)),current=this.professionThreshold(level),next=this.professionThreshold(level+1);return {level,xpIntoLevel:Math.max(0,xp-current),xpToNextLevel:Math.max(1,next-current)}; }
     professionRows() { const char:any=this.character.character()??{}; const g=this.gatheringProgress(); const c0=this.cookingProgress(); const c=this.professionProgress(c0?.level??char.cookingLevel,c0?.xp??char.cookingXp);const b=this.professionProgress(char.blacksmithLevel,char.blacksmithXp);const a=this.professionProgress(char.alchemyLevel,char.alchemyXp);return [{name:'Gathering',...g},{name:'Cooking',...c},{name:'Blacksmith',...b},{name:'Alchemy',...a}]; }
     weaponRows() { return this.masteryCategories }
+    weaponHasAvailablePoints(type: string) { const row = this.masteryRows()[type] ?? {}; return availableMasterySkillPoints(masteryLevelForXp(Number(row.xp ?? 0)), Number(row.spentSkillPoints ?? 0)) > 0; }
+    hasAnyMasteryPoints() { return Object.keys(this.masteryRows()).some(type => this.weaponHasAvailablePoints(type)); }
     skillName(id: string) { return this.catalog.skills().find((skill: any) => skill.id === id)?.name ?? String(id ?? '').replace(/_/g, ' ') }
     skillDescriptionHtml(skill: any) { const escaped = String(skill.effectDescription ?? skill.description ?? 'No description available.').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); return escaped.replace(/(\d+(?:[.,]\d+)?(?:\s*[×x–-]\s*\d+(?:[.,]\d+)?)*\s*%?)/g, '<strong>$1</strong>') }
 

@@ -6,14 +6,14 @@
         <div class="sheet-level">LEVEL {{character.character()?.level||'—'}} · {{character.character()?.status}}</div>
     </header>
     <nav class="sheet-tabs"><button type="button" [class.active]="tab==='character'"
-            (click)="setTab('character')">Character</button><button type="button" [class.active]="tab==='gambits'"
+            (click)="setTab('character')">Character <img *ngIf="(character.character()?.unspentAttributePoints||0)>0" class="notification-dot" src="/assets/ui/notification_dot.png" alt=""></button><button type="button" [class.active]="tab==='gambits'"
             (click)="setTab('gambits')">Gambits</button><button type="button" [class.active]="tab==='mastery'"
-            (click)="setTab('mastery')">Mastery</button><button type="button" [class.active]="tab==='professions'" (click)="setTab('professions')">{{locale.t('Professions')}}</button><button type="button" [class.active]="tab==='quests'" (click)="setTab('quests')">{{locale.t('Quests')}}</button></nav>
+            (click)="setTab('mastery')">Mastery <img *ngIf="hasAnyMasteryPoints()" class="notification-dot" src="/assets/ui/notification_dot.png" alt=""></button><button type="button" [class.active]="tab==='professions'" (click)="setTab('professions')">{{locale.t('Professions')}}</button><button type="button" [class.active]="tab==='quests'" (click)="setTab('quests')">{{locale.t('Quests')}}</button></nav>
     <div *ngIf="tab==='character'" class="character-grid">
         <section class="sheet-panel inventory-panel"><app-inventory-grid /></section>
         <section class="sheet-panel allocator">
             <div class="alloc-head">
-                <h2>Attributes</h2><strong>{{character.character()?.unspentAttributePoints||0}} POINTS</strong>
+                <h2>Attributes <img *ngIf="(character.character()?.unspentAttributePoints||0)>0" class="notification-dot" src="/assets/ui/notification_dot.png" alt=""></h2><strong>{{character.character()?.unspentAttributePoints||0}} POINTS</strong>
             </div>
             <p class="hint">Pending changes are local until Apply Changes.</p>
             <div *ngFor="let a of attrs" class="attr-row"><b class="attribute-label"
@@ -69,7 +69,7 @@
             <h2>Weapons</h2><button type="button" *ngFor="let row of weaponRows()" class="weapon-row"
                 [class.selected]="selectedWeapon()===row[0]" (pointerdown)="selectWeapon(row[0])" (click)="selectWeapon(row[0])" [attr.aria-pressed]="selectedWeapon()===row[0]"><img
                     [src]="row[0]==='shield'?'/assets/ui/shield.svg':'/assets/ui/weapon.svg'"
-                    alt=""><span>{{row[1]}}</span><b>Lv {{weaponLevels()[row[0]] || 0}}</b></button>
+                    alt=""><span>{{row[1]}}</span><img *ngIf="weaponHasAvailablePoints(row[0])" class="notification-dot" src="/assets/ui/notification_dot.png" alt=""><b>Lv {{weaponLevels()[row[0]] || 0}}</b></button>
         </section>
     </div>
     <div *ngIf="tab==='professions'" class="professions-page">

@@ -20,6 +20,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { DataModule } from './modules/data/data.module';
 import { QuestModule } from './modules/quests/quest.module';
 import { GatewayModule } from './modules/gateway/gateway.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { getMasteryXpPolicy } from './config/mastery-xp-policy';
 
 @Module({
@@ -78,6 +79,7 @@ import { getMasteryXpPolicy } from './config/mastery-xp-policy';
     DataModule,
     QuestModule,
     GatewayModule,
+    NotificationsModule,
   ],
   providers: [
     {

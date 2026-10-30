@@ -3,7 +3,7 @@
     <div class="brand-logo"><img src="/assets/lords-transparent.png" alt="Lords"></div>
     <nav class="main-tabs" aria-label="Game navigation">
       <button [class.active]="is('/play/grind')||is('/play')" (click)="go('/play/grind')">Play</button>
-      <button [class.active]="is('/play/character')" (click)="goCharacter()">Character</button>
+      <button [class.active]="is('/play/character')" (click)="goCharacter()">Character <img *ngIf="hasAttributePoints()||hasMasteryPoints()" class="nav-notification-dot" src="/assets/ui/notification_dot.png" alt="New available progression"></button>
       <button [class.active]="is('/play/battle-logs')"
         (click)="go('/play/battle-logs')">Battle Logs</button>
       <button class="muted" disabled>Tournament</button><button [class.active]="is('/play/market')" (click)="go('/play/market')">Market</button>
@@ -25,9 +25,15 @@
           <div class="settings-divider"></div>
           <small class="settings-section-title">{{localeService.t('Language')}}</small>
           <div class="locale-options">
-            <button type="button" [class.active]="localeService.locale()==='pt-BR'" (click)="localeService.setLocale('pt-BR')">Português (Brasil)</button>
-            <button type="button" [class.active]="localeService.locale()==='en-US'" (click)="localeService.setLocale('en-US')">English (US)</button>
+            <button type="button" [class.active]="localeService.locale()==='pt-BR'" (click)="changeLocale('pt-BR')">Português (Brasil)</button>
+            <button type="button" [class.active]="localeService.locale()==='en-US'" (click)="changeLocale('en-US')">English (US)</button>
           </div>
+          <div class="settings-divider"></div>
+          <small class="settings-section-title">Notifications</small>
+          <button type="button" (click)="enableBrowserNotifications()" [disabled]="browserNotifications.status()==='enabled'">{{browserNotifications.status()==='enabled' ? 'Browser notifications enabled' : 'Enable browser notifications'}}</button>
+          <small *ngIf="browserNotifications.status()==='denied'">Permission denied in browser settings.</small>
+          <small *ngIf="browserNotifications.status()==='unavailable'">Browser notifications are not configured on this server.</small>
+          <small *ngIf="browserNotifications.status()==='unsupported'">This browser does not support push notifications.</small>
           <div class="settings-divider"></div>
           <button class="delete-account-setting" (click)="openDeleteAccount()">Delete account</button>
         </div>

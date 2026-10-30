@@ -21,6 +21,7 @@ import { GatewayService } from '../gateway/gateway.service';
 import { PresenceModule } from '../presence/presence.module';
 import { ChatModule } from '../chat/chat.module';
 import { QuestModule } from '../quests/quest.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { QuestModule } from '../quests/quest.module';
     PresenceModule,
     ChatModule,
     QuestModule,
+    NotificationsModule,
   ],
   controllers: [BattleController],
   // Maintenance-only Nest context never registers Bull consumers. The recovery

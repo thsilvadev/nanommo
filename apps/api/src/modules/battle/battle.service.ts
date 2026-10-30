@@ -36,6 +36,7 @@ import { GatewayService, BattleResolvedPayload, CharacterLeveledUpPayload, Chara
 import { MapPresenceService } from '../presence/map-presence.service';
 import { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
 import { QuestService } from '../quests/quest.service';
+import { NotificationsService } from '../notifications/notifications.service';
 export { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
 
 /** SPEC §11.2: epoch rollover once the counter reaches this many kills. */
@@ -114,6 +115,7 @@ export class BattleService {
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
     private readonly idleJournal: IdleJournalService,
     private readonly questService: QuestService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Serialize operations that may change a character's encounter chain across API/worker replicas. */
@@ -1250,7 +1252,7 @@ export class BattleService {
 
       // A failed capacity check discards only that drop; independent loot and
       // the battle's remaining payout continue through this same transaction.
-      await this.grantBattleDropsBestEffort(character, battle, manager);
+      const dropNotificationState = await this.grantBattleDropsBestEffort(character, battle, manager);
 
       // Keep Character + Inventory under one final Character revision.
       await characterRepo.save(character);
@@ -1336,6 +1338,7 @@ export class BattleService {
         autoFedItems,
         committedConsumptions,
         discardedBattleIds,
+        dropNotificationState,
         previousMapId: (routedToTown || movedToRequestedDestination) ? previousMapId : null,
       };
     }));
@@ -1354,6 +1357,25 @@ export class BattleService {
       // Do not let a duplicate or stale delivery perform a second payout or
       // trigger the processor's normal queue top-up path.
       return false;
+    }
+
+    if (result.kind === 'win' && result.dropNotificationState) {
+      try {
+        if (result.dropNotificationState.inventoryBecameFull) await this.notifications.publish(result.character.id, {
+          kind: 'inventory_full', target: 'inventory',
+          title: { 'pt-BR': 'Inventário cheio!', 'en-US': 'Inventory full!' },
+          body: { 'pt-BR': 'Seu inventário acabou de ficar cheio.', 'en-US': 'Your inventory just became full.' },
+        });
+        for (const itemId of result.dropNotificationState.discardedRareDrops) {
+          const name = itemId === 'mat_bliss_stone' ? 'Bliss Stone' : 'Divine Shard';
+          await this.notifications.publish(result.character.id, {
+            kind: 'rare_drop_discarded', target: 'inventory',
+            title: { 'pt-BR': 'Item descartado!', 'en-US': 'Item discarded!' },
+            body: { 'pt-BR': `Você dropou ${name}, mas o inventário estava cheio!`, 'en-US': `You dropped ${name}, but your inventory was full!` },
+            data: { itemId },
+          });
+        }
+      } catch (error) { this.logger.warn(`Battle drop notification failed: ${error instanceof Error ? error.message : String(error)}`); }
     }
 
     await this.publishCommittedBattleJournal(
@@ -1421,6 +1443,13 @@ export class BattleService {
         newLevel: result.character.level,
         unspentAttributePoints: result.character.unspentAttributePoints,
       });
+      try {
+        await this.notifications.publish(result.character.id, {
+          kind: 'level_up', target: 'character',
+          title: { 'pt-BR': 'Você subiu de nível!', 'en-US': 'You leveled up!' },
+          body: { 'pt-BR': `Você alcançou o nível ${result.character.level}.`, 'en-US': `You reached level ${result.character.level}.` },
+        });
+      } catch (error) { this.logger.warn(`Level-up notification failed: ${error instanceof Error ? error.message : String(error)}`); }
     }
     await this.safePublishBattleResolved(result.character.id, result.battle);
     try {
@@ -1652,22 +1681,30 @@ export class BattleService {
     });
   }
 
-  private async grantBattleDropsBestEffort(character: Character, battle: BattleQueueEntry, manager: EntityManager): Promise<void> {
-    if (!Array.isArray(battle.drops) || battle.drops.length === 0) return;
+  private async grantBattleDropsBestEffort(character: Character, battle: BattleQueueEntry, manager: EntityManager): Promise<{ inventoryBecameFull: boolean; discardedRareDrops: string[] }> {
+    const result = { inventoryBecameFull: false, discardedRareDrops: [] as string[] };
+    if (!Array.isArray(battle.drops) || battle.drops.length === 0) return result;
+    const inventoryRepo = manager.getRepository(InventoryItem);
+    let inventoryRows = await inventoryRepo.count({ where: { characterId: character.id, location: 'inventory' } });
     for (const drop of battle.drops) {
       try {
         const quantity = Number(drop.quantity ?? 1);
         if (!(await this.inventoryService.canFitInventoryDrop(character.id, drop.itemId, quantity, manager))) {
           this.logger.warn(`Discarded battle drop character=${character.id} battle=${battle.id} item=${drop.itemId} quantity=${quantity}: Inventory capacity insufficient`);
+          if (drop.itemId === 'mat_bliss_stone' || drop.itemId === 'mat_divine_shard') result.discardedRareDrops.push(drop.itemId);
           continue;
         }
         await this.inventoryService.addItem(character.id, drop.itemId, quantity, 'inventory', drop.instanceData, manager);
+        const nextCount = await inventoryRepo.count({ where: { characterId: character.id, location: 'inventory' } });
+        if (inventoryRows < 50 && nextCount >= 50) result.inventoryBecameFull = true;
+        inventoryRows = nextCount;
         const knownItems = Array.isArray(character.knownItemIds) ? character.knownItemIds : [];
         if (!knownItems.includes(drop.itemId)) character.knownItemIds = [...knownItems, drop.itemId];
       } catch (error) {
         this.logger.warn(`Failed to add drop ${drop.itemId} to ${character.id}: ${error instanceof Error ? error.message : 'unknown'}`);
       }
     }
+    return result;
   }
 
   private async publishCommittedBattleJournal(

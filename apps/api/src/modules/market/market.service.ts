@@ -10,6 +10,7 @@ import { MAX_MARKET_ORDER_GOLD } from '@nanommo/shared';
 import { marketGrossValue, marketListingFee } from './market-contract';
 import { BattleService } from '../battle/battle.service';
 import { MailService } from '../mail/mail.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const CHARACTER_GOLD_CAP = 1_000_000_000_000;
 
@@ -30,6 +31,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
     private readonly battleService: BattleService,
     private readonly mailService: MailService,
     private readonly dataSource: DataSource,
+    private readonly notifications: NotificationsService,
   ) {}
 
   onModuleInit(): void {
@@ -159,7 +161,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
 
   async purchaseOrder(characterId: string, orderId: string, quantity: number): Promise<MarketDeal> {
     if (!characterId) throw new NotFoundException('Character not found for authenticated account');
-    return this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
+    const deal = await this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
       const orders = manager.getRepository(MarketOrder);
       const characters = manager.getRepository(Character);
       const deals = manager.getRepository(MarketDeal);
@@ -199,6 +201,18 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       );
       return deal;
     }));
+    try {
+      const itemName = String(this.dataService.getItemById(deal.itemId)?.name ?? deal.itemId);
+      for (let index = 0; index < Math.max(1, Number(deal.quantity ?? 1)); index++) {
+        await this.notifications.publish(deal.sellerCharacterId, {
+          kind: 'market_sale', target: 'inbox',
+          title: { 'pt-BR': 'Item vendido no Mercado!', 'en-US': 'Item sold on the Market!' },
+          body: { 'pt-BR': `${itemName} foi vendido. Confira sua Caixa de Correio.`, 'en-US': `${itemName} was sold. Check your Mailbox.` },
+          data: { itemId: deal.itemId, mailTarget: 'inbox', saleIndex: index },
+        });
+      }
+    } catch (error) { this.logger.warn(`Market sale notification failed: ${error instanceof Error ? error.message : String(error)}`); }
+    return deal;
   }
 
   async cancelOrder(orderId: string, characterId: string): Promise<void> {

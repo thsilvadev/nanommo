@@ -888,3 +888,12 @@ The frontend Gambit editor keeps a last-successfully-saved title/lines snapshot 
 ## Shared Market-inspired visual palette — 2026-10-30
 
 The frontend's shared base palette follows the Market page's warm near-black gradient: `#17130f` over `#0d0c0b`, with muted brown borders and preserved bronze/gold accents. The gameplay shell and navigation use the same palette family. Character Summary keeps a slightly warmer/lighter panel gradient, while Grind Info keeps a subtly distinct solid surface; these variations are intentional. Semantic colors for HP, SP, statuses, warnings and action states remain independent. This is a presentation-only change.
+
+
+## Game notifications (2026-10-30, partial implementation)
+
+The notification subsystem is character-scoped. `characters.notification_state` stores acknowledged discovery keys and exactly one latest undelivered browser push. `push_subscriptions` stores browser endpoint/key material and locale. API routes under `/notifications` bootstrap state, persist acknowledgements, register/remove subscriptions and accept display receipts. Web Push uses VAPID secrets only on the API. The Service Worker at `/sw.js` shows push payloads, confirms after the display call resolves, and handles click-to-focus/open navigation. A stale receipt is ignored unless its ID/token still matches the single pending slot.
+
+Push events currently integrated: inventory becoming 50 occupied slots, Bliss Stone/Divine Shard discarded due to capacity, a character level-up, and Market sale item(s). The pending slot is replaced by every newer event; no historical queue or TTL is used. Existing subscriptions are refreshed when a player enters the game, allowing the newest pending event to be sent after downtime. Browser permission is requested only from an explicit settings-menu action. The API must be configured with `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT`.
+
+Progression indicators currently derive from authoritative Character unspent attribute points and WeaponProficiency XP/spentSkillPoints. Discovery indicators for Gambit, NPC/city, quests and Mailbox remain to be integrated; this is a partial implementation, not the completed notification feature. Migration `1800200000000-GameNotifications` is forward-only and intentionally unapplied.

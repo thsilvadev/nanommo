@@ -11,6 +11,7 @@ import { DataModule } from '../data/data.module';
 import { GatewayModule } from '../gateway/gateway.module';
 import { BattleModule } from '../battle/battle.module';
 import { MailModule } from '../mail/mail.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MailModule } from '../mail/mail.module';
     GatewayModule,
     BattleModule,
     MailModule,
+    NotificationsModule,
   ],
   controllers: [MarketController],
   providers: [MarketService],

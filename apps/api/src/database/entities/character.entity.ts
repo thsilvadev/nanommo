@@ -23,6 +23,10 @@ export class Character {
   @Column({ type: 'varchar', length: 5, default: 'right' })
   dominantHand!: 'right' | 'left';
 
+  /** Durable notification acknowledgements and the single latest undelivered browser push. */
+  @Column({ name: 'notification_state', type: 'jsonb', default: () => `'{"acknowledged":[],"pendingPush":null}'::jsonb` })
+  notificationState!: { acknowledged: string[]; pendingPush: any | null };
+
   /** Catalogue IDs known to this character for Gambit configuration. */
   @Column({ type: 'jsonb', default: '[]' })
   knownItemIds!: string[];
