@@ -1365,26 +1365,20 @@
       "description": null,
       "monsters_quantity": 100,
       "monsters": [
-        {
-          "monsterId": "mon_bandit",
-          "presenceRate": 25
-        },
+
         {
           "monsterId": "mon_ridgebreaker",
-          "presenceRate": 25
+          "presenceRate": 50
         },
         {
           "monsterId": "mon_needlebackstalker",
-          "presenceRate": 25
-        },
-        {
-          "monsterId": "mon_giantmosquito",
-          "presenceRate": 25
+          "presenceRate": 50
         }
+
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20,
+      "recommendedLevel": 21,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -1408,7 +1402,7 @@
       "monsters": [
         {
           "monsterId": "mon_bandit",
-          "presenceRate": 35
+          "presenceRate": 55
         },
         {
           "monsterId": "mon_ridgebreaker",
@@ -1416,11 +1410,7 @@
         },
         {
           "monsterId": "mon_needlebackstalker",
-          "presenceRate": 25
-        },
-        {
-          "monsterId": "mon_giantmosquito",
-          "presenceRate": 25
+          "presenceRate": 30
         }
       ],
       "unlockLevel": 0,
@@ -1449,7 +1439,7 @@
       "monsters": [
         {
           "monsterId": "mon_bandit",
-          "presenceRate": 30
+          "presenceRate": 20
         },
         {
           "monsterId": "mon_ridgebreaker",
@@ -1457,16 +1447,16 @@
         },
         {
           "monsterId": "mon_needlebackstalker",
-          "presenceRate": 25
+          "presenceRate": 15
         },
         {
           "monsterId": "mon_giantmosquito",
-          "presenceRate": 20
+          "presenceRate": 40
         }
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20,
+      "recommendedLevel": 27,
       "mapLength": 25,
       "gatheringPool": [
         {
