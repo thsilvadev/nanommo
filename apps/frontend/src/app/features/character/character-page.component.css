@@ -25,28 +25,21 @@
 }
 .sheet-tabs {
   display: flex;
-  flex-wrap: nowrap;
+  width: 100%;
   border: 1px solid #523b24;
   background: #140e0a;
   flex: 0 0 auto;
-  width: 100%;
-  min-width: 0;
 }
 .sheet-tabs button {
   position: relative;
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: auto;
-  min-width: max-content;
-  padding: 10px 16px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 12px;
   border: 0;
-  border-right: 1px solid #523b24;
+  border-right: 1px solid #3d2b1b;
   background: transparent;
   color: #a89478;
-  font: 18px Georgia, serif;
-  line-height: 1.2;
+  font: 23px Georgia;
   white-space: nowrap;
   cursor: pointer;
 }
