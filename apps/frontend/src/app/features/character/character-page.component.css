@@ -25,11 +25,32 @@
 }
 .sheet-tabs {
   display: flex;
+  flex-wrap: nowrap;
   border: 1px solid #523b24;
   background: #140e0a;
   flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
 }
-
+.sheet-tabs button {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: max-content;
+  padding: 10px 16px;
+  border: 0;
+  border-right: 1px solid #523b24;
+  background: transparent;
+  color: #a89478;
+  font: 18px Georgia, serif;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sheet-tabs button:last-child { border-right: 0; }
 .sheet-tabs button.active {
   background: #3b2818;
   color: #e1bd70;
