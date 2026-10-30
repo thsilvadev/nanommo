@@ -1615,7 +1615,7 @@
           }
         }
       },
-      "sellPriceToVendor": 2300,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 5750,
       "dropPool": [
         "map_lv_1",
@@ -3008,7 +3008,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -3070,7 +3070,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -3380,7 +3380,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -3442,7 +3442,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -3738,7 +3738,7 @@
           "LUK"
         ]
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -3786,7 +3786,7 @@
           "LUK"
         ]
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -4039,7 +4039,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1200,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 3000,
       "randomRollOnCraft": {
         "enabled": true,
@@ -4096,7 +4096,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1200,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 3000,
       "dropPool": [
         "map_lv_1",
@@ -4642,7 +4642,7 @@
         "def": 1,
         "moveSpeed": 10
       },
-      "sellPriceToVendor": 1400,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 3500,
       "dropPool": [],
       "randomRollOnCraft": {
