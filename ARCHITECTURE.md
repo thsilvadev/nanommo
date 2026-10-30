@@ -883,3 +883,8 @@ Soul Tokens are a Character-owned integer balance, not an item, and are intentio
 ## Gambit editor save-state feedback — 2026-10-30
 
 The frontend Gambit editor keeps a last-successfully-saved title/lines snapshot per page. Any effective change to a page (title, line add/remove/reorder, condition/action/parameter, or enabled toggle) makes that page dirty. The Save Page button is disabled when the current page is unchanged and becomes a high-contrast yellow CTA with a strong glow while changes are pending; it returns to disabled only after the corresponding save request succeeds. Failed saves preserve local edits and validation feedback. Switching between page tabs does not discard edits; dirty tabs retain a small indicator. Save completion records the exact submitted snapshot so edits made while a request is in flight remain dirty rather than being incorrectly treated as saved.
+
+
+## Shared Market-inspired visual palette — 2026-10-30
+
+The frontend's shared base palette follows the Market page's warm near-black gradient: `#17130f` over `#0d0c0b`, with muted brown borders and preserved bronze/gold accents. The gameplay shell and navigation use the same palette family. Character Summary keeps a slightly warmer/lighter panel gradient, while Grind Info keeps a subtly distinct solid surface; these variations are intentional. Semantic colors for HP, SP, statuses, warnings and action states remain independent. This is a presentation-only change.

@@ -3,9 +3,9 @@
   height: 100dvh;
   background: radial-gradient(
     circle at 50% -10%,
-    #3a281b 0,
-    #17110c 42%,
-    #0d0a08 100%
+    #282019 0,
+    #17130f 42%,
+    #0d0c0b 100%
   );
   color: var(--nm-text);
   font-family: Georgia, "Times New Roman", serif;
@@ -14,7 +14,7 @@
 .game-topbar {
   height: var(--nm-topbar-height);
   min-height: var(--nm-topbar-height);
-  background: #130e0a;
+  background: #15110e;
   border-bottom: 1px solid var(--nm-bronze);
   display: flex;
   align-items: center;
@@ -279,8 +279,8 @@
   flex-direction: column;
   align-items: stretch;
   gap: 7px;
-  background: #17100c;
-  border: 1px solid #654828;
+  background: #17130f;
+  border: 1px solid #57442e;
   box-shadow: 0 8px 24px #000a;
   padding: 10px;
   min-width: 190px;

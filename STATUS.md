@@ -1,3 +1,7 @@
+### Site-wide Market color palette — 2026-10-30
+
+Shifted the shared frontend base colors to the Market's warm near-black palette (`#17130f` / `#0d0c0b`) and aligned the gameplay shell, topbar, settings menu, Character sheet and Grind surfaces. Character and Grind retain subtly distinct panel tones rather than becoming visually identical. Accent colors and semantic HP/SP/status colors remain unchanged; no layout or behavior changes. Frontend production build and `git diff --check` passed.
+
 ### Fearless Focus distance-scaled ATK — 2026-10-30
 
 Fearless Focus now adds `5 × rank × empty-space distance` ATK to every Bow basic attack, in addition to its existing `5 × rank` and `5 × distance` Precision bonuses. The distance is sampled at attack start, and the ATK bonus is added before critical-hit, mitigation and damage variance. Updated the skill catalogue description/effect fields, frontend mirror, SPEC/ARCHITECTURE and OpenSpec contract. Shared/API production builds, deterministic mastery simulator test and `git diff --check` passed. No migration, deployment, or live database mutation.
