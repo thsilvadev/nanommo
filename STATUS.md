@@ -1,3 +1,7 @@
+### Fearless Focus distance-scaled ATK — 2026-10-30
+
+Fearless Focus now adds `5 × rank × empty-space distance` ATK to every Bow basic attack, in addition to its existing `5 × rank` and `5 × distance` Precision bonuses. The distance is sampled at attack start, and the ATK bonus is added before critical-hit, mitigation and damage variance. Updated the skill catalogue description/effect fields, frontend mirror, SPEC/ARCHITECTURE and OpenSpec contract. Shared/API production builds, deterministic mastery simulator test and `git diff --check` passed. No migration, deployment, or live database mutation.
+
 ### Fire skill Burn damage scaling — 2026-10-30
 
 Fire Ball and Fire Blast now declare `burnDamage: source_matk_div_5` and apply Burn for `floor(source_matk / 5)` damage per tick, instead of the full source MATK. The amount is captured when Burn is applied and ticks every five ticks as before. Updated the focused mastery simulator assertions and skill descriptions/specification. Shared and API production builds passed; the mastery simulator passed with deterministic Burn checks for both skills; `git diff --check` passed. No migration, deployment, or live database mutation.

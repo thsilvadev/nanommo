@@ -1394,7 +1394,7 @@ Current combat remains a single character versus one monster. Positional Mastery
 
 The reserved future City respec price ladder is 100k, 200k, 300k, 400k, 500k, 1kk, 2kk, 3kk, 4kk, 5kk, 10kk, 20kk, 30kk, 40kk, and 50kk; later respecs remain capped at 50kk. No Town respec interface is part of this contract.
 
-Precision and Evasion use `79 + floor(total DEX / 3) + modifiers` and `99 + floor(total AGI / 3) + modifiers`. Equipping any Bow multiplies the resulting Precision by 0.5 (rounded down); this is not a tier-specific flat subtraction. Fearless Focus no longer increases damage: a learned rank grants `5 × rank` Precision plus `5 × empty-space distance` at the start of each basic attack. Hit chance is `clamp(100 + Precision - Evasion, 5, 95)`. The Bow penalty applies to derived Precision after attribute/equipment contributions, before Fearless Focus's per-attack bonus.
+Precision and Evasion use `79 + floor(total DEX / 3) + modifiers` and `99 + floor(total AGI / 3) + modifiers`. Equipping any Bow multiplies the resulting Precision by 0.5 (rounded down); this is not a tier-specific flat subtraction. Fearless Focus applies to each Bow basic attack: it grants `5 × rank + 5 × empty-space distance` to both Precision and ATK, using the distance at the start of the attack. Hit chance is `clamp(100 + Precision - Evasion, 5, 95)`. The Bow penalty applies to derived Precision after attribute/equipment contributions, before Fearless Focus's per-attack bonus.
 
 ## Refining hand equipment and Mastery skills — 2026-10-13
 

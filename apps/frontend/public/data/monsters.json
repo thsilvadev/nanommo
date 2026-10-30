@@ -176,6 +176,101 @@
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
       "moveSpd": 63
+    }, {
+      "id": "mon_mutantbee",
+      "name": "Mutant Bee",
+      "level": 5,
+      "hp": 230,
+      "atk": 18,
+      "matk": 12,
+      "def": 5,
+      "mdefPercent": 0,
+      "accuracy": 103,
+      "evasion": 118,
+      "critChance": 4.2,
+      "atkSpeedTicks": 5,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "archer",
+      "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1,
+        "magic": 1
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 112,
+      "designNote": "A hostile, mutated bee that coats its stinger in a lingering pain toxin.",
+      "drops": [
+        {
+          "itemId": "part_mutantbee_common",
+          "chance": 0.55
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "part_mutantbee_rare",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "self_missing_status",
+            "status": "tip_of_pain"
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_sting"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 55,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 66
     },
     {
       "id": "mon_thornsprout",
@@ -454,6 +549,175 @@
       "spRegenPerTenTicks": 2,
       "isAggressive": true,
       "moveSpd": 68
+    },
+    {
+      "id": "mon_mudflatcrocodile",
+      "name": "Mudflat Crocodile",
+      "level": 12,
+      "hp": 794,
+      "atk": 61,
+      "matk": 36,
+      "def": 9,
+      "mdefPercent": 0,
+      "accuracy": 99,
+      "evasion": 103,
+      "critChance": 4.3,
+      "atkSpeedTicks": 7,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1,
+        "magic": 1
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 236,
+      "designNote": "Mudflat Crocodile: crocodile role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_mudflatcrocodile_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_mudflatcrocodile_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 45,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 36
+    },  {
+      "id": "mon_gravelhorn",
+      "name": "Gravelhorn",
+      "level": 11,
+      "hp": 770,
+      "atk": 51,
+      "matk": 34,
+      "def": 14,
+      "mdefPercent": 0,
+      "accuracy": 98,
+      "evasion": 107,
+      "critChance": 4.3,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 0.7,
+        "ranged": 1,
+        "magic": 1.3
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 213,
+      "designNote": "Gravelhorn: armored role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_gravelhorn_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_gravelhorn_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 64,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true,
+      "moveSpd": 55
     },
     {
       "id": "mon_sandscorpion",
@@ -1848,91 +2112,6 @@
       "moveSpd": 92
     },
     {
-      "id": "mon_mudflatcrocodile",
-      "name": "Mudflat Crocodile",
-      "level": 12,
-      "hp": 794,
-      "atk": 61,
-      "matk": 36,
-      "def": 9,
-      "mdefPercent": 0,
-      "accuracy": 99,
-      "evasion": 103,
-      "critChance": 4.3,
-      "atkSpeedTicks": 7,
-      "element": null,
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 1,
-        "ranged": 1,
-        "magic": 1
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 236,
-      "designNote": "Mudflat Crocodile: crocodile role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_mudflatcrocodile_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_mudflatcrocodile_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_head_magic_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_cape_phys_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_cape_magic_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_accessory_dex_t1",
-          "chance": 0.005
-        },
-        {
-          "itemId": "equip_shoes_traveler_t1",
-          "chance": 0.001
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 45,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 36
-    },
-    {
       "id": "mon_bandit",
       "name": "Bandit",
       "level": 25,
@@ -2368,91 +2547,7 @@
       "isAggressive": true,
       "moveSpd": 94
     },
-    {
-      "id": "mon_gravelhorn",
-      "name": "Gravelhorn",
-      "level": 11,
-      "hp": 770,
-      "atk": 51,
-      "matk": 34,
-      "def": 14,
-      "mdefPercent": 0,
-      "accuracy": 98,
-      "evasion": 107,
-      "critChance": 4.3,
-      "atkSpeedTicks": 7,
-      "element": "earth",
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 0.7,
-        "ranged": 1,
-        "magic": 1.3
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 213,
-      "designNote": "Gravelhorn: armored role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_gravelhorn_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_gravelhorn_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_head_magic_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_cape_phys_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_cape_magic_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_accessory_dex_t1",
-          "chance": 0.005
-        },
-        {
-          "itemId": "equip_shoes_traveler_t1",
-          "chance": 0.001
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 64,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 55
-    },
+
     {
       "id": "mon_ridgebreaker",
       "name": "Ridgebreaker",
@@ -3386,102 +3481,7 @@
       "isAggressive": true,
       "moveSpd": 99
     },
-    {
-      "id": "mon_mutantbee",
-      "name": "Mutant Bee",
-      "level": 5,
-      "hp": 230,
-      "atk": 18,
-      "matk": 12,
-      "def": 5,
-      "mdefPercent": 0,
-      "accuracy": 103,
-      "evasion": 118,
-      "critChance": 4.2,
-      "atkSpeedTicks": 5,
-      "element": null,
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "archer",
-      "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
-      "damageTakenMultiplier": {
-        "melee": 1,
-        "ranged": 1,
-        "magic": 1
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 112,
-      "designNote": "A hostile, mutated bee that coats its stinger in a lingering pain toxin.",
-      "drops": [
-        {
-          "itemId": "part_mutantbee_common",
-          "chance": 0.55
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "part_mutantbee_rare",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_phys_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_head_magic_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_cape_phys_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_cape_magic_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_accessory_dex_t1",
-          "chance": 0.005
-        },
-        {
-          "itemId": "equip_shoes_traveler_t1",
-          "chance": 0.001
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "self_missing_status",
-            "status": "tip_of_pain"
-          },
-          "action": {
-            "type": "use_skill",
-            "skillId": "monster_skill_sting"
-          }
-        },
-        {
-          "priority": 2,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 55,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 66
-    },
+
     {
       "id": "mon_giantmantis",
       "name": "Giant Mantis",

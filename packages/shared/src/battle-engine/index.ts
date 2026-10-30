@@ -1235,6 +1235,9 @@ export class BattleEngine {
             const fearlessEffect = fearlessSkill?.effect ?? {};
             const fearlessPrecisionPerRank = Math.max(0, Number(fearlessEffect.accuracyPerRank ?? 5));
             const fearlessPrecisionPerSpace = Math.max(0, Number(fearlessEffect.accuracyPerSpace ?? 5));
+            const fearlessAtkPerRank = Math.max(0, Number(fearlessEffect.atkPerRank ?? 5));
+            const fearlessAtkPerSpace = Math.max(0, Number(fearlessEffect.atkPerSpace ?? 5));
+            const fearlessAtkBonus = fearlessRank * fearlessAtkPerRank + distanceAtActionStart * fearlessAtkPerSpace;
             const precisionUsed = Number(self.accuracy)
               + fearlessRank * fearlessPrecisionPerRank
               + distanceAtActionStart * fearlessPrecisionPerSpace;
@@ -1242,7 +1245,7 @@ export class BattleEngine {
             const landed = rng.chance(hitChance / 100);
             const crit = landed && rng.chance(self.critChance / 100);
             const attackType = self.basicAttackDamageType ?? 'melee';
-            const baseDamage = self.atk * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
+            const baseDamage = (self.atk + fearlessAtkBonus) * (crit ? BattleEngine.CRIT_MULTIPLIER : 1);
             const daggerHands = (self.masteryEquipment ?? []).filter((hand) => hand.category === 'dagger').length;
             const doubleStrikeRank = Math.max(0, Number(self.skillDefs?.double_strike?.masteryRank ?? 0));
             const doubleStrikeChance = Math.min(1, daggerHands * doubleStrikeRank * 0.05);
@@ -1269,7 +1272,7 @@ export class BattleEngine {
               target: 'monster',
               damage,
               ...(doubleStrikeTriggered ? { damageComponents, doubleStrikeTriggered: true } : {}),
-              ...(fearlessRank > 0 ? { distanceAtActionStart, precisionUsed } : {}),
+              ...(fearlessRank > 0 ? { distanceAtActionStart, precisionUsed, fearlessAtkBonus } : {}),
               damageType: attackType,
               crit,
               hit: landed,

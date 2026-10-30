@@ -199,15 +199,16 @@
         "maxRank": 5,
         "prerequisite": null,
         "spCost": 0,
-        "description": "Adds +5 Precision per rank and +5 Precision per empty space. Does not increase damage.",
-        "effectDescription": "Adds +5 Precision per rank and +5 Precision per empty space. Does not increase damage.",
+        "description": "Each Bow basic attack gains +5 Precision per rank and +5 Precision per empty space. It also gains +5 ATK per rank for each empty space between you and your target.",
+        "effectDescription": "Each Bow basic attack gains +5 Precision per rank and +5 Precision per empty space. It also gains +5 ATK per rank for each empty space between you and your target.",
         "requiresWeaponEquipped": "bow",
         "baseCastTicks": 0,
         "cooldownTicks": 0,
         "effect": {
           "type": "fearless_focus_passive",
           "accuracyPerRank": 5,
-          "accuracyPerSpace": 5
+          "accuracyPerSpace": 5,
+          "atkPerRankPerSpace": 5
         }
       },
       {

@@ -278,8 +278,9 @@ function run() {
   const focusAttack = focusResult.log.events.find((e) => e.action === 'attack' && e.actor === 'character');
   assert(focusAttack && focusAttack.distanceAtActionStart === 6, 'Fearless Focus reads the start-of-action empty-space distance');
   assert.equal(focusAttack.precisionUsed, 545, 'Rank 3 adds 15 Precision from rank plus 30 from six empty spaces');
-  assert(focusAttack.damage >= 99000 && focusAttack.damage <= 101000,
-    'Fearless Focus no longer multiplies damage; only the existing direct-damage variance applies');
+  assert.equal(focusAttack.fearlessAtkBonus, 45, 'Rank 3 adds 15 ATK from rank plus 30 from six empty spaces');
+  assert(focusAttack.damage >= 99044 && focusAttack.damage <= 101046,
+    'Fearless Focus adds its rank-and-distance ATK before the existing direct-damage variance');
 
   const brutalityOnly = rankedDefinition('brutality', 5);
   const brutalitySnapshot = character({

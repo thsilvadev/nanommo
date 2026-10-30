@@ -189,7 +189,7 @@ The catalogue SHALL define these current active/passive effects and costs:
 - Shield: Shield Bash passive, 2% chance × rank when a landed incoming basic attack occurs at distance 0 (adjacent directly in front), stun 5 seconds; War Cry active, 50 SP, +20 DEF for 10 seconds, 30-second cooldown.
 - Staff: Fire Ball active, 10 SP × rank, MATK + 30 × rank, cast 3 seconds, cooldown 1 second, 5% Burn chance; Fire Blast active, 100 SP × rank, MATK + 50 × rank, cast 6 seconds, cooldown 15 seconds, 50% Burn chance. Burn lasts 25 seconds, ticks MATK every 5 seconds, does not stack and refreshes on reapplication.
 - Rod: Wisp Flow active, 5 SP × rank, MATK + remaining SP after cost, cast 2 seconds, cooldown 1 second; Light of Heaven active, 20 SP × rank, heals 50 × rank + floor(target max HP × floor(MATK / 20) / 100), cast 5 seconds, cooldown 9/8/7/6/5 seconds.
-- Bow: Fearless Focus passive, basic attacks gain `5 × rank + 5 × empty-space distance` Precision with no damage bonus; Violent Shot active, 20/40/60/80/100 SP, raw physical damage 50 × rank, 15-second cooldown and pushes the target away to distance six (maximum lane separation).
+- Bow: Fearless Focus passive, each Bow basic attack gains `5 × rank + 5 × empty-space distance` Precision and the same `5 × rank + 5 × empty-space distance` ATK; Violent Shot active, 20/40/60/80/100 SP, raw physical damage 50 × rank, 15-second cooldown and pushes the target away to distance six (maximum lane separation).
 - Rune: Stored Essence passive, final SP cost = max(1, floor(base cost × (1 - 0.05 × rank))); Magic Barrier active, 50 SP × rank, self barrier 100 magic damage × rank for 300 seconds, 30-second cooldown.
 
 All positional effects SHALL consume the position/range contract from battle-distance-movement, which must be implemented before this change. Greatsword and Staff intentionally have two active skills instead of an invented passive. All current battle resolution remains single-target except self-target effects; future AoE/party targets require a separate group-combat change.
@@ -304,7 +304,7 @@ This change SHALL use the position/distance API and event contract established b
 - **GIVEN** a Bow basic attack resolves with Fearless Focus at rank N and distance D empty spaces
 - **WHEN** the hit roll is calculated
 - **THEN** Precision is increased by `5 × N + 5 × D` using the start-of-tick distance from the battle snapshot
-- **AND** Fearless Focus does not multiply damage
+- **AND** base ATK is increased by `5 × N × D` before critical-hit and damage calculations
 
 #### Scenario: Violent Shot push
 - **GIVEN** Violent Shot resolves
