@@ -54,6 +54,7 @@
   background: #382618;
   padding: 8px 10px;
 }
+.page-dirty-indicator{color:#ffd34e;font-size:10px;text-shadow:0 0 7px #ffb800}
 .page-meta {
   display: grid;
   grid-template-columns: minmax(160px, 1fr) auto auto;
@@ -84,10 +85,7 @@
   white-space: nowrap;
   cursor: pointer;
 }
-.page-actions button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
+.page-actions button.save-page.dirty{color:#211506;background:#ffd34e;border:1px solid #fff0a3;box-shadow:0 0 12px #ffc94dcc;font-weight:700}
 .page-title-input {
   width: 100%;
   min-width: 0;

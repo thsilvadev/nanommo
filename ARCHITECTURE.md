@@ -878,3 +878,8 @@ GameAudioService explicitly resolves a cancelled animation-frame fade when a new
 ## Soul Token wallet and Oracle respec — 2026-10-29
 
 Soul Tokens are a Character-owned integer balance, not an item, and are intentionally excluded from all earning/trading systems in the first release. A forward-only migration seeds legacy Characters with 1,000 and the Character creation path assigns the same starting balance. The Oracle is map-catalogue controlled and available on all Town maps except Outpost. Its respec is serialized through the existing future-combat mutation boundary, then performed in a row-locked database transaction so the 600-token charge, six-stat reset, and attribute-point refund are atomic.
+
+
+## Gambit editor save-state feedback — 2026-10-30
+
+The frontend Gambit editor keeps a last-successfully-saved title/lines snapshot per page. Any effective change to a page (title, line add/remove/reorder, condition/action/parameter, or enabled toggle) makes that page dirty. The Save Page button is disabled when the current page is unchanged and becomes a high-contrast yellow CTA with a strong glow while changes are pending; it returns to disabled only after the corresponding save request succeeds. Failed saves preserve local edits and validation feedback. Switching between page tabs does not discard edits; dirty tabs retain a small indicator. Save completion records the exact submitted snapshot so edits made while a request is in flight remain dirty rather than being incorrectly treated as saved.

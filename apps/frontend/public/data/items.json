@@ -1615,7 +1615,7 @@
           }
         }
       },
-      "sellPriceToVendor": 2300,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 5750,
       "dropPool": [
         "map_lv_1",
@@ -3008,7 +3008,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -3070,7 +3070,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -3380,7 +3380,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -3442,7 +3442,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -3727,18 +3727,32 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "hp",
+          "sp",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 20,
+            "max": 50
+          },
+          "sp": {
+            "min": 10,
+            "max": 25
+          },
+          "evasion": {
+            "min": 3,
+            "max": 8
+          },
+          "defense": {
+            "min": 4,
+            "max": 10
+          }
+        }
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -3775,18 +3789,32 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "hp",
+          "sp",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 20,
+            "max": 50
+          },
+          "sp": {
+            "min": 10,
+            "max": 25
+          },
+          "evasion": {
+            "min": 3,
+            "max": 8
+          },
+          "defense": {
+            "min": 4,
+            "max": 10
+          }
+        }
       },
-      "sellPriceToVendor": 1600,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 4000,
       "dropPool": [
         "map_lv_1",
@@ -3821,18 +3849,32 @@
           "STR": 1
         }
       },
-      "randomRollOnDrop": {
+            "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "hp",
+          "sp",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 40,
+            "max": 100
+          },
+          "sp": {
+            "min": 20,
+            "max": 50
+          },
+          "evasion": {
+            "min": 5,
+            "max": 12
+          },
+          "defense": {
+            "min": 7,
+            "max": 15
+          }
+        }
       },
       "sellPriceToVendor": 4160,
       "marketBasePrice": 10400,
@@ -3869,18 +3911,32 @@
           "DEX": 1
         }
       },
-      "randomRollOnDrop": {
+            "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "hp",
+          "sp",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 40,
+            "max": 100
+          },
+          "sp": {
+            "min": 20,
+            "max": 50
+          },
+          "evasion": {
+            "min": 5,
+            "max": 12
+          },
+          "defense": {
+            "min": 7,
+            "max": 15
+          }
+        }
       },
       "sellPriceToVendor": 4160,
       "marketBasePrice": 10400,
@@ -3919,16 +3975,30 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "hp",
+          "sp",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 80,
+            "max": 200
+          },
+          "sp": {
+            "min": 40,
+            "max": 100
+          },
+          "evasion": {
+            "min": 8,
+            "max": 18
+          },
+          "defense": {
+            "min": 11,
+            "max": 22
+          }
+        }
       },
       "sellPriceToVendor": 7680,
       "marketBasePrice": 19200,
@@ -3967,16 +4037,30 @@
       },
       "randomRollOnDrop": {
         "enabled": true,
-        "min": 1,
-        "max": 6,
-        "attributesPool": [
-          "STR",
-          "AGI",
-          "DEX",
-          "VIT",
-          "INT",
-          "LUK"
-        ]
+        "statsPool": [
+          "hp",
+          "sp",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 80,
+            "max": 200
+          },
+          "sp": {
+            "min": 40,
+            "max": 100
+          },
+          "evasion": {
+            "min": 8,
+            "max": 18
+          },
+          "defense": {
+            "min": 11,
+            "max": 22
+          }
+        }
       },
       "sellPriceToVendor": 7680,
       "marketBasePrice": 19200,
@@ -4039,7 +4123,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1200,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 3000,
       "randomRollOnCraft": {
         "enabled": true,
@@ -4096,7 +4180,7 @@
           }
         }
       },
-      "sellPriceToVendor": 1200,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 3000,
       "dropPool": [
         "map_lv_1",
@@ -4642,7 +4726,7 @@
         "def": 1,
         "moveSpeed": 10
       },
-      "sellPriceToVendor": 1400,
+      "sellPriceToVendor": 500,
       "marketBasePrice": 3500,
       "dropPool": [],
       "randomRollOnCraft": {
@@ -4666,7 +4750,34 @@
           "name": "Traveler’s Boots"
         }
       },
-      "description": "An entry-level pair of boots for adventurers requiring level 1. Base attributes: +1 Defense, +10 Move Speed. It may gain bonus attributes when dropped or crafted."
+      "description": "An entry-level pair of boots for adventurers requiring level 1. Base attributes: +1 Defense, +10 Move Speed. It may gain bonus attributes when dropped or crafted.",
+      "randomRollOnDrop": {
+        "enabled": true,
+        "statsPool": [
+          "hp",
+          "sp",
+          "evasion",
+          "defense"
+        ],
+        "rolls": {
+          "hp": {
+            "min": 20,
+            "max": 50
+          },
+          "sp": {
+            "min": 10,
+            "max": 25
+          },
+          "evasion": {
+            "min": 3,
+            "max": 8
+          },
+          "defense": {
+            "min": 4,
+            "max": 10
+          }
+        }
+      }
     }
   ],
   "materials": [
@@ -4890,7 +5001,7 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 500,
-      "marketBasePrice": 1250,
+      "marketBasePrice": 500,
       "usableFor": [
         "equipment_refinement"
       ],
@@ -4902,7 +5013,7 @@
           "name": "Bliss Stone"
         }
       },
-      "description": "A protective stone used to safeguard equipment during refinement."
+      "description": "A perfectly shaped gemstone. Used in advanced equipment refinement."
     },
     {
       "id": "mat_divine_shard",
@@ -4912,7 +5023,7 @@
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 2500,
-      "marketBasePrice": 6250,
+      "marketBasePrice": 2500,
       "usableFor": [
         "equipment_refinement"
       ],
@@ -4924,7 +5035,7 @@
           "name": "Divine Shard"
         }
       },
-      "description": "A shard of divine crystal used in advanced equipment refinement."
+      "description": "A shard of divine crystal with magical properties, used to safeguard equipment during refinement."
     }
   ]
 }

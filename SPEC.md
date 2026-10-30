@@ -1115,6 +1115,7 @@ Equipment item icons in Character UI must render white/light rather than black, 
 - Unavailable actions remain visible but greyed out with an explanatory tooltip.
 - Disabled-by-player and unavailable-by-state are visually distinct.
 - Three pages, one active page, optional title.
+- Track unsaved changes independently per page by comparing the current title/lines with the last successfully saved snapshot. The Save Page button starts disabled, becomes prominently yellow with a strong glow when the current page is dirty, and disables again only after a successful save. Failed saves retain edits and the dirty state; switching editor tabs preserves each page's pending edits and marks dirty tabs.
 - Switching active page is blocked while a battle is in flight.
 - Server field-level validation highlights the exact failing control.
 - No dry-run/simulation UI in MVP.

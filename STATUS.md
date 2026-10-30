@@ -2411,3 +2411,8 @@ Fixed a race in regional music fades: cancelling an in-progress animation now re
 ### Animated Bliss Stone and Divine Shard inventory icons — 2026-10-30
 
 Replaced the normal inventory SVG references for Bliss Stone and Divine Shard with the user-supplied 128×128 RGBA APNG assets (`mat_bliss_stone_alpha.png` and `mat_divine_shard_alpha.png`). The APNGs preserve full alpha and animation; the GIF alternatives remain in the asset folder but are not used. Their framed variants remain SVG. `CatalogService.itemIcon()` now selects the APNG filename only for the two no-frame material icons; the UI asset validator checks the correct per-variant extension/path. Removed the superseded no-frame SVG files. Updated root SPEC and ARCHITECTURE to document this exception. UI asset validation passed (132 items, 29 skills, 15 statuses; 308 paths) and `git diff --check` passed. Frontend production build is pending. No backend/gameplay/database/deployment changes.
+
+
+### Gambit editor unsaved-change save CTA — 2026-10-30
+
+Added per-page dirty-state tracking against the last successfully saved title/lines snapshot. Save Page starts disabled, becomes a prominent yellow/gold CTA with a strong glow when the current page has unsaved edits, and returns to disabled after a successful save. Dirty pages show a small marker in their tabs; switching tabs preserves each page's in-memory edits. Failed saves retain edits and validation details instead of reloading/discarding the editor state. The saved baseline is the exact submitted payload, so edits made while a save is in flight remain dirty. Updated root SPEC and ARCHITECTURE. Frontend production build passed; `git diff --check` passed. Browser/manual interaction verification remains pending.

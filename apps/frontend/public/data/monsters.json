@@ -42,19 +42,19 @@
         },
         {
           "itemId": "equip_head_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_head_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_accessory_dex_t1",
@@ -134,19 +134,19 @@
         },
         {
           "itemId": "equip_head_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_head_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_accessory_dex_t1",
@@ -221,19 +221,19 @@
         },
         {
           "itemId": "equip_head_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_head_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_accessory_dex_t1",
@@ -312,19 +312,19 @@
         },
         {
           "itemId": "equip_head_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_head_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_accessory_dex_t1",
@@ -401,19 +401,19 @@
         },
         {
           "itemId": "equip_head_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_head_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_accessory_dex_t1",
@@ -462,7 +462,7 @@
       "hp": 878,
       "atk": 60,
       "matk": 40,
-      "def": 31,
+      "def": 20,
       "mdefPercent": 0,
       "accuracy": 97,
       "evasion": 109,
@@ -499,19 +499,19 @@
         },
         {
           "itemId": "equip_head_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_head_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_accessory_dex_t1",
@@ -1889,19 +1889,19 @@
         },
         {
           "itemId": "equip_head_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_head_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_accessory_dex_t1",
@@ -2410,19 +2410,19 @@
         },
         {
           "itemId": "equip_head_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_head_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_accessory_dex_t1",
@@ -2458,12 +2458,12 @@
       "name": "Ridgebreaker",
       "level": 18,
       "hp": 1106,
-      "atk": 94,
+      "atk": 84,
       "matk": 48,
-      "def": 12,
+      "def": 14,
       "mdefPercent": 0,
       "accuracy": 101,
-      "evasion": 108,
+      "evasion": 104,
       "critChance": 4.5,
       "atkSpeedTicks": 7,
       "element": "earth",
@@ -2587,11 +2587,11 @@
       "name": "Saltfang Crab",
       "level": 18,
       "hp": 985,
-      "atk": 72,
+      "atk": 68,
       "matk": 48,
       "def": 22,
       "mdefPercent": 0,
-      "accuracy": 92,
+      "accuracy": 82,
       "evasion": 112,
       "critChance": 4.5,
       "atkSpeedTicks": 7,
@@ -3428,19 +3428,19 @@
         },
         {
           "itemId": "equip_head_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_head_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_phys_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_cape_magic_t1",
-          "chance": 0.01
+          "chance": 0.008
         },
         {
           "itemId": "equip_accessory_dex_t1",

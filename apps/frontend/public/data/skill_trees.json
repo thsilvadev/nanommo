@@ -297,7 +297,7 @@
         "requiresWeaponEquipped": "staff",
         "spCostPerRank": 100,
         "baseCastTicks": 6,
-        "cooldownTicks": 15,
+        "cooldownTicks": 25,
         "target": "monster",
         "ranged": true,
         "maxRange": 7,
