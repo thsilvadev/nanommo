@@ -7,7 +7,7 @@
     </header>
     <nav class="sheet-tabs"><button type="button" [class.active]="tab==='character'"
             (click)="setTab('character')">Character <img *ngIf="(character.character()?.unspentAttributePoints||0)>0" class="notification-dot" src="/assets/ui/notification_dot.png" alt=""></button><button type="button" [class.active]="tab==='gambits'"
-            (click)="setTab('gambits')">Gambits</button><button type="button" [class.active]="tab==='mastery'"
+            (click)="setTab('gambits')">Gambits <img *ngIf="hasGambitDiscoveries()" class="notification-dot" src="/assets/ui/notification_dot.png" alt="New Gambit options"></button><button type="button" [class.active]="tab==='mastery'"
             (click)="setTab('mastery')">Mastery <img *ngIf="hasAnyMasteryPoints()" class="notification-dot" src="/assets/ui/notification_dot.png" alt=""></button><button type="button" [class.active]="tab==='professions'" (click)="setTab('professions')">{{locale.t('Professions')}}</button><button type="button" [class.active]="tab==='quests'" (click)="setTab('quests')">{{locale.t('Quests')}}</button></nav>
     <div *ngIf="tab==='character'" class="character-grid">
         <section class="sheet-panel inventory-panel"><app-inventory-grid /></section>

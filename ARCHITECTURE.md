@@ -897,3 +897,8 @@ The notification subsystem is character-scoped. `characters.notification_state` 
 Push events currently integrated: inventory becoming 50 occupied slots, Bliss Stone/Divine Shard discarded due to capacity, a character level-up, and Market sale item(s). The pending slot is replaced by every newer event; no historical queue or TTL is used. Existing subscriptions are refreshed when a player enters the game, allowing the newest pending event to be sent after downtime. Browser permission is requested only from an explicit settings-menu action. The API must be configured with `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT`.
 
 Progression indicators currently derive from authoritative Character unspent attribute points and WeaponProficiency XP/spentSkillPoints. Discovery indicators for Gambit, NPC/city, quests and Mailbox remain to be integrated; this is a partial implementation, not the completed notification feature. Migration `1800200000000-GameNotifications` is forward-only and intentionally unapplied.
+
+
+### Notification discovery state and frontend indicators
+
+The frontend's BrowserNotificationsService bootstraps the character acknowledgement set even when Web Push is unsupported, denied or not enabled. Gambit Action parameter option discovery, NPC selection and first quest-specific interaction write stable per-character acknowledgement keys to the authenticated notification API. Mail attention is derived from message read/attachment state instead of a duplicate local acknowledgement. Town map markers currently use the public map NPC catalogue as a candidate set and are shown only when their map coordinates are revealed; filtering those candidates by server-unlocked NPC availability remains a follow-up.

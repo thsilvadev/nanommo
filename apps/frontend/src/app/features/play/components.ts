@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
 import { VendorStore } from '../../core/vendor.store';
+import { BrowserNotificationsService } from '../../core/browser-notifications.service';
 import { VendorStockItem, effectiveFoodStatValue, TOWN_MAP_ID, projectStatusTimeline } from '@nanommo/shared';
 import { GameSocketService } from '../../core/game.socket.service';
 import { ApiService } from '../../core/api.service';
@@ -83,7 +84,7 @@ export class CharacterSummary implements OnDestroy {
 
 @Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule], templateUrl: './map-board.html', styleUrl: './map-board.css' })
 export class MapBoard implements OnDestroy {
-  readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService); private readonly catalog = inject(CatalogService);
+  readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService); private readonly catalog = inject(CatalogService); private readonly notifications = inject(BrowserNotificationsService);
   maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
   readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly mapTransitionPending = signal(false); readonly destinationMapId = signal<string|null>(null); readonly routeOriginMapId = signal<string|null>(null);
   readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); readonly activityNow = signal(Date.now()); readonly fleeNotice = signal<string|null>(null); readonly pinArrivalFromMapId = signal<string|null>(null); private discovered = new Set<string>(); private readonly activityTimer = setInterval(() => this.activityNow.set(Date.now()), 250);
@@ -556,7 +557,13 @@ export class MapBoard implements OnDestroy {
     return route.map(node=>({x:(Number(node.coordinates.x)+7)*153+76.5,y:(6-Number(node.coordinates.y))*153+76.5}));
   }
   destinationRoutePoints(){return this.destinationRoute().map(point=>`${point.x},${point.y}`).join(' ')}
-  destinationPinStyle(map:any){return map.id===this.displayDestinationMapId()}
+  mapHasNpcNotification(tile:any):boolean {
+    if(tile?.type!=='town'||!this.isRevealed(Number(tile.coordinates?.x),Number(tile.coordinates?.y)))return false;
+    const definition=this.catalog.maps().find((map:any)=>map.id===tile.id);
+    const ids:Array<string>=Array.isArray(definition?.npcIds)?definition.npcIds:[];
+    return ids.some(id=>!this.notifications.hasAcknowledged('npc:'+id));
+  }
+    destinationPinStyle(map:any){return map.id===this.displayDestinationMapId()}
   ngOnDestroy(){clearInterval(this.activityTimer);this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
 }
 

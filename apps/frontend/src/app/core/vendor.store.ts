@@ -5,6 +5,7 @@ import { CatalogService } from './catalog.service';
 import { TownNpc, VendorStockItem, VendorQuote, NpcDialogueState } from '@nanommo/shared';
 import { LocaleService } from './locale.service';
 import { GameAudioService } from '../shared/game-audio.service';
+import { BrowserNotificationsService } from './browser-notifications.service';
 
 export interface VendorModal { mode:'buy'|'sell'; itemId:string; quantity:number; maxQuantity:number; unitPrice:number; sourceInventoryItemId?:string; instanceData?:any; itemInstanceData?:any; }
 export interface CookingState { progress:{level:number;xp:number;xpIntoLevel:number;xpToNextLevel:number;nextLevelXp:number}; recipes:any[]; session:any|null; }
@@ -23,6 +24,7 @@ export function sellModalMaxQuantity(ownedQuantity:number, selectedStackQuantity
 export class VendorStore {
   private readonly api=inject(ApiService);
   private readonly audio=inject(GameAudioService);
+  readonly notifications=inject(BrowserNotificationsService);
   readonly locale=inject(LocaleService);
   readonly character=inject(CharacterStore);
   readonly inventory=inject(InventoryStore);
@@ -174,6 +176,19 @@ export class VendorStore {
     requests.push(this.loadQuestActions(id));
     await Promise.all(requests);
   }
+  npcDiscoveryKey(id:string){return 'npc:'+id}
+  questDiscoveryKey(id:string){return 'quest:'+id}
+  npcHasNotification(id:string):boolean {
+    const interaction=this.questInteraction();
+    const actions=interaction?.kind==='select'&&Array.isArray(interaction.actions)?interaction.actions:[];
+    const questIds=actions.map((action:any)=>String(action.questId??'')).filter(Boolean);
+    if(interaction?.questId)questIds.push(String(interaction.questId));
+    return !this.notifications.hasAcknowledged(this.npcDiscoveryKey(id)) || questIds.some((questId:string)=>!this.notifications.hasAcknowledged(this.questDiscoveryKey(questId)));
+  }
+  hasUnreadMailNpcDot(id:string):boolean { return this.npcs().find(npc=>npc.id===id)?.types.includes('mailbox')===true && this.mailboxHasNotifications(); }
+  mailNeedsAttention(mail:any):boolean { return !mail?.isRead || (!!(mail?.itemId||Number(mail?.attachedGold??0)>0) && !mail?.attachmentsCollected); }
+  mailboxHasNotifications():boolean { return this.mailboxInbox().some(mail=>this.mailNeedsAttention(mail)); }
+  questActionHasNotification(action:any):boolean { const id=String(action?.questId??action?.interaction?.questId??''); return !!id&&!this.notifications.hasAcknowledged(this.questDiscoveryKey(id)); }
   async loadQuestActions(npcId=this.selectedNpcId()){
     if(!npcId)return;
     const requestSequence=++this.questInteractionRequestSequence;
@@ -389,6 +404,7 @@ export class VendorStore {
   selectNpc(id:string){
     if(!id){this.resetForTownEntry(false);return;}
     this.selectedNpcId.set(id);
+    void this.notifications.acknowledge(this.npcDiscoveryKey(id));
     this.stock.set([]);
     this.warehouse.set([]);
     this.dialogue.set(null);

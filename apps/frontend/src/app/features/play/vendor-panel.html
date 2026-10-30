@@ -2,7 +2,7 @@
   <div class="npc-select" (click)="$event.stopPropagation()"><label for="town-npc-select">Talk to:</label><select id="town-npc-select"
       aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)">
       <option value="">Choose NPC to interact</option>
-      <option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{vendor.localized(npc, 'name', npc.name)}}</option>
+      <option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{vendor.localized(npc, 'name', npc.name)}}{{vendor.npcHasNotification(npc.id) ? ' •' : ''}}</option>
     </select></div>
   <div class="vendor-error" *ngIf="vendor.error() && !vendor.selectedNpc()">{{vendor.error()}}</div>
   <ng-container *ngIf="vendor.selectedNpc() as npc">
@@ -74,7 +74,7 @@
     <ng-container *ngIf="npc.types.includes('mailbox')">
       <div class="mailbox-tabs">
         <button type="button" [class.active]="vendor.mailboxMode()==='inbox'"
-          (click)="vendor.mailboxMode.set('inbox')">Inbox <b
+          (click)="vendor.mailboxMode.set('inbox')">Inbox <img *ngIf="vendor.mailboxHasNotifications()" class="notification-dot" src="/assets/ui/notification_dot.png" alt="Unread or unclaimed mail"> <b
             *ngIf="vendor.mailboxUnread()">{{vendor.mailboxUnread()}}</b></button>
         <button type="button" [class.active]="vendor.mailboxMode()==='sent'"
           (click)="vendor.mailboxMode.set('sent')">Sent</button>
@@ -121,7 +121,7 @@
           (click)="openMail(mail)">
           <span class="mailbox-message-counterpart">{{vendor.mailboxMode()==='inbox'?mail.senderName:'To
             '+mail.recipientName}}</span>
-          <strong class="mailbox-message-subject">{{mail.subject}}</strong>
+          <strong class="mailbox-message-subject">{{mail.subject}} <img *ngIf="vendor.mailNeedsAttention(mail)" class="notification-dot" src="/assets/ui/notification_dot.png" alt="Unread or unclaimed"></strong>
           <span class="mailbox-message-item" *ngIf="mail.itemId"><span class="mailbox-item-icon">
               <img [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId,mail.itemInstanceData)">
               <b *ngIf="mail.quantity>1">{{mail.quantity}}</b>
@@ -376,7 +376,7 @@
         <button *ngFor="let action of interaction.actions" type="button"
           [class.quest-action-button]="action.type==='offer'||action.type==='active'"
           [class.quest-primary-action]="action.type==='offer'||(action.type==='active' && action.interaction?.action==='turn_in')"
-          [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestInteraction(action)">{{vendor.localized(action,'buttonText',action.buttonText)}}</button>
+          [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestInteraction(action)">{{vendor.localized(action,'buttonText',action.buttonText)}} <img *ngIf="vendor.questActionHasNotification(action)" class="notification-dot" src="/assets/ui/notification_dot.png" alt="New quest"></button>
       </div>
 
       <div class="quest-choices quest-action-choices" *ngIf="interaction.kind==='offer' && interaction.choices?.length && !interactionTyping()">
@@ -386,15 +386,15 @@
       </div>
       <div class="quest-choices" *ngIf="interaction.kind==='offer' && !interaction.choices?.length && !interactionTyping()">
         <button type="button" class="quest-action-button" [class.quest-primary-action]="interaction.acceptsQuest"
-          [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}}</button>
+          [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}} <img *ngIf="vendor.questActionHasNotification(interaction)" class="notification-dot" src="/assets/ui/notification_dot.png" alt="New quest"></button>
       </div>
       <div class="quest-choices" *ngIf="interaction.kind==='active' && interaction.action==='turn_in' && !interactionTyping()">
         <button type="button" class="quest-action-button quest-primary-action"
-          [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}}</button>
+          [disabled]="vendor.questBusy()" (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}} <img *ngIf="vendor.questActionHasNotification(interaction)" class="notification-dot" src="/assets/ui/notification_dot.png" alt="New quest"></button>
       </div>
       <div class="quest-choices" *ngIf="interaction.kind==='completed' && !interactionTyping()">
         <button type="button" class="npc-dialogue-button" [disabled]="vendor.questBusy()"
-          (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}}</button>
+          (click)="vendor.chooseQuestInteraction()">{{vendor.localizedInteraction(interaction,'buttonText') || interaction.buttonText}} <img *ngIf="vendor.questActionHasNotification(interaction)" class="notification-dot" src="/assets/ui/notification_dot.png" alt="New quest"></button>
       </div>
     </ng-container>
 

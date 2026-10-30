@@ -168,3 +168,5 @@
 .activity-gauge.traveling .activity-gauge-fill { background: #2875b9; }
 .activity-gauge.gathering .activity-gauge-fill { background: #c57724; }
 .activity-gauge strong { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 700 14px/1 Arial,sans-serif; text-shadow: 0 1px 2px #000; }
+
+.map-notification-dot{position:absolute;z-index:5;right:12px;top:10px;width:16px;height:16px;object-fit:contain;pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
