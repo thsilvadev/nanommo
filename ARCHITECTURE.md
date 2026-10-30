@@ -855,7 +855,7 @@ The frontend BattleStore's session loot aggregation is client-local and reset by
 
 ## Item SVG art update — 2026-10-28
 
-Item art is served from `apps/frontend/assets/ui/items/svg/` (framed) and `apps/frontend/assets/ui/items/svg-noframe/` (normal inventory icon). Keep both variants in sync for any item whose art is changed; `CatalogService.itemIcon(id, framed)` selects the directory from the `framed` flag and derives the asset filename from the item ID. The current art pass covers boots, bronze ore/ingot, meat, Flaming Treant Bark, Rootbound Brute common/rare, Giant Mosquito common/rare wings, and Giant Mantis common purple ink. Bliss Stone and Divine Shard are intentionally unchanged by this pass.
+Item art is served from `apps/frontend/assets/ui/items/svg/` (framed) and `apps/frontend/assets/ui/items/svg-noframe/` (normal inventory icon). Keep both variants in sync for any item whose art is changed; `CatalogService.itemIcon(id, framed)` selects the directory and derives the asset filename/extension from the item ID and variant. Bliss Stone and Divine Shard now use the supplied animated RGBA APNGs (`mat_bliss_stone_alpha.png` and `mat_divine_shard_alpha.png`) for normal inventory icons; their framed variants remain SVG. The supplied GIFs are retained as source alternatives but are not used by the UI. Other current art includes boots, bronze ore/ingot, meat, Flaming Treant Bark, Rootbound Brute common/rare, Giant Mosquito common/rare wings, and Giant Mantis common purple ink.
 
 ## Item catalogue data and display — 2026-10-28
 

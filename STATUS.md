@@ -2406,3 +2406,8 @@ Added OpenSpec proposal `game-audio-system` and a frontend audio service. Region
 ### Audio transition recovery and potion/flee effects — 2026-10-29
 
 Fixed a race in regional music fades: cancelling an in-progress animation now resolves its pending promise, and stale transitions cannot pause or block the newer region's fade-in. The audio service also recovers if the active region is valid but its track is unexpectedly missing/paused. Added potion_drink.mp3 for successful potion/elixir use and flee.mp3 for a server-confirmed flee resolution. Frontend production build, OpenSpec validation, and git diff --check pass.
+
+
+### Animated Bliss Stone and Divine Shard inventory icons — 2026-10-30
+
+Replaced the normal inventory SVG references for Bliss Stone and Divine Shard with the user-supplied 128×128 RGBA APNG assets (`mat_bliss_stone_alpha.png` and `mat_divine_shard_alpha.png`). The APNGs preserve full alpha and animation; the GIF alternatives remain in the asset folder but are not used. Their framed variants remain SVG. `CatalogService.itemIcon()` now selects the APNG filename only for the two no-frame material icons; the UI asset validator checks the correct per-variant extension/path. Removed the superseded no-frame SVG files. Updated root SPEC and ARCHITECTURE to document this exception. UI asset validation passed (132 items, 29 skills, 15 statuses; 308 paths) and `git diff --check` passed. Frontend production build is pending. No backend/gameplay/database/deployment changes.

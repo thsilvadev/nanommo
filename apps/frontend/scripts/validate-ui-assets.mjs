@@ -18,8 +18,10 @@ const itemRows = [...(itemCatalog.equipment ?? []), ...(itemCatalog.consumables 
 for (const item of itemRows) {
   const folder = item.type === 'equipment' ? 'equipment' : item.type === 'monster_part' ? 'monster_parts' : 'consumables';
   for (const variant of ['svg', 'svg-noframe']) {
-    const file = path.join(assets, 'items', variant, folder, `${item.id}.svg`);
-    const relative = path.join('items', variant, folder, `${item.id}.svg`);
+    const animatedMaterial = variant === 'svg-noframe' && (item.id === 'mat_bliss_stone' || item.id === 'mat_divine_shard');
+    const filename = animatedMaterial ? `${item.id}_alpha.png` : `${item.id}.svg`;
+    const file = path.join(assets, 'items', variant, folder, filename);
+    const relative = path.join('items', variant, folder, filename);
     if (!fs.existsSync(file)) missing.push(`${item.id}: /assets/ui/${relative.replaceAll(path.sep, '/')}`);
     checkBuilt(relative, item.id);
   }

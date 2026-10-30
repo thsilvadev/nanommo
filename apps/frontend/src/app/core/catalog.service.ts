@@ -73,5 +73,5 @@ export class CatalogService {
    return npc?{...npc,id:npc.id,name:this.locale.localized(npc,'name',npc.name),location:npc.location,types:Array.isArray(npc.types)?npc.types:[],greeting:this.locale.localized(npc,'greeting',npc.greeting??npc.vendor?.greeting),monologue:this.locale.localized(npc,'monologue',npc.monologue)}:null;
   }).filter((npc):npc is NonNullable<typeof npc>=>npc!==null);
  }
- itemIcon(id:string,framed=false){const item=this.item(id);const folder=item?.type==='equipment'?'equipment':item?.type==='monster_part'?'monster_parts':item?.type==='material'?'materials':'consumables';const variant=framed?'svg':'svg-noframe';return `/assets/ui/items/${variant}/${folder}/${id}.svg`;} mapList(){return this.maps()} monster(id:string){return this.monsters().find(x=>x.id===id);}
+ itemIcon(id:string,framed=false){const item=this.item(id);const folder=item?.type==='equipment'?'equipment':item?.type==='monster_part'?'monster_parts':item?.type==='material'?'materials':'consumables';const variant=framed?'svg':'svg-noframe';const animatedMaterial=!framed&&(id==='mat_bliss_stone'||id==='mat_divine_shard');const filename=animatedMaterial?`${id}_alpha.png`:`${id}.svg`;return `/assets/ui/items/${variant}/${folder}/${filename}`;} mapList(){return this.maps()} monster(id:string){return this.monsters().find(x=>x.id===id);}
 }
