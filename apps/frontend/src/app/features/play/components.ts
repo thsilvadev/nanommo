@@ -84,13 +84,14 @@ export class CharacterSummary implements OnDestroy {
 
 @Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule], templateUrl: './map-board.html', styleUrl: './map-board.css' })
 export class MapBoard implements OnDestroy {
-  readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService); private readonly catalog = inject(CatalogService); private readonly notifications = inject(BrowserNotificationsService);
+  readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService); private readonly catalog = inject(CatalogService); private readonly notifications = inject(BrowserNotificationsService); private readonly vendor = inject(VendorStore);
   maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
   readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly mapTransitionPending = signal(false); readonly destinationMapId = signal<string|null>(null); readonly routeOriginMapId = signal<string|null>(null);
   readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); readonly activityNow = signal(Date.now()); readonly fleeNotice = signal<string|null>(null); readonly pinArrivalFromMapId = signal<string|null>(null); private discovered = new Set<string>(); private readonly activityTimer = setInterval(() => this.activityNow.set(Date.now()), 250);
   private pinArrivalCharacterId: string|null = null; private pinArrivalMapId: string|null = null; private pinArrivalPreviousIntent: any = null;
   private tooltipEl: HTMLElement|null = null; private tooltipPointer = {x:0,y:0};
   private mapRequestSequence=0; private latestMapRequestSequence=0; private lastRequestedAt=0; private transitionOriginMapId:string|null=null;
+  private lastQuestNotificationLevel:number|null=null;
   private transitionPoll:ReturnType<typeof setInterval>|null=null; private transitionPollBusy=false; private fleeNoticeTimeout:ReturnType<typeof setTimeout>|null=null; private lastFleeNoticeEntryId:string|null=null;
   private drag: {id:number; startX:number; startY:number; cameraX:number; cameraY:number; moved:boolean}|null = null; private suppressClickUntil = 0; private lastCenteredMapId: string|null = null;
   private readonly worldWidth=2295; private readonly worldHeight=1989; private readonly viewportWidth=761; private readonly viewportHeight=660; private readonly zoomMin=.5; private readonly zoomMax=1;
@@ -104,6 +105,11 @@ export class MapBoard implements OnDestroy {
       if(!c)return;
       this.trackLocationArrival(c);
       this.rebuildDiscovery(c.discoveredMapIds);
+      const level=Number(c.level??0);
+      if(level!==this.lastQuestNotificationLevel){
+        this.lastQuestNotificationLevel=level;
+        this.api.get<any[]>('/quests/available').subscribe({next:quests=>this.vendor.availableQuestNotifications.set(quests??[])});
+      }
       this.centerOnCurrentMap();
       this.reconcileDestinationPreview(c);
     }, { allowSignalWrites: true });
@@ -349,6 +355,7 @@ export class MapBoard implements OnDestroy {
     if(!current)return{x:0,y:0};
     const left=this.gridColumn(current)*153;const top=this.gridRow(current)*153;
     const center={x:left+76.5,y:top+76.5};
+    if(!this.isLocationPinTraveling())return center;
     const character:any=this.character.character();const intent:any=character?.travelIntent;
     const routeIds:string[]=Array.isArray(intent?.routeMapIds)?intent.routeMapIds.map(String):[];
     const segmentIndex=Math.max(0,Math.floor(Number(intent?.segmentIndex??0)));
@@ -561,7 +568,9 @@ export class MapBoard implements OnDestroy {
     if(tile?.type!=='town'||!this.isRevealed(Number(tile.coordinates?.x),Number(tile.coordinates?.y)))return false;
     const definition=this.catalog.maps().find((map:any)=>map.id===tile.id);
     const ids:Array<string>=Array.isArray(definition?.npcIds)?definition.npcIds:[];
-    return ids.some(id=>!this.notifications.hasAcknowledged('npc:'+id));
+    const hasNewNpc=ids.some(id=>!['mailbox','storage'].includes(id)&&!this.notifications.hasAcknowledged('npc:'+id));
+    const hasNewQuest=this.vendor.availableQuestNotifications().some((quest:any)=>ids.includes(String(quest.giverNpcId))&&!this.notifications.hasAcknowledged('quest:'+String(quest.id)));
+    return hasNewNpc||hasNewQuest;
   }
     destinationPinStyle(map:any){return map.id===this.displayDestinationMapId()}
   ngOnDestroy(){clearInterval(this.activityTimer);this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}

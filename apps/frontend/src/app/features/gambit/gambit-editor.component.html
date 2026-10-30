@@ -56,17 +56,17 @@
                             *ngFor="let spec of paramSpecs(line.action,'action')"><label>{{paramLabel(spec.name)}}<ng-container
                                     [ngSwitch]="spec.type"><select *ngSwitchCase="'enum'"
                                         [ngModel]="paramValue(line.action,spec.name)"
-                                        (ngModelChange)="setParam(line.action,spec.name,$event);selectDiscoveredOption('item',$event)">
+                                        (ngModelChange)="setParam(line.action,spec.name,$event)">
                                         <option *ngFor="let v of spec.values" [value]="v">{{v}}</option>
                                     </select><select *ngSwitchCase="'itemRef'"
                                         [ngModel]="paramValue(line.action,spec.name)"
-                                        (ngModelChange)="setParam(line.action,spec.name,$event);selectDiscoveredOption('skill',$event)">
+                                        (ngModelChange)="setParam(line.action,spec.name,$event);selectDiscoveredOption('item',$event)">
                                         <option value="">Select item...</option>
                                         <option *ngFor="let item of itemOptions()" [value]="item.id">{{item.name}}{{!notifications.hasAcknowledged(itemDiscoveryKey(item.id)) ? ' •' : ''}}
                                         </option>
                                     </select><select *ngSwitchCase="'skillRef'"
                                         [ngModel]="paramValue(line.action,spec.name)"
-                                        (ngModelChange)="setParam(line.action,spec.name,$event)">
+                                        (ngModelChange)="setParam(line.action,spec.name,$event);selectDiscoveredOption('skill',$event)">
                                         <option value="">Select skill...</option>
                                         <option *ngFor="let skill of skillOptions()" [value]="skill.id">{{skill.name}}{{!notifications.hasAcknowledged(skillDiscoveryKey(skill.id)) ? ' •' : ''}}
                                         </option>

@@ -29,16 +29,7 @@
   background: #140e0a;
   flex: 0 0 auto;
 }
-.sheet-tabs button {
-  flex: 1;
-  padding: 12px;
-  background: none;
-  border: 0;
-  border-right: 1px solid #3d2b1b;
-  color: #8e7b62;
-  font: 23px Georgia;
-  cursor: pointer;
-}
+
 .sheet-tabs button.active {
   background: #3b2818;
   color: #e1bd70;

@@ -2,7 +2,7 @@
   <div class="npc-select" (click)="$event.stopPropagation()"><label for="town-npc-select">Talk to:</label><select id="town-npc-select"
       aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)">
       <option value="">Choose NPC to interact</option>
-      <option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{vendor.localized(npc, 'name', npc.name)}}{{vendor.npcHasNotification(npc.id) ? ' •' : ''}}</option>
+      <option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{vendor.localized(npc, 'name', npc.name)}}{{(vendor.npcHasNotification(npc.id)||vendor.hasUnreadMailNpcDot(npc.id)) ? ' •' : ''}}</option>
     </select></div>
   <div class="vendor-error" *ngIf="vendor.error() && !vendor.selectedNpc()">{{vendor.error()}}</div>
   <ng-container *ngIf="vendor.selectedNpc() as npc">
@@ -121,7 +121,7 @@
           (click)="openMail(mail)">
           <span class="mailbox-message-counterpart">{{vendor.mailboxMode()==='inbox'?mail.senderName:'To
             '+mail.recipientName}}</span>
-          <strong class="mailbox-message-subject">{{mail.subject}} <img *ngIf="vendor.mailNeedsAttention(mail)" class="notification-dot" src="/assets/ui/notification_dot.png" alt="Unread or unclaimed"></strong>
+          <strong class="mailbox-message-subject">{{mail.subject}} <img *ngIf="vendor.mailboxMode()==='inbox'&&vendor.mailNeedsAttention(mail)" class="notification-dot" src="/assets/ui/notification_dot.png" alt="Unread or unclaimed"></strong>
           <span class="mailbox-message-item" *ngIf="mail.itemId"><span class="mailbox-item-icon">
               <img [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId,mail.itemInstanceData)">
               <b *ngIf="mail.quantity>1">{{mail.quantity}}</b>

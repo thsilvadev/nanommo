@@ -62,6 +62,7 @@ export class VendorStore {
   private cookingTimer:ReturnType<typeof setInterval>|null=null;
   private cookingRefreshSessionId:string|null=null;
   readonly mailboxMode=signal<'inbox'|'sent'|'compose'>('inbox');
+  readonly availableQuestNotifications=signal<any[]>([]);
   readonly mailboxInbox=signal<any[]>([]);
   readonly mailboxSent=signal<any[]>([]);
   readonly mailboxUnread=signal(0);
@@ -124,7 +125,11 @@ export class VendorStore {
       }
       if(requestSequence!==this.npcLoadSequence) return;
       if(catalogueNpcs.length) this.npcs.set(catalogueNpcs as TownNpc[]);
-      const npcs=await this.api.get<TownNpc[]>('/town/npcs').toPromise();
+      const [npcs,availableQuests]=await Promise.all([
+        this.api.get<TownNpc[]>('/town/npcs').toPromise(),
+        this.api.get<any[]>('/quests/available').toPromise().catch(()=>[]),
+      ]);
+      this.availableQuestNotifications.set(availableQuests??[]);
       const latestCharacter=this.character.character?.();
       if(requestSequence!==this.npcLoadSequence) return;
       // A Town-to-Town transition can overlap an HTTP response from the previous
@@ -179,16 +184,15 @@ export class VendorStore {
   npcDiscoveryKey(id:string){return 'npc:'+id}
   questDiscoveryKey(id:string){return 'quest:'+id}
   npcHasNotification(id:string):boolean {
-    const interaction=this.questInteraction();
-    const actions=interaction?.kind==='select'&&Array.isArray(interaction.actions)?interaction.actions:[];
-    const questIds=actions.map((action:any)=>String(action.questId??'')).filter(Boolean);
-    if(interaction?.questId)questIds.push(String(interaction.questId));
-    return !this.notifications.hasAcknowledged(this.npcDiscoveryKey(id)) || questIds.some((questId:string)=>!this.notifications.hasAcknowledged(this.questDiscoveryKey(questId)));
+    const hasNewNpc=!['mailbox','storage'].includes(id)&&!this.notifications.hasAcknowledged(this.npcDiscoveryKey(id));
+    const hasNewQuest=this.availableQuestNotifications().some(quest=>quest.giverNpcId===id&&!this.notifications.hasAcknowledged(this.questDiscoveryKey(String(quest.id))));
+    return hasNewNpc||hasNewQuest;
   }
   hasUnreadMailNpcDot(id:string):boolean { return this.npcs().find(npc=>npc.id===id)?.types.includes('mailbox')===true && this.mailboxHasNotifications(); }
   mailNeedsAttention(mail:any):boolean { return !mail?.isRead || (!!(mail?.itemId||Number(mail?.attachedGold??0)>0) && !mail?.attachmentsCollected); }
   mailboxHasNotifications():boolean { return this.mailboxInbox().some(mail=>this.mailNeedsAttention(mail)); }
   questActionHasNotification(action:any):boolean { const id=String(action?.questId??action?.interaction?.questId??''); return !!id&&!this.notifications.hasAcknowledged(this.questDiscoveryKey(id)); }
+  async refreshAvailableQuestNotifications(){try{const quests=await this.api.get<any[]>('/quests/available').toPromise();this.availableQuestNotifications.set(quests??[]);}catch{/* Keep the last authoritative snapshot if the optional refresh fails. */}}
   async loadQuestActions(npcId=this.selectedNpcId()){
     if(!npcId)return;
     const requestSequence=++this.questInteractionRequestSequence;
@@ -218,6 +222,7 @@ export class VendorStore {
     const interaction=this.questInteraction();if(!interaction||this.questBusy())return;
     if(interaction.kind==='select'){
       if(!action)return;
+      if(action.questId) void this.notifications.acknowledge(this.questDiscoveryKey(String(action.questId)));
       if(action.type==='dialogue'){this.questInteraction.set(null);await this.loadDialogue();return;}
       if(action.type==='active'&&action.interaction){
         // The ready-state action is the real turn-in button: consume quest items and
@@ -256,6 +261,7 @@ export class VendorStore {
       await this.loadQuestActions();
       return;
     }
+    if(interaction.questId) void this.notifications.acknowledge(this.questDiscoveryKey(String(interaction.questId)));
     this.questBusy.set(true);this.error.set(null);
     try{
       if(interaction.kind==='offer'){
@@ -279,7 +285,7 @@ export class VendorStore {
         if(result?.interaction?.kind==='completed' || result?.completed) this.audio.play('questCompleted');
         await Promise.all([this.character.load(),this.inventory.load()]);
       }
-      await this.loadQuestStateOnly();
+      await Promise.all([this.loadQuestStateOnly(),this.refreshAvailableQuestNotifications()]);
     }catch(e:any){this.error.set(e?.error?.message??'Quest interaction rejected');}
     finally{this.questBusy.set(false);}
   }
@@ -304,7 +310,7 @@ export class VendorStore {
       // The server commits item consumption, rewards, XP and completion atomically.
       // Keep the returned closing dialogue visible even though the quest is now complete.
       this.questInteraction.set(result?.interaction??null);
-      await Promise.all([this.inventory.load(),this.character.load()]);
+      await Promise.all([this.inventory.load(),this.character.load(),this.refreshAvailableQuestNotifications()]);
       if(!result?.interaction) await this.loadQuestActions();
     }
     catch(e:any){this.error.set(e?.error?.message??'Quest turn-in rejected');}

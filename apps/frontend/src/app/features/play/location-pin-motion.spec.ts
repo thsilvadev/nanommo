@@ -143,12 +143,12 @@ describe('MapBoard Traveling location pin', () => {
     expect(settled.locationPinRenderY()).toBe(settled.locationPinPosition().y);
   });
 
-  it('keeps the pin at the entry edge after final arrival when there is no active route', () => {
+  it('centers the pin after arrival when there is no active route', () => {
     const board: any = Object.create(MapBoard.prototype);
     board.maps = maps;
     board.character = { character: signal({ id: 'character-1', currentMapId: 'east', status: 'grinding', travelIntent: null }) };
     board.pinArrivalFromMapId = signal('origin');
-    expect(board.locationPinPosition()).toEqual({ x: 8 * 153, y: 6 * 153 + 153 / 2 });
+    expect(board.locationPinPosition()).toEqual({ x: 8 * 153 + 153 / 2, y: 6 * 153 + 153 / 2 });
   });
 
   it('falls back to the tile center without a valid route or remembered arrival direction', () => {
