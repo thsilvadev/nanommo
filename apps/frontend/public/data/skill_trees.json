@@ -258,8 +258,8 @@
         "maxRank": 5,
         "prerequisite": null,
         "spCost": 10,
-        "description": "10 SP per rank; MATK + 30 per rank; 3 second cast; Burn chance 5%.",
-        "effectDescription": "10 SP per rank; MATK + 30 per rank; 3 second cast; Burn chance 5%.",
+        "description": "10 SP per rank; MATK + 30 per rank; 3 second cast; 5% Burn chance (source MATK / 5 damage every 5 seconds).",
+        "effectDescription": "10 SP per rank; MATK + 30 per rank; 3 second cast; 5% Burn chance (source MATK / 5 damage every 5 seconds).",
         "requiresWeaponEquipped": "staff",
         "spCostPerRank": 10,
         "baseCastTicks": 3,
@@ -275,7 +275,7 @@
           "burnChance": 0.05,
           "burnDurationTicks": 25,
           "burnIntervalTicks": 5,
-          "burnDamage": "source_matk"
+          "burnDamage": "source_matk_div_5"
         },
         "element": "fire"
       },
@@ -292,8 +292,8 @@
           "rank": 5
         },
         "spCost": 100,
-        "description": "100 SP per rank; MATK + 50 per rank; 6 second cast; Burn chance 50%.",
-        "effectDescription": "100 SP per rank; MATK + 50 per rank; 6 second cast; Burn chance 50%.",
+        "description": "100 SP per rank; MATK + 50 per rank; 6 second cast; 50% Burn chance (source MATK / 5 damage every 5 seconds).",
+        "effectDescription": "100 SP per rank; MATK + 50 per rank; 6 second cast; 50% Burn chance (source MATK / 5 damage every 5 seconds).",
         "requiresWeaponEquipped": "staff",
         "spCostPerRank": 100,
         "baseCastTicks": 6,
@@ -309,7 +309,7 @@
           "burnChance": 0.5,
           "burnDurationTicks": 25,
           "burnIntervalTicks": 5,
-          "burnDamage": "source_matk"
+          "burnDamage": "source_matk_div_5"
         },
         "element": "fire"
       }

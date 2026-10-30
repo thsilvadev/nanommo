@@ -1065,7 +1065,7 @@ export class BattleEngine {
                 if (burnChance > 0 && foe.hp > 0 && rng.chance(burnChance)) {
                   const interval = Number(effect.burnIntervalTicks ?? 5);
                   applyStatus(foe, 'burn', skillId, Number(effect.burnDurationTicks ?? 25), {
-                    damagePerTick: Number(self.matk ?? 0),
+                    damagePerTick: Math.floor(Number(self.matk ?? 0) / 5),
                     damageIntervalTicks: interval,
                     nextDamageAtTick: tick + interval,
                   }, 'character');

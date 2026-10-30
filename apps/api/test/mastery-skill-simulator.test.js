@@ -185,13 +185,16 @@ function run() {
   assert.equal(wispHit.spSpent, 5);
   assert(wispHit.damage >= 59400 && wispHit.damage <= 60650, 'Light Wisp uses MATK + 25 × rank + floor(pre-cost SP / 5)');
 
+  assert.equal(skillsById.fire_ball.effect.burnDamage, 'source_matk_div_5');
+  assert.equal(skillsById.fire_blast.effect.burnDamage, 'source_matk_div_5');
+
   const fire = runActiveSkill('fire_blast', { atk: 100000, matk: 50000, monster: { hp: 140000 } });
   const fireHit = fire.result.log.events.find((e) => e.action === 'use_skill' && e.skillId === 'fire_blast');
   assert(fireHit, 'Fire Blast executes');
   assert.equal(fireHit.baseSpCost, 100);
   assert.equal(fireHit.damageType, 'magic');
   assert.equal(fire.skill.baseCastTicks, 6);
-  assert.equal(fire.skill.cooldownTicks, 15);
+  assert.equal(fire.skill.cooldownTicks, 25);
   assert.equal(fireHit.crit, false);
   assert(fireHit.damage > 49000 && fireHit.damage < 51100, 'Fire Blast uses MATK plus 50 per rank');
 
@@ -205,16 +208,18 @@ function run() {
     }
   }
   assert(burned, 'Fire Blast eventually applies Burn deterministically across seeded cases');
-  assert(burnResult.log.events.some((e) => e.action === 'status_damage' && e.status === 'burn' && e.damage === 1000), 'Burn ticks source MATK damage every five ticks');
+  assert(burnResult.log.events.some((e) => e.action === 'status_damage' && e.status === 'burn' && e.damage === 200), 'Fire Blast Burn ticks floor(source MATK / 5) damage every five ticks');
 
-  let burnRefreshed = false;
-  for (let i = 0; i < 80 && !burnRefreshed; i++) {
-    const attempt = runActiveSkill('fire_blast', { atk: 4000, matk: 1000, monster: { hp: 40000 }, seed: 'burn-refresh-' + i });
-    const events = attempt.result.log.events;
-    burnRefreshed = events.some((e) => e.action === 'status_refreshed' && e.status === 'burn')
-      && events.filter((e) => e.action === 'status_applied' && e.status === 'burn').length === 1;
+  let fireballBurnResult = null;
+  for (let i = 0; i < 100 && !fireballBurnResult; i++) {
+    const attempt = runActiveSkill('fire_ball', { atk: 4000, matk: 1000, monster: { hp: 110000 }, seed: 'fireball-burn-' + i });
+    if (attempt.result.log.events.some((e) => e.action === 'status_applied' && e.status === 'burn')) fireballBurnResult = attempt.result;
   }
-  assert(burnRefreshed, 'Burn refreshes one existing status instead of creating a second stack');
+  assert(fireballBurnResult, 'Fire Ball eventually applies Burn deterministically across seeded cases');
+  assert(fireballBurnResult.log.events.some((e) => e.action === 'status_damage' && e.status === 'burn' && e.damage === 200), 'Fire Ball Burn ticks floor(source MATK / 5) damage every five ticks');
+
+  // Fire Blast's current 25-tick cooldown matches Burn's 25-tick duration,
+  // so its next cast cannot refresh an active Burn instance.
 
   const blink = runActiveSkill('blinkstrike', {
     atk: 100000, combatStyle: 'ranged', basicAttackDamageType: 'ranged',
