@@ -29,7 +29,9 @@
 }
 .map-head h1 {
   font: 34px Georgia;
-  text-shadow: 0 2px 4px #000, 1px 1px 0 #000;
+  text-shadow:
+    0 2px 4px #000,
+    1px 1px 0 #000;
   color: #ddc9aa;
   margin: 4px 0 0;
 }
@@ -128,7 +130,8 @@
 }
 
 @keyframes bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) translateY(0);
   }
   50% {
@@ -141,7 +144,10 @@
   font: 20px Arial;
   text-transform: lowercase;
 }
-.map-error.flee-success { text-transform: none; color: #c7b276; }
+.map-error.flee-success {
+  text-transform: none;
+  color: #c7b276;
+}
 
 .map-error {
   margin: 6px 4px 0;
@@ -161,12 +167,60 @@
   }
 }
 
-.map-tooltip-content { display: none; }
-.map-meta { flex-direction: column; align-items: flex-end; justify-content: flex-end; gap: 6px; pointer-events: none; }
-.activity-gauge { position: relative; width: 220px; height: 27px; overflow: hidden; box-sizing: border-box; border: 1px solid #d5d5d5; background: #181818d9; box-shadow: 0 2px 5px #000c; }
-.activity-gauge-fill { position: absolute; inset: 0 auto 0 0; opacity: .88; transition: width .2s linear; }
-.activity-gauge.traveling .activity-gauge-fill { background: #2875b9; }
-.activity-gauge.gathering .activity-gauge-fill { background: #c57724; }
-.activity-gauge strong { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 700 14px/1 Arial,sans-serif; text-shadow: 0 1px 2px #000; }
+.map-tooltip-content {
+  display: none;
+}
+.map-meta {
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+.activity-gauge {
+  position: relative;
+  width: 220px;
+  height: 27px;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid #d5d5d5;
+  background: #181818d9;
+  box-shadow: 0 2px 5px #000c;
+}
+.activity-gauge-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  opacity: 0.88;
+  transition: width 0.2s linear;
+}
+.activity-gauge.traveling .activity-gauge-fill {
+  background: #2875b9;
+}
+.activity-gauge.gathering .activity-gauge-fill {
+  background: #c57724;
+}
+.activity-gauge strong {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font:
+    700 14px/1 Arial,
+    sans-serif;
+  text-shadow: 0 1px 2px #000;
+}
 
-.map-notification-dot{position:absolute;z-index:5;right:12px;top:10px;width:16px;height:16px;object-fit:contain;pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
+.map-notification-dot {
+  position: absolute;
+  z-index: 5;
+  right: 12px;
+  top: 10px;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px #000);
+  transform: scale(3.8);
+  transform-origin: center center;
+}
