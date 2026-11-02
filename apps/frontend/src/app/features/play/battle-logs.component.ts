@@ -31,6 +31,7 @@ export class BattleLogsComponent {
       const toPosition=Number(event?.toPosition);
       const hasPositionDelta=event?.fromPosition!=null&&event?.toPosition!=null&&Number.isFinite(fromPosition)&&Number.isFinite(toPosition)&&fromPosition!==toPosition;
       const arrow=hasPositionDelta?(toPosition>fromPosition?'-->':'<--'):(event?.direction==='right'||event?.direction===1||event?.direction==='1')?'-->':(event?.direction==='left'||event?.direction===-1||event?.direction==='-1')?'<--':'';
+      if(event?.reason==='violent_shot_push') return monsterName+' was pushed back ( '+spaces+' ) '+arrow;
       return actor+' moved ( '+spaces+' ) '+arrow;
     }
     const status=String(event?.status??'status').replace(/_/g,' ').toLowerCase();
