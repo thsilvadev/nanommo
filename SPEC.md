@@ -1652,3 +1652,8 @@ A movement event with reason: violent_shot_push represents the monster being dis
 ## Redis connection configuration
 
 All API Redis consumers, including the shared ioredis client, duplicated Socket.IO subscribers and Bull queues, use the same connection configuration. `REDIS_URL` takes precedence and supports `redis://` and TLS-enabled `rediss://` URLs with optional ACL username/password and database path. Alternatively, configure `REDIS_HOST`, `REDIS_PORT`, optional `REDIS_USERNAME`, optional `REDIS_PASSWORD`, and `REDIS_TLS=true` when TLS is required. Local passwordless Redis remains supported. Production must provide credentials matching the Redis server; application code must never log connection secrets.
+
+
+### Redis protocol compatibility — 2026-11-02 follow-up
+
+The production failure was traced to the ioredis 6 RESP3 handshake: v6 sends HELLO 3 by default, while the existing Redis endpoint previously worked with the RESP2 wire protocol. The shared Redis options now explicitly set protocol: 2, restoring the pre-v6 handshake without requiring new production environment variables. This applies to the shared client, duplicated Socket.IO clients and Bull. Optional credentials/TLS support remains available, but is not required for the existing REDIS_HOST/REDIS_PORT setup.

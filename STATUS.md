@@ -2468,3 +2468,8 @@ Corrected the historical Battle Log formatter for violent_shot_push movement eve
 ### Redis authentication and TLS configuration — 2026-11-02
 
 The API's shared ioredis client and Bull queue previously configured Redis with only host/port, so an authenticated Redis endpoint rejected ioredis 6's initial RESP3 `HELLO 3` with `NOAUTH` and could terminate API startup. Added one shared Redis connection-options resolver supporting `REDIS_URL` (`redis://` or `rediss://`, including ACL username/password and database path) or `REDIS_HOST`/`REDIS_PORT` plus `REDIS_USERNAME`/`REDIS_PASSWORD`/`REDIS_TLS`. Both the shared application client (including its duplicated Socket.IO subscribers) and Bull now use the same options. Added a Redis client error listener so connection failures are logged without an unhandled EventEmitter error crashing Node; credentials are never logged. `.env.example` documents the supported settings. Production still must supply the actual Redis credentials/URL through its existing environment; no secrets were changed or committed, no deployment was triggered, and no migration/database mutation was performed.
+
+
+### Redis protocol compatibility — 2026-11-02 follow-up
+
+The production failure was traced to the ioredis 6 RESP3 handshake: v6 sends HELLO 3 by default, while the existing Redis endpoint previously worked with the RESP2 wire protocol. The shared Redis options now explicitly set protocol: 2, restoring the pre-v6 handshake without requiring new production environment variables. This applies to the shared client, duplicated Socket.IO clients and Bull. Optional credentials/TLS support remains available, but is not required for the existing REDIS_HOST/REDIS_PORT setup.

@@ -1,4 +1,6 @@
 export interface RedisConnectionOptions {
+  /** Keep the pre-ioredis-6 wire protocol; some Redis endpoints reject HELLO 3. */
+  protocol: 2;
   host: string;
   port: number;
   db: number;
@@ -34,6 +36,7 @@ export function getRedisConnectionOptions(
     }
 
     return {
+      protocol: 2,
       host: url.hostname,
       port: url.port ? Number.parseInt(url.port, 10) : 6379,
       db: database,
@@ -49,6 +52,7 @@ export function getRedisConnectionOptions(
   }
 
   return {
+    protocol: 2,
     host: env.REDIS_HOST || 'localhost',
     port,
     db: 0,
