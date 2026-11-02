@@ -22,3 +22,11 @@ jobs:
             git reset --hard origin/main
             git clean -fd
             docker compose up -d --build
+            echo '--- Production container status ---'
+            docker compose ps
+            echo '--- Redis target (secrets redacted) ---'
+            printf 'REDIS_HOST=%s REDIS_PORT=%s REDIS_URL_SET=%s REDIS_PASSWORD_SET=%s\n' "$(grep -m1 '^REDIS_HOST=' .env | cut -d= -f2-)" "$(grep -m1 '^REDIS_PORT=' .env | cut -d= -f2-)" "$(grep -q '^REDIS_URL=.' .env && echo yes || echo no)" "$(grep -q '^REDIS_PASSWORD=.' .env && echo yes || echo no)"
+            echo '--- Compose Redis health ---'
+            docker compose exec -T redis redis-cli ping || true
+            echo '--- Backend Redis-related startup logs ---'
+            docker compose logs --no-color --tail=120 backend 2>&1 | grep -Ei 'redis|error|fatal|exception|NOAUTH|HELLO' | tail -60 || true
