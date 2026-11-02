@@ -1644,3 +1644,11 @@ The map catalogue models NPC presence with each Town's `npcIds`; it has no separ
 ### Notification discovery and acknowledgement UI
 
 The frontend loads the character-scoped notification acknowledgement set independently of Web Push permission. Gambit discoveries use stable `gambit:item:<itemId>` and `gambit:skill:<skillId>` keys; only known consumables excluding food and learned active skills are candidates, and selecting the corresponding Action parameter acknowledges the key immediately. NPC discovery uses `npc:<npcId>`; selecting an NPC acknowledges it. Quest discovery uses `quest:<questId>`; the first quest-specific dialogue/action click acknowledges it, not quest acceptance. Mail attention remains derived from authoritative message state: a message needs attention while unread or while an attachment remains uncollected. These acknowledgements are stored on the Character and synchronized through `/notifications/acknowledge`.
+
+## Battle log — forced monster movement
+
+A movement event with reason: violent_shot_push represents the monster being displaced by the Character's Violent Shot. The Battle Log must identify the monster as the moving unit and render “<Monster> was pushed back ( N ) <direction arrow>”. It must not attribute the displacement to the Character merely because the Character initiated the skill. Other movement events retain their existing actor-based wording.
+
+## Redis connection configuration
+
+All API Redis consumers, including the shared ioredis client, duplicated Socket.IO subscribers and Bull queues, use the same connection configuration. `REDIS_URL` takes precedence and supports `redis://` and TLS-enabled `rediss://` URLs with optional ACL username/password and database path. Alternatively, configure `REDIS_HOST`, `REDIS_PORT`, optional `REDIS_USERNAME`, optional `REDIS_PASSWORD`, and `REDIS_TLS=true` when TLS is required. Local passwordless Redis remains supported. Production must provide credentials matching the Redis server; application code must never log connection secrets.

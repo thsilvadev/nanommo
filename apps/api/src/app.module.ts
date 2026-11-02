@@ -22,6 +22,7 @@ import { QuestModule } from './modules/quests/quest.module';
 import { GatewayModule } from './modules/gateway/gateway.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { getMasteryXpPolicy } from './config/mastery-xp-policy';
+import { getRedisConnectionOptions } from './config/redis.config';
 
 @Module({
   imports: [
@@ -42,10 +43,7 @@ import { getMasteryXpPolicy } from './config/mastery-xp-policy';
       },
     ]),
     BullModule.forRoot({
-      redis: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379', 10),
-      },
+      redis: getRedisConnectionOptions(),
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',

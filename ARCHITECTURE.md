@@ -904,3 +904,11 @@ The map catalogue models NPC presence through Town `npcIds` and has no separate 
 ### Notification discovery state and frontend indicators
 
 `BrowserNotificationsService` bootstraps the character acknowledgement set even when Web Push is unsupported, denied or not enabled. NPC/city dots use the authoritative per-character acknowledgement set plus the current map's NPC composition; quest discovery is refreshed from `/quests/available` at character load/level changes and after quest interactions. Map markers are limited to revealed Town coordinates. The map catalogue has no independent NPC unlock-level field, so its `npcIds` are the NPC-presence authority; QuestService applies level/prerequisite gates to quest availability. Mail dots are computed from per-message read and attachment collection state, with no duplicate client acknowledgement store.
+
+## Battle log — Violent Shot push presentation
+
+The shared battle engine records Violent Shot's physical push as a movement event with reason: violent_shot_push and the Character as the event actor (the skill initiator). The frontend Battle Log treats this reason as monster displacement and renders “<Monster> was pushed back ( N ) <direction arrow>”, using the recorded position delta/direction. This is presentation-only; the authoritative movement simulation and event payload remain unchanged.
+
+## Redis connection configuration
+
+`apps/api/src/config/redis.config.ts` is the single source of Redis connection options for the shared ioredis provider and Bull. `REDIS_URL` supports `redis://` and `rediss://` (ACL username/password and optional database path); otherwise host/port and optional username/password/TLS environment variables are used. `REDIS_CLIENT.duplicate()` inherits the authenticated connection settings for Socket.IO pub/sub subscribers. Production environment credentials must match the Redis endpoint; no credentials are stored in source control or emitted in logs.
