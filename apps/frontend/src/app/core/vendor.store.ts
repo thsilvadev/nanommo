@@ -45,6 +45,7 @@ export class VendorStore {
   readonly cookingModal=signal(false);
   readonly cookingState=signal<CookingState|null>(null);
   readonly cookingNow=signal(Date.now());
+  readonly cookingQuantities=signal<Record<string,number>>({});
   readonly professionModal=signal(false);
   readonly professionCraftQuantity=signal<Record<string,number>>({});
   readonly professionType=signal<'alchemy'|'blacksmith'>('alchemy');
@@ -439,7 +440,7 @@ export class VendorStore {
     finally{this.busy.set(false);}
   }
   async loadCooking(){
-    try { const state=await this.api.get<CookingState>('/town/npcs/uncle_phillip/cooking').toPromise(); if(this.selectedNpcId()==='uncle_phillip') { this.cookingState.set(state??null); if(state?.session&&!this.cookingTimer)this.cookingTimer=setInterval(()=>{this.cookingNow.set(Date.now());const session=this.cookingState()?.session;if(session&&this.cookingRemaining()===0&&this.cookingRefreshSessionId!==session.id){this.cookingRefreshSessionId=session.id;void this.loadCooking().then(()=>Promise.all([this.inventory.load(),this.character.load()]));}},100); if(!state?.session&&this.cookingTimer){clearInterval(this.cookingTimer);this.cookingTimer=null;} } }
+    try { const state=await this.api.get<CookingState>('/town/npcs/uncle_phillip/cooking').toPromise(); if(this.selectedNpcId()==='uncle_phillip') { this.cookingState.set(state??null); if(state?.session&&!this.cookingTimer)this.cookingTimer=setInterval(()=>{this.cookingNow.set(Date.now());const session=this.cookingState()?.session;if(session&&this.cookingRemaining()===0&&this.cookingRefreshSessionId!==session.id+':'+session.completesAt){this.cookingRefreshSessionId=session.id+':'+session.completesAt;void this.loadCooking().then(()=>Promise.all([this.inventory.load(),this.character.load()]));}},100); if(!state?.session&&this.cookingTimer){clearInterval(this.cookingTimer);this.cookingTimer=null;} } }
     catch(e:any){if(this.selectedNpcId()==='uncle_phillip')this.error.set(e?.error?.message??'Unable to load Cooking');}
   }
   openCooking(){this.cookingModal.set(true);void this.loadCooking();}
@@ -454,7 +455,9 @@ export class VendorStore {
   }
   cookingRemaining(){const session=this.cookingState()?.session;if(!session)return 0;return Math.max(0,Math.ceil((Date.parse(session.completesAt)-this.cookingNow())/1000));}
   cookingPercent(){const session=this.cookingState()?.session;if(!session)return 0;const start=Date.parse(session.startedAt),end=Date.parse(session.completesAt);return Math.max(0,Math.min(100,(this.cookingNow()-start)/Math.max(1,end-start)*100));}
-  async startCooking(recipeId:string){if(this.busy())return;this.busy.set(true);this.error.set(null);try{const state=await this.api.post<CookingState>('/town/npcs/uncle_phillip/cooking/start',{recipeId}).toPromise();this.cookingState.set(state??null);this.cookingModal.set(true);if(!this.cookingTimer)this.cookingTimer=setInterval(()=>{this.cookingNow.set(Date.now());const session=this.cookingState()?.session;if(session&&this.cookingRemaining()===0&&this.cookingRefreshSessionId!==session.id){this.cookingRefreshSessionId=session.id;void this.loadCooking().then(()=>Promise.all([this.inventory.load(),this.character.load()]));}},100);}catch(e:any){this.error.set(e?.error?.message??'Unable to start Cooking');}finally{this.busy.set(false);}}
+  cookingQuantity(recipe:any){return Math.max(1,Math.min(Number(recipe?.maxCookQuantity??1),Math.floor(Number(this.cookingQuantities()[recipe.id]??1))));}
+  setCookingQuantity(recipe:any,value:any){const max=Math.max(1,Number(recipe?.maxCookQuantity??1));const quantity=Math.max(1,Math.min(max,Math.floor(Number(value)||1)));this.cookingQuantities.update(current=>({...current,[recipe.id]:quantity}));}
+  async startCooking(recipeId:string){if(this.busy())return;const recipe=this.cookingState()?.recipes?.find((row:any)=>row.id===recipeId);const quantity=recipe?this.cookingQuantity(recipe):1;this.busy.set(true);this.error.set(null);try{const state=await this.api.post<CookingState>('/town/npcs/uncle_phillip/cooking/start',{recipeId,quantity}).toPromise();this.cookingState.set(state??null);this.cookingModal.set(true);if(!this.cookingTimer)this.cookingTimer=setInterval(()=>{this.cookingNow.set(Date.now());const session=this.cookingState()?.session;if(session&&this.cookingRemaining()===0&&this.cookingRefreshSessionId!==session.id+':'+session.completesAt){this.cookingRefreshSessionId=session.id+':'+session.completesAt;void this.loadCooking().then(()=>Promise.all([this.inventory.load(),this.character.load()]));}},100);}catch(e:any){this.error.set(e?.error?.message??'Unable to start Cooking');}finally{this.busy.set(false);}}
   async cancelCooking(){const session=this.cookingState()?.session;if(!session||this.busy())return;this.busy.set(true);this.error.set(null);try{const state=await this.api.post<CookingState>('/town/npcs/uncle_phillip/cooking/cancel',{sessionId:session.id}).toPromise();this.cookingState.set(state??null);await Promise.all([this.inventory.load(),this.character.load()]);if(!state?.session&&this.cookingTimer){clearInterval(this.cookingTimer);this.cookingTimer=null;}}catch(e:any){this.error.set(e?.error?.message??'Unable to cancel Cooking');await this.loadCooking();}finally{this.busy.set(false);}}
   async loadProfession(profession=this.professionType()){
     const npcId=this.selectedNpcId(); if(!npcId)return;

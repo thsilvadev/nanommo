@@ -439,7 +439,11 @@ export class TownService {
     const recipeStates = recipes.map((recipe: any) => {
       const ingredients = recipe.ingredients.map((req: any) => ({ ...req, owned: totals.get(req.itemId) ?? 0, available: Math.max(0, (totals.get(req.itemId) ?? 0) - (reservedIngredients[req.itemId] ?? 0)), item: this.item(req.itemId) }));
       const output = this.item(recipe.outputItemId);
-      return { ...recipe, output, ingredients, unlocked: progress.level >= recipe.requiredLevel, hasIngredients: ingredients.every((req: any) => req.available >= req.quantity), canReserveOutput: this.canReserveCapacity(rows, output), available: character.currentMapId === TOWN_MAP_ID && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition && progress.level >= recipe.requiredLevel && ingredients.every((req: any) => req.available >= req.quantity) && this.canReserveCapacity(rows, output) && !session && !character.craftingSession };
+      const hasIngredients = ingredients.every((req: any) => req.available >= Number(req.quantity));
+      const maxByIngredients = ingredients.length ? Math.min(...ingredients.map((req: any) => Math.floor(req.available / Math.max(1, Number(req.quantity))))) : 0;
+      const maxCookQuantity = Math.max(0, Math.min(99, maxByIngredients, this.maxReservableOutputQuantity(rows, output)));
+      const canReserveOutput = this.canReserveCapacity(rows, output);
+      return { ...recipe, output, ingredients, maxCookQuantity, unlocked: progress.level >= recipe.requiredLevel, hasIngredients, canReserveOutput, available: character.currentMapId === TOWN_MAP_ID && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition && progress.level >= recipe.requiredLevel && maxCookQuantity >= 1 && canReserveOutput && !session && !character.craftingSession };
     });
     return { characterId: character.id, progress, recipes: recipeStates, session, otherSessionActive: !!character.craftingSession };
   }
@@ -460,9 +464,16 @@ export class TownService {
     return rows.length < INVENTORY_SLOTS;
   }
 
+  private cookingJobId(characterId: string, session: any): string {
+    const total = Math.max(1, Number(session.quantity ?? 1));
+    const completed = Math.max(0, Number(session.completedQuantity ?? 0));
+    // Preserve the original job ID for legacy/single-item sessions.
+    return total > 1 ? `cooking-${characterId}-${session.id}-${completed}` : `cooking-${characterId}-${session.id}`;
+  }
+
   private async scheduleCookingCompletion(characterId: string, session: any) {
     const delay = Math.max(0, Date.parse(session.completesAt) - Date.now());
-    await this.bullQueue.add('complete-cooking', { characterId, sessionId: session.id, generation: session.generation }, { jobId: `cooking-${characterId}-${session.id}`, delay, removeOnComplete: true, attempts: 10, backoff: { type: 'exponential', delay: 1000 } });
+    await this.bullQueue.add('complete-cooking', { characterId, sessionId: session.id, generation: session.generation }, { jobId: this.cookingJobId(characterId, session), delay, removeOnComplete: true, attempts: 10, backoff: { type: 'exponential', delay: 1000 } });
   }
 
   async getCookingState(characterId: string) {
@@ -474,7 +485,9 @@ export class TownService {
     });
   }
 
-  async startCooking(characterId: string, recipeId: string) {
+  async startCooking(characterId: string, recipeId: string, quantity = 1) {
+    if (!Number.isSafeInteger(Number(quantity)) || Number(quantity) < 1 || Number(quantity) > 99) throw new BadRequestException('Cooking quantity must be an integer between 1 and 99');
+    quantity = Number(quantity);
     const recipes = this.dataService.getCookingRecipes()?.recipes ?? [];
     const recipe = recipes.find((row: any) => row.id === recipeId);
     if (!recipe) throw new BadRequestException('Unknown Cooking recipe');
@@ -485,9 +498,8 @@ export class TownService {
       const state = await this.cookingState(manager, character);
       const candidate = state.recipes.find((row: any) => row.id === recipeId);
       if (!candidate?.unlocked) throw new BadRequestException('Cooking level too low for this recipe');
-      if (!candidate?.hasIngredients) throw new BadRequestException('Insufficient ingredients');
-      if (!candidate.canReserveOutput) throw new BadRequestException('Not enough inventory space for the cooked food');
-      const now = new Date(); const session = { id: randomUUID(), generation: randomUUID(), recipeId, startedAt: now.toISOString(), completesAt: new Date(now.getTime() + 10_000).toISOString(), ingredients: recipe.ingredients.map((req: any) => ({ itemId: req.itemId, quantity: Number(req.quantity) })), outputItemId: recipe.outputItemId, outputQuantity: 1, xpReward: Number(recipe.xpReward) };
+      if (quantity > Number(candidate?.maxCookQuantity ?? 0)) throw new BadRequestException('Not enough ingredients or inventory capacity for that Cooking batch');
+      const now = new Date(); const session = { id: randomUUID(), generation: randomUUID(), recipeId, quantity, completedQuantity: 0, startedAt: now.toISOString(), completesAt: new Date(now.getTime() + 10_000).toISOString(), ingredients: recipe.ingredients.map((req: any) => ({ itemId: req.itemId, quantity: Number(req.quantity) * quantity })), outputItemId: recipe.outputItemId };
       character.cookingSession = session; await manager.getRepository(Character).save(character);
       return { character, session };
     }));
@@ -503,12 +515,24 @@ export class TownService {
       const session = character.cookingSession;
       if (!session) throw new BadRequestException('No active Cooking session');
       if (sessionId && session.id !== sessionId) throw new BadRequestException('Cooking session has changed');
-      if (now >= Date.parse(session.completesAt)) return { complete: true, characterId, sessionId: session.id };
+      if (now >= Date.parse(session.completesAt)) return { complete: true, characterId, sessionId: session.id, session };
       character.cookingSession = null; await manager.getRepository(Character).save(character);
-      return { complete: false, characterId, sessionId: session.id };
+      return { complete: false, characterId, sessionId: session.id, session };
     }));
-    if (result.complete) await this.completeCooking(characterId, result.sessionId);
-    else { const job = await this.bullQueue.getJob(`cooking-${characterId}-${result.sessionId}`); if (job) await job.remove().catch(() => undefined); }
+    if (result.complete) {
+      // The item whose deadline has elapsed is still awarded; Cancel then releases the rest of the batch.
+      await this.completeCooking(characterId, result.sessionId);
+      const pending = await this.battleService.withCharacterQueueLock(characterId, () => this.characterRepo.manager.transaction(async manager => {
+        const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+        if (!character?.cookingSession || character.cookingSession.id !== result.sessionId) return null;
+        const session = character.cookingSession;
+        character.cookingSession = null; await manager.getRepository(Character).save(character);
+        return session;
+      }));
+      if (pending) { const job = await this.bullQueue.getJob(this.cookingJobId(characterId, pending)); if (job) await job.remove().catch(() => undefined); }
+    } else {
+      const job = await this.bullQueue.getJob(this.cookingJobId(characterId, result.session)); if (job) await job.remove().catch(() => undefined);
+    }
     return this.getCookingState(characterId);
   }
 
@@ -517,7 +541,7 @@ export class TownService {
     for (const character of characters) {
       const session = character.cookingSession;
       if (!session?.id || !session.completesAt) continue;
-      const jobId = `cooking-${character.id}-${session.id}`;
+      const jobId = this.cookingJobId(character.id, session);
       const job = await this.bullQueue.getJob(jobId).catch(() => null);
       if (!job) await this.scheduleCookingCompletion(character.id, session);
       if (Date.now() >= Date.parse(session.completesAt)) await this.completeCooking(character.id, session.id);
@@ -538,17 +562,34 @@ export class TownService {
       const invRepo = manager.getRepository(InventoryItem);
       const rows = await invRepo.find({ where: { characterId, location: 'inventory' }, lock: { mode: 'pessimistic_write' } });
       const totals = new Map<string, number>(); for (const row of rows) totals.set(row.itemId, (totals.get(row.itemId) ?? 0) + Number(row.quantity));
-      for (const req of session.ingredients ?? []) if ((totals.get(req.itemId) ?? 0) < Number(req.quantity)) throw new BadRequestException(`Reserved ingredient missing: ${req.itemId}`);
-      for (const req of session.ingredients ?? []) await this.inventoryService.removeItem(characterId, req.itemId, Number(req.quantity), manager, true);
+      for (const req of recipe.ingredients ?? []) if ((totals.get(req.itemId) ?? 0) < Number(req.quantity)) throw new BadRequestException(`Reserved ingredient missing: ${req.itemId}`);
+      for (const req of recipe.ingredients ?? []) await this.inventoryService.removeItem(characterId, req.itemId, Number(req.quantity), manager, true);
       await this.inventoryService.addItem(characterId, session.outputItemId, 1, 'inventory', undefined, manager, true);
       character.cookingXp = Number(character.cookingXp ?? 0) + Number(recipe.xpReward);
       character.cookingLevel = this.cookingLevelForXp(character.cookingXp);
-      character.cookingSession = null; await characterRepo.save(character);
-      return { character, levelUp: character.cookingLevel > previousLevel, previousLevel, newLevel: character.cookingLevel };
+      const totalQuantity = Math.max(1, Number(session.quantity ?? 1));
+      const completedQuantity = Math.max(0, Number(session.completedQuantity ?? 0)) + 1;
+      let nextSession: any = null;
+      if (completedQuantity < totalQuantity) {
+        const now = new Date();
+        const remaining = new Map<string, number>((session.ingredients ?? []).map((req: any) => [req.itemId, Number(req.quantity)]));
+        for (const req of recipe.ingredients ?? []) remaining.set(req.itemId, Math.max(0, Number(remaining.get(req.itemId) ?? 0) - Number(req.quantity)));
+        session.ingredients = [...remaining.entries()].filter(([, quantity]) => quantity > 0).map(([itemId, quantity]) => ({ itemId, quantity }));
+        session.completedQuantity = completedQuantity;
+        session.startedAt = now.toISOString();
+        session.completesAt = new Date(now.getTime() + 10_000).toISOString();
+        character.cookingSession = session;
+        nextSession = session;
+      } else {
+        character.cookingSession = null;
+      }
+      await characterRepo.save(character);
+      return { character, nextSession, levelUp: character.cookingLevel > previousLevel, previousLevel, newLevel: character.cookingLevel };
     }));
     if (result) {
+      if (result.nextSession) await this.scheduleCookingCompletion(characterId, result.nextSession);
       await this.battleService.runFutureCombatMutation(characterId, async () => undefined);
-      // The completion transaction is authoritative; clients re-read Inventory/Character on the modal deadline.
+      // Each unit is committed independently; the next 10-second unit starts from this completion.
     }
     return result;
   }

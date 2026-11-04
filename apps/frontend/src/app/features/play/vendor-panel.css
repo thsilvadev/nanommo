@@ -165,3 +165,9 @@
 .cooking-progress i { display:block; height:100%; background:#c49a50; transition:width .1s linear; }
 .cooking-cancel { display:block; margin-left:auto; }
 @media(max-width:900px) { .cooking-modal { width:100%; min-width:0; padding:12px; } .cooking-recipe { gap:8px; padding:8px; } .cooking-food-icon { width:44px; height:44px; flex-basis:44px; } .cooking-recipe-info>strong { font-size:18px; } .cooking-button { min-width:62px; padding:8px; } }
+
+.cooking-quantity-control { display:flex; flex-direction:column; align-items:center; gap:4px; flex:0 0 auto; }
+.cooking-quantity-control label { display:flex; flex-direction:column; gap:4px; color:#cbb58d; font:11px Arial; text-align:center; }
+.cooking-quantity-control input { width:58px; padding:7px 4px; border:1px solid #8a6638; background:#100b07; color:#f0d99f; font:bold 14px Arial; text-align:center; }
+.cooking-quantity-control small { color:#927b58; font:10px Arial; }
+@media(max-width:900px) { .cooking-quantity-control input { width:48px; padding:6px 2px; } }

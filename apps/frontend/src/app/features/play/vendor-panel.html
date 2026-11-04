@@ -232,7 +232,7 @@
         </header>
         <div class="cooking-session" *ngIf="vendor.cookingState()?.session as session">
           <div class="cooking-session-row"><strong>Cooking {{session.recipeId.replace('_', '
-              ')}}</strong><span>{{vendor.cookingRemaining()}}s</span></div>
+              ')}} · {{(session.completedQuantity ?? 0) + 1}} / {{session.quantity ?? 1}}</strong><span>{{vendor.cookingRemaining()}}s</span></div>
           <div class="cooking-progress"><i [style.width.%]="vendor.cookingPercent()"></i></div><button type="button"
             class="cooking-cancel" (click)="vendor.cancelCooking()" [disabled]="vendor.busy()">{{vendor.locale.t('Cancel')}}</button>
         </div>
@@ -247,10 +247,15 @@
                   '}}</ng-container></span><span *ngIf="!recipe.canReserveOutput" class="cooking-warning">Not enough
                 inventory space</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients"
                 class="cooking-warning">{{vendor.t('Missing ingredients')}}</span><span *ngIf="!recipe.unlocked"
-                class="cooking-locked-label">Unlock at Cooking level {{recipe.requiredLevel}}</span></div><button
-              type="button" class="cooking-button"
+                class="cooking-locked-label">Unlock at Cooking level {{recipe.requiredLevel}}</span></div>
+            <div class="craft-quantity-control cooking-quantity-control" *ngIf="recipe.available && !vendor.cookingState()?.session">
+              <label>{{vendor.t('Quantity')}} <input type="number" min="1" [max]="recipe.maxCookQuantity"
+                [value]="vendor.cookingQuantity(recipe)" (input)="vendor.setCookingQuantity(recipe,$any($event.target).value)"></label>
+              <small>Max {{recipe.maxCookQuantity}}</small>
+            </div>
+            <button type="button" class="cooking-button"
               [disabled]="!recipe.available || vendor.busy() || !!vendor.cookingState()?.session"
-              (click)="vendor.startCooking(recipe.id)">{{vendor.t('COOK')}}</button>
+              (click)="vendor.startCooking(recipe.id)">{{vendor.t('COOK')}}<ng-container *ngIf="vendor.cookingQuantity(recipe)>1"> ×{{vendor.cookingQuantity(recipe)}}</ng-container></button>
           </article>
         </div>
       </section>
