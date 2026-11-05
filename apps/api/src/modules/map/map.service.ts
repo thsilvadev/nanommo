@@ -843,7 +843,7 @@ export class MapService {
     this.logger.log(`[gathering-job] advance-result characterId=${characterId} kind=updated initialCycleIndex=${result.initialCycleIndex} finalCycleIndex=${result.cycleIndex} completedCycles=${result.completedCycles} expectedCycleIndex=${expectedCycleIndex ?? 'any'} granted=${result.granted} availableSeconds=${result.availableSeconds.toFixed(2)} map=${result.mapId} hasProgress=${result.hasProgress}`);
     if (result.kind === 'updated') {
       await this.scheduleStationaryActivity(characterId, 10_000);
-      if (result.granted > 0) await this.battleService.publishQueueUpdated(characterId);
+      if (result.granted > 0) await this.battleService.publishQueueUpdated(characterId, 'gather');
       const mapName = String(this.dataService.getMapById(result.mapId)?.name ?? result.mapId);
       for (const awarded of result.grantedJournalRows) {
         const itemName = String(this.dataService.getItemById(awarded.itemId)?.name ?? awarded.itemId);

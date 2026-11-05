@@ -44,7 +44,8 @@ async function testCompletedGatheringCycleGrantsAndRestarts() {
   repo.manager = manager;
   const service = Object.create(MapService.prototype);
   service.characterRepo = repo;
-  service.battleService = { withCharacterQueueLock: async (_id, work) => work(), publishQueueUpdated: async id => { published.push(id); } };
+  service.battleService = { withCharacterQueueLock: async (_id, work) => work(), publishQueueUpdated: async (id, cue) => { published.push([id, cue]); } };
+  service.questService = { applyGatheringBonuses: async () => undefined };
   service.mapPresenceService = { countActiveGrinders: async () => 1 };
   service.dataService = {
     getMapById: () => ({ id: 'map_green_grounds_1', type: 'grind', mapLength: 25, gatheringPool: [{ itemId: 'mat_wheat', weight: 100 }] }),
@@ -68,7 +69,7 @@ async function testCompletedGatheringCycleGrantsAndRestarts() {
   assert.equal(character.gatheringLevel, 2, 'crossing 100 total Gathering XP unlocks level 2');
   assert.equal(scheduled.length, 1);
   assert.equal(scheduled[0][0], 'advance-stationary-activity');
-  assert.deepEqual(published, [character.id], 'material awards publish an authoritative inventory/Character snapshot immediately');
+  assert.deepEqual(published, [[character.id, 'gather']], 'material awards publish an authoritative inventory/Character snapshot with the Gathering cue');
   assert.equal(journalRows.length, 1, 'a successful grant emits one gathered-item journal row');
 
   // A completed timer with no inventory capacity must not award XP or level.

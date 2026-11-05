@@ -1962,9 +1962,10 @@ export class BattleService {
     return { deathLog: character.lastDeathLog, discardedBattleIds };
   }
 
-  async publishQueueUpdated(characterId: string): Promise<void> {
+  async publishQueueUpdated(characterId: string, audioCue?: 'gather'): Promise<void> {
     const entries = await this.getBattleQueue(characterId, 5);
-    await this.safePublishQueueUpdated(characterId, entries, await this.buildAuthoritativeBattleSnapshot(characterId));
+    const snapshot = await this.buildAuthoritativeBattleSnapshot(characterId);
+    await this.safePublishQueueUpdated(characterId, entries, snapshot ? { ...snapshot, ...(audioCue ? { audioCue } : {}) } : undefined);
   }
 
   /** Remove only Bull jobs for queue rows that have already been deleted transactionally. */
@@ -2006,7 +2007,7 @@ export class BattleService {
   private async safePublishQueueUpdated(
     characterId: string,
     entries: BattleQueueEntry[],
-    state?: { stateRevision: number; characterAfter: any; inventoryAfter: any[] },
+    state?: { stateRevision: number; characterAfter: any; inventoryAfter: any[]; audioCue?: 'gather' },
   ): Promise<void> {
     try {
       await this.gatewayService.publishBattleQueueUpdated(characterId, entries, state);

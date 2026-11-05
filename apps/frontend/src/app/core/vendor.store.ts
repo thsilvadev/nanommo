@@ -386,7 +386,7 @@ export class VendorStore {
     const source=(direction==='deposit'?this.inventory.items():this.warehouse()).find(row=>row.id===rowId);
     if(source && this.item(source.itemId)?.questOnly===true){this.error.set('Quest-only items cannot be transferred to or from Storage');return;}
     if(this.busy()) return; this.busy.set(true); this.error.set(null);
-    try { await this.api.post('/town/warehouse/transfer',{rowId,direction}).toPromise(); await Promise.all([this.inventory.load(),this.loadWarehouse(),this.character.load()]); }
+    try { await this.api.post('/town/warehouse/transfer',{rowId,direction}).toPromise(); this.audio.play(direction==='deposit'?'putInStorage':'takeFromStorage'); await Promise.all([this.inventory.load(),this.loadWarehouse(),this.character.load()]); }
     catch(e:any) { this.error.set(e?.error?.message ?? 'Storage transfer rejected'); await Promise.all([this.inventory.load(),this.loadWarehouse()]); }
     finally { this.busy.set(false); }
   }
@@ -439,9 +439,34 @@ export class VendorStore {
     }catch(e:any){this.error.set(e?.error?.message??'NPC interaction rejected');}
     finally{this.busy.set(false);}
   }
+  private applyCookingState(state:CookingState|null){
+    const previous=this.cookingState()?.session;
+    const next=state?.session;
+    if(previous){
+      const previousCompleted=Math.max(0,Number(previous.completedQuantity??0));
+      const nextCompleted=next?.id===previous.id?Math.max(0,Number(next.completedQuantity??0)):previousCompleted;
+      const completedUnits=Math.max(0,nextCompleted-previousCompleted);
+      const finalUnitCompleted=!next&&Date.now()>=Date.parse(String(previous.completesAt??''));
+      for(let i=0;i<completedUnits+(finalUnitCompleted?1:0);i++)this.audio.play('foodCooked');
+    }
+    this.cookingState.set(state);
+  }
   async loadCooking(){
-    try { const state=await this.api.get<CookingState>('/town/npcs/uncle_phillip/cooking').toPromise(); if(this.selectedNpcId()==='uncle_phillip') { this.cookingState.set(state??null); if(state?.session&&!this.cookingTimer)this.cookingTimer=setInterval(()=>{this.cookingNow.set(Date.now());const session=this.cookingState()?.session;if(session&&this.cookingRemaining()===0&&this.cookingRefreshSessionId!==session.id+':'+session.completesAt){this.cookingRefreshSessionId=session.id+':'+session.completesAt;void this.loadCooking().then(()=>Promise.all([this.inventory.load(),this.character.load()]));}},100); if(!state?.session&&this.cookingTimer){clearInterval(this.cookingTimer);this.cookingTimer=null;} } }
-    catch(e:any){if(this.selectedNpcId()==='uncle_phillip')this.error.set(e?.error?.message??'Unable to load Cooking');}
+    try {
+      const state=await this.api.get<CookingState>('/town/npcs/uncle_phillip/cooking').toPromise();
+      if(this.selectedNpcId()==='uncle_phillip'){
+        this.applyCookingState(state??null);
+        if(state?.session&&!this.cookingTimer)this.cookingTimer=setInterval(()=>{
+          this.cookingNow.set(Date.now());
+          const session=this.cookingState()?.session;
+          if(session&&this.cookingRemaining()===0&&this.cookingRefreshSessionId!==session.id+':'+session.completesAt){
+            this.cookingRefreshSessionId=session.id+':'+session.completesAt;
+            void this.loadCooking().then(()=>Promise.all([this.inventory.load(),this.character.load()]));
+          }
+        },100);
+        if(!state?.session&&this.cookingTimer){clearInterval(this.cookingTimer);this.cookingTimer=null;this.cookingRefreshSessionId=null;}
+      }
+    }catch(e:any){if(this.selectedNpcId()==='uncle_phillip')this.error.set(e?.error?.message??'Unable to load Cooking');}
   }
   openCooking(){this.cookingModal.set(true);void this.loadCooking();}
   async closeCooking(){
@@ -458,7 +483,7 @@ export class VendorStore {
   cookingQuantity(recipe:any){return Math.max(1,Math.min(Number(recipe?.maxCookQuantity??1),Math.floor(Number(this.cookingQuantities()[recipe.id]??1))));}
   setCookingQuantity(recipe:any,value:any){const max=Math.max(1,Number(recipe?.maxCookQuantity??1));const quantity=Math.max(1,Math.min(max,Math.floor(Number(value)||1)));this.cookingQuantities.update(current=>({...current,[recipe.id]:quantity}));}
   async startCooking(recipeId:string){if(this.busy())return;const recipe=this.cookingState()?.recipes?.find((row:any)=>row.id===recipeId);const quantity=recipe?this.cookingQuantity(recipe):1;this.busy.set(true);this.error.set(null);try{const state=await this.api.post<CookingState>('/town/npcs/uncle_phillip/cooking/start',{recipeId,quantity}).toPromise();this.cookingState.set(state??null);this.cookingModal.set(true);if(!this.cookingTimer)this.cookingTimer=setInterval(()=>{this.cookingNow.set(Date.now());const session=this.cookingState()?.session;if(session&&this.cookingRemaining()===0&&this.cookingRefreshSessionId!==session.id+':'+session.completesAt){this.cookingRefreshSessionId=session.id+':'+session.completesAt;void this.loadCooking().then(()=>Promise.all([this.inventory.load(),this.character.load()]));}},100);}catch(e:any){this.error.set(e?.error?.message??'Unable to start Cooking');}finally{this.busy.set(false);}}
-  async cancelCooking(){const session=this.cookingState()?.session;if(!session||this.busy())return;this.busy.set(true);this.error.set(null);try{const state=await this.api.post<CookingState>('/town/npcs/uncle_phillip/cooking/cancel',{sessionId:session.id}).toPromise();this.cookingState.set(state??null);await Promise.all([this.inventory.load(),this.character.load()]);if(!state?.session&&this.cookingTimer){clearInterval(this.cookingTimer);this.cookingTimer=null;}}catch(e:any){this.error.set(e?.error?.message??'Unable to cancel Cooking');await this.loadCooking();}finally{this.busy.set(false);}}
+  async cancelCooking(){const session=this.cookingState()?.session;if(!session||this.busy())return;this.busy.set(true);this.error.set(null);try{const state=await this.api.post<CookingState>('/town/npcs/uncle_phillip/cooking/cancel',{sessionId:session.id}).toPromise();this.applyCookingState(state??null);await Promise.all([this.inventory.load(),this.character.load()]);if(!state?.session&&this.cookingTimer){clearInterval(this.cookingTimer);this.cookingTimer=null;}}catch(e:any){this.error.set(e?.error?.message??'Unable to cancel Cooking');await this.loadCooking();}finally{this.busy.set(false);}}
   async loadProfession(profession=this.professionType()){
     const npcId=this.selectedNpcId(); if(!npcId)return;
     try { const state=await this.api.get<ProfessionState>('/town/npcs/'+encodeURIComponent(npcId)+'/'+profession).toPromise(); this.professionState.set(state??null);
@@ -542,6 +567,7 @@ export class VendorStore {
     try{
       const path=m.mode==='buy'?'/town/vendor/'+this.selectedNpcId()+'/buy':'/town/vendor/'+this.selectedNpcId()+'/sell';
       await this.api.post(path,{itemId:m.itemId,quantity:m.quantity,...(m.mode==='sell'&&m.sourceInventoryItemId?{sourceInventoryItemId:m.sourceInventoryItemId}:{})}).toPromise();
+      this.audio.play(m.mode==='buy'?'boughtItemFromNpc':'soldItemToNpc');
       this.modal.set(null);
       await Promise.all([this.character.load(),this.inventory.load(),this.loadStock()]);
     }catch(e:any){this.error.set(e?.error?.message??'Vendor transaction rejected');}

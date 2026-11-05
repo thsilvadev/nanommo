@@ -32,6 +32,7 @@ export interface BattleQueueUpdatedPayload {
   stateRevision?: number;
   characterAfter?: any;
   inventoryAfter?: any[];
+  audioCue?: 'gather';
 }
 
 /**
@@ -91,7 +92,7 @@ export class GatewayService {
   async publishBattleQueueUpdated(
     characterId: string,
     entries: any[],
-    state?: Pick<BattleQueueUpdatedPayload, 'stateRevision' | 'characterAfter' | 'inventoryAfter'>,
+    state?: Pick<BattleQueueUpdatedPayload, 'stateRevision' | 'characterAfter' | 'inventoryAfter' | 'audioCue'>,
   ): Promise<void> {
     const channel = `gateway:battle:queueUpdated:${characterId}`;
     const payload: BattleQueueUpdatedPayload = { entries, ...state };

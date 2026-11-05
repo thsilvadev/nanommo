@@ -108,8 +108,28 @@ describe('GameAudioService battle event routing', () => {
     expect(audio.play).toHaveBeenCalledWith('flee');
   });
 
-  it('maps Caelum and all numbered Green Grounds maps to the intended playlist', () => {
-    expect((audio as any).regionFor('map_emperial_capital_caelum').id).toBe('caelum');
-    expect((audio as any).regionFor('map_green_grounds_5').tracks).toEqual(['green-grounds.mp3', 'green-grounds_2.mp3', 'green-grounds_3.mp3']);
+  it('maps every new region and its numbered maps to the intended playlist', () => {
+    const region = (mapId: string) => (audio as any).regionFor(mapId);
+    expect(region('map_emperial_capital_caelum').id).toBe('caelum');
+    expect(region('map_green_grounds_5').tracks).toEqual(['green-grounds.mp3', 'green-grounds_2.mp3', 'green-grounds_3.mp3']);
+    expect(region('map_caete_7').tracks).toEqual(['caete.mp3', 'caete_2.mp3', 'caete_3.mp3']);
+    expect(region('map_forest_ruins_3').tracks).toEqual(['forest-ruins.mp3', 'forest-ruins_2.mp3', 'forest-ruins_3.mp3', 'forest-ruins_4.mp3']);
+    expect(region('map_gods_bridge').tracks).toEqual(['gods-bridge.mp3']);
+    expect(region('map_ipora_beach_1').tracks).toEqual(['ipora-beach.mp3', 'ipora-beach_2.mp3']);
+    expect(region('map_kwaioua_forest_7').tracks).toEqual(['kwaioua-forest.mp3', 'kwaioua-forest_2.mp3', 'kwaioua-forest_3.mp3']);
+    expect(region('map_menace_hills_3').tracks).toEqual(['menace-hills.mp3', 'menace-hills_2.mp3', 'menace-hills_3.mp3']);
+    expect(region('map_outpost').tracks).toEqual(['outpost.mp3']);
+    expect(region('map_wastelands_2').tracks).toEqual(['wastelands.mp3', 'wastelands_2.mp3', 'wastelands_3.mp3']);
+    expect(region('map_aramaia_city').tracks).toEqual(['aramaia-city.mp3']);
+  });
+
+  it('resolves all newly added interaction effects to their copied runtime paths', () => {
+    expect((audio as any).fileName('foodCooked')).toBe('new_packs/2/foodCooked.mp3');
+    expect((audio as any).fileName('gather')).toBe('new_packs/2/gather.mp3');
+    expect((audio as any).fileName('boughtItemFromNpc')).toBe('new_packs/2/boughtItemFromNpc.ogg');
+    expect((audio as any).fileName('soldItemToNpc')).toBe('new_packs/2/soldItemToNpc.ogg');
+    expect((audio as any).fileName('putInStorage')).toBe('new_packs/2/putInStorage.ogg');
+    expect((audio as any).fileName('takeFromStorage')).toBe('new_packs/2/takeFromStorage.ogg');
+    expect((audio as any).fileName('postItemOnMarket')).toBe('new_packs/2/postItemOnMarket.ogg');
   });
 });

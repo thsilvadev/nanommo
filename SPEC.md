@@ -1657,3 +1657,10 @@ All API Redis consumers, including the shared ioredis client, duplicated Socket.
 ### Redis protocol compatibility — 2026-11-02 follow-up
 
 The production failure was traced to the ioredis 6 RESP3 handshake: v6 sends HELLO 3 by default, while the existing Redis endpoint previously worked with the RESP2 wire protocol. The shared Redis options now explicitly set protocol: 2, restoring the pre-v6 handshake without requiring new production environment variables. This applies to the shared client, duplicated Socket.IO clients and Bull. Optional credentials/TLS support remains available, but is not required for the existing REDIS_HOST/REDIS_PORT setup.
+
+
+## Regional music and interaction sound effects — 2026-11-04
+
+GameAudioService selects a playlist by the authoritative current map ID, not by individual numbered map instances. Caetê, Forest Ruins, God's Bridge, Iporá Beach, Kwaiouá Forest, Menace Hills, Outpost, Wastelands and Ancient Aramaia City each use their matching regional track set; existing Iporá Beach, Menace Hills and Wastelands tracks remain part of their playlists. Regional transitions continue to use the existing fade and single-active-music-instance lifecycle. Music and effects are served from apps/frontend/public/assets/sounds/, sourced from project/sons/.
+
+The new_packs/2 interaction effects are presentation-only and play only after successful server operations: Cooking unit completion (foodCooked), an actual Gathering material award (gather), NPC buy/sell, Storage deposit/withdrawal, and Market listing creation. Gathering awards carry an explicit audioCue on the authoritative battle:queueUpdated snapshot; arbitrary inventory updates must not trigger the effect. A single cue represents one server update even if that update catches up multiple completed Gathering cycles, avoiding sound overlap. All effects respect the existing volume/mute settings.

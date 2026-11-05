@@ -917,3 +917,10 @@ The shared battle engine records Violent Shot's physical push as a movement even
 ### Redis protocol compatibility — 2026-11-02 follow-up
 
 The production failure was traced to the ioredis 6 RESP3 handshake: v6 sends HELLO 3 by default, while the existing Redis endpoint previously worked with the RESP2 wire protocol. The shared Redis options now explicitly set protocol: 2, restoring the pre-v6 handshake without requiring new production environment variables. This applies to the shared client, duplicated Socket.IO clients and Bull. Optional credentials/TLS support remains available, but is not required for the existing REDIS_HOST/REDIS_PORT setup.
+
+
+## Regional music and interaction SFX — 2026-11-04
+
+Regional music routing lives in frontend GameAudioService.regionFor(mapId). The region key remains stable while moving between numbered maps in one region, so the existing playlist index, fade cancellation and single-instance audio ownership continue across those transitions. New runtime assets are copied into apps/frontend/public/assets/sounds/; the nested new_packs/2 path is preserved by fileName().
+
+Interaction sounds are triggered at successful frontend operation boundaries. Gathering is the exception that needs a server-originated cue: after MapService.advanceStationaryActivity commits at least one material award, it publishes battle:queueUpdated with audioCue: 'gather' and the authoritative character/inventory snapshot. The client plays one cue for that award update, never by guessing from inventory deltas. Cooking compares the previous and newly fetched persisted completedQuantity/deadline so each confirmed unit plays once; other trade/storage effects follow successful API responses only. No gameplay authority depends on audio.

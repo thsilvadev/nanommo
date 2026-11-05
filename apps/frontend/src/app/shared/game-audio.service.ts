@@ -6,7 +6,8 @@ type SoundName =
   | 'greatsword_hit_1' | 'hand_hit_1' | 'levelUp' | 'light_hit_1'
   | 'npcDialogue' | 'poisonApply' | 'poisonDamage' | 'questAccepted'
   | 'questCompleted' | 'respec' | 'refineFail' | 'refineSuccess' | 'rod_hit_1'
-  | 'staff_hit_1' | 'sword_hit_1' | 'potion_drink' | 'flee';
+  | 'staff_hit_1' | 'sword_hit_1' | 'potion_drink' | 'flee' | 'foodCooked' | 'gather'
+  | 'boughtItemFromNpc' | 'soldItemToNpc' | 'putInStorage' | 'takeFromStorage' | 'postItemOnMarket';
 
 @Injectable({ providedIn: 'root' })
 export class GameAudioService {
@@ -79,6 +80,12 @@ export class GameAudioService {
       refineSuccess: 'refineSuccess.mp3', rod_hit_1: 'rod_hit_1.wav',
       staff_hit_1: 'staff_hit_1.wav', sword_hit_1: 'sword_hit_1.wav',
       potion_drink: 'potion_drink.mp3', flee: 'flee.mp3',
+      foodCooked: 'new_packs/2/foodCooked.mp3', gather: 'new_packs/2/gather.mp3',
+      boughtItemFromNpc: 'new_packs/2/boughtItemFromNpc.ogg',
+      soldItemToNpc: 'new_packs/2/soldItemToNpc.ogg',
+      putInStorage: 'new_packs/2/putInStorage.ogg',
+      takeFromStorage: 'new_packs/2/takeFromStorage.ogg',
+      postItemOnMarket: 'new_packs/2/postItemOnMarket.ogg',
     };
     return files[name];
   }
@@ -136,8 +143,15 @@ export class GameAudioService {
     if (mapId.startsWith('map_green_grounds')) return { id: 'green-grounds', tracks: ['green-grounds.mp3', 'green-grounds_2.mp3', 'green-grounds_3.mp3'] };
     if (mapId.startsWith('map_menace_hills')) return { id: 'menace-hills', tracks: ['menace-hills.mp3', 'menace-hills_2.mp3', 'menace-hills_3.mp3'] };
     if (mapId.startsWith('map_sierra_village') || mapId === 'map_town') return { id: 'sierra-village', tracks: ['sierra-village.mp3'] };
-    if (mapId.startsWith('map_ipora_beach')) return { id: 'ipora-beach', tracks: ['ipora-beach.mp3'] };
+    if (mapId.startsWith('map_ipora_beach')) return { id: 'ipora-beach', tracks: ['ipora-beach.mp3', 'ipora-beach_2.mp3'] };
     if (mapId.startsWith('map_kwaioua_taba')) return { id: 'kwaioua-taba', tracks: ['kwaioua-taba.mp3'] };
+    if (mapId.startsWith('map_caete')) return { id: 'caete', tracks: ['caete.mp3', 'caete_2.mp3', 'caete_3.mp3'] };
+    if (mapId.startsWith('map_forest_ruins')) return { id: 'forest-ruins', tracks: ['forest-ruins.mp3', 'forest-ruins_2.mp3', 'forest-ruins_3.mp3', 'forest-ruins_4.mp3'] };
+    if (mapId === 'map_gods_bridge') return { id: 'gods-bridge', tracks: ['gods-bridge.mp3'] };
+    if (mapId.startsWith('map_kwaioua_forest')) return { id: 'kwaioua-forest', tracks: ['kwaioua-forest.mp3', 'kwaioua-forest_2.mp3', 'kwaioua-forest_3.mp3'] };
+    if (mapId === 'map_outpost') return { id: 'outpost', tracks: ['outpost.mp3'] };
+    if (mapId.startsWith('map_wastelands')) return { id: 'wastelands', tracks: ['wastelands.mp3', 'wastelands_2.mp3', 'wastelands_3.mp3'] };
+    if (mapId === 'map_aramaia_city') return { id: 'aramaia-city', tracks: ['aramaia-city.mp3'] };
     if (mapId === 'map_emperial_capital_caelum') return { id: 'caelum', tracks: ['caelum.mp3'] };
     return null;
   }

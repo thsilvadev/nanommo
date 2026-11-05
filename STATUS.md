@@ -2479,3 +2479,12 @@ The API's shared ioredis client and Bull queue previously configured Redis with 
 ### Redis protocol compatibility — 2026-11-02 follow-up
 
 The production failure was traced to the ioredis 6 RESP3 handshake: v6 sends HELLO 3 by default, while the existing Redis endpoint previously worked with the RESP2 wire protocol. The shared Redis options now explicitly set protocol: 2, restoring the pre-v6 handshake without requiring new production environment variables. This applies to the shared client, duplicated Socket.IO clients and Bull. Optional credentials/TLS support remains available, but is not required for the existing REDIS_HOST/REDIS_PORT setup.
+
+
+### Regional music and new interaction SFX — 2026-11-04
+
+Integrated the new regional music playlists for Caetê, Forest Ruins, God's Bridge, Iporá Beach, Kwaiouá Forest, Menace Hills, Outpost, Wastelands and Ancient Aramaia City. Existing regional tracks remain in their playlists where applicable (Iporá Beach, Menace Hills and Wastelands). The new files are copied from project/sons/ into the frontend runtime directory apps/frontend/public/assets/sounds/; the seven new_packs/2 effects are served from the matching nested runtime path.
+
+Added success-only effects for NPC purchases/sales, Storage deposit/withdrawal and Market listing creation. foodCooked is emitted for each Cooking unit confirmed complete, including a unit completed as part of a cancellation at/after its deadline. Gathering uses an explicit server-authored audioCue: 'gather' on the queue snapshot emitted only when at least one material was actually awarded; catch-up batches collapse to one cue rather than overlapping repeated sounds. No sound is inferred from generic inventory increases.
+
+The existing regional fade/playlist lifecycle and persisted volume/mute controls are unchanged. Added focused playlist/path assertions. API and frontend production builds passed; the focused Gathering-cycle regression passed after its fixture was aligned with the existing quest-bonus dependency and now asserts the server audio cue; asset presence validation and git diff --check passed. The Angular test bundle compiled, but Jasmine execution is blocked because ChromeHeadless is not installed (CHROME_BIN unset). No Docker/integration tests, migration, deployment or live database mutation.
