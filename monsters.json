@@ -4,6 +4,7 @@
       "id": "mon_slime",
       "name": "Slime",
       "level": 1,
+      "moveSpd": 40,
       "hp": 32,
       "atk": 9,
       "matk": 6,
@@ -89,13 +90,13 @@
         "staff": 0.8,
         "rod": 0.8
       },
-      "isAggressive": false,
-      "moveSpd": 40
+      "isAggressive": false
     },
     {
       "id": "mon_fieldbat",
       "name": "Field Bat",
       "level": 2,
+      "moveSpd": 63,
       "hp": 81,
       "atk": 5,
       "matk": 10,
@@ -174,12 +175,13 @@
       "basicAttackRange": 0,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 63
-    }, {
+      "isAggressive": true
+    },
+    {
       "id": "mon_mutantbee",
       "name": "Mutant Bee",
       "level": 5,
+      "moveSpd": 66,
       "hp": 230,
       "atk": 18,
       "matk": 12,
@@ -269,13 +271,13 @@
       "basicAttackRange": 0,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 66
+      "isAggressive": true
     },
     {
       "id": "mon_thornsprout",
       "name": "Thornsprout",
       "level": 6,
+      "moveSpd": 0,
       "hp": 272,
       "atk": 25,
       "matk": 19,
@@ -360,13 +362,13 @@
       "elementalDamageTakenMultiplier": {
         "fire": 2
       },
-      "isAggressive": false,
-      "moveSpd": 5
+      "isAggressive": false
     },
     {
       "id": "mon_mudcrawler",
       "name": "Mudcrawler",
       "level": 7,
+      "moveSpd": 46,
       "hp": 424,
       "atk": 29,
       "matk": 24,
@@ -447,13 +449,13 @@
       "basicAttackRange": 0,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 46
+      "isAggressive": true
     },
     {
       "id": "mon_direwolf",
       "name": "Dire Wolf",
       "level": 9,
+      "moveSpd": 68,
       "hp": 591,
       "atk": 44,
       "matk": 29,
@@ -547,97 +549,13 @@
       "basicAttackRange": 0,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 68
+      "isAggressive": true
     },
     {
-      "id": "mon_mudflatcrocodile",
-      "name": "Mudflat Crocodile",
-      "level": 12,
-      "hp": 794,
-      "atk": 61,
-      "matk": 36,
-      "def": 9,
-      "mdefPercent": 0,
-      "accuracy": 99,
-      "evasion": 103,
-      "critChance": 4.3,
-      "atkSpeedTicks": 7,
-      "element": null,
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 1,
-        "ranged": 1,
-        "magic": 1
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 236,
-      "designNote": "Mudflat Crocodile: crocodile role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_mudflatcrocodile_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_mudflatcrocodile_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_head_magic_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_cape_phys_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_cape_magic_t1",
-          "chance": 0.008
-        },
-        {
-          "itemId": "equip_accessory_dex_t1",
-          "chance": 0.005
-        },
-        {
-          "itemId": "equip_shoes_traveler_t1",
-          "chance": 0.001
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 45,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 36
-    },  {
       "id": "mon_gravelhorn",
       "name": "Gravelhorn",
       "level": 11,
+      "moveSpd": 55,
       "hp": 770,
       "atk": 51,
       "matk": 34,
@@ -716,13 +634,98 @@
       "basicAttackRange": 0,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 55
+      "isAggressive": true
+    },
+    {
+      "id": "mon_mudflatcrocodile",
+      "name": "Mudflat Crocodile",
+      "level": 12,
+      "moveSpd": 36,
+      "hp": 794,
+      "atk": 61,
+      "matk": 36,
+      "def": 9,
+      "mdefPercent": 0,
+      "accuracy": 99,
+      "evasion": 103,
+      "critChance": 4.3,
+      "atkSpeedTicks": 7,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1,
+        "magic": 1
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 236,
+      "designNote": "Mudflat Crocodile: crocodile role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_mudflatcrocodile_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_mudflatcrocodile_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 45,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true
     },
     {
       "id": "mon_sandscorpion",
       "name": "Sand Scorpion",
       "level": 14,
+      "moveSpd": 61,
       "hp": 878,
       "atk": 60,
       "matk": 40,
@@ -811,13 +814,404 @@
         "staff": 1.2,
         "rod": 1.2
       },
-      "isAggressive": true,
-      "moveSpd": 61
+      "isAggressive": true
+    },
+    {
+      "id": "mon_ridgebreaker",
+      "name": "Ridgebreaker",
+      "level": 18,
+      "moveSpd": 62,
+      "hp": 1106,
+      "atk": 84,
+      "matk": 48,
+      "def": 14,
+      "mdefPercent": 0,
+      "accuracy": 101,
+      "evasion": 104,
+      "critChance": 4.5,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 0.8,
+        "ranged": 1.1,
+        "magic": 1.2
+      },
+      "sustainPressure": true,
+      "ability": null,
+      "xpReward": 375,
+      "designNote": "Ridgebreaker: heavy role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_ridgebreaker_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_ridgebreaker_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 63,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true
+    },
+    {
+      "id": "mon_saltfangcrab",
+      "name": "Saltfang Crab",
+      "level": 18,
+      "moveSpd": 62,
+      "hp": 985,
+      "atk": 68,
+      "matk": 48,
+      "def": 22,
+      "mdefPercent": 0,
+      "accuracy": 82,
+      "evasion": 112,
+      "critChance": 4.5,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 0.6,
+        "ranged": 1,
+        "magic": 1.4
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 375,
+      "designNote": "Saltfang Crab: armored role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_saltfangcrab_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_saltfangcrab_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 38,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": false
+    },
+    {
+      "id": "mon_needlebackstalker",
+      "name": "Needleback Stalker",
+      "level": 21,
+      "moveSpd": 60,
+      "hp": 1085,
+      "atk": 71,
+      "matk": 54,
+      "def": 14,
+      "mdefPercent": 0,
+      "accuracy": 112,
+      "evasion": 125,
+      "critChance": 4.6,
+      "atkSpeedTicks": 5,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1.2,
+        "ranged": 0.65,
+        "magic": 1
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 448,
+      "designNote": "Needleback Stalker: evasive role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_needlebackstalker_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_needlebackstalker_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "mat_meat",
+          "chance": 0.2
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 60,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true
     },
     {
       "id": "mon_duneraider",
       "name": "Dune Raider",
       "level": 23,
+      "moveSpd": 73,
       "hp": 1224,
       "atk": 86,
       "matk": 57,
@@ -940,152 +1334,13 @@
       "basicAttackRange": 6,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 80
-    },
-    {
-      "id": "mon_cindergolem",
-      "name": "Cinder Golem",
-      "level": 70,
-      "hp": 13528,
-      "atk": 470,
-      "matk": 31,
-      "def": 8,
-      "mdefPercent": 0,
-      "accuracy": 97,
-      "evasion": 106,
-      "critChance": 4.2,
-      "atkSpeedTicks": 9,
-      "element": "fire",
-      "elementalResistances": [
-        "fire"
-      ],
-      "favoredAgainstArchetype": "mage",
-      "favoredAgainstArchetypeLabel": "Mage (ranged magic)",
-      "damageTakenMultiplier": {
-        "melee": 1,
-        "ranged": 0.7,
-        "magic": 1.3
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 190,
-      "designNote": "Molten rock body is naturally resistant to fire and physical blows alike, but its cracked core is vulnerable to raw spellpower.",
-      "drops": [
-        {
-          "itemId": "part_cindergolem_common",
-          "chance": 0.1
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
-        },
-        {
-          "itemId": "part_cindergolem_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "equip_head_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t3",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_fire_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_shadow_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
-        },
-        {
-          "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 45,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 104
+      "isAggressive": true
     },
     {
       "id": "mon_venomviper",
       "name": "Venom Viper",
       "level": 25,
+      "moveSpd": 79,
       "hp": 1366,
       "atk": 91,
       "matk": 61,
@@ -1221,13 +1476,986 @@
       "basicAttackRange": 0,
       "maxSp": 80,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 79
+      "isAggressive": true
+    },
+    {
+      "id": "mon_bandit",
+      "name": "Bandit",
+      "level": 25,
+      "moveSpd": 78,
+      "hp": 1366,
+      "atk": 91,
+      "matk": 61,
+      "def": 16,
+      "mdefPercent": 0,
+      "accuracy": 104,
+      "evasion": 115,
+      "critChance": 4.6,
+      "atkSpeedTicks": 5,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1,
+        "magic": 1
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 547,
+      "designNote": "Bandit: bandit role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_bandit_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_bandit_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "foe_hp_below_percent",
+            "value": 20
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_pickpocket"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 60,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 80,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true
+    },
+    {
+      "id": "mon_giantmosquito",
+      "name": "Giant Mosquito",
+      "level": 27,
+      "moveSpd": 81,
+      "hp": 1512,
+      "atk": 97,
+      "matk": 64,
+      "def": 17,
+      "mdefPercent": 0,
+      "accuracy": 104,
+      "evasion": 128,
+      "critChance": 4.7,
+      "atkSpeedTicks": 4,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 0.7,
+        "magic": 1.2
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 598,
+      "designNote": "Giant Mosquito: evasive role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_giantmosquito_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_giantmosquito_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 59,
+      "combatStyle": "ranged",
+      "basicAttackDamageType": "ranged",
+      "basicAttackRange": 6,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true
+    },
+    {
+      "id": "mon_rootboundbrute",
+      "name": "Rootbound Brute",
+      "level": 29,
+      "moveSpd": 73,
+      "hp": 2076,
+      "atk": 153,
+      "matk": 68,
+      "def": 18,
+      "mdefPercent": 0,
+      "accuracy": 98,
+      "evasion": 104,
+      "critChance": 4.7,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 0.8,
+        "ranged": 1.1,
+        "magic": 1.2
+      },
+      "sustainPressure": true,
+      "ability": null,
+      "xpReward": 649,
+      "designNote": "Rootbound Brute: heavy role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_rootboundbrute_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_rootboundbrute_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_rage"
+          }
+        }
+      ],
+      "moveSpeedBase": 55,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true
+    },
+    {
+      "id": "mon_kwaiouaranger",
+      "name": "Kwaiouá Ranger",
+      "level": 33,
+      "moveSpd": 92,
+      "hp": 1970,
+      "atk": 93,
+      "matk": 74,
+      "def": 20,
+      "mdefPercent": 0,
+      "accuracy": 135,
+      "evasion": 130,
+      "critChance": 4.8,
+      "atkSpeedTicks": 4,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1.2,
+        "magic": 0.9
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 753,
+      "designNote": "Kwaiouá Ranger: ranger role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_kwaioua_ranger_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_kwaioua_ranger_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "self_hp_below_percent",
+            "value": 10
+          },
+          "action": {
+            "type": "flee",
+            "disabled": true,
+            "note": "Future FLEE mechanic; currently not executable"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 70,
+      "combatStyle": "ranged",
+      "basicAttackDamageType": "ranged",
+      "basicAttackRange": 6,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true
+    },
+    {
+      "id": "mon_giantmantis",
+      "name": "Giant Mantis",
+      "level": 36,
+      "moveSpd": 83,
+      "hp": 2780,
+      "atk": 178,
+      "matk": 65,
+      "def": 22,
+      "mdefPercent": 0,
+      "accuracy": 102,
+      "evasion": 150,
+      "critChance": 4.8,
+      "atkSpeedTicks": 7,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1,
+        "magic": 1
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 832,
+      "designNote": "A patient, non-aggressive forest predator with exceptionally sharp reflexes.",
+      "drops": [
+        {
+          "itemId": "part_giantmantis_common",
+          "chance": 0.4
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "part_giantmantis_rare",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 78,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": false
+    },
+    {
+      "id": "mon_flamingtreant",
+      "name": "Flaming Treant",
+      "level": 38,
+      "moveSpd": 81,
+      "hp": 3360,
+      "atk": 280,
+      "matk": 90,
+      "def": 25,
+      "mdefPercent": 0,
+      "accuracy": 106,
+      "evasion": 108,
+      "critChance": 4.8,
+      "atkSpeedTicks": 8,
+      "element": "fire",
+      "elementalResistances": [
+        "fire"
+      ],
+      "elementalDamageTakenMultiplier": {
+        "fire": 0
+      },
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1,
+        "magic": 1
+      },
+      "sustainPressure": true,
+      "ability": null,
+      "xpReward": 885,
+      "designNote": "An enraged ancient tree consumed by flames; its burning bark is impervious to fire.",
+      "drops": [
+        {
+          "itemId": "part_flamingtreant_bark",
+          "chance": 0.35
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "part_flamingtreant_rare",
+          "chance": 0.0008
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 44,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true
+    },
+    {
+      "id": "mon_moonleafarcanist",
+      "name": "Moonleaf Arcanist",
+      "level": 41,
+      "moveSpd": 100,
+      "hp": 2624,
+      "atk": 150,
+      "matk": 266,
+      "def": 16,
+      "mdefPercent": 55,
+      "accuracy": 127,
+      "evasion": 120,
+      "critChance": 4.9,
+      "atkSpeedTicks": 4,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1.2,
+        "ranged": 1,
+        "magic": 0.7
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 966,
+      "designNote": "Moonleaf Arcanist: caster role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_moonleafarcanist_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_moonleafarcanist_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 60,
+      "combatStyle": "ranged",
+      "basicAttackDamageType": "ranged",
+      "basicAttackRange": 6,
+      "maxSp": 80,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": false
     },
     {
       "id": "mon_mirageStalker",
       "name": "Mirage Stalker",
       "level": 45,
+      "moveSpd": 104,
       "hp": 6670,
       "atk": 220,
       "matk": 38,
@@ -1360,308 +2588,13 @@
       "basicAttackRange": 0,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 104
-    },
-    {
-      "id": "mon_brokensentinel",
-      "name": "Broken Sentinel",
-      "level": 68,
-      "hp": 5116,
-      "atk": 338,
-      "matk": 125,
-      "def": 63,
-      "mdefPercent": 0,
-      "accuracy": 111,
-      "evasion": 110,
-      "critChance": 5.1,
-      "atkSpeedTicks": 8,
-      "element": null,
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "warrior",
-      "favoredAgainstArchetypeLabel": "Warrior (melee)",
-      "damageTakenMultiplier": {
-        "melee": 0.8,
-        "ranged": 1,
-        "magic": 1.2
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 1729,
-      "designNote": "Ancient stone construct, armored against blades but its rune-core is exposed to magic.",
-      "drops": [
-        {
-          "itemId": "part_brokensentinel_common",
-          "chance": 0.1
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
-        },
-        {
-          "itemId": "part_brokensentinel_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "equip_head_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t3",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_fire_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_shadow_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
-        },
-        {
-          "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 60,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "weaponCategoryDamageTakenMultiplier": {
-        "sword": 0.7,
-        "greatsword": 0.65,
-        "dagger": 0.8,
-        "bow": 1,
-        "staff": 1.3,
-        "rod": 1.25
-      },
-      "isAggressive": true,
-      "moveSpd": 107
-    },
-    {
-      "id": "mon_wraith",
-      "name": "Wailing Wraith",
-      "level": 73,
-      "hp": 5618,
-      "atk": 198,
-      "matk": 238,
-      "def": 37,
-      "mdefPercent": 0,
-      "accuracy": 111,
-      "evasion": 125,
-      "critChance": 5.2,
-      "atkSpeedTicks": 4,
-      "element": "shadow",
-      "elementalResistances": [
-        "shadow"
-      ],
-      "favoredAgainstArchetype": "archer",
-      "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
-      "damageTakenMultiplier": {
-        "melee": 0.7,
-        "ranged": 1.3,
-        "magic": 1
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 1876,
-      "designNote": "A fast incorporeal spirit that phases through slow melee swings but can't avoid a well-aimed shot.",
-      "drops": [
-        {
-          "itemId": "part_wraith_common",
-          "chance": 0.1
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
-        },
-        {
-          "itemId": "part_wraith_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "equip_head_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t3",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_fire_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_shadow_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
-        },
-        {
-          "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "self_has_status",
-            "status": "silence"
-          },
-          "action": {
-            "type": "attack"
-          }
-        },
-        {
-          "priority": 2,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "use_skill",
-            "skillId": "monster_skill_ice_bolt"
-          }
-        }
-      ],
-      "moveSpeedBase": 56,
-      "combatStyle": "ranged",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 80,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 128
+      "isAggressive": true
     },
     {
       "id": "mon_arcanewisp",
       "name": "Arcane Wisp",
       "level": 45,
+      "moveSpd": 109,
       "hp": 2966,
       "atk": 139,
       "matk": 284,
@@ -1812,48 +2745,48 @@
         "staff": 0.7,
         "rod": 0.7
       },
-      "isAggressive": true,
-      "moveSpd": 109
+      "isAggressive": true
     },
     {
-      "id": "mon_boneknight",
-      "name": "Bone Knight",
-      "level": 62,
-      "hp": 5661,
-      "atk": 229,
-      "matk": 117,
-      "def": 33,
+      "id": "mon_sacredforestguardian",
+      "name": "Sacred Forest Guardian",
+      "level": 50,
+      "moveSpd": 94,
+      "hp": 4432,
+      "atk": 180,
+      "matk": 100,
+      "def": 38,
       "mdefPercent": 0,
-      "accuracy": 110,
-      "evasion": 105,
-      "critChance": 5.1,
+      "accuracy": 148,
+      "evasion": 125,
+      "critChance": 5,
       "atkSpeedTicks": 7,
-      "element": null,
+      "element": "earth",
       "elementalResistances": [],
-      "favoredAgainstArchetype": "priest",
-      "favoredAgainstArchetypeLabel": "Priest (healer/sustain)",
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
-        "melee": 1.1,
-        "ranged": 1.1,
-        "magic": 0.9
+        "melee": 0.8,
+        "ranged": 1,
+        "magic": 1.1
       },
-      "sustainPressure": true,
-      "ability": "self_heal",
-      "xpReward": 1555,
-      "designNote": "Undead guardian bound by old rites; it knits its bones back together unless burned down fast and kept down.",
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 1214,
+      "designNote": "Sacred Forest Guardian: guardian role with data-driven weapon/element counterplay.",
       "drops": [
         {
-          "itemId": "part_boneknight_common",
-          "chance": 0.1
+          "itemId": "part_sacredforestguardian_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_sacredforestguardian_rare",
+          "chance": 0.002
         },
         {
           "itemId": "item_consumable_random_map_tier",
           "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
-        },
-        {
-          "itemId": "part_boneknight_rare",
-          "chance": 0.002
+          "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
           "itemId": "equip_head_phys_t3",
@@ -1936,12 +2869,11 @@
         {
           "priority": 1,
           "condition": {
-            "type": "self_hp_below_percent",
-            "value": 50
+            "type": "always"
           },
           "action": {
             "type": "use_skill",
-            "skillId": "monster_skill_self_heal"
+            "skillId": "monster_skill_opening_spear"
           }
         },
         {
@@ -1954,19 +2886,156 @@
           }
         }
       ],
-      "moveSpeedBase": 64,
+      "moveSpeedBase": 85,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 105
+      "isAggressive": true
+    },
+    {
+      "id": "mon_aramaianwarden",
+      "name": "Aramaian Warden",
+      "level": 55,
+      "moveSpd": 99,
+      "hp": 5026,
+      "atk": 161,
+      "matk": 107,
+      "def": 42,
+      "mdefPercent": 0,
+      "accuracy": 139,
+      "evasion": 123,
+      "critChance": 5,
+      "atkSpeedTicks": 7,
+      "element": "earth",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 0.8,
+        "ranged": 1.1,
+        "magic": 1.2
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 1354,
+      "designNote": "Aramaian Warden: guardian role with data-driven weapon/element counterplay.",
+      "drops": [
+        {
+          "itemId": "part_aramaianwarden_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_aramaianwarden_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 70,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true
     },
     {
       "id": "mon_ruinsguardian",
       "name": "Ruins Guardian",
       "level": 58,
+      "moveSpd": 92,
       "hp": 5392,
       "atk": 167,
       "matk": 112,
@@ -2108,188 +3177,48 @@
       "basicAttackRange": 0,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 92
+      "isAggressive": true
     },
     {
-      "id": "mon_bandit",
-      "name": "Bandit",
-      "level": 25,
-      "hp": 1366,
-      "atk": 91,
-      "matk": 61,
-      "def": 16,
+      "id": "mon_boneknight",
+      "name": "Bone Knight",
+      "level": 62,
+      "moveSpd": 105,
+      "hp": 5661,
+      "atk": 229,
+      "matk": 117,
+      "def": 33,
       "mdefPercent": 0,
-      "accuracy": 104,
-      "evasion": 115,
-      "critChance": 4.6,
-      "atkSpeedTicks": 5,
+      "accuracy": 110,
+      "evasion": 105,
+      "critChance": 5.1,
+      "atkSpeedTicks": 7,
       "element": null,
       "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
+      "favoredAgainstArchetype": "priest",
+      "favoredAgainstArchetypeLabel": "Priest (healer/sustain)",
       "damageTakenMultiplier": {
-        "melee": 1,
-        "ranged": 1,
-        "magic": 1
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 547,
-      "designNote": "Bandit: bandit role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_bandit_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_bandit_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t2",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_earth_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_water_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t2",
-          "chance": 0.001
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "foe_hp_below_percent",
-            "value": 20
-          },
-          "action": {
-            "type": "use_skill",
-            "skillId": "monster_skill_pickpocket"
-          }
-        },
-        {
-          "priority": 2,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 60,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 80,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 84
-    },
-    {
-      "id": "mon_kwaiouaranger",
-      "name": "Kwaiouá Ranger",
-      "level": 33,
-      "hp": 1970,
-      "atk": 93,
-      "matk": 74,
-      "def": 20,
-      "mdefPercent": 0,
-      "accuracy": 135,
-      "evasion": 130,
-      "critChance": 4.8,
-      "atkSpeedTicks": 4,
-      "element": null,
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 1,
-        "ranged": 1.2,
+        "melee": 1.1,
+        "ranged": 1.1,
         "magic": 0.9
       },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 753,
-      "designNote": "Kwaiouá Ranger: ranger role with data-driven weapon/element counterplay.",
+      "sustainPressure": true,
+      "ability": "self_heal",
+      "xpReward": 1555,
+      "designNote": "Undead guardian bound by old rites; it knits its bones back together unless burned down fast and kept down.",
       "drops": [
         {
-          "itemId": "part_kwaioua_ranger_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_kwaioua_ranger_rare",
-          "chance": 0.002
+          "itemId": "part_boneknight_common",
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
           "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_boneknight_rare",
+          "chance": 0.002
         },
         {
           "itemId": "equip_head_phys_t3",
@@ -2373,159 +3302,11 @@
           "priority": 1,
           "condition": {
             "type": "self_hp_below_percent",
-            "value": 10
-          },
-          "action": {
-            "type": "flee",
-            "disabled": true,
-            "note": "Future FLEE mechanic; currently not executable"
-          }
-        },
-        {
-          "priority": 2,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 70,
-      "combatStyle": "ranged",
-      "basicAttackDamageType": "ranged",
-      "basicAttackRange": 6,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 92
-    },
-    {
-      "id": "mon_sacredforestguardian",
-      "name": "Sacred Forest Guardian",
-      "level": 50,
-      "hp": 4432,
-      "atk": 180,
-      "matk": 100,
-      "def": 38,
-      "mdefPercent": 0,
-      "accuracy": 148,
-      "evasion": 125,
-      "critChance": 5,
-      "atkSpeedTicks": 7,
-      "element": "earth",
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 0.8,
-        "ranged": 1,
-        "magic": 1.1
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 1214,
-      "designNote": "Sacred Forest Guardian: guardian role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_sacredforestguardian_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_sacredforestguardian_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t3",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_fire_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_shadow_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
-        },
-        {
-          "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
+            "value": 50
           },
           "action": {
             "type": "use_skill",
-            "skillId": "monster_skill_opening_spear"
+            "skillId": "monster_skill_self_heal"
           }
         },
         {
@@ -2538,1131 +3319,201 @@
           }
         }
       ],
-      "moveSpeedBase": 85,
+      "moveSpeedBase": 64,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 94
+      "isAggressive": true
     },
-  
     {
-      "id": "mon_ridgebreaker",
-      "name": "Ridgebreaker",
-      "level": 18,
-      "hp": 1106,
-      "atk": 84,
-      "matk": 48,
-      "def": 14,
+      "id": "mon_brokensentinel",
+      "name": "Broken Sentinel",
+      "level": 68,
+      "moveSpd": 107,
+      "hp": 5116,
+      "atk": 338,
+      "matk": 125,
+      "def": 63,
       "mdefPercent": 0,
-      "accuracy": 101,
-      "evasion": 104,
-      "critChance": 4.5,
-      "atkSpeedTicks": 7,
-      "element": "earth",
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 0.8,
-        "ranged": 1.1,
-        "magic": 1.2
-      },
-      "sustainPressure": true,
-      "ability": null,
-      "xpReward": 375,
-      "designNote": "Ridgebreaker: heavy role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_ridgebreaker_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_ridgebreaker_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t2",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_earth_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_water_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t2",
-          "chance": 0.001
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 63,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 62
-    },
-    {
-      "id": "mon_saltfangcrab",
-      "name": "Saltfang Crab",
-      "level": 18,
-      "hp": 985,
-      "atk": 68,
-      "matk": 48,
-      "def": 22,
-      "mdefPercent": 0,
-      "accuracy": 82,
-      "evasion": 112,
-      "critChance": 4.5,
-      "atkSpeedTicks": 7,
-      "element": "earth",
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 0.6,
-        "ranged": 1,
-        "magic": 1.4
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 375,
-      "designNote": "Saltfang Crab: armored role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_saltfangcrab_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_saltfangcrab_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t2",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_earth_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_water_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t2",
-          "chance": 0.001
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 38,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": false,
-      "moveSpd": 62
-    },
-    {
-      "id": "mon_needlebackstalker",
-      "name": "Needleback Stalker",
-      "level": 21,
-      "hp": 1085,
-      "atk": 81,
-      "matk": 54,
-      "def": 14,
-      "mdefPercent": 0,
-      "accuracy": 112,
-      "evasion": 125,
-      "critChance": 4.6,
-      "atkSpeedTicks": 5,
-      "element": null,
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 1.2,
-        "ranged": 0.65,
-        "magic": 1
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 448,
-      "designNote": "Needleback Stalker: evasive role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_needlebackstalker_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_needlebackstalker_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "mat_meat",
-          "chance": 0.2
-        },
-        {
-          "itemId": "equip_head_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t2",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_earth_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_water_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t2",
-          "chance": 0.001
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 60,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 80
-    },
-    {
-      "id": "mon_giantmosquito",
-      "name": "Giant Mosquito",
-      "level": 27,
-      "hp": 1512,
-      "atk": 97,
-      "matk": 64,
-      "def": 17,
-      "mdefPercent": 0,
-      "accuracy": 104,
-      "evasion": 128,
-      "critChance": 4.7,
-      "atkSpeedTicks": 4,
-      "element": null,
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 1,
-        "ranged": 0.7,
-        "magic": 1.2
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 598,
-      "designNote": "Giant Mosquito: evasive role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_giantmosquito_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_giantmosquito_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t2",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_earth_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_water_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t2",
-          "chance": 0.001
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 59,
-      "combatStyle": "ranged",
-      "basicAttackDamageType": "ranged",
-      "basicAttackRange": 6,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 86
-    },
-    {
-      "id": "mon_rootboundbrute",
-      "name": "Rootbound Brute",
-      "level": 29,
-      "hp": 2076,
-      "atk": 153,
-      "matk": 68,
-      "def": 18,
-      "mdefPercent": 0,
-      "accuracy": 98,
-      "evasion": 104,
-      "critChance": 4.7,
-      "atkSpeedTicks": 7,
-      "element": "earth",
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 0.8,
-        "ranged": 1.1,
-        "magic": 1.2
-      },
-      "sustainPressure": true,
-      "ability": null,
-      "xpReward": 649,
-      "designNote": "Rootbound Brute: heavy role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_rootboundbrute_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_rootboundbrute_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t2",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_earth_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_water_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t2",
-          "chance": 0.001
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        },
-        {
-          "priority": 2,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "use_skill",
-            "skillId": "monster_skill_rage"
-          }
-        }
-      ],
-      "moveSpeedBase": 55,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 73
-    },
-    {
-      "id": "mon_moonleafarcanist",
-      "name": "Moonleaf Arcanist",
-      "level": 41,
-      "hp": 2624,
-      "atk": 150,
-      "matk": 266,
-      "def": 16,
-      "mdefPercent": 55,
-      "accuracy": 127,
-      "evasion": 120,
-      "critChance": 4.9,
-      "atkSpeedTicks": 4,
-      "element": null,
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 1.2,
-        "ranged": 1,
-        "magic": 0.7
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 966,
-      "designNote": "Moonleaf Arcanist: caster role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_moonleafarcanist_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_moonleafarcanist_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t3",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_fire_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_shadow_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
-        },
-        {
-          "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 60,
-      "combatStyle": "ranged",
-      "basicAttackDamageType": "ranged",
-      "basicAttackRange": 6,
-      "maxSp": 80,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": false,
-      "moveSpd": 100
-    },
-    {
-      "id": "mon_aramaianwarden",
-      "name": "Aramaian Warden",
-      "level": 55,
-      "hp": 5026,
-      "atk": 161,
-      "matk": 107,
-      "def": 42,
-      "mdefPercent": 0,
-      "accuracy": 139,
-      "evasion": 123,
-      "critChance": 5,
-      "atkSpeedTicks": 7,
-      "element": "earth",
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 0.8,
-        "ranged": 1.1,
-        "magic": 1.2
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 1354,
-      "designNote": "Aramaian Warden: guardian role with data-driven weapon/element counterplay.",
-      "drops": [
-        {
-          "itemId": "part_aramaianwarden_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_aramaianwarden_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t3",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_fire_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_shadow_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
-        },
-        {
-          "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 70,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 99
-    },
-   
-    {
-      "id": "mon_giantmantis",
-      "name": "Giant Mantis",
-      "level": 36,
-      "hp": 2780,
-      "atk": 178,
-      "matk": 65,
-      "def": 22,
-      "mdefPercent": 0,
-      "accuracy": 102,
-      "evasion": 150,
-      "critChance": 4.8,
-      "atkSpeedTicks": 7,
-      "element": null,
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 1,
-        "ranged": 1,
-        "magic": 1
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "xpReward": 832,
-      "designNote": "A patient, non-aggressive forest predator with exceptionally sharp reflexes.",
-      "drops": [
-        {
-          "itemId": "part_giantmantis_common",
-          "chance": 0.4
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "part_giantmantis_rare",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t3",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_fire_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_shadow_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
-        },
-        {
-          "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 78,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": false,
-      "moveSpd": 83
-    },
-    {
-      "id": "mon_flamingtreant",
-      "name": "Flaming Treant",
-      "level": 38,
-      "hp": 3360,
-      "atk": 280,
-      "matk": 90,
-      "def": 25,
-      "mdefPercent": 0,
-      "accuracy": 106,
-      "evasion": 108,
-      "critChance": 4.8,
+      "accuracy": 111,
+      "evasion": 110,
+      "critChance": 5.1,
       "atkSpeedTicks": 8,
+      "element": null,
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "warrior",
+      "favoredAgainstArchetypeLabel": "Warrior (melee)",
+      "damageTakenMultiplier": {
+        "melee": 0.8,
+        "ranged": 1,
+        "magic": 1.2
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 1729,
+      "designNote": "Ancient stone construct, armored against blades but its rune-core is exposed to magic.",
+      "drops": [
+        {
+          "itemId": "part_brokensentinel_common",
+          "chance": 0.1
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_brokensentinel_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 60,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "weaponCategoryDamageTakenMultiplier": {
+        "sword": 0.7,
+        "greatsword": 0.65,
+        "dagger": 0.8,
+        "bow": 1,
+        "staff": 1.3,
+        "rod": 1.25
+      },
+      "isAggressive": true
+    },
+    {
+      "id": "mon_cindergolem",
+      "name": "Cinder Golem",
+      "level": 70,
+      "moveSpd": 104,
+      "hp": 13528,
+      "atk": 470,
+      "matk": 31,
+      "def": 8,
+      "mdefPercent": 0,
+      "accuracy": 97,
+      "evasion": 106,
+      "critChance": 4.2,
+      "atkSpeedTicks": 9,
       "element": "fire",
       "elementalResistances": [
         "fire"
       ],
-      "elementalDamageTakenMultiplier": {
-        "fire": 0
-      },
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
+      "favoredAgainstArchetype": "mage",
+      "favoredAgainstArchetypeLabel": "Mage (ranged magic)",
       "damageTakenMultiplier": {
         "melee": 1,
-        "ranged": 1,
-        "magic": 1
+        "ranged": 0.7,
+        "magic": 1.3
       },
-      "sustainPressure": true,
+      "sustainPressure": false,
       "ability": null,
-      "xpReward": 885,
-      "designNote": "An enraged ancient tree consumed by flames; its burning bark is impervious to fire.",
+      "xpReward": 190,
+      "designNote": "Molten rock body is naturally resistant to fire and physical blows alike, but its cracked core is vulnerable to raw spellpower.",
       "drops": [
         {
-          "itemId": "part_flamingtreant_bark",
-          "chance": 0.35
+          "itemId": "part_cindergolem_common",
+          "chance": 0.1
         },
         {
           "itemId": "item_consumable_random_map_tier",
           "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
         },
         {
-          "itemId": "part_flamingtreant_rare",
-          "chance": 0.0008
+          "itemId": "part_cindergolem_rare",
+          "chance": 0.002
         },
         {
           "itemId": "equip_head_phys_t3",
@@ -3752,14 +3603,163 @@
           }
         }
       ],
-      "moveSpeedBase": 44,
+      "moveSpeedBase": 45,
       "combatStyle": "melee",
       "basicAttackDamageType": "melee",
       "basicAttackRange": 0,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true,
-      "moveSpd": 81
+      "isAggressive": true
+    },
+    {
+      "id": "mon_wraith",
+      "name": "Wailing Wraith",
+      "level": 73,
+      "moveSpd": 128,
+      "hp": 5618,
+      "atk": 198,
+      "matk": 238,
+      "def": 37,
+      "mdefPercent": 0,
+      "accuracy": 111,
+      "evasion": 125,
+      "critChance": 5.2,
+      "atkSpeedTicks": 4,
+      "element": "shadow",
+      "elementalResistances": [
+        "shadow"
+      ],
+      "favoredAgainstArchetype": "archer",
+      "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
+      "damageTakenMultiplier": {
+        "melee": 0.7,
+        "ranged": 1.3,
+        "magic": 1
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "xpReward": 1876,
+      "designNote": "A fast incorporeal spirit that phases through slow melee swings but can't avoid a well-aimed shot.",
+      "drops": [
+        {
+          "itemId": "part_wraith_common",
+          "chance": 0.1
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_wraith_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 0.00005
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 0.00005
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "self_has_status",
+            "status": "silence"
+          },
+          "action": {
+            "type": "attack"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_ice_bolt"
+          }
+        }
+      ],
+      "moveSpeedBase": 56,
+      "combatStyle": "ranged",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 80,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true
     }
   ]
 }
