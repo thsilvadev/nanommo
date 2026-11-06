@@ -19,10 +19,10 @@ const quest = id => quests.quests.find(row => row.id === id);
 function run() {
   assert(map('map_kwaioua_taba').npcIds.includes('paje_piata'));
   assert(map('map_emperial_capital_caelum').npcIds.includes('whitesmith_spitz'));
-  assert.strictEqual(npc('paje_piata').vendor.sellStock.find(x => x.itemId === 'elixir_greater').price, 1200);
+  assert.strictEqual(npc('paje_piata').vendor.sellStock.find(x => x.itemId === 'elixir').price, 1200);
   const william = read('npc_vendor.json').sellStock;
-  const pajeStock = npc('paje_piata').vendor.sellStock.filter(x => x.itemId !== 'elixir_greater');
-  assert.deepStrictEqual(pajeStock, william.filter(x => x.itemId !== 'elixir_greater'));
+  const pajeStock = npc('paje_piata').vendor.sellStock.filter(x => x.itemId !== 'elixir');
+  assert.deepStrictEqual(pajeStock, william.filter(x => x.itemId !== 'elixir'));
   for (const id of ['equip_rune_t1', 'equip_head_phys_t1', 'equip_head_magic_t1']) {
     assert(npc('whitesmith_spitz').vendor.sellStock.some(x => x.itemId === id), 'Spitz stock missing ' + id);
   }
@@ -30,7 +30,7 @@ function run() {
   const alchemy = read('alchemy_recipes.json').recipes.find(x => x.id === 'greater_elixir');
   assert.strictEqual(alchemy.requiredLevel, 1);
   assert.deepStrictEqual(alchemy.ingredients, [{ itemId: 'mat_herbs', quantity: 5 }]);
-  assert.strictEqual(alchemy.outputItemId, 'elixir_greater');
+  assert.strictEqual(alchemy.outputItemId, 'elixir');
   const smith = read('blacksmith_recipes.json').recipes;
   assert.deepStrictEqual(smith.find(x => x.id === 'bronze_ingot').ingredients, [{ itemId: 'mat_bronze_ore', quantity: 10 }]);
   for (const id of ['equip_head_phys_t2','equip_head_magic_t2','equip_cape_phys_t2','equip_cape_magic_t2','equip_body_phys_t2','equip_body_magic_t2','equip_shoes_traveler_t1','equip_sword_t2','equip_greatsword_t2','equip_dagger_t2','equip_bow_t2','equip_staff_t2','equip_rod_t2','equip_shield_t2','equip_rune_t2']) {

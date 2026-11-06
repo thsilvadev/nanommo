@@ -6,7 +6,7 @@ Alchemy SHALL have persisted profession level and cumulative XP, show authoritat
 #### Scenario: Level 1 Alchemy recipe
 - **WHEN** a Character has Alchemy Level 1 and at least five Herbs with reservable output capacity
 - **AND** starts the Greater Elixir recipe through Pajé's Alchemy service
-- **THEN** the server reserves five Herbs and output capacity for one `elixir_greater`
+- **THEN** the server reserves five Herbs and output capacity for one `elixir`
 - **AND** the successful craft consumes the Herbs, grants one Greater Elixir, awards 5 Alchemy XP and updates authoritative profession progress
 
 #### Scenario: Recipe eligibility or inventory capacity fails

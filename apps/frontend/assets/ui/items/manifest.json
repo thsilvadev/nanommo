@@ -369,15 +369,15 @@
     "png128": "png/128/antidote.png",
     "png256": "png/256/antidote.png"
   },
-  "elixir_greater": {
+  "elixir": {
     "name": "Greater Elixir",
     "category": "consumables",
     "rarity": "epic",
-    "svg": "svg/consumables/elixir_greater.svg",
-    "svg_noframe": "svg-noframe/consumables/elixir_greater.svg",
-    "png64": "png/64/elixir_greater.png",
-    "png128": "png/128/elixir_greater.png",
-    "png256": "png/256/elixir_greater.png"
+    "svg": "svg/consumables/elixir.svg",
+    "svg_noframe": "svg-noframe/consumables/elixir.svg",
+    "png64": "png/64/elixir.png",
+    "png128": "png/128/elixir.png",
+    "png256": "png/256/elixir.png"
   },
   "food_bread": {
     "name": "Bread",

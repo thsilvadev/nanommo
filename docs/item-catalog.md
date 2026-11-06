@@ -161,7 +161,7 @@ Complete catalogue: 148 items. Names, IDs, and descriptions are sourced from ite
 | Medium SP Potion | pot_sp_medium | Restores 150 SP when used. |
 | Large SP Potion | pot_sp_large | Restores 380 SP when used. |
 | Antidote | antidote | Removes the poison status effect. |
-| Greater Elixir | elixir_greater | Restores 300 HP and 200 SP when used. |
+| Greater Elixir | elixir | Restores 300 HP and 200 SP when used. |
 | Bread | food_bread | A prepared food that grants HP regeneration of 4 and SP regeneration of 1 per 10 ticks for 60 minutes. |
 | Aged Cheese | food_cheese | A prepared food that grants HP regeneration of 8 and SP regeneration of 1 per 10 ticks for 60 minutes. |
 | Blueberry Jelly | food_blueberry | A prepared food that grants HP regeneration of 1 and SP regeneration of 4 per 10 ticks for 60 minutes. |

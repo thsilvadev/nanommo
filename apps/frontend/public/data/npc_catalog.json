@@ -291,7 +291,7 @@
             "infiniteStock": true
           },
           {
-            "itemId": "elixir_greater",
+            "itemId": "elixir",
             "price": 1200,
             "infiniteStock": true
           }

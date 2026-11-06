@@ -1197,7 +1197,7 @@
       "description": "Removes the poison status effect."
     },
     {
-      "id": "elixir_greater",
+      "id": "elixir",
       "name": "Greater Elixir",
       "effect": {
         "type": "heal_hp_sp",

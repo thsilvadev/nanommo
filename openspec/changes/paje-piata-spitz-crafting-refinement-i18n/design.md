@@ -28,7 +28,7 @@
 ## Spitz, Blacksmith and crafting
 
 - Place Whitesmith Spitz in Caelum, with the same base list/pricing as Blacksmith Loren, plus equip_rune_t1, equip_head_phys_t1 and equip_head_magic_t1. Leave the other vendor NPCs unchanged.
-- Create alchemy_recipes.json with the Level 1 recipe: 5 mat_herbs → 1 elixir_greater, 5 Alchemy XP.
+- Create alchemy_recipes.json with the Level 1 recipe: 5 mat_herbs → 1 elixir, 5 Alchemy XP.
 - Create blacksmith_recipes.json with initial baseline values that the user can easily edit:
   - Level 1: 10 Bronze Ore → 1 Bronze Ingot.
   - Level 2: physical and magic T2 headgear; each recipe consumes 2 Bronze Ingots.
