@@ -7,7 +7,8 @@ type SoundName =
   | 'npcDialogue' | 'poisonApply' | 'poisonDamage' | 'questAccepted'
   | 'questCompleted' | 'respec' | 'refineFail' | 'refineSuccess' | 'rod_hit_1'
   | 'staff_hit_1' | 'sword_hit_1' | 'potion_drink' | 'flee' | 'foodCooked' | 'gather'
-  | 'boughtItemFromNpc' | 'soldItemToNpc' | 'putInStorage' | 'takeFromStorage' | 'postItemOnMarket';
+  | 'boughtItemFromNpc' | 'soldItemToNpc' | 'putInStorage' | 'takeFromStorage' | 'postItemOnMarket'
+  | 'use_fairy_in_a_bottle' | 'use_tonic';
 
 @Injectable({ providedIn: 'root' })
 export class GameAudioService {
@@ -34,6 +35,7 @@ export class GameAudioService {
   private lastBattleEventIndex = -1;
   private seenResolvedId = '';
   private previousLevel: number | null = null;
+  private readonly battleItemSoundCounts = new Map<string, Map<string, number>>();
 
   private readStoredVolume(): number {
     try {
@@ -86,6 +88,8 @@ export class GameAudioService {
       putInStorage: 'new_packs/2/putInStorage.ogg',
       takeFromStorage: 'new_packs/2/takeFromStorage.ogg',
       postItemOnMarket: 'new_packs/2/postItemOnMarket.ogg',
+      use_fairy_in_a_bottle: 'new_packs/3/useFarieInABottle.mp3',
+      use_tonic: 'new_packs/3/useTonic.mp3',
     };
     return files[name];
   }
@@ -354,8 +358,8 @@ export class GameAudioService {
     }
     if (action === 'status_damage' && (status === 'poison' || skill.includes('poison'))) { this.play('poisonDamage'); return; }
     if (actor === 'character' && action === 'use_item') {
-      if (itemId.startsWith('food_')) { this.play('eat'); return; }
-      if (itemId.startsWith('pot_') || itemId.includes('potion') || itemId.startsWith('elixir_')) { this.play('potion_drink'); return; }
+      this.playConsumedItemSound(itemId, String(entry?.id ?? ''));
+      return;
     }
     if ((skill.includes('bash') || skill.includes('ground_slam')) && Number(event?.damage ?? 0) > 0) { this.play('bash'); return; }
     if (actor === 'monster' && event?.target === 'character' && action !== 'status_damage' && event?.hit !== false && Number(event?.damage ?? 0) > 0) {
@@ -384,6 +388,22 @@ export class GameAudioService {
     else this.play('hand_hit_1');
   }
 
+
+  private playConsumedItemSound(itemId: string, battleId = ''): void {
+    let sound: SoundName | null = null;
+    if (itemId.startsWith('food_')) sound = 'eat';
+    else if (itemId === 'fairy_in_a_bottle') sound = 'use_fairy_in_a_bottle';
+    else if (itemId.startsWith('tonic_')) sound = 'use_tonic';
+    else if (itemId.startsWith('pot_') || itemId.startsWith('potion_') || itemId.startsWith('elixir_') || itemId.includes('potion')) sound = 'potion_drink';
+    if (!sound) return;
+    this.play(sound);
+    if (battleId) {
+      const counts = this.battleItemSoundCounts.get(battleId) ?? new Map<string, number>();
+      counts.set(itemId, Number(counts.get(itemId) ?? 0) + 1);
+      this.battleItemSoundCounts.set(battleId, counts);
+    }
+  }
+
   private updateResolvedAudio(battleStore: any): void {
     const resolved = battleStore.lastResolved?.();
     if (!resolved?.entryId || resolved.entryId === this.seenResolvedId) return;
@@ -393,10 +413,13 @@ export class GameAudioService {
       const itemId = String((drop as any)?.itemId ?? '');
       if (itemId === 'bliss_stone' || itemId === 'divine_shard' || itemId === 'mat_bliss_stone' || itemId === 'mat_divine_shard') this.play('eGem');
     }
+    const playedCounts = this.battleItemSoundCounts.get(String(resolved.entryId)) ?? new Map<string, number>();
     for (const consumed of resolved.itemsConsumed ?? []) {
       const itemId = String((consumed as any)?.itemId ?? '');
-      if (itemId.startsWith('food_')) this.play('eat');
-      else if (itemId.startsWith('pot_') || itemId.startsWith('potion_') || itemId.startsWith('elixir_') || itemId.includes('potion')) this.play('potion_drink');
+      const quantity = Math.max(0, Number((consumed as any)?.quantity ?? 1));
+      const alreadyPlayed = Number(playedCounts.get(itemId) ?? 0);
+      for (let i = alreadyPlayed; i < quantity; i++) this.playConsumedItemSound(itemId);
     }
+    this.battleItemSoundCounts.delete(String(resolved.entryId));
   }
 }

@@ -93,8 +93,8 @@ export const HP_BAND_RANGES: Record<HPBand, [number, number]> = {
 
 export enum GambitConditionId {
   ALWAYS = 'always',
-  SELF_HP_BAND = 'self_hp_band',
-  SELF_SP_BAND = 'self_sp_band',
+  SELF_HP_BELOW_PERCENT = 'self_hp_below_percent',
+  SELF_SP_BELOW_PERCENT = 'self_sp_below_percent',
   FOE_HP_BAND = 'foe_hp_band',
   SELF_HAS_STATUS = 'self_has_status',
   SELF_MISSING_STATUS = 'self_missing_status',

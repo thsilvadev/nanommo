@@ -1323,13 +1323,6 @@
     "svg": "svg/consumables/elixir_greater.svg",
     "svg_noframe": "svg-noframe/consumables/elixir_greater.svg"
   },
-  "elixir": {
-    "name": "Elixir",
-    "category": "consumables",
-    "rarity": "uncommon",
-    "svg": "svg/consumables/elixir.svg",
-    "svg_noframe": "svg-noframe/consumables/elixir.svg"
-  },
   "greater_elixir": {
     "name": "Greater Elixir",
     "category": "consumables",

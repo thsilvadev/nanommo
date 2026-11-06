@@ -26,7 +26,7 @@
                         <option *ngFor="let c of conditionOptions()" [value]="c.id">{{c.label}}</option>
                     </select>
                     <div class="param-row"><ng-container
-                            *ngFor="let spec of paramSpecs(line.conditions[0],'condition')"><label>{{paramLabel(spec.name)}}<ng-container
+                            *ngFor="let spec of paramSpecs(line.conditions[0],'condition',line)"><label>{{paramLabel(spec.name)}}<ng-container
                                     [ngSwitch]="spec.type"><select *ngSwitchCase="'enum'"
                                         [ngModel]="paramValue(line.conditions[0],spec.name)"
                                         (ngModelChange)="setParam(line.conditions[0],spec.name,$event)">
@@ -35,7 +35,7 @@
                                         [ngModel]="paramValue(line.conditions[0],spec.name)"
                                         (ngModelChange)="setParam(line.conditions[0],spec.name,$event)">
                                         <option value="">Select item...</option>
-                                        <option *ngFor="let item of itemOptions()" [value]="item.id">{{item.name}}
+                                        <option *ngFor="let item of itemOptionsForLine(line)" [value]="item.id">{{item.name}}
                                         </option>
                                     </select><select *ngSwitchCase="'skillRef'"
                                         [ngModel]="paramValue(line.conditions[0],spec.name)"
@@ -50,10 +50,10 @@
                 </div>
                 <div class="node-block action-block"><small>ACTION</small><select [ngModel]="line.action.id"
                         (ngModelChange)="changeAction(line,$event)">
-                        <option *ngFor="let a of actionOptions()" [value]="a.id">{{a.label}}</option>
+                        <option *ngFor="let a of actionOptionsForLine(line)" [value]="a.id">{{a.label}}</option>
                     </select>
                     <div class="param-row"><ng-container
-                            *ngFor="let spec of paramSpecs(line.action,'action')"><label>{{paramLabel(spec.name)}}<ng-container
+                            *ngFor="let spec of paramSpecs(line.action,'action',line)"><label>{{paramLabel(spec.name)}}<ng-container
                                     [ngSwitch]="spec.type"><select *ngSwitchCase="'enum'"
                                         [ngModel]="paramValue(line.action,spec.name)"
                                         (ngModelChange)="setParam(line.action,spec.name,$event)">
@@ -62,7 +62,7 @@
                                         [ngModel]="paramValue(line.action,spec.name)"
                                         (ngModelChange)="setParam(line.action,spec.name,$event);selectDiscoveredOption('item',$event)">
                                         <option value="">Select item...</option>
-                                        <option *ngFor="let item of itemOptions()" [value]="item.id">{{item.name}}{{!notifications.hasAcknowledged(itemDiscoveryKey(item.id)) ? ' •' : ''}}
+                                        <option *ngFor="let item of itemOptionsForLine(line)" [value]="item.id">{{item.name}}{{!notifications.hasAcknowledged(itemDiscoveryKey(item.id)) ? ' •' : ''}}
                                         </option>
                                     </select><select *ngSwitchCase="'skillRef'"
                                         [ngModel]="paramValue(line.action,spec.name)"

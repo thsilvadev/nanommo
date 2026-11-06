@@ -160,6 +160,8 @@ export class GambitEvaluator {
       // monsters.json raw conditions (SPEC §7.3: monsters use the same engine)
       case 'self_hp_below_percent':
         return self.maxHp > 0 && (self.hp / self.maxHp) * 100 < Number(params.value);
+      case 'self_sp_below_percent':
+        return self.maxSp > 0 && (self.sp / self.maxSp) * 100 < Number(params.value);
       case 'foe_hp_below_percent':
         return foe.maxHp > 0 && (foe.hp / foe.maxHp) * 100 < Number(params.value);
       case 'every_n_ticks': {

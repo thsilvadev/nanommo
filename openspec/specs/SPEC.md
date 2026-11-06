@@ -644,9 +644,9 @@ type GambitAction    = { id: string; params?: Record<string, string|number> } //
 
 ### 8.3 Conditions & actions catalog (summary — full list with params in `gambit_catalog.json`)
 
-**Conditions** (full catalog is authoritative): `always`, `self_hp_below_percent`, `self_sp_below_percent`, `self_hp_band`, `self_sp_band`, `foe_hp_band`, `self_has_status`, `self_missing_status`, `foe_has_status`, `foe_element_is`, `skill_ready`, `item_in_stock`, and other entries present in `gambit_catalog.json`.
+**Conditions** (full catalog is authoritative): `always`, `self_hp_below_percent`, `self_sp_below_percent`, `foe_hp_band`, `self_has_status`, `self_missing_status`, `foe_has_status`, `foe_element_is`, `skill_ready`, `item_in_stock`, and other entries present in `gambit_catalog.json`.
 
-Percentage conditions expose their threshold through `params` (for example `self_hp_below_percent` with `params.value = 30`). HP/SP bands remain available for coarse thresholds: `FULL (100%)`, `HIGH (70-99%)`, `MEDIUM (30-69%)`, `LOW (10-29%)`, `CRITICAL (1-9%)`.
+Percentage conditions expose their threshold through `params` (for example `self_hp_below_percent` with `params.value = 30`). Self HP and SP use the same explicit below-percentage threshold conditions; the coarse band selectors are not exposed for self resources. `foe_hp_band` remains available for target HP.
 
 **Actions:** `attack` (basic attack with equipped weapon), `use_skill` (references a `skillId` — see §9), `use_item` (references an `itemId`), `defend` (reduces next incoming hit by a flat %, `TUNABLE` 30%), `wait` (explicit no-op, useful as a page's last fallback line instead of leaving a gap).
 

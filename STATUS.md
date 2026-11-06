@@ -1,3 +1,13 @@
+### Elixir art, consumable audio and Gambit resource conditions — 2026-11-06
+
+Removed the unused `elixir` alias SVG assets and manifest entry while retaining the catalogue compatibility ID for persisted rows. Reworked the three active Elixir icons (`elixir_greater`, `greater_elixir`, `mega_elixir`) in framed and no-frame variants: pale-pink liquid, a broader round flask and paired side handles.
+
+Copied the Fairy-in-a-Bottle and tonic use sounds from `project/sons/new_packs/3` into the frontend public sound assets. Successful manual tonic use and battle Gambit consumption now route to the new tonic sound; Fairy consumption routes to its dedicated sound.
+
+Gambit `Upon Death` now constrains its action selector to `Use item...`; its parameter selector exposes only Fairy in a Bottle once that item is known, and remains absent until then. Added `Self SP is below...`, removed the self HP/SP band choices from the editor catalogue, and relabeled the numeric threshold field as `%`. The shared evaluator supports both nested and catalogue-shaped SP percentage conditions. Legacy band evaluation remains in the engine for already-saved data, but those choices are no longer offered in the editor.
+
+Validation: shared, API and frontend production builds; focused nested/catalogue-shaped HP/SP percentage evaluator regression; canonical/frontend Gambit catalogue parity; SVG XML parsing and alias-asset removal; new audio asset existence; and `git diff --check`. Frontend reports the existing `play.component.css` budget warning (94 bytes over). No database migration, deployment or live database mutation.
+
 ### Alchemy progression, tonic effects and gathering resources — 2026-11-06
 
 Expanded Alchemy into Potions and Tonics. Elixir restores 300 HP/230 SP (2 Herbs, Lv. 1); Greater Elixir restores 450/345 (4 Herbs, Lv. 2); Mega Elixir restores 600/460 (6 Herbs, Lv. 3). Potions share a 10-second cooldown. Added Fontoura (+15 DEF), Kombucha (+15 MDEF), Haste Shot (2× Attack Speed), and Çapó (2× CTR), each lasting 30 seconds and sharing a 30-second tonic cooldown. Fairy in a Bottle (30 Herbs + Mystic Dust, Lv. 6) is a special Upon Death Gambit consumable: it revives with full HP/SP and clears every active status.
