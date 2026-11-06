@@ -181,6 +181,12 @@
         }
       ],
       "category": "self"
+    },
+    {
+      "id": "upon_death",
+      "label": "Upon Death",
+      "params": [],
+      "category": "self"
     }
   ],
   "actions": [

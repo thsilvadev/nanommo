@@ -276,8 +276,12 @@
           <div class="cooking-progress"><i [style.width.%]="vendor.professionPercent()"></i></div>
           <button type="button" class="cooking-cancel" (click)="vendor.cancelProfession()" [disabled]="vendor.busy()">{{vendor.t('Cancel')}}</button>
         </div>
+        <nav *ngIf="vendor.professionType()==='alchemy'" aria-label="Alchemy categories" style="display:flex;gap:8px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid #493521">
+          <button type="button" [style.border-color]="vendor.alchemyCategory()==='potions'?'#c59a52':'#59432b'" [style.background]="vendor.alchemyCategory()==='potions'?'linear-gradient(180deg,#4b351c,#2a1b0d)':'linear-gradient(180deg,#21170f,#130e0a)'" [style.color]="vendor.alchemyCategory()==='potions'?'#f1d18c':'#b7a17b'" (click)="vendor.setAlchemyCategory('potions')" style="flex:1;padding:10px 14px;border:1px solid #59432b;font:bold 13px Georgia;letter-spacing:1px;text-transform:uppercase;cursor:pointer">{{vendor.t('Potions')}}</button>
+          <button type="button" [style.border-color]="vendor.alchemyCategory()==='tonics'?'#c59a52':'#59432b'" [style.background]="vendor.alchemyCategory()==='tonics'?'linear-gradient(180deg,#4b351c,#2a1b0d)':'linear-gradient(180deg,#21170f,#130e0a)'" [style.color]="vendor.alchemyCategory()==='tonics'?'#f1d18c':'#b7a17b'" (click)="vendor.setAlchemyCategory('tonics')" style="flex:1;padding:10px 14px;border:1px solid #59432b;font:bold 13px Georgia;letter-spacing:1px;text-transform:uppercase;cursor:pointer">{{vendor.t('Tonics')}}</button>
+        </nav>
         <div class="cooking-recipes">
-          <article *ngFor="let recipe of vendor.professionState()?.recipes" class="cooking-recipe"
+          <article *ngFor="let recipe of vendor.professionRecipes()" class="cooking-recipe"
             [class.locked]="!recipe.unlocked" [class.unavailable]="!recipe.available">
             <img [src]="vendor.catalog.itemIcon(recipe.outputItemId)" [alt]="vendor.itemName(recipe.outputItemId)" class="cooking-food-icon">
             <div class="cooking-recipe-info"><strong>{{vendor.itemName(recipe.outputItemId)}}</strong>

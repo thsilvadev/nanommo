@@ -734,9 +734,11 @@ export class InventoryService {
       }
 
       const effectType = String(effect.type ?? '');
-      const isPotion = item.type === 'consumable' && ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType);
-      const configuredCooldown = Number(item.cooldownInSeconds ?? item.cooldownSeconds ?? (isPotion ? 5 : 0));
-      const cooldownKey = isPotion ? 'item:potion' : configuredCooldown > 0 ? `item:${itemId}` : null;
+      const isPotion = item.type === 'consumable' && (item.alchemyCategory === 'potions' || ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType));
+      const isTonic = item.type === 'consumable' && (item.alchemyCategory === 'tonics' || effectType === 'apply_status');
+      if (effectType === 'revive_full_cleanse') throw new BadRequestException('This item can only be triggered by the Upon Death Gambit condition');
+      const configuredCooldown = Number(item.cooldownInSeconds ?? item.cooldownSeconds ?? (isPotion ? 10 : isTonic ? 30 : 0));
+      const cooldownKey = isPotion ? 'item:potion' : isTonic ? 'item:tonic' : configuredCooldown > 0 ? `item:${itemId}` : null;
       const cooldowns = { ...(character.consumableCooldowns ?? {}) };
       if (cooldownKey) {
         const expiresAt = Date.parse(String(cooldowns[cooldownKey] ?? ''));
@@ -757,6 +759,12 @@ export class InventoryService {
         const derived = await this.getDerivedStatsForCharacter(character);
         character.hpCurrent = Math.min(derived.maxHp, Number(character.hpCurrent) + Number(effect.hpAmount ?? 0));
         character.spCurrent = Math.min(derived.maxSp, Number(character.spCurrent) + Number(effect.spAmount ?? 0));
+      } else if (effectType === 'apply_status' && effect.status) {
+        const statusId = String(effect.status);
+        const durationMs = Math.max(1, Number(effect.durationSeconds ?? 0)) * 1000;
+        const statusInstance: any = { type: statusId, sourceSkillId: itemId, sourceActor: 'character', expiresAt: new Date(now + durationMs).toISOString() };
+        for (const key of ['defBonus', 'mdefPercentBonus', 'attackSpeedMultiplier', 'castTimeReductionMultiplier']) if (effect[key] !== undefined) statusInstance[key] = Number(effect[key]);
+        character.statusEffects = [...(character.statusEffects ?? []).filter((status: any) => (status.type ?? status.id) !== statusId), statusInstance];
       } else if (effectType === 'cure_status' && effect.status) {
         character.statusEffects = (character.statusEffects ?? []).filter((status: any) => (status.type ?? status.id) !== effect.status);
       }

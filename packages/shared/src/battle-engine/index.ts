@@ -53,6 +53,7 @@ export interface CombatantSnapshot {
   equippedWeaponTypes?: string[];
   /** Derived Attack Speed rating (0..800 effective range); applies only to basic attacks. */
   attackSpeed?: number;
+  castTimeReduction?: number;
   /** Skills currently usable (unlocked + weapon equipped) - SPEC §9.1 */
   skills?: Record<string, any>;
   /** Frozen slot/category metadata used only for transactional Mastery rewards. */
@@ -198,6 +199,9 @@ export class GambitEvaluator {
         return cooldown <= 0;
       }
 
+      case 'upon_death':
+        return self.hp <= 0;
+
       case 'item_in_stock': {
         const quantity = inventory[params.itemId] ?? 0;
         const comparator = params.comparator ?? 'ANY';
@@ -260,11 +264,14 @@ export class GambitEvaluator {
         const definition = itemDefinitions[itemId];
         if (definition?.type !== 'consumable') return false;
         if (!itemId) return false;
+        if (definition.effect?.type === 'revive_full_cleanse' && self.hp > 0) return false;
         if ((inventory[itemId] ?? 0) <= 0) return false;
         if ((self.foodDigestRemainingTicksByItem?.[itemId] ?? 0) > 0) return false;
-        // Potions share a single 5-tick cooldown CATEGORY (SPEC §7.2):
-        // using any HP/SP potion puts ALL potions on cooldown for 5 ticks.
-        if (String(itemId).startsWith('pot_') && (cooldowns['item:potion'] ?? 0) > 0) return false;
+        const effectType = String(definition.effect?.type ?? '');
+        const potion = definition.alchemyCategory === 'potions' || ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType);
+        const tonic = definition.alchemyCategory === 'tonics' || effectType === 'apply_status';
+        if (potion && (cooldowns['item:potion'] ?? 0) > 0) return false;
+        if (tonic && (cooldowns['item:tonic'] ?? 0) > 0) return false;
         if ((cooldowns[`item:${itemId}`] ?? 0) > 0) return false;
         return true;
       }
@@ -370,7 +377,7 @@ export class GambitEvaluator {
 export class BattleEngine {
   static readonly BASE_CAST_TICKS = 8;
   static readonly BASIC_ATTACK_CAST_TICKS = 2;
-  static readonly POTION_COOLDOWN = 5;
+  static readonly POTION_COOLDOWN = 10;
   static readonly CRIT_MULTIPLIER = 1.5;
   static readonly MIN_ATTACK_GAUGE = 2;
   static readonly MIN_CAST_GAUGE = 3;
@@ -569,6 +576,8 @@ export class BattleEngine {
     foodBuffAfter?: { itemId: string; hpRegenPerTenTicks: number; spRegenPerTenTicks: number; remainingTicks: number };
     foodBuffsAfter: Array<{ itemId: string; hpRegenPerTenTicks: number; spRegenPerTenTicks: number; remainingTicks: number }>;
     foodDigestRemainingTicksByItem: Record<string, number>;
+    statusEffectsAfter: any[];
+    cooldownsAfter: Record<string, number>;
     checkpoint?: { tick: number; hp: number; sp: number; monsterHp: number; monsterSp: number; statusEffects: any[]; monsterStatusEffects: any[]; cooldowns: Record<string, number>; foodBuffs: any[]; foodDigestRemainingTicksByItem: Record<string, number>; inventoryAfter: Record<string, number>; battleEnded: boolean };
   } {
     const rng = new Mulberry32(seed);
@@ -682,6 +691,7 @@ export class BattleEngine {
       return total;
     };
     const selfAttackDurationTicks = (): number => {
+      const attackSpeedMultiplier = (self.statusEffects ?? []).reduce((value: number, status: any) => value * Math.max(1, Number(status.attackSpeedMultiplier ?? 1)), 1);
       const effectiveSpeed = Math.max(
         0,
         Math.min(
@@ -689,7 +699,9 @@ export class BattleEngine {
           Number(self.attackSpeed ?? (100 + Math.floor(Number(self.agi ?? 5) * 2))) - statusAttackSpeedPenalty(self),
         ),
       );
-      return BattleEngine.attackDurationTicks(effectiveSpeed);
+      // A 2x Attack Speed buff doubles action frequency, so halve the interval
+      // rather than merely doubling the rating on its nonlinear 0..800 curve.
+      return Math.max(BattleEngine.MIN_ATTACK_DURATION_TICKS, BattleEngine.attackDurationTicks(effectiveSpeed) / attackSpeedMultiplier);
     };
     // Monsters retain their catalogued atkSpeedTicks baseline; the same point
     // penalty adds the equivalent fractional delay to their basic-attack gauge.
@@ -780,6 +792,35 @@ export class BattleEngine {
       return true;
     };
 
+    const effectiveMagicDefensePercent = (unit: CombatantSnapshot): number => Math.max(0, Math.min(100,
+      Number(unit.mdefPercent ?? 0) + (unit.statusEffects ?? []).reduce((total: number, status: any) => total + Number(status.mdefPercentBonus ?? 0), 0),
+    ));
+
+    const tryReviveOnDeath = (): boolean => {
+      if (self.hp > 0) return false;
+      const choice = GambitEvaluator.evaluateGambitPage(normalizedGambitPage, 'cast', self, foe, inventory, itemDefinitions);
+      if (!choice || choice.action.id !== 'use_item') return false;
+      const hasUponDeathCondition = (choice.line?.conditions ?? []).some((condition: any) => (condition.id ?? condition.type) === 'upon_death');
+      if (!hasUponDeathCondition) return false;
+      const itemId = String(choice.action.itemId ?? choice.action.params?.itemId ?? '');
+      const definition = itemDefinitions[itemId];
+      if (definition?.effect?.type !== 'revive_full_cleanse' || Number(inventory[itemId] ?? 0) < 1) return false;
+      inventory[itemId] = Math.max(0, Number(inventory[itemId] ?? 0) - 1);
+      cooldowns[`item:${itemId}`] = Math.max(0, Number(definition.cooldownInSeconds ?? 30));
+      const existing = itemsConsumed.find((entry) => entry.itemId === itemId);
+      if (existing) existing.quantity += 1; else itemsConsumed.push({ itemId, quantity: 1 });
+      const cleansedStatuses = (self.statusEffects ?? []).map((status: any) => String(status.type ?? status.id ?? '')).filter(Boolean);
+      self.statusEffects = [];
+      self.hp = self.maxHp;
+      self.sp = self.maxSp;
+      self.movementIntent = false;
+      self.movementIntentRange = undefined;
+      self.castLockTicks = 1;
+      record({ tick, actor: 'character', action: 'use_item', itemId, target: 'character', revived: true, restoredHp: self.hp, restoredSp: self.sp, cleansedStatuses });
+      for (const status of cleansedStatuses) record({ tick, actor: 'character', action: 'status_ended', status, target: 'character', reason: 'fairy_revival', sourceItemId: itemId });
+      return true;
+    };
+
     const effectiveDefense = (unit: CombatantSnapshot): number =>
       Number(unit.def ?? 0) + (unit.statusEffects ?? []).reduce(
         (total: number, status: any) => total + Math.max(0, Number(status.defBonus ?? 0)),
@@ -795,11 +836,12 @@ export class BattleEngine {
       if (!status) return;
       const raw = damage * Math.max(0, Number(status.reflectPercent ?? 30)) / 100;
       const mitigated = damageType === 'magic'
-        ? BattleEngine.calculateMagicDamage(raw, self.mdefPercent)
+        ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(self))
         : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
       const reflected = Math.max(0, Math.floor(mitigated));
       self.hp = Math.max(0, self.hp - reflected);
       record({ tick, actor: 'monster', action: 'damage_reflected', sourceSkillId: status.sourceSkillId, target: 'character', damage: reflected, damageType, hit: true, nonRecursive: true });
+      tryReviveOnDeath();
     };
 
     const absorbMagicDamage = (
@@ -840,7 +882,7 @@ export class BattleEngine {
         const dueAt = Number(status.nextDamageAtTick ?? Number.POSITIVE_INFINITY);
         if (interval <= 0 || tick < dueAt || Number(status.damagePerTick ?? 0) <= 0) continue;
         const rawDamage = Math.max(0, Math.floor(Number(status.damagePerTick)));
-        const damage = status.damageType === 'magic' ? Math.floor(BattleEngine.calculateMagicDamage(rawDamage, unit.mdefPercent)) : rawDamage;
+        const damage = status.damageType === 'magic' ? Math.floor(BattleEngine.calculateMagicDamage(rawDamage, effectiveMagicDefensePercent(unit))) : rawDamage;
         unit.hp = Math.max(0, unit.hp - damage);
         status.nextDamageAtTick = dueAt + interval;
         record({
@@ -1008,7 +1050,7 @@ export class BattleEngine {
                 const damageType = String(def.damageType ?? (effectType.startsWith('magic_') ? 'magic' : 'melee'));
                 const isMagic = damageType === 'magic';
                 const mitigation = isMagic
-                  ? BattleEngine.calculateMagicDamage(raw, foe.mdefPercent)
+                  ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(foe))
                   : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(foe));
                 const archetypeMultiplier = isMagic ? magicMult : damageType === 'ranged' ? rangedMult : meleeMult;
                 const elementMultiplier = elementalDamageMultiplier(def.element);
@@ -1143,6 +1185,7 @@ export class BattleEngine {
       // Periodic damage is applied once per scheduled status tick, never as a new
       // action; it therefore cannot mint extra Mastery action XP.
       tickDamageStatuses(self);
+      tryReviveOnDeath();
       tickDamageStatuses(foe);
       // Conditions like `every_n_ticks` are tick-indexed (SPEC §7.1)
       self.tick = tick;
@@ -1186,7 +1229,7 @@ export class BattleEngine {
           } else {
             self.movementIntent = false;
             self.movementIntentRange = undefined;
-            const effectiveTicks = effectiveSkillCastTicks(skillDef.baseCastTicks, Math.floor(Number(self.dex ?? 5) * 2));
+            const effectiveTicks = effectiveSkillCastTicks(skillDef.baseCastTicks, Math.floor(Number(self.castTimeReduction ?? Number(self.dex ?? 5) * 2) * (self.statusEffects ?? []).reduce((value: number, status: any) => value * Math.max(1, Number(status.castTimeReductionMultiplier ?? 1)), 1)));
             castGauge = 0;
             characterSkillActsThisTick = true;
             if (effectiveTicks === 0) {
@@ -1253,7 +1296,7 @@ export class BattleEngine {
             const componentCount = doubleStrikeTriggered ? 2 : 1;
             const damageComponents: number[] = [];
             const mitigation = attackType === 'magic'
-              ? BattleEngine.calculateMagicDamage(baseDamage, foe.mdefPercent)
+              ? BattleEngine.calculateMagicDamage(baseDamage, effectiveMagicDefensePercent(foe))
               : BattleEngine.calculatePhysicalDamage(baseDamage, effectiveDefense(foe));
             const weaponCategory = (self.equippedWeaponTypes ?? []).find((type: string) => !['shield', 'rune'].includes(type));
             const finalDamage = mitigation * (attackType === 'ranged' ? rangedMult : attackType === 'magic' ? magicMult : meleeMult) * weaponCategoryMultiplier(weaponCategory);
@@ -1349,12 +1392,14 @@ export class BattleEngine {
               if (existing) existing.quantity += 1;
               else itemsConsumed.push({ itemId, quantity: 1 });
 
-              // Potions share one 5-tick cooldown CATEGORY (SPEC §7.2)
+              // Potions share a 10-second cooldown category; Tonics share a separate 30-second category.
               const def = itemDefinitions[itemId] ?? {};
               const effectType = String(def.effect?.type ?? '');
               const isPotion = def.type === 'consumable' && ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType);
               if (isPotion) {
-                cooldowns['item:potion'] = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? BattleEngine.POTION_COOLDOWN);
+                cooldowns['item:potion'] = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 10);
+              } else if (def.alchemyCategory === 'tonics' || effectType === 'apply_status') {
+                cooldowns['item:tonic'] = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 30);
               } else {
                 const cooldownTicks = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 0);
                 if (cooldownTicks > 0) cooldowns[`item:${itemId}`] = cooldownTicks;
@@ -1375,14 +1420,12 @@ export class BattleEngine {
               } else if (effectType === 'heal_sp') {
                 const before = self.sp;
                 self.sp = Math.min(self.maxSp, self.sp + amount);
-                record({
-                  tick,
-                  actor: 'character',
-                  action: 'use_item',
-                  itemId,
-                  target: 'character',
-                  spGain: self.sp - before,
-                });
+                record({ tick, actor: 'character', action: 'use_item', itemId, target: 'character', spGain: self.sp - before });
+              } else if (effectType === 'heal_hp_sp') {
+                const hpBefore = self.hp, spBefore = self.sp;
+                self.hp = Math.min(self.maxHp, self.hp + Number(def.effect?.hpAmount ?? 0));
+                self.sp = Math.min(self.maxSp, self.sp + Number(def.effect?.spAmount ?? 0));
+                record({ tick, actor: 'character', action: 'use_item', itemId, target: 'character', healAmount: self.hp - hpBefore, spGain: self.sp - spBefore });
               } else if (effectType === 'food_buff') {
                 const foodDurationTicks = Math.max(0, Number(def.effect?.durationSeconds ?? 0));
                 self.foodDigestRemainingTicksByItem = {
@@ -1415,6 +1458,15 @@ export class BattleEngine {
                   foodBuffApplied: true,
                   foodBuffTicksRemaining: self.foodBuffTicksRemaining,
                 });
+              } else if (effectType === 'apply_status' && def.effect?.status) {
+                const statusId = String(def.effect.status);
+                applyStatus(self, statusId, itemId, Number(def.effect.durationSeconds ?? statusEffectDefs[statusId]?.statusDurationTicks ?? 0), {
+                  ...(def.effect.defBonus !== undefined ? { defBonus: Number(def.effect.defBonus) } : {}),
+                  ...(def.effect.mdefPercentBonus !== undefined ? { mdefPercentBonus: Number(def.effect.mdefPercentBonus) } : {}),
+                  ...(def.effect.attackSpeedMultiplier !== undefined ? { attackSpeedMultiplier: Number(def.effect.attackSpeedMultiplier) } : {}),
+                  ...(def.effect.castTimeReductionMultiplier !== undefined ? { castTimeReductionMultiplier: Number(def.effect.castTimeReductionMultiplier) } : {}),
+                });
+                record({ tick, actor: 'character', action: 'use_item', itemId, target: 'character', appliedStatus: statusId, durationTicks: Number(def.effect.durationSeconds ?? 0) });
               } else if (effectType === 'cure_status' && def.effect?.status) {
                 self.statusEffects = (self.statusEffects ?? []).filter(
                   (s: any) => (s.type ?? s.id) !== def.effect.status,
@@ -1552,7 +1604,7 @@ export class BattleEngine {
           const raw = (monsterAttackType === 'magic' ? foe.matk : effectiveAttack(foe))
             * (crit ? BattleEngine.CRIT_MULTIPLIER : 1) * (tipOfPain ? 2 : 1);
           let finalDamage = monsterAttackType === 'magic'
-            ? BattleEngine.calculateMagicDamage(raw, self.mdefPercent)
+            ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(self))
             : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
           // SPEC §8.3: defend reduces the next incoming hit by a flat 30%.
           if (self.defending) {
@@ -1572,13 +1624,14 @@ export class BattleEngine {
             damageType: monsterAttackType, crit, hit: landed, distanceAtActionStart,
             ...(tipOfPain ? { empoweredBy: 'tip_of_pain' } : {}),
           });
+          tryReviveOnDeath();
 
           // Tip of Pain is consumed on the very next physical basic-attack attempt,
           // even when the normal hit roll misses. Only a landed hit applies Disarm.
           if (tipOfPain) {
             foe.statusEffects = (foe.statusEffects ?? []).filter((status: any) => statusIdOf(status) !== 'tip_of_pain');
             record({ tick, actor: 'monster', action: 'status_ended', status: 'tip_of_pain', target: 'monster', sourceSkillId: 'monster_skill_sting' });
-            if (landed) applyStatus(self, 'disarm', 'monster_skill_sting', 10, {}, 'monster');
+            if (landed && self.hp > 0) applyStatus(self, 'disarm', 'monster_skill_sting', 10, {}, 'monster');
           }
 
           const shieldBashRank = Math.max(0, Number(self.skillDefs?.shield_bash?.masteryRank ?? 0));
@@ -1653,7 +1706,7 @@ export class BattleEngine {
               Number(effect.dmgMult ?? 1);
             const monsterSkillDamageType = String(def.damageType ?? 'melee');
             const finalDamage = monsterSkillDamageType === 'magic'
-              ? BattleEngine.calculateMagicDamage(raw, self.mdefPercent)
+              ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(self))
               : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
             const rolledDamage = landed
               ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
@@ -1672,7 +1725,8 @@ export class BattleEngine {
               damageType: monsterSkillDamageType,
               hit: landed,
             });
-            if (landed && effect.applyStatus && statusEffectDefs[String(effect.applyStatus)]) {
+            tryReviveOnDeath();
+            if (landed && self.hp > 0 && effect.applyStatus && statusEffectDefs[String(effect.applyStatus)]) {
               const statusId = String(effect.applyStatus);
               const statusDef = statusEffectDefs[statusId] ?? {};
               const stackable = statusDef.stackable === true;
@@ -1873,6 +1927,8 @@ export class BattleEngine {
         : undefined,
       foodBuffsAfter: (self.foodBuffs ?? []).map((buff: any) => ({ ...buff })),
       foodDigestRemainingTicksByItem: { ...(self.foodDigestRemainingTicksByItem ?? {}) },
+      statusEffectsAfter: (self.statusEffects ?? []).map((status: any) => ({ ...status })),
+      cooldownsAfter: { ...cooldowns },
       checkpoint: options.stopAfterTick !== undefined ? {
         tick: Math.max(0, tick - 1), hp: self.hp, sp: self.sp, monsterHp: foe.hp, monsterSp: foe.sp,
         statusEffects: (self.statusEffects ?? []).map((status: any) => ({ ...status })),

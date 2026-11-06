@@ -512,6 +512,7 @@ export class BattleService {
       hp: Math.max(1, Math.min(hp, derived.maxHp)),
       sp: Math.max(0, Math.min(sp, derived.maxSp)),
       ...derived,
+      castTimeReduction: Number(derived.castTimeReduction ?? 0),
       // Keep base regen separate from the active food buff: BattleEngine adds
       // the food fields below while the buff is active, and stops when it expires.
       hpRegenPerTenTicks: derived.hpRegenPerTenTicks,
@@ -662,11 +663,15 @@ export class BattleService {
     let chainHp = character.hpCurrent;
     let chainSp = character.spCurrent;
     let chainTimelineMs = Date.now();
+    let chainStatusEffects = normalizePersistentStatusEffects(character.statusEffects ?? [], Date.now()).statusEffects;
+    let chainCooldownExpiries: Record<string, string> = Object.fromEntries(Object.entries(character.consumableCooldowns ?? {}).filter(([, expiry]) => Date.parse(String(expiry)) > Date.now()).map(([key, expiry]) => [key, new Date(Date.parse(String(expiry))).toISOString()]));
     const workingInventory = await this.buildInventoryMap(characterId);
     for (const pending of currentQueue) {
       chainHp = pending.hpAfter;
       chainSp = pending.spAfter;
       chainTimelineMs = Math.max(chainTimelineMs, pending.endAt.getTime());
+      if (Array.isArray(pending.log?.finalCharacterStatusEffects)) chainStatusEffects = pending.log.finalCharacterStatusEffects;
+      if (pending.log?.finalCharacterCooldowns && typeof pending.log.finalCharacterCooldowns === 'object') chainCooldownExpiries = pending.log.finalCharacterCooldowns;
       // pending potion consumption is not in the DB until each one resolves
       for (const consumed of pending.itemsConsumed ?? []) {
         workingInventory[consumed.itemId] = Math.max(
@@ -871,6 +876,11 @@ export class BattleService {
           ]),
         ),
       );
+      snapshot.statusEffects = statusEffectsForBattle(chainStatusEffects, nextStartTime.getTime());
+      snapshot.cooldowns = Object.fromEntries(Object.entries(chainCooldownExpiries).flatMap(([key, expiry]) => {
+        const until = Date.parse(String(expiry));
+        return Number.isFinite(until) && until > nextStartTime.getTime() ? [[key, Math.ceil((until - nextStartTime.getTime()) / MS_PER_TICK) + 1]] : [];
+      }));
       const regenAnchor = character.regenAnchorAt?.getTime?.() ?? Date.now();
       const fromTick = Math.max(0, Math.floor((chainTimelineMs - regenAnchor) / MS_PER_TICK));
       const toTick = Math.max(0, Math.floor((nextStartTime.getTime() - regenAnchor) / MS_PER_TICK));
@@ -980,6 +990,12 @@ export class BattleService {
       projectedPerMonster[monsterId] = (projectedPerMonster[monsterId] ?? 0) + 1;
 
       const battleDurationMs = Math.max(1000, simulation.durationTicks * MS_PER_TICK);
+      const battleEndAtMs = nextStartTime.getTime() + battleDurationMs;
+      chainStatusEffects = persistStatusEffectsAtCheckpoint(simulation.statusEffectsAfter ?? [], Math.max(0, simulation.durationTicks - 1), battleEndAtMs);
+      chainCooldownExpiries = Object.fromEntries(Object.entries(simulation.cooldownsAfter ?? {}).flatMap(([key, remaining]) => {
+        const ticks = Math.max(0, Math.floor(Number(remaining ?? 0)));
+        return ticks > 0 ? [[key, new Date(battleEndAtMs + ticks * MS_PER_TICK).toISOString()]] : [];
+      }));
 
       const entry = this.battleQueueRepo.create({
         characterId,
@@ -989,7 +1005,7 @@ export class BattleService {
         startAt: new Date(nextStartTime),
         endAt: new Date(nextStartTime.getTime() + battleDurationMs),
         outcome: simulation.outcome,
-        log: { ...simulation.log, mapId, searchStartAt: searchStartTime.toISOString(), searchEndAt: nextStartTime.toISOString() },
+        log: { ...simulation.log, mapId, searchStartAt: searchStartTime.toISOString(), searchEndAt: nextStartTime.toISOString(), finalCharacterStatusEffects: JSON.parse(JSON.stringify(chainStatusEffects)), finalCharacterCooldowns: JSON.parse(JSON.stringify(chainCooldownExpiries)) },
         itemsConsumed: simulation.itemsConsumed,
         startingSnapshot: {
           snapshot: JSON.parse(JSON.stringify(snapshot)),
@@ -1203,6 +1219,8 @@ export class BattleService {
 
       character.hpCurrent = Math.max(1, battle.hpAfter);
       character.spCurrent = Math.max(0, battle.spAfter);
+      if (Array.isArray(battle.log?.finalCharacterStatusEffects)) character.statusEffects = battle.log.finalCharacterStatusEffects;
+      if (battle.log?.finalCharacterCooldowns && typeof battle.log.finalCharacterCooldowns === 'object') character.consumableCooldowns = battle.log.finalCharacterCooldowns;
 
       const xpResolution = applyLevelXpResolution(
         0,

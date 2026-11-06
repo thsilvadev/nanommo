@@ -1,18 +1,144 @@
 {
   "recipes": [
     {
-      "id": "greater_elixir",
-      "name": "Greater Elixir",
+      "id": "elixir",
+      "name": "Elixir",
+      "category": "potions",
       "requiredLevel": 1,
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 5
+          "quantity": 2
         }
       ],
-      "outputItemId": "elixir",
+      "outputItemId": "elixir_greater",
       "xpReward": 5,
       "order": 1
+    },
+    {
+      "id": "greater_elixir",
+      "name": "Greater Elixir",
+      "category": "potions",
+      "requiredLevel": 2,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 4
+        }
+      ],
+      "outputItemId": "greater_elixir",
+      "xpReward": 8,
+      "order": 2
+    },
+    {
+      "id": "mega_elixir",
+      "name": "Mega Elixir",
+      "category": "potions",
+      "requiredLevel": 3,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 6
+        }
+      ],
+      "outputItemId": "mega_elixir",
+      "xpReward": 12,
+      "order": 3
+    },
+    {
+      "id": "fontoura",
+      "name": "Fontoura",
+      "category": "tonics",
+      "requiredLevel": 4,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_ironshroom",
+          "quantity": 1
+        }
+      ],
+      "outputItemId": "tonic_fontoura",
+      "xpReward": 15,
+      "order": 4
+    },
+    {
+      "id": "kombucha",
+      "name": "Kombucha",
+      "category": "tonics",
+      "requiredLevel": 4,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_ashwagandha",
+          "quantity": 1
+        }
+      ],
+      "outputItemId": "tonic_kombucha",
+      "xpReward": 15,
+      "order": 5
+    },
+    {
+      "id": "haste_shot",
+      "name": "Haste Shot",
+      "category": "tonics",
+      "requiredLevel": 5,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_rushroom",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "tonic_haste_shot",
+      "xpReward": 20,
+      "order": 6
+    },
+    {
+      "id": "capo",
+      "name": "Çapó",
+      "category": "tonics",
+      "requiredLevel": 5,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_guarana",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "tonic_capo",
+      "xpReward": 20,
+      "order": 7
+    },
+    {
+      "id": "fairy_in_a_bottle",
+      "name": "Fairy in a Bottle",
+      "category": "tonics",
+      "requiredLevel": 6,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 30
+        },
+        {
+          "itemId": "mat_mystic_dust",
+          "quantity": 1
+        }
+      ],
+      "outputItemId": "fairy_in_a_bottle",
+      "xpReward": 30,
+      "order": 8
     }
   ]
 }

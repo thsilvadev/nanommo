@@ -25,12 +25,12 @@ export class CatalogService {
    if(String(d.weaponType??'').toLowerCase()==='bow')lines.push({label:'',value:'Bows reduce precision by a half',warning:true});
    return [category,...(descriptionLine?[descriptionLine]:[]),...lines];
   }
-  const hidden=d.type==='consumable'||d.type==='food'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor']):d.type==='monster_part'||d.type==='material'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();
+  const hidden=d.type==='consumable'||d.type==='food'?new Set(['vendorSells','stackable','maxStack','sellPriceToVendor','alchemyCategory']):d.type==='monster_part'||d.type==='material'?new Set(['usableFor','sellPriceToVendor','stackable','maxStack','droppedBy']):new Set<string>();
   const keys=Object.keys(d);const stop=Math.max(0,keys.indexOf('tier'));const visible=stop>0?keys.slice(0,stop):keys;
   const details=visible.filter(k=>!['id','name','type','description','locales'].includes(k)&&!hidden.has(k)&&d[k]!==undefined&&d[k]!==null&&d[k]!=='').map(k=>({label:k==='effect'?this.locale.t('Effect'):k.replace(/([A-Z])/g,' $1').replace(/^./,x=>x.toUpperCase()),value:k==='effect'?this.formatItemEffect(d[k]):typeof d[k]==='object'?JSON.stringify(d[k]):String(d[k])}));
   return [category,...(descriptionLine?[descriptionLine]:[]),...details];
  }
- formatItemEffect(effect:any){if(!effect)return '';if(effect.status){const status=String(effect.status).replace(/_/g,' ');return `Cures ${status}.`;}if(effect.type==='heal_hp')return `Restores ${Number(effect.amount)||0} HP.`;if(effect.type==='heal_sp')return `Restores ${Number(effect.amount)||0} SP.`;if(effect.type==='food_buff'){
+ formatItemEffect(effect:any){if(!effect)return '';if(effect.type==='apply_status'&&effect.status){const status=String(effect.status).replace(/_/g,' ');return `Applies ${status} for ${Number(effect.durationSeconds??0)} seconds.`;}if(effect.type==='revive_full_cleanse')return 'Revives you upon death with full HP/SP and removes all active status effects.';if(effect.type==='cure_status'&&effect.status){const status=String(effect.status).replace(/_/g,' ');return `Cures ${status}.`;}if(effect.type==='heal_hp')return `Restores ${Number(effect.amount)||0} HP.`;if(effect.type==='heal_sp')return `Restores ${Number(effect.amount)||0} SP.`;if(effect.type==='heal_hp_sp')return `Restores ${Number(effect.hpAmount)||0} HP and ${Number(effect.spAmount)||0} SP.`;if(effect.type==='food_buff'){
  const lines:string[]=[];
  const hp=Number(effect.hpRegenPerTenTicks??0);const sp=Number(effect.spRegenPerTenTicks??0);
  if(hp)lines.push('HP Regen: +'+hp+' / 10 ticks');

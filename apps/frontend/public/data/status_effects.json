@@ -137,6 +137,46 @@
       "nextBasicAttackAtkMultiplier": 2,
       "consumeOnNextBasicAttackAttempt": true,
       "applyDisarmOnHitTicks": 10
+    },
+    {
+      "id": "fontoura",
+      "name": "Fontoura",
+      "stackable": false,
+      "statusDurationTicks": 30,
+      "maxStacks": 1,
+      "reapplication": "refresh",
+      "polarity": "buff",
+      "defBonus": 15
+    },
+    {
+      "id": "kombucha",
+      "name": "Kombucha",
+      "stackable": false,
+      "statusDurationTicks": 30,
+      "maxStacks": 1,
+      "reapplication": "refresh",
+      "polarity": "buff",
+      "mdefPercentBonus": 15
+    },
+    {
+      "id": "haste_shot",
+      "name": "Haste Shot",
+      "stackable": false,
+      "statusDurationTicks": 30,
+      "maxStacks": 1,
+      "reapplication": "refresh",
+      "polarity": "buff",
+      "attackSpeedMultiplier": 2
+    },
+    {
+      "id": "capo",
+      "name": "Çapó",
+      "stackable": false,
+      "statusDurationTicks": 30,
+      "maxStacks": 1,
+      "reapplication": "refresh",
+      "polarity": "buff",
+      "castTimeReductionMultiplier": 2
     }
   ]
 }

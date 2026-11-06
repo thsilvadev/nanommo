@@ -747,6 +747,8 @@ export class TownService {
         }
       }
       await this.inventoryService.addItem(characterId, session.outputItemId, Number(session.outputQuantity ?? 1), 'inventory', instanceData, manager, true);
+      const knownItems = Array.isArray(character.knownItemIds) ? character.knownItemIds : [];
+      if (!knownItems.includes(session.outputItemId)) character.knownItemIds = [...knownItems, session.outputItemId];
       const previousLevel = Math.max(1, Number((character as any)[fields.levelField] ?? 1));
       (character as any)[fields.xpField] = Number((character as any)[fields.xpField] ?? 0) + Number(recipe.xpReward ?? 0);
       (character as any)[fields.levelField] = this.cookingLevelForXp(Number((character as any)[fields.xpField]));

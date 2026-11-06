@@ -401,7 +401,11 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 70
+        },
+        {
+          "itemId": "mat_ashwagandha",
+          "weight": 30
         }
       ]
     },
@@ -434,7 +438,11 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 70
+        },
+        {
+          "itemId": "mat_ashwagandha",
+          "weight": 30
         }
       ]
     },
@@ -467,7 +475,11 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 70
+        },
+        {
+          "itemId": "mat_ironshroom",
+          "weight": 30
         }
       ]
     },
@@ -504,7 +516,11 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 70
+        },
+        {
+          "itemId": "mat_ironshroom",
+          "weight": 30
         }
       ]
     },
@@ -549,7 +565,11 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 70
+        },
+        {
+          "itemId": "mat_rushroom",
+          "weight": 30
         }
       ]
     },
@@ -594,7 +614,11 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 70
+        },
+        {
+          "itemId": "mat_guarana",
+          "weight": 30
         }
       ]
     },
@@ -635,7 +659,15 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 60
+        },
+        {
+          "itemId": "mat_ironshroom",
+          "weight": 20
+        },
+        {
+          "itemId": "mat_ashwagandha",
+          "weight": 20
         }
       ]
     },
@@ -676,7 +708,15 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 60
+        },
+        {
+          "itemId": "mat_rushroom",
+          "weight": 20
+        },
+        {
+          "itemId": "mat_guarana",
+          "weight": 20
         }
       ]
     },
@@ -725,7 +765,7 @@
           "monsterId": "mon_moonleafarcanist",
           "presenceRate": 40
         },
-        { 
+        {
           "monsterId": "mon_sacredforestguardian",
           "presenceRate": 15
         }
@@ -737,7 +777,11 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 70
+        },
+        {
+          "itemId": "mat_mystic_dust",
+          "weight": 30
         }
       ]
     },
@@ -774,7 +818,11 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 70
+        },
+        {
+          "itemId": "mat_mystic_dust",
+          "weight": 30
         }
       ]
     },
@@ -811,7 +859,11 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 70
+        },
+        {
+          "itemId": "mat_mystic_dust",
+          "weight": 30
         }
       ]
     },
@@ -955,7 +1007,11 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 100
+          "weight": 70
+        },
+        {
+          "itemId": "mat_mystic_dust",
+          "weight": 30
         }
       ]
     },

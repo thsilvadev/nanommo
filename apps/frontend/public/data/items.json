@@ -1197,12 +1197,12 @@
       "description": "Removes the poison status effect."
     },
     {
-      "id": "elixir",
-      "name": "Greater Elixir",
+      "id": "elixir_greater",
+      "name": "Elixir",
       "effect": {
         "type": "heal_hp_sp",
         "hpAmount": 300,
-        "spAmount": 200
+        "spAmount": 230
       },
       "vendorSells": false,
       "type": "consumable",
@@ -1212,13 +1212,16 @@
       "cooldownInSeconds": 10,
       "locales": {
         "pt-BR": {
-          "name": "Elixir Superior"
+          "name": "Elixir",
+          "description": "Uma poção restauradora equilibrada que recupera 300 HP e 230 SP."
         },
         "en-US": {
-          "name": "Greater Elixir"
+          "name": "Elixir",
+          "description": "A balanced restorative draught that restores 300 HP and 230 SP."
         }
       },
-      "description": "Restores 300 HP and 200 SP when used."
+      "description": "A balanced restorative draught that restores 300 HP and 230 SP.",
+      "alchemyCategory": "potions"
     },
     {
       "id": "food_bread",
@@ -1338,6 +1341,231 @@
       "sellPriceToVendor": 7,
       "cooldownInSeconds": 0,
       "description": "A prepared food that grants HP regeneration of 10 and SP regeneration of 2 per 10 ticks for 60 minutes."
+    },
+    {
+      "id": "elixir",
+      "name": "Elixir",
+      "effect": {
+        "type": "heal_hp_sp",
+        "hpAmount": 300,
+        "spAmount": 230
+      },
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 500,
+      "cooldownInSeconds": 10,
+      "locales": {
+        "pt-BR": {
+          "name": "Elixir",
+          "description": "Uma poção restauradora equilibrada que recupera 300 HP e 230 SP."
+        },
+        "en-US": {
+          "name": "Elixir",
+          "description": "A balanced restorative draught that restores 300 HP and 230 SP."
+        }
+      },
+      "description": "A balanced restorative draught that restores 300 HP and 230 SP.",
+      "alchemyCategory": "potions"
+    },
+    {
+      "id": "greater_elixir",
+      "name": "Greater Elixir",
+      "effect": {
+        "type": "heal_hp_sp",
+        "hpAmount": 450,
+        "spAmount": 345
+      },
+      "alchemyCategory": "potions",
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 100,
+      "cooldownInSeconds": 10,
+      "rarity": "uncommon",
+      "description": "A potent restorative draught that restores 450 HP and 345 SP.",
+      "locales": {
+        "pt-BR": {
+          "name": "Elixir Maior",
+          "description": "Uma poção restauradora potente que recupera 450 HP e 345 SP."
+        },
+        "en-US": {
+          "name": "Greater Elixir",
+          "description": "A potent restorative draught that restores 450 HP and 345 SP."
+        }
+      }
+    },
+    {
+      "id": "mega_elixir",
+      "name": "Mega Elixir",
+      "effect": {
+        "type": "heal_hp_sp",
+        "hpAmount": 600,
+        "spAmount": 460
+      },
+      "alchemyCategory": "potions",
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 100,
+      "cooldownInSeconds": 10,
+      "rarity": "rare",
+      "description": "A masterwork restorative draught that restores 600 HP and 460 SP.",
+      "locales": {
+        "pt-BR": {
+          "name": "Mega Elixir",
+          "description": "Uma poção restauradora magistral que recupera 600 HP e 460 SP."
+        },
+        "en-US": {
+          "name": "Mega Elixir",
+          "description": "A masterwork restorative draught that restores 600 HP and 460 SP."
+        }
+      }
+    },
+    {
+      "id": "tonic_fontoura",
+      "name": "Fontoura",
+      "effect": {
+        "type": "apply_status",
+        "status": "fontoura",
+        "durationSeconds": 30,
+        "defBonus": 15
+      },
+      "alchemyCategory": "tonics",
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 100,
+      "cooldownInSeconds": 30,
+      "rarity": "uncommon",
+      "description": "Raises Defense by 15 for 30 seconds.",
+      "locales": {
+        "pt-BR": {
+          "name": "Fontoura",
+          "description": "Aumenta a Defesa em 15 por 30 segundos."
+        },
+        "en-US": {
+          "name": "Fontoura",
+          "description": "Raises Defense by 15 for 30 seconds."
+        }
+      }
+    },
+    {
+      "id": "tonic_kombucha",
+      "name": "Kombucha",
+      "effect": {
+        "type": "apply_status",
+        "status": "kombucha",
+        "durationSeconds": 30,
+        "mdefPercentBonus": 15
+      },
+      "alchemyCategory": "tonics",
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 100,
+      "cooldownInSeconds": 30,
+      "rarity": "uncommon",
+      "description": "Raises MDEF by 15 for 30 seconds.",
+      "locales": {
+        "pt-BR": {
+          "name": "Kombucha",
+          "description": "Aumenta a Defesa Mágica em 15 por 30 segundos."
+        },
+        "en-US": {
+          "name": "Kombucha",
+          "description": "Raises MDEF by 15 for 30 seconds."
+        }
+      }
+    },
+    {
+      "id": "tonic_haste_shot",
+      "name": "Haste Shot",
+      "effect": {
+        "type": "apply_status",
+        "status": "haste_shot",
+        "durationSeconds": 30,
+        "attackSpeedMultiplier": 2
+      },
+      "alchemyCategory": "tonics",
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 100,
+      "cooldownInSeconds": 30,
+      "rarity": "rare",
+      "description": "Doubles Attack Speed for 30 seconds.",
+      "locales": {
+        "pt-BR": {
+          "name": "Haste Shot",
+          "description": "Dobra a Velocidade de Ataque por 30 segundos."
+        },
+        "en-US": {
+          "name": "Haste Shot",
+          "description": "Doubles Attack Speed for 30 seconds."
+        }
+      }
+    },
+    {
+      "id": "tonic_capo",
+      "name": "Çapó",
+      "effect": {
+        "type": "apply_status",
+        "status": "capo",
+        "durationSeconds": 30,
+        "castTimeReductionMultiplier": 2
+      },
+      "alchemyCategory": "tonics",
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 100,
+      "cooldownInSeconds": 30,
+      "rarity": "rare",
+      "description": "Doubles Cast Time Reduction (CTR) for 30 seconds.",
+      "locales": {
+        "pt-BR": {
+          "name": "Çapó",
+          "description": "Dobra a Redução do Tempo de Conjuração (CTR) por 30 segundos."
+        },
+        "en-US": {
+          "name": "Çapó",
+          "description": "Doubles Cast Time Reduction (CTR) for 30 seconds."
+        }
+      }
+    },
+    {
+      "id": "fairy_in_a_bottle",
+      "name": "Fairy in a Bottle",
+      "effect": {
+        "type": "revive_full_cleanse"
+      },
+      "alchemyCategory": "special",
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 1000,
+      "cooldownInSeconds": 30,
+      "rarity": "epic",
+      "description": "When triggered by the Upon Death Gambit condition, revives you with full HP and SP and removes every active buff and debuff.",
+      "locales": {
+        "pt-BR": {
+          "name": "Fada na Garrafa",
+          "description": "Quando ativada pela condição de Gambit Ao Morrer, revive você com HP e SP completos e remove todos os buffs e debuffs ativos."
+        },
+        "en-US": {
+          "name": "Fairy in a Bottle",
+          "description": "When triggered by the Upon Death Gambit condition, revives you with full HP and SP and removes every active buff and debuff."
+        }
+      }
     }
   ],
   "equipment": [
@@ -2942,7 +3170,7 @@
         "def": 5,
         "mdefPercent": 20
       },
-            "randomRollOnDrop": {
+      "randomRollOnDrop": {
         "enabled": true,
         "statsPool": [
           "hp",
@@ -3933,7 +4161,7 @@
           "STR": 1
         }
       },
-            "randomRollOnDrop": {
+      "randomRollOnDrop": {
         "enabled": true,
         "statsPool": [
           "hp",
@@ -3995,7 +4223,7 @@
           "DEX": 1
         }
       },
-            "randomRollOnDrop": {
+      "randomRollOnDrop": {
         "enabled": true,
         "statsPool": [
           "hp",
@@ -5120,6 +5348,126 @@
         }
       },
       "description": "A shard of divine crystal with magical properties, used to safeguard equipment during refinement."
+    },
+    {
+      "id": "mat_rushroom",
+      "name": "Rushroom",
+      "type": "material",
+      "rarity": "uncommon",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 12,
+      "marketBasePrice": 30,
+      "usableFor": [
+        "alchemy"
+      ],
+      "description": "A vivid purple mushroom with a rare, energized cap.",
+      "locales": {
+        "pt-BR": {
+          "name": "Cogumelo Veloz",
+          "description": "Um cogumelo roxo vibrante, conhecido por seu chapéu energizado."
+        },
+        "en-US": {
+          "name": "Rushroom",
+          "description": "A vivid purple mushroom with a rare, energized cap."
+        }
+      }
+    },
+    {
+      "id": "mat_ironshroom",
+      "name": "Ironshroom",
+      "type": "material",
+      "rarity": "uncommon",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 12,
+      "marketBasePrice": 30,
+      "usableFor": [
+        "alchemy"
+      ],
+      "description": "A dense gray mushroom with a firm, mineral-rich cap.",
+      "locales": {
+        "pt-BR": {
+          "name": "Cogumelo de Ferro",
+          "description": "Um cogumelo cinza e denso, de chapéu firme e rico em minerais."
+        },
+        "en-US": {
+          "name": "Ironshroom",
+          "description": "A dense gray mushroom with a firm, mineral-rich cap."
+        }
+      }
+    },
+    {
+      "id": "mat_guarana",
+      "name": "Guaraná",
+      "type": "material",
+      "rarity": "uncommon",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 12,
+      "marketBasePrice": 30,
+      "usableFor": [
+        "alchemy"
+      ],
+      "description": "A bright red forest fruit with a striking eye-like seed.",
+      "locales": {
+        "pt-BR": {
+          "name": "Guaraná",
+          "description": "Um fruto vermelho da floresta com uma semente marcante que lembra um olho."
+        },
+        "en-US": {
+          "name": "Guaraná",
+          "description": "A bright red forest fruit with a striking eye-like seed."
+        }
+      }
+    },
+    {
+      "id": "mat_ashwagandha",
+      "name": "Ashwagandha",
+      "type": "material",
+      "rarity": "uncommon",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 12,
+      "marketBasePrice": 30,
+      "usableFor": [
+        "alchemy"
+      ],
+      "description": "A knotted brown root prized by forest alchemists.",
+      "locales": {
+        "pt-BR": {
+          "name": "Ashwagandha",
+          "description": "Uma raiz marrom retorcida, muito valorizada pelos alquimistas da floresta."
+        },
+        "en-US": {
+          "name": "Ashwagandha",
+          "description": "A knotted brown root prized by forest alchemists."
+        }
+      }
+    },
+    {
+      "id": "mat_mystic_dust",
+      "name": "Mystic Dust",
+      "type": "material",
+      "rarity": "rare",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 12,
+      "marketBasePrice": 30,
+      "usableFor": [
+        "alchemy"
+      ],
+      "description": "A small mound of cosmic dust shimmering violet, pink, blue and orange.",
+      "locales": {
+        "pt-BR": {
+          "name": "Poeira Mística",
+          "description": "Um pequeno monte de pó cósmico que cintila em roxo, rosa, azul e laranja."
+        },
+        "en-US": {
+          "name": "Mystic Dust",
+          "description": "A small mound of cosmic dust shimmering violet, pink, blue and orange."
+        }
+      }
     }
   ]
 }

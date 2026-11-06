@@ -244,7 +244,16 @@ export class DataService implements OnModuleInit {
     ]);
     for (const map of maps) {
       if (/^map_kwaioua_forest_[0-7]$/.test(String(map.id)) || /^map_forest_ruins_[0-3]$/.test(String(map.id)) || /^map_caete_[0-7]$/.test(String(map.id))) {
-        exactGatheringAllowList.set(String(map.id), new Set(['mat_herbs']));
+        const regionalResources: Record<string, string[]> = {
+          map_kwaioua_forest_0: ['mat_herbs', 'mat_ashwagandha'], map_kwaioua_forest_1: ['mat_herbs', 'mat_ashwagandha'],
+          map_kwaioua_forest_2: ['mat_herbs', 'mat_ironshroom'], map_kwaioua_forest_3: ['mat_herbs', 'mat_ironshroom'],
+          map_kwaioua_forest_4: ['mat_herbs', 'mat_ironshroom', 'mat_ashwagandha'],
+          map_kwaioua_forest_5: ['mat_herbs', 'mat_rushroom', 'mat_guarana'], map_kwaioua_forest_6: ['mat_herbs', 'mat_rushroom'],
+          map_kwaioua_forest_7: ['mat_herbs', 'mat_guarana'],
+          map_caete_0: ['mat_herbs', 'mat_mystic_dust'], map_caete_1: ['mat_herbs', 'mat_mystic_dust'],
+          map_caete_2: ['mat_herbs', 'mat_mystic_dust'], map_caete_6: ['mat_herbs', 'mat_mystic_dust'],
+        };
+        exactGatheringAllowList.set(String(map.id), new Set(regionalResources[String(map.id)] ?? ['mat_herbs']));
       }
     }
     for (const map of maps) {
@@ -294,6 +303,8 @@ export class DataService implements OnModuleInit {
         if (!Number.isInteger(Number(recipe.requiredLevel)) || Number(recipe.requiredLevel) < 1 || !Number.isFinite(Number(recipe.xpReward)) || Number(recipe.xpReward) < 0) throw new Error(label + ' recipe has invalid level/XP: ' + recipe.id);
         if (!validOutputIds.has(String(recipe.outputItemId)) || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length) throw new Error(label + ' recipe has invalid output/ingredients: ' + recipe.id);
         if (label === 'Alchemy' && this.getItemById(recipe.outputItemId)?.type !== 'consumable') throw new Error('Alchemy outputs must be consumables: ' + recipe.id);
+        if (label === 'Alchemy' && !['potions', 'tonics'].includes(String(recipe.category))) throw new Error('Alchemy recipe must belong to potions or tonics: ' + recipe.id);
+        if (label === 'Alchemy' && recipe.ingredients.some((ingredient: any) => this.getItemById(ingredient.itemId)?.type !== 'material')) throw new Error('Alchemy ingredients must be materials: ' + recipe.id);
         if (label === 'Blacksmith' && !['material', 'equipment'].includes(String(this.getItemById(recipe.outputItemId)?.type))) throw new Error('Blacksmith output must be a material/equipment: ' + recipe.id);
         for (const ingredient of recipe.ingredients) if (!validItemIds.has(String(ingredient.itemId)) || !Number.isInteger(Number(ingredient.quantity)) || Number(ingredient.quantity) < 1) throw new Error(label + ' recipe has invalid ingredient: ' + recipe.id);
       }

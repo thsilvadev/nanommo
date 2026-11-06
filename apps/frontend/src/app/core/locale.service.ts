@@ -9,7 +9,7 @@ const TRANSLATIONS: Record<GameLocale, Record<string, string>> = {
     "Turn in":"Entregar","Abandon":"Abandonar","No completed quests.":"Nenhuma missão concluída.","Deadline:":"Prazo:","Given by":"Recebida de",
     "Português (Brasil)":"Português (Brasil)","English (US)":"Inglês (EUA)","Delete account":"Excluir conta",
     "Cooking":"Culinária","Level":"Nível","XP":"XP","Close":"Fechar",
-    "Alchemy":"Alquimia","Blacksmith":"Ferreiro","Refinement":"Refinamento",
+    "Alchemy":"Alquimia","Blacksmith":"Ferreiro","Refinement":"Refinamento","Potions":"Poções","Tonics":"Tônicos",
     "Brew a potion":"Preparar uma poção","I want to brew a potion":"Quero preparar uma poção","Craft equipment":"Fabricar equipamento","Refine equipment":"Refinar equipamento",
     "Available":"Disponível","Missing ingredients":"Faltam ingredientes","Not enough inventory space":"Espaço insuficiente no inventário",
     "Start crafting":"Começar fabricação","Craft":"Fabricar","Refine":"Refinar","Select equipment":"Selecionar equipamento",

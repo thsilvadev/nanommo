@@ -369,16 +369,6 @@
     "png128": "png/128/antidote.png",
     "png256": "png/256/antidote.png"
   },
-  "elixir": {
-    "name": "Greater Elixir",
-    "category": "consumables",
-    "rarity": "epic",
-    "svg": "svg/consumables/elixir.svg",
-    "svg_noframe": "svg-noframe/consumables/elixir.svg",
-    "png64": "png/64/elixir.png",
-    "png128": "png/128/elixir.png",
-    "png256": "png/256/elixir.png"
-  },
   "food_bread": {
     "name": "Bread",
     "category": "consumables",
@@ -1325,5 +1315,103 @@
     "rarity": "epic",
     "svg": "svg/materials/mat_divine_shard.svg",
     "svg_noframe": "svg-noframe/materials/mat_divine_shard.svg"
+  },
+  "elixir_greater": {
+    "name": "Elixir",
+    "category": "consumables",
+    "rarity": "uncommon",
+    "svg": "svg/consumables/elixir_greater.svg",
+    "svg_noframe": "svg-noframe/consumables/elixir_greater.svg"
+  },
+  "elixir": {
+    "name": "Elixir",
+    "category": "consumables",
+    "rarity": "uncommon",
+    "svg": "svg/consumables/elixir.svg",
+    "svg_noframe": "svg-noframe/consumables/elixir.svg"
+  },
+  "greater_elixir": {
+    "name": "Greater Elixir",
+    "category": "consumables",
+    "rarity": "rare",
+    "svg": "svg/consumables/greater_elixir.svg",
+    "svg_noframe": "svg-noframe/consumables/greater_elixir.svg"
+  },
+  "mega_elixir": {
+    "name": "Mega Elixir",
+    "category": "consumables",
+    "rarity": "epic",
+    "svg": "svg/consumables/mega_elixir.svg",
+    "svg_noframe": "svg-noframe/consumables/mega_elixir.svg"
+  },
+  "tonic_fontoura": {
+    "name": "Fontoura",
+    "category": "consumables",
+    "rarity": "uncommon",
+    "svg": "svg/consumables/tonic_fontoura.svg",
+    "svg_noframe": "svg-noframe/consumables/tonic_fontoura.svg"
+  },
+  "tonic_kombucha": {
+    "name": "Kombucha",
+    "category": "consumables",
+    "rarity": "uncommon",
+    "svg": "svg/consumables/tonic_kombucha.svg",
+    "svg_noframe": "svg-noframe/consumables/tonic_kombucha.svg"
+  },
+  "tonic_haste_shot": {
+    "name": "Haste Shot",
+    "category": "consumables",
+    "rarity": "rare",
+    "svg": "svg/consumables/tonic_haste_shot.svg",
+    "svg_noframe": "svg-noframe/consumables/tonic_haste_shot.svg"
+  },
+  "tonic_capo": {
+    "name": "Çapó",
+    "category": "consumables",
+    "rarity": "rare",
+    "svg": "svg/consumables/tonic_capo.svg",
+    "svg_noframe": "svg-noframe/consumables/tonic_capo.svg"
+  },
+  "fairy_in_a_bottle": {
+    "name": "Fairy in a Bottle",
+    "category": "consumables",
+    "rarity": "epic",
+    "svg": "svg/consumables/fairy_in_a_bottle.svg",
+    "svg_noframe": "svg-noframe/consumables/fairy_in_a_bottle.svg"
+  },
+  "mat_rushroom": {
+    "name": "Rushroom",
+    "category": "materials",
+    "rarity": "uncommon",
+    "svg": "svg/materials/mat_rushroom.svg",
+    "svg_noframe": "svg-noframe/materials/mat_rushroom.svg"
+  },
+  "mat_ironshroom": {
+    "name": "Ironshroom",
+    "category": "materials",
+    "rarity": "uncommon",
+    "svg": "svg/materials/mat_ironshroom.svg",
+    "svg_noframe": "svg-noframe/materials/mat_ironshroom.svg"
+  },
+  "mat_guarana": {
+    "name": "Guaraná",
+    "category": "materials",
+    "rarity": "uncommon",
+    "svg": "svg/materials/mat_guarana.svg",
+    "svg_noframe": "svg-noframe/materials/mat_guarana.svg"
+  },
+  "mat_ashwagandha": {
+    "name": "Ashwagandha",
+    "category": "materials",
+    "rarity": "uncommon",
+    "svg": "svg/materials/mat_ashwagandha.svg",
+    "svg_noframe": "svg-noframe/materials/mat_ashwagandha.svg"
+  },
+  "mat_mystic_dust": {
+    "name": "Mystic Dust",
+    "category": "materials",
+    "rarity": "rare",
+    "svg": "svg/materials/mat_mystic_dust.svg",
+    "svg_noframe": "svg-noframe/materials/mat_mystic_dust.svg"
   }
 }
