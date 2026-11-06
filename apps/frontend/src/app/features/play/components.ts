@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, effect, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, effect, inject, signal, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
@@ -83,7 +83,7 @@ export class CharacterSummary implements OnDestroy {
 }
 
 @Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule], templateUrl: './map-board.html', styleUrl: './map-board.css' })
-export class MapBoard implements OnDestroy {
+export class MapBoard implements OnDestroy, AfterViewInit {
   readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService); private readonly catalog = inject(CatalogService); private readonly notifications = inject(BrowserNotificationsService); private readonly vendor = inject(VendorStore);
   maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
   readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly mapTransitionPending = signal(false); readonly destinationMapId = signal<string|null>(null); readonly routeOriginMapId = signal<string|null>(null);
@@ -94,7 +94,8 @@ export class MapBoard implements OnDestroy {
   private lastQuestNotificationLevel:number|null=null;
   private transitionPoll:ReturnType<typeof setInterval>|null=null; private transitionPollBusy=false; private fleeNoticeTimeout:ReturnType<typeof setTimeout>|null=null; private lastFleeNoticeEntryId:string|null=null;
   private drag: {id:number; startX:number; startY:number; cameraX:number; cameraY:number; moved:boolean}|null = null; private suppressClickUntil = 0; private lastCenteredMapId: string|null = null;
-  private readonly worldWidth=2295; private readonly worldHeight=1989; private readonly viewportWidth=761; private readonly viewportHeight=660; private readonly zoomMin=.5; private readonly zoomMax=1;
+  @ViewChild('viewport') viewportElement?: ElementRef<HTMLElement>;
+  private readonly worldWidth=2295; private readonly worldHeight=1989; private readonly viewportWidth=761; private viewportHeight=660; private readonly zoomMin=.5; private readonly zoomMax=1;
   constructor() {
     // lastResolved is a retained store snapshot; don't replay an old FLEE toast
     // merely because Grind was mounted again after navigation.
@@ -573,6 +574,9 @@ export class MapBoard implements OnDestroy {
     return hasNewNpc||hasNewQuest;
   }
     destinationPinStyle(map:any){return map.id===this.displayDestinationMapId()}
+  private updateViewportHeight(){if(!this.viewportElement?.nativeElement)return;const h=this.viewportElement.nativeElement.clientHeight;if(h>0&&h!==this.viewportHeight){this.viewportHeight=h;this.centerOnCurrentMap()}}
+  @HostListener('window:resize')onWindowResize(){this.updateViewportHeight()}
+  ngAfterViewInit(){this.updateViewportHeight();setTimeout(()=>this.updateViewportHeight(),100)}
   ngOnDestroy(){clearInterval(this.activityTimer);this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
 }
 

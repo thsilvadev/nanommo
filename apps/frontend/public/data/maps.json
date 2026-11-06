@@ -613,7 +613,7 @@
       "monsters": [
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 50
+          "presenceRate": 35
         },
         {
           "monsterId": "mon_venomviper",
@@ -622,6 +622,10 @@
         {
           "monsterId": "mon_mudflatcrocodile",
           "presenceRate": 20
+        },
+        {
+          "monsterId": "mon_giantmantis",
+          "presenceRate": 15
         }
       ],
       "unlockLevel": 0,
@@ -649,7 +653,7 @@
       "monsters_quantity": 100,
       "monsters": [
         {
-          "monsterId": "mon_giantmantis",
+          "monsterId": "mon_sacredforestguardian",
           "presenceRate": 50
         },
         {
@@ -667,7 +671,7 @@
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 30,
+      "recommendedLevel": 50,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -714,25 +718,21 @@
       "monsters_quantity": 100,
       "monsters": [
         {
-          "monsterId": "mon_giantmantis",
-          "presenceRate": 15
-        },
-        {
-          "monsterId": "mon_rootboundbrute",
-          "presenceRate": 8.5
+          "monsterId": "mon_aramaianwarden",
+          "presenceRate": 45
         },
         {
           "monsterId": "mon_moonleafarcanist",
-          "presenceRate": 55.25
+          "presenceRate": 40
         },
-        {
-          "monsterId": "mon_kwaiouaranger",
-          "presenceRate": 21.25
+        { 
+          "monsterId": "mon_sacredforestguardian",
+          "presenceRate": 15
         }
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 41,
+      "recommendedLevel": 55,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -745,7 +745,7 @@
       "id": "map_caete_1",
       "name": "Caetê 1",
       "coordinates": {
-        "x": -6,
+        "x": -5,
         "y": -6
       },
       "isClickable": true,
@@ -940,7 +940,7 @@
           "presenceRate": 45
         },
         {
-          "monsterId": "mon_aramaianwarden",
+          "monsterId": "mon_moonleafarcanist",
           "presenceRate": 45
         },
         {
@@ -1004,7 +1004,7 @@
       "id": "map_aramaia_city",
       "name": "Ancient Aramaia City",
       "coordinates": {
-        "x": -5,
+        "x": -6,
         "y": -6
       },
       "isClickable": true,
@@ -1015,13 +1015,7 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": [
-        "storage",
-        "william",
-        "mailbox",
-        "father_marcelus",
-        "oracle"
-      ],
+      "npcIds": ["storage", "william", "mailbox", "father_marcelus", "oracle"],
       "mapLength": 0
     },
     {
@@ -1366,25 +1360,17 @@
       "monsters_quantity": 100,
       "monsters": [
         {
-          "monsterId": "mon_bandit",
-          "presenceRate": 25
-        },
-        {
           "monsterId": "mon_ridgebreaker",
-          "presenceRate": 25
+          "presenceRate": 50
         },
         {
           "monsterId": "mon_needlebackstalker",
-          "presenceRate": 25
-        },
-        {
-          "monsterId": "mon_giantmosquito",
-          "presenceRate": 25
+          "presenceRate": 50
         }
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20,
+      "recommendedLevel": 21,
       "mapLength": 25,
       "gatheringPool": [
         {
@@ -1408,7 +1394,7 @@
       "monsters": [
         {
           "monsterId": "mon_bandit",
-          "presenceRate": 35
+          "presenceRate": 55
         },
         {
           "monsterId": "mon_ridgebreaker",
@@ -1416,11 +1402,7 @@
         },
         {
           "monsterId": "mon_needlebackstalker",
-          "presenceRate": 25
-        },
-        {
-          "monsterId": "mon_giantmosquito",
-          "presenceRate": 25
+          "presenceRate": 30
         }
       ],
       "unlockLevel": 0,
@@ -1449,7 +1431,7 @@
       "monsters": [
         {
           "monsterId": "mon_bandit",
-          "presenceRate": 30
+          "presenceRate": 20
         },
         {
           "monsterId": "mon_ridgebreaker",
@@ -1457,16 +1439,16 @@
         },
         {
           "monsterId": "mon_needlebackstalker",
-          "presenceRate": 25
+          "presenceRate": 15
         },
         {
           "monsterId": "mon_giantmosquito",
-          "presenceRate": 20
+          "presenceRate": 40
         }
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 20,
+      "recommendedLevel": 27,
       "mapLength": 25,
       "gatheringPool": [
         {
