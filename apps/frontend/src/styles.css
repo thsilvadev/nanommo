@@ -549,7 +549,7 @@ select:focus-visible,
   left: 0;
   right: 0;
   height: 14px;
-  background: #302218;
+  background: #262626;
   border-top: 1px solid #57402a;
   z-index: 50;
   display: flex;
@@ -561,7 +561,7 @@ select:focus-visible,
   left: 0;
   top: 0;
   height: 100%;
-  background: var(--nm-gold);
+  background: #2d0c2e;
   width: var(--xp-width, 0%);
 }
 .xp-bar-text {
