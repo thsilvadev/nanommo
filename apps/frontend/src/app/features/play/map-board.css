@@ -9,7 +9,7 @@
   flex-direction: column;
   gap: 0;
   overflow: hidden;
-  align-items: center;
+  align-items: stretch;
 }
 .map-head {
   position: absolute;
@@ -47,11 +47,11 @@
   text-shadow: 0 2px 4px #000;
 }
 .viewport {
-  width: 761px;
-  height: 660px;
-  min-width: 761px;
-  min-height: 660px;
-  flex: 0 0 660px;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
@@ -163,7 +163,9 @@
     overflow: auto;
   }
   .viewport {
-    flex: 0 0 660px;
+    height: min(660px, 70dvh);
+    min-height: min(360px, 55dvh);
+    flex: 0 0 min(660px, 70dvh);
   }
 }
 

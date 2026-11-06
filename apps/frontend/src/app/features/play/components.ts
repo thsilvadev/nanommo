@@ -95,7 +95,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   private transitionPoll:ReturnType<typeof setInterval>|null=null; private transitionPollBusy=false; private fleeNoticeTimeout:ReturnType<typeof setTimeout>|null=null; private lastFleeNoticeEntryId:string|null=null;
   private drag: {id:number; startX:number; startY:number; cameraX:number; cameraY:number; moved:boolean}|null = null; private suppressClickUntil = 0; private lastCenteredMapId: string|null = null;
   @ViewChild('viewport') viewportElement?: ElementRef<HTMLElement>;
-  private readonly worldWidth=2295; private readonly worldHeight=1989; private readonly viewportWidth=761; private viewportHeight=660; private readonly zoomMin=.5; private readonly zoomMax=1;
+  private readonly worldWidth=2295; private readonly worldHeight=1989; private viewportWidth=0; private viewportHeight=0; private viewportResizeObserver:ResizeObserver|null=null; private readonly zoomMin=.5; private readonly zoomMax=1;
   constructor() {
     // lastResolved is a retained store snapshot; don't replay an old FLEE toast
     // merely because Grind was mounted again after navigation.
@@ -399,8 +399,8 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   }
   playersInMap(){const id=this.character.character()?.currentMapId;return id&&this.battle.mapPresence()?.mapId===id?this.battle.mapPresence()?.playersOnMap??0:0}
   isRevealed(x:number,y:number){if(!this.discovered.size)return x===0&&y===0;for(const id of this.discovered){const m=this.maps.find(v=>v.id===id);if(!m)continue;const dx=Math.abs(Number(m.coordinates.x)-x),dy=Math.abs(Number(m.coordinates.y)-y);if(dx+dy<=1)return true;}return false}
-  private clampCamera(x:number,y:number,zoom=this.zoom()){const visibleWidth=this.viewportWidth/zoom,visibleHeight=this.viewportHeight/zoom;return {x:Math.max(0,Math.min(this.worldWidth-visibleWidth,x)),y:Math.max(0,Math.min(this.worldHeight-visibleHeight,y))}}
-  private centerOnCurrentMap(){const m=this.currentMap();if(!m||this.lastCenteredMapId===m.id)return;this.lastCenteredMapId=m.id;const z=this.zoom();const p=this.clampCamera(this.gridColumn(m)*153+76.5-this.viewportWidth/(2*z),this.gridRow(m)*153+76.5-this.viewportHeight/(2*z),z);this.cameraX.set(p.x);this.cameraY.set(p.y)}
+  private clampCamera(x:number,y:number,zoom=this.zoom()){const visibleWidth=this.viewportWidth/zoom,visibleHeight=this.viewportHeight/zoom;const maxX=this.worldWidth-visibleWidth,maxY=this.worldHeight-visibleHeight;return {x:Math.max(Math.min(0,maxX),Math.min(Math.max(0,maxX),x)),y:Math.max(Math.min(0,maxY),Math.min(Math.max(0,maxY),y))}}
+  private centerOnCurrentMap(){const m=this.currentMap();if(!m||this.viewportWidth<=0||this.viewportHeight<=0||this.lastCenteredMapId===m.id)return;this.lastCenteredMapId=m.id;const z=this.zoom();const p=this.clampCamera(this.gridColumn(m)*153+76.5-this.viewportWidth/(2*z),this.gridRow(m)*153+76.5-this.viewportHeight/(2*z),z);this.cameraX.set(p.x);this.cameraY.set(p.y)}
   onPointerDown(e:PointerEvent){if(e.button!==0&&e.pointerType==='mouse')return;this.hideTileTooltip();this.drag={id:e.pointerId,startX:e.clientX,startY:e.clientY,cameraX:this.cameraX(),cameraY:this.cameraY(),moved:false}}
   onPointerMove(e:PointerEvent){const d=this.drag;if(!d||d.id!==e.pointerId)return;const dx=e.clientX-d.startX,dy=e.clientY-d.startY;if(Math.abs(dx)+Math.abs(dy)>5)d.moved=true;if(!d.moved)return;const viewport=e.currentTarget as HTMLElement;if(!viewport.hasPointerCapture(e.pointerId))viewport.setPointerCapture(e.pointerId);const z=this.zoom();const p=this.clampCamera(d.cameraX-dx/z,d.cameraY-dy/z,z);this.cameraX.set(p.x);this.cameraY.set(p.y)}
   onPointerUp(e:PointerEvent){const d=this.drag;if(!d||d.id!==e.pointerId)return;if(d.moved)this.suppressClickUntil=Date.now()+250;this.drag=null}
@@ -574,10 +574,31 @@ export class MapBoard implements OnDestroy, AfterViewInit {
     return hasNewNpc||hasNewQuest;
   }
     destinationPinStyle(map:any){return map.id===this.displayDestinationMapId()}
-  private updateViewportHeight(){if(!this.viewportElement?.nativeElement)return;const h=this.viewportElement.nativeElement.clientHeight;if(h>0&&h!==this.viewportHeight){this.viewportHeight=h;this.centerOnCurrentMap()}}
-  @HostListener('window:resize')onWindowResize(){this.updateViewportHeight()}
-  ngAfterViewInit(){this.updateViewportHeight();setTimeout(()=>this.updateViewportHeight(),100)}
-  ngOnDestroy(){clearInterval(this.activityTimer);this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
+  private updateViewportSize(){
+    const element=this.viewportElement?.nativeElement;
+    if(!element)return;
+    const width=element.clientWidth,height=element.clientHeight;
+    if(width<=0||height<=0||(width===this.viewportWidth&&height===this.viewportHeight))return;
+    const previousWidth=this.viewportWidth,previousHeight=this.viewportHeight,z=this.zoom();
+    this.viewportWidth=width;this.viewportHeight=height;
+    if(previousWidth>0&&previousHeight>0){
+      const centerX=this.cameraX()+previousWidth/(2*z),centerY=this.cameraY()+previousHeight/(2*z);
+      const p=this.clampCamera(centerX-width/(2*z),centerY-height/(2*z),z);
+      this.cameraX.set(p.x);this.cameraY.set(p.y);
+    }else{
+      this.lastCenteredMapId=null;
+      this.centerOnCurrentMap();
+    }
+  }
+  @HostListener('window:resize')onWindowResize(){this.updateViewportSize()}
+  ngAfterViewInit(){
+    this.updateViewportSize();
+    if(typeof ResizeObserver!=='undefined'&&this.viewportElement?.nativeElement){
+      this.viewportResizeObserver=new ResizeObserver(()=>this.updateViewportSize());
+      this.viewportResizeObserver.observe(this.viewportElement.nativeElement);
+    }
+  }
+  ngOnDestroy(){clearInterval(this.activityTimer);this.viewportResizeObserver?.disconnect();this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
 }
 
 @Component({ selector: 'app-inventory-grid', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './inventory-grid.html', styleUrl: './inventory-grid.css', styles: [':host(.market-inventory-grid) .panel{height:auto;min-height:0;padding:0;background:transparent}:host(.market-inventory-grid) .panel-title{font-size:15px;letter-spacing:1px;margin-bottom:5px}:host(.market-inventory-grid) .inventory-sort-button{width:25px;height:23px}:host(.market-inventory-grid) .inv-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:none;grid-auto-flow:row;grid-auto-rows:min-content;align-content:start;gap:3px;height:123px;max-height:123px;min-height:123px;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;flex:0 0 240px}:host(.market-inventory-grid) .inv-slot{width:100%;height:auto;min-height:0;aspect-ratio:1/1;align-self:start;box-sizing:border-box}:host(.market-inventory-grid) .item b{font-size:12px;right:2px;bottom:1px}'] })
