@@ -27,7 +27,7 @@ services:
     image: redis:7-alpine
     container_name: nanommo-redis
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in the deployment .env}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     command: ["sh", "-c", "exec redis-server --requirepass \"$${REDIS_PASSWORD}\""]
     volumes:
       - redis_data:/data
