@@ -911,12 +911,12 @@ The shared battle engine records Violent Shot's physical push as a movement even
 
 ## Redis connection configuration
 
-`apps/api/src/config/redis.config.ts` is the single source of Redis connection options for the shared ioredis provider and Bull. `REDIS_URL` supports `redis://` and `rediss://` (ACL username/password and optional database path); otherwise host/port and optional username/password/TLS environment variables are used. `REDIS_CLIENT.duplicate()` inherits the authenticated connection settings for Socket.IO pub/sub subscribers. Production environment credentials must match the Redis endpoint; no credentials are stored in source control or emitted in logs.
+`apps/api/src/config/redis.config.ts` is the single source of Redis connection options for the shared ioredis provider and Bull. `REDIS_URL` supports `redis://` and `rediss://` (ACL username/password and optional database path); otherwise host/port and optional username/password/TLS environment variables are used. `REDIS_CLIENT.duplicate()` inherits the authenticated connection settings for Socket.IO pub/sub subscribers. The Docker Compose Redis service requires `REDIS_PASSWORD`, starts Redis with `requirepass`, and authenticates its healthcheck with `REDISCLI_AUTH`; the Redis port is not published on the host, so application containers reach it only over the shared Docker network. The same `REDIS_PASSWORD` must be present in the backend deployment `.env`. Production environment credentials must match the Redis endpoint; no credentials are stored in source control or emitted in application logs.
 
 
 ### Redis protocol compatibility — 2026-11-02 follow-up
 
-The production failure was traced to the ioredis 6 RESP3 handshake: v6 sends HELLO 3 by default, while the existing Redis endpoint previously worked with the RESP2 wire protocol. The shared Redis options now explicitly set protocol: 2, restoring the pre-v6 handshake without requiring new production environment variables. This applies to the shared client, duplicated Socket.IO clients and Bull. Optional credentials/TLS support remains available, but is not required for the existing REDIS_HOST/REDIS_PORT setup.
+The production failure was traced to the ioredis 6 RESP3 handshake: v6 sends HELLO 3 by default, while the existing Redis endpoint previously worked with the RESP2 wire protocol. The shared Redis options explicitly set protocol: 2, restoring the pre-v6 handshake for the shared client, duplicated Socket.IO clients and Bull. That protocol compatibility fix itself does not require extra environment variables; the later Docker Compose hardening separately requires `REDIS_PASSWORD` for the self-managed Redis service.
 
 
 ## Regional music and interaction SFX — 2026-11-04

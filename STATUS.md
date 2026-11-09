@@ -1,3 +1,7 @@
+### Redis authentication and private Docker networking — 2026-11-09
+
+Updated the Redis Compose service to require `REDIS_PASSWORD`, start with Redis `requirepass`, and authenticate its healthcheck via `REDISCLI_AUTH`. Removed the published host port `6379`; the backend continues to connect over the shared Docker network using `REDIS_HOST=redis` and `REDIS_PORT=6379`, with the existing API Redis configuration consuming `REDIS_PASSWORD`. Added the required variable to `.env.example` as a replace-before-deploy placeholder and documented the deployment contract. The existing named Redis data volume is unchanged. Repository-only change: no production deployment, container recreation, password generation, or live Redis mutation has been performed; deployment must set the same strong secret in the server `.env` before recreating the Redis/backend services.
+
 ### Elixir art, consumable audio and Gambit resource conditions — 2026-11-06
 
 Removed the unused `elixir` alias SVG assets and manifest entry while retaining the catalogue compatibility ID for persisted rows. Reworked the three active Elixir icons (`elixir_greater`, `greater_elixir`, `mega_elixir`) in framed and no-frame variants: pale-pink liquid, a broader round flask and paired side handles.
