@@ -1,0 +1,18 @@
+<div class="mail-arrival-backdrop" (click)="close.emit()">
+  <section class="mail-arrival-modal" role="dialog" aria-modal="true" aria-labelledby="mail-arrival-title"
+    (click)="$event.stopPropagation()">
+    <div class="mail-arrival-icon">✉</div>
+    <small>{{localeService.t('Mail delivery')}}</small>
+    <h2 id="mail-arrival-title">{{localeService.t('A new letter has arrived.')}}</h2>
+    <p>{{localeService.t('Visit the Mailbox NPC in any city to read your letter.')}}</p>
+    <strong *ngIf="mail?.subject">{{mail.subject}}</strong>
+    <label class="mail-arrival-preference">
+      <input type="checkbox" [checked]="hideFuture"
+        (change)="hideFutureChange.emit($any($event.target).checked)">
+      {{localeService.t('Don’t show this again')}}
+    </label>
+    <div class="mail-arrival-actions">
+      <button type="button" class="primary" (click)="close.emit()">{{localeService.t('Close')}}</button>
+    </div>
+  </section>
+</div>

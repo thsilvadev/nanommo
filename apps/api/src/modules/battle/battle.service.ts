@@ -1231,11 +1231,11 @@ export class BattleService {
       character.xp = xpResolution.xp;
       character.level = xpResolution.level;
       const levelsGained = xpResolution.levelsGained;
-      if (levelsGained > 0) character.unspentAttributePoints += 5;
+      if (levelsGained > 0) character.unspentAttributePoints += 5 * levelsGained;
       const leveledUp = levelsGained > 0;
 
       if (leveledUp) {
-        // Both derived-stat snapshots use this transaction's authoritative loadout.
+        // Derive the new maxima from this transaction's authoritative loadout.
         const equipmentStats = await this.equipmentService.calculateEquipmentStats(character.id, manager);
         const { skillDefs } = await this.buildSkillAvailability(character.id);
         // Same attribute state the battles were simulated against (SPEC §6.3):
@@ -1251,16 +1251,11 @@ export class BattleService {
           weaponFixedAtk: equipmentStats.weaponFixedAtk,
           weaponFixedMatk: equipmentStats.weaponFixedMatk,
         };
-        const before = BattleEngine.calculateDerivedStats(character.level - levelsGained, attributes, equipment);
         const after = BattleEngine.calculateDerivedStats(character.level, attributes, equipment);
-        character.hpCurrent = Math.min(
-          after.maxHp,
-          Math.max(1, Math.round(Number(character.hpCurrent) * (after.maxHp / before.maxHp))),
-        );
-        character.spCurrent = Math.min(
-          after.maxSp,
-          Math.max(0, Math.round(Number(character.spCurrent) * (after.maxSp / before.maxSp))),
-        );
+        // Each level grants the same native resources as the maximum-stat formula:
+        // +5 current HP and +2 current SP per level, without an attribute-based ratio.
+        character.hpCurrent = Math.min(after.maxHp, Math.max(1, Number(character.hpCurrent) + 5 * levelsGained));
+        character.spCurrent = Math.min(after.maxSp, Math.max(0, Number(character.spCurrent) + 2 * levelsGained));
       }
 
       this.applyResolvedFoodState(character, battle);

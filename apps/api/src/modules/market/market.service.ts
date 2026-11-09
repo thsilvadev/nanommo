@@ -5,12 +5,14 @@ import { MarketOrder } from '../../database/entities/market-order.entity';
 import { MarketDeal } from '../../database/entities/market-deal.entity';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { Character } from '../../database/entities/character.entity';
+import { MailMessage } from '../../database/entities/mail-message.entity';
 import { DataService } from '../data/data.service';
 import { MAX_MARKET_ORDER_GOLD } from '@nanommo/shared';
 import { marketGrossValue, marketListingFee } from './market-contract';
 import { BattleService } from '../battle/battle.service';
 import { MailService } from '../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { GatewayService } from '../gateway/gateway.service';
 
 const CHARACTER_GOLD_CAP = 1_000_000_000_000;
 
@@ -32,6 +34,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
     private readonly mailService: MailService,
     private readonly dataSource: DataSource,
     private readonly notifications: NotificationsService,
+    private readonly gateway: GatewayService,
   ) {}
 
   onModuleInit(): void {
@@ -161,7 +164,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
 
   async purchaseOrder(characterId: string, orderId: string, quantity: number): Promise<MarketDeal> {
     if (!characterId) throw new NotFoundException('Character not found for authenticated account');
-    const deal = await this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
+    const delivery = await this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
       const orders = manager.getRepository(MarketOrder);
       const characters = manager.getRepository(Character);
       const deals = manager.getRepository(MarketDeal);
@@ -190,17 +193,31 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       order.escrowedItemQuantity = remaining - quantity;
       if (Number(order.escrowedItemQuantity) === 0) order.status = 'fulfilled';
       await orders.save(order);
-      await this.mailService.sendSystemMail(
+      const buyerMail = await this.mailService.sendSystemMail(
         buyer.id, 'Market purchase delivery', 'Your purchased item is waiting for collection in Town.', undefined,
         { itemId: order.itemId, quantity, itemInstanceData: order.itemInstanceData ?? null },
         manager, `market-deal:${deal.id}:buyer-item`,
       );
-      await this.mailService.sendSystemMail(
+      const sellerMail = await this.mailService.sendSystemMail(
         seller.id, 'Market sale proceeds', 'Gold from your Market sale is waiting for collection in Town.', gross,
         undefined, manager, `market-deal:${deal.id}:seller-gold`,
       );
-      return deal;
+      return { deal, buyerMail, sellerMail, buyerId: buyer.id, sellerId: seller.id };
     }));
+    const deal = delivery.deal;
+    try {
+      await Promise.all([
+        this.gateway.publishMailNewItem(delivery.buyerId, {
+          mailId: delivery.buyerMail.id, itemId: delivery.buyerMail.itemId ?? undefined,
+          quantity: delivery.buyerMail.quantity ?? undefined, subject: delivery.buyerMail.subject,
+        }),
+        this.gateway.publishMailNewItem(delivery.sellerId, {
+          mailId: delivery.sellerMail.id, subject: delivery.sellerMail.subject,
+        }),
+      ]);
+    } catch (error) {
+      this.logger.warn('Market mail arrival event failed: ' + (error instanceof Error ? error.message : String(error)));
+    }
     try {
       const itemName = String(this.dataService.getItemById(deal.itemId)?.name ?? deal.itemId);
       for (let index = 0; index < Math.max(1, Number(deal.quantity ?? 1)); index++) {
@@ -216,14 +233,29 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
   }
 
   async cancelOrder(orderId: string, characterId: string): Promise<void> {
-    await this.dataSource.transaction(async manager => {
+    const arrivals = await this.dataSource.transaction(async manager => {
       const order = await manager.getRepository(MarketOrder).findOne({ where: { id: orderId, characterId, status: 'active' }, lock: { mode: 'pessimistic_write' } });
       if (!order) throw new NotFoundException('Order not found or already completed');
-      await this.releaseOrderEscrow(order, 'Market listing cancelled', manager);
+      return this.releaseOrderEscrow(order, 'Market listing cancelled', manager);
     });
+    await this.publishMailArrivals(arrivals);
   }
 
-  private async releaseOrderEscrow(order: MarketOrder, reason: string, manager: any): Promise<void> {
+  private async publishMailArrivals(arrivals: Array<{ recipientId: string; mail: MailMessage }>): Promise<void> {
+    for (const arrival of arrivals) {
+      try {
+        await this.gateway.publishMailNewItem(arrival.recipientId, {
+          mailId: arrival.mail.id, itemId: arrival.mail.itemId ?? undefined,
+          quantity: arrival.mail.quantity ?? undefined, subject: arrival.mail.subject,
+        });
+      } catch (error) {
+        this.logger.warn('Market mail arrival event failed for ' + arrival.recipientId + ': ' + (error instanceof Error ? error.message : String(error)));
+      }
+    }
+  }
+
+  private async releaseOrderEscrow(order: MarketOrder, reason: string, manager: any): Promise<Array<{ recipientId: string; mail: MailMessage }>> {
+    const arrivals: Array<{ recipientId: string; mail: MailMessage }> = [];
     const orders = manager.getRepository(MarketOrder);
     const characters = manager.getRepository(Character);
     const character = await characters.findOne({ where: { id: order.characterId } });
@@ -232,8 +264,9 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       const qty = Math.max(0, Number(order.escrowedItemQuantity ?? 0));
       if (qty > 0) {
         const key = `market-order-return:${order.id}`;
-        await this.mailService.sendSystemMail(character.id, reason, 'Your remaining listing items are waiting for collection in Town.',
+        const mail = await this.mailService.sendSystemMail(character.id, reason, 'Your remaining listing items are waiting for collection in Town.',
           undefined, { itemId: order.itemId, quantity: qty, itemInstanceData: order.itemInstanceData ?? null }, manager, key);
+        arrivals.push({ recipientId: character.id, mail });
       }
       order.escrowedItemQuantity = 0;
     } else {
@@ -243,8 +276,9 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       while (remaining > 0) {
         const amount = Math.min(remaining, MAX_MARKET_ORDER_GOLD);
         const key = `market-legacy-buy-refund:${order.id}:${part++}`;
-        await this.mailService.sendSystemMail(character.id, 'Legacy Market escrow return',
+        const mail = await this.mailService.sendSystemMail(character.id, 'Legacy Market escrow return',
           'Gold escrow from a retired buy order is waiting for collection in Town.', amount, undefined, manager, key);
+        arrivals.push({ recipientId: character.id, mail });
         remaining -= amount;
       }
       order.escrowedGold = 0;
@@ -252,6 +286,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
     order.status = reason.includes('expired') ? 'expired' : 'cancelled';
     await orders.save(order);
     this.logger.debug(`Released escrow for order ${order.id}: ${reason}`);
+    return arrivals;
   }
 
   async getCharacterOrders(characterId: string): Promise<MarketOrder[]> {
@@ -274,13 +309,16 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
   }
 
   async expireOrders(): Promise<number> {
-    return this.dataSource.transaction(async manager => {
+    const result = await this.dataSource.transaction(async manager => {
       const repo = manager.getRepository(MarketOrder);
       const legacyBuys = await repo.find({ where: { type: 'buy', status: 'active' }, order: { createdAt: 'ASC' }, take: 200, lock: { mode: 'pessimistic_write', onLocked: 'skip_locked' } as any });
-      for (const order of legacyBuys) await this.releaseOrderEscrow(order, 'Legacy buy order escrow returned', manager);
       const due = await repo.find({ where: { type: 'sell', status: 'active', expiresAt: LessThan(new Date()) }, order: { expiresAt: 'ASC' }, take: 200, lock: { mode: 'pessimistic_write', onLocked: 'skip_locked' } as any });
-      for (const order of due) await this.releaseOrderEscrow(order, 'Market listing expired', manager);
-      return legacyBuys.length + due.length;
+      const arrivals: Array<{ recipientId: string; mail: MailMessage }> = [];
+      for (const order of legacyBuys) arrivals.push(...await this.releaseOrderEscrow(order, 'Legacy buy order escrow returned', manager));
+      for (const order of due) arrivals.push(...await this.releaseOrderEscrow(order, 'Market listing expired', manager));
+      return { count: legacyBuys.length + due.length, arrivals };
     });
+    await this.publishMailArrivals(result.arrivals);
+    return result.count;
   }
 }

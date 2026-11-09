@@ -49,7 +49,7 @@ export class CatalogService {
   const labels:Record<string,string>={atk:'Attack',matk:'Magic ATK',def:'Defense',mdefPercent:'MDEF',maxHp:'Max HP',maxSp:'Max SP',moveSpeed:'Move Speed'};
   for(const key of ['atk','matk','def','mdefPercent','maxHp','maxSp','moveSpeed']){
    const base=fixed[key];if(base===undefined||base===null||!Number(base))continue;
-   const value=Number(base)+(['atk','matk','def','mdefPercent'].includes(key)&&refine?3*refine:0);
+   const refinementGain=item?.slot==='mainHand'&&!!item?.weaponType&&(key==='atk'||key==='matk')?5:3;const value=Number(base)+(['atk','matk','def','mdefPercent'].includes(key)&&refine?refinementGain*refine:0);
    if(key==='atk'&&equippedSlot==='offHand'&&item.weaponType&&!['shield','rune'].includes(String(item.weaponType))){lines.push({label:this.locale.t(labels[key]),originalValue:'+'+value,value:'+'+Math.floor(value/2)});}
    else lines.push({label:this.locale.t(labels[key]),value:'+'+value+(key==='mdefPercent'?'%':'' )});
   }

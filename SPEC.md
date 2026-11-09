@@ -217,7 +217,7 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | regenAnchorAt | timestamptz, nullable | stable origin for the character's continuous 10-tick regeneration timeline |
 | createdAt / updatedAt | timestamptz | |
 
-Character creation bootstrap (one time only): seed the starter pack with 50 `pot_hp_small` and 5 `food_bread`. Characters start with a `Knife` (`equip_knife`, dagger, +8 ATK) equipped in `mainHand`; it is a dedicated starter item and is not added to inventory. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
+Character creation bootstrap (one time only): seed the starter pack with 50 `pot_hp_small` and 5 `food_bread`. Characters start with a `Knife` (`equip_knife`, dagger, +11 ATK) equipped in `mainHand`; it is a dedicated starter item and is not added to inventory. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
 
 ### 4.3 Mastery category progress (`weapon_proficiencies` legacy table)
 | field | type | notes |
@@ -378,8 +378,8 @@ The six attributes are always present at character creation with value 5. Each p
 attack = floor(STR * 2) + weaponAttack
 magicAttack = floor(INT * 2) + weaponMagicAttack
 defense = equipmentDefense
-maxHp = 50 + floor(VIT * 18) + equipmentMaxHp
-maxSp = 20 + floor(INT * 8) + equipmentMaxSp
+maxHp = 50 + floor(VIT * 18) + 5 * (level - 1) + equipmentMaxHp
+maxSp = 20 + floor(INT * 8) + 2 * (level - 1) + equipmentMaxSp
 attackSpeed = 100 + floor(AGI * 2)
 castTimeReduction = floor(DEX * 2)
 evasion = 99 + floor(AGI / 3)
@@ -390,15 +390,15 @@ critChance% = floor(LUK * 0.3 * 10) / 10
 
 Attack Speed is displayed as a rating where higher is faster. Attack Speed affects only the character's basic Attack gauge: active status penalties are subtracted from the rating, then the effective value is clamped to 0–800 and converted to a 10-to-1-tick refill interval in §7.2. Cast Time Reduction is derived as floor(DEX × 2), with no +100 baseline; 100 CTR removes one tick from a character skill's base cast duration. Regeneration is recovered once every 10 ticks because one tick is one second.
 
-At level 1 with all six attributes at 5 and the starter Knife's +8 ATK:
+At level 1 with all six attributes at 5 and the starter Knife's +11 ATK:
 
-ATK 18 | MATK 10 | DEF 0 | Max HP 140 | Max SP 60
+ATK 21 | MATK 10 | DEF 0 | Max HP 140 | Max SP 60
 Attack Speed 110 | Cast Time Reduction 10
 Evasion 100 | Precision 80
 HP Regen 3 / 10 ticks | SP Regen 3 / 10 ticks
 Critical 2.5%
 
-Equipment stat bonuses are added to the corresponding attributes before these formulas. Flat equipment Max HP/Max SP and weapon ATK are added directly.
+Equipment stat bonuses are added to the corresponding attributes before these formulas. Flat equipment Max HP/Max SP and weapon ATK are added directly. Character base Move Speed is 50 + level, so each character level already contributes exactly +1 Move Speed (level 1 starts at 51).
 
 **Physical damage mitigation (hybrid flat + relative DEF):**
 ```
@@ -465,12 +465,13 @@ Do not hand-edit individual level values — if rebalancing is needed, adjust `C
 Sanity checkpoints from the generated table (assumptions above): level 60 reached at ~600 idle-hours (~30 days); level 59→60 alone takes ~294 idle-hours (~14.7 days, essentially half the total climb to 60); level 90 is ~205 years; level 99 is deliberately beyond any realistic playtime. This matches the intent: fast early game, brutal late game, 99 as a horizon.
 
 ### 6.3 Level-up effects
-- `unspentAttributePoints += 5`
-- `maxHp`/`maxSp` recompute immediately (derived, not stored deltas)
-- `hpCurrent`/`spCurrent` are **not** auto-topped — a level-up mid-grind keeps current HP/SP ratio-adjusted: `hpCurrent = round(hpCurrent * newMaxHp/oldMaxHp)` (prevents a level-up from either healing for free or leaving HP nonsensically low relative to the new max).
+- unspentAttributePoints += 5 per level.
+- Native derived resources increase independently of attributes: maxHp += 5 and maxSp += 2 per level, through the level-aware formulas in §5.2.
+- On resolution, current resources receive the same direct native gain: hpCurrent += 5 and spCurrent += 2 per level, each clamped to the newly derived maximum. Do not ratio-scale current resources.
+- Character base Move Speed is 50 + level, which already supplies +1 Move Speed per level.
 - Triggers a **battle queue recalculation** (§3.4) since stats changed.
 
-The ratio is taken between two `maxHp`/`maxSp` values, so **both ends must be derived from the same state the battles were simulated against** — the character's attributes *including* equipment `statBonus` (§5.2), with the character's real `def`/`mdefPercent`/weapon ATK as the third argument of `calculateDerivedStats`. Deriving the ratio from bare attributes instead scales an equipped character by the wrong factor (a level-1 character in tier-1 armour, VIT 5 → 26, would be scaled by 176/158 = 1.114 instead of 428/410 = 1.044, and the result would then be clamped against the wrong maximum). Implemented in `battle.service.ts:453-484`; verified by the equipped-character level-up scenario in `apps/api/test-phase3-levelup.js`.
+The level-up resource gain is a fixed per-level increment, not a percentage adjustment. For multiple levels gained in one resolve, add 5 × levelsGained HP and 2 × levelsGained SP exactly once to the post-battle current resources, then clamp against the final level's derived maxima. Equipment and attribute bonuses still contribute to the final maxima but do not change the native per-level increments.
 
 A single XP resolution SHALL consume every XP threshold crossed by the awarded XP, allowing multiple level gains when enough XP is awarded. Each crossed threshold is consumed in order and excess XP remains stored toward the next level. The reduced Grind XP rate is the pacing control. This is enforced server-side in the authoritative resolver.
 
@@ -1578,7 +1579,7 @@ NPC and quest text uses normal 14px Georgia body copy, 10px dialogue labels, and
 - Added persistent Alchemy/Blacksmith level, XP and a shared resumable crafting session via forward-only migration 1800000000000-ProfessionCraftingRefinement.ts. Completion is server-authoritative, reserves ingredients/capacity, serializes on the character queue, and applies persisted randomRollOnCraft attributes. The migration has not been run.
 - Shifted six existing elemental boots up one tier and moved their IDs/drop pools/item icon references together. Added neutral Traveler’s Boots (DEF +1 and Move Speed +10). Equipment definitions now carry effective refinement stats and rolled stat modifiers through Character/equipment projections and item tooltips.
 - Added independent deterministic global rolls: Bliss Stone 0.501% at monster Level 1, increasing by 0.001 percentage points per level to 0.600% at Level 100; Divine Shard 0.0501%, increasing by 0.0001 percentage points to 0.0600%. Per-item streams use monster/kill/item identity and do not consume the normal-drop RNG stream.
-- Added refinement from +0 through +12 with the 100/100/100/90/80/70/60/50/40/30/20/10 success table; one Bliss Stone per valid attempt; optional Divine Shard for +6→+7 through +11→+12; the specified reset/destroy/level-loss outcomes with or without protection; +3 per-level direct-stat bonuses; and post-+6 rolled-stat increases. The API mutation is transactional and restricted to Spitz in Caelum. Refinement uses per-instance data, preserving other item provenance.
+- Added refinement from +0 through +12 with the 100/100/100/90/80/70/60/50/40/30/20/10 success table; one Bliss Stone per valid attempt; optional Divine Shard for +6→+7 through +11→+12; the specified reset/destroy/level-loss outcomes with or without protection; +5 per-level ATK/MATK bonuses for main-hand weapons and +3 per-level for other direct refinable stats; and post-+6 rolled-stat increases. Main-hand tier-1 weapon base ATK/MATK is increased by +3, tier 2 by +10, and tier 3 by +20. The API mutation is transactional and restricted to Spitz in Caelum. Refinement uses per-instance data, preserving other item provenance.
 - Added the Level 35 Forest Ancient’s Teardrops quest. The existing item ID/name/sprite remains quest-only and is granted at 35% per Flaming Treant victory only while this quest instance is active, stamped with that quest instance ID. The old ordinary 35% drop is now Charred Treant Bark. Turn-in consumes five matching quest-bound tears atomically and grants 31,630 Character XP plus Grounded Boots without an extra random roll. Quest reward provenance remains blocked from Market, vendor sale, Mail and Storage.
 - Added a persisted pt-BR/en-US runtime locale choice and localized NPC/quest/item text fields; catalogue mirrors and new SVGs are synchronized through the existing frontend-data pipeline.
 - Verification: canonical catalogue/formula/mirror test, legacy quest and NPC/vendor tests, shared/API/frontend builds, UI asset validation, strict OpenSpec validation and git diff --check are run as part of this change. Dedicated tests for every refinement failure branch, browser-driven locale switching and craft/drop RNG cross-contamination remain outstanding. No migration execution or deployment.

@@ -126,7 +126,7 @@ export class VendorStore {
         try { catalogueNpcs=await this.loadTownNpcFallback(mapIdAtRequest); } catch { /* API request below remains the authoritative attempt. */ }
       }
       if(requestSequence!==this.npcLoadSequence) return;
-      if(catalogueNpcs.length) this.npcs.set(catalogueNpcs as TownNpc[]);
+      if(catalogueNpcs.length) { this.npcs.set(catalogueNpcs as TownNpc[]); void this.refreshMailboxInbox(); }
       const [npcs,availableQuests]=await Promise.all([
         this.api.get<TownNpc[]>('/town/npcs').toPromise(),
         this.api.get<any[]>('/quests/available').toPromise().catch(()=>[]),
@@ -144,6 +144,7 @@ export class VendorStore {
       }
       if(Array.isArray(npcs) && npcs.length) {
         this.npcs.set(npcs);
+        if(!catalogueNpcs.length) void this.refreshMailboxInbox();
         this.error.set(null);
       } else if(catalogueNpcs.length) {
         // A successful HTTP response with an empty NPC list is still inconsistent
@@ -153,6 +154,8 @@ export class VendorStore {
         this.error.set(catalogLoadError ? 'Town catalogue load failed; showing NPCs from the standalone map/catalogue files.' : 'Town NPC endpoint returned an empty list; showing the map catalogue.');
       } else this.npcs.set([]);
       if(this.selectedNpcId() && !this.npcs().some(n=>n.id===this.selectedNpcId())) this.resetForTownEntry(false);
+      // Mail indicators must be ready with the NPC list, not delayed until Mailbox selection.
+      // The Inbox refresh was started as soon as the Town NPC catalogue became visible.
       // An empty ID is intentional: never silently select the first NPC.
       await this.loadSelectedNpc();
     }catch(e:any){
@@ -319,6 +322,18 @@ export class VendorStore {
     finally{this.questBusy.set(false);}
   }
 
+  async refreshMailboxInbox(){
+    const character=this.character.character?.();
+    if(character?.status!=='town'||character.travelIntent||character.pendingMapTransition)return;
+    try{
+      const [inbox,count]=await Promise.all([
+        this.api.get<any[]>('/mail/inbox').toPromise(),
+        this.api.get<{unreadCount:number}>('/mail/unread-count').toPromise(),
+      ]);
+      this.mailboxInbox.set(inbox??[]);
+      this.mailboxUnread.set(Number(count?.unreadCount??0));
+    }catch{/* Mail is town-only; preserve the last snapshot if a transition races this refresh. */}
+  }
   async loadMailbox(){
     if(!this.selectedNpc()?.types.includes('mailbox'))return;
     try {

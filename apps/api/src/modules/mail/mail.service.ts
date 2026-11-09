@@ -7,6 +7,7 @@ import { DataService } from '../data/data.service';
 import { MAX_MARKET_ORDER_GOLD } from '@nanommo/shared';
 import { validateAttachedGold } from '../market/market-contract';
 import { BattleService } from '../battle/battle.service';
+import { GatewayService } from '../gateway/gateway.service';
 
 const MAIL_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const CHARACTER_GOLD_CAP = 1_000_000_000_000;
@@ -20,6 +21,7 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
     private readonly dataService: DataService,
     private readonly dataSource: DataSource,
     private readonly battleService: BattleService,
+    private readonly gateway: GatewayService,
   ) {}
 
   onModuleInit(): void {
@@ -87,14 +89,14 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
 
   async sendMail(senderId: string, recipientName: string, subject: string, body: string, attachedGold?: number, attachedItemId?: string, attachedItemQuantity?: number, idempotencyKey?: string, attachedInventoryItemId?: string): Promise<MailMessage> {
     if (!senderId) throw new NotFoundException('Character not found for authenticated account');
-    return this.battleService.withCharacterQueueLock(senderId, () => this.dataSource.transaction(async manager => {
+    const delivery = await this.battleService.withCharacterQueueLock(senderId, () => this.dataSource.transaction(async manager => {
       const mailRepo = manager.getRepository(MailMessage);
       const sender = await manager.getRepository(Character).findOne({ where: { id: senderId }, lock: { mode: 'pessimistic_write' } });
       if (!sender) throw new NotFoundException('Sender character not found');
       if (!this.settledTown(sender)) throw new BadRequestException('Mail can only be sent while settled in Town');
       if (idempotencyKey) {
         const existing = await mailRepo.findOne({ where: { sourceKey: `player-send:${senderId}:${idempotencyKey}` } });
-        if (existing) return existing;
+        if (existing) return { mail: existing, recipientId: '', created: false };
       }
       if (typeof recipientName !== 'string' || !recipientName.trim()) throw new BadRequestException('Recipient name is required');
       if (typeof subject !== 'string' || !subject.trim() || subject.length > 120) throw new BadRequestException('Subject must contain 1-120 characters');
@@ -139,8 +141,20 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
         attachmentsCollected: false, senderDeleted: false, recipientDeleted: false,
         sourceKey: idempotencyKey ? `player-send:${senderId}:${idempotencyKey}` : null,
       } as any);
-      return (await mailRepo.save(mail as any)) as unknown as MailMessage;
+      const saved = (await mailRepo.save(mail as any)) as unknown as MailMessage;
+      return { mail: saved, recipientId: recipient.id, created: true };
     }));
+    if (delivery.created) {
+      try {
+        await this.gateway.publishMailNewItem(delivery.recipientId, {
+          mailId: delivery.mail.id, itemId: delivery.mail.itemId ?? undefined,
+          quantity: delivery.mail.quantity ?? undefined, subject: delivery.mail.subject,
+        });
+      } catch (error) {
+        this.logger.warn('Mail arrival event failed for ' + delivery.recipientId + ': ' + (error instanceof Error ? error.message : String(error)));
+      }
+    }
+    return delivery.mail;
   }
 
   async markAsRead(characterId: string, mailId: string): Promise<void> {

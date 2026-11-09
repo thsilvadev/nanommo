@@ -2535,3 +2535,13 @@ Removed the desktop map viewport's fixed 761×660 CSS dimensions. The viewport n
 ### Greater Elixir item ID compatibility — 2026-11-06
 
 Restored the persisted item ID `elixir_greater` while keeping its displayed name as `Elixir`. Existing inventory rows retain this ID, so changing the ID to `elixir` had made the frontend catalog return the raw ID and request a non-existent icon path. Synchronized the canonical and frontend item catalogues, Pajé Piatã vendor stock, Alchemy recipe output, asset manifest/sprite metadata, and framed/no-frame SVG asset filenames. No database migration is needed; existing stacks remain valid. Validation: pending.
+
+
+## Mailbox feedback, equipment swaps and combat progression — 2026-11-09
+
+- Mailbox unread/attachment indicators are preloaded as soon as the Town NPC list appears; they no longer wait for the player to select the Mailbox NPC.
+- Player-to-player mail sends and all Market-generated deliveries/returns (purchase, cancellation and expiry) publish the existing per-character mail:newItem socket event after commit. The game plays project/sons/new_packs/4/mailInbox.mp3 for unique arrivals and shows a localized modal with a persistent “Don’t show this again” preference. Mailbox remains available in every Town through the existing canonical NPC map data.
+- Equipment equip requests now carry the exact Inventory row ID. A replacement is a no-op only when both item ID and instanceData match; same-ID refinements now switch correctly. Immediate swaps reuse the selected Inventory row for the outgoing instance, including when Inventory is full. Pending battle swaps compare instanceData too.
+- Main-hand weapon refinement now grants +5 ATK/MATK per level; other direct refinable stats retain +3. Canonical and frontend weapon definitions receive base ATK/MATK increases by tier: T1 +3, T2 +10, T3 +20.
+- Every character level above 1 contributes +5 Max HP and +2 Max SP, independent of attributes. Level-up resolution also grants +5 current HP and +2 current SP per level gained, clamped to the new maxima, and awards +5 attribute points per level. Existing base Move Speed (50 + level) already contributes +1 Move Speed per level and was left unchanged.
+- Validation: shared and API TypeScript builds passed; production frontend build passed. Frontend still reports the existing 1.71 kB initial-bundle budget overage and the pre-existing 94-byte play.component.css budget warning. The legacy apps/api/test-phase3-levelup.js still contains assertions for the previous ratio-based level-up model and must be refreshed before it is run. No browser visual test, integration test, deploy or live database mutation was performed.

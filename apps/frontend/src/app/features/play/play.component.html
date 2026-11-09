@@ -51,6 +51,11 @@
   </div>
 </div>
 
+<app-mail-arrival-notice *ngIf="mailArrivalNotice() as mail" [mail]="mail"
+  [hideFuture]="hideFutureMailArrivalNotices()"
+  (hideFutureChange)="hideFutureMailArrivalNotices.set($event)"
+  (close)="dismissMailArrivalNotice()" />
+
 <div class="account-modal-backdrop" *ngIf="deleteAccountOpen()" (click)="cancelDeleteAccount()">
   <section class="account-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title"
     (click)="$event.stopPropagation()">

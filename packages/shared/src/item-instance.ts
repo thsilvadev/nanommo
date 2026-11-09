@@ -1,6 +1,10 @@
 /** Shared interpretation of persisted item-instance rolls and refinement. */
 const REFINABLE_DIRECT_STATS = new Set(['atk', 'matk', 'def', 'mdefPercent']);
 
+export function refinementDirectStatGain(item: any, stat: string): number {
+  return item?.slot === 'mainHand' && !!item?.weaponType && (stat === 'atk' || stat === 'matk') ? 5 : 3;
+}
+
 export function refinementLevel(instanceData: any): number {
   return Math.max(0, Math.min(12, Math.floor(Number(instanceData?.refinementLevel ?? 0) || 0)));
 }
@@ -14,7 +18,7 @@ export function effectiveItemDefinition(item: any, instanceData: any): any {
   for (const stat of REFINABLE_DIRECT_STATS) {
     const base = fixedStats[stat];
     if (base !== undefined && base !== null && Number.isFinite(Number(base)) && Number(base) !== 0) {
-      fixedStats[stat] = Number(base) + 3 * level;
+      fixedStats[stat] = Number(base) + refinementDirectStatGain(item, stat) * level;
     }
   }
   return { ...item, fixedStats };

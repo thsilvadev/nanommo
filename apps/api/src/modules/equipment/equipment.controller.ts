@@ -59,9 +59,9 @@ export class EquipmentController {
    * Equip an item
    */
   @Put('equip')
-  async equipItem(@Request() req: any, @Body() body: { slot: string; itemId: string }) {
+  async equipItem(@Request() req: any, @Body() body: { slot: string; itemId: string; inventoryItemId?: string }) {
     const characterId = await this.getCharacterId(req.user.userId);
-    await this.equipmentService.equipItem(characterId, body.slot, body.itemId);
+    await this.equipmentService.equipItem(characterId, body.slot, body.itemId, body.inventoryItemId);
     return this.getMutationSnapshot(characterId);
   }
 

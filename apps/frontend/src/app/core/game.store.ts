@@ -67,7 +67,7 @@ export class InventoryStore {
   const snapshot=await this.api.put<{items:InventoryItem[];character:Character;stateVersion:number}>('/inventory/split',{itemId,quantity}).toPromise();
   if(snapshot)this.applyInventoryLayoutSnapshot(snapshot);
  }
- async equip(slot:string,itemId:string){const snapshot=await this.api.put<EquipmentMutationResponse>('/equipment/equip',{slot,itemId}).toPromise();if(snapshot)this.applyMutationSnapshot(snapshot);}
+ async equip(slot:string,itemId:string,inventoryItemId?:string){const snapshot=await this.api.put<EquipmentMutationResponse>('/equipment/equip',{slot,itemId,...(inventoryItemId?{inventoryItemId}:{})}).toPromise();if(snapshot)this.applyMutationSnapshot(snapshot);}
  async unequip(slot:string){const snapshot=await this.api.delete<EquipmentMutationResponse>('/equipment/slot/'+slot).toPromise();if(snapshot)this.applyMutationSnapshot(snapshot);}
  beginDrag(itemId:string){this._draggedItemId.set(itemId)}
  endDrag(){this._draggedItemId.set(null)}

@@ -1579,7 +1579,7 @@
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
-        "atk": 8
+        "atk": 11
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1642,7 +1642,7 @@
           "LUK"
         ]
       },
-      "description": "An entry-level sword for adventurers requiring level 1. Base attributes: +8 Attack. May gain bonus attributes when dropped or crafted."
+      "description": "An entry-level sword for adventurers requiring level 1. Base attributes: +11 Attack. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_sword_t2",
@@ -1654,7 +1654,7 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "atk": 18
+        "atk": 28
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1717,7 +1717,7 @@
           "LUK"
         ]
       },
-      "description": "A reinforced sword for adventurers requiring level 8. Base attributes: +18 Attack. May gain bonus attributes when dropped or crafted."
+      "description": "A reinforced sword for adventurers requiring level 8. Base attributes: +28 Attack. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_sword_t3",
@@ -1729,7 +1729,7 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "atk": 32
+        "atk": 52
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1792,7 +1792,7 @@
           "LUK"
         ]
       },
-      "description": "An ancient sword for adventurers requiring level 15. Base attributes: +32 Attack. May gain bonus attributes when dropped or crafted."
+      "description": "An ancient sword for adventurers requiring level 15. Base attributes: +52 Attack. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_greatsword_t1",
@@ -1804,7 +1804,7 @@
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
-        "atk": 14
+        "atk": 17
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1862,7 +1862,7 @@
           "LUK"
         ]
       },
-      "description": "An entry-level greatsword for adventurers requiring level 1. Base attributes: +14 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
+      "description": "An entry-level greatsword for adventurers requiring level 1. Base attributes: +17 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_greatsword_t2",
@@ -1874,7 +1874,7 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "atk": 31
+        "atk": 41
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -1932,7 +1932,7 @@
           "LUK"
         ]
       },
-      "description": "A reinforced greatsword for adventurers requiring level 8. Base attributes: +31 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
+      "description": "A reinforced greatsword for adventurers requiring level 8. Base attributes: +41 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_greatsword_t3",
@@ -1944,7 +1944,7 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "atk": 56
+        "atk": 76
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2002,7 +2002,7 @@
           "LUK"
         ]
       },
-      "description": "An ancient greatsword for adventurers requiring level 15. Base attributes: +56 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
+      "description": "An ancient greatsword for adventurers requiring level 15. Base attributes: +76 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_knife",
@@ -2014,7 +2014,7 @@
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
-        "atk": 8
+        "atk": 11
       },
       "sellPriceToVendor": 60,
       "marketBasePrice": 500,
@@ -2038,7 +2038,7 @@
           "LUK"
         ]
       },
-      "description": "An entry-level dagger for adventurers requiring level 1. Base attributes: +8 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
+      "description": "An entry-level dagger for adventurers requiring level 1. Base attributes: +11 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_dagger_t1",
@@ -2050,7 +2050,7 @@
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
-        "atk": 6
+        "atk": 9
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2115,7 +2115,7 @@
           "LUK"
         ]
       },
-      "description": "An entry-level dagger for adventurers requiring level 1. Base attributes: +6 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
+      "description": "An entry-level dagger for adventurers requiring level 1. Base attributes: +9 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_dagger_t2",
@@ -2127,7 +2127,7 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "atk": 13
+        "atk": 23
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2192,7 +2192,7 @@
           "LUK"
         ]
       },
-      "description": "A reinforced dagger for adventurers requiring level 8. Base attributes: +13 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
+      "description": "A reinforced dagger for adventurers requiring level 8. Base attributes: +23 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_dagger_t3",
@@ -2204,7 +2204,7 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "atk": 24
+        "atk": 44
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2269,7 +2269,7 @@
           "LUK"
         ]
       },
-      "description": "An ancient dagger for adventurers requiring level 15. Base attributes: +24 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
+      "description": "An ancient dagger for adventurers requiring level 15. Base attributes: +44 Attack. Can be used in the secondary hand. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_bow_t1",
@@ -2281,7 +2281,7 @@
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
-        "atk": 18
+        "atk": 21
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2339,7 +2339,7 @@
           "LUK"
         ]
       },
-      "description": "An entry-level bow for adventurers requiring level 1. Base attributes: +18 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
+      "description": "An entry-level bow for adventurers requiring level 1. Base attributes: +21 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_bow_t2",
@@ -2351,7 +2351,7 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "atk": 35
+        "atk": 45
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2409,7 +2409,7 @@
           "LUK"
         ]
       },
-      "description": "A reinforced bow for adventurers requiring level 8. Base attributes: +35 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
+      "description": "A reinforced bow for adventurers requiring level 8. Base attributes: +45 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_bow_t3",
@@ -2421,7 +2421,7 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "atk": 59
+        "atk": 79
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2479,7 +2479,7 @@
           "LUK"
         ]
       },
-      "description": "An ancient bow for adventurers requiring level 15. Base attributes: +59 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
+      "description": "An ancient bow for adventurers requiring level 15. Base attributes: +79 Attack. Requires both hands. May gain bonus attributes when dropped or crafted."
     },
     {
       "id": "equip_staff_t1",
@@ -2491,7 +2491,7 @@
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
-        "matk": 12
+        "matk": 15
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2561,7 +2561,7 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "matk": 26
+        "matk": 36
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2631,7 +2631,7 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "matk": 48
+        "matk": 68
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2701,7 +2701,7 @@
       "levelReq": 1,
       "tier": 1,
       "fixedStats": {
-        "matk": 8
+        "matk": 11
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2776,7 +2776,7 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "matk": 18
+        "matk": 28
       },
       "randomRollOnDrop": {
         "enabled": true,
@@ -2851,7 +2851,7 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "matk": 32
+        "matk": 52
       },
       "randomRollOnDrop": {
         "enabled": true,

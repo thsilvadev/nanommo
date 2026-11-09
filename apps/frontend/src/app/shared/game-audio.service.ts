@@ -8,7 +8,7 @@ type SoundName =
   | 'questCompleted' | 'respec' | 'refineFail' | 'refineSuccess' | 'rod_hit_1'
   | 'staff_hit_1' | 'sword_hit_1' | 'potion_drink' | 'flee' | 'foodCooked' | 'gather'
   | 'boughtItemFromNpc' | 'soldItemToNpc' | 'putInStorage' | 'takeFromStorage' | 'postItemOnMarket'
-  | 'use_fairy_in_a_bottle' | 'use_tonic';
+  | 'use_fairy_in_a_bottle' | 'use_tonic' | 'mailInbox';
 
 @Injectable({ providedIn: 'root' })
 export class GameAudioService {
@@ -90,6 +90,7 @@ export class GameAudioService {
       postItemOnMarket: 'new_packs/2/postItemOnMarket.ogg',
       use_fairy_in_a_bottle: 'new_packs/3/useFarieInABottle.mp3',
       use_tonic: 'new_packs/3/useTonic.mp3',
+      mailInbox: 'new_packs/4/mailInbox.mp3',
     };
     return files[name];
   }

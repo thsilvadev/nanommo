@@ -946,3 +946,20 @@ Potions share `item:potion` for 10 seconds; Tonics share `item:tonic` for 30 sec
 Fairy in a Bottle is a special Alchemy output surfaced under Tonics. The Gambit catalog's `upon_death` condition is evaluated immediately after lethal character damage. If its line selects Fairy in a Bottle, the deterministic simulator consumes one item, restores full HP/SP, clears all status effects, logs the revival/cleanses, and continues the same battle. It cannot be manually used outside combat.
 
 Regional gathering assignments are canonical in `maps.json`; the DataService allow-list explicitly validates each new material/map pairing and each map pool must total 100. Existing map coordinates, monster rosters and map lengths are unchanged.
+
+
+## Native character level gains — 2026-11-09
+
+BattleEngine.calculateDerivedStats() derives maximum resources from the Character's current level as well as attributes and equipment: every level above 1 contributes +5 Max HP and +2 Max SP. BattleService.resolveBattle() applies the same flat +5 current HP / +2 current SP per level gained after the resolved battle resources are committed, clamped to the final maxima; it does not percentage-scale the current pools. World and combat base Move Speed already use 50 + level, so the existing formula contributes +1 Move Speed at every level without another additive modifier.
+
+## Mail arrival feedback and preloaded Mailbox indicators — 2026-11-09
+
+The Mailbox NPC is already included in every Town map's npcIds. VendorStore.load() preloads the authenticated Character's Inbox as soon as the Town NPC catalogue is ready, so the Mailbox NPC indicator is correct before selection. Successful player-to-player mail sends and all Market-generated deliveries/returns (purchase, cancellation and expiry) publish the existing per-character mail:newItem Redis/socket event only after the mail transaction commits. The Play shell plays new_packs/4/mailInbox.mp3 for each unique arrival and shows a localized modal unless the user opts out in browser local storage. The event is presentation-only; mail contents and collection remain server-authoritative.
+
+## Same-catalogue-ID equipment instance swaps — 2026-11-09
+
+Equipment identity is the Inventory row plus instanceData, not only itemId. Equip requests may include inventoryItemId to select an exact instance. A same-ID replacement is a no-op only when the selected and equipped instance data are equal. Immediate swaps reuse the selected Inventory slot to store the outgoing instance, so a full Inventory does not block a same-ID refinement swap; swaps staged during a live battle compare both item ID and instance data when the pending loadout is committed.
+
+## Weapon base attack and refinement scaling — 2026-11-09
+
+Canonical and frontend item catalogues increase each main-hand tier-1 weapon's base ATK/MATK by +3, tier 2 by +10, and tier 3 by +20. effectiveItemDefinition() applies +5 per refinement level to main-hand weapon ATK/MATK; other direct refinable equipment stats retain +3 per refinement level. The refinement preview uses the same shared gain function as the effective stat projection.

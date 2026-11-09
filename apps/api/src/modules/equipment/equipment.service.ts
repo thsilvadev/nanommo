@@ -10,7 +10,7 @@ import { DataService } from '../data/data.service';
 import { BattleEngine, effectiveWeaponAttack, validateHandLoadout, sumAttributeBonuses, applyAttributeBonuses } from '@nanommo/shared';
 import { BattleService } from '../battle/battle.service';
 import { createHash } from 'crypto';
-import { effectiveItemDefinition, refinementLevel, resolveRefinementFailure, rolledStatValue } from '@nanommo/shared';
+import { effectiveItemDefinition, refinementDirectStatGain, refinementLevel, resolveRefinementFailure, rolledStatValue } from '@nanommo/shared';
 
 export interface EquipmentStats {
   def: number;
@@ -247,7 +247,7 @@ export class EquipmentService {
       : level <= 8 ? (useDivineShard ? 'The Bliss Stone and Divine Shard are lost; refinement stays unchanged' : 'The Bliss Stone is lost; refinement resets to +0')
       : (useDivineShard ? 'The Bliss Stone and Divine Shard are lost; refinement decreases by one' : 'The equipment is destroyed');
     const directStats = ['atk', 'matk', 'def', 'mdefPercent'].filter(key => item.fixedStats?.[key] !== undefined && item.fixedStats?.[key] !== null && Number(item.fixedStats[key]) !== 0)
-      .map(key => ({ stat: key, current: Number(item.fixedStats[key]) + Number(item.fixedStats[key] !== 0 ? 3 * level : 0), increase: 3 }));
+      .map(key => { const increase = refinementDirectStatGain(item, key); return { stat: key, current: Number(item.fixedStats[key]) + increase * level, increase }; });
     const rolledStat = String(row.instanceData?.rolledStat ?? '');
     const rolledAttribute = String(row.instanceData?.rolledAttribute ?? '');
     return {
@@ -324,11 +324,11 @@ export class EquipmentService {
    * Equip an item in a slot
    * Validates compatibility and triggers battle queue invalidation
    */
-  async equipItem(characterId: string, slot: string, itemId: string): Promise<EquippedItem> {
-    return this.battleService.runFutureCombatMutation(characterId, () => this.equipItemMutation(characterId, slot, itemId));
+  async equipItem(characterId: string, slot: string, itemId: string, inventoryItemId?: string): Promise<EquippedItem> {
+    return this.battleService.runFutureCombatMutation(characterId, () => this.equipItemMutation(characterId, slot, itemId, inventoryItemId));
   }
 
-  private async equipItemMutation(characterId: string, slot: string, itemId: string): Promise<EquippedItem> {
+  private async equipItemMutation(characterId: string, slot: string, itemId: string, inventoryItemId?: string): Promise<EquippedItem> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
 
@@ -341,7 +341,17 @@ export class EquipmentService {
     }
 
     const current = await this.getEquippedInSlot(characterId, slot);
-    if (current?.itemId === itemId && !character.pendingEquipmentChanges?.[slot]) return current;
+    const source = await this.inventoryItemRepo.findOne({
+      where: inventoryItemId
+        ? { id: inventoryItemId, characterId, location: 'inventory', itemId }
+        : { characterId, location: 'inventory', itemId },
+      order: { slotIndex: 'ASC' },
+    });
+    if (!source) throw new BadRequestException('Equipment item must be in inventory');
+    const selectedInstanceData = source.instanceData ?? null;
+    const sameInstance = !!current && current.itemId === itemId
+      && JSON.stringify(current.instanceData ?? null) === JSON.stringify(source.instanceData ?? null);
+    if (sameInstance && !character.pendingEquipmentChanges?.[slot]) return current!;
 
     if (slot === 'mainHand' || slot === 'offHand') {
       const validation = await this.validateWeaponCombination(
@@ -351,12 +361,6 @@ export class EquipmentService {
       );
       if (!validation.valid) throw new BadRequestException(`Weapon combination invalid: ${validation.errors?.join(', ')}`);
     }
-
-    const source = await this.inventoryItemRepo.findOne({
-      where: { characterId, location: 'inventory', itemId },
-      order: { slotIndex: 'ASC' },
-    });
-    if (!source) throw new BadRequestException('Equipment item must be in inventory');
 
     const first = await this.battleQueueRepo.findOne({
       where: { characterId, resolved: false },
@@ -386,11 +390,11 @@ export class EquipmentService {
       }
 
       await this.inventoryItemRepo.delete(source.id);
-      pending[slot] = { itemId, instanceData: source.instanceData ?? null };
+      pending[slot] = { itemId, instanceData: selectedInstanceData };
       character.pendingEquipmentChanges = pending;
       await this.characterRepo.save(character);
       this.logger.debug(`Character ${characterId} staged ${itemId} for ${slot}`);
-      return current ?? this.equippedItemRepo.create({ characterId, slot, itemId: itemId, instanceData: source.instanceData ?? null });
+      return current ?? this.equippedItemRepo.create({ characterId, slot, itemId: itemId, instanceData: selectedInstanceData });
     }
 
     const currentMain = await this.getEquippedInSlot(characterId, 'mainHand');
@@ -407,15 +411,23 @@ export class EquipmentService {
       }
     }
 
-    if (current && current.itemId !== itemId) await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData);
-    await this.inventoryItemRepo.delete(source.id);
+    if (current && (current.itemId !== itemId || JSON.stringify(current.instanceData ?? null) !== JSON.stringify(source.instanceData ?? null))) {
+      // Reuse the selected inventory slot for the outgoing equipped instance. This
+      // makes same-ID refinements a real swap and still works with a full inventory.
+      source.itemId = current.itemId;
+      source.quantity = 1;
+      source.instanceData = current.instanceData ?? null;
+      await this.inventoryItemRepo.save(source);
+    } else {
+      await this.inventoryItemRepo.delete(source.id);
+    }
     if (current) {
       current.itemId = itemId;
-      current.instanceData = source.instanceData ?? null;
+      current.instanceData = selectedInstanceData;
       await this.equippedItemRepo.save(current);
     } else {
       await this.equippedItemRepo.save(this.equippedItemRepo.create({
-        characterId, slot, itemId, instanceData: source.instanceData ?? null,
+        characterId, slot, itemId, instanceData: selectedInstanceData,
       }));
     }
     character.lastSeenAt = new Date();
@@ -505,7 +517,7 @@ export class EquipmentService {
       }
 
       if (!change) continue;
-      if (current && current.itemId !== change.itemId) {
+      if (current && (current.itemId !== change.itemId || JSON.stringify(current.instanceData ?? null) !== JSON.stringify(change.instanceData ?? null))) {
         await this.addEquipmentToInventory(characterId, current.itemId, current.instanceData, manager);
       }
       if (current) {

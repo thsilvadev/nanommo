@@ -402,8 +402,10 @@ export class BattleEngine {
     const vit = Number(attributes['vit'] ?? 5);
     const int = Number(attributes['int'] ?? 5);
     const luk = Number(attributes['luk'] ?? 5);
-    const maxHp = Math.floor(50 + vit * 18 + Number(equipment?.maxHp ?? 0));
-    const maxSp = Math.floor(20 + int * 8 + Number(equipment?.maxSp ?? 0));
+    const characterLevel = Math.max(1, Math.floor(Number(level) || 1));
+    const levelsAboveStart = characterLevel - 1;
+    const maxHp = Math.floor(50 + vit * 18 + levelsAboveStart * 5 + Number(equipment?.maxHp ?? 0));
+    const maxSp = Math.floor(20 + int * 8 + levelsAboveStart * 2 + Number(equipment?.maxSp ?? 0));
     const atk = Math.floor(str * 2 + Number(equipment?.weaponFixedAtk ?? 0));
     const matk = Math.floor(int * 2 + Number(equipment?.weaponFixedMatk ?? 0));
     const def = Math.floor(Number(equipment?.def ?? 0));
@@ -419,7 +421,7 @@ export class BattleEngine {
     const spRegenPerTenTicks = 1 + Math.floor(int / 2);
     const critChance = 1 + Math.floor(luk * 0.3 * 10) / 10 + Number(equipment?.criticalChanceModifier ?? 0);
     return { maxHp, maxSp, atk, matk, def, mdefPercent, accuracy, evasion, critChance,
-      attackSpeed, castTimeReduction, hpRegenPerTenTicks, spRegenPerTenTicks, agi, dex, luk, level };
+      attackSpeed, castTimeReduction, hpRegenPerTenTicks, spRegenPerTenTicks, agi, dex, luk, level: characterLevel };
   }
 
   /**
