@@ -5,9 +5,12 @@ import { CharacterStore } from '../../core/game.store';
 import { GambitPage } from '../../core/game.models';
 import { MapBoard, InventoryGrid } from './components';
 import { IdleChatComponent } from './idle-chat.component';
-@Component({selector:'app-grind',standalone:true,imports:[CommonModule,MapBoard,InventoryGrid,IdleChatComponent],templateUrl:'./grind.component.html',styleUrl:'./grind.component.css'})
+import { TooltipPositionDirective } from './tooltip-position.directive';
+import { LocaleService } from '../../core/locale.service';
+@Component({selector:'app-grind',standalone:true,imports:[CommonModule,MapBoard,InventoryGrid,IdleChatComponent,TooltipPositionDirective],templateUrl:'./grind.component.html',styleUrl:'./grind.component.css',styles:[`.nm-floating-tooltip.stance-tooltip{width:min(310px,calc(100vw - 20px));min-width:210px;max-width:calc(100vw - 20px);padding:12px 14px;background:linear-gradient(145deg,#21170f,#100b07);border-color:#a98750;box-shadow:0 8px 24px #000d,inset 0 0 0 1px #4b3521;display:flex;flex-direction:column;gap:7px}.nm-floating-tooltip.stance-tooltip strong{color:#f0d9ac;font:bold 18px/1.15 Georgia,serif;letter-spacing:.3px}.nm-floating-tooltip.stance-tooltip span{color:#d0bea0;font:13px/1.45 Arial,sans-serif}`]})
 export class GrindComponent implements OnInit {
   readonly api=inject(ApiService);
+  readonly locale=inject(LocaleService);
   readonly character=inject(CharacterStore);
   readonly gambits=signal<GambitPage[]>([]);
   readonly loading=signal(false);
