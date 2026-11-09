@@ -5240,7 +5240,7 @@
       "rarity": "common",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 0,
+      "sellPriceToVendor": 5,
       "questOnly": true,
       "usableFor": [
         "quest_objective"
@@ -5254,7 +5254,7 @@
       "rarity": "common",
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 0,
+      "sellPriceToVendor": 5,
       "questOnly": true,
       "usableFor": [
         "quest_objective"

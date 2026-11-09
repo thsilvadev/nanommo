@@ -553,7 +553,6 @@ export class InventoryService {
       const map = this.dataService.getMapById(character.currentMapId);
       if (map?.type !== 'town' || character.status !== 'town' || character.pendingMapTransition !== null || character.travelIntent != null) throw new BadRequestException('Warehouse is only available while settled in Town');
       const repo = manager.getRepository(InventoryItem);
-      if (this.dataService.getItemById(itemId)?.questOnly === true) throw new BadRequestException('Quest-only items cannot be transferred to or from Storage');
       if (fromLocation === 'inventory' && character.cookingSession) {
         const reserved = (character.cookingSession.ingredients ?? []).filter((row: any) => row.itemId === itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
         const ownedRows = await repo.find({ where: { characterId, itemId, location: 'inventory' } });
@@ -577,7 +576,6 @@ export class InventoryService {
       const repo = manager.getRepository(InventoryItem);
       const source = await repo.findOne({ where: { id: sourceRowId, characterId, location: fromLocation }, lock: { mode: 'pessimistic_write' } });
       if (!source) throw new NotFoundException('Source stack not found at expected location');
-      if (this.dataService.getItemById(source.itemId)?.questOnly === true || source.instanceData?.questReward?.marketTradable === false) throw new BadRequestException('Quest-only items and non-tradable quest rewards cannot be transferred to or from Storage');
       if (fromLocation === 'inventory' && character.cookingSession) {
         const reserved = (character.cookingSession.ingredients ?? []).filter((row: any) => row.itemId === source.itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
         const ownedRows = await repo.find({ where: { characterId, itemId: source.itemId, location: 'inventory' } });
@@ -591,7 +589,6 @@ export class InventoryService {
     const repo = manager.getRepository(InventoryItem);
     const item = this.dataService.getItemById(source.itemId);
     if (!item) throw new NotFoundException('Item definition not found');
-    if (item.questOnly === true || source.instanceData?.questReward?.marketTradable === false) throw new BadRequestException('Quest-only items and non-tradable quest rewards cannot be transferred to or from Storage');
     const stackable = item.stackable === true && Number(item.maxStack ?? 1) > 1;
     const maxStack = Math.max(1, Math.floor(Number(item.maxStack ?? 1)));
     if (!Number.isInteger(Number(source.quantity)) || Number(source.quantity) < 1 || (!stackable && Number(source.quantity) !== 1) || (stackable && Number(source.quantity) > maxStack)) {
@@ -966,7 +963,6 @@ export class InventoryService {
   ): Promise<number> {
     const item = this.dataService.getItemById(itemId);
     if (!item) throw new NotFoundException(`Item ${itemId} not found`);
-    if (item.questOnly === true) throw new BadRequestException('Quest-only items cannot be sold to vendors');
 
     const goldPerUnit = item.sellPriceToVendor || 0;
     const totalGold = goldPerUnit * quantity;

@@ -7,6 +7,8 @@ const items = {
   pot_hp_small: { id:'pot_hp_small', name:'Small HP Potion', type:'consumable', stackable:true, maxStack:20, sellPriceToVendor:7 },
   pot_hp_medium: { id:'pot_hp_medium', name:'Medium HP Potion', type:'consumable', stackable:true, maxStack:20, sellPriceToVendor:7 },
   sword: { id:'sword', name:'Test Sword', type:'equipment', stackable:false, sellPriceToVendor:100 },
+  quest_spring_flask: { id:'quest_spring_flask', name:'Quest Flask', type:'consumable', stackable:true, maxStack:20, questOnly:true, marketBasePrice:25 },
+  quest_ring: { id:'quest_ring', name:'Quest Ring', type:'equipment', stackable:false, marketBasePrice:100 },
 };
 
 function harness(character, rows=[]) {
@@ -48,6 +50,17 @@ async function run(){
   await service.sellToVendor('c1','william','pot_hp_small',1);
   assert.equal(state.character.gold,72);
   assert.equal(state.rows.find(r=>r.itemId==='pot_hp_small').quantity,1);
+
+  const questVendor = harness({id:'quest-seller',status:'town',currentMapId:'map_town',pendingMapTransition:null,gold:0},[
+    {id:'quest-flask-row',characterId:'quest-seller',location:'inventory',slotIndex:0,itemId:'quest_spring_flask',quantity:2,instanceData:{questInstanceId:'quest-instance'}},
+    {id:'quest-ring-row',characterId:'quest-seller',location:'inventory',slotIndex:1,itemId:'quest_ring',quantity:1,instanceData:{questReward:{questId:'quest-a',marketTradable:false}}},
+  ]);
+  await questVendor.service.sellToVendor('quest-seller','william','quest_spring_flask',1,'quest-flask-row');
+  assert.equal(questVendor.state.character.gold,10,'quest-only items can be sold to an NPC vendor');
+  assert.equal(questVendor.state.rows.find(r=>r.id==='quest-flask-row').quantity,1);
+  await questVendor.service.sellToVendor('quest-seller','william','quest_ring',1,'quest-ring-row');
+  assert.equal(questVendor.state.character.gold,50,'quest-reward equipment can be sold to an NPC vendor');
+  assert.equal(questVendor.state.rows.some(r=>r.id==='quest-ring-row'),false);
 
   await assert.rejects(()=>service.buyFromVendor('c1','william','pot_hp_small',7),/Not enough gold/);
   assert.equal(state.character.gold,72);

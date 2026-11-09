@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, inject, Input, OnInit } from '@angular/core';
 import { LoginMusicService } from './login-music.service';
 import { GameAudioService } from './game-audio.service';
@@ -5,10 +6,15 @@ import { GameAudioService } from './game-audio.service';
 @Component({
   selector: 'app-login-music-control',
   standalone: true,
+  imports: [CommonModule],
   template: `
     <div class="music-control" [class.auth-control]="variant==='auth'" [class.header-control]="variant==='header'">
       <button type="button" class="music-button" (click)="toggleMute()" [attr.aria-label]="isMuted() ? 'Ativar música' : 'Silenciar música'" [title]="isMuted() ? 'Ativar música' : 'Silenciar música'">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zm11.5-1.5a1 1 0 0 0-1.4 1.4 4 4 0 0 1 0 5.2 1 1 0 1 0 1.4 1.4 6 6 0 0 0 0-8zm2.8-2.8a1 1 0 1 0-1.4 1.4 8 8 0 0 1 0 11.8 1 1 0 1 0 1.4 1.4 10 10 0 0 0 0-14.6z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9v6h4l5 4V5L8 9H4z"/>
+          <path *ngIf="!isMuted()" d="M15.1 7.5a1 1 0 0 0-1.4 1.4 4 4 0 0 1 0 5.2 1 1 0 1 0 1.4 1.4 6 6 0 0 0 0-8zm2.8-2.8a1 1 0 1 0-1.4 1.4 8 8 0 0 1 0 11.8 1 1 0 1 0 1.4 1.4 10 10 0 0 0 0-14.6z"/>
+          <path *ngIf="isMuted()" d="M4 4 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
       </button>
       <input class="music-slider" type="range" min="0" max="1" step="0.01" [value]="volumeValue()" (input)="setVolume($any($event.target).value)" aria-label="Volume da música" />
     </div>

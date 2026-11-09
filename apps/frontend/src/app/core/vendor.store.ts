@@ -337,6 +337,7 @@ export class VendorStore {
     const attachedGold=Number(this.mailboxGold()||0),selectedAttachment=this.inventory.items().find(row=>row.id===this.mailboxItemId());
     const attachedItemId=selectedAttachment?.itemId??'';
     if(selectedAttachment && this.item(attachedItemId)?.questOnly===true){this.error.set('Quest-only items cannot be attached to Mail');return;}
+    if(selectedAttachment?.instanceData?.questReward?.marketTradable===false){this.error.set('Quest-reward items cannot be attached to Mail');return;}
     // Attach the complete selected Inventory stack. For a partial attachment, the player
     // can split the stack first using the inventory's Ctrl+click workflow.
     const attachedItemQuantity=selectedAttachment?Number(selectedAttachment.quantity):0;
@@ -384,8 +385,6 @@ export class VendorStore {
     }catch(e:any){if(this.selectedNpcId()===id)this.error.set(e?.error?.message??'Unable to load Storage');}
   }
   async transferWarehouseRow(rowId:string, direction:'deposit'|'withdraw'){
-    const source=(direction==='deposit'?this.inventory.items():this.warehouse()).find(row=>row.id===rowId);
-    if(source && this.item(source.itemId)?.questOnly===true){this.error.set('Quest-only items cannot be transferred to or from Storage');return;}
     if(this.busy()) return; this.busy.set(true); this.error.set(null);
     try { await this.api.post('/town/warehouse/transfer',{rowId,direction}).toPromise(); this.audio.play(direction==='deposit'?'putInStorage':'takeFromStorage'); await Promise.all([this.inventory.load(),this.loadWarehouse(),this.character.load()]); }
     catch(e:any) { this.error.set(e?.error?.message ?? 'Storage transfer rejected'); await Promise.all([this.inventory.load(),this.loadWarehouse()]); }
@@ -531,7 +530,6 @@ export class VendorStore {
   }
   async openSell(itemId:string, selectedStackQuantity?:number, sourceInventoryItemId?:string){
     this.error.set(null);
-    if(this.item(itemId)?.questOnly===true){this.error.set('Quest-only items cannot be sold to vendors');return;}
     const owned=this.totalOwned(itemId);
     if(owned<=0)return;
     try{

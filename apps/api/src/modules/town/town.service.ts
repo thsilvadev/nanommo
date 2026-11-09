@@ -225,7 +225,6 @@ export class TownService {
     this.assertPositiveInteger(quantity);
     const v = this.vendor(vendorId);
     const item = this.item(itemId);
-    if (item.questOnly === true) throw new BadRequestException('Quest-only items cannot be sold to vendors');
     if (!item.stackable && quantity !== 1) throw new BadRequestException('Non-stackable items can only be sold one at a time');
     const unitPrice = this.sellPrice(v, itemId);
     const total = unitPrice * quantity;
@@ -233,14 +232,6 @@ export class TownService {
 
     return this.characterRepo.manager.transaction(async manager => {
       const character = await this.characterForTown(manager, characterId);
-      const selectedRows = await manager.getRepository(InventoryItem).find({ where: { characterId, itemId, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
-      const selected = sourceInventoryItemId ? selectedRows.find(row => row.id === sourceInventoryItemId) : selectedRows[0];
-      if (sourceInventoryItemId) {
-        const selected = selectedRows.find(row => row.id === sourceInventoryItemId);
-        if (selected?.instanceData?.questReward?.marketTradable === false) throw new BadRequestException('Non-tradable quest-reward equipment cannot be sold to vendors');
-      } else if (selectedRows.some(row => row.instanceData?.questReward?.marketTradable === false)) {
-        throw new BadRequestException('Select a specific tradable item instance before selling this item');
-      }
       await this.removeInventoryAtomic(manager, characterId, itemId, quantity, sourceInventoryItemId);
       character.gold = Math.min(Number(character.gold) + total, GOLD_CAP);
       await manager.getRepository(Character).save(character);

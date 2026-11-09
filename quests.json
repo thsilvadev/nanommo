@@ -20,20 +20,6 @@
         {
           "npcText": {
             "locales": {
-              "pt-BR": "O destino é algo curioso, não é? Ele trouxe você até mim, e tenho exatamente o que procura. Mas será que é sorte? Talvez…",
-              "en-US": "Fate is a strange thing, isn’t it? It brought you to me and I have exactly what you came for. But isn’t it luck, though? Maybe…"
-            }
-          },
-          "buttonText": {
-            "locales": {
-              "pt-BR": "O que você pode fazer?",
-              "en-US": "What can you do?"
-            }
-          }
-        },
-        {
-          "npcText": {
-            "locales": {
               "pt-BR": "Ah! Está falando com a joalheira princesa deste mundo. Traga 20 Géis de Slime, 20 Asas de Morcego e lhe darei algo que trará sorte à sua jornada.",
               "en-US": "Oh yes, darling! You’re talking to the princess jeweler of this world. Just bring me 20x slime gel, 20x Bat Wings and I’ll give you something that’ll bring luck to your journey."
             }
@@ -105,6 +91,12 @@
       "titleLocales": {
         "pt-BR": "Um Pequeno Presente para a Sorte",
         "en-US": "A Little Something for Luck"
+      },
+      "npcActionButtonText": {
+        "locales": {
+          "pt-BR": "O que você pode fazer?",
+          "en-US": "What can you do?"
+        }
       },
       "activeActionButtonText": {
         "locales": {

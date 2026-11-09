@@ -5,6 +5,8 @@ const { InventoryItem } = require('../dist/apps/api/src/database/entities/invent
 
 const definitions = {
   potion: { id:'potion', type:'consumable', stackable:true, maxStack:20 },
+  quest_spring_flask: { id:'quest_spring_flask', type:'consumable', stackable:true, maxStack:20, questOnly:true },
+  quest_ring: { id:'quest_ring', type:'equipment', stackable:false, maxStack:1 },
   sword: { id:'sword', type:'equipment', stackable:false, maxStack:1 },
 };
 function harness(initialRows=[], character={id:'c1',currentMapId:'map_town',status:'town',pendingMapTransition:null}) {
@@ -25,7 +27,18 @@ function harness(initialRows=[], character={id:'c1',currentMapId:'map_town',stat
 }
 const row=(id,location,slotIndex,itemId='potion',quantity=5,characterId='c1',instanceData=null)=>({id,characterId,location,slotIndex,itemId,quantity,instanceData});
 async function run(){
-  let h=harness([row('source','inventory',2,'sword',1,'c1',{rolledAttribute:'STR',rolledValue:4})]);
+  let h=harness([row('quest-only','inventory',0,'quest_spring_flask',3)]);
+  const questMoved=await h.service.transferInventoryRow('c1','quest-only','inventory','warehouse');
+  assert.equal(questMoved.location,'warehouse','quest-only items can be stored');
+  await h.service.transferInventoryRow('c1','quest-only','warehouse','inventory');
+  assert.equal(h.rows[0].location,'inventory','quest-only items can be withdrawn from Storage');
+
+  h=harness([row('quest-reward','inventory',0,'quest_ring',1,'c1',{questReward:{questId:'quest-a',marketTradable:false}})]);
+  const rewardMoved=await h.service.transferInventoryRow('c1','quest-reward','inventory','warehouse');
+  assert.equal(rewardMoved.location,'warehouse','non-player-tradable quest rewards can be stored');
+  assert.deepEqual(rewardMoved.instanceData,{questReward:{questId:'quest-a',marketTradable:false}});
+
+  h=harness([row('source','inventory',2,'sword',1,'c1',{rolledAttribute:'STR',rolledValue:4})]);
   const moved=await h.service.transferInventoryRow('c1','source','inventory','warehouse');
   assert.equal(moved.location,'warehouse'); assert.equal(moved.slotIndex,0); assert.deepEqual(moved.instanceData,{rolledAttribute:'STR',rolledValue:4}); assert.equal(h.rows.length,1);
 

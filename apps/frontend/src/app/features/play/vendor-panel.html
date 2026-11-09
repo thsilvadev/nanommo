@@ -238,13 +238,25 @@
         </div>
         <div class="cooking-recipes">
           <article *ngFor="let recipe of vendor.cookingState()?.recipes" class="cooking-recipe"
-            [class.locked]="!recipe.unlocked" [class.unavailable]="!recipe.available"><img
-              [src]="vendor.catalog.itemIcon(recipe.outputItemId)" [alt]="recipe.name" class="cooking-food-icon">
+            [class.locked]="!recipe.unlocked" [class.unavailable]="!recipe.available">
+            <div class="cooking-item-icon">
+              <img [src]="vendor.catalog.itemIcon(recipe.outputItemId)" [alt]="recipe.name" class="cooking-food-icon">
+              <div class="item-tooltip"><strong>{{vendor.itemName(recipe.outputItemId)}}</strong><span
+                  *ngFor="let line of vendor.catalog.itemTooltipLines(recipe.outputItemId)"
+                  [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+              </div>
+            </div>
             <div class="cooking-recipe-info"><strong>{{recipe.name}}</strong><span class="cooking-required">Cooking Lv.
-                {{recipe.requiredLevel}} · {{recipe.xpReward}} XP</span><span class="cooking-ingredients"><ng-container
-                  *ngFor="let ingredient of recipe.ingredients;let last=last">{{ingredient.quantity}}
-                  {{vendor.itemName(ingredient.itemId)}} ({{ingredient.available}} {{vendor.t('Available')}}){{last?'':' ·
-                  '}}</ng-container></span><span *ngIf="!recipe.canReserveOutput" class="cooking-warning">Not enough
+                {{recipe.requiredLevel}} · {{recipe.xpReward}} XP</span><span class="cooking-ingredients">
+                <ng-container *ngFor="let ingredient of recipe.ingredients;let last=last">
+                  <span class="cooking-ingredient-item">{{ingredient.quantity}} {{vendor.itemName(ingredient.itemId)}}
+                    ({{ingredient.available}} {{vendor.t('Available')}})
+                    <span class="item-tooltip"><strong>{{vendor.itemName(ingredient.itemId)}}</strong><span
+                        *ngFor="let line of vendor.catalog.itemTooltipLines(ingredient.itemId)"
+                        [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+                    </span>
+                  </span>{{last?'':' · '}}
+                </ng-container></span><span *ngIf="!recipe.canReserveOutput" class="cooking-warning">Not enough
                 inventory space</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients"
                 class="cooking-warning">{{vendor.t('Missing ingredients')}}</span><span *ngIf="!recipe.unlocked"
                 class="cooking-locked-label">Unlock at Cooking level {{recipe.requiredLevel}}</span></div>

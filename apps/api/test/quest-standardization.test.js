@@ -145,6 +145,9 @@ async function run() {
   assert.strictEqual(baseQuest.rewards.items[0].itemId, 'equip_accessory_sor_t1');
   assert.strictEqual(itemById('quest_spring_flask').questOnly, true);
   assert.strictEqual(itemById('quest_field_sample').questOnly, true);
+  for (const questItem of allItems.filter(item => item.questOnly === true)) {
+    assert.ok(Number(questItem.sellPriceToVendor) > 0, `Quest item ${questItem.id} must have a positive NPC sale value`);
+  }
   for (const id of ['quest_spring_flask', 'quest_field_sample']) {
     assert.ok(fs.existsSync(path.join(root, 'apps/frontend/assets/ui/items/svg/materials', `${id}.svg`)));
     assert.ok(fs.existsSync(path.join(root, 'apps/frontend/assets/ui/items/svg-noframe/materials', `${id}.svg`)));
@@ -154,7 +157,10 @@ async function run() {
   assert.strictEqual((require('../../../monsters.json').monsters || []).some(monster => (monster.drops || []).some(drop => drop.itemId === 'equip_accessory_sor_t1')), false);
 
   // Level unlocks are data-driven, and the one-button dialogue accepts only at its final step.
-  const locked = { ...baseQuest, id: 'test_level_unlock', title: 'Level gate', minLevel: 2 };
+  const locked = { ...baseQuest, id: 'test_level_unlock', title: 'Level gate', minLevel: 2, offerDialogue: [
+    { npcText: 'First line', buttonText: 'Continue' },
+    { npcText: 'Final line', buttonText: 'Accept', acceptsQuest: true },
+  ] };
   const questData = { quests: [locked] };
   const availableHarness = harness({ data: { ...harness().data, getQuests: () => questData } });
   assert.strictEqual((await availableHarness.service.getAvailable(availableHarness.character.id)).some(row => row.id === locked.id), false);
@@ -178,20 +184,30 @@ async function run() {
   assert.strictEqual(interaction.kind, 'select');
   assert.strictEqual(interaction.actions.length, 1);
   assert.strictEqual(interaction.actions[0].type, 'offer');
-  assert.strictEqual(interaction.actions[0].buttonText, baseQuest.title);
+  assert.strictEqual(interaction.actions[0].buttonText.locales['en-US'], 'What can you do?', 'Cecilia uses an immersive dialogue action instead of exposing the quest title');
   interaction = await ceciliaEmpty.service.getOffer(ceciliaEmpty.character.id, baseQuest.id);
   assert.strictEqual(interaction.kind, 'offer');
   assert.strictEqual(interaction.npcText, baseQuest.offerDialogue[0].npcText);
-  assert.strictEqual(interaction.buttonText.locales['en-US'], 'What can you do?');
-  interaction = await ceciliaEmpty.service.advanceOffer(ceciliaEmpty.character.id, baseQuest.id);
-  assert.strictEqual(interaction.accepted, false);
   assert.strictEqual(interaction.buttonText.locales['en-US'], 'I’ll take the job.');
   interaction = await ceciliaEmpty.service.advanceOffer(ceciliaEmpty.character.id, baseQuest.id);
-  assert.strictEqual(interaction.accepted, true);
+  assert.strictEqual(interaction.accepted, true, 'Cecilia goes straight from What can you do? to the actual offer and acceptance');
   assert.strictEqual(interaction.interaction.kind, 'active');
   assert.strictEqual(interaction.interaction.npcText, baseQuest.activeDialogue.npcText);
   assert.strictEqual(interaction.interaction.buttonText, "I'll be back");
   assert.strictEqual(interaction.interaction.action, 'close');
+
+  // A player with the removed legacy first step saved must resume at the remaining offer step.
+  const ceciliaLegacyProgress = harness();
+  ceciliaLegacyProgress.character.level = 3;
+  ceciliaLegacyProgress.character.questOfferProgress = {
+    [baseQuest.id]: { stepIndex: 1, startedAt: new Date().toISOString() },
+  };
+  const resumedOffer = await ceciliaLegacyProgress.service.getOffer(ceciliaLegacyProgress.character.id, baseQuest.id);
+  assert.strictEqual(resumedOffer.buttonText.locales['en-US'], 'I’ll take the job.');
+  assert.strictEqual(ceciliaLegacyProgress.character.questOfferProgress[baseQuest.id].stepIndex, 0, 'Legacy offer progress is clamped and persisted');
+  const resumedAcceptance = await ceciliaLegacyProgress.service.advanceOffer(ceciliaLegacyProgress.character.id, baseQuest.id);
+  assert.strictEqual(resumedAcceptance.accepted, true, 'A legacy in-progress dialogue can still accept the quest');
+
   const multiNpcQuest = { ...baseQuest, id: 'test_second_cecilia_quest', title: 'Second Cecilia quest' };
   // Active quest actions and other still-eligible offers must coexist in the same NPC action list.
   ceciliaEmpty.data.getQuests = () => ({ quests: [baseQuest, multiNpcQuest] });
@@ -220,13 +236,15 @@ async function run() {
   ceciliaReady.character.level = 3;
   await ceciliaReady.service.getNpcInteraction(ceciliaReady.character.id, 'cecilia');
   await ceciliaReady.service.getOffer(ceciliaReady.character.id, baseQuest.id);
-  await ceciliaReady.service.advanceOffer(ceciliaReady.character.id, baseQuest.id);
   const acceptedReady = await ceciliaReady.service.advanceOffer(ceciliaReady.character.id, baseQuest.id);
   assert.strictEqual(acceptedReady.interaction.buttonText.locales['en-US'], '[Handle items]');
   assert.strictEqual(acceptedReady.interaction.action, 'turn_in');
 
   // Active limit is checked transactionally at final acceptance.
-  const many = Array.from({ length: 6 }, (_, i) => ({ ...baseQuest, id: `limit_quest_${i}`, title: `Limit ${i}` }));
+  const many = Array.from({ length: 6 }, (_, i) => ({ ...baseQuest, id: `limit_quest_${i}`, title: `Limit ${i}`, offerDialogue: [
+    { npcText: 'First line', buttonText: 'Continue' },
+    { npcText: 'Final line', buttonText: 'Accept', acceptsQuest: true },
+  ] }));
   const limitData = { ...harness().data, getQuests: () => ({ quests: many }) };
   const limitHarness = harness({ data: limitData });
   limitHarness.character.level = 3;
@@ -365,17 +383,10 @@ async function run() {
   repeats.character.level = 3;
   assert.strictEqual((await repeats.service.getAvailable(repeats.character.id)).some(row => row.id === repeatable.id), true);
 
-  // Exercise the real service entry points: no quest-only item may be sold, mailed, or stored.
+  // Quest-only items and quest-reward equipment remain non-tradable between players,
+  // but vendor sales and personal Storage are allowed (covered by focused service tests).
   const runtimeData = { getNpcVendor: () => require('../../../npc_vendor.json'), getNpcCatalog: () => npcs, getMapById: id => (maps.maps || []).find(map => map.id === id), getItemById: itemById };
-  const town = new TownService(null, null, runtimeData, null, null, null, null);
-  await assert.rejects(() => town.sellToVendor('char-q1', 'william', 'quest_spring_flask', 1), /Quest-only items cannot be sold to vendors/);
-  const directInventory = new InventoryService(null, null, runtimeData, null);
-  await assert.rejects(() => directInventory.sellToVendor('char-q1', 'quest_spring_flask', 1), /Quest-only items cannot be sold to vendors/);
   const townCharacter = { id: 'char-q1', userId: 'user-q1', name: 'Quest Tester', status: 'town', currentMapId: 'map_town', pendingMapTransition: null, travelIntent: null, gold: 100 };
-  const storageManager = { getRepository: entity => entity === Character ? { findOne: async () => townCharacter } : {} };
-  storageManager.transaction = async callback => callback(storageManager);
-  const storageInventory = new InventoryService({ manager: storageManager }, null, runtimeData, null);
-  await assert.rejects(() => storageInventory.transferItem('char-q1', 'quest_spring_flask', 1, 'inventory', 'warehouse'), /Quest-only items cannot be transferred to or from Storage/);
 
   const marketCharacterRepo = { findOne: async () => townCharacter, save: async row => row };
   const questItemManager = { getRepository: entity => entity === Character ? marketCharacterRepo : {} };
@@ -401,30 +412,38 @@ async function run() {
   const mailManager = { getRepository: entity => {
     if (entity === Character) return { findOne: async ({ where }) => where.id === 'char-q1' ? townCharacter : recipient, save: async row => row };
     if (entity === MailMessage) return { findOne: async () => null, create: row => row };
+    if (entity === InventoryItem) return { find: async () => [{ id: 'quest-ring-mail-row', characterId: 'char-q1', location: 'inventory', itemId: 'equip_accessory_sor_t1', quantity: 1, instanceData: rewardInstance }] };
     return {};
   } };
   mailManager.transaction = async callback => callback(mailManager);
   const mailService = new MailService(runtimeData, { transaction: callback => callback(mailManager) }, lock);
   await assert.rejects(() => mailService.sendMail('char-q1', recipient.name, 'Quest item', 'Do not transfer this', 0, 'quest_spring_flask', 1), /Quest-only items cannot be attached to Mail/);
+  await assert.rejects(() => mailService.sendMail('char-q1', recipient.name, 'Quest reward', 'Do not transfer this', 0, 'equip_accessory_sor_t1', 1), /Quest-reward items cannot be attached to Mail/);
 
   // Backend trade paths guard definitions/provenance; UI repeats the restrictions for usability.
   const textOf = rel => fs.readFileSync(path.join(root, rel), 'utf8');
-  assert.match(textOf('apps/api/src/modules/town/town.service.ts'), /itemDefinition\.questOnly === true|item\.questOnly === true/);
+  assert.doesNotMatch(textOf('apps/api/src/modules/town/town.service.ts'), /item\.questOnly === true|marketTradable === false/, 'NPC vendors may buy quest items and quest-reward equipment');
+  const questServiceSource = textOf('apps/api/src/modules/quests/quest.service.ts');
+  assert.doesNotMatch(questServiceSource, /Continue.*candidate\.quest\.title/, 'quest titles are not used as active NPC action labels');
+  assert.match(questServiceSource, /What can you do\?/);
   assert.match(textOf('apps/api/src/modules/market/market.service.ts'), /itemDef\.questOnly === true/);
   assert.match(textOf('apps/api/src/modules/market/market.service.ts'), /questReward\?\.marketTradable === false/);
   assert.match(textOf('apps/api/src/modules/market/market.service.ts'), /Quest-only items and quest-reward equipment cannot be purchased through the Market/);
   assert.strictEqual(textOf('apps/api/src/modules/market/market.service.ts').includes('equip_accessory_sor_t1'), false, 'Market must not block legacy ring copies by item ID');
   assert.match(textOf('apps/api/src/modules/mail/mail.service.ts'), /definition\.questOnly === true/);
   assert.match(textOf('apps/api/src/modules/mail/mail.service.ts'), /Quest-only item attachments cannot be collected from Mail/);
-  assert.match(textOf('apps/api/src/modules/inventory/inventory.service.ts'), /Quest-only items cannot be transferred to or from Storage/);
+  assert.match(textOf('apps/api/src/modules/mail/mail.service.ts'), /questReward\?\.marketTradable === false/);
+  assert.doesNotMatch(textOf('apps/api/src/modules/inventory/inventory.service.ts'), /questOnly === true|marketTradable === false/, 'Storage permits quest items and quest-reward equipment');
   assert.match(textOf('apps/frontend/src/app/features/play/market.component.ts'), /Quest-reward equipment cannot be listed on the Market/);
   assert.match(textOf('apps/frontend/src/app/core/vendor.store.ts'), /Quest-only items cannot be attached to Mail/);
+  assert.match(textOf('apps/frontend/src/app/core/vendor.store.ts'), /Quest-reward items cannot be attached to Mail/);
+  assert.doesNotMatch(textOf('apps/frontend/src/app/core/vendor.store.ts'), /Quest-only items cannot be transferred to or from Storage|Quest-only items cannot be sold to vendors/);
   const vendorTemplate = textOf('apps/frontend/src/app/features/play/vendor-panel.html');
   const vendorStyles = textOf('apps/frontend/src/app/features/play/vendor-panel.css');
   const globalStyles = textOf('apps/frontend/src/styles.css');
   const vendorComponent = textOf('apps/frontend/src/app/features/play/components.ts');
   assert.match(vendorTemplate, /!interactionTyping\(\)/, 'Dialogue/action controls should only appear after the typewriter finishes');
-  assert.match(vendorTemplate, /npc-conversation[^>]*[\s\S]*?click.*revealInteractionText\(\)/, 'Clicking the speech box should reveal the full line');
+  assert.match(vendorTemplate, /section class="vendor-panel"[^>]*click.*revealInteractionText\(\)/, 'Clicking anywhere in the NPC panel should reveal the full line');
   assert.doesNotMatch(vendorTemplate, /quest-offer-row|quest-actions-panel|quest-offer-dialogue/);
   assert.match(globalStyles, /font:18px\/1\.55 Georgia/);
   assert.match(globalStyles, /quest-action-button/);

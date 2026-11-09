@@ -130,11 +130,10 @@ export class QuestService {
       const actions: any[] = [];
       for (const candidate of candidates) {
         const interaction = await this.activeInteraction(manager, candidate.row, candidate.quest, npcId);
-        const fallbackButtonText = `${interaction.action === 'turn_in' ? '[Handle items]' : 'Continue'} · ${candidate.quest.title}`;
-                actions.push({
+        actions.push({
           type: 'active', questId: candidate.quest.id, instanceId: candidate.row.id,
           title: candidate.quest.title, titleLocales: candidate.quest.titleLocales ?? null,
-          buttonText: interaction.action === 'turn_in' ? interaction.buttonText : (candidate.quest.activeActionButtonText ?? fallbackButtonText),
+          buttonText: interaction.action === 'turn_in' ? interaction.buttonText : (candidate.quest.activeActionButtonText ?? interaction.buttonText),
           interaction,
         });
       }
@@ -145,7 +144,7 @@ export class QuestService {
         if (quest.giverNpcId !== npcId || candidates.some((candidate: any) => candidate.quest.id === quest.id)) continue;
         if (await this.eligible(character, quest, manager)) actions.push({
           type: 'offer', questId: quest.id, title: quest.title, titleLocales: quest.titleLocales ?? null,
-          buttonText: quest.npcActionButtonText ?? quest.title,
+          buttonText: quest.npcActionButtonText ?? { locales: { 'pt-BR': 'O que você pode fazer?', 'en-US': 'What can you do?' } },
         });
       }
       if (!actions.length) return null;
@@ -193,9 +192,17 @@ export class QuestService {
       if (!sessions[questId]) sessions[questId] = { stepIndex: 0, nodeId: quest.offerGraph?.entryNodeId, startedAt: new Date().toISOString() };
       character.questOfferProgress = sessions; await manager.getRepository(Character).save(character);
       const offerStepCount = Array.isArray(quest.offerDialogue) ? quest.offerDialogue.length : 0;
+      const requestedStepIndex = Number(sessions[questId].stepIndex ?? 0);
       const stepIndex = quest.offerGraph?.nodes || offerStepCount === 0
         ? 0
-        : Math.max(0, Math.min(offerStepCount - 1, Number(sessions[questId].stepIndex ?? 0)));
+        : Math.max(0, Math.min(offerStepCount - 1, Number.isFinite(requestedStepIndex) ? Math.floor(requestedStepIndex) : 0));
+      // A data-authored offer can lose/reorder steps between releases. Persist the
+      // clamped index so a returning player cannot be stranded on a removed step.
+      if (!quest.offerGraph?.nodes && offerStepCount > 0 && requestedStepIndex !== stepIndex) {
+        sessions[questId] = { ...sessions[questId], stepIndex };
+        character.questOfferProgress = sessions;
+        await manager.getRepository(Character).save(character);
+      }
       return this.offerInteraction(quest, stepIndex, sessions[questId].nodeId);
     });
   }
