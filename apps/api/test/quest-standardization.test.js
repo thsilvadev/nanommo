@@ -115,7 +115,23 @@ async function run() {
     });
   }
   assert.strictEqual(forestInstance.progress.collect_tears, 5);
+  const questStateWithFiveTears = await forest.service.getState(forestCharacter.id);
+  const tearsObjective = questStateWithFiveTears.active[0].objectives.find(objective => objective.id === 'collect_tears');
+  assert.strictEqual(tearsObjective.progress, 5);
+  assert.strictEqual(tearsObjective.required, 5);
+  assert.strictEqual(tearsObjective.ownedItems, 5);
+  assert.strictEqual(tearsObjective.requiredItems, 5);
+  assert.strictEqual(tearsObjective.completed, true);
   const tears = forest.invRows.filter(row => row.itemId === 'part_flamingtreant_common');
+  tears[0].quantity = 4;
+  const questStateWithFourTears = await forest.service.getState(forestCharacter.id);
+  const fourTearsObjective = questStateWithFourTears.active[0].objectives.find(objective => objective.id === 'collect_tears');
+  assert.strictEqual(fourTearsObjective.ownedItems, 4);
+  assert.strictEqual(fourTearsObjective.progress, 4);
+  assert.strictEqual(fourTearsObjective.completed, false);
+  const notReadyAction = await forest.service.getNpcInteraction(forestCharacter.id, 'paje_piata');
+  assert.strictEqual(notReadyAction.actions[0].interaction.action, 'close', 'Turn-in must remain unavailable when a quest drop is no longer in Inventory');
+  tears[0].quantity = 5;
   assert.strictEqual(tears.reduce((sum, row) => sum + Number(row.quantity), 0), 5);
   assert(tears.every(row => row.instanceData?.questInstanceId === forestInstance.id));
   const forestReadyAction = await forest.service.getNpcInteraction(forestCharacter.id, 'paje_piata');

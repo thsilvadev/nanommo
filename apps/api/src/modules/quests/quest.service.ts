@@ -86,6 +86,13 @@ export class QuestService {
     const count = (itemId: string) => inventory.filter(row => row.itemId === itemId).reduce((sum, row) => sum + Number(row.quantity), 0);
     return quest.objectives.every((objective: any) => {
       if (objective.type === 'deliver_items') return (objective.items ?? []).every((required: any) => count(required.itemId) >= Number(required.quantity));
+      if (objective.type === 'monster_drop' && objective.itemId) {
+        const item = this.data.getItemById(objective.itemId);
+        const owned = inventory.filter(row => row.itemId === objective.itemId &&
+          (!item?.questOnly || row.instanceData?.questInstanceId === instance.id))
+          .reduce((sum, row) => sum + Number(row.quantity), 0);
+        return owned >= Number(objective.quantity ?? 1) * Math.max(1, Number(objective.itemQuantity ?? 1));
+      }
       return Number(instance.progress?.[objective.id] ?? 0) >= Number(objective.quantity ?? 1);
     });
   }
@@ -163,13 +170,25 @@ export class QuestService {
       const objectives = row.status === 'active' ? quest.objectives.map((objective: any) => {
         let progress = Math.max(0, Number(row.progress?.[objective.id] ?? 0));
         let required = Number(objective.quantity ?? 1);
+        let ownedItems: number | undefined;
+        let requiredItems: number | undefined;
         if (objective.type === 'deliver_items') {
           progress = Math.min(...objective.items.map((req: any) => count(req.itemId) / Number(req.quantity)));
           progress = Number.isFinite(progress) ? Math.floor(progress * required) : 0;
           required = 1;
+        } else if (objective.type === 'monster_drop' && objective.itemId) {
+          const item = this.data.getItemById(objective.itemId);
+          const itemRows = inventory.filter(entry => entry.itemId === objective.itemId &&
+            (!item?.questOnly || entry.instanceData?.questInstanceId === row.id));
+          ownedItems = itemRows.reduce((sum, entry) => sum + Number(entry.quantity), 0);
+          requiredItems = required * Math.max(1, Number(objective.itemQuantity ?? 1));
+          progress = Math.floor(ownedItems / Math.max(1, Number(objective.itemQuantity ?? 1)));
         }
         const requirements = objective.type === 'deliver_items' ? objective.items.map((req: any) => ({ ...req, owned: count(req.itemId) })) : undefined;
-        return { id: objective.id, type: objective.type, npcId: objective.npcId, description: objective.description, progress: Math.min(required, progress), required, completed: objective.type === 'deliver_items' ? objective.items.every((req: any) => count(req.itemId) >= Number(req.quantity)) : progress >= required, items: requirements };
+        const completed = objective.type === 'deliver_items'
+          ? objective.items.every((req: any) => count(req.itemId) >= Number(req.quantity))
+          : progress >= required;
+        return { id: objective.id, type: objective.type, npcId: objective.npcId, description: objective.description, progress: Math.min(required, progress), required, ownedItems, requiredItems, completed, items: requirements };
       }) : [];
       const map: any = this.data.getMapById(character.currentMapId);
       const objectivesReady = objectives.length === quest.objectives.length && objectives.every((objective: any) => objective.completed);
