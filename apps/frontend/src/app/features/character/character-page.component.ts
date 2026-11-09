@@ -66,7 +66,7 @@ export class CharacterPageComponent implements OnInit {
     selectedWeaponIndex() { const i = this.weaponRows().findIndex(r => r[0] === this.selectedWeapon()); return i < 0 ? 0 : i }
     setTab(t: string) { this.tab = t; if (t === 'professions') void this.loadCookingProgress(); if (t === 'quests') void this.loadQuests(); if (t === 'gambits') this.router.navigate(['/play/character'], { queryParams: { tab: 'gambits' } }); else this.router.navigate(['/play/character'], { queryParams: { tab: t } }) }
     value(k: string) { const c = this.character.character() as any; return (c?.[k] ?? 0) + (this.pending()[k] ?? 0) }
-    moveSpeed() { const level = Number(this.character.character()?.level ?? 0); return level > 0 ? 50 + level : '—' }
+    moveSpeed() { const character:any=this.character.character(); const level=Number(character?.level??0); return level>0 ? Number(character?.moveSpeed ?? (50+level)) : '—' }
     attributeBonus(k: string) { const c = this.character.character() as any; const key = k.toUpperCase(); return Number(c?.attributeBonuses?.[key] ?? 0) }
     attributeTooltip(k: string) { const tips: Record<string, string> = { str: 'STR increases Physical ATK.', agi: 'AGI increases Attack Speed and Evasion.', dex: 'DEX increases Accuracy and Cast Time Reduction.', vit: 'VIT increases Max HP and HP Regen.', int: 'INT increases Max SP, SP Regen and Magic ATK.', luk: 'LUK increases Critical Chance.' }; return tips[k] ?? '' }
     delta(k: string) { return this.pending()[k] ?? 0 }

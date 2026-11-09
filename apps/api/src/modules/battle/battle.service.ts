@@ -7,6 +7,7 @@ import { EntityManager, In, Repository } from 'typeorm';
 import { BattleQueueEntry, Character, MapKillCounter, GambitPage, InventoryItem, WeaponProficiency } from '@/database/entities';
 import {
   BattleEngine,
+  effectiveItemDefinition,
   GambitEvaluator,
   Mulberry32,
   mulberry32Seed,
@@ -405,16 +406,21 @@ export class BattleService {
     skillDefs: Record<string, any>;
     weaponTypes: string[];
     masteryEquipment: Array<{ slot: 'mainHand' | 'offHand'; category: string; twoHanded: boolean }>;
+    movementEquipment: any[];
   }> {
     const equipmentStats = await this.equipmentService.calculateEquipmentStats(characterId);
     const { skills, skillDefs, weaponTypes } = await this.buildSkillAvailability(characterId);
     const rows = await this.equipmentService.getEquipment(characterId);
+    const movementEquipment = rows.map((row: any) => {
+      const item = this.dataService.getItemById(row.itemId);
+      return item ? { definition: effectiveItemDefinition(item, row.instanceData) } : null;
+    }).filter(Boolean);
     const masteryEquipment = rows.flatMap((row) => {
       if (row.slot !== 'mainHand' && row.slot !== 'offHand') return [];
       const item = this.dataService.getItemById(row.itemId);
       return item?.weaponType ? [{ slot: row.slot as 'mainHand' | 'offHand', category: String(item.weaponType), twoHanded: item.twoHanded === true }] : [];
     });
-    return { equipmentStats, skills, skillDefs, weaponTypes, masteryEquipment };
+    return { equipmentStats, skills, skillDefs, weaponTypes, masteryEquipment, movementEquipment };
   }
 
   /** Return every food whose own digestion/buff boundary is still in the future. */
@@ -468,7 +474,7 @@ export class BattleService {
     loadout?: Awaited<ReturnType<BattleService['loadCombatantLoadout']>>,
     foodDigestOverride?: Record<string, number>,
   ): Promise<CombatantSnapshot> {
-    const { equipmentStats, skills, skillDefs, weaponTypes, masteryEquipment } =
+    const { equipmentStats, skills, skillDefs, weaponTypes, masteryEquipment, movementEquipment } =
       loadout ?? (await this.loadCombatantLoadout(character.id));
 
     // Canonical combat attributes (SPEC §5.2): base attributes plus
@@ -540,6 +546,10 @@ export class BattleService {
       skills,
       skillDefs,
       masteryEquipment,
+      // Combat-lane movement uses the same effective speed as world travel.
+      // Status penalties remain battle-local and are applied by BattleEngine.
+      moveSpeedBase: calculateWorldMoveSpeed(character, movementEquipment, character.activeTempBuffs ?? [], [] , atTime),
+      moveSpeed: calculateWorldMoveSpeed(character, movementEquipment, character.activeTempBuffs ?? [], [], atTime),
       statusEffects: statusEffectsForBattle(character.statusEffects ?? [], atTime),
       equippedWeaponTypes: weaponTypes,
       luk: Number((character as any).luk ?? 5) + Number(attributeBonuses.LUK ?? 0),

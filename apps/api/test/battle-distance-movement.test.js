@@ -212,6 +212,11 @@ function run() {
     { weaponBaseAttackTicks: 99 },
   );
   assert.equal(level48Speed.log.header.characterSnapshot.moveSpeedBase, 98, 'character Move Speed is 50 + level, so level 48 has 98 base speed');
+  const equippedSpeed = BattleEngine.simulateBattle(
+    baselineCharacter({ level: 48, hp: 50000, maxHp: 50000, moveSpeedBase: 108, moveSpeed: 108 }),
+    { ...rangedMonster, hp: 50000 }, page, 'distance-equipped-move-speed', { weaponBaseAttackTicks: 99 },
+  );
+  assert.equal(equippedSpeed.log.header.characterSnapshot.moveSpeedBase, 108, 'combat preserves effective Move Speed including equipment bonuses');
 
   const iceBolt = skillTree.monsterSkills.find((skill) => skill.id === 'monster_skill_ice_bolt');
   assert(iceBolt && iceBolt.damageType === 'magic' && iceBolt.ranged && iceBolt.maxRange === 7);

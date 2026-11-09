@@ -49,6 +49,10 @@ const partialTravelCatchup = accrueTravelSegmentProgress(0.25, 1_000, 4_000, 30)
 assert.equal(partialTravelCatchup.completed, false);
 assert.equal(partialTravelCatchup.progress, 0.35);
 assert.equal(calculateWorldMoveSpeed({level:1}),51);
+const travelerBoots = require('../../../items.json').equipment.find(item => item.id === 'equip_shoes_traveler_t1');
+assert.ok(travelerBoots, 'Traveler’s Boots catalogue entry exists');
+assert.equal(calculateWorldMoveSpeed({level:27}, [{definition: travelerBoots}]), 87,
+  'level 27 character receives the boots’ +10 Move Speed in authoritative world speed');
 assert.equal(calculateWorldMoveSpeed({level:1},[{fixedStats:{moveSpd:30,moveSpdMultiplier:1.2}}]),97);
 assert.equal(calculateWorldMoveSpeed({level:1},[],[{moveSpdFlat:30,expiresAt:10_000}],[],9_999),81);
 assert.equal(calculateWorldMoveSpeed({level:1},[],[{moveSpdFlat:30,expiresAt:10_000}],[],10_000),51,'expired movement buff no longer affects world speed');

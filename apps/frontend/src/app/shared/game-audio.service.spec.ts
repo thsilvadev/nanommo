@@ -88,6 +88,65 @@ describe('GameAudioService battle event routing', () => {
     expect((audio as any).musicInstances.size).toBe(0);
   });
 
+  it('keeps the previous region audible when the new playlist is blocked by autoplay', async () => {
+    const oldPause = jasmine.createSpy('oldPause');
+    const oldMusic = { volume: 0.5, paused: false, pause: oldPause } as unknown as HTMLAudioElement;
+    const newPause = jasmine.createSpy('newPause');
+    const candidate = {
+      volume: 0, currentTime: 0, paused: true, loop: false, preload: '',
+      play: () => Promise.reject(new Error('autoplay blocked')),
+      pause: newPause, addEventListener: () => {},
+    } as unknown as HTMLAudioElement;
+    (audio as any).music = oldMusic;
+    (audio as any).musicInstances.add(oldMusic);
+    spyOn(window, 'Audio').and.returnValue(candidate);
+
+    (audio as any).updateMusic('map_green_grounds_0');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect((audio as any).music).toBe(oldMusic);
+    expect(oldPause).not.toHaveBeenCalled();
+    expect((audio as any).pendingMusic).toBe(candidate);
+    expect((audio as any).pendingMusicBlocked).toBeTrue();
+  });
+
+  it('promotes a new region track only after its play promise succeeds', async () => {
+    let resolvePlay!: () => void;
+    const oldPause = jasmine.createSpy('oldPause');
+    const oldMusic = { volume: 0.5, paused: false, pause: oldPause } as unknown as HTMLAudioElement;
+    const candidate = {
+      volume: 0, currentTime: 0, paused: false, loop: false, preload: '',
+      play: () => new Promise<void>(resolve => { resolvePlay = resolve; }),
+      pause: jasmine.createSpy('newPause'), addEventListener: () => {},
+    } as unknown as HTMLAudioElement;
+    (audio as any).music = oldMusic;
+    (audio as any).musicInstances.add(oldMusic);
+    spyOn(window, 'Audio').and.returnValue(candidate);
+    spyOn(window, 'requestAnimationFrame').and.returnValue(321);
+    spyOn(window, 'cancelAnimationFrame');
+
+    (audio as any).updateMusic('map_green_grounds_0');
+    expect((audio as any).music).toBe(oldMusic);
+    resolvePlay();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect((audio as any).music).toBe(candidate);
+    expect(oldPause).not.toHaveBeenCalled();
+    expect((audio as any).pendingMusic).toBeNull();
+  });
+
+  it('retries paused regional music directly from a volume interaction', () => {
+    const music = { paused: true, volume: 0.2 } as HTMLAudioElement;
+    (audio as any).music = music;
+    const retry = jasmine.createSpy('tryResumeMusic');
+    (audio as any).tryResumeMusic = retry;
+    audio.setVolume(0.6);
+    expect(music.volume).toBe(0.6);
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
   it('persists game audio volume and mute preferences', () => {
     audio.setVolume(0.42);
     expect(localStorage.getItem('nanommo:game-audio-volume')).toBe('0.42');
@@ -126,7 +185,10 @@ describe('GameAudioService battle event routing', () => {
   it('resolves all newly added interaction effects to their copied runtime paths', () => {
     expect((audio as any).fileName('foodCooked')).toBe('new_packs/2/foodCooked.mp3');
     expect((audio as any).fileName('gather')).toBe('new_packs/2/gather.mp3');
-    expect((audio as any).fileName('boughtItemFromNpc')).toBe('new_packs/2/boughtItemFromNpc.ogg');
+    expect((audio as any).fileName('eGem')).toBe('eGem.mp3');
+    expect((audio as any).fileName('flee')).toBe('flee.mp3');
+    expect((audio as any).fileName('mailInbox')).toBe('new_packs/4/mailInbox.mp3');
+    expect((audio as any).fileName('boughtItemFromNpc')).toBe('new_packs/2/boughtItemFromNpc.mp3');
     expect((audio as any).fileName('soldItemToNpc')).toBe('new_packs/2/soldItemToNpc.ogg');
     expect((audio as any).fileName('putInStorage')).toBe('new_packs/2/putInStorage.ogg');
     expect((audio as any).fileName('takeFromStorage')).toBe('new_packs/2/takeFromStorage.ogg');

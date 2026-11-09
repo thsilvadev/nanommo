@@ -19,6 +19,9 @@ export class GameAudioService {
   readonly muted = signal(this.readStoredMuted());
   private readonly effects = new Map<SoundName, string>();
   private music: HTMLAudioElement | null = null;
+  private pendingMusic: HTMLAudioElement | null = null;
+  private pendingMusicStarting = false;
+  private pendingMusicBlocked = false;
   private readonly musicInstances = new Set<HTMLAudioElement>();
   private musicRegion = '';
   private musicTracks: string[] = [];
@@ -72,7 +75,7 @@ export class GameAudioService {
   private fileName(name: SoundName): string {
     const files: Record<SoundName, string> = {
       arrow_hit_1: 'arrow_hit_1.wav', bash: 'bash.wav', dagger_hit_1: 'dagger_hit_1.wav',
-      enemy_hit_1: 'enemy_hit_1.wav', enemy_hit_2: 'enemy_hit_2.wav', eGem: 'eGem.wav',
+      enemy_hit_1: 'enemy_hit_1.wav', enemy_hit_2: 'enemy_hit_2.wav', eGem: 'eGem.mp3',
       eat: 'eat.mp3', fatherMarcelus: 'fatherMarcelus.mp3', fire_hit_1: 'fire_hit_1.wav',
       fire_hit_2: 'fire_hit_2.wav', greatsword_hit_1: 'greatsword_hit_1.wav',
       hand_hit_1: 'hand_hit_1.wav', levelUp: 'levelUp.mp3', light_hit_1: 'light_hit_1.wav',
@@ -83,7 +86,7 @@ export class GameAudioService {
       staff_hit_1: 'staff_hit_1.wav', sword_hit_1: 'sword_hit_1.wav',
       potion_drink: 'potion_drink.mp3', flee: 'flee.mp3',
       foodCooked: 'new_packs/2/foodCooked.mp3', gather: 'new_packs/2/gather.mp3',
-      boughtItemFromNpc: 'new_packs/2/boughtItemFromNpc.ogg',
+      boughtItemFromNpc: 'new_packs/2/boughtItemFromNpc.mp3',
       soldItemToNpc: 'new_packs/2/soldItemToNpc.ogg',
       putInStorage: 'new_packs/2/putInStorage.ogg',
       takeFromStorage: 'new_packs/2/takeFromStorage.ogg',
@@ -100,7 +103,8 @@ export class GameAudioService {
     this.volume.set(next);
     this.muted.set(next === 0);
     this.persistAudioSettings();
-    if (this.music) this.music.volume = this.muted() ? 0 : next;
+    if (this.music) { this.music.volume = this.muted() ? 0 : next; if (!this.muted() && this.music.paused) this.tryResumeMusic(); }
+    if (this.pendingMusic && !this.muted()) { this.pendingMusicBlocked = false; this.tryStartPendingMusic(this.pendingMusic, this.musicGeneration); }
   }
 
   toggleMute(): void {
@@ -109,7 +113,8 @@ export class GameAudioService {
       this.volume.set(restored);
       this.muted.set(false);
       this.persistAudioSettings();
-      if (this.music) this.music.volume = restored;
+      if (this.music) { this.music.volume = restored; if (this.music.paused) this.tryResumeMusic(); }
+      if (this.pendingMusic) { this.pendingMusicBlocked = false; this.tryStartPendingMusic(this.pendingMusic, this.musicGeneration); }
     } else {
       this.muted.set(true);
       this.persistAudioSettings();
@@ -120,7 +125,8 @@ export class GameAudioService {
   start(characterStore: any, battleStore: any, inventoryStore: any): void {
     if (this.started) return;
     this.started = true;
-    void this.stopMusic(650);
+    // start() is called before the first map poll. Do not launch a competing
+    // asynchronous stop/fade here: updateMusic owns the initial region transition.
     this.previousLevel = characterStore.character()?.level ?? null;
     this.timer = setInterval(() => {
       const character = characterStore.character();
@@ -166,7 +172,8 @@ export class GameAudioService {
     const nextRegion = region?.id ?? '';
     if (nextRegion === this.musicRegion) {
       // Recover if a transient map update or interrupted fade left a valid region silent.
-      if (nextRegion && this.musicTracks.length && !this.music && !this.musicFadeFrame) this.startNextTrack(this.musicGeneration);
+      if (nextRegion && this.pendingMusic?.paused && !this.pendingMusicBlocked && !this.pendingMusicStarting) this.tryStartPendingMusic(this.pendingMusic, this.musicGeneration);
+      else if (nextRegion && this.musicTracks.length && !this.music && !this.pendingMusic) this.startNextTrack(this.musicGeneration);
       else if (nextRegion && this.music?.paused && !this.musicFadeFrame) this.tryResumeMusic();
       return;
     }
@@ -175,22 +182,21 @@ export class GameAudioService {
     this.musicTrackIndex = -1;
     const generation = ++this.musicGeneration;
     this.cancelMusicFade();
-    void this.fadeCurrentMusic(850, generation).then(() => {
-      if (generation !== this.musicGeneration || !this.musicTracks.length) return;
-      this.startNextTrack(generation);
-    });
+    if (this.pendingMusic) this.stopMusicElement(this.pendingMusic);
+    this.pendingMusicStarting = false;
+    this.pendingMusicBlocked = false;
+    if (!this.musicTracks.length) {
+      void this.stopMusic(850);
+      return;
+    }
+    this.startNextTrack(generation);
   }
 
   private startNextTrack(generation: number): void {
-    if (generation !== this.musicGeneration || !this.musicTracks.length) return;
-
-    // A play() promise can settle after a region change or after the page resumes
-    // from suspension. Never allow an older track instance to overlap the new one.
-    this.stopOtherMusicInstances();
+    if (generation !== this.musicGeneration || !this.musicTracks.length || this.pendingMusic) return;
     this.musicTrackIndex = (this.musicTrackIndex + 1) % this.musicTracks.length;
-    const track = this.musicTracks[this.musicTrackIndex];
-    const audio = new Audio(this.base + track);
-    this.music = audio;
+    const audio = new Audio(this.base + this.musicTracks[this.musicTrackIndex]);
+    this.pendingMusic = audio;
     this.musicInstances.add(audio);
     audio.loop = false;
     audio.preload = 'auto';
@@ -202,19 +208,54 @@ export class GameAudioService {
         this.startNextTrack(generation);
       }
     });
+    this.tryStartPendingMusic(audio, generation);
+  }
+
+  private tryStartPendingMusic(audio: HTMLAudioElement, generation: number): void {
+    if (generation !== this.musicGeneration || this.pendingMusic !== audio || !this.musicRegion || this.pendingMusicStarting || this.pendingMusicBlocked) return;
+    this.pendingMusicStarting = true;
     void audio.play().then(() => {
-      if (generation !== this.musicGeneration || this.music !== audio || !this.musicRegion) {
+      this.pendingMusicStarting = false;
+      if (generation !== this.musicGeneration || this.pendingMusic !== audio || !this.musicRegion) {
         this.stopMusicElement(audio);
         return;
       }
-      void this.fadeVolume(audio, 0, this.muted() ? 0 : this.volume(), 900, generation);
+      const previous = this.music;
+      this.pendingMusic = null;
+      this.music = audio;
+      this.crossfadeMusic(previous, audio, generation);
     }).catch(() => {
-      if (generation !== this.musicGeneration || this.music !== audio || !this.musicRegion) {
+      this.pendingMusicStarting = false;
+      if (generation !== this.musicGeneration || this.pendingMusic !== audio || !this.musicRegion) {
         this.stopMusicElement(audio);
         return;
       }
+      // Keep the previous region audible. Avoid retrying every poll; wait for
+      // a real user gesture because browsers may block autoplay until activation.
+      this.pendingMusicBlocked = true;
       this.bindMusicRetry();
     });
+  }
+
+  private crossfadeMusic(previous: HTMLAudioElement | null, next: HTMLAudioElement, generation: number): void {
+    const target = this.muted() ? 0 : this.volume();
+    const previousStart = previous?.volume ?? 0;
+    const startedAt = performance.now();
+    const duration = previous ? 850 : 900;
+    const tick = (now: number) => {
+      if (generation !== this.musicGeneration || this.music !== next) return;
+      const progress = Math.min(1, (now - startedAt) / duration);
+      next.volume = target * progress;
+      if (previous) previous.volume = previousStart * (1 - progress);
+      if (progress < 1) {
+        this.musicFadeFrame = requestAnimationFrame(tick);
+      } else {
+        this.musicFadeFrame = 0;
+        if (previous) this.stopMusicElement(previous);
+      }
+    };
+    this.cancelMusicFade();
+    this.musicFadeFrame = requestAnimationFrame(tick);
   }
 
   private stopOtherMusicInstances(keep?: HTMLAudioElement): void {
@@ -228,6 +269,7 @@ export class GameAudioService {
     try { audio.currentTime = 0; } catch { /* Some media elements cannot seek before metadata loads. */ }
     this.musicInstances.delete(audio);
     if (this.music === audio) this.music = null;
+    if (this.pendingMusic === audio) this.pendingMusic = null;
   }
 
   private bindMusicRetry(): void {
@@ -237,7 +279,9 @@ export class GameAudioService {
       this.musicRetryBound = false;
       document.removeEventListener('pointerdown', retry, true);
       document.removeEventListener('keydown', retry, true);
-      this.tryResumeMusic();
+      this.pendingMusicBlocked = false;
+      if (this.pendingMusic) this.tryStartPendingMusic(this.pendingMusic, this.musicGeneration);
+      else this.tryResumeMusic();
     };
     document.addEventListener('pointerdown', retry, { once: true, capture: true });
     document.addEventListener('keydown', retry, { once: true, capture: true });

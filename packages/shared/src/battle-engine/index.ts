@@ -640,7 +640,9 @@ export class BattleEngine {
     self.basicAttackRange = Number(characterSnapshot.basicAttackRange ?? (self.basicAttackDamageType === 'ranged' ? 6 : 0));
     self.position = playerStyle === 'melee' && foe.combatStyle === 'melee' ? 3 : 0;
     foe.position = playerStyle === 'melee' && foe.combatStyle === 'melee' ? 4 : 7;
-    self.moveSpeedBase = 50 + Number(self.level ?? 1);
+    // Preserve the server-authoritative effective movement speed from the
+    // character snapshot (equipment + active buffs); retain legacy fallback.
+    self.moveSpeedBase = Math.max(0, Number(self.moveSpeedBase ?? self.moveSpeed ?? (50 + Number(self.level ?? 1))));
     self.moveSpeed = self.moveSpeedBase;
     self.movementGauge = Number(self.movementGauge ?? 0);
     self.movementIntent = false;

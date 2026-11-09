@@ -963,3 +963,14 @@ Equipment identity is the Inventory row plus instanceData, not only itemId. Equi
 ## Weapon base attack and refinement scaling — 2026-11-09
 
 Canonical and frontend item catalogues increase each main-hand tier-1 weapon's base ATK/MATK by +3, tier 2 by +10, and tier 3 by +20. effectiveItemDefinition() applies +5 per refinement level to main-hand weapon ATK/MATK; other direct refinable equipment stats retain +3 per refinement level. The refinement preview uses the same shared gain function as the effective stat projection.
+
+
+## Character Move Speed and regional music recovery — 2026-11-09
+
+The Character DTO's moveSpeed is the authoritative world Move Speed, calculated by calculateWorldMoveSpeed(character, equippedEffectiveDefinitions, character.activeTempBuffs, character.statusEffects). It includes level base (50 + level), equipped fixedStats.moveSpeed/moveSpd, active movement buffs and non-expired movement penalties. Map travel duration, travel accrual, and flee chance use the same server-side calculation. Character → Stats must render the DTO field rather than reconstructing the level-only base. Traveler's Boots add +10; at level 27 the expected world value is 87.
+
+GameAudioService maps runtime file extensions exactly to the copied public assets. When a regional track's play() is rejected by browser autoplay policy, the media element remains paused. The deferred document gesture listener can miss a gesture if rejection settles after that gesture; setVolume/toggleMute therefore retry play() synchronously when invoked by a user interaction and the active regional track is paused. This is recovery only; it does not alter saved volume/mute preferences. Playlist files referenced by regionFor() must exist under frontend public assets.
+
+- Combat lane movement uses the same effective character Move Speed as world travel: the battle snapshot carries equipment and active temporary movement modifiers, while BattleEngine applies battle-local status penalties once per tick. Do not reset player movement speed to `50 + level` inside the engine.
+- GameAudioService startup delegates the initial regional music transition to `updateMusic()`; avoid a parallel startup stop/fade that can race the region transition. A rejected browser `play()` promise remains subject to autoplay policy and retry behavior.
+- On a region change, start the destination track while retaining the currently audible track. Promote and crossfade only after the destination `play()` promise resolves. If playback is rejected, keep the old track and retain the candidate for retry after a user gesture; do not issue retries on every map poll. Discard pending candidates from stale region generations.

@@ -592,7 +592,7 @@ export class CharacterService {
       blacksmithLevel: Math.max(1, Number(character.blacksmithLevel ?? 1)),
       blacksmithXp: Math.max(0, Number(character.blacksmithXp ?? 0)),
       craftingSession: character.craftingSession ?? null,
-      moveSpeed: calculateWorldMoveSpeed(character, equipped.map(row => ({ definition: effectiveItemDefinition(this.dataService.getItemById(row.itemId), row.instanceData) }))),
+      moveSpeed: calculateWorldMoveSpeed(character, equipped.map(row => ({ definition: effectiveItemDefinition(this.dataService.getItemById(row.itemId), row.instanceData) })), character.activeTempBuffs ?? [], character.statusEffects ?? []),
       gatheringCycle: character.gatheringCycle ?? { progress: 0, cycleIndex: 0, varianceSeconds: null, lastUpdatedAt: null },
       encounterCycle: character.encounterCycle ?? { cycleIndex: 0, nextAt: null },
       fleeAttemptIndex: Math.max(0, Number(character.fleeAttemptIndex ?? 0)),
