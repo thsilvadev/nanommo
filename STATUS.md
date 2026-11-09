@@ -4,7 +4,7 @@ Quest-only items and per-instance quest rewards can now be sold to NPC vendors a
 
 Cecilia's NPC quest action now reads "What can you do?" / "O que você pode fazer?" instead of falling back to the quest title. Removed the redundant first offer step so the action opens directly on the requirements dialogue and the authored acceptance button. The backend clamps and persists legacy saved offer-step indices, so characters who had the removed step in progress can resume safely. Quest titles remain in the Character → Quests menu only.
 
-The Cooking modal now uses the shared floating item tooltip when hovering recipe output icons and ingredient names. The audio control switches between speaker and crossed-out speaker artwork according to the active mute state. Removed the stray lower leg strokes from all four framed/no-frame common/rare Giant Mosquito item SVGs, keeping the wing artwork intact.
+The Cooking modal now uses the shared floating item tooltip when hovering recipe output icons and ingredient names. The audio control switches between speaker and crossed-out speaker artwork according to the active mute state. Removed the detached leftover feet/strips from the Giant Mosquito monster sprite (`apps/frontend/assets/monsters/mon_giantmosquito.svg`), preserving the mosquito silhouette, wings and canvas dimensions.
 
 Validation: API build and production frontend build passed; the focused vendor-sale, Warehouse-transfer and quest-standardization regression scripts passed; JSON/public catalogue mirrors and all four Giant Mosquito SVGs parsed successfully; `git diff --check` passed. The frontend build retains the pre-existing 94-byte `play.component.css` budget warning. No integration tests, deployment, migration or live data mutation were performed.
 
