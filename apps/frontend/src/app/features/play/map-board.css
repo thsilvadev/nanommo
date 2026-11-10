@@ -226,3 +226,52 @@
   transform: scale(3.8);
   transform-origin: center center;
 }
+
+/* Animated fog stays visually soft beyond the square exploration hitbox. */
+.fog-cell {
+  z-index: 1;
+  overflow: visible;
+  background:
+    radial-gradient(ellipse at 22% 28%, rgba(77, 79, 82, .18), transparent 54%),
+    radial-gradient(ellipse at 78% 72%, rgba(55, 58, 62, .2), transparent 58%),
+    #090a0c;
+  isolation: isolate;
+}
+.fog-cell::before,
+.fog-cell::after {
+  content: '';
+  position: absolute;
+  inset: -28%;
+  pointer-events: none;
+  border-radius: 48%;
+  background:
+    radial-gradient(ellipse at 24% 42%, rgba(89, 92, 96, .32) 0 13%, transparent 43%),
+    radial-gradient(ellipse at 68% 30%, rgba(67, 70, 75, .3) 0 17%, transparent 48%),
+    radial-gradient(ellipse at 62% 76%, rgba(76, 79, 84, .27) 0 15%, transparent 46%);
+  filter: blur(13px);
+  opacity: .8;
+  animation: fog-drift-a 19s ease-in-out infinite alternate;
+}
+.fog-cell::after {
+  inset: -36%;
+  background:
+    radial-gradient(ellipse at 35% 25%, rgba(105, 108, 112, .2) 0 12%, transparent 42%),
+    radial-gradient(ellipse at 76% 64%, rgba(83, 86, 91, .24) 0 16%, transparent 48%),
+    radial-gradient(ellipse at 20% 78%, rgba(63, 66, 71, .22) 0 14%, transparent 44%);
+  filter: blur(18px);
+  opacity: .7;
+  animation: fog-drift-b 27s ease-in-out infinite alternate;
+}
+@keyframes fog-drift-a {
+  0% { transform: translate3d(-8%, -5%, 0) rotate(-9deg) scale(.94); }
+  50% { transform: translate3d(5%, 4%, 0) rotate(7deg) scale(1.08); }
+  100% { transform: translate3d(10%, -2%, 0) rotate(17deg) scale(1.02); }
+}
+@keyframes fog-drift-b {
+  0% { transform: translate3d(7%, 5%, 0) rotate(12deg) scale(1.04); }
+  50% { transform: translate3d(-6%, -3%, 0) rotate(-8deg) scale(.92); }
+  100% { transform: translate3d(-10%, 6%, 0) rotate(-18deg) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fog-cell::before, .fog-cell::after { animation: none; }
+}

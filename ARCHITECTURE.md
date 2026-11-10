@@ -974,3 +974,16 @@ GameAudioService maps runtime file extensions exactly to the copied public asset
 - Combat lane movement uses the same effective character Move Speed as world travel: the battle snapshot carries equipment and active temporary movement modifiers, while BattleEngine applies battle-local status penalties once per tick. Do not reset player movement speed to `50 + level` inside the engine.
 - GameAudioService startup delegates the initial regional music transition to `updateMusic()`; avoid a parallel startup stop/fade that can race the region transition. A rejected browser `play()` promise remains subject to autoplay policy and retry behavior.
 - On a region change, start the destination track while retaining the currently audible track. Promote and crossfade only after the destination `play()` promise resolves. If playback is rejected, keep the old track and retain the candidate for retry after a user gesture; do not issue retries on every map poll. Discard pending candidates from stale region generations.
+
+
+## Gameplay audio channel mixing — 2026-11-10
+
+`GameAudioService` owns independent persisted General, Effects, and Music channel settings. Effective short-effect volume is General × Effects; effective regional-music volume is General × Music. Each channel has a separately persisted volume and mute flag. General mute silences both classes; Effects mute never pauses music; Music mute never suppresses effects. Existing region transition/crossfade/autoplay recovery remains the single music lifecycle owner. The auth/login soundtrack continues to use its separate `LoginMusicService`. The successful Save Town response triggers `saveTown`, served from `/assets/sounds/new_packs/5/save.mp3` and sourced from `project/sons/new_packs/5/save.mp3`.
+
+## Saved Town affordances — 2026-11-10
+
+`GrindInfo` uses `LocaleService` for the Save Town hover/focus explanation and triggers the save cue only after `POST /maps/save-town` succeeds. `MapBoard` adds the localized saved-waypoint instruction to its existing floating map tooltip when the hovered Town ID matches `Character.savedTownMapId`. The existing `/maps` click action remains responsible for the authoritative teleport intent, flee handling, and respawn behavior; the new UI does not implement a second teleport path.
+
+## World fog visual treatment — 2026-11-10
+
+`MapBoard` continues to derive fog positions from the same 15×13 cell grid as before. `.fog-cell` remains a pointer-transparent 153px square visual overlay; its pseudo-elements draw blurred radial cloud layers with oversized bounds and slow transforms so fog appears to spill across adjacent tile edges. These layers do not participate in map hit testing, discovery, coordinates, or map catalogue state. Reduced-motion users receive static cloud layers.

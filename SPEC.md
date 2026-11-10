@@ -1692,3 +1692,16 @@ Canonical tonic recipes (all last 30 seconds): Fontoura, Lv. 4, 5 Herbs + 1 Iron
 New gathering materials and exact locations: Rushroom on Kwaiouá Forest 5–6; Ironshroom on 2–4; Guaraná on 5 and 7; Ashwagandha on 0, 1 and 4; Mystic Dust on Caetê 0, 1, 2 and 6. These materials are added to the relevant map gathering pools alongside Herbs; pool weights must total 100 and map coordinates/monster rosters remain untouched.
 
 Item art is stored in both framed and no-frame SVG folders and registered in `assets/ui/items/manifest.json`. The frontend Alchemy panel filters recipes by the Potions/Tonics category; recipe unlocks, ingredient reservations, crafting completion and inventory capacity remain server-authoritative.
+
+
+## Gameplay audio channel controls — 2026-11-10
+
+The in-game Sound settings expose three channels: General (master), Effects, and Music. Each channel has an independent volume slider and speaker mute toggle. General scales both effects and music; Effects scales short sound effects; Music scales regional playlists. Each channel's volume and mute state persists independently in browser local storage. The login-screen music control remains independent. Saving a Town plays `new_packs/5/save.mp3` only after the save endpoint succeeds.
+
+## Saved Town guidance — 2026-11-10
+
+The Save Town button exposes localized hover/focus guidance: only one city may be saved, clicking its map tile teleports to it, battle triggers escape attempts before teleport, and death respawns at the saved city. Hovering/focusing the saved Town map tile explains that clicking it teleports there. These are explanations of the existing server-authoritative behavior; no gameplay rules change.
+
+## Animated exploration fog — 2026-11-10
+
+Unrevealed map cells retain their exact square 153px hitbox/grid and existing coordinate/reveal rules. Their visual layer uses slowly moving, rotating and expanding blurred gray cloud shapes that overflow the fog cell into adjacent tile areas, softening square boundaries without changing map interaction or discovery. Respect reduced-motion preferences.

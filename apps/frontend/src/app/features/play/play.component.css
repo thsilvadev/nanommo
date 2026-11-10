@@ -271,6 +271,7 @@
   position: relative;
 }
 .settings-menu {
+  min-width: 220px;
   position: absolute;
   right: 0;
   top: calc(100% + 6px);

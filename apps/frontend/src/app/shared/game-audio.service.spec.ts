@@ -3,6 +3,7 @@ import { GameAudioService } from './game-audio.service';
 describe('GameAudioService battle event routing', () => {
   let audio: GameAudioService;
   beforeEach(() => {
+    localStorage.clear();
     audio = new GameAudioService();
     spyOn(audio, 'play');
   });
@@ -157,6 +158,21 @@ describe('GameAudioService battle event routing', () => {
     expect(localStorage.getItem('nanommo:game-audio-muted')).toBe('false');
   });
 
+  it('keeps General, Effects and Music volume/mute channels independently persisted', () => {
+    audio.setVolume(0.6, 'general');
+    audio.setVolume(0.35, 'effects');
+    audio.setVolume(0.8, 'music');
+    expect(audio.volume()).toBe(0.6);
+    expect(audio.effectsVolume()).toBe(0.35);
+    expect(audio.musicVolume()).toBe(0.8);
+    audio.toggleMute('effects');
+    expect(audio.effectsMuted()).toBeTrue();
+    expect(audio.muted()).toBeFalse();
+    expect(audio.musicMuted()).toBeFalse();
+    expect(localStorage.getItem('nanommo:game-audio-effects-volume')).toBe('0.35');
+    expect(localStorage.getItem('nanommo:game-audio-music-volume')).toBe('0.8');
+  });
+
   it('plays the potion sound for potion-use events', () => {
     (audio as any).playBattleEvent({ actor: 'character', action: 'use_item', itemId: 'pot_hp_small', target: 'character' }, { log: { header: {} } });
     expect(audio.play).toHaveBeenCalledWith('potion_drink');
@@ -188,6 +204,7 @@ describe('GameAudioService battle event routing', () => {
     expect((audio as any).fileName('eGem')).toBe('eGem.mp3');
     expect((audio as any).fileName('flee')).toBe('flee.mp3');
     expect((audio as any).fileName('mailInbox')).toBe('new_packs/4/mailInbox.mp3');
+    expect((audio as any).fileName('saveTown')).toBe('new_packs/5/save.mp3');
     expect((audio as any).fileName('boughtItemFromNpc')).toBe('new_packs/2/boughtItemFromNpc.mp3');
     expect((audio as any).fileName('soldItemToNpc')).toBe('new_packs/2/soldItemToNpc.ogg');
     expect((audio as any).fileName('putInStorage')).toBe('new_packs/2/putInStorage.ogg');

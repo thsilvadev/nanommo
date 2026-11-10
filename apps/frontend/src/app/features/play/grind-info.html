@@ -1,7 +1,7 @@
 <section class="panel grind">
   <div class="panel-title"><span>{{isTown()?'TOWN':'GRIND'}}</span>
     <ng-container *ngIf="isTown()">
-      <button *ngIf="!isCurrentTownSaved()" type="button" class="save-town-button" [disabled]="savingTown()" (click)="saveTown()"><span>{{savingTown()?'Saving…':'Save'}}</span><img class="button-waypoint" src="/assets/ui/T_waypoint.png" alt="" aria-hidden="true"></button>
+      <button *ngIf="!isCurrentTownSaved()" type="button" class="save-town-button" [disabled]="savingTown()"  (click)="saveTown()"><span>{{savingTown()?'Saving…':'Save'}}</span><img class="button-waypoint" src="/assets/ui/T_waypoint.png" alt="" aria-hidden="true"><span class="save-town-tooltip">{{locale.t('Only one city can be saved at a time. Clicking your saved city teleports you there. If you are in battle, you will try to escape first and teleport afterward. If you die, you will respawn in your saved city.')}}</span></button>
       <span *ngIf="isCurrentTownSaved()" class="town-saved-label">Saved ✔</span>
     </ng-container>
     <span *ngIf="!isTown()" [class.warn]="battle.state()==='reconnecting'">{{stateLabel()}}</span>

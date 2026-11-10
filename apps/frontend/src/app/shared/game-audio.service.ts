@@ -8,15 +8,23 @@ type SoundName =
   | 'questCompleted' | 'respec' | 'refineFail' | 'refineSuccess' | 'rod_hit_1'
   | 'staff_hit_1' | 'sword_hit_1' | 'potion_drink' | 'flee' | 'foodCooked' | 'gather'
   | 'boughtItemFromNpc' | 'soldItemToNpc' | 'putInStorage' | 'takeFromStorage' | 'postItemOnMarket'
-  | 'use_fairy_in_a_bottle' | 'use_tonic' | 'mailInbox';
+  | 'use_fairy_in_a_bottle' | 'use_tonic' | 'mailInbox' | 'saveTown';
 
 @Injectable({ providedIn: 'root' })
 export class GameAudioService {
   private readonly base = '/assets/sounds/';
   private readonly volumeStorageKey = 'nanommo:game-audio-volume';
   private readonly mutedStorageKey = 'nanommo:game-audio-muted';
+  private readonly effectsVolumeStorageKey = 'nanommo:game-audio-effects-volume';
+  private readonly musicVolumeStorageKey = 'nanommo:game-audio-music-volume';
+  private readonly effectsMutedStorageKey = 'nanommo:game-audio-effects-muted';
+  private readonly musicMutedStorageKey = 'nanommo:game-audio-music-muted';
   readonly volume = signal(this.readStoredVolume());
   readonly muted = signal(this.readStoredMuted());
+  readonly effectsVolume = signal(this.readStoredNumber(this.effectsVolumeStorageKey, 1));
+  readonly musicVolume = signal(this.readStoredNumber(this.musicVolumeStorageKey, 1));
+  readonly effectsMuted = signal(this.readStoredBoolean(this.effectsMutedStorageKey));
+  readonly musicMuted = signal(this.readStoredBoolean(this.musicMutedStorageKey));
   private readonly effects = new Map<SoundName, string>();
   private music: HTMLAudioElement | null = null;
   private pendingMusic: HTMLAudioElement | null = null;
@@ -49,6 +57,14 @@ export class GameAudioService {
     } catch { return 0.7; }
   }
 
+  private readStoredNumber(key: string, fallback: number): number {
+    try { const raw = localStorage.getItem(key); if (raw === null) return fallback; const value = Number(raw); return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : fallback; } catch { return fallback; }
+  }
+
+  private readStoredBoolean(key: string): boolean {
+    try { return localStorage.getItem(key) === 'true'; } catch { return false; }
+  }
+
   private readStoredMuted(): boolean {
     try {
       const stored = localStorage.getItem(this.mutedStorageKey);
@@ -67,8 +83,8 @@ export class GameAudioService {
   play(name: SoundName): void {
     const audio = new Audio(this.base + this.fileName(name));
     audio.preload = 'auto';
-    audio.volume = this.muted() ? 0 : this.volume();
-    if (this.muted()) return;
+    audio.volume = this.muted() || this.effectsMuted() ? 0 : this.volume() * this.effectsVolume();
+    if (this.muted() || this.effectsMuted()) return;
     void audio.play().catch(() => {});
   }
 
@@ -94,32 +110,58 @@ export class GameAudioService {
       use_fairy_in_a_bottle: 'new_packs/3/useFarieInABottle.mp3',
       use_tonic: 'new_packs/3/useTonic.mp3',
       mailInbox: 'new_packs/4/mailInbox.mp3',
+      saveTown: 'new_packs/5/save.mp3',
     };
     return files[name];
   }
 
-  setVolume(value: number): void {
+  setVolume(value: number, channel: 'general' | 'effects' | 'music' = 'general'): void {
     const next = Math.max(0, Math.min(1, Number(value)));
-    this.volume.set(next);
-    this.muted.set(next === 0);
-    this.persistAudioSettings();
-    if (this.music) { this.music.volume = this.muted() ? 0 : next; if (!this.muted() && this.music.paused) this.tryResumeMusic(); }
-    if (this.pendingMusic && !this.muted()) { this.pendingMusicBlocked = false; this.tryStartPendingMusic(this.pendingMusic, this.musicGeneration); }
+    if (channel === 'effects') {
+      this.effectsVolume.set(next); this.effectsMuted.set(next === 0);
+      try { localStorage.setItem(this.effectsVolumeStorageKey, String(next)); localStorage.setItem(this.effectsMutedStorageKey, String(this.effectsMuted())); } catch { }
+      return;
+    }
+    if (channel === 'music') {
+      this.musicVolume.set(next); this.musicMuted.set(next === 0);
+      try { localStorage.setItem(this.musicVolumeStorageKey, String(next)); localStorage.setItem(this.musicMutedStorageKey, String(this.musicMuted())); } catch { }
+      this.applyMusicVolume();
+      if (!this.musicMuted() && !this.muted() && this.music?.paused) this.tryResumeMusic();
+      if (this.pendingMusic && !this.muted() && !this.musicMuted()) { this.pendingMusicBlocked = false; this.tryStartPendingMusic(this.pendingMusic, this.musicGeneration); }
+      return;
+    }
+    this.volume.set(next); this.muted.set(next === 0); this.persistAudioSettings();
+    this.applyMusicVolume();
+    if (!this.muted() && !this.musicMuted() && this.music?.paused) this.tryResumeMusic();
+    if (this.pendingMusic && !this.muted() && !this.musicMuted()) { this.pendingMusicBlocked = false; this.tryStartPendingMusic(this.pendingMusic, this.musicGeneration); }
   }
 
-  toggleMute(): void {
-    if (this.muted()) {
-      const restored = this.volume() > 0 ? this.volume() : 0.38;
-      this.volume.set(restored);
-      this.muted.set(false);
-      this.persistAudioSettings();
-      if (this.music) { this.music.volume = restored; if (this.music.paused) this.tryResumeMusic(); }
-      if (this.pendingMusic) { this.pendingMusicBlocked = false; this.tryStartPendingMusic(this.pendingMusic, this.musicGeneration); }
-    } else {
-      this.muted.set(true);
-      this.persistAudioSettings();
-      if (this.music) this.music.volume = 0;
+  toggleMute(channel: 'general' | 'effects' | 'music' = 'general'): void {
+    if (channel === 'effects' || channel === 'music') {
+      const muted = channel === 'effects' ? this.effectsMuted : this.musicMuted;
+      const volume = channel === 'effects' ? this.effectsVolume : this.musicVolume;
+      const key = channel === 'effects' ? this.effectsMutedStorageKey : this.musicMutedStorageKey;
+      const nextMuted = !muted(); muted.set(nextMuted);
+      if (volume() <= 0 && !nextMuted) volume.set(0.38);
+      try { localStorage.setItem(key, String(nextMuted)); localStorage.setItem(channel === 'effects' ? this.effectsVolumeStorageKey : this.musicVolumeStorageKey, String(volume())); } catch { }
+      if (channel === 'music') {
+        this.applyMusicVolume();
+        if (!nextMuted && !this.muted() && this.music?.paused) this.tryResumeMusic();
+        if (!nextMuted && this.pendingMusic) { this.pendingMusicBlocked = false; this.tryStartPendingMusic(this.pendingMusic, this.musicGeneration); }
+      }
+      return;
     }
+    if (this.muted()) { this.volume.set(this.volume() > 0 ? this.volume() : 0.38); this.muted.set(false); }
+    else this.muted.set(true);
+    this.persistAudioSettings(); this.applyMusicVolume();
+    if (!this.muted() && !this.musicMuted() && this.music?.paused) this.tryResumeMusic();
+    if (!this.muted() && !this.musicMuted() && this.pendingMusic) { this.pendingMusicBlocked = false; this.tryStartPendingMusic(this.pendingMusic, this.musicGeneration); }
+  }
+
+  private applyMusicVolume(): void {
+    const value = this.muted() || this.musicMuted() ? 0 : this.volume() * this.musicVolume();
+    if (this.music) this.music.volume = value;
+    if (this.pendingMusic && this.pendingMusic !== this.music) this.pendingMusic.volume = 0;
   }
 
   start(characterStore: any, battleStore: any, inventoryStore: any): void {
@@ -238,7 +280,7 @@ export class GameAudioService {
   }
 
   private crossfadeMusic(previous: HTMLAudioElement | null, next: HTMLAudioElement, generation: number): void {
-    const target = this.muted() ? 0 : this.volume();
+    const target = this.muted() || this.musicMuted() ? 0 : this.volume() * this.musicVolume();
     const previousStart = previous?.volume ?? 0;
     const startedAt = performance.now();
     const duration = previous ? 850 : 900;
@@ -296,7 +338,7 @@ export class GameAudioService {
         this.stopMusicElement(audio);
         return;
       }
-      void this.fadeVolume(audio, audio.volume, this.muted() ? 0 : this.volume(), 900, generation);
+      void this.fadeVolume(audio, audio.volume, this.muted() || this.musicMuted() ? 0 : this.volume() * this.musicVolume(), 900, generation);
     }).catch(() => {
       if (generation !== this.musicGeneration || this.music !== audio || !this.musicRegion) this.stopMusicElement(audio);
       else this.bindMusicRetry();

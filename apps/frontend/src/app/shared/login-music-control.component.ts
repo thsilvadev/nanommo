@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, inject, Input, OnInit } from '@angular/core';
 import { LoginMusicService } from './login-music.service';
 import { GameAudioService } from './game-audio.service';
+import { LocaleService } from '../core/locale.service';
 
 @Component({
   selector: 'app-login-music-control',
@@ -9,25 +10,36 @@ import { GameAudioService } from './game-audio.service';
   imports: [CommonModule],
   template: `
     <div class="music-control" [class.auth-control]="variant==='auth'" [class.header-control]="variant==='header'">
-      <button type="button" class="music-button" (click)="toggleMute()" [attr.aria-label]="isMuted() ? 'Ativar música' : 'Silenciar música'" [title]="isMuted() ? 'Ativar música' : 'Silenciar música'">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 9v6h4l5 4V5L8 9H4z"/>
-          <path *ngIf="!isMuted()" d="M15.1 7.5a1 1 0 0 0-1.4 1.4 4 4 0 0 1 0 5.2 1 1 0 1 0 1.4 1.4 6 6 0 0 0 0-8zm2.8-2.8a1 1 0 1 0-1.4 1.4 8 8 0 0 1 0 11.8 1 1 0 1 0 1.4 1.4 10 10 0 0 0 0-14.6z"/>
-          <path *ngIf="isMuted()" d="M4 4 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-        </svg>
-      </button>
-      <input class="music-slider" type="range" min="0" max="1" step="0.01" [value]="volumeValue()" (input)="setVolume($any($event.target).value)" aria-label="Volume da música" />
+      <ng-container *ngIf="variant==='header'; else authControl">
+        <div class="sound-row" *ngFor="let channel of channels">
+          <span>{{locale.t(channel.label)}}</span>
+          <button type="button" class="music-button" (click)="toggleChannel(channel.id)" [attr.aria-label]="channelMuted(channel.id) ? 'Ativar '+channel.label : 'Silenciar '+channel.label" [title]="channelMuted(channel.id) ? 'Ativar '+channel.label : 'Silenciar '+channel.label">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path *ngIf="!channelMuted(channel.id)" d="M15.1 7.5a1 1 0 0 0-1.4 1.4 4 4 0 0 1 0 5.2 1 1 0 1 0 1.4 1.4 6 6 0 0 0 0-8zm2.8-2.8a1 1 0 1 0-1.4 1.4 8 8 0 0 1 0 11.8 1 1 0 1 0 1.4 1.4 10 10 0 0 0 0-14.6z"/><path *ngIf="channelMuted(channel.id)" d="M4 4 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </button>
+          <input class="music-slider" type="range" min="0" max="1" step="0.01" [value]="channelVolume(channel.id)" (input)="setChannelVolume(channel.id,$any($event.target).value)" [attr.aria-label]="channel.label+' volume'" />
+        </div>
+      </ng-container>
+      <ng-template #authControl>
+        <button type="button" class="music-button" (click)="toggleMute()" [attr.aria-label]="isMuted() ? 'Ativar música' : 'Silenciar música'" [title]="isMuted() ? 'Ativar música' : 'Silenciar música'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path *ngIf="!isMuted()" d="M15.1 7.5a1 1 0 0 0-1.4 1.4 4 4 0 0 1 0 5.2 1 1 0 1 0 1.4 1.4 6 6 0 0 0 0-8zm2.8-2.8a1 1 0 1 0-1.4 1.4 8 8 0 0 1 0 11.8 1 1 0 1 0 1.4 1.4 10 10 0 0 0 0-14.6z"/><path *ngIf="isMuted()" d="M4 4 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+        <input class="music-slider" type="range" min="0" max="1" step="0.01" [value]="volumeValue()" (input)="setVolume($any($event.target).value)" aria-label="Volume da música" />
+      </ng-template>
     </div>
   `,
   styles: [`
-    .music-control{display:flex;align-items:center;gap:7px}.music-button{width:25px;height:25px;display:grid;place-items:center;padding:0;border:1px solid #8d6738;border-radius:3px;background:rgba(18,11,7,.38);color:#f0d08b;cursor:pointer}.music-button:hover{background:rgba(164,112,47,.28);color:#ffe3a5}.music-button svg{width:14px;height:14px;fill:currentColor}.music-slider{width:88px;height:3px;accent-color:#d3a14f;cursor:pointer}.auth-control{position:fixed;right:22px;bottom:20px;z-index:20;padding:7px 9px;border:1px solid rgba(193,148,78,.7);border-radius:4px;background:rgba(12,8,5,.32);backdrop-filter:blur(2px);box-shadow:0 3px 14px rgba(0,0,0,.28)}.header-control{margin-left:2px}.header-control .music-button{border-color:#624728;background:transparent}.header-control .music-slider{width: 100%}@media(max-width:599px){.auth-control{right:12px;bottom:12px}.auth-control .music-slider{width:72px}.header-control .music-slider{width:52px}}
+    .music-control{display:flex;align-items:center;gap:7px}.sound-row{display:grid;grid-template-columns:58px 25px 88px;align-items:center;gap:7px}.sound-row>span{color:#c9b58f;font:11px Arial}.sound-row .music-slider{width:88px}.music-button{width:25px;height:25px;display:grid;place-items:center;padding:0;border:1px solid #8d6738;border-radius:3px;background:rgba(18,11,7,.38);color:#f0d08b;cursor:pointer}.music-button:hover{background:rgba(164,112,47,.28);color:#ffe3a5}.music-button svg{width:14px;height:14px;fill:currentColor}.music-slider{width:88px;height:3px;accent-color:#d3a14f;cursor:pointer}.auth-control{position:fixed;right:22px;bottom:20px;z-index:20;padding:7px 9px;border:1px solid rgba(193,148,78,.7);border-radius:4px;background:rgba(12,8,5,.32);backdrop-filter:blur(2px);box-shadow:0 3px 14px rgba(0,0,0,.28)}.header-control{margin-left:2px;display:grid;gap:7px}.header-control .music-button{border-color:#624728;background:transparent}.header-control .music-slider{width:88px}@media(max-width:599px){.auth-control{right:12px;bottom:12px}.auth-control .music-slider{width:72px}.header-control .music-slider{width:52px}.sound-row{grid-template-columns:48px 25px 52px}}
   `],
 })
 export class LoginMusicControlComponent implements OnInit {
   @Input() variant: 'auth' | 'header' = 'auth';
   readonly music = inject(LoginMusicService);
   readonly gameAudio = inject(GameAudioService);
+  readonly locale = inject(LocaleService);
 
+  readonly channels = [{id:'general' as const,label:'General'},{id:'effects' as const,label:'Effects'},{id:'music' as const,label:'Music'}];
+  channelVolume(id: 'general'|'effects'|'music'): number { return id==='general'?this.gameAudio.volume():id==='effects'?this.gameAudio.effectsVolume():this.gameAudio.musicVolume(); }
+  channelMuted(id: 'general'|'effects'|'music'): boolean { return id==='general'?this.gameAudio.muted():id==='effects'?this.gameAudio.effectsMuted():this.gameAudio.musicMuted(); }
+  toggleChannel(id: 'general'|'effects'|'music'): void { this.gameAudio.toggleMute(id); }
+  setChannelVolume(id: 'general'|'effects'|'music',value:string): void { this.gameAudio.setVolume(Number(value),id); }
   volumeValue(): number { return this.variant === 'header' ? this.gameAudio.volume() : this.music.volume(); }
   isMuted(): boolean { return this.variant === 'header' ? this.gameAudio.muted() : this.music.muted(); }
   toggleMute(): void { if (this.variant === 'header') this.gameAudio.toggleMute(); else this.music.toggleMute(); }

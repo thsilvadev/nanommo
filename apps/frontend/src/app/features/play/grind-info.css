@@ -24,6 +24,7 @@
 }
 
 .save-town-button {
+  position: relative;
   margin-left: auto;
   display: inline-flex;
   align-items: center;
@@ -333,3 +334,25 @@
     padding: 5px;
   }
 }
+
+.save-town-tooltip {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 100;
+  display: none;
+  width: min(310px, 75vw);
+  padding: 10px 12px;
+  box-sizing: border-box;
+  border: 1px solid #9b7849;
+  background: linear-gradient(145deg, #21170f, #100b07);
+  box-shadow: 0 6px 20px #000c;
+  color: #d7c39f;
+  font: 12px/1.45 Arial, sans-serif;
+  letter-spacing: 0;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+}
+.save-town-button:hover .save-town-tooltip,
+.save-town-button:focus-visible .save-town-tooltip { display: block; }
