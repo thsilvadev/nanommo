@@ -2,7 +2,7 @@
   <div class="panel-title"><span>CHARACTER</span></div>
   <div class="paper-doll">
     <div class="equip-column equip-column-left">
-      <div *ngFor="let slot of slots.slice(0,4)" [class.focused]="isSlotFocused(slot.key)" class="equip-slot"
+      <div *ngFor="let slot of leftEquipmentSlots" [class.focused]="isSlotFocused(slot.key)" class="equip-slot"
         cdkDropList cdkDropListSortingDisabled [id]="slotDropId(slot.key)"
         [cdkDropListConnectedTo]="['inventory-drop-list']" [cdkDropListEnterPredicate]="equipmentPredicates[slot.key]"
         (cdkDropListDropped)="dropEquipment(slot.key,$event)">
@@ -11,20 +11,20 @@
             (cdkDragEnded)="onEquipmentDragEnd()" (dblclick)="unequip(slot.key)" class="equip-drag"><img
               [src]="catalog.itemIcon(eq.itemId)" [alt]="catalog.item(eq.itemId)?.name||eq.itemId">
             <div class="item-tooltip"><strong [class]="itemTierClass(slot.key)">{{itemName(slot.key)}}</strong><span
-                *ngFor="let line of itemTooltipLines(slot.key)" [class.tooltip-warning]="line.warning"><ng-container *ngIf="line.originalValue !== undefined; else normalEquipLine">{{line.label}}: <del>{{line.originalValue}}</del> {{line.value}}</ng-container><ng-template #normalEquipLine>{{line.label ? line.label + ': ' : ''}}{{line.value}}</ng-template></span></div><ng-template
+                *ngFor="let line of itemTooltipLines(slot.key)" [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative"><ng-container *ngIf="line.originalValue !== undefined; else normalEquipLine">{{line.label}}: <del>{{line.originalValue}}</del> {{line.value}}</ng-container><ng-template #normalEquipLine>{{line.label ? line.label + ': ' : ''}}{{line.value}}</ng-template></span></div><ng-template
               cdkDragPreview><img class="drag-preview-icon" [src]="catalog.itemIcon(eq.itemId)"
                 [alt]="catalog.item(eq.itemId)?.name||eq.itemId"></ng-template><ng-template cdkDragPlaceholder><span
                 class="equip-drag-placeholder"></span></ng-template>
           </div>
         </ng-container>
-        <ng-container *ngIf="!equipped(slot.key)"><img [src]="slot.icon" [alt]="slot.label"></ng-container>
+        <ng-container *ngIf="!equipped(slot.key)"><img [src]="slot.icon" [alt]="slot.label" [style.transform]="handIconTransform(slot.key)"></ng-container>
       </div>
     </div>
     <div class="portrait-wrap">
       <div class="portrait" [battleHitFeedback]="'character'">{{initial()}}</div>
     </div>
     <div class="equip-column equip-column-right">
-      <div *ngFor="let slot of slots.slice(4)" [class.focused]="isSlotFocused(slot.key)" class="equip-slot" cdkDropList
+      <div *ngFor="let slot of rightEquipmentSlots" [class.focused]="isSlotFocused(slot.key)" class="equip-slot" cdkDropList
         cdkDropListSortingDisabled [id]="slotDropId(slot.key)" [cdkDropListConnectedTo]="['inventory-drop-list']"
         [cdkDropListEnterPredicate]="equipmentPredicates[slot.key]"
         (cdkDropListDropped)="dropEquipment(slot.key,$event)">
@@ -33,13 +33,13 @@
             (cdkDragEnded)="onEquipmentDragEnd()" (dblclick)="unequip(slot.key)" class="equip-drag"><img
               [src]="catalog.itemIcon(eq.itemId)" [alt]="catalog.item(eq.itemId)?.name||eq.itemId">
             <div class="item-tooltip"><strong [class]="itemTierClass(slot.key)">{{itemName(slot.key)}}</strong><span
-                *ngFor="let line of itemTooltipLines(slot.key)" [class.tooltip-warning]="line.warning"><ng-container *ngIf="line.originalValue !== undefined; else normalEquipLine">{{line.label}}: <del>{{line.originalValue}}</del> {{line.value}}</ng-container><ng-template #normalEquipLine>{{line.label ? line.label + ': ' : ''}}{{line.value}}</ng-template></span></div><ng-template
+                *ngFor="let line of itemTooltipLines(slot.key)" [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative"><ng-container *ngIf="line.originalValue !== undefined; else normalEquipLine">{{line.label}}: <del>{{line.originalValue}}</del> {{line.value}}</ng-container><ng-template #normalEquipLine>{{line.label ? line.label + ': ' : ''}}{{line.value}}</ng-template></span></div><ng-template
               cdkDragPreview><img class="drag-preview-icon" [src]="catalog.itemIcon(eq.itemId)"
                 [alt]="catalog.item(eq.itemId)?.name||eq.itemId"></ng-template><ng-template cdkDragPlaceholder><span
                 class="equip-drag-placeholder"></span></ng-template>
           </div>
         </ng-container>
-        <ng-container *ngIf="!equipped(slot.key)"><img [src]="slot.icon" [alt]="slot.label"></ng-container>
+        <ng-container *ngIf="!equipped(slot.key)"><img [src]="slot.icon" [alt]="slot.label" [style.transform]="handIconTransform(slot.key)"></ng-container>
       </div>
     </div>
   </div>

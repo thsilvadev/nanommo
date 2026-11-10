@@ -26,7 +26,7 @@
               <img [src]="itemIcon(row.itemId)" [alt]="catalog.itemName(row.itemId,row.instanceData)">
               <b *ngIf="row.quantity>1">{{row.quantity}}</b>
               <div class="item-tooltip"><strong>{{catalog.itemName(row.itemId,row.instanceData)}}</strong><span
-                *ngFor="let line of catalog.itemTooltipLines(row.itemId,row.instanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></div>
+                *ngFor="let line of catalog.itemTooltipLines(row.itemId,row.instanceData)" [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></div>
             </div><button type="button" aria-label="Remove selected item" title="Remove selected item"
               (click)="changeInventory('')">×</button></ng-container>
           </div>
@@ -86,9 +86,9 @@
       <div class="market-listings">
         <article *ngFor="let row of listings()" class="market-listing" [class.own-listing]="own(row)">
           <div class="market-listing-item"><strong class="market-listing-quantity" [attr.aria-label]="row.remainingQuantity + ' units available'">{{row.remainingQuantity | number}}×</strong><img
-              [src]="itemIcon(row.itemId)" [alt]="catalog.itemName(row.itemId,row.itemInstanceData)"></div>
-          <div class="market-listing-info"><strong>{{catalog.itemName(row.itemId,row.itemInstanceData)}}</strong><small>{{catalog.itemTypeLabel(row.itemId)}} · Tier {{row.tier}}</small><small
-              [title]="tooltip(row.itemId,row.itemInstanceData)">{{tooltip(row.itemId,row.itemInstanceData)}}</small><small>Expires
+              [src]="itemIcon(row.itemId)" [alt]="catalog.itemName(row.itemId,row.itemInstanceData)"><div class="item-tooltip"><strong>{{catalog.itemName(row.itemId,row.itemInstanceData)}}</strong><span
+                *ngFor="let line of catalog.itemTooltipLines(row.itemId,row.itemInstanceData)" [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span></div></div>
+          <div class="market-listing-info"><strong>{{catalog.itemName(row.itemId,row.itemInstanceData)}}</strong><small>{{catalog.itemTypeLabel(row.itemId)}}</small><small>Expires
               {{row.expiresAt | date:'short'}}</small></div>
           <div class="market-listing-price"><b>{{row.pricePerUnit | number}} G</b><small>per item</small><span
               *ngIf="own(row)">Your listing</span><button *ngIf="!own(row)" [disabled]="busyId()===row.id"

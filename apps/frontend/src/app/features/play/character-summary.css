@@ -54,7 +54,7 @@
   max-height: 48px;
   object-fit: contain;
   opacity: 0.95;
-  filter: brightness(0) invert(1) drop-shadow(0 1px 1px #000);
+  filter: drop-shadow(0 2px 2px #000);
 }
 .equip-slot.focused {
   border-color: #d0a552;

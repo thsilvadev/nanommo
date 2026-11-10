@@ -1,3 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-<path d="M7 4h5v9l4 3 3 4H4v-3l4-2-1-11Z"/><path d="M8 13h4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+ <defs><linearGradient id="boot" x1="12" y1="5" x2="53" y2="59"><stop stop-color="#aeb4b8"/><stop offset=".35" stop-color="#646d74"/><stop offset=".75" stop-color="#30373d"/><stop offset="1" stop-color="#171c20"/></linearGradient></defs>
+ <path d="M12 7h17v25l8 7 12 5 5 9H8v-8l8-7-4-31Z" fill="url(#boot)" stroke="#b9bec1" stroke-width="2"/>
+ <path d="M13 12h13v20l8 8-10 8-11-4 3-7-3-25Z" fill="#3d454b" stroke="#858e94" stroke-width="1.5"/>
+ <path d="M27 31 37 40l13 5 6 8H19l-2-5 10-7V31Z" fill="#252c31" stroke="#9da4a8" stroke-width="1.5"/>
+ <path d="M11 53h45v5H9l-1-3 3-2Z" fill="#171b1f" stroke="#aeb4b7" stroke-width="1.5"/>
+ <path d="M15 17h9m-8 5h9m-8 5h9m-1 8 8 7" stroke="#c6cacc" stroke-opacity=".6" stroke-width="1.5"/><path d="m32 43 4-3m1 6 4-3m1 6 4-3" stroke="#9ca4a9" stroke-width="1.4"/>
+ <circle cx="18" cy="15" r="1.5" fill="#d2d5d6"/><circle cx="22" cy="29" r="1.5" fill="#d2d5d6"/>
 </svg>

@@ -1,3 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-<path d="M4 14c2-5 6-7 10-6 3 .8 5 3 6 6-4 3-11 4-16 0Z"/><path d="M7 13c2 1 5 1 8 0"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+ <defs><radialGradient id="dish" cx="0" cy="0" r="1" gradientTransform="matrix(0 29 -29 0 32 20)" gradientUnits="userSpaceOnUse"><stop stop-color="#aeb4b8"/><stop offset=".45" stop-color="#687178"/><stop offset=".82" stop-color="#343b41"/><stop offset="1" stop-color="#171c21"/></radialGradient></defs>
+ <ellipse cx="32" cy="35" rx="28" ry="22" fill="url(#dish)" stroke="#c0c5c8" stroke-width="2"/>
+ <ellipse cx="32" cy="33" rx="21" ry="15" fill="#1c2227" stroke="#929ba0" stroke-width="2"/>
+ <path d="M14 31c4-7 9-10 15-8 5 2 5 8 1 11-5 4-12 3-16-3Z" fill="#687178" stroke="#b8bec1" stroke-width="1.4"/>
+ <path d="M32 24c6-5 14-2 16 4 2 6-4 11-10 10-7-1-10-8-6-14Z" fill="#515b62" stroke="#aeb5b9" stroke-width="1.4"/>
+ <path d="M20 40c5-4 9-4 13 0 4 4 10 4 14 0" stroke="#c0c6c9" stroke-width="1.6" stroke-linecap="round"/>
+ <path d="M24 17c-2-4 2-7 5-5m8 4c-1-4 3-6 6-3" stroke="#a9b1b5" stroke-width="2" stroke-linecap="round"/>
+ <path d="M8 35c2 10 11 17 24 17s22-7 24-17" stroke="#d0d4d6" stroke-opacity=".6" stroke-width="1.2"/>
+ <circle cx="27" cy="29" r="1.5" fill="#d0d5d7"/><circle cx="41" cy="31" r="1.5" fill="#c6cccf"/>
 </svg>

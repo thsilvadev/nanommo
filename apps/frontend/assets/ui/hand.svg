@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+ <defs><linearGradient id="gauntlet" x1="12" y1="5" x2="54" y2="60"><stop stop-color="#c0c5c8"/><stop offset=".25" stop-color="#788188"/><stop offset=".62" stop-color="#3c444b"/><stop offset="1" stop-color="#171c21"/></linearGradient></defs>
+ <path d="M19 56 14 45l-5-9c-2-4 3-8 6-4l5 7-4-22c-1-5 5-7 7-2l4 17-1-24c0-5 7-6 8-1l1 24 2-19c1-5 7-4 7 1l-1 21 4-11c2-5 8-2 6 3l-5 18-2 12-9 5H19Z" fill="url(#gauntlet)" stroke="#c2c8cb" stroke-width="1.8" stroke-linejoin="round"/>
+ <path d="m16 42 8 6 7-3 7 4 8-5m-27-8 7 5 6-3 7 4 8-4" stroke="#20272d" stroke-width="2" stroke-linecap="round"/>
+ <path d="m24 19 4 18m7-19-1 18m9-13-2 17" stroke="#d4d8da" stroke-opacity=".65" stroke-width="1.4"/>
+ <path d="M19 54h27l-2 6H21l-2-6Z" fill="#252c32" stroke="#9da5aa" stroke-width="1.5"/><path d="M23 56h19" stroke="#d1d5d7" stroke-opacity=".65" stroke-width="1.2"/>
+ <circle cx="21" cy="44" r="1.4" fill="#cbd0d2"/><circle cx="31" cy="42" r="1.4" fill="#cbd0d2"/><circle cx="42" cy="44" r="1.4" fill="#cbd0d2"/>
+</svg>

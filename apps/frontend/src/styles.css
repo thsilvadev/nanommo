@@ -512,6 +512,17 @@ select:focus-visible,
 .nm-floating-tooltip .tooltip-warning {
   color: #e05252;
 }
+.nm-floating-tooltip .comparison-header {
+  margin-top: 5px;
+  padding-top: 6px;
+  border-top: 1px solid #59432b;
+  color: #d7bd8c;
+  font: 700 11px Arial,sans-serif;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.nm-floating-tooltip .comparison-positive { color: #79c879; }
+.nm-floating-tooltip .comparison-negative { color: #e27669; }
 
 /* Status icons use the shared viewport-aware floating tooltip overlay. */
 .status-effect-icon .status-tooltip {

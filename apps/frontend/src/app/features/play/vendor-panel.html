@@ -38,7 +38,7 @@
               class="vendor-icon"><b *ngIf="item.quantity>1">{{item.quantity}}</b>
             <div class="item-tooltip"><strong>{{vendor.itemName(item.itemId,item.instanceData)}}</strong><span
                 *ngFor="let line of catalog.itemTooltipLines(item.itemId,item.instanceData)"
-                [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+                [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
             </div>
             <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)"
                 [alt]="vendor.itemName(item.itemId,item.instanceData)"></ng-template><ng-template cdkDragPlaceholder><span
@@ -61,7 +61,7 @@
             <div class="item-tooltip"><strong
                 [class]="itemTierClass(item.itemId)">{{vendor.itemName(item.itemId)}}</strong><span
                 *ngFor="let line of catalog.itemTooltipLines(item.itemId)"
-                [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+                [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
             </div><small>{{item.buyPrice}} G</small>
             <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)"
                 [alt]="vendor.itemName(item.itemId)"></ng-template>
@@ -102,7 +102,7 @@
                 <b *ngIf="attached.quantity>1">{{attached.quantity}}</b>
                 <div class="item-tooltip"><strong>{{vendor.itemName(attached.itemId,attached.instanceData)}}</strong><span
                     *ngFor="let line of catalog.itemTooltipLines(attached.itemId,attached.instanceData)"
-                    [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+                    [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
                 </div>
               </div><button type="button" class="mail-attachment-remove" aria-label="Remove attachment"
                 title="Remove attachment" (click)="vendor.mailboxItemId.set('')">×</button>
@@ -127,7 +127,7 @@
               <b *ngIf="mail.quantity>1">{{mail.quantity}}</b>
               <span class="item-tooltip"><strong>{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><span
                   *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)"
-                  [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' :
+                  [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' :
                   ''}}{{line.value}}</span></span>
             </span></span>
         </button>
@@ -153,7 +153,7 @@
                   *ngIf="mail.quantity>1">{{mail.quantity}}</b><span
                   class="item-tooltip"><strong>{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><span
                     *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)"
-                    [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' :
+                    [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' :
                     ''}}{{line.value}}</span></span></span><span><strong>{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><small>Quantity:
                   {{mail.quantity}}</small></span></div>
             <div class="mailbox-modal-attachment" *ngIf="mail.attachedGold"><img src="/assets/ui/coin.svg" alt="Gold"
@@ -243,7 +243,7 @@
               <img [src]="vendor.catalog.itemIcon(recipe.outputItemId)" [alt]="recipe.name" class="cooking-food-icon">
               <div class="item-tooltip"><strong>{{vendor.itemName(recipe.outputItemId)}}</strong><span
                   *ngFor="let line of vendor.catalog.itemTooltipLines(recipe.outputItemId)"
-                  [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+                  [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
               </div>
             </div>
             <div class="cooking-recipe-info"><strong>{{recipe.name}}</strong><span class="cooking-required">Cooking Lv.
@@ -253,7 +253,7 @@
                     ({{ingredient.available}} {{vendor.t('Available')}})
                     <span class="item-tooltip"><strong>{{vendor.itemName(ingredient.itemId)}}</strong><span
                         *ngFor="let line of vendor.catalog.itemTooltipLines(ingredient.itemId)"
-                        [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+                        [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
                     </span>
                   </span>{{last?'':' · '}}
                 </ng-container></span><span *ngIf="!recipe.canReserveOutput" class="cooking-warning">Not enough

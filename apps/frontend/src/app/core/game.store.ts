@@ -36,7 +36,7 @@ export class CharacterStore {
 export class InventoryStore {
  private readonly api=inject(ApiService); private readonly character=inject(CharacterStore); private readonly catalog=inject(CatalogService); private readonly audio=inject(GameAudioService);private readonly _items=signal<InventoryItem[]>([]);private readonly _equipment=signal<EquippedItem[]>([]);private readonly _state=signal<LoadState>('idle');private readonly _draggedItemId=signal<string|null>(null);
  readonly items=this._items.asReadonly();readonly equipment=this._equipment.asReadonly();readonly state=this._state.asReadonly();readonly draggedItemId=this._draggedItemId.asReadonly();private loadSeq=0;private realtimeGeneration=0;private realtimeRevision=0;
- async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const [inventory,equipment]=await Promise.all([this.api.get<{items:InventoryItem[];stateVersion:number}>('/inventory').toPromise(),this.api.get<EquippedItem[]>('/equipment').toPromise()]);if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if((inventory?.stateVersion??0)<this.realtimeRevision)return;this.realtimeRevision=Math.max(this.realtimeRevision,inventory?.stateVersion??0);this._items.set(inventory?.items??[]);this._equipment.set(equipment??[]);this._state.set('loaded')}catch{if(seq===this.loadSeq&&generation===this.realtimeGeneration)this._state.set('error')}}
+ async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const [inventory,equipment]=await Promise.all([this.api.get<{items:InventoryItem[];stateVersion:number}>('/inventory').toPromise(),this.api.get<EquippedItem[]>('/equipment').toPromise()]);if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if((inventory?.stateVersion??0)<this.realtimeRevision)return;this.realtimeRevision=Math.max(this.realtimeRevision,inventory?.stateVersion??0);this._items.set(inventory?.items??[]);this._equipment.set(equipment??[]);this.catalog.setEquippedEquipment(equipment??[]);this._state.set('loaded')}catch{if(seq===this.loadSeq&&generation===this.realtimeGeneration)this._state.set('error')}}
  applyRealtimeSnapshot(items:InventoryItem[],revision:number){if(revision<=this.realtimeRevision)return;this.realtimeRevision=revision;this.realtimeGeneration++;this._items.set(items);this._state.set('loaded');}
  applyMutationSnapshot(snapshot:EquipmentMutationResponse){
   if(snapshot.stateVersion<=this.realtimeRevision)return;
@@ -44,6 +44,7 @@ export class InventoryStore {
   this.realtimeGeneration++;
   this._items.set(snapshot.inventory??[]);
   this._equipment.set(snapshot.equipment??[]);
+  this.catalog.setEquippedEquipment(snapshot.equipment??[]);
   this._state.set('loaded');
   this.character.applyRealtimeSnapshot(snapshot.character,snapshot.stateVersion);
  }

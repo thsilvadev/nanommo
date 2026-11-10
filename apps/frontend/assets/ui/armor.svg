@@ -1,3 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-<path d="M8 4l4 2 4-2 3 4-2 3v9H7v-9L5 8l3-4Z"/><path d="M9 8l3 2 3-2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+ <defs><linearGradient id="plate" x1="8" y1="7" x2="57" y2="59"><stop stop-color="#aab0b4"/><stop offset=".3" stop-color="#687178"/><stop offset=".7" stop-color="#343b41"/><stop offset="1" stop-color="#171c21"/></linearGradient></defs>
+ <path d="m20 7 12 5 12-5 11 10-6 12 3 27H12l3-27-6-12L20 7Z" fill="url(#plate)" stroke="#c0c4c6" stroke-width="2"/>
+ <path d="m20 9 12 7 12-7 5 9-7 8-10-5-10 5-7-8 5-9Z" fill="#252c32" stroke="#858e94" stroke-width="1.5"/>
+ <path d="m15 27 11-4 6 7 6-7 11 4-3 25H18l-3-25Z" fill="#4c555c" stroke="#9ba2a6" stroke-width="1.5"/>
+ <path d="m26 24 6 6 6-6-2 22-4 5-4-5-2-22Z" fill="#252c31" stroke="#aeb4b7" stroke-width="1.4"/>
+ <path d="M18 33 12 49l7 4 7-17m20-3 6 16-7 4-7-17" fill="#343b41" stroke="#8e969b" stroke-width="1.5"/>
+ <path d="M22 12 17 20m25-8 5 8M21 34l4 3m18-3-4 3M22 47h20" stroke="#d1d4d5" stroke-opacity=".55" stroke-width="1.4"/>
+ <circle cx="21" cy="28" r="1.4" fill="#c2c6c8"/><circle cx="43" cy="28" r="1.4" fill="#c2c6c8"/><path d="M28 55h8" stroke="#b6bbbe" stroke-width="2"/>
 </svg>
