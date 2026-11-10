@@ -2051,16 +2051,16 @@
       "designNote": "A calm, radiant guardian that converts hostile spells into escalating arcane prowess before unleashing psychic force.",
       "drops": [
         {
-          "itemId": "part_kwaioua_ranger_common",
+          "itemId": "part_unicorn_common",
           "chance": 0.3
         },
         {
-          "itemId": "part_kwaioua_ranger_rare",
-          "chance": 0.002
+          "itemId": "part_unicorn_rare",
+          "chance": 0.01
         },
         {
           "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
+          "chance": 0.08,
           "note": "resolved to a tier-appropriate consumable at roll time"
         },
         {
@@ -2069,7 +2069,7 @@
         },
         {
           "itemId": "equip_head_magic_t3",
-          "chance": 0.001
+          "chance": 0.002
         },
         {
           "itemId": "equip_cape_phys_t3",
@@ -2077,19 +2077,19 @@
         },
         {
           "itemId": "equip_cape_magic_t3",
-          "chance": 0.001
+          "chance": 0.002
         },
         {
           "itemId": "equip_accessory_dex_t3",
-          "chance": 0.0005
+          "chance": 0.001
         },
         {
           "itemId": "equip_shoes_fire_t3",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_shoes_shadow_t3",
-          "chance": 0.0001
+          "chance": 0.0002
         },
         {
           "itemId": "equip_body_phys_t3",
@@ -2097,7 +2097,7 @@
         },
         {
           "itemId": "equip_body_magic_t3",
-          "chance": 0.001
+          "chance": 0.002
         },
         {
           "itemId": "equip_sword_t3",
@@ -2144,7 +2144,7 @@
         {
           "priority": 1,
           "condition": {
-            "type": "skill_ready",
+            "type": "always",
             "skillId": "monster_skill_psychic_overload"
           },
           "action": {

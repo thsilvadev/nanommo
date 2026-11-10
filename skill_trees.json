@@ -96,13 +96,7 @@
         "description": "30–50 SP by rank; (ATK × 1.1) + (20 × rank) physical damage; Disarm for 3/6/9/12/15 seconds by rank; 25 second cooldown.",
         "effectDescription": "30–50 SP by rank; (ATK × 1.1) + (20 × rank) physical damage; Disarm for 3/6/9/12/15 seconds by rank; 25 second cooldown.",
         "requiresWeaponEquipped": "greatsword",
-        "spCostByRank": [
-          30,
-          35,
-          40,
-          45,
-          50
-        ],
+        "spCostByRank": [30, 35, 40, 45, 50],
         "baseCastTicks": 2,
         "cooldownTicks": 25,
         "effect": {
@@ -112,13 +106,7 @@
           "flatPerRank": 20,
           "applyStatus": "disarm",
           "statusChance": 1,
-          "statusDurationTicksByRank": [
-            3,
-            6,
-            9,
-            12,
-            15
-          ]
+          "statusDurationTicksByRank": [3, 6, 9, 12, 15]
         },
         "target": "monster"
       }
@@ -161,22 +149,10 @@
         "description": "Guaranteed ATK damage; reposition in front of target; rank cooldown 100/85/70/55/40 ticks.",
         "effectDescription": "Guaranteed ATK damage; reposition in front of target; rank cooldown 100/85/70/55/40 ticks.",
         "requiresWeaponEquipped": "dagger",
-        "spCostByRank": [
-          0,
-          0,
-          0,
-          0,
-          0
-        ],
+        "spCostByRank": [0, 0, 0, 0, 0],
         "baseCastTicks": 2,
         "cooldownTicks": 100,
-        "cooldownTicksByRank": [
-          100,
-          85,
-          70,
-          55,
-          40
-        ],
+        "cooldownTicksByRank": [100, 85, 70, 55, 40],
         "target": "monster",
         "maxRange": 7,
         "ranged": true,
@@ -228,13 +204,7 @@
         "description": "20–100 SP; 50 damage per rank; pushes target to distance 6.",
         "effectDescription": "20–100 SP; 50 damage per rank; pushes target to distance 6.",
         "requiresWeaponEquipped": "bow",
-        "spCostByRank": [
-          20,
-          40,
-          60,
-          80,
-          100
-        ],
+        "spCostByRank": [20, 40, 60, 80, 100],
         "baseCastTicks": 2,
         "cooldownTicks": 25,
         "target": "monster",
@@ -362,13 +332,7 @@
         "spCostPerRank": 20,
         "baseCastTicks": 5,
         "cooldownTicks": 9,
-        "cooldownTicksByRank": [
-          9,
-          8,
-          7,
-          6,
-          5
-        ],
+        "cooldownTicksByRank": [9, 8, 7, 6, 5],
         "target": "self",
         "effect": {
           "type": "self_heal",
@@ -743,8 +707,10 @@
       "kind": "active",
       "target": "foe",
       "spCost": 40,
-      "cooldownTicks": 15,
+      "cooldownTicks": 20,
       "baseCastTicks": 3,
+      "ranged": true,
+      "maxRange": 7,
       "damageType": "magic",
       "effect": {
         "type": "magic_damage",
