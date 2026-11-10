@@ -206,7 +206,7 @@
         "requiresWeaponEquipped": "bow",
         "spCostByRank": [20, 40, 60, 80, 100],
         "baseCastTicks": 2,
-        "cooldownTicks": 25,
+        "cooldownTicks": 18,
         "target": "monster",
         "ranged": true,
         "maxRange": 7,
