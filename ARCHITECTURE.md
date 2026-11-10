@@ -974,6 +974,7 @@ GameAudioService maps runtime file extensions exactly to the copied public asset
 - Combat lane movement uses the same effective character Move Speed as world travel: the battle snapshot carries equipment and active temporary movement modifiers, while BattleEngine applies battle-local status penalties once per tick. Do not reset player movement speed to `50 + level` inside the engine.
 - GameAudioService startup delegates the initial regional music transition to `updateMusic()`; avoid a parallel startup stop/fade that can race the region transition. A rejected browser `play()` promise remains subject to autoplay policy and retry behavior.
 - On a region change, start the destination track while retaining the currently audible track. Promote and crossfade only after the destination `play()` promise resolves. If playback is rejected, keep the old track and retain the candidate for retry after a user gesture; do not issue retries on every map poll. Discard pending candidates from stale region generations.
+- When a region change cancels an in-progress crossfade, immediately stop orphaned outgoing instances but retain the currently audible track until the destination candidate successfully starts. When a new crossfade begins, retain only its outgoing/incoming pair and stop every older instance; this prevents A→B→C transitions from leaving A playing underneath C. The regression test verifies the superseded A instance is paused while B and C remain alive.
 
 
 ## Gameplay audio channel mixing — 2026-11-10

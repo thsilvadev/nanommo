@@ -138,6 +138,31 @@ describe('GameAudioService battle event routing', () => {
     expect((audio as any).pendingMusic).toBeNull();
   });
 
+  it('stops orphaned outgoing tracks when a newer crossfade supersedes the previous one', () => {
+    spyOn(window, 'requestAnimationFrame').and.returnValue(456);
+    spyOn(window, 'cancelAnimationFrame');
+    const makeTrack = () => ({ volume: 0.4, currentTime: 0, pause: jasmine.createSpy('pause') } as unknown as HTMLAudioElement);
+    const trackA = makeTrack();
+    const trackB = makeTrack();
+    const trackC = makeTrack();
+    (audio as any).musicInstances.add(trackA);
+    (audio as any).musicInstances.add(trackB);
+    (audio as any).musicInstances.add(trackC);
+    (audio as any).music = trackC;
+    (audio as any).musicGeneration = 8;
+
+    // A was the outgoing track in a previous A -> B fade. B is now fading
+    // toward C, so only B and C may remain alive.
+    (audio as any).crossfadeMusic(trackB, trackC, 8);
+
+    expect(trackA.pause).toHaveBeenCalled();
+    expect(trackB.pause).not.toHaveBeenCalled();
+    expect(trackC.pause).not.toHaveBeenCalled();
+    expect((audio as any).musicInstances.has(trackA)).toBeFalse();
+    expect((audio as any).musicInstances.has(trackB)).toBeTrue();
+    expect((audio as any).musicInstances.has(trackC)).toBeTrue();
+  });
+
   it('retries paused regional music directly from a volume interaction', () => {
     const music = { paused: true, volume: 0.2 } as HTMLAudioElement;
     (audio as any).music = music;

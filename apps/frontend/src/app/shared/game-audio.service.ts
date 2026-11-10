@@ -227,6 +227,10 @@ export class GameAudioService {
     if (this.pendingMusic) this.stopMusicElement(this.pendingMusic);
     this.pendingMusicStarting = false;
     this.pendingMusicBlocked = false;
+    // A cancelled crossfade may leave its outgoing track in the instance set.
+    // Keep the currently audible track alive until the destination can play,
+    // but stop every older instance that no longer belongs to this transition.
+    this.stopOtherMusicInstances(this.music);
     if (!this.musicTracks.length) {
       void this.stopMusic(850);
       return;
@@ -297,12 +301,17 @@ export class GameAudioService {
       }
     };
     this.cancelMusicFade();
+    // A newer crossfade supersedes the previous one. Retain only the pair
+    // participating in the new fade; older outgoing tracks must not keep
+    // playing after their animation frame has been cancelled.
+    this.stopOtherMusicInstances(previous, next);
     this.musicFadeFrame = requestAnimationFrame(tick);
   }
 
-  private stopOtherMusicInstances(keep?: HTMLAudioElement): void {
+  private stopOtherMusicInstances(...keep: Array<HTMLAudioElement | null | undefined>): void {
+    const retained = new Set(keep.filter((audio): audio is HTMLAudioElement => !!audio));
     for (const audio of this.musicInstances) {
-      if (audio !== keep) this.stopMusicElement(audio);
+      if (!retained.has(audio)) this.stopMusicElement(audio);
     }
   }
 
