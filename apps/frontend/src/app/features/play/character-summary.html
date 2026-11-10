@@ -17,7 +17,7 @@
                 class="equip-drag-placeholder"></span></ng-template>
           </div>
         </ng-container>
-        <ng-container *ngIf="!equipped(slot.key)"><img [src]="slot.icon" [alt]="slot.label" [style.transform]="handIconTransform(slot.key)"></ng-container>
+        <ng-container *ngIf="!equipped(slot.key)"><img [src]="slot.icon" [alt]="slot.label" [class.mirrored-hand]="isMirroredHandSlot(slot.key)"></ng-container>
       </div>
     </div>
     <div class="portrait-wrap">
@@ -39,7 +39,7 @@
                 class="equip-drag-placeholder"></span></ng-template>
           </div>
         </ng-container>
-        <ng-container *ngIf="!equipped(slot.key)"><img [src]="slot.icon" [alt]="slot.label" [style.transform]="handIconTransform(slot.key)"></ng-container>
+        <ng-container *ngIf="!equipped(slot.key)"><img [src]="slot.icon" [alt]="slot.label" [class.mirrored-hand]="isMirroredHandSlot(slot.key)"></ng-container>
       </div>
     </div>
   </div>

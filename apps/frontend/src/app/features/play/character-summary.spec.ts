@@ -26,8 +26,12 @@ describe('CharacterSummary paper-doll layout', () => {
       .toEqual(['head', 'mainHand', 'cape', 'accessoryLeft']);
     expect(summary.rightEquipmentSlots.map(slot => slot.key))
       .toEqual(['body', 'offHand', 'shoes', 'accessoryRight']);
-    expect(summary.handIconTransform('mainHand')).toBe('none');
-    expect(summary.handIconTransform('offHand')).toBe('scaleX(-1)');
+    expect(summary.isMirroredHandSlot('mainHand')).toBeFalse();
+    expect(summary.isMirroredHandSlot('offHand')).toBeTrue();
+    expect(summary.isMirroredHandSlot('head')).toBeFalse();
+    expect(summary.isMirroredHandSlot('body')).toBeFalse();
+    expect(summary.isMirroredHandSlot('shoes')).toBeFalse();
+    expect(summary.isMirroredHandSlot('cape')).toBeFalse();
   });
 
   it('places the main hand in the physical left-hand position for left-handed characters', () => {
@@ -37,7 +41,7 @@ describe('CharacterSummary paper-doll layout', () => {
       .toEqual(['head', 'offHand', 'cape', 'accessoryLeft']);
     expect(summary.rightEquipmentSlots.map(slot => slot.key))
       .toEqual(['body', 'mainHand', 'shoes', 'accessoryRight']);
-    expect(summary.handIconTransform('mainHand')).toBe('scaleX(-1)');
-    expect(summary.handIconTransform('offHand')).toBe('none');
+    expect(summary.isMirroredHandSlot('mainHand')).toBeTrue();
+    expect(summary.isMirroredHandSlot('offHand')).toBeFalse();
   });
 });

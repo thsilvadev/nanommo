@@ -55,9 +55,10 @@ export class CharacterSummary implements OnDestroy {
     const rightHand = this.character.character()?.dominantHand === 'right';
     return [this.slots[1], rightHand ? this.slots[3] : this.slots[2], this.slots[4], this.slots[7]];
   }
-  handIconTransform(slot: string) {
+  isMirroredHandSlot(slot: string) {
+    if (slot !== 'mainHand' && slot !== 'offHand') return false;
     const mainHandIsPhysicalRight = this.character.character()?.dominantHand === 'right';
-    return (slot === 'mainHand') === mainHandIsPhysicalRight ? 'none' : 'scaleX(-1)';
+    return (slot === 'mainHand') !== mainHandIsPhysicalRight;
   }
   dietSlots = [0, 1, 2]; dietRainDrops = [0, 1, 2, 3, 4, 5]; equipmentPredicates = Object.fromEntries(this.slots.map(s => [s.key, (drag: CdkDrag) => this.canEnterEquipmentSlot(s.key, drag)]));
   initial() { return (this.character.character()?.name || '?').slice(0, 1).toUpperCase() }

@@ -414,6 +414,22 @@ select:focus-visible,
 .food-state.full {
   color: #dfb55e;
 }
+/* Keep every paper-doll and Diet icon on the same explicit optical center. */
+app-character-summary .equip-slot > img,
+app-character-summary .equip-drag img,
+app-character-summary .diet-slot > img {
+  position: absolute !important;
+  inset: auto !important;
+  left: calc(50% + 2px) !important;
+  top: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  transform: translate(-50%, -50%) !important;
+}
+app-character-summary .equip-slot > img.mirrored-hand {
+  transform: translate(-50%, -50%) scaleX(-1) !important;
+}
 .diet-timer {
   position: absolute;
   right: 8px;
