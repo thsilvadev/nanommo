@@ -1705,3 +1705,15 @@ The Save Town button exposes localized hover/focus guidance: only one city may b
 ## Animated exploration fog — 2026-11-10
 
 Unrevealed map cells retain their exact square 153px hitbox/grid and existing coordinate/reveal rules. Their visual layer uses slowly moving, rotating and expanding blurred gray cloud shapes that overflow the fog cell into adjacent tile areas, softening square boundaries without changing map interaction or discovery. Respect reduced-motion preferences.
+
+
+### Giant Spider and Unicorn combat content — 2026-11-10
+
+Added `mon_giantspider` (Lv. 22, aggressive melee) and `mon_unicorn` (Lv. 31, non-aggressive melee) to the canonical monster catalogue. Existing `maps.json` encounter rates and map rosters are intentionally untouched. Spider is fast (82 Move Speed, 4-tick basic interval), has slightly elevated DEF (17), below-average ATK (76), and takes 1.5× fire damage. Its passive Silk Prey rolls 10% on each landed basic attack and applies a separate 10-tick Web Pack stack to the Character, capped at five; each stack contributes -10 Attack Speed through the shared status penalty calculation. Unicorn has 100 base MATK, uses Psychic Overload for 3× effective MATK magic damage, and has Channel: each resolved hostile Character skill targeting the Unicorn grants one 20-tick Magic Prowess stack, capped at five, each adding +20 effective MATK. The new stackable effects are `web_pack` and `magic_prowess`; each stack owns its own expiry tick and emits the standard status stack/expiry events.
+
+Monster passive skill IDs are declared in each monster's `passiveSkills` and shown with the existing monster skill icon UI. Added catalogue skill descriptions and status descriptions, plus 36×36 bordered SVG icons under `assets/ui/status` and `assets/ui/skill-icons`. New monster-part drop definitions use dedicated item IDs and monster ownership metadata. Unicorn was added to DataService's non-aggressive species allow-list.
+
+Validation: shared battle-engine TypeScript build passed. Full API/frontend builds and deterministic combat scenarios are still to be run after asset integration.
+
+
+Final validation — 2026-11-10: API production build and frontend production build both pass; shared battle-engine TypeScript build passes. A deterministic simulator sweep across 100 Giant Spider fights observed Web Pack in 35 fights (rolls occur only after landed basic attacks; observed stacks cap at 5). A Unicorn simulator scenario confirmed Channel stack progression 1→5 and Psychic Overload resolution; with five stacks, effective MATK is 200 from base 100, and the logged skill damage is consistent with a 3× MATK magic hit after mitigation/variance. All four new monster-part item icons are present in both framed and no-frame asset folders. Existing Angular initial-bundle and play CSS budget warnings remain (518.33 kB vs 512 kB; play CSS 110 bytes over). No deployment or live database changes.

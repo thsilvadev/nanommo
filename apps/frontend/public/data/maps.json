@@ -383,15 +383,15 @@
       "monsters": [
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 20
-        },
-        {
-          "monsterId": "mon_mudflatcrocodile",
           "presenceRate": 50
         },
         {
-          "monsterId": "mon_mudcrawler",
-          "presenceRate": 30
+          "monsterId": "mon_mudflatcrocodile",
+          "presenceRate": 10
+        },
+        {
+          "monsterId": "mon_giantspider",
+          "presenceRate": 40
         }
       ],
       "unlockLevel": 0,
@@ -428,7 +428,11 @@
         },
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 40
+          "presenceRate": 5
+        },
+                {
+          "monsterId": "mon_giantspider",
+          "presenceRate": 35
         }
       ],
       "unlockLevel": 0,
@@ -461,11 +465,15 @@
       "monsters": [
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 85
+          "presenceRate": 55
         },
         {
           "monsterId": "mon_saltfangcrab",
           "presenceRate": 15
+        },
+                {
+          "monsterId": "mon_giantspider",
+          "presenceRate": 30
         }
       ],
       "unlockLevel": 0,
@@ -919,16 +927,20 @@
       "monsters": [
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 75
+          "presenceRate": 70
         },
         {
           "monsterId": "mon_kwaiouaranger",
           "presenceRate": 25
+        },
+        {
+          "monsterId": "mon_unicorn",
+          "presenceRate": 5
         }
       ],
       "unlockLevel": 0,
       "isTown": false,
-      "recommendedLevel": 30,
+      "recommendedLevel": 31,
       "mapLength": 25,
       "gatheringPool": [
         {

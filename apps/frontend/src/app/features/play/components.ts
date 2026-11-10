@@ -967,14 +967,14 @@ export class GrindInfo implements OnDestroy {
       const remaining=Number.isFinite(expiresAtTick)?Math.max(0,expiresAtTick-tick):Number.POSITIVE_INFINITY;
       const expiryLabel=Number.isFinite(expiresAtTick)?`Expires at T${expiresAtTick}`:'Duration: until removed';
       const remainingLabel=Number.isFinite(remaining)?`${remaining}s remaining`:'until removed';
-      return {id,type:id,stacks:stacks.length,expiresAtTick,expiryLabel,maxStacks:Number(def.maxStacks??1),remaining,name:String(def.name??id.replace(/_/g,' ')),tooltip:`${String(def.name??id)} · ${stacks.length}/${Number(def.maxStacks??1)} stacks · ${remainingLabel}`};
+      return {id,type:id,stacks:stacks.length,expiresAtTick,expiryLabel,maxStacks:Number(def.maxStacks??1),remaining,name:String(def.name??id.replace(/_/g,' ')),tooltip:`${String(def.name??id)} · ${stacks.length}/${Number(def.maxStacks??1)} stacks · ${remainingLabel}${def.description?' · '+def.description:''}`};
     }).filter(x=>x.stacks>0&&x.remaining>0);
   }
   trackMonsterStatusEffect(_index: number, effect: { id: string }) { return effect.id; }
   monsterSp(entry:any){return Number(this.lastEvent(entry)?.spRemaining?.monster??this.monsterSnapshot(entry).sp??0)}
   monsterMaxSp(entry:any){return Number(this.monsterSnapshot(entry).maxSp??0)}
-  monsterSkills(entry:any){const m:any=this.monster(entry.monsterId);const ids=new Set<string>();for(const line of m?.gambit??[]){const a=line?.action??{};const id=String(a.skillId??a.params?.skillId??'');if((a.type==='use_skill'||a.id==='use_skill')&&id)ids.add(id)}return [...ids].map(id=>this.catalog.skills().find((s:any)=>s.id===id)).filter(Boolean)}
-  skillTooltip(skill:any){return `${skill.name} · ${Number(skill.spCost??0)} SP · ${Number(skill.baseCastTicks??0)} cast ticks · ${Number(skill.cooldownTicks??0)} cooldown · ${skill.effect?.type??''}`}
+  monsterSkills(entry:any){const m:any=this.monster(entry.monsterId);const ids=new Set<string>(Array.isArray(m?.passiveSkills)?m.passiveSkills:[]);for(const line of m?.gambit??[]){const a=line?.action??{};const id=String(a.skillId??a.params?.skillId??'');if((a.type==='use_skill'||a.id==='use_skill')&&id)ids.add(id)}return [...ids].map(id=>this.catalog.skills().find((s:any)=>s.id===id)).filter(Boolean)}
+  skillTooltip(skill:any){return String(skill.description??`${skill.name} · ${Number(skill.spCost??0)} SP · ${Number(skill.baseCastTicks??0)} cast ticks · ${Number(skill.cooldownTicks??0)} cooldown · ${skill.effect?.type??''}`)}
   skillIcon(skill:any){return '/assets/ui/skill-icons/'+skill.id+'.svg'}
   monsterStats(entry: any) { const m = this.monsterSnapshot(entry); return [{ label: 'ATK', value: m.atk }, { label: 'MATK', value: m.matk }, { label: 'DEF', value: m.def }, { label: 'MDEF', value: m.mdefPercent + '%' }, { label: 'ACC', value: m.accuracy }, { label: 'EVA', value: m.evasion }, { label: 'CRIT', value: m.critChance + '%' }] }
 

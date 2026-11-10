@@ -834,6 +834,8 @@ export class BattleEngine {
       );
     const effectiveAttack = (unit: CombatantSnapshot): number =>
       Number(unit.atk ?? 0) + (unit.statusEffects ?? []).reduce((total: number, status: any) => total + Number(status.atkBonus ?? 0), 0);
+    const effectiveMatk = (unit: CombatantSnapshot): number =>
+      Number(unit.matk ?? 0) + (unit.statusEffects ?? []).reduce((total: number, status: any) => total + Number(status.matkBonus ?? 0), 0);
 
     const reflectMonsterDamage = (damage: number, damageType: string): void => {
       if (damage <= 0 || self.hp <= 0) return;
@@ -1143,6 +1145,13 @@ export class BattleEngine {
                     });
                   }
                 }
+              }
+              // Unicorn's Channel reacts once to every resolved hostile skill aimed at it.
+              if (monsterDefinition?.id === 'mon_unicorn' && def.target !== 'self' && foe.hp > 0) {
+                const channel = monsterSkillDefs.monster_skill_channel?.effects?.[0] ?? {};
+                const duration = Math.max(1, Number(channel.durationTicks ?? 20));
+                const bonus = Math.max(0, Number(channel.matkPerStack ?? 20));
+                applyStatus(foe, 'magic_prowess', 'monster_skill_channel', duration, { matkBonus: bonus }, 'monster');
               }
               refundArcaneDynamo();
     };
@@ -1607,7 +1616,7 @@ export class BattleEngine {
           const crit = landed && rng.chance(foe.critChance / 100);
           const monsterAttackType = foe.basicAttackDamageType ?? 'melee';
           const tipOfPain = monsterAttackType !== 'magic' && hasStatus(foe, 'tip_of_pain');
-          const raw = (monsterAttackType === 'magic' ? foe.matk : effectiveAttack(foe))
+          const raw = (monsterAttackType === 'magic' ? effectiveMatk(foe) : effectiveAttack(foe))
             * (crit ? BattleEngine.CRIT_MULTIPLIER : 1) * (tipOfPain ? 2 : 1);
           let finalDamage = monsterAttackType === 'magic'
             ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(self))
@@ -1631,6 +1640,16 @@ export class BattleEngine {
             ...(tipOfPain ? { empoweredBy: 'tip_of_pain' } : {}),
           });
           tryReviveOnDeath();
+
+          // Silk Prey rolls on every successful Giant Spider basic attack. Each
+          // stack is a separate timed instance, capped by the status catalogue.
+          if (landed && self.hp > 0 && monsterDefinition?.id === 'mon_giantspider') {
+            const silkPrey = monsterSkillDefs.monster_skill_silk_prey?.effects?.[0] ?? {};
+            const chance = Math.max(0, Math.min(1, Number(silkPrey.chance ?? 0.1)));
+            if (rng.chance(chance)) {
+              applyStatus(self, 'web_pack', 'monster_skill_silk_prey', Number(silkPrey.durationTicks ?? 10), {}, 'monster');
+            }
+          }
 
           // Tip of Pain is consumed on the very next physical basic-attack attempt,
           // even when the normal hit roll misses. Only a landed hit applies Disarm.
@@ -1708,7 +1727,7 @@ export class BattleEngine {
             // Monster active skills follow the same guaranteed-hit/no-crit contract.
             const landed = true;
             const raw =
-              (String(def.damageType ?? 'melee') === 'magic' ? foe.matk : effectiveAttack(foe)) *
+              (String(def.damageType ?? 'melee') === 'magic' ? effectiveMatk(foe) : effectiveAttack(foe)) *
               Number(effect.dmgMult ?? 1);
             const monsterSkillDamageType = String(def.damageType ?? 'melee');
             const finalDamage = monsterSkillDamageType === 'magic'

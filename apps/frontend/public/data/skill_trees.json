@@ -720,6 +720,53 @@
         "durationTicks": 9999
       },
       "damageType": "melee"
+    },
+    {
+      "id": "monster_skill_silk_prey",
+      "name": "Silk Prey",
+      "kind": "passive",
+      "target": "foe",
+      "effects": [
+        {
+          "type": "chance_on_basic_attack_apply_status",
+          "status": "web_pack",
+          "chance": 0.1,
+          "maxStacks": 5,
+          "durationTicks": 10
+        }
+      ],
+      "description": "Each successful basic attack has a 10% chance to apply Web Pack: -10 Attack Speed per stack, up to 5 stacks, for 10 seconds."
+    },
+    {
+      "id": "monster_skill_psychic_overload",
+      "name": "Psychic Overload",
+      "kind": "active",
+      "target": "foe",
+      "spCost": 40,
+      "cooldownTicks": 15,
+      "baseCastTicks": 3,
+      "damageType": "magic",
+      "effect": {
+        "type": "magic_damage",
+        "dmgMult": 3
+      },
+      "description": "Unleashes psychic energy for 3× MATK magic damage."
+    },
+    {
+      "id": "monster_skill_channel",
+      "name": "Channel",
+      "kind": "passive",
+      "target": "self",
+      "effects": [
+        {
+          "type": "stack_on_foe_active_skill",
+          "status": "magic_prowess",
+          "maxStacks": 5,
+          "durationTicks": 20,
+          "matkPerStack": 20
+        }
+      ],
+      "description": "Whenever the Unicorn is targeted by a skill, gain 1 Magic Prowess stack: +20 MATK per stack, up to 5 stacks, for 20 seconds."
     }
   ],
   "legacySkills": [

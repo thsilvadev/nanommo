@@ -144,6 +144,7 @@ export interface StatusEffectDefinition {
   moveSpeedPenaltyPerStack?: number;
   attackSpeedPenalty?: number;
   attackSpeedPenaltyPerStack?: number;
+  matkBonusPerStack?: number;
   damagePerStack?: number;
   damageIntervalTicks?: number;
   procChancePerRank?: number;
@@ -160,6 +161,7 @@ export interface StatusEffect {
   /** Resolved per-instance modifiers copied from the canonical status definition. */
   moveSpeedPenalty?: number;
   attackSpeedPenalty?: number;
+  matkBonus?: number;
 }
 
 // Weapon Proficiency

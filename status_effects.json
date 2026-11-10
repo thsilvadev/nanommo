@@ -177,6 +177,26 @@
       "reapplication": "refresh",
       "polarity": "buff",
       "castTimeReductionMultiplier": 2
+    },
+    {
+      "id": "web_pack",
+      "name": "Web Pack",
+      "stackable": true,
+      "statusDurationTicks": 10,
+      "attackSpeedPenaltyPerStack": 10,
+      "maxStacks": 5,
+      "polarity": "debuff",
+      "description": "A sticky web clings to the target, reducing Attack Speed by 10 per stack. Maximum 5 stacks; each stack lasts 10 seconds."
+    },
+    {
+      "id": "magic_prowess",
+      "name": "Magic Prowess",
+      "stackable": true,
+      "statusDurationTicks": 20,
+      "maxStacks": 5,
+      "polarity": "buff",
+      "matkBonusPerStack": 20,
+      "description": "Arcane power builds within the Unicorn, granting +20 MATK per stack. Maximum 5 stacks; each stack lasts 20 seconds."
     }
   ]
 }

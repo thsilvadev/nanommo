@@ -71,7 +71,7 @@ export class DataService implements OnModuleInit {
       if (!monster?.id || monsterIds.has(monster.id)) throw new Error(`Duplicate or missing monster ID: ${monster?.id}`);
       monsterIds.add(monster.id);
       if (typeof monster.isAggressive !== 'boolean' || !Number.isFinite(Number(monster.moveSpd)) || Number(monster.moveSpd) < 0) throw new Error(`Monster ${monster.id} must define boolean isAggressive and non-negative moveSpd`);
-      const passiveMonsterIds = new Set(['mon_slime', 'mon_thornsprout', 'mon_saltfangcrab', 'mon_moonleafarcanist', 'mon_giantmantis']);
+      const passiveMonsterIds = new Set(['mon_slime', 'mon_thornsprout', 'mon_saltfangcrab', 'mon_moonleafarcanist', 'mon_giantmantis', 'mon_unicorn']);
       if (monster.isAggressive === passiveMonsterIds.has(monster.id)) throw new Error(`Unexpected isAggressive value for ${monster.id}`);
       for (const field of ['level', 'hp', 'atk', 'matk', 'def', 'accuracy', 'evasion', 'xpReward']) {
         if (!Number.isFinite(Number(monster[field])) || Number(monster[field]) < (field === 'level' || field === 'hp' || field === 'xpReward' ? 1 : 0)) {

@@ -1088,6 +1088,74 @@
         }
       },
       "description": "A charred strip of treant bark split by glowing ember fissures."
+    },
+    {
+      "id": "part_giantspider_common",
+      "name": "Giant Spider Silk Gland",
+      "type": "monster_part",
+      "tier": 2,
+      "description": "A tough, translucent silk gland harvested from a Giant Spider.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_giantspider"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 500,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_giantspider_rare",
+      "name": "Crimson Spider Fang",
+      "type": "monster_part",
+      "tier": 2,
+      "description": "A curved black fang threaded with a deep crimson venom sheen.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_giantspider"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 5200,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_unicorn_common",
+      "name": "Unicorn Mane Strand",
+      "type": "monster_part",
+      "tier": 3,
+      "description": "A silky strand of ivory mane carrying a faint arcane shimmer.",
+      "rarity": "common",
+      "droppedBy": [
+        "mon_unicorn"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 700,
+      "usableFor": [
+        "market_trade"
+      ]
+    },
+    {
+      "id": "part_unicorn_rare",
+      "name": "Unicorn Crystal Horn",
+      "type": "monster_part",
+      "tier": 3,
+      "description": "A rare shard of a Unicorn horn, still humming with concentrated psychic energy.",
+      "rarity": "rare",
+      "droppedBy": [
+        "mon_unicorn"
+      ],
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 7200,
+      "usableFor": [
+        "market_trade"
+      ]
     }
   ],
   "consumables": [
