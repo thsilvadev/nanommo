@@ -1206,6 +1206,140 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true
+    },{
+      "id": "mon_giantspider",
+      "name": "Giant Spider",
+      "level": 22,
+      "moveSpd": 82,
+      "hp": 1010,
+      "atk": 76,
+      "matk": 52,
+      "def": 17,
+      "mdefPercent": 0,
+      "accuracy": 108,
+      "evasion": 124,
+      "critChance": 4.6,
+      "atkSpeedTicks": 3,
+      "element": null,
+      "elementalResistances": [],
+      "elementalDamageTakenMultiplier": {
+        "fire": 1.5
+      },
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1,
+        "magic": 1
+      },
+      "sustainPressure": false,
+      "ability": null,
+      "passiveSkills": [
+        "monster_skill_silk_prey"
+      ],
+      "xpReward": 475,
+      "designNote": "A swift, black forest hunter whose silk slows prey with every successful bite.",
+      "drops": [
+        {
+          "itemId": "part_giantspider_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_giantspider_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 76,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 60,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": true
     },
     {
       "id": "mon_duneraider",
@@ -1884,6 +2018,157 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true
+    },  
+    {
+      "id": "mon_unicorn",
+      "name": "Unicorn",
+      "level": 31,
+      "moveSpd": 72,
+      "hp": 2220,
+      "atk": 100,
+      "matk": 100,
+      "def": 19,
+      "mdefPercent": 0,
+      "accuracy": 118,
+      "evasion": 118,
+      "critChance": 4.7,
+      "atkSpeedTicks": 6,
+      "element": "holy",
+      "elementalResistances": [],
+      "favoredAgainstArchetype": "balanced",
+      "favoredAgainstArchetypeLabel": "All-rounder",
+      "damageTakenMultiplier": {
+        "melee": 1,
+        "ranged": 1,
+        "magic": 0.9
+      },
+      "sustainPressure": false,
+      "ability": "psychic_overload",
+      "passiveSkills": [
+        "monster_skill_channel"
+      ],
+      "xpReward": 680,
+      "designNote": "A calm, radiant guardian that converts hostile spells into escalating arcane prowess before unleashing psychic force.",
+      "drops": [
+        {
+          "itemId": "part_kwaioua_ranger_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_kwaioua_ranger_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ],
+      "gambit": [
+        {
+          "priority": 1,
+          "condition": {
+            "type": "skill_ready",
+            "skillId": "monster_skill_psychic_overload"
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_psychic_overload"
+          }
+        },
+        {
+          "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "attack"
+          }
+        }
+      ],
+      "moveSpeedBase": 68,
+      "combatStyle": "melee",
+      "basicAttackDamageType": "melee",
+      "basicAttackRange": 0,
+      "maxSp": 120,
+      "spRegenPerTenTicks": 2,
+      "isAggressive": false
     },
     {
       "id": "mon_kwaiouaranger",
@@ -3759,292 +4044,7 @@
       "maxSp": 80,
       "spRegenPerTenTicks": 2,
       "isAggressive": true
-    },
-    {
-      "id": "mon_giantspider",
-      "name": "Giant Spider",
-      "level": 22,
-      "moveSpd": 82,
-      "hp": 1210,
-      "atk": 76,
-      "matk": 52,
-      "def": 17,
-      "mdefPercent": 0,
-      "accuracy": 108,
-      "evasion": 124,
-      "critChance": 4.6,
-      "atkSpeedTicks": 4,
-      "element": null,
-      "elementalResistances": [],
-      "elementalDamageTakenMultiplier": {
-        "fire": 1.5
-      },
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 1,
-        "ranged": 1,
-        "magic": 1
-      },
-      "sustainPressure": false,
-      "ability": null,
-      "passiveSkills": [
-        "monster_skill_silk_prey"
-      ],
-      "xpReward": 475,
-      "designNote": "A swift, black forest hunter whose silk slows prey with every successful bite.",
-      "drops": [
-        {
-          "itemId": "part_giantspider_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
-        },
-        {
-          "itemId": "part_giantspider_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "equip_head_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t2",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_earth_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_water_t2",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t2",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t2",
-          "chance": 0.001
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 76,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 60,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": true
-    },
-    {
-      "id": "mon_unicorn",
-      "name": "Unicorn",
-      "level": 31,
-      "moveSpd": 72,
-      "hp": 2220,
-      "atk": 100,
-      "matk": 100,
-      "def": 19,
-      "mdefPercent": 0,
-      "accuracy": 118,
-      "evasion": 118,
-      "critChance": 4.7,
-      "atkSpeedTicks": 6,
-      "element": "holy",
-      "elementalResistances": [],
-      "favoredAgainstArchetype": "balanced",
-      "favoredAgainstArchetypeLabel": "All-rounder",
-      "damageTakenMultiplier": {
-        "melee": 1,
-        "ranged": 1,
-        "magic": 0.9
-      },
-      "sustainPressure": false,
-      "ability": "psychic_overload",
-      "passiveSkills": [
-        "monster_skill_channel"
-      ],
-      "xpReward": 680,
-      "designNote": "A calm, radiant guardian that converts hostile spells into escalating arcane prowess before unleashing psychic force.",
-      "drops": [
-        {
-          "itemId": "part_kwaioua_ranger_common",
-          "chance": 0.3
-        },
-        {
-          "itemId": "part_kwaioua_ranger_rare",
-          "chance": 0.002
-        },
-        {
-          "itemId": "item_consumable_random_map_tier",
-          "chance": 0.02,
-          "note": "resolved to a tier-appropriate consumable at roll time"
-        },
-        {
-          "itemId": "equip_head_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_head_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_cape_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_accessory_dex_t3",
-          "chance": 0.0005
-        },
-        {
-          "itemId": "equip_shoes_fire_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_shoes_shadow_t3",
-          "chance": 0.0001
-        },
-        {
-          "itemId": "equip_body_phys_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_body_magic_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_sword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_greatsword_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_dagger_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_bow_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_staff_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rod_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shield_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_rune_t3",
-          "chance": 0.001
-        },
-        {
-          "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
-        },
-        {
-          "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
-        }
-      ],
-      "gambit": [
-        {
-          "priority": 1,
-          "condition": {
-            "type": "skill_ready",
-            "skillId": "monster_skill_psychic_overload"
-          },
-          "action": {
-            "type": "use_skill",
-            "skillId": "monster_skill_psychic_overload"
-          }
-        },
-        {
-          "priority": 2,
-          "condition": {
-            "type": "always"
-          },
-          "action": {
-            "type": "attack"
-          }
-        }
-      ],
-      "moveSpeedBase": 68,
-      "combatStyle": "melee",
-      "basicAttackDamageType": "melee",
-      "basicAttackRange": 0,
-      "maxSp": 120,
-      "spRegenPerTenTicks": 2,
-      "isAggressive": false
     }
+   
   ]
 }

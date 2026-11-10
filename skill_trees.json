@@ -730,7 +730,7 @@
         {
           "type": "chance_on_basic_attack_apply_status",
           "status": "web_pack",
-          "chance": 0.1,
+          "chance": 0.2,
           "maxStacks": 5,
           "durationTicks": 10
         }
