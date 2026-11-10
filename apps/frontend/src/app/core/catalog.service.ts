@@ -57,13 +57,42 @@ export class CatalogService {
   if(!equipped)return [];
   const current:any=this.item(equipped.itemId);if(current?.type!=='equipment')return [];
   const values=(definition:any,data:any,slot:string)=>{
-   const result:Record<string,number>={};const fixed=definition.fixedStats??{};const refine=Math.max(0,Math.min(12,Math.floor(Number(data?.refinementLevel??0))));
-   const direct=['atk','matk','def','mdefPercent','maxHp','maxSp','moveSpeed'];
-   for(const key of direct){let n=Number(fixed[key]??0);if(key==='atk'&&slot==='offHand'&&definition.weaponType&&!['shield','rune'].includes(String(definition.weaponType)))n=Math.floor(n/2);if(['atk','matk','def','mdefPercent'].includes(key)&&refine)n+=((slot==='mainHand'&&definition.weaponType&&(key==='atk'||key==='matk'))?5:3)*refine;if(n)result[key]=n;}
-   for(const [key,value] of Object.entries(fixed.statBonus??{})){const n=Number(value);if(n)result[String(key).toUpperCase()==='SOR'?'LUK':String(key).toUpperCase()]=(result[String(key).toUpperCase()==='SOR'?'LUK':String(key).toUpperCase()]??0)+n;}
-   const attr=String(data?.rolledAttribute??'').toUpperCase();const attrKey=attr==='SOR'?'LUK':attr;const attrValue=Number(data?.rolledValue??0);if(attrKey&&attrValue)result[attrKey]=(result[attrKey]??0)+attrValue;
-   const stat=String(data?.rolledStat??'');const statValue=Number(data?.rolledStatValue??0);const statKey:Record<string,string>={hp:'maxHp',sp:'maxSp',defense:'def',criticalPercent:'criticalChance',atkSpeed:'attackSpeed',castTimeReduction:'castTimeReduction',accuracy:'accuracy',evasion:'evasion',atk:'atk',matk:'matk'};
-   if(stat&&statValue){const key=statKey[stat]??stat;let n=statValue;if(key==='atk'&&slot==='offHand'&&definition.weaponType&&!['shield','rune'].includes(String(definition.weaponType)))n=Math.floor(n/2);result[key]=(result[key]??0)+n;}
+   const result:Record<string,number>={};
+   const fixed=definition.fixedStats??{};
+   const refine=Math.max(0,Math.min(12,Math.floor(Number(data?.refinementLevel??0))));
+   const add=(key:string,value:number)=>{if(Number.isFinite(value)&&value!==0)result[key]=(result[key]??0)+value;};
+   const refinedFixed:Record<string,number>={};
+   for(const key of ['atk','matk','def','mdefPercent']){
+    const base=fixed[key];
+    // Match effectiveItemDefinition(): a refinement bonus exists only when the
+    // catalogue item actually owns a non-zero base value for that direct stat.
+    if(base===undefined||base===null||!Number.isFinite(Number(base))||Number(base)===0)continue;
+    const refinementGain=definition.slot==='mainHand'&&!!definition.weaponType&&(key==='atk'||key==='matk')?5:3;
+    refinedFixed[key]=Number(base)+refinementGain*refine;
+   }
+   for(const key of ['def','mdefPercent','maxHp','maxSp','moveSpeed'])add(key,Number(refinedFixed[key]??fixed[key]??0));
+   if(slot==='mainHand'||slot==='offHand'){
+    let attack=Number(refinedFixed['atk']??0);
+    if(slot==='offHand')attack=Math.floor(attack/2);
+    add('atk',attack);
+   }
+   if(slot==='mainHand')add('matk',Number(refinedFixed['matk']??0));
+   for(const [key,value] of Object.entries(fixed.statBonus??{})){
+    const normalized=String(key).toUpperCase()==='SOR'?'LUK':String(key).toUpperCase();
+    add(normalized,Number(value));
+   }
+   const attr=String(data?.rolledAttribute??'').toUpperCase();
+   const attrKey=attr==='SOR'?'LUK':attr;
+   add(attrKey,Number(data?.rolledValue??0));
+   const stat=String(data?.rolledStat??'');
+   const statValue=Number(data?.rolledStatValue??0);
+   const statKey:Record<string,string>={hp:'maxHp',sp:'maxSp',defense:'def',criticalPercent:'criticalChance',atkSpeed:'attackSpeed',castTimeReduction:'castTimeReduction',accuracy:'accuracy',evasion:'evasion',atk:'atk',matk:'matk'};
+   if(stat&&statValue){
+    const key=statKey[stat]??stat;
+    let value=statValue;
+    if(key==='atk'&&slot==='offHand'&&definition.weaponType&&!['shield','rune'].includes(String(definition.weaponType)))value=Math.floor(value/2);
+    if(key!=='matk'||slot==='mainHand')add(key,value);
+   }
    return result;
   };
   const candidate=values(item,instanceData,comparisonSlot);const previous=values(current,equipped.instanceData,comparisonSlot);

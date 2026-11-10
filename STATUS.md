@@ -1,3 +1,9 @@
+### Equipment comparison phantom refinement stats — 2026-11-10
+
+Fixed a frontend comparison bug where a refined item received refinement bonuses for every possible direct stat, even when its catalogue `fixedStats` did not contain that stat. The comparison now refines only non-zero direct stats that the item actually owns, matching the shared `effectiveItemDefinition()` contract. The comparison's hand-slot direct stats are also constrained to the same main/off-hand applicability used by equipment calculations. A +6 T1 Bow with only +21 ATK now compares against a T2 Bow with +10 rolled MATK as Attack -6 and Magic ATK +10, with no fabricated Defense or MDEF differences. Added focused regression coverage for refined bows and body armor with DEF but no MDEF.
+
+Validation: CatalogService comparison tests passed (4/4); frontend production build passed; `git diff --check` passed. Existing Angular initial-bundle and Character Summary / Play CSS budget warnings remain. No API behavior, database state, deployment or commit.
+
 ### Character paper-doll equipment layout and dark-steel PNG slot art — 2026-11-10
 
 Reworked the Character Summary paper-doll using the approved dark-fantasy metal-frame direction. The layout is Head / Body, then physical Right Hand / Left Hand around the portrait, Cape / Boots, and the two accessories; the three Diet food slots remain in a horizontal row below the stats/status area. The physical right hand is on the visual left because the character faces the viewer. `Character.dominantHand` decides which side owns `mainHand`, and the empty hand silhouettes mirror horizontally. The future character-inspection UI must use the inspected Character's own `dominantHand`, not the viewer's.
