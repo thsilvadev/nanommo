@@ -3796,7 +3796,7 @@
       "drops": [
         {
           "itemId": "part_giantspider_common",
-          "chance": 0.1
+          "chance": 0.3
         },
         {
           "itemId": "item_consumable_random_map_tier",
