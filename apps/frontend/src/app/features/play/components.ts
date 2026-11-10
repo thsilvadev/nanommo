@@ -35,10 +35,30 @@ export class CharacterSummary implements OnDestroy {
   // instead of waiting for the next poll, snapshot or battle resolve. Nothing is decided
   // locally; this only schedules a re-read of authoritative state.
   private checkDietBoundary() { const entries = this.character.character()?.diet ?? []; const now = Date.now(); for (const e of entries) { const t = Date.parse(e.digestUntil); if (!Number.isFinite(t) || t > now || t <= this.lastDietBoundary) continue; this.lastDietBoundary = t; void this.character.refreshDiet(); return } }
-  slots = [{ key: 'head', label: 'Head', icon: '/assets/ui/helmet.svg' }, { key: 'body', label: 'Body', icon: '/assets/ui/armor.svg' }, { key: 'mainHand', label: 'Main Hand', icon: '/assets/ui/hand.svg' }, { key: 'offHand', label: 'Off Hand', icon: '/assets/ui/hand.svg' }, { key: 'shoes', label: 'Shoes', icon: '/assets/ui/boots.svg' }, { key: 'cape', label: 'Cape', icon: '/assets/ui/cape.svg' }, { key: 'accessoryLeft', label: 'Ring', icon: '/assets/ui/ring.svg' }, { key: 'accessoryRight', label: 'Ring', icon: '/assets/ui/ring.svg' }];
-  get leftEquipmentSlots() { const rightHand=this.character.character()?.dominantHand==='right';return [this.slots[0],this.slots[1],rightHand?this.slots[3]:this.slots[2],this.slots[6]]; }
-  get rightEquipmentSlots() { const rightHand=this.character.character()?.dominantHand==='right';return [this.slots[4],this.slots[5],rightHand?this.slots[2]:this.slots[3],this.slots[7]]; }
-  handIconTransform(slot:string){const right=this.character.character()?.dominantHand==='right';return (slot==='mainHand')===right?'none':'scaleX(-1)'}
+  slots = [
+    { key: 'head', label: 'Head', icon: '/assets/ui/character-slots/head.png' },
+    { key: 'body', label: 'Body', icon: '/assets/ui/character-slots/body.png' },
+    { key: 'mainHand', label: 'Main Hand', icon: '/assets/ui/character-slots/hand.png' },
+    { key: 'offHand', label: 'Off Hand', icon: '/assets/ui/character-slots/hand.png' },
+    { key: 'shoes', label: 'Shoes', icon: '/assets/ui/character-slots/boots.png' },
+    { key: 'cape', label: 'Cape', icon: '/assets/ui/character-slots/cape.png' },
+    { key: 'accessoryLeft', label: 'Ring', icon: '/assets/ui/character-slots/accessory.png' },
+    { key: 'accessoryRight', label: 'Ring', icon: '/assets/ui/character-slots/accessory.png' },
+  ];
+  // The character's physical right hand is displayed to the left of the portrait.
+  // Keep the main-hand item on that side for right-handed characters.
+  get leftEquipmentSlots() {
+    const rightHand = this.character.character()?.dominantHand === 'right';
+    return [this.slots[0], rightHand ? this.slots[2] : this.slots[3], this.slots[5], this.slots[6]];
+  }
+  get rightEquipmentSlots() {
+    const rightHand = this.character.character()?.dominantHand === 'right';
+    return [this.slots[1], rightHand ? this.slots[3] : this.slots[2], this.slots[4], this.slots[7]];
+  }
+  handIconTransform(slot: string) {
+    const mainHandIsPhysicalRight = this.character.character()?.dominantHand === 'right';
+    return (slot === 'mainHand') === mainHandIsPhysicalRight ? 'none' : 'scaleX(-1)';
+  }
   dietSlots = [0, 1, 2]; dietRainDrops = [0, 1, 2, 3, 4, 5]; equipmentPredicates = Object.fromEntries(this.slots.map(s => [s.key, (drag: CdkDrag) => this.canEnterEquipmentSlot(s.key, drag)]));
   initial() { return (this.character.character()?.name || '?').slice(0, 1).toUpperCase() }
   displayHp() { const now = this.battleDisplayNow(); const projected = this.battle.currentBattleCharacterResources(now); return projected?.hp ?? this.character.character()?.hpCurrent ?? null }
@@ -73,7 +93,7 @@ export class CharacterSummary implements OnDestroy {
   formatItemEffect(effect: any) { if (!effect) return ''; if (effect.status) { const status = String(effect.status).replace(/_/g, ' '); return `Cures ${status}.` } if (effect.type === 'heal_hp') return `Restores ${Number(effect.amount) || 0} HP.`; if (effect.type === 'heal_sp') return `Restores ${Number(effect.amount) || 0} SP.`; if (effect.type === 'food_buff') return `Regenerates HP/SP for ${Math.round((Number(effect.durationSeconds) || 0) / 60)} minutes.`; return String(effect.type ?? '').replace(/_/g, ' ').replace(/^./, x => x.toUpperCase()) + '.' }
   itemTierClass(slot: string) { const tier = Number((this.itemDefinition(slot) as any)?.tier ?? 0); return tier >= 2 && tier <= 5 ? 'tier-' + tier : '' }
   dietEntry(index: number) { return this.character.character()?.diet?.[index] ?? null }
-  dietIcon(index: number) { const e = this.dietEntry(index); return e ? this.catalog.itemIcon(e.itemId) : '/assets/ui/food.svg' }
+  dietIcon(index: number) { const e = this.dietEntry(index); return e ? this.catalog.itemIcon(e.itemId) : '/assets/ui/character-slots/food.png' }
   dietName(index: number) { const e = this.dietEntry(index); return e ? (this.catalog.item(e.itemId)?.name ?? e.itemId) : 'Empty food slot' }
   dietStars(index: number) { const e = this.dietEntry(index); return e ? '★'.repeat(Math.max(0, Math.min(3, e.dietLevel))) : '' }
   dietLevel(index: number) { const e = this.dietEntry(index); return Math.max(0, Math.min(3, Number(e?.dietLevel ?? 0))) }

@@ -1,3 +1,11 @@
+### Character paper-doll equipment layout and dark-steel PNG slot art — 2026-11-10
+
+Reworked the Character Summary paper-doll using the approved dark-fantasy metal-frame direction. The layout is Head / Body, then physical Right Hand / Left Hand around the portrait, Cape / Boots, and the two accessories; the three Diet food slots remain in a horizontal row below the stats/status area. The physical right hand is on the visual left because the character faces the viewer. `Character.dominantHand` decides which side owns `mainHand`, and the empty hand silhouettes mirror horizontally. The future character-inspection UI must use the inspected Character's own `dominantHand`, not the viewer's.
+
+Added high-resolution PNG artwork for head, body, hands, cape, boots, accessories and food, plus a shared beveled dark-steel slot frame. Equipped-item icons, item tooltips, equipment drag/drop and diet state remain bound to their existing data and behavior. Updated Character Summary layout styling to use a black portrait well and metallic borders.
+
+Validation: the focused Character Summary handedness/layout tests passed (2/2); frontend production build passed. Angular still reports the existing initial-bundle and Play CSS budget warnings, plus a non-blocking Character Summary stylesheet warning (6.07 kB against the 5.32 kB warning budget, below the 6.14 kB error budget). `git diff --check` passed. No integration tests, deployment or commit.
+
 ### Grind stance tooltips — 2026-11-09
 
 Added localized, keyboard-focusable tooltips for Hunting, Gathering and Traveling. The descriptions explain encounter behavior, aggressive-monster interruption, Gathering efficiency, and Traveling's 10-second flee attempts and speed advantage against slower monsters. Tooltips reuse the shared floating/portal positioning directive so they render above clipped Grind columns and are not constrained by local stacking contexts. English source copy and pt-BR translations are registered in LocaleService.

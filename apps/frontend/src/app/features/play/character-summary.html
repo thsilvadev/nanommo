@@ -78,7 +78,7 @@
           <div class="diet-timer">{{dietTimerLabel(index)}}</div>
           <div class="item-tooltip diet-tooltip"><strong>{{dietName(index)}}</strong><span
               *ngFor="let line of dietTooltipLines(index)"><b>{{line.label}}</b> {{line.value}}</span></div>
-        </ng-container><ng-template #emptyFood><img src="/assets/ui/food.svg" alt="Empty food slot"></ng-template></div>
+        </ng-container><ng-template #emptyFood><img src="/assets/ui/character-slots/food.png" alt="Empty food slot"></ng-template></div>
     </div>
   </div>
   <div class="food-state" [class.hungry]="foodLabel().startsWith('HUNGRY')"
