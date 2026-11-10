@@ -987,3 +987,6 @@ GameAudioService maps runtime file extensions exactly to the copied public asset
 ## World fog visual treatment — 2026-11-10
 
 `MapBoard` continues to derive fog positions from the same 15×13 cell grid as before. `.fog-cell` remains a pointer-transparent 153px square visual overlay; its pseudo-elements draw blurred radial cloud layers with oversized bounds and slow transforms so fog appears to spill across adjacent tile edges. These layers do not participate in map hit testing, discovery, coordinates, or map catalogue state. Reduced-motion users receive static cloud layers.
+
+
+Fog rendering correction — 2026-11-10: the first visual pass kept each fog cell in an isolated stacking context (`isolation:isolate` with a local z-index), which prevented cloud pseudo-elements from overlapping neighboring fog cells. Reworked the overlay to use transparent cell boxes and non-isolated, oversized pseudo-element cloud layers with stronger radial gradients. Independent cloud layers now animate slowly with overlapping bounds; reduced-motion mode slows rather than completely freezes them. No grid, coordinate, hitbox, or map-data behavior changed. Production frontend build passes.

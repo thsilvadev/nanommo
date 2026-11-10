@@ -227,51 +227,54 @@
   transform-origin: center center;
 }
 
-/* Animated fog stays visually soft beyond the square exploration hitbox. */
+/* Organic fog cloud layers intentionally escape each cell so adjacent fog cells
+   blend together instead of creating a checkerboard of square overlays. */
 .fog-cell {
-  z-index: 1;
+  z-index: auto;
   overflow: visible;
-  background:
-    radial-gradient(ellipse at 22% 28%, rgba(77, 79, 82, .18), transparent 54%),
-    radial-gradient(ellipse at 78% 72%, rgba(55, 58, 62, .2), transparent 58%),
-    #090a0c;
-  isolation: isolate;
+  background: transparent;
+  isolation: auto;
 }
 .fog-cell::before,
 .fog-cell::after {
   content: '';
   position: absolute;
-  inset: -28%;
+  inset: -48%;
+  z-index: 1;
   pointer-events: none;
-  border-radius: 48%;
+  border-radius: 50%;
   background:
-    radial-gradient(ellipse at 24% 42%, rgba(89, 92, 96, .32) 0 13%, transparent 43%),
-    radial-gradient(ellipse at 68% 30%, rgba(67, 70, 75, .3) 0 17%, transparent 48%),
-    radial-gradient(ellipse at 62% 76%, rgba(76, 79, 84, .27) 0 15%, transparent 46%);
-  filter: blur(13px);
-  opacity: .8;
-  animation: fog-drift-a 19s ease-in-out infinite alternate;
+    radial-gradient(ellipse at 25% 35%, rgba(14, 16, 19, .97) 0 13%, rgba(23, 25, 29, .86) 25%, transparent 53%),
+    radial-gradient(ellipse at 72% 30%, rgba(17, 19, 22, .94) 0 16%, rgba(28, 30, 34, .78) 29%, transparent 56%),
+    radial-gradient(ellipse at 65% 75%, rgba(13, 15, 18, .96) 0 17%, rgba(30, 32, 36, .8) 31%, transparent 58%),
+    radial-gradient(ellipse at 18% 78%, rgba(20, 22, 25, .9) 0 14%, transparent 48%);
+  filter: blur(15px);
+  opacity: .98;
+  transform-origin: center;
+  animation: fog-cloud-drift 23s ease-in-out infinite alternate;
+  will-change: transform;
 }
 .fog-cell::after {
-  inset: -36%;
+  inset: -58%;
   background:
-    radial-gradient(ellipse at 35% 25%, rgba(105, 108, 112, .2) 0 12%, transparent 42%),
-    radial-gradient(ellipse at 76% 64%, rgba(83, 86, 91, .24) 0 16%, transparent 48%),
-    radial-gradient(ellipse at 20% 78%, rgba(63, 66, 71, .22) 0 14%, transparent 44%);
-  filter: blur(18px);
-  opacity: .7;
-  animation: fog-drift-b 27s ease-in-out infinite alternate;
+    radial-gradient(ellipse at 38% 22%, rgba(48, 51, 56, .72) 0 12%, transparent 42%),
+    radial-gradient(ellipse at 80% 58%, rgba(38, 41, 46, .82) 0 17%, transparent 49%),
+    radial-gradient(ellipse at 24% 72%, rgba(53, 56, 61, .68) 0 14%, transparent 46%);
+  filter: blur(22px);
+  opacity: .82;
+  animation: fog-cloud-swirl 31s ease-in-out infinite alternate;
 }
-@keyframes fog-drift-a {
-  0% { transform: translate3d(-8%, -5%, 0) rotate(-9deg) scale(.94); }
-  50% { transform: translate3d(5%, 4%, 0) rotate(7deg) scale(1.08); }
-  100% { transform: translate3d(10%, -2%, 0) rotate(17deg) scale(1.02); }
+@keyframes fog-cloud-drift {
+  0% { transform: translate3d(-7%, -4%, 0) rotate(-11deg) scale(.88); }
+  35% { transform: translate3d(4%, 5%, 0) rotate(5deg) scale(1.04); }
+  70% { transform: translate3d(9%, -3%, 0) rotate(13deg) scale(.96); }
+  100% { transform: translate3d(-2%, 7%, 0) rotate(22deg) scale(1.1); }
 }
-@keyframes fog-drift-b {
-  0% { transform: translate3d(7%, 5%, 0) rotate(12deg) scale(1.04); }
-  50% { transform: translate3d(-6%, -3%, 0) rotate(-8deg) scale(.92); }
-  100% { transform: translate3d(-10%, 6%, 0) rotate(-18deg) scale(1.1); }
+@keyframes fog-cloud-swirl {
+  0% { transform: translate3d(8%, 5%, 0) rotate(16deg) scale(1.08); }
+  50% { transform: translate3d(-6%, -4%, 0) rotate(-9deg) scale(.91); }
+  100% { transform: translate3d(-9%, 6%, 0) rotate(-21deg) scale(1.12); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fog-cell::before, .fog-cell::after { animation: none; }
+  .fog-cell::before, .fog-cell::after { animation-duration: 90s; }
 }

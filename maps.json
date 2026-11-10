@@ -383,15 +383,11 @@
       "monsters": [
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 20
+          "presenceRate": 90
         },
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 50
-        },
-        {
-          "monsterId": "mon_mudcrawler",
-          "presenceRate": 30
+          "presenceRate": 10
         }
       ],
       "unlockLevel": 0,
@@ -461,11 +457,11 @@
       "monsters": [
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 40
+          "presenceRate": 85
         },
         {
-          "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 60
+          "monsterId": "mon_saltfangcrab",
+          "presenceRate": 15
         }
       ],
       "unlockLevel": 0,
