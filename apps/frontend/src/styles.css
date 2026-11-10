@@ -416,8 +416,8 @@ select:focus-visible,
 }
 .diet-timer {
   position: absolute;
-  right: 2px;
-  bottom: 1px;
+  right: 8px;
+  bottom: 7px;
   z-index: 3;
   color: #8b7659;
   font: 20px Arial;
