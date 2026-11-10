@@ -189,6 +189,7 @@ export class NanommoGateway
         character.currentMapId || 'town',
       );
       await this.onlinePresenceService.setOnline(character.id);
+      await this.broadcastConnectedUsers();
 
       // Setup Redis subscribers for this character's events
       this.setupRedisSubscribers(character.id, client);
@@ -215,6 +216,7 @@ export class NanommoGateway
 
         // Remove from online set
         await this.onlinePresenceService.setOffline(client.characterId);
+        await this.broadcastConnectedUsers();
 
         this.logger.log(`Character disconnected: ${client.characterId}`);
       }
@@ -222,6 +224,11 @@ export class NanommoGateway
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Disconnect error: ${errorMessage}`);
     }
+  }
+
+  private async broadcastConnectedUsers(): Promise<void> {
+    const connectedUsersOnline = await this.onlinePresenceService.getOnlineCount();
+    this.server.to('chat:global').emit('chat:connectedUsers', { connectedUsersOnline });
   }
 
   onModuleDestroy() {

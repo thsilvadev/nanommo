@@ -23,6 +23,7 @@ type ChatRow = {
 export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('history') history?: ElementRef<HTMLDivElement>;
   readonly messages = signal<ChatRow[]>([]);
+  readonly connectedUsersOnline = signal(0);
   readonly journalEnabled = signal(localStorage.getItem('nanommo.chat.journal.enabled') !== 'false');
   readonly draft = signal('');
   readonly sending = signal(false);
@@ -40,6 +41,10 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     this.socket.connect();
     this.subscriptions.push(this.socket.on<ChatRow>('chat:message').subscribe(row => this.append(row)));
+    this.subscriptions.push(this.socket.on<{ connectedUsersOnline: number }>('chat:connectedUsers').subscribe(payload => {
+      const count = Number(payload?.connectedUsersOnline);
+      if (Number.isFinite(count) && count >= 0) this.connectedUsersOnline.set(Math.floor(count));
+    }));
     this.subscriptions.push(this.socket.on<ChatRow>('chat:journal').subscribe(row => this.append({ ...row, channel: 'journal' })));
     this.subscriptions.push(this.socket.onConnectionState().subscribe(state => {
       if (state === 'connected') void this.loadHistory();
