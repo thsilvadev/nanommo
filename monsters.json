@@ -753,7 +753,7 @@
       "drops": [
         {
           "itemId": "part_sandscorpion_common",
-          "chance": 0.1
+          "chance": 0.2
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1371,7 +1371,7 @@
       "drops": [
         {
           "itemId": "part_duneraider_common",
-          "chance": 0.1
+          "chance": 0.15
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -1501,7 +1501,7 @@
       "drops": [
         {
           "itemId": "part_venomviper_common",
-          "chance": 0.1
+          "chance": 0.2
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -2052,11 +2052,11 @@
       "drops": [
         {
           "itemId": "part_unicorn_common",
-          "chance": 0.3
+          "chance": 0.35
         },
         {
           "itemId": "part_unicorn_rare",
-          "chance": 0.01
+          "chance": 0.015
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -2767,7 +2767,7 @@
       "drops": [
         {
           "itemId": "part_mirageStalker_common",
-          "chance": 0.1
+          "chance": 0.15
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -2906,7 +2906,7 @@
       "drops": [
         {
           "itemId": "part_arcanewisp_common",
-          "chance": 0.1
+          "chance": 0.15
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -3345,7 +3345,7 @@
       "drops": [
         {
           "itemId": "part_ruinsguardian_common",
-          "chance": 0.1
+          "chance": 0.15
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -3493,7 +3493,7 @@
       "drops": [
         {
           "itemId": "part_boneknight_common",
-          "chance": 0.1
+          "chance": 0.2
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -3641,7 +3641,7 @@
       "drops": [
         {
           "itemId": "part_brokensentinel_common",
-          "chance": 0.1
+          "chance": 0.2
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -3788,7 +3788,7 @@
       "drops": [
         {
           "itemId": "part_cindergolem_common",
-          "chance": 0.1
+          "chance": 0.2
         },
         {
           "itemId": "item_consumable_random_map_tier",
@@ -3927,7 +3927,7 @@
       "drops": [
         {
           "itemId": "part_wraith_common",
-          "chance": 0.1
+          "chance": 0.15
         },
         {
           "itemId": "item_consumable_random_map_tier",
