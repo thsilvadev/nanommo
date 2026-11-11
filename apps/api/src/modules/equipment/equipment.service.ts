@@ -244,7 +244,7 @@ export class EquipmentService {
     const nextLevel = level + 1;
     const failure = level <= 2 ? 'No failure at this chance' : level <= 5
       ? 'The Bliss Stone is lost; equipment refinement stays unchanged'
-      : level <= 8 ? (useDivineShard ? 'The Bliss Stone and Divine Shard are lost; refinement stays unchanged' : 'The Bliss Stone is lost; refinement resets to +0')
+      : level <= 8 ? (useDivineShard ? 'The Bliss Stone and Divine Shard are lost; refinement stays unchanged' : 'The Bliss Stone is lost; refinement decreases by one')
       : (useDivineShard ? 'The Bliss Stone and Divine Shard are lost; refinement decreases by one' : 'The equipment is destroyed');
     const directStats = ['atk', 'matk', 'def', 'mdefPercent'].filter(key => item.fixedStats?.[key] !== undefined && item.fixedStats?.[key] !== null && Number(item.fixedStats[key]) !== 0)
       .map(key => { const increase = refinementDirectStatGain(item, key); return { stat: key, current: Number(item.fixedStats[key]) + increase * level, increase }; });

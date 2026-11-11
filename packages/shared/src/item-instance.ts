@@ -35,6 +35,6 @@ export function resolveRefinementFailure(currentLevelValue: number, useDivineSha
   const level = Math.max(0, Math.min(11, Math.floor(Number(currentLevelValue) || 0)));
   if (level >= 9 && !useDivineShard) return { destroyed: true, nextLevel: level };
   if (level >= 9 && useDivineShard) return { destroyed: false, nextLevel: level - 1 };
-  if (level >= 6 && level <= 8 && !useDivineShard) return { destroyed: false, nextLevel: 0 };
+  if (level >= 6 && level <= 8 && !useDivineShard) return { destroyed: false, nextLevel: level - 1 };
   return { destroyed: false, nextLevel: level };
 }

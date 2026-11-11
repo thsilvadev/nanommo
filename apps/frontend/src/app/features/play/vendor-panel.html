@@ -347,11 +347,17 @@
             <span>{{vendor.t('Chance')}}: {{preview.chancePercent}}%</span>
             <span>{{vendor.t('Failure effect')}}: {{vendor.t(preview.failureEffect)}}</span>
           </div>
-          <label class="refinement-shard-toggle">
-            <input type="checkbox" [checked]="vendor.refinementUseDivineShard()" (change)="vendor.setRefinementShard($any($event.target).checked)"
-              [disabled]="preview.refinementLevel<6 || preview.refinementLevel>11">
-            {{vendor.t('Use Divine Shard')}}
-          </label>
+          <div class="refinement-materials-row">
+            <label class="refinement-shard-toggle">
+              <input type="checkbox" [checked]="vendor.refinementUseDivineShard()" (change)="vendor.setRefinementShard($any($event.target).checked)"
+                [disabled]="preview.refinementLevel<6 || preview.refinementLevel>11">
+              {{vendor.t('Use Divine Shard')}}
+            </label>
+            <div class="refinement-bliss-count" [attr.aria-label]="vendor.t('Bliss Stones available')">
+              <img src="/assets/ui/items/svg-noframe/materials/bliss_stone.apng" alt="Bliss Stone">
+              <span>{{vendor.totalOwned('mat_bliss_stone')}}</span>
+            </div>
+          </div>
           <p class="cooking-warning" *ngIf="!preview.hasBlissStone">{{vendor.t('Not enough Bliss Stones')}}</p>
           <p class="cooking-warning" *ngIf="vendor.refinementUseDivineShard() && !preview.hasDivineShard">{{vendor.t('Not enough Divine Shards')}}</p>
           <div class="refinement-stats" *ngIf="preview.directStats?.length">

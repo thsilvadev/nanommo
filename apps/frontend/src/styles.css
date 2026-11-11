@@ -638,7 +638,7 @@ app-character-summary .equip-slot > img.mirrored-hand {
 .refinement-item-select{display:grid;gap:7px;margin:14px 0;color:#dfc9a7;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
 .refinement-item-select select{padding:10px 12px;border:1px solid #705239;background:#211a15;color:#f5e4c6;border-radius:4px}
 .refinement-summary,.refinement-stats{display:grid;gap:7px;margin:12px 0;padding:12px;border:1px solid #59432e;background:#17120f;color:#e8d7b8}
-.refinement-shard-toggle{display:flex;gap:8px;align-items:center;margin:12px 0;color:#e8d7b8}
+.refinement-materials-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}.refinement-shard-toggle{display:flex;gap:8px;align-items:center;margin:0;color:#e8d7b8}.refinement-bliss-count{display:flex;align-items:center;gap:6px;padding:4px 9px;border:1px solid #59432e;border-radius:4px;background:linear-gradient(145deg,#21180f,#100c08);color:#f0d49b;font:700 13px Arial,sans-serif}.refinement-bliss-count img{display:block;width:27px;height:27px;object-fit:contain}
 .refinement-attempt{margin-top:14px;width:100%}
 
 .refinement-gain{color:#77df91;font-weight:700}

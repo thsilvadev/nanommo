@@ -88,7 +88,7 @@ function run() {
   // Every failure boundary matches the contract, including optional-shard protection.
   for (const level of [3,4,5]) assert.deepStrictEqual(resolveRefinementFailure(level, false), {destroyed:false,nextLevel:level});
   for (const level of [6,7,8]) {
-    assert.deepStrictEqual(resolveRefinementFailure(level, false), {destroyed:false,nextLevel:0});
+    assert.deepStrictEqual(resolveRefinementFailure(level, false), {destroyed:false,nextLevel:level-1});
     assert.deepStrictEqual(resolveRefinementFailure(level, true), {destroyed:false,nextLevel:level});
   }
   for (const level of [9,10,11]) {

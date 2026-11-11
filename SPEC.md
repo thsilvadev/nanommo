@@ -1717,3 +1717,10 @@ Validation: shared battle-engine TypeScript build passed. Full API/frontend buil
 
 
 Final validation — 2026-11-10: API production build and frontend production build both pass; shared battle-engine TypeScript build passes. A deterministic simulator sweep across 100 Giant Spider fights observed Web Pack in 35 fights (rolls occur only after landed basic attacks; observed stacks cap at 5). A Unicorn simulator scenario confirmed Channel stack progression 1→5 and Psychic Overload resolution; with five stacks, effective MATK is 200 from base 100, and the logged skill damage is consistent with a 3× MATK magic hit after mitigation/variance. All four new monster-part item icons are present in both framed and no-frame asset folders. Existing Angular initial-bundle and play CSS budget warnings remain (518.33 kB vs 512 kB; play CSS 110 bytes over). No deployment or live database changes.
+
+
+## Refinement failure protection — 2026-11-10
+
+For attempts from +6→+7, +7→+8 and +8→+9, a failed attempt without a Divine Shard decreases refinement by exactly one level: +6 returns to +5, +7 to +6, and +8 to +7. It must never reset these attempts to +0. When a Divine Shard is used in this band, failure preserves the current refinement level; both materials are consumed. The shared `resolveRefinementFailure()` function is authoritative for this rule, and the preview's failure text must describe the same outcome. Attempts from +9 onward retain their existing rules: without a Divine Shard the equipment is destroyed; with one it survives and loses one level.
+
+The Whitesmith refinement modal displays the current Bliss Stone inventory quantity beside the Divine Shard toggle, using the animated `bliss_stone.apng` item artwork. The count is derived from the current Inventory snapshot; attempt eligibility and material consumption remain server-authoritative.

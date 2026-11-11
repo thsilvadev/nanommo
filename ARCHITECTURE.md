@@ -1009,3 +1009,10 @@ Validation: shared battle-engine TypeScript build passed. Full API/frontend buil
 
 
 Final validation — 2026-11-10: API production build and frontend production build both pass; shared battle-engine TypeScript build passes. A deterministic simulator sweep across 100 Giant Spider fights observed Web Pack in 35 fights (rolls occur only after landed basic attacks; observed stacks cap at 5). A Unicorn simulator scenario confirmed Channel stack progression 1→5 and Psychic Overload resolution; with five stacks, effective MATK is 200 from base 100, and the logged skill damage is consistent with a 3× MATK magic hit after mitigation/variance. All four new monster-part item icons are present in both framed and no-frame asset folders. Existing Angular initial-bundle and play CSS budget warnings remain (518.33 kB vs 512 kB; play CSS 110 bytes over). No deployment or live database changes.
+
+
+## Refinement failure contract and material indicator — 2026-11-10
+
+`packages/shared/src/item-instance.ts::resolveRefinementFailure()` owns refinement failure outcomes. For current levels 6, 7 and 8 without a Divine Shard, the resulting levels are respectively 5, 6 and 7 (one-level downgrade, never a reset to zero). With a Divine Shard, failure in this band preserves the current level while consuming both the Bliss Stone and Divine Shard. Levels 9–11 keep the existing destroy-without-shard / downgrade-one-with-shard behavior. Keep `EquipmentService.getRefinementPreview()` failure copy and its `refinementLevel` mutation aligned with the shared function.
+
+The refinement modal's Bliss Stone quantity is a presentation of `VendorStore.totalOwned('mat_bliss_stone')`, i.e. the sum of all matching Inventory stacks. Its icon is the 60-frame APNG at `apps/frontend/assets/ui/items/svg-noframe/materials/bliss_stone.apng`; Angular copies the `assets/` tree to `/assets/`. The count must update with the Inventory store and must not be used as gameplay authority.
