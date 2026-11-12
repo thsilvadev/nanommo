@@ -7,7 +7,7 @@
 For non-negative raw damage `D` and non-negative `DEF` `A`:
 
 ```text
-flatReduction = 0.225 × A
+flatReduction = 0.425 × A
 relativeReduction = D × A / (A + 250)
 finalDamage = max(0.01 × D, D - flatReduction - relativeReduction)
 ```

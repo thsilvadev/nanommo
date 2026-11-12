@@ -11,8 +11,8 @@ const statusEffectDefs = Object.fromEntries(JSON.parse(fs.readFileSync(path.join
 // Hybrid DEF curve: flat protection matters early; the relative component scales
 // mitigation with hit size; a 1% raw-damage floor prevents full negation.
 assert.equal(BattleEngine.calculatePhysicalDamage(44, 0), 44);
-assert(Math.abs(BattleEngine.calculatePhysicalDamage(44, 10) - (44 - 10 * 0.225 - 44 * 10 / 260)) < 1e-9);
-assert(Math.abs(BattleEngine.calculatePhysicalDamage(44, 54) - (44 - 54 * 0.225 - 44 * 54 / 304)) < 1e-9);
+assert(Math.abs(BattleEngine.calculatePhysicalDamage(44, 10) - (44 - 10 * 0.425 - 44 * 10 / 260)) < 1e-9);
+assert(Math.abs(BattleEngine.calculatePhysicalDamage(44, 54) - (44 - 54 * 0.425 - 44 * 54 / 304)) < 1e-9);
 assert(BattleEngine.calculatePhysicalDamage(44, 64) < BattleEngine.calculatePhysicalDamage(44, 54), 'War Cry +10 DEF should visibly reduce the incoming hit');
 assert.equal(BattleEngine.calculatePhysicalDamage(44, 10000), 0.44, 'physical hits retain a 1% floor at extreme armor');
 assert(BattleEngine.calculatePhysicalDamage(1000, 54) < 1000 * 0.9, 'the relative component is meaningful against large hits');

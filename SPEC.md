@@ -404,12 +404,12 @@ Equipment stat bonuses are added to the corresponding attributes before these fo
 ```
 raw = max(0, rawDamage)
 armor = max(0, DEF)
-flatReduction = armor * 0.225
+flatReduction = armor * 0.425
 relativeReduction = raw * armor / (armor + 250)
 finalPhysicalDamage = max(raw * 0.01, raw - flatReduction - relativeReduction)
 ```
 
-DEF combines a flat reduction (0.35 damage per DEF) with a relative reduction (`DEF / (DEF + 100)`) so it remains useful against both small early-game hits and large later-game hits. Physical damage cannot be reduced below 10% of its raw pre-mitigation value. These values are NanoMMO balance parameters, not a copied Dota formula; validate against representative equipment tiers and monster attacks before further tuning. Critical-hit scaling, monster damage-type multipliers, and direct-damage variance are applied in their existing order around physical mitigation.
+DEF combines a flat reduction (0.425 damage per DEF) with a relative reduction (`DEF / (DEF + 250)`) so it remains useful against both small early-game hits and large later-game hits. Physical damage cannot be reduced below 1% of its raw pre-mitigation value. These values are NanoMMO balance parameters, not a copied Dota formula; validate against representative equipment tiers and monster attacks before further tuning. Critical-hit scaling, monster damage-type multipliers, and direct-damage variance are applied in their existing order around physical mitigation.
 The combined flat and relative terms have diminishing returns, while the 1% floor ensures that even very high DEF cannot fully negate physical hits. Unlike a purely percentage-based armor curve, the flat term also creates visible value at low DEF values; unlike pure flat reduction, relative mitigation scales against large late-game hits.
 
 **Magic damage mitigation (flat %, per spec §11 of the confirmed answers — MDEF is a percentage from gear only):**

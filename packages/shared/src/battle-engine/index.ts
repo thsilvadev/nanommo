@@ -388,7 +388,7 @@ export class BattleEngine {
   static readonly MAX_ATTACK_SPEED = 800;
   static readonly DEFAULT_MONSTER_CAST_TICKS = 6;
   static readonly DEFEND_DAMAGE_REDUCTION = 0.3;
-  static readonly DEF_FLAT_REDUCTION_PER_POINT = 0.225;
+  static readonly DEF_FLAT_REDUCTION_PER_POINT = 0.425;
   static readonly DEF_RELATIVE_SCALE = 250;
   static readonly MIN_PHYSICAL_DAMAGE_MULTIPLIER = 0.01;
 

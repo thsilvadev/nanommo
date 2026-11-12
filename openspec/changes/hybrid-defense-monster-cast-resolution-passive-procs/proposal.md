@@ -6,7 +6,7 @@ The former physical DEF curve gives only about 1.4 damage reduction from 10 DEF 
 
 ## What Changes
 
-- Replace physical mitigation with a tuned hybrid of flat and relative reduction: `max(raw × 0.01, raw - 0.225 × DEF - raw × DEF / (DEF + 250))` after clamping raw damage and DEF to zero. Magic mitigation is unchanged.
+- Replace physical mitigation with a tuned hybrid of flat and relative reduction: `max(raw × 0.01, raw - 0.425 × DEF - raw × DEF / (DEF + 250))` after clamping raw damage and DEF to zero. Magic mitigation is unchanged.
 - Give monsters a minimal deterministic pending-cast state. A legal in-range Cast-Gambit skill begins casting immediately; its catalog `baseCastTicks` is the actual duration, defaulting to the legacy six ticks when absent. Pause basic attacks until resolution; pay SP and start cooldown at resolution. Keep zero-cooldown repeat casts on their established boundary timing.
 - Stop emitting `action_suppressed` battle events and hide such legacy events from Grind and Battle History.
 - Mark Shield Bash stun as a passive proc, format it as `<target> is stunned by Shield Bash.`, and ensure it is not interpreted as a character action.
