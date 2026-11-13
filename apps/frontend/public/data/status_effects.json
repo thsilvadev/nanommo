@@ -197,6 +197,17 @@
       "polarity": "buff",
       "matkBonusPerStack": 20,
       "description": "Arcane power builds within the Unicorn, granting +20 MATK per stack. Maximum 5 stacks; each stack lasts 20 seconds."
+    },
+    {
+      "id": "violent_shot_slow",
+      "name": "Violent Shot Slow",
+      "stackable": false,
+      "statusDurationTicks": 12,
+      "maxStacks": 1,
+      "reapplication": "refresh",
+      "polarity": "debuff",
+      "moveSpeedMultiplier": 0.2,
+      "description": "A successful Violent Shot push reduces the target's Move Speed by 80% for 6 seconds."
     }
   ]
 }

@@ -1132,6 +1132,17 @@ export class BattleEngine {
                       reason: 'violent_shot_push', sourceSkillId: skillId,
                       blockedByLaneEdge: distanceBetween() < targetDistance,
                     });
+                    const slowStatusId = String(effect.targetDebuffOnSuccessfulPush ?? '');
+                    if (slowStatusId && statusEffectDefs[slowStatusId]) {
+                      applyStatus(
+                        foe,
+                        slowStatusId,
+                        skillId,
+                        Math.max(1, Math.floor(Number(effect.targetDebuffDurationTicks ?? 12))),
+                        { moveSpeedMultiplier: Math.max(0, Math.min(1, Number(effect.targetMoveSpeedMultiplier ?? 0.2))) },
+                        'character',
+                      );
+                    }
                   }
                 }
               }
@@ -1891,7 +1902,12 @@ export class BattleEngine {
           return total + Math.max(0, penalty);
         }, 0);
         const baseSpeed = Number(unit.moveSpeedBase ?? unit.moveSpeed ?? 0);
-        unit.moveSpeed = Math.max(0, baseSpeed - statusPenalty);
+        const moveSpeedMultiplier = statuses.reduce((multiplier: number, status: any) => {
+          const statusId = String(status.type ?? status.id ?? '');
+          const statusDef = statusEffectDefs[statusId] ?? {};
+          return multiplier * Math.max(0, Number(status.moveSpeedMultiplier ?? statusDef.moveSpeedMultiplier ?? 1));
+        }, 1);
+        unit.moveSpeed = Math.max(0, (baseSpeed - statusPenalty) * moveSpeedMultiplier);
       }
       refreshApproachIntent(self, foe, normalizedGambitPage, inventory, itemDefinitions);
       refreshApproachIntent(foe, self, monsterGambitPage, {}, {});
@@ -1900,9 +1916,10 @@ export class BattleEngine {
         if (!unit.movementIntent || target.hp <= 0 || hasStatus(unit, 'stun') || unit.canMove === false) { unit.movementIntent = false; continue; }
         const range = Number(unit.movementIntentRange ?? unit.basicAttackRange ?? 0);
         if (distanceBetween() <= range) { unit.movementIntent = false; unit.movementIntentRange = undefined; continue; }
-        // A movement step may resolve only on whole-second boundaries (every
-        // second 500 ms tick), retaining any overflow for later boundaries.
-        if (tick > 0 && tick % 2 === 0 && Number(unit.movementGauge) >= 200) {
+        // Resolve at most one lane space per 500 ms tick. Consume exactly one
+        // 200-point movement unit and retain all overflow for subsequent ticks;
+        // unlike teleport/push skills, ordinary movement never skips a space.
+        if (tick > 0 && Number(unit.movementGauge) >= 200) {
           unit.movementGauge = Number(unit.movementGauge) - 200;
           const fromPosition = Number(unit.position ?? 0);
           const direction = Number(target.position ?? 0) > fromPosition ? 1 : -1;

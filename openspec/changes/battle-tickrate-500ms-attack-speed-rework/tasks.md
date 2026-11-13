@@ -43,8 +43,8 @@ Reference:
 ## 4. Battle movement cadence at 500 ms
 
 - [x] 4.1 Change the battle-lane movement gauge threshold from 100 to 200 while keeping the current Move Speed values and accumulating the same effective Move Speed on each 500 ms tick; verify movement-gauge values are still server-simulated integers/fractions as appropriate.
-- [x] 4.2 Restrict movement resolution to one-second boundaries (every two combat ticks), with at most one movement step per boundary and existing overflow retention; verify low, normal and high Move Speed produce the same wall-clock step timing as before.
-- [ ] 4.3 Add movement regression scenarios for Move Speed below 100, exactly 100, between 100 and 200, and the maximum legal effective Move Speed; verify no character/monster can exceed one completed space per real-time second due to the former one-step-per-tick cap.
+- [x] 4.2 Resolve ordinary movement every 500 ms tick when the gauge is at least 200; consume exactly 200, retain overflow and cap ordinary movement at one adjacent space per tick (not per second). Explicit multi-space skill/effect displacement remains separate.
+- [x] 4.3 Add deterministic movement regressions for Move Speed below 100, exactly 100, between 100 and 200, at 200 and high Move Speed; verify first-step timing, retained overflow, no skipped lane slots and no more than one ordinary step per actor per tick.
 - [ ] 4.4 Verify movement intents, approach range, occupied positions, status penalties, equipment/buff modifiers and deterministic actor ordering remain unchanged; verify world-map Move Speed, travel duration and flee chance have no combat-tick dependency.
 
 ## 5. Persist tick metadata and convert API battle scheduling

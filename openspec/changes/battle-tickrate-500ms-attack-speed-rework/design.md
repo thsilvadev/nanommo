@@ -98,9 +98,9 @@ Keep the source unit clear:
 
 Do not globally multiply arbitrary JSON numbers. Use a typed field audit and transform only values whose unit is explicitly ticks. Keep root JSON and frontend public mirrors identical and validate their schemas/mirrors after conversion.
 
-### 5. Preserve movement in real time with the approved 200-point gauge
+### 5. Resolve ordinary lane movement every 500 ms tick
 
-Change the battle movement threshold from 100 to 200 while retaining Move Speed values and movement-intent semantics. Continue adding the current Move Speed value on each half-second tick, but evaluate/consume the movement gauge only on every second combat tick (one-second boundaries), with at most one step at that boundary. Across two half-second ticks, the gauge gains 2 × Move Speed; the threshold is also doubled to 200, so this is the exact old 100-point-per-one-second gauge expressed in doubled units. This avoids both accidentally accelerating high Move Speed and changing the old one-step-per-second cap. Keep world map travel and flee calculations untouched. Add a deterministic regression for ordinary, high and maximum legal effective Move Speed, including changes from equipment/buffs.
+Change the battle movement threshold from 100 to 200 while retaining Move Speed values and movement-intent semantics. Continue adding the current effective Move Speed on each half-second tick. On every tick with a legal active approach intent, if the gauge is at least 200, consume exactly 200 and move exactly one adjacent lane space; never perform a second ordinary movement step in that same tick, even if multiple 200-point units are banked. Retain all overflow for subsequent ticks, so high Move Speed can produce one step on each successive 500 ms tick without skipping slots. At speed 200 or above, the first step can occur at T1 and then at most once each tick; at speed 100, the gauge crosses 200 at T2; at speed 98, it crosses at T3. Explicit skill/effect displacement (e.g. Blinkstrike and Violent Shot push) remains separate and may move multiple spaces in one resolution. Keep world map travel and flee calculations untouched. Add deterministic regressions for below-threshold, threshold, high-speed, movement-intent and one-step-per-tick behavior.
 
 ### 6. Remove the tick-timer Gambit condition and use the skill's own cooldown
 

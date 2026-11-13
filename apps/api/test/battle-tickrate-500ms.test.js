@@ -188,19 +188,25 @@ function run() {
   assert.deepEqual(regenEvents.filter(event => event.resource === 'HP').map(event => event.tick).slice(0, 3), [19, 39, 59]);
   assert.deepEqual(regenEvents.filter(event => event.resource === 'HP').map(event => event.amount).slice(0, 3), [8, 8, 8]);
 
-  // Lane movement meters accumulate at 500 ms but only resolve on whole seconds.
-  const rangedTarget = { ...slowMonster, id: 'stationary_ranged_target', hp: 10, combatStyle: 'ranged', basicAttackDamageType: 'ranged', basicAttackRange: 6 };
-  for (const [speed, firstMove] of [[50, 4], [100, 2], [150, 2], [200, 2], [400, 2]]) {
+  // Lane movement accrues Move Speed every 500 ms and resolves at most one
+  // adjacent space on each tick, consuming 200 points while retaining overflow.
+  // Teleport/push skills are separate explicit movement events and may cross slots.
+  const rangedTarget = { ...slowMonster, id: 'stationary_ranged_target', hp: 50000, combatStyle: 'ranged', basicAttackDamageType: 'ranged', basicAttackRange: 6, moveSpeedBase: 0, moveSpd: 0 };
+  for (const [speed, firstMove] of [[50, 4], [100, 2], [150, 2], [200, 1], [400, 1]]) {
     const result = BattleEngine.simulateBattle(
-      baselineCharacter({ attackSpeed: 800, moveSpeedBase: speed, moveSpeed: speed }),
+      baselineCharacter({ hp: 50000, maxHp: 50000, atk: 1, attackSpeed: 800, moveSpeedBase: speed, moveSpeed: speed }),
       rangedTarget,
       alwaysAttack,
       `tickrate-movement-${speed}`,
       { statusEffectDefs: {} },
     );
     const moves = result.log.events.filter(event => event.actor === 'character' && event.action === 'move');
-    assert.equal(moves[0]?.tick, firstMove, `Move Speed ${speed} first whole-second movement boundary`);
-    assert(moves.slice(1).every((event, index) => event.tick - moves[index].tick >= 2), `Move Speed ${speed} never moves more than one space per second`);
+    assert.equal(moves[0]?.tick, firstMove, `Move Speed ${speed} first 500 ms movement tick`);
+    assert(moves.every(event => event.spacesMoved === 1), `Move Speed ${speed} ordinary movement never skips a lane slot`);
+    assert(moves.slice(1).every((event, index) => event.tick - moves[index].tick >= 1), `Move Speed ${speed} resolves at most one space per tick`);
+    if (speed >= 200) {
+      assert.equal(moves[1]?.tick, firstMove + 1, `Move Speed ${speed} retains enough overflow to move again on the next tick`);
+    }
   }
 
   // Catalogue mirrors are exact; only tick-native numeric *Ticks fields were doubled.

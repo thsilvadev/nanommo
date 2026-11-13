@@ -283,12 +283,12 @@ function run() {
   const firstTimedIceBolt = timingResult.log.events.find((event) => event.actor === 'monster' && event.action === 'use_skill' && event.skillId === 'monster_skill_ice_bolt');
   const firstTimedCharacterMove = timingResult.log.events.find((event) => event.actor === 'character' && event.action === 'move');
   assert.equal(firstTimedIceBolt?.tick, 4, 'first four-tick Ice Bolt resolves after the same two seconds');
-  assert.equal(firstTimedCharacterMove?.tick, 4, 'character movement resolves on the first one-second boundary where its 200-point gauge is full');
+  assert.equal(firstTimedCharacterMove?.tick, 3, 'Move Speed 98 crosses the 200-point gauge on the third 500 ms tick');
 
   // Approach intent is evaluated every tick independently from the skill's cast gauge.
   // With DEX 80 the old implementation waited for the four-tick cast gauge before
   // beginning to move; a legal out-of-range skill must now start approach at T0 so
-  // 60 Move Speed fills enough gauge to move at T2.
+  // 60 Move Speed fills enough 200-point gauge to move at T4.
   const approachSkill = {
     id: 'approach_timing_test_skill', name: 'Approach Timing Test', category: 'sword', kind: 'active',
     spCost: 0, baseCastTicks: 1, cooldownTicks: 999, ranged: false, maxRange: 1,
@@ -310,7 +310,7 @@ function run() {
     { weaponBaseAttackTicks: 99 },
   );
   const firstPromptApproachMove = approachTiming.log.events.find((event) => event.actor === 'character' && event.action === 'move');
-  assert.equal(firstPromptApproachMove?.tick, 4, 'approach movement resolves at the first one-second boundary after 200 movement-gauge points accrue');
+  assert.equal(firstPromptApproachMove?.tick, 4, 'Move Speed 60 crosses the 200-point gauge on the fourth 500 ms tick');
 
   assert.equal(wraith.gambit[0].action.type, 'attack');
   assert.equal(wraith.gambit[0].condition.type, 'self_has_status');

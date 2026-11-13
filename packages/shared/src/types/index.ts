@@ -142,6 +142,7 @@ export interface StatusEffectDefinition {
   maxStacks?: number;
   moveSpeedPenalty?: number;
   moveSpeedPenaltyPerStack?: number;
+  moveSpeedMultiplier?: number;
   attackSpeedPenalty?: number;
   attackSpeedPenaltyPerStack?: number;
   matkBonusPerStack?: number;

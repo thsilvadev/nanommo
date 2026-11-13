@@ -225,8 +225,8 @@
           "rank": 5
         },
         "spCost": 20,
-        "description": "20–100 SP; 50 damage per rank; pushes target to distance 6.",
-        "effectDescription": "20–100 SP; 50 damage per rank; pushes target to distance 6.",
+        "description": "20–100 SP; 25 damage per rank; pushes target to distance 6 and reduces its Move Speed by 80% for 6 seconds.",
+        "effectDescription": "20–100 SP; 25 damage per rank; pushes target to distance 6 and reduces its Move Speed by 80% for 6 seconds.",
         "requiresWeaponEquipped": "bow",
         "spCostByRank": [
           20,
@@ -243,8 +243,11 @@
         "effect": {
           "type": "physical_push",
           "base": "flat",
-          "damagePerRank": 50,
-          "targetDistance": 6
+          "damagePerRank": 25,
+          "targetDistance": 6,
+          "targetDebuffOnSuccessfulPush": "violent_shot_slow",
+          "targetDebuffDurationTicks": 12,
+          "targetMoveSpeedMultiplier": 0.2
         },
         "damageType": "ranged"
       }
