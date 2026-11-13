@@ -6,6 +6,7 @@ export interface BattleResolvedPayload {
   entryId: string;
   startAt: string;
   endAt: string;
+  tickDurationMs: number;
   cancelledAt?: string | null;
   outcome: 'win' | 'loss';
   xpGain: number;

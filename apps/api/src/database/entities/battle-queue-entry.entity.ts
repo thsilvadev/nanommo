@@ -23,6 +23,10 @@ export class BattleQueueEntry {
   @Column({ type: 'varchar' })
   monsterId!: string;
 
+  /** Combat tick duration is immutable per queued encounter for replay/projection. */
+  @Column({ type: 'int', default: 500 })
+  tickDurationMs!: number;
+
   @Column({ type: 'timestamptz' })
   startAt!: Date;
 

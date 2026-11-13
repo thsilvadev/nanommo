@@ -10,11 +10,11 @@ const allSkills = [...Object.values(tree.trees).flat(), ...(tree.legacySkills ??
 const skills = Object.fromEntries(allSkills.map(x => [x.id, x]));
 
 assert.equal(BattleEngine.calculateDerivedStats(1, {str:5,agi:5,dex:5,vit:5,int:5,luk:5}, {}).castTimeReduction, 10);
-assert.equal(effectiveSkillCastTicks(2, 10), 2);
-assert.equal(effectiveSkillCastTicks(2, 100), 1);
-assert.equal(effectiveSkillCastTicks(2, 200), 0);
+assert.equal(effectiveSkillCastTicks(4, 10), 4);
+assert.equal(effectiveSkillCastTicks(4, 100), 3);
+assert.equal(effectiveSkillCastTicks(4, 200), 2);
 assert.equal(effectiveSkillCastTicks(0, 0), 0);
-assert.equal(effectiveSkillCastTicks(undefined, 0), 2);
+assert.equal(effectiveSkillCastTicks(undefined, 0), 4);
 
 function run(skillId, {dex=5, includeAttack=false, target='melee', duration, sp=1000}={}) {
   const base = skills[skillId];
@@ -27,14 +27,14 @@ function run(skillId, {dex=5, includeAttack=false, target='melee', duration, sp=
   return BattleEngine.simulateBattle(character,monster,{lines},'ctr-'+skillId,{statusEffectDefs,itemDefinitions:{}});
 }
 
-const war = run('war_cry', {dex:5, includeAttack:true, duration:2});
+const war = run('war_cry', {dex:5, includeAttack:true, duration:4});
 const warEvent = war.log.events.find(e => e.action === 'use_skill' && e.skillId === 'war_cry');
 assert(warEvent, 'War Cry should resolve');
-assert.equal(warEvent.tick, 2, 'DEX 5 gives 10 CTR; two-tick War Cry resolves at T2');
-assert(!war.log.events.some(e => e.actor === 'character' && e.action === 'attack' && e.tick <= 2), 'Attack must not resolve on start/pending/resolution ticks');
+assert.equal(warEvent.tick, 4, 'DEX 5 gives 10 CTR; doubled four-tick War Cry still resolves after two real seconds');
+assert(!war.log.events.some(e => e.actor === 'character' && e.action === 'attack' && e.tick <= 4), 'Attack must not resolve on start/pending/resolution ticks');
 
-const instant = run('war_cry', {dex:100, includeAttack:true, duration:2});
-assert.equal(instant.log.events.find(e => e.action === 'use_skill' && e.skillId === 'war_cry').tick, 0, 'CTR 200 makes a two-tick skill instant');
+const instant = run('war_cry', {dex:200, includeAttack:true, duration:4});
+assert.equal(instant.log.events.find(e => e.action === 'use_skill' && e.skillId === 'war_cry').tick, 0, 'CTR 400 makes a four-tick skill instant');
 const zero = run('war_cry', {dex:5, includeAttack:true, duration:0});
 assert.equal(zero.log.events.find(e => e.action === 'use_skill' && e.skillId === 'war_cry').tick, 0, 'catalog zero cast time resolves in intention tick');
 

@@ -6,6 +6,9 @@ import { BattleService } from '../battle/battle.service';
 import { BattleQueueGateService } from '../battle/battle-queue-gate.service';
 import { TownService } from '../town/town.service';
 import { CharacterService } from '../character/character.service';
+import { getBattleRuntimeConfig } from '../../config/battle-runtime.config';
+
+const WORLD_ACTIVITY_CONCURRENCY = getBattleRuntimeConfig().worldActivityConcurrency;
 
 @Processor('battle-queue')
 @Injectable()
@@ -45,7 +48,7 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
     try { await this.recoveryInProgress; } finally { this.recoveryInProgress = null; }
   }
 
-  @Process('resume-world-activities')
+  @Process({ name: 'resume-world-activities', concurrency: WORLD_ACTIVITY_CONCURRENCY })
   async resumeWorldActivities(job: Job<{ requestedAt?: string }>) {
     await this.gate.assertReadyForProcessing();
     await this.recoverActivities();
@@ -53,7 +56,7 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
     return { success: true };
   }
 
-  @Process('advance-travel')
+  @Process({ name: 'advance-travel', concurrency: WORLD_ACTIVITY_CONCURRENCY })
   async advanceTravel(job: Job<{ characterId: string; generation: number; scheduleVersion?: number; resumeAfterFlee?: boolean }>) {
     const p = job.data;
     const attempt = `${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)}`;
@@ -69,7 +72,7 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  @Process('attempt-flee')
+  @Process({ name: 'attempt-flee', concurrency: WORLD_ACTIVITY_CONCURRENCY })
   async attemptFlee(job: Job<{ characterId: string; battleId: string; generation: number }>) {
     const p = job.data;
     const attempt = `${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)}`;
@@ -85,7 +88,7 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  @Process('advance-stationary-activity')
+  @Process({ name: 'advance-stationary-activity', concurrency: WORLD_ACTIVITY_CONCURRENCY })
   async advanceStationaryActivity(job: Job<{ characterId: string; cycleIndex: number }>) {
     const p = job.data;
     const attempt = `${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)}`;
@@ -100,13 +103,13 @@ export class WorldActivityProcessor implements OnModuleInit, OnModuleDestroy {
       throw error;
     }
   }
-  @Process('complete-cooking')
+  @Process({ name: 'complete-cooking', concurrency: WORLD_ACTIVITY_CONCURRENCY })
   async completeCooking(job: Job<{ characterId: string; sessionId: string; generation: string }>) {
     await this.gate.assertReadyForProcessing();
     return this.town.completeCooking(job.data.characterId, job.data.sessionId);
   }
 
-  @Process('complete-crafting')
+  @Process({ name: 'complete-crafting', concurrency: WORLD_ACTIVITY_CONCURRENCY })
   async completeCrafting(job: Job<{ characterId: string; sessionId: string; generation: string }>) {
     await this.gate.assertReadyForProcessing();
     return this.town.completeCrafting(job.data.characterId, job.data.sessionId);

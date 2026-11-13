@@ -13,14 +13,14 @@ const now = Date.parse('2026-10-20T22:00:00.000Z');
     { type: 'poison', appliedAtTick: 2, expiresAtTick: 15, sourceSkillId: 'poison_sting' },
   ], 6, now);
   assert.equal(checkpoint.length, 1);
-  assert.equal(checkpoint[0].expiresAt, new Date(now + 8_000).toISOString());
+  assert.equal(checkpoint[0].expiresAt, new Date(now + 4_000).toISOString());
   assert.equal('expiresAtTick' in checkpoint[0], false, 'persisted effects cannot keep battle-local expiry ticks');
   assert.equal('appliedAtTick' in checkpoint[0], false, 'persisted effects cannot keep battle-local application ticks');
 }
 
 {
   const persisted = [
-    { type: 'poison', expiresAt: new Date(now + 8_000).toISOString(), sourceSkillId: 'poison_sting' },
+    { type: 'poison', expiresAt: new Date(now + 4_000).toISOString(), sourceSkillId: 'poison_sting' },
   ];
   const inBattle = statusEffectsForBattle(persisted, now);
   assert.equal(inBattle.length, 1);

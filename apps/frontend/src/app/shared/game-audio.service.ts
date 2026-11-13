@@ -1,3 +1,4 @@
+import { battleTickAt } from './battle-timing';
 import { Injectable, signal } from '@angular/core';
 
 type SoundName =
@@ -425,7 +426,8 @@ export class GameAudioService {
     const now = Date.now();
     const startAt = Date.parse(entry.startAt);
     if (!Number.isFinite(startAt) || now < startAt) return;
-    const elapsedTick = Math.floor((now - startAt) / 1000);
+    const elapsedTick = battleTickAt(entry, now);
+    if (elapsedTick === null) { this.lastBattleId = ''; this.lastBattleTick = -1; this.lastBattleEventIndex = -1; return; }
     const events: any[] = Array.isArray(entry.log?.events) ? entry.log.events : [];
     if (entry.id !== this.lastBattleId) {
       this.lastBattleId = entry.id;

@@ -23,6 +23,7 @@ import { GatewayModule } from './modules/gateway/gateway.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { getMasteryXpPolicy } from './config/mastery-xp-policy';
 import { getRedisConnectionOptions } from './config/redis.config';
+import { getBattleRuntimeConfig } from './config/battle-runtime.config';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { getRedisConnectionOptions } from './config/redis.config';
       envFilePath: '../../.env',
       validate: (env) => {
         getMasteryXpPolicy(env);
+        getBattleRuntimeConfig(env);
         const questLimitRaw = env.QUEST_ACTIVE_LIMIT;
         if (questLimitRaw !== undefined && (!/^\d+$/.test(String(questLimitRaw)) || Number(questLimitRaw) < 1 || !Number.isSafeInteger(Number(questLimitRaw)))) throw new Error('QUEST_ACTIVE_LIMIT must be a positive integer');
         return env;

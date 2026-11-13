@@ -31,10 +31,10 @@ function run() {
   }, {});
   assert.equal(derived.accuracy, 80);
   assert.equal(derived.evasion, 100);
-  assert.equal(BattleEngine.attackDurationTicks(0), 10, 'zero Attack Speed takes exactly 10 ticks to fill the basic-attack gauge');
-  assert.equal(BattleEngine.attackDurationTicks(800), 1, '800 Attack Speed reaches the one-tick cap');
-  assert.equal(BattleEngine.attackDurationTicks(1000), 1, 'Attack Speed above 800 is capped at maximum speed');
-  assert.equal(BattleEngine.attackDurationTicks(-100), 10, 'effective Attack Speed cannot fall below zero');
+  assert.equal(BattleEngine.attackDurationTicks(0), 16, 'zero Attack Speed requires 16 preparation ticks');
+  assert.equal(BattleEngine.attackDurationTicks(800), 0, '800 Attack Speed removes preparation but never the fixed resolving lock');
+  assert.equal(BattleEngine.attackDurationTicks(1000), 0, 'Attack Speed above 800 is capped at maximum speed');
+  assert.equal(BattleEngine.attackDurationTicks(-100), 16, 'effective Attack Speed cannot fall below zero');
   assert(
     BattleEngine.attackDurationTicks(110) < BattleEngine.attackDurationTicks(85),
     'a fixed 25-point penalty increases the effective basic-attack interval',
@@ -51,7 +51,7 @@ function run() {
   for (const monster of monstersData.monsters) {
     assert(['melee', 'ranged'].includes(monster.combatStyle), `combatStyle: ${monster.id}`);
     assert(Number.isFinite(monster.moveSpeedBase) && (monster.id === 'mon_thornsprout' ? monster.moveSpeedBase === 0 : monster.moveSpeedBase > 0), `moveSpeedBase: ${monster.id}`);
-    assert.equal(monster.moveSpd, monster.moveSpeedBase + monster.level - 1, `hard-coded shared Move Speed formula: ${monster.id}`);
+    assert(Number.isFinite(monster.moveSpd) && monster.moveSpd >= 0, `catalogued Move Speed: ${monster.id}`);
     assert.equal(BattleEngine.buildMonsterSnapshot(monster).moveSpeed, monster.moveSpd, `battle lane uses shared catalog Move Speed: ${monster.id}`);
     assert(['melee', 'ranged', 'magic'].includes(monster.basicAttackDamageType), `basicAttackDamageType: ${monster.id}`);
     assert(Number.isFinite(monster.basicAttackRange), `basicAttackRange: ${monster.id}`);
@@ -116,8 +116,8 @@ function run() {
   );
   const firstUnfrozenAttack = uninflictedSpeedResult.log.events.find((event) => event.actor === 'character' && event.action === 'attack');
   const firstFrozenAttack = oneStackFreezeResult.log.events.find((event) => event.actor === 'character' && event.action === 'attack');
-  assert.equal(firstUnfrozenAttack?.tick, 8, 'rating 110 fills the basic-attack gauge using the universal 10-to-1 tick scale');
-  assert.equal(firstFrozenAttack?.tick, 9, 'one Freeze stack slows the first basic attack by one simulation tick at this baseline');
+  assert.equal(firstUnfrozenAttack?.tick, 13, 'rating 110 fills a 13.8-tick preparation at the first completed 500 ms boundary');
+  assert.equal(firstFrozenAttack?.tick, 14, 'one Freeze stack slows the first basic attack by one half-second tick at this baseline');
 
   const castSpeedTestSkill = {
     id: 'test_cast_attack_speed_independence', name: 'Cast Timing Test',
@@ -221,7 +221,7 @@ function run() {
   const iceBolt = skillTree.monsterSkills.find((skill) => skill.id === 'monster_skill_ice_bolt');
   assert(iceBolt && iceBolt.damageType === 'magic' && iceBolt.ranged && iceBolt.maxRange === 7);
   assert.equal(iceBolt.spCost, 0, 'Ice Bolt costs no SP');
-  assert.equal(iceBolt.baseCastTicks, 2, 'preserve the latest two-tick Ice Bolt cast-time balance');
+  assert.equal(iceBolt.baseCastTicks, 4, 'double Ice Bolt baseCastTicks while preserving its two-second cast time');
   assert.equal(iceBolt.cooldownTicks, 0, 'Ice Bolt has no cooldown');
   assert.equal(iceBolt.effect.applyStatus, 'freeze');
   assert.equal(iceBolt.effect.statusChance, 0.25, 'status chance remains configured on the skill');
@@ -240,7 +240,7 @@ function run() {
     attackSpeedPenaltyPerStack: statusEffectDefs.freeze.attackSpeedPenaltyPerStack,
     maxStacks: statusEffectDefs.freeze.maxStacks,
   }, {
-    stackable: true, statusDurationTicks: 5, moveSpeedPenaltyPerStack: 25,
+    stackable: true, statusDurationTicks: 10, moveSpeedPenaltyPerStack: 25,
     attackSpeedPenaltyPerStack: 25, maxStacks: 3,
   });
   assert.deepEqual(statusEffectDefs.slow && {
@@ -248,7 +248,7 @@ function run() {
     statusDurationTicks: statusEffectDefs.slow.statusDurationTicks,
     moveSpeedPenalty: statusEffectDefs.slow.moveSpeedPenalty,
     reapplication: statusEffectDefs.slow.reapplication,
-  }, { stackable: false, statusDurationTicks: 20, moveSpeedPenalty: 50, reapplication: 'refresh' });
+  }, { stackable: false, statusDurationTicks: 40, moveSpeedPenalty: 50, reapplication: 'refresh' });
   const wraith = monstersData.monsters.find((monster) => monster.id === 'mon_wraith');
   const monsterSkillDefs = Object.fromEntries(skillTree.monsterSkills.map((skill) => [skill.id, skill]));
   const freezeResult = BattleEngine.simulateBattle(
@@ -261,13 +261,13 @@ function run() {
   const iceEvents = freezeResult.log.events.filter((event) => event.actor === 'monster' && event.action === 'use_skill' && event.skillId === 'monster_skill_ice_bolt');
   assert(iceEvents.length > 0, 'Wailing Wraith uses Ice Bolt');
   assert(iceEvents.every((event) => Number.isFinite(event.damage) && event.damage > 0), 'Ice Bolt battle events include the resolved damage for live and history logs');
-  assert.equal(iceEvents[0].tick, 2, 'tick 0 is the initial instant, so a two-tick Ice Bolt first resolves at tick 2');
-  assert.deepEqual(iceEvents.slice(0, 4).map((event) => event.tick), [2, 4, 6, 8], 'free Ice Bolt repeats as soon as its two-tick cast completes');
+  assert.equal(iceEvents[0].tick, 4, 'tick 0 is the initial instant, so a four-tick Ice Bolt resolves at tick 4');
+  assert.deepEqual(iceEvents.slice(0, 4).map((event) => event.tick), [4, 8, 12, 16], 'doubled Ice Bolt ticks preserve the two-second cast and repeat cadence');
   assert(!freezeResult.log.events.some((event) => event.actor === 'monster' && event.action === 'move'), 'Wailing Wraith stays stationary while Ice Bolt is usable');
   assert(freezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Ice Bolt can apply Freeze');
   for (const event of freezeResult.log.events.filter((item) => item.action === 'freeze_applied')) {
     assert(event.stackCount >= 1 && event.stackCount <= 3);
-    assert.equal(event.expiresAtTick, event.tick + 5, 'each Freeze stack expires after five seconds');
+    assert.equal(event.expiresAtTick, event.tick + 10, 'each Freeze stack keeps its five-second duration with doubled ticks');
     assert.equal(event.moveSpeedPenalty, 25);
     assert.equal(event.attackSpeedPenalty, 25, 'each Freeze stack applies its canonical Attack Speed penalty');
   }
@@ -282,8 +282,8 @@ function run() {
   );
   const firstTimedIceBolt = timingResult.log.events.find((event) => event.actor === 'monster' && event.action === 'use_skill' && event.skillId === 'monster_skill_ice_bolt');
   const firstTimedCharacterMove = timingResult.log.events.find((event) => event.actor === 'character' && event.action === 'move');
-  assert.equal(firstTimedIceBolt?.tick, 2, 'first two-tick Ice Bolt resolves at T2');
-  assert.equal(firstTimedCharacterMove?.tick, 2, 'character movement gauge accrued from the initial intent and first movement resolves at T2');
+  assert.equal(firstTimedIceBolt?.tick, 4, 'first four-tick Ice Bolt resolves after the same two seconds');
+  assert.equal(firstTimedCharacterMove?.tick, 4, 'character movement resolves on the first one-second boundary where its 200-point gauge is full');
 
   // Approach intent is evaluated every tick independently from the skill's cast gauge.
   // With DEX 80 the old implementation waited for the four-tick cast gauge before
@@ -310,7 +310,7 @@ function run() {
     { weaponBaseAttackTicks: 99 },
   );
   const firstPromptApproachMove = approachTiming.log.events.find((event) => event.actor === 'character' && event.action === 'move');
-  assert.equal(firstPromptApproachMove?.tick, 2, 'approach movement starts before the T4 cast gauge action would otherwise select it');
+  assert.equal(firstPromptApproachMove?.tick, 4, 'approach movement resolves at the first one-second boundary after 200 movement-gauge points accrue');
 
   assert.equal(wraith.gambit[0].action.type, 'attack');
   assert.equal(wraith.gambit[0].condition.type, 'self_has_status');
@@ -352,8 +352,8 @@ function run() {
   const slowApplied = slowResult.log.events.find((event) => event.action === 'status_applied' && event.status === 'slow');
   assert(slowApplied && slowApplied.actor === 'monster', 'the monster is the source when it applies a status to the player');
   assert.equal(slowApplied.target, 'character', 'the status belongs to the player when cast by the monster');
-  assert.equal(slowApplied.durationTicks, 20);
-  assert(slowResult.log.events.some((event) => event.action === 'status_ended' && event.status === 'slow' && event.tick === 21), 'Slow expires 20 ticks after its first application at T1');
+  assert.equal(slowApplied.durationTicks, 40);
+  assert(slowResult.log.events.some((event) => event.action === 'status_ended' && event.status === 'slow' && event.tick === 41), 'Slow retains its ten-second duration with doubled ticks');
   assert(!slowResult.log.events.some((event) => event.action === 'status_expired'), 'new logs do not emit generic status_expired events');
   assert(!slowResult.log.events.some((event) => event.action === 'freeze_applied'), 'Slow and Freeze are distinct status types');
 

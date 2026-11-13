@@ -30,7 +30,7 @@
           "chancePerRank": 0.01,
           "maxStacks": 5,
           "damagePerStack": 5,
-          "intervalTicks": 5
+          "intervalTicks": 10
         }
       },
       {
@@ -49,8 +49,8 @@
         "description": "30 SP; ATK + 50 per rank; 10 second cooldown.",
         "effectDescription": "30 SP; ATK + 50 per rank; 10 second cooldown.",
         "requiresWeaponEquipped": "sword",
-        "baseCastTicks": 2,
-        "cooldownTicks": 10,
+        "baseCastTicks": 4,
+        "cooldownTicks": 20,
         "effect": {
           "type": "physical_damage",
           "base": "atk",
@@ -103,8 +103,8 @@
           45,
           50
         ],
-        "baseCastTicks": 2,
-        "cooldownTicks": 25,
+        "baseCastTicks": 4,
+        "cooldownTicks": 50,
         "effect": {
           "type": "physical_damage",
           "base": "atk",
@@ -168,8 +168,8 @@
           0,
           0
         ],
-        "baseCastTicks": 2,
-        "cooldownTicks": 100,
+        "baseCastTicks": 4,
+        "cooldownTicks": 200,
         "cooldownTicksByRank": [
           100,
           85,
@@ -235,8 +235,8 @@
           80,
           100
         ],
-        "baseCastTicks": 2,
-        "cooldownTicks": 25,
+        "baseCastTicks": 4,
+        "cooldownTicks": 36,
         "target": "monster",
         "ranged": true,
         "maxRange": 7,
@@ -264,8 +264,8 @@
         "effectDescription": "10 SP per rank; MATK + 30 per rank; 3 second cast; 5% Burn chance (source MATK / 5 damage every 5 seconds).",
         "requiresWeaponEquipped": "staff",
         "spCostPerRank": 10,
-        "baseCastTicks": 3,
-        "cooldownTicks": 1,
+        "baseCastTicks": 6,
+        "cooldownTicks": 2,
         "target": "monster",
         "ranged": true,
         "maxRange": 7,
@@ -275,8 +275,8 @@
           "base": "matk",
           "flatPerRank": 30,
           "burnChance": 0.05,
-          "burnDurationTicks": 25,
-          "burnIntervalTicks": 5,
+          "burnDurationTicks": 50,
+          "burnIntervalTicks": 10,
           "burnDamage": "source_matk_div_5"
         },
         "element": "fire"
@@ -298,8 +298,8 @@
         "effectDescription": "100 SP per rank; MATK + 50 per rank; 6 second cast; 50% Burn chance (source MATK / 5 damage every 5 seconds).",
         "requiresWeaponEquipped": "staff",
         "spCostPerRank": 100,
-        "baseCastTicks": 6,
-        "cooldownTicks": 25,
+        "baseCastTicks": 12,
+        "cooldownTicks": 50,
         "target": "monster",
         "ranged": true,
         "maxRange": 7,
@@ -309,8 +309,8 @@
           "base": "matk",
           "flatPerRank": 50,
           "burnChance": 0.5,
-          "burnDurationTicks": 25,
-          "burnIntervalTicks": 5,
+          "burnDurationTicks": 50,
+          "burnIntervalTicks": 10,
           "burnDamage": "source_matk_div_5"
         },
         "element": "fire"
@@ -331,8 +331,8 @@
         "effectDescription": "5 SP per rank; MATK + 25 × rank + floor(current SP before cost / 5); 2 second cast.",
         "requiresWeaponEquipped": "rod",
         "spCostPerRank": 5,
-        "baseCastTicks": 2,
-        "cooldownTicks": 1,
+        "baseCastTicks": 4,
+        "cooldownTicks": 2,
         "target": "monster",
         "ranged": true,
         "maxRange": 7,
@@ -360,8 +360,8 @@
         "effectDescription": "20 SP per rank; rank-scaled self heal; 5 second cast.",
         "requiresWeaponEquipped": "rod",
         "spCostPerRank": 20,
-        "baseCastTicks": 5,
-        "cooldownTicks": 9,
+        "baseCastTicks": 10,
+        "cooldownTicks": 18,
         "cooldownTicksByRank": [
           9,
           8,
@@ -397,7 +397,7 @@
         "effect": {
           "type": "shield_bash_passive",
           "chancePerRank": 0.02,
-          "stunDurationTicks": 5,
+          "stunDurationTicks": 10,
           "requiresDistance": 0
         }
       },
@@ -417,13 +417,13 @@
         "description": "50 SP; +10 DEF per rank for 15 seconds; 30 second cooldown.",
         "effectDescription": "50 SP; +10 DEF per rank for 15 seconds; 30 second cooldown.",
         "requiresWeaponEquipped": "shield",
-        "baseCastTicks": 2,
-        "cooldownTicks": 30,
+        "baseCastTicks": 4,
+        "cooldownTicks": 60,
         "target": "self",
         "effect": {
           "type": "defense_buff",
           "defBonusPerRank": 10,
-          "durationTicks": 15
+          "durationTicks": 30
         }
       }
     ],
@@ -465,13 +465,13 @@
         "effectDescription": "50 SP per rank; absorbs 100 magic damage per rank for 300 seconds.",
         "requiresWeaponEquipped": "rune",
         "spCostPerRank": 50,
-        "baseCastTicks": 2,
-        "cooldownTicks": 30,
+        "baseCastTicks": 4,
+        "cooldownTicks": 60,
         "target": "self",
         "effect": {
           "type": "magic_barrier",
           "absorbPerRank": 100,
-          "durationTicks": 300
+          "durationTicks": 600
         }
       }
     ]
@@ -484,8 +484,8 @@
       "effect": {
         "dmgMult": 3
       },
-      "baseCastTicks": 4,
-      "cooldownTicks": 999,
+      "baseCastTicks": 8,
+      "cooldownTicks": 1998,
       "spCost": 30
     },
     {
@@ -495,8 +495,8 @@
       "effect": {
         "healPercentMaxHp": 0.25
       },
-      "baseCastTicks": 3,
-      "cooldownTicks": 10,
+      "baseCastTicks": 6,
+      "cooldownTicks": 20,
       "spCost": 15
     },
     {
@@ -507,8 +507,8 @@
         "dmgMult": 1.2,
         "applyStatus": "stun"
       },
-      "baseCastTicks": 4,
-      "cooldownTicks": 999,
+      "baseCastTicks": 8,
+      "cooldownTicks": 1998,
       "spCost": 30
     },
     {
@@ -522,7 +522,7 @@
         "applyStatus": "freeze",
         "statusChance": 0.25
       },
-      "baseCastTicks": 2,
+      "baseCastTicks": 4,
       "cooldownTicks": 0,
       "spCost": 0
     },
@@ -532,7 +532,7 @@
       "kind": "active",
       "target": "foe",
       "spCost": 60,
-      "cooldownTicks": 20,
+      "cooldownTicks": 40,
       "effects": [
         {
           "type": "steal_consumable_stack",
@@ -557,14 +557,14 @@
       "kind": "active",
       "target": "foe",
       "spCost": 20,
-      "cooldownTicks": 10,
+      "cooldownTicks": 20,
       "effects": [
         {
           "type": "apply_status",
           "status": "poison",
           "chance": 0.5,
           "saveButtLuck": true,
-          "durationTicks": 25,
+          "durationTicks": 50,
           "tickInterval": 5,
           "damageFormula": "floor(sourceMatk * 0.5)",
           "damageType": "magic"
@@ -575,8 +575,8 @@
         "applyStatus": "poison",
         "statusChance": 0.5,
         "saveButtLuck": true,
-        "durationTicks": 25,
-        "damageIntervalTicks": 5
+        "durationTicks": 50,
+        "damageIntervalTicks": 10
       },
       "damageType": "magic"
     },
@@ -590,7 +590,7 @@
           "type": "stack_on_foe_active_skill",
           "status": "prowess",
           "maxStacks": 5,
-          "durationTicks": 20,
+          "durationTicks": 40,
           "atkPerStack": 10,
           "defPerStack": 10
         }
@@ -605,7 +605,7 @@
         {
           "type": "reflect_when_disarmed",
           "status": "physical_reflection",
-          "durationTicks": 15,
+          "durationTicks": 30,
           "reflectPercent": 30,
           "damageType": "physical"
         }
@@ -621,7 +621,7 @@
           "type": "reflect_when_skill_illegal_for_sp",
           "skillId": "monster_skill_ice_bolt",
           "status": "magic_reflection",
-          "durationTicks": 15,
+          "durationTicks": 30,
           "reflectPercent": 30,
           "damageType": "magic"
         }
@@ -633,7 +633,7 @@
       "kind": "active",
       "target": "self",
       "spCost": 50,
-      "cooldownTicks": 15,
+      "cooldownTicks": 30,
       "effects": [
         {
           "type": "cleanse_debuffs"
@@ -642,14 +642,14 @@
           "type": "stat_buff",
           "atk": 20,
           "attackSpeedMultiplier": 2,
-          "durationTicks": 15
+          "durationTicks": 30
         }
       ],
       "effect": {
         "type": "rage",
         "atk": 20,
         "attackSpeedMultiplier": 2,
-        "durationTicks": 15,
+        "durationTicks": 30,
         "cleanseDebuffs": true
       }
     },
@@ -659,7 +659,7 @@
       "kind": "active",
       "target": "foe",
       "spCost": 0,
-      "cooldownTicks": 9999,
+      "cooldownTicks": 19998,
       "effects": [
         {
           "type": "damage",
@@ -671,7 +671,7 @@
           "status": "bleed",
           "chance": 0.5,
           "stacks": 1,
-          "durationTicks": 20
+          "durationTicks": 40
         }
       ],
       "effect": {
@@ -679,7 +679,7 @@
         "dmgMult": 2,
         "applyStatus": "bleed",
         "statusChance": 0.5,
-        "durationTicks": 20
+        "durationTicks": 40
       },
       "damageType": "melee"
     },
@@ -689,8 +689,8 @@
       "kind": "active",
       "target": "foe",
       "spCost": 60,
-      "cooldownTicks": 10,
-      "baseCastTicks": 3,
+      "cooldownTicks": 20,
+      "baseCastTicks": 6,
       "ranged": true,
       "maxRange": 7,
       "damageType": "magic",
@@ -705,19 +705,19 @@
       "kind": "active",
       "target": "self",
       "spCost": 30,
-      "cooldownTicks": 15,
-      "baseCastTicks": 2,
+      "cooldownTicks": 30,
+      "baseCastTicks": 4,
       "effects": [
         {
           "type": "apply_status",
           "status": "tip_of_pain",
-          "durationTicks": 9999
+          "durationTicks": 19998
         }
       ],
       "effect": {
         "type": "self_status_buff",
         "applyStatus": "tip_of_pain",
-        "durationTicks": 9999
+        "durationTicks": 19998
       },
       "damageType": "melee"
     },
@@ -730,9 +730,9 @@
         {
           "type": "chance_on_basic_attack_apply_status",
           "status": "web_pack",
-          "chance": 0.1,
+          "chance": 0.2,
           "maxStacks": 5,
-          "durationTicks": 10
+          "durationTicks": 20
         }
       ],
       "description": "Each successful basic attack has a 10% chance to apply Web Pack: -10 Attack Speed per stack, up to 5 stacks, for 10 seconds."
@@ -743,8 +743,10 @@
       "kind": "active",
       "target": "foe",
       "spCost": 40,
-      "cooldownTicks": 15,
-      "baseCastTicks": 3,
+      "cooldownTicks": 40,
+      "baseCastTicks": 6,
+      "ranged": true,
+      "maxRange": 7,
       "damageType": "magic",
       "effect": {
         "type": "magic_damage",
@@ -762,7 +764,7 @@
           "type": "stack_on_foe_active_skill",
           "status": "magic_prowess",
           "maxStacks": 5,
-          "durationTicks": 20,
+          "durationTicks": 40,
           "matkPerStack": 20
         }
       ],

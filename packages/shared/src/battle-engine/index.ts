@@ -1,5 +1,6 @@
 import { Mulberry32 } from './prng';
 import type { StatusEffectDefinition } from '../types';
+import { secondsToBattleTicks } from './time';
 
 export {
   Mulberry32,
@@ -9,6 +10,7 @@ export {
 export * from './rewards';
 export * from './mastery-rewards';
 export * from './persistent-status';
+export * from './time';
 
 /** Effective food regeneration value: Diet level adds +1 per level. */
 export function effectiveFoodStatValue(catalogValue: number, dietLevel: number): number {
@@ -19,8 +21,8 @@ export function effectiveFoodStatValue(catalogValue: number, dietLevel: number):
 
 /** Normalize a catalog cast duration and apply DEX-derived Cast Time Reduction. */
 export function effectiveSkillCastTicks(baseCastTicks: unknown, castTimeReduction: number): number {
-  const providedBase = baseCastTicks === undefined || baseCastTicks === null ? 2 : Number(baseCastTicks);
-  const normalizedBase = Number.isFinite(providedBase) ? Math.max(0, Math.floor(providedBase)) : 2;
+  const providedBase = baseCastTicks === undefined || baseCastTicks === null ? 4 : Number(baseCastTicks);
+  const normalizedBase = Number.isFinite(providedBase) ? Math.max(0, Math.floor(providedBase)) : 4;
   const ctr = Number.isFinite(Number(castTimeReduction)) ? Number(castTimeReduction) : 0;
   return Math.max(0, Math.ceil(normalizedBase - ctr / 100));
 }
@@ -44,8 +46,6 @@ export interface CombatantSnapshot {
   critChance: number;
   hpRegenPerTenTicks: number;
   spRegenPerTenTicks: number;
-  /** Current tick index, needed by tick-indexed conditions (e.g. every_n_ticks) */
-  tick?: number;
   /** Raw attributes retained for attribute-driven secondary mechanics. */
   agi: number;
   dex: number;
@@ -164,11 +164,6 @@ export class GambitEvaluator {
         return self.maxSp > 0 && (self.sp / self.maxSp) * 100 < Number(params.value);
       case 'foe_hp_below_percent':
         return foe.maxHp > 0 && (foe.hp / foe.maxHp) * 100 < Number(params.value);
-      case 'every_n_ticks': {
-        const n = Number(params.value);
-        return n > 0 && (self.tick ?? 0) % n === 0;
-      }
-
       case 'self_hp_band':
         return GambitEvaluator.isInHpBand(self.hp, self.maxHp, params.band);
 
@@ -377,16 +372,16 @@ export class GambitEvaluator {
  * Battle Engine - Pure deterministic combat simulator (SPEC §7)
  */
 export class BattleEngine {
-  static readonly BASE_CAST_TICKS = 8;
-  static readonly BASIC_ATTACK_CAST_TICKS = 2;
+  static readonly BASE_CAST_TICKS = 16;
+  static readonly BASIC_ATTACK_LOCK_TICKS = 2;
   static readonly POTION_COOLDOWN = 10;
   static readonly CRIT_MULTIPLIER = 1.5;
   static readonly MIN_ATTACK_GAUGE = 2;
-  static readonly MIN_CAST_GAUGE = 3;
-  static readonly MIN_ATTACK_DURATION_TICKS = 1;
-  static readonly MAX_ATTACK_DURATION_TICKS = 10;
+  static readonly MIN_CAST_GAUGE = 6;
+  static readonly MIN_ATTACK_DURATION_TICKS = 0;
+  static readonly MAX_ATTACK_DURATION_TICKS = 16;
   static readonly MAX_ATTACK_SPEED = 800;
-  static readonly DEFAULT_MONSTER_CAST_TICKS = 6;
+  static readonly DEFAULT_MONSTER_CAST_TICKS = 12;
   static readonly DEFEND_DAMAGE_REDUCTION = 0.3;
   static readonly DEF_FLAT_REDUCTION_PER_POINT = 0.425;
   static readonly DEF_RELATIVE_SCALE = 250;
@@ -500,33 +495,25 @@ export class BattleEngine {
   }
 
   /**
-   * Convert the effective Attack Speed rating into the basic-attack interval.
-   * The scale is global and exact at both endpoints: 0 => 10 ticks, 800+ =>
-   * 1 tick. Fractional intervals are applied through gauge progress rather than
-   * rounded away. Character skills use CTR-based pending casts; non-skill Cast
-   * actions retain their gauge, and monster skills use catalogued cast ticks.
+   * Attack preparation in 500 ms ticks. The 1-second resolving lock is separate
+   * and is never accelerated by Attack Speed or temporary multipliers.
+   * Fractional preparation remains in the gauge as continuous progress.
    */
   static attackDurationTicks(attackSpeed: number): number {
     const rawSpeed = Number(attackSpeed ?? 0);
     const effectiveSpeed = Number.isFinite(rawSpeed)
       ? Math.max(0, Math.min(BattleEngine.MAX_ATTACK_SPEED, rawSpeed))
       : 0;
-    const duration = BattleEngine.MAX_ATTACK_DURATION_TICKS
-      - (effectiveSpeed / BattleEngine.MAX_ATTACK_SPEED)
-        * (BattleEngine.MAX_ATTACK_DURATION_TICKS - BattleEngine.MIN_ATTACK_DURATION_TICKS);
-    return Math.max(
-      BattleEngine.MIN_ATTACK_DURATION_TICKS,
-      Math.min(BattleEngine.MAX_ATTACK_DURATION_TICKS, duration),
-    );
+    return 16 * (BattleEngine.MAX_ATTACK_SPEED - effectiveSpeed) / BattleEngine.MAX_ATTACK_SPEED;
   }
 
   /**
-   * SPEC §7.2: castGaugeThreshold = 8 - floor(DEX * 0.05), min 3
+   * SPEC §7.2: castGaugeThreshold = 16 - 2 * floor(DEX * 0.05), min 6
    */
   static castGaugeThreshold(dex: number): number {
     return Math.max(
       BattleEngine.MIN_CAST_GAUGE,
-      BattleEngine.BASE_CAST_TICKS - Math.floor(dex * 0.05),
+      BattleEngine.BASE_CAST_TICKS - 2 * Math.floor(dex * 0.05),
     );
   }
 
@@ -656,6 +643,9 @@ export class BattleEngine {
     const itemsConsumed: Array<{ itemId: string; quantity: number }> = [];
 
     let attackGauge = 0;
+    // The next positive preparation starts after the post-lock boundary. A zero-prep
+    // 800-AS action can still resolve immediately at the first unlocked tick.
+    let attackPreparationStartsAtTick = 0;
     let castGauge = 0;
     let monsterAttackGauge = 0;
     let pendingMonsterCast: { skillId: string; castStartedAtTick: number; resolutionTick: number } | null = null;
@@ -666,7 +656,7 @@ export class BattleEngine {
     const selfCastThreshold = BattleEngine.castGaugeThreshold(self.dex);
     const monsterAttackThreshold = Math.max(
       BattleEngine.MIN_ATTACK_GAUGE,
-      Number(monsterDefinition?.atkSpeedTicks ?? 6),
+      Number(monsterDefinition?.atkSpeedTicks ?? 12),
     );
 
     // Status definitions own the penalty values. A stackable status contributes
@@ -705,15 +695,14 @@ export class BattleEngine {
           Number(self.attackSpeed ?? (100 + Math.floor(Number(self.agi ?? 5) * 2))) - statusAttackSpeedPenalty(self),
         ),
       );
-      // A 2x Attack Speed buff doubles action frequency, so halve the interval
-      // rather than merely doubling the rating on its nonlinear 0..800 curve.
-      return Math.max(BattleEngine.MIN_ATTACK_DURATION_TICKS, BattleEngine.attackDurationTicks(effectiveSpeed) / attackSpeedMultiplier);
+      // Temporary Attack Speed multipliers accelerate preparation only.
+      return BattleEngine.attackDurationTicks(effectiveSpeed) / attackSpeedMultiplier;
     };
     // Monsters retain their catalogued atkSpeedTicks baseline; the same point
     // penalty adds the equivalent fractional delay to their basic-attack gauge.
     const monsterAttackDurationTicks = (): number => {
       const rage = (foe.statusEffects ?? []).some((status: any) => statusIdOf(status) === 'rage');
-      return Math.max(BattleEngine.MIN_ATTACK_DURATION_TICKS, (monsterAttackThreshold + statusAttackSpeedPenalty(foe) * 9 / BattleEngine.MAX_ATTACK_SPEED) / (rage ? 2 : 1));
+      return Math.max(BattleEngine.MIN_ATTACK_DURATION_TICKS, (monsterAttackThreshold + statusAttackSpeedPenalty(foe) * 18 / BattleEngine.MAX_ATTACK_SPEED) / (rage ? 2 : 1));
     };
 
     const damageTakenMultiplier = monsterDefinition?.damageTakenMultiplier ?? {};
@@ -793,7 +782,7 @@ export class BattleEngine {
         ...(sourceSkillId === 'shield_bash' ? { passiveProc: true } : {}),
       });
       if (target === foe && statusId === 'disarm' && monsterDefinition?.id === 'mon_brokensentinel') {
-        applyStatus(foe, 'physical_reflection', 'monster_skill_physical_reflection', 15, { reflectPercent: 30 }, 'monster');
+        applyStatus(foe, 'physical_reflection', 'monster_skill_physical_reflection', 30, { reflectPercent: 30 }, 'monster');
       }
       return true;
     };
@@ -812,7 +801,7 @@ export class BattleEngine {
       const definition = itemDefinitions[itemId];
       if (definition?.effect?.type !== 'revive_full_cleanse' || Number(inventory[itemId] ?? 0) < 1) return false;
       inventory[itemId] = Math.max(0, Number(inventory[itemId] ?? 0) - 1);
-      cooldowns[`item:${itemId}`] = Math.max(0, Number(definition.cooldownInSeconds ?? 30));
+      cooldowns[`item:${itemId}`] = secondsToBattleTicks(Math.max(0, Number(definition.cooldownInSeconds ?? 30)));
       const existing = itemsConsumed.find((entry) => entry.itemId === itemId);
       if (existing) existing.quantity += 1; else itemsConsumed.push({ itemId, quantity: 1 });
       const cleansedStatuses = (self.statusEffects ?? []).map((status: any) => String(status.type ?? status.id ?? '')).filter(Boolean);
@@ -821,7 +810,7 @@ export class BattleEngine {
       self.sp = self.maxSp;
       self.movementIntent = false;
       self.movementIntentRange = undefined;
-      self.castLockTicks = 1;
+      self.castLockTicks = 2;
       record({ tick, actor: 'character', action: 'use_item', itemId, target: 'character', revived: true, restoredHp: self.hp, restoredSp: self.sp, cleansedStatuses });
       for (const status of cleansedStatuses) record({ tick, actor: 'character', action: 'status_ended', status, target: 'character', reason: 'fairy_revival', sourceItemId: itemId });
       return true;
@@ -986,7 +975,7 @@ export class BattleEngine {
                 if (self.sp > beforeRefund) record({ tick, actor: 'character', action: 'sp_refund', sourceSkillId: 'arcane_dynamo', target: 'character', spRestored: self.sp - beforeRefund });
               };
               if (effectType === 'defense_buff') {
-                applyStatus(self, 'war_cry_def', skillId, Number(effect.durationTicks ?? 10), {
+                applyStatus(self, 'war_cry_def', skillId, Number(effect.durationTicks ?? 20), {
                   defBonus: Number(effect.defBonusPerRank ?? 10) * rank,
                 }, 'character');
                 record({
@@ -1008,13 +997,13 @@ export class BattleEngine {
                 });
               } else if (effectType === 'magic_barrier') {
                 const absorbAmount = Math.max(0, Number(effect.absorbPerRank ?? 100) * rank);
-                applyStatus(self, 'magic_barrier', skillId, Number(effect.durationTicks ?? 300), {
+                applyStatus(self, 'magic_barrier', skillId, Number(effect.durationTicks ?? 600), {
                   absorbRemaining: absorbAmount,
                 }, 'character');
                 record({
                   tick, actor: 'character', action: 'use_skill', skillId, target: 'character',
                   damage: 0, hit: true, crit: false, spSpent: spCost, baseSpCost,
-                  barrierApplied: absorbAmount, durationTicks: Number(effect.durationTicks ?? 300),
+                  barrierApplied: absorbAmount, durationTicks: Number(effect.durationTicks ?? 600),
                 });
               } else {
                 if (effectType === 'blinkstrike') {
@@ -1077,7 +1066,7 @@ export class BattleEngine {
                 });
 
                 if (monsterDefinition?.id === 'mon_ruinsguardian' && foe.hp > 0) {
-                  applyStatus(foe, 'prowess', 'monster_skill_prowess', 20, { atkBonus: 10, defBonus: 10 }, 'monster');
+                  applyStatus(foe, 'prowess', 'monster_skill_prowess', 40, { atkBonus: 10, defBonus: 10 }, 'monster');
                 }
                 reflectMonsterDamage(damage, damageType);
                 const appliedStatusId = String(effect.applyStatus ?? '');
@@ -1113,8 +1102,8 @@ export class BattleEngine {
 
                 const burnChance = Math.max(0, Math.min(1, Number(effect.burnChance ?? 0)));
                 if (burnChance > 0 && foe.hp > 0 && rng.chance(burnChance)) {
-                  const interval = Number(effect.burnIntervalTicks ?? 5);
-                  applyStatus(foe, 'burn', skillId, Number(effect.burnDurationTicks ?? 25), {
+                  const interval = Number(effect.burnIntervalTicks ?? 10);
+                  applyStatus(foe, 'burn', skillId, Number(effect.burnDurationTicks ?? 50), {
                     damagePerTick: Math.floor(Number(self.matk ?? 0) / 5),
                     damageIntervalTicks: interval,
                     nextDamageAtTick: tick + interval,
@@ -1149,7 +1138,7 @@ export class BattleEngine {
               // Unicorn's Channel reacts once to every resolved hostile skill aimed at it.
               if (monsterDefinition?.id === 'mon_unicorn' && def.target !== 'self' && foe.hp > 0) {
                 const channel = monsterSkillDefs.monster_skill_channel?.effects?.[0] ?? {};
-                const duration = Math.max(1, Number(channel.durationTicks ?? 20));
+                const duration = Math.max(1, Number(channel.durationTicks ?? 40));
                 const bonus = Math.max(0, Number(channel.matkPerStack ?? 20));
                 applyStatus(foe, 'magic_prowess', 'monster_skill_channel', duration, { matkBonus: bonus }, 'monster');
               }
@@ -1202,9 +1191,6 @@ export class BattleEngine {
       tickDamageStatuses(self);
       tryReviveOnDeath();
       tickDamageStatuses(foe);
-      // Conditions like `every_n_ticks` are tick-indexed (SPEC §7.1)
-      self.tick = tick;
-      foe.tick = tick;
       BattleEngine.tickCooldowns(cooldowns);
       BattleEngine.tickCooldowns(foeCooldowns);
 
@@ -1267,10 +1253,16 @@ export class BattleEngine {
         // Do not let Attack resolve during a cast or on its start/resolution tick.
         attackGauge = 0;
       } else if ((self.attackLockTicks ?? 0) <= 0) {
-        // Recompute every tick so status application/stack loss/expiry changes
-        // only the future refill rate while preserving already-earned progress.
-        attackGauge += 1 / selfAttackDurationTicks();
-        if (attackGauge >= 1) {
+        // Recompute every eligible tick so status application/stack loss/expiry
+        // changes only future refill while preserving already-earned progress.
+        // Tick N+1 is the 1-second lock; tick N+2 is the first unlocked boundary.
+        // Positive preparation begins on N+3 (the first full 500 ms interval after
+        // that boundary), whereas zero preparation may fire at N+2 immediately.
+        const preparationTicks = selfAttackDurationTicks();
+        if (preparationTicks <= 0) attackGauge = 1;
+        else if (tick >= attackPreparationStartsAtTick) attackGauge += 1 / preparationTicks;
+        // Avoid an extra half-second from IEEE-754 summation at exact integer refill rates.
+        if (attackGauge >= 1 - 1e-12) {
           attackGauge = 0;
           const choice = GambitEvaluator.evaluateGambitPage(
             normalizedGambitPage,
@@ -1339,7 +1331,7 @@ export class BattleEngine {
             const swordsmanshipRank = Math.max(0, Number(self.skillDefs?.swordsmanship?.masteryRank ?? 0));
             const bleedDefinition = statusEffectDefs.bleed ?? {};
             const bleedMaxStacks = Math.max(1, Number(bleedDefinition.maxStacks ?? 5));
-            const bleedIntervalTicks = Math.max(1, Number(bleedDefinition.damageIntervalTicks ?? 5));
+            const bleedIntervalTicks = Math.max(1, Number(bleedDefinition.damageIntervalTicks ?? 10));
             if (landed && swordsmanshipRank > 0 && countStatus(foe, 'bleed') < bleedMaxStacks && rng.chance(Number(bleedDefinition.procChancePerRank ?? 0.01) * swordsmanshipRank)) {
               applyStatus(
                 foe,
@@ -1362,7 +1354,8 @@ export class BattleEngine {
               if (self.sp > beforeRefund) record({ tick, actor: 'character', action: 'sp_refund', sourceSkillId: 'arcane_dynamo', target: 'character', spRestored: self.sp - beforeRefund });
             }
 
-            self.attackLockTicks = BattleEngine.BASIC_ATTACK_CAST_TICKS;
+            self.attackLockTicks = BattleEngine.BASIC_ATTACK_LOCK_TICKS;
+            attackPreparationStartsAtTick = tick + BattleEngine.BASIC_ATTACK_LOCK_TICKS + 1;
           }
           // SPEC §7.3 step 5: no line qualifies -> wasted fire, gauge still resets
         }
@@ -1412,11 +1405,11 @@ export class BattleEngine {
               const effectType = String(def.effect?.type ?? '');
               const isPotion = def.type === 'consumable' && ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType);
               if (isPotion) {
-                cooldowns['item:potion'] = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 10);
+                cooldowns['item:potion'] = secondsToBattleTicks(Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 10));
               } else if (def.alchemyCategory === 'tonics' || effectType === 'apply_status') {
-                cooldowns['item:tonic'] = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 30);
+                cooldowns['item:tonic'] = secondsToBattleTicks(Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 30));
               } else {
-                const cooldownTicks = Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 0);
+                const cooldownTicks = secondsToBattleTicks(Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 0));
                 if (cooldownTicks > 0) cooldowns[`item:${itemId}`] = cooldownTicks;
               }
 
@@ -1442,7 +1435,7 @@ export class BattleEngine {
                 self.sp = Math.min(self.maxSp, self.sp + Number(def.effect?.spAmount ?? 0));
                 record({ tick, actor: 'character', action: 'use_item', itemId, target: 'character', healAmount: self.hp - hpBefore, spGain: self.sp - spBefore });
               } else if (effectType === 'food_buff') {
-                const foodDurationTicks = Math.max(0, Number(def.effect?.durationSeconds ?? 0));
+                const foodDurationTicks = secondsToBattleTicks(Math.max(0, Number(def.effect?.durationSeconds ?? 0)));
                 self.foodDigestRemainingTicksByItem = {
                   ...(self.foodDigestRemainingTicksByItem ?? {}),
                   [itemId]: foodDurationTicks,
@@ -1475,13 +1468,15 @@ export class BattleEngine {
                 });
               } else if (effectType === 'apply_status' && def.effect?.status) {
                 const statusId = String(def.effect.status);
-                applyStatus(self, statusId, itemId, Number(def.effect.durationSeconds ?? statusEffectDefs[statusId]?.statusDurationTicks ?? 0), {
+                applyStatus(self, statusId, itemId, def.effect.durationSeconds !== undefined
+                  ? secondsToBattleTicks(Number(def.effect.durationSeconds))
+                  : Number(statusEffectDefs[statusId]?.statusDurationTicks ?? 0), {
                   ...(def.effect.defBonus !== undefined ? { defBonus: Number(def.effect.defBonus) } : {}),
                   ...(def.effect.mdefPercentBonus !== undefined ? { mdefPercentBonus: Number(def.effect.mdefPercentBonus) } : {}),
                   ...(def.effect.attackSpeedMultiplier !== undefined ? { attackSpeedMultiplier: Number(def.effect.attackSpeedMultiplier) } : {}),
                   ...(def.effect.castTimeReductionMultiplier !== undefined ? { castTimeReductionMultiplier: Number(def.effect.castTimeReductionMultiplier) } : {}),
                 });
-                record({ tick, actor: 'character', action: 'use_item', itemId, target: 'character', appliedStatus: statusId, durationTicks: Number(def.effect.durationSeconds ?? 0) });
+                record({ tick, actor: 'character', action: 'use_item', itemId, target: 'character', appliedStatus: statusId, durationTicks: def.effect.durationSeconds !== undefined ? secondsToBattleTicks(Number(def.effect.durationSeconds)) : Number(statusEffectDefs[statusId]?.statusDurationTicks ?? 0) });
               } else if (effectType === 'cure_status' && def.effect?.status) {
                 self.statusEffects = (self.statusEffects ?? []).filter(
                   (s: any) => (s.type ?? s.id) !== def.effect.status,
@@ -1504,13 +1499,13 @@ export class BattleEngine {
                 });
               }
 
-              self.castLockTicks = 1;
+              self.castLockTicks = 2;
             } else if (action.id === 'defend') {
               self.defending = true;
-              self.castLockTicks = 1;
+              self.castLockTicks = 2;
               record({ tick, actor: 'character', action: 'defend', target: 'character' });
             } else if (action.id === 'wait') {
-              self.castLockTicks = 1;
+              self.castLockTicks = 2;
               record({ tick, actor: 'character', action: 'wait', target: 'self' });
             }
           }
@@ -1578,7 +1573,7 @@ export class BattleEngine {
           if (Number(foe.sp ?? 0) < surgeCost
             && Number(foeCooldowns['skill:monster_skill_arcane_surge'] ?? 0) <= 0
             && !hasStatus(foe, 'silence') && !hasStatus(foe, 'magic_reflection')) {
-            applyStatus(foe, 'magic_reflection', 'monster_skill_magic_reflection', 15, { reflectPercent: 30 }, 'monster');
+            applyStatus(foe, 'magic_reflection', 'monster_skill_magic_reflection', 30, { reflectPercent: 30 }, 'monster');
           }
         }
       }
@@ -1647,7 +1642,7 @@ export class BattleEngine {
             const silkPrey = monsterSkillDefs.monster_skill_silk_prey?.effects?.[0] ?? {};
             const chance = Math.max(0, Math.min(1, Number(silkPrey.chance ?? 0.1)));
             if (rng.chance(chance)) {
-              applyStatus(self, 'web_pack', 'monster_skill_silk_prey', Number(silkPrey.durationTicks ?? 10), {}, 'monster');
+              applyStatus(self, 'web_pack', 'monster_skill_silk_prey', Number(silkPrey.durationTicks ?? 20), {}, 'monster');
             }
           }
 
@@ -1656,13 +1651,13 @@ export class BattleEngine {
           if (tipOfPain) {
             foe.statusEffects = (foe.statusEffects ?? []).filter((status: any) => statusIdOf(status) !== 'tip_of_pain');
             record({ tick, actor: 'monster', action: 'status_ended', status: 'tip_of_pain', target: 'monster', sourceSkillId: 'monster_skill_sting' });
-            if (landed && self.hp > 0) applyStatus(self, 'disarm', 'monster_skill_sting', 10, {}, 'monster');
+            if (landed && self.hp > 0) applyStatus(self, 'disarm', 'monster_skill_sting', 20, {}, 'monster');
           }
 
           const shieldBashRank = Math.max(0, Number(self.skillDefs?.shield_bash?.masteryRank ?? 0));
           if (landed && shieldBashRank > 0 && distanceAtActionStart === 0
             && foe.hp > 0 && rng.chance(Math.min(1, 0.02 * shieldBashRank))) {
-            applyStatus(foe, 'stun', 'shield_bash', 5, {}, 'character');
+            applyStatus(foe, 'stun', 'shield_bash', 10, {}, 'character');
           }
         }
       }
@@ -1683,11 +1678,11 @@ export class BattleEngine {
             const statusId = String(status.type ?? status.id ?? '');
             return (statusEffectDefs[statusId] as any)?.polarity !== 'debuff';
           });
-          applyStatus(foe, 'rage', skillId, Number(effect.durationTicks ?? 15), { atkBonus: Number(effect.atk ?? 20) }, 'monster');
+          applyStatus(foe, 'rage', skillId, Number(effect.durationTicks ?? 30), { atkBonus: Number(effect.atk ?? 20) }, 'monster');
           record({ tick, actor: 'monster', action: 'use_skill', skillId, target: 'monster', damage: 0, hit: true, spSpent: spCost });
         } else if (skillId === 'monster_skill_sting') {
           // Sting is a self-buff. It must never route through the generic damage resolver.
-          applyStatus(foe, 'tip_of_pain', skillId, Number(effect.durationTicks ?? 9999), {}, 'monster');
+          applyStatus(foe, 'tip_of_pain', skillId, Number(effect.durationTicks ?? 19998), {}, 'monster');
           record({ tick, actor: 'monster', action: 'use_skill', skillId, target: 'monster', damage: 0, hit: true, spSpent: spCost });
         } else if (skillId === 'monster_skill_pickpocket') {
           const chance = chanceAfterSaveButtLuck(Number(effect.chance ?? 0.1), Number(self.luk ?? 0), effect.saveButtLuck === true);
@@ -1779,7 +1774,7 @@ export class BattleEngine {
                   }
                   const durationTicks = Math.max(
                     1,
-                    Math.floor(Number(statusDef.statusDurationTicks ?? 1)),
+                    Math.floor(Number(statusDef.statusDurationTicks ?? 2)),
                   );
                   const moveSpeedPenalty = Math.max(0, Number(
                     stackable
@@ -1794,13 +1789,13 @@ export class BattleEngine {
                   self.statusEffects = [...(self.statusEffects ?? []), {
                     type: statusId,
                     appliedAtTick: tick,
-                    expiresAtTick: tick + (statusId === 'poison' ? Number(effect.durationTicks ?? 25) : statusId === 'bleed' ? Number(effect.durationTicks ?? 20) : durationTicks),
+                    expiresAtTick: tick + (statusId === 'poison' ? Number(effect.durationTicks ?? 50) : statusId === 'bleed' ? Number(effect.durationTicks ?? 40) : durationTicks),
                     sourceSkillId: skillId,
                     sourceActor: 'monster',
                     moveSpeedPenalty,
                     attackSpeedPenalty,
-                    ...(statusId === 'poison' ? { damagePerTick: Math.floor(Number(foe.matk ?? 0) * 0.5), damageIntervalTicks: Number(effect.damageIntervalTicks ?? 5), nextDamageAtTick: tick + Number(effect.damageIntervalTicks ?? 5), damageType: 'magic' } : {}),
-                    ...(statusId === 'bleed' ? { damagePerTick: Number(statusDef.damagePerStack ?? 5), damageIntervalTicks: Number(statusDef.damageIntervalTicks ?? 5), nextDamageAtTick: tick + Number(statusDef.damageIntervalTicks ?? 5), damageType: 'pure' } : {}),
+                    ...(statusId === 'poison' ? { damagePerTick: Math.floor(Number(foe.matk ?? 0) * 0.5), damageIntervalTicks: Number(effect.damageIntervalTicks ?? 10), nextDamageAtTick: tick + Number(effect.damageIntervalTicks ?? 10), damageType: 'magic' } : {}),
+                    ...(statusId === 'bleed' ? { damagePerTick: Number(statusDef.damagePerStack ?? 5), damageIntervalTicks: Number(statusDef.damageIntervalTicks ?? 10), nextDamageAtTick: tick + Number(statusDef.damageIntervalTicks ?? 10), damageType: 'pure' } : {}),
                   }];
                   const stackCount = (self.statusEffects ?? []).filter(
                     (status: any) => String(status.type ?? status.id ?? '') === statusId,
@@ -1862,12 +1857,12 @@ export class BattleEngine {
       }
       // A combatant at 0 HP is out of the fight: regen must not resurrect it
       // (otherwise a lethal hit is undone by the same tick's housekeeping).
-      if (foe.hp > 0 && (tick + 1) % 10 === 0) {
+      if (foe.hp > 0 && (tick + 1) % 20 === 0) {
         const beforeMonsterSpRegen = foe.sp;
         foe.sp = Math.min(foe.maxSp, foe.sp + Number(foe.spRegenPerTenTicks ?? 2));
         if (foe.sp > beforeMonsterSpRegen) record({ tick, actor: 'monster', action: 'sp_regen', target: 'monster', resource: 'SP', amount: foe.sp - beforeMonsterSpRegen });
       }
-      if (self.hp > 0 && (regenTickOffset + tick + 1) % 10 === 0) {
+      if (self.hp > 0 && (regenTickOffset + tick + 1) % 20 === 0) {
         const activeFoodBuffs = (self.foodBuffs ?? []).filter((buff: any) => Number(buff.remainingTicks ?? 0) > 0);
         const foodHpRegen = activeFoodBuffs.reduce((sum: number, buff: any) => sum + Number(buff.hpRegenPerTenTicks ?? 0), 0);
         const foodSpRegen = activeFoodBuffs.reduce((sum: number, buff: any) => sum + Number(buff.spRegenPerTenTicks ?? 0), 0);
@@ -1905,8 +1900,10 @@ export class BattleEngine {
         if (!unit.movementIntent || target.hp <= 0 || hasStatus(unit, 'stun') || unit.canMove === false) { unit.movementIntent = false; continue; }
         const range = Number(unit.movementIntentRange ?? unit.basicAttackRange ?? 0);
         if (distanceBetween() <= range) { unit.movementIntent = false; unit.movementIntentRange = undefined; continue; }
-        if (Number(unit.movementGauge) >= 100) {
-          unit.movementGauge = Number(unit.movementGauge) - 100;
+        // A movement step may resolve only on whole-second boundaries (every
+        // second 500 ms tick), retaining any overflow for later boundaries.
+        if (tick > 0 && tick % 2 === 0 && Number(unit.movementGauge) >= 200) {
+          unit.movementGauge = Number(unit.movementGauge) - 200;
           const fromPosition = Number(unit.position ?? 0);
           const direction = Number(target.position ?? 0) > fromPosition ? 1 : -1;
           const toPosition = fromPosition + direction;

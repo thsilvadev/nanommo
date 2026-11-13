@@ -25,7 +25,7 @@ import {
   statusEffectsForBattle,
   persistStatusEffectsAtCheckpoint,
 } from '@nanommo/shared';
-import { effectiveFoodStatValue, TOWN_MAP_ID, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, isInstantTownExitEdge, calculateFleeChancePercent, deterministicIntInclusive } from '@nanommo/shared';
+import { effectiveFoodStatValue, secondsToBattleTicks, TOWN_MAP_ID, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, isInstantTownExitEdge, calculateFleeChancePercent, deterministicIntInclusive } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 import { CharacterService } from '../character/character.service';
 import { InventoryService, buildDietStateAfterFoodConsumption, normalizeDietState } from '../inventory/inventory.service';
@@ -36,6 +36,7 @@ import { IdleJournalService } from '../chat/chat-history.service';
 import { GatewayService, BattleResolvedPayload, CharacterLeveledUpPayload, CharacterDiedPayload } from '../gateway/gateway.service';
 import { MapPresenceService } from '../presence/map-presence.service';
 import { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
+import { getBattleRuntimeConfig } from '../../config/battle-runtime.config';
 import { QuestService } from '../quests/quest.service';
 import { NotificationsService } from '../notifications/notifications.service';
 export { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
@@ -43,8 +44,10 @@ export { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
 /** SPEC §11.2: epoch rollover once the counter reaches this many kills. */
 const EPOCH_ROLLOVER_AT = 10_000;
 
-/** SPEC §7.1: 1 tick = 1 second of in-game time. */
-const MS_PER_TICK = 1000;
+/** Combat tick timestamps are converted through this validated 500 ms runtime contract. */
+const BATTLE_TICK_DURATION_MS = getBattleRuntimeConfig().tickDurationMs;
+const MS_PER_TICK = BATTLE_TICK_DURATION_MS;
+const MS_PER_SECOND = 1000;
 
 
 export function calculateEncounterSearchDelayMs(playersOnMap: number, seed = 'encounter-search'): number {
@@ -121,6 +124,7 @@ export class BattleService {
 
   /** Serialize operations that may change a character's encounter chain across API/worker replicas. */
   async withCharacterQueueLock<T>(characterId: string, operation: () => Promise<T>): Promise<T> {
+    const lockStartedAt = Date.now();
     const lockKey = `battle:character-queue-lock:${characterId}`;
     const token = randomUUID();
     const ttlMs = 300_000;
@@ -132,6 +136,7 @@ export class BattleService {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
     if (!acquired) throw new Error(`Timed out acquiring encounter-chain lock for character ${characterId}`);
+    this.logger.log(`[battle-queue-lock] acquired characterId=${characterId} waitMs=${Date.now() - lockStartedAt}`);
 
     // Renew well before expiry so a slow queue simulation cannot silently lose exclusivity.
     const renewScript = 'if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("pexpire", KEYS[1], ARGV[2]) else return 0 end';
@@ -300,7 +305,7 @@ export class BattleService {
       const map = this.dataService.getMapById(battle.mapId);
       return { id:battle.id, outcome:battle.outcome, monsterId:battle.monsterId, monsterName:monster?.name ?? battle.monsterId,
         monsterLevel:Number(monster?.level ?? 0), mapId:battle.mapId, mapName:map?.name ?? battle.mapId,
-        startAt:battle.startAt, endAt:battle.endAt, xpGain:Number(battle.xpGain ?? 0), goldGain:Number(battle.goldGain ?? 0) };
+        startAt:battle.startAt, endAt:battle.endAt, tickDurationMs:Number(battle.tickDurationMs ?? BATTLE_TICK_DURATION_MS), xpGain:Number(battle.xpGain ?? 0), goldGain:Number(battle.goldGain ?? 0) };
     });
   }
 
@@ -311,7 +316,7 @@ export class BattleService {
     const map = this.dataService.getMapById(battle.mapId);
     return { id:battle.id, outcome:battle.outcome, monsterId:battle.monsterId, monsterName:monster?.name ?? battle.monsterId,
       monsterLevel:Number(monster?.level ?? 0), mapId:battle.mapId, mapName:map?.name ?? battle.mapId, startAt:battle.startAt,
-      endAt:battle.endAt, xpGain:Number(battle.xpGain ?? 0), goldGain:Number(battle.goldGain ?? 0), drops:battle.drops ?? [],
+      endAt:battle.endAt, tickDurationMs:Number(battle.tickDurationMs ?? BATTLE_TICK_DURATION_MS), xpGain:Number(battle.xpGain ?? 0), goldGain:Number(battle.goldGain ?? 0), drops:battle.drops ?? [],
       itemsConsumed:battle.itemsConsumed ?? [], hpAfter:battle.hpAfter, spAfter:battle.spAfter, seedUsed:battle.seedUsed, log:battle.log };
   }
 
@@ -550,7 +555,7 @@ export class BattleService {
       // Status penalties remain battle-local and are applied by BattleEngine.
       moveSpeedBase: calculateWorldMoveSpeed(character, movementEquipment, character.activeTempBuffs ?? [], [] , atTime),
       moveSpeed: calculateWorldMoveSpeed(character, movementEquipment, character.activeTempBuffs ?? [], [], atTime),
-      statusEffects: statusEffectsForBattle(character.statusEffects ?? [], atTime),
+      statusEffects: statusEffectsForBattle(character.statusEffects ?? [], atTime, BATTLE_TICK_DURATION_MS),
       equippedWeaponTypes: weaponTypes,
       luk: Number((character as any).luk ?? 5) + Number(attributeBonuses.LUK ?? 0),
     } as CombatantSnapshot;
@@ -614,6 +619,7 @@ export class BattleService {
     publishQueueEvent = true,
     options: { allowTravel?: boolean; immediateEncounter?: boolean; forcedMonsterId?: string } = {},
   ): Promise<BattleQueueEntry[]> {
+    const queueGenerationStartedAt = Date.now();
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
 
@@ -704,7 +710,7 @@ export class BattleService {
           const hadLevel = Object.prototype.hasOwnProperty.call(projectedDietLevelByFood, itemId);
           const currentLevel = Math.max(0, Math.min(3, Number(projectedDietLevelByFood[itemId] ?? 0)));
           const nextLevel = hadLevel ? Math.min(3, currentLevel + 1) : 0;
-          const expiry = usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_TICK;
+          const expiry = usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_SECOND;
           projectedFoodBuffs = [
             ...projectedFoodBuffs.filter((food) => food.itemId !== itemId && Date.parse(String(food.expiresAt)) > usedAt),
             { itemId, hpRegenPerTenTicks: effectiveFoodStatValue(def.effect?.hpRegenPerTenTicks, nextLevel), spRegenPerTenTicks: effectiveFoodStatValue(def.effect?.spRegenPerTenTicks, nextLevel), expiresAt: new Date(expiry).toISOString() },
@@ -886,7 +892,7 @@ export class BattleService {
           ]),
         ),
       );
-      snapshot.statusEffects = statusEffectsForBattle(chainStatusEffects, nextStartTime.getTime());
+      snapshot.statusEffects = statusEffectsForBattle(chainStatusEffects, nextStartTime.getTime(), BATTLE_TICK_DURATION_MS);
       snapshot.cooldowns = Object.fromEntries(Object.entries(chainCooldownExpiries).flatMap(([key, expiry]) => {
         const until = Date.parse(String(expiry));
         return Number.isFinite(until) && until > nextStartTime.getTime() ? [[key, Math.ceil((until - nextStartTime.getTime()) / MS_PER_TICK) + 1]] : [];
@@ -894,15 +900,16 @@ export class BattleService {
       const regenAnchor = character.regenAnchorAt?.getTime?.() ?? Date.now();
       const fromTick = Math.max(0, Math.floor((chainTimelineMs - regenAnchor) / MS_PER_TICK));
       const toTick = Math.max(0, Math.floor((nextStartTime.getTime() - regenAnchor) / MS_PER_TICK));
-      const elapsedRegenPeriods = Math.max(0, Math.floor(toTick / 10) - Math.floor(fromTick / 10));
+      const regenIntervalTicks = secondsToBattleTicks(10, BATTLE_TICK_DURATION_MS);
+      const elapsedRegenPeriods = Math.max(0, Math.floor(toTick / regenIntervalTicks) - Math.floor(fromTick / regenIntervalTicks));
       if (elapsedRegenPeriods > 0 && chainHp > 0) {
         const hpPerPeriod = Number(snapshot.hpRegenPerTenTicks ?? 0);
         const spPerPeriod = Number(snapshot.spRegenPerTenTicks ?? 0);
         let hpGain = 0;
         let spGain = 0;
-        const firstBoundary = Math.floor(fromTick / 10) + 1;
+        const firstBoundary = Math.floor(fromTick / regenIntervalTicks) + 1;
         for (let period = 0; period < elapsedRegenPeriods; period++) {
-          const boundaryTick = (firstBoundary + period) * 10;
+          const boundaryTick = (firstBoundary + period) * regenIntervalTicks;
           const boundaryAt = regenAnchor + boundaryTick * MS_PER_TICK;
           hpGain += hpPerPeriod;
           spGain += spPerPeriod;
@@ -965,13 +972,13 @@ export class BattleService {
       chainSp = simulation.spAfter;
       Object.assign(workingInventory, simulation.inventoryAfter);
 
-      const battleEndTime = nextStartTime.getTime() + Math.max(1000, simulation.durationTicks * MS_PER_TICK);
+      const battleEndTime = nextStartTime.getTime() + Math.max(BATTLE_TICK_DURATION_MS, simulation.durationTicks * MS_PER_TICK);
       for (const event of Array.isArray(simulation.log?.events) ? simulation.log.events : []) {
         if (event?.action !== 'use_item') continue;
         const def = itemDefinitions[event.itemId];
         if (def?.effect?.type !== 'food_buff') continue;
         const usedAt = nextStartTime.getTime() + Number(event.tick ?? 0) * MS_PER_TICK;
-        projectedFoodDigestUntil[event.itemId] = usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_TICK;
+        projectedFoodDigestUntil[event.itemId] = usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_SECOND;
       }
       projectedFoodBuffs = (simulation.foodBuffsAfter ?? (simulation.foodBuffAfter ? [simulation.foodBuffAfter] : []))
         .filter((food: any) => Number(food.remainingTicks ?? 0) > 0)
@@ -999,9 +1006,9 @@ export class BattleService {
       projectedMapKillCount += 1;
       projectedPerMonster[monsterId] = (projectedPerMonster[monsterId] ?? 0) + 1;
 
-      const battleDurationMs = Math.max(1000, simulation.durationTicks * MS_PER_TICK);
+      const battleDurationMs = Math.max(BATTLE_TICK_DURATION_MS, simulation.durationTicks * MS_PER_TICK);
       const battleEndAtMs = nextStartTime.getTime() + battleDurationMs;
-      chainStatusEffects = persistStatusEffectsAtCheckpoint(simulation.statusEffectsAfter ?? [], Math.max(0, simulation.durationTicks - 1), battleEndAtMs);
+      chainStatusEffects = persistStatusEffectsAtCheckpoint(simulation.statusEffectsAfter ?? [], Math.max(0, simulation.durationTicks - 1), battleEndAtMs, BATTLE_TICK_DURATION_MS);
       chainCooldownExpiries = Object.fromEntries(Object.entries(simulation.cooldownsAfter ?? {}).flatMap(([key, remaining]) => {
         const ticks = Math.max(0, Math.floor(Number(remaining ?? 0)));
         return ticks > 0 ? [[key, new Date(battleEndAtMs + ticks * MS_PER_TICK).toISOString()]] : [];
@@ -1009,13 +1016,14 @@ export class BattleService {
 
       const entry = this.battleQueueRepo.create({
         characterId,
+        tickDurationMs: BATTLE_TICK_DURATION_MS,
         sequenceIndex,
         mapId,
         monsterId,
         startAt: new Date(nextStartTime),
         endAt: new Date(nextStartTime.getTime() + battleDurationMs),
         outcome: simulation.outcome,
-        log: { ...simulation.log, mapId, searchStartAt: searchStartTime.toISOString(), searchEndAt: nextStartTime.toISOString(), finalCharacterStatusEffects: JSON.parse(JSON.stringify(chainStatusEffects)), finalCharacterCooldowns: JSON.parse(JSON.stringify(chainCooldownExpiries)) },
+        log: { ...simulation.log, header: { ...(simulation.log?.header ?? {}), tickDurationMs: BATTLE_TICK_DURATION_MS }, mapId, searchStartAt: searchStartTime.toISOString(), searchEndAt: nextStartTime.toISOString(), finalCharacterStatusEffects: JSON.parse(JSON.stringify(chainStatusEffects)), finalCharacterCooldowns: JSON.parse(JSON.stringify(chainCooldownExpiries)) },
         itemsConsumed: simulation.itemsConsumed,
         startingSnapshot: {
           snapshot: JSON.parse(JSON.stringify(snapshot)),
@@ -1064,6 +1072,8 @@ export class BattleService {
       if (simulation.outcome === 'loss') break;
       nextStartTime = new Date(nextStartTime.getTime() + battleDurationMs);
     }
+
+    this.logger.log(`[battle-queue-generation] characterId=${characterId} mapId=${mapId} added=${newBattles.length} depthBefore=${currentQueue.length} depthAfter=${currentQueue.length + newBattles.length} tickDurationMs=${BATTLE_TICK_DURATION_MS} durationMs=${Date.now() - queueGenerationStartedAt}`);
 
     if (lastPreCombatFleeAt) {
       character.encounterCycle = { ...(character.encounterCycle ?? {}), lastFleeSuccessAt: lastPreCombatFleeAt };
@@ -1200,7 +1210,7 @@ export class BattleService {
 
       if (battle.outcome === 'loss') {
         this.applyResolvedFoodState(character, battle);
-        // The immutable battle owns every 10-tick regen boundary through endAt.
+        // The immutable battle owns every globally aligned 10-second regen boundary through endAt.
         // Advance the off-battle checkpoint before the death path resets HP to 1.
         this.advanceResourceRegenCheckpoint(character, battle.endAt);
         const death = await this.handleCharacterDeath(character, battle, manager);
@@ -1534,7 +1544,9 @@ export class BattleService {
         return { kind: 'failed' as const, retryAt: timestamp + 10_000, intent: { ...intent }, battleId: battle.id };
       }
 
-      const targetTick = Math.max(0, Math.floor((timestamp - battle.startAt.getTime()) / MS_PER_TICK));
+      const battleTickDurationMs = Number(battle.tickDurationMs ?? BATTLE_TICK_DURATION_MS);
+      if (!Number.isSafeInteger(battleTickDurationMs) || battleTickDurationMs <= 0) throw new Error(`Invalid persisted battle tickDurationMs for ${battle.id}`);
+      const targetTick = Math.max(0, Math.floor((timestamp - battle.startAt.getTime()) / battleTickDurationMs));
       const replay = BattleEngine.simulateBattle(
         start.snapshot,
         this.dataService.getMonsterById(battle.monsterId),
@@ -1567,7 +1579,7 @@ export class BattleService {
         const expiry = typeof expiryRaw === 'number' ? expiryRaw : Date.parse(String(expiryRaw ?? ''));
         return !Number.isFinite(expiry) || expiry > timestamp;
       });
-      const checkpointStatuses = persistStatusEffectsAtCheckpoint(checkpoint.statusEffects, Number(checkpoint.tick), timestamp);
+      const checkpointStatuses = persistStatusEffectsAtCheckpoint(checkpoint.statusEffects, Number(checkpoint.tick), timestamp, battleTickDurationMs);
       const characterMoveSpd = Array.isArray(start.worldEquipment)
         ? calculateWorldMoveSpeed(start.snapshot, start.worldEquipment, timestampBuffs, checkpointStatuses, timestamp)
         : Math.max(0, Number(start.worldMoveSpd) - movePenalty(checkpointStatuses));
@@ -1618,7 +1630,7 @@ export class BattleService {
       const digest = checkpoint.foodDigestRemainingTicksByItem ?? {};
       for (const [itemId, ticksRaw] of Object.entries(digest)) {
         const ticks = Math.max(0, Number(ticksRaw) - 1);
-        const until = new Date(timestamp + ticks * MS_PER_TICK).toISOString();
+        const until = new Date(timestamp + ticks * battleTickDurationMs).toISOString();
         if (character.dietLevels?.[itemId]) character.dietLevels[itemId].lastDigestUntil = until;
         for (const row of character.diet ?? []) if (row.itemId === itemId) row.digestUntil = until;
       }
@@ -1627,7 +1639,7 @@ export class BattleService {
         const latest = checkpointFoods.reduce((a: any, b: any) => Number(a.remainingTicks) >= Number(b.remainingTicks) ? a : b);
         character.activeFoodBuff = {
           itemId: latest.itemId,
-          expiresAt: new Date(timestamp + Math.max(0, Number(latest.remainingTicks) - 1) * MS_PER_TICK).toISOString(),
+          expiresAt: new Date(timestamp + Math.max(0, Number(latest.remainingTicks) - 1) * battleTickDurationMs).toISOString(),
           hpRegenPerTenTicks: Number(latest.hpRegenPerTenTicks ?? 0),
           spRegenPerTenTicks: Number(latest.spRegenPerTenTicks ?? 0),
         };
@@ -1766,7 +1778,7 @@ export class BattleService {
 
   /**
    * Move the off-battle regeneration cursor through an immutable combat boundary.
-   * BattleEngine already projected every eligible 10-tick regen event in this
+   * BattleEngine already projected every eligible 10-second regen event in this
    * interval, and current Character HP/SP now represent the battle's terminal
    * snapshot. Replaying any pre-battle boundary on top of that terminal state
    * would grant HP/SP twice, especially after delayed-job recovery.
@@ -1774,7 +1786,8 @@ export class BattleService {
   private advanceResourceRegenCheckpoint(character: Character, throughAt: Date): void {
     const timestamp = throughAt.getTime();
     const anchorAt = character.regenAnchorAt?.getTime?.() ?? character.createdAt?.getTime?.() ?? timestamp;
-    const lastOwnedBoundaryAt = anchorAt + Math.floor((timestamp - anchorAt) / MS_PER_TICK / 10) * 10 * MS_PER_TICK;
+    const regenIntervalTicks = secondsToBattleTicks(10, BATTLE_TICK_DURATION_MS);
+    const lastOwnedBoundaryAt = anchorAt + Math.floor((timestamp - anchorAt) / MS_PER_TICK / regenIntervalTicks) * regenIntervalTicks * MS_PER_TICK;
     const currentCheckpointAt = character.resourceRegenAt?.getTime?.() ?? Number.NEGATIVE_INFINITY;
     if (lastOwnedBoundaryAt > currentCheckpointAt) character.resourceRegenAt = new Date(lastOwnedBoundaryAt);
   }
@@ -1855,6 +1868,8 @@ export class BattleService {
   }
 
   private applyResolvedFoodState(character: Character, battle: BattleQueueEntry): void {
+    const tickDurationMs = Number(battle.tickDurationMs ?? BATTLE_TICK_DURATION_MS);
+    if (!Number.isSafeInteger(tickDurationMs) || tickDurationMs <= 0) throw new Error(`Invalid persisted battle tickDurationMs for ${battle.id}`);
     const events = Array.isArray(battle.log?.events) ? battle.log.events : [];
     const normalizedDiet = normalizeDietState(character.diet, character.dietLevels);
     let diet = normalizedDiet.diet;
@@ -1866,8 +1881,8 @@ export class BattleService {
       const def = this.dataService.getItemById(event.itemId);
       if (def?.effect?.type !== 'food_buff') continue;
 
-      const usedAt = new Date(battle.startAt).getTime() + Number(event.tick ?? 0) * MS_PER_TICK;
-      const digestUntil = new Date(usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_TICK).toISOString();
+      const usedAt = new Date(battle.startAt).getTime() + Number(event.tick ?? 0) * tickDurationMs;
+      const digestUntil = new Date(usedAt + Number(def.effect?.durationSeconds ?? 0) * MS_PER_SECOND).toISOString();
       const previousDigestUntil = Date.parse(dietLevels[event.itemId]?.lastDigestUntil ?? '') || 0;
       if (previousDigestUntil > usedAt) continue;
 
@@ -1887,12 +1902,12 @@ export class BattleService {
     character.dietLevels = dietLevels;
 
     if (lastFoodUse) {
-      const usedAt = new Date(battle.startAt).getTime() + Number(lastFoodUse.event.tick ?? 0) * MS_PER_TICK;
+      const usedAt = new Date(battle.startAt).getTime() + Number(lastFoodUse.event.tick ?? 0) * tickDurationMs;
       character.activeFoodBuff = {
         itemId: lastFoodUse.def.id,
         hpRegenPerTenTicks: effectiveFoodStatValue(lastFoodUse.def.effect?.hpRegenPerTenTicks, lastFoodUse.dietLevel),
         spRegenPerTenTicks: effectiveFoodStatValue(lastFoodUse.def.effect?.spRegenPerTenTicks, lastFoodUse.dietLevel),
-        expiresAt: new Date(usedAt + Number(lastFoodUse.def.effect?.durationSeconds ?? 0) * MS_PER_TICK).toISOString(),
+        expiresAt: new Date(usedAt + Number(lastFoodUse.def.effect?.durationSeconds ?? 0) * MS_PER_SECOND).toISOString(),
       };
     } else if (character.activeFoodBuff?.expiresAt && new Date(character.activeFoodBuff.expiresAt).getTime() <= Date.now()) {
       character.activeFoodBuff = null;
@@ -2065,6 +2080,7 @@ export class BattleService {
         entryId: battle.id,
         startAt: battle.startAt.toISOString(),
         endAt: battle.endAt.toISOString(),
+        tickDurationMs: Number(battle.tickDurationMs ?? BATTLE_TICK_DURATION_MS),
         cancelledAt: battle.cancelledAt ? battle.cancelledAt.toISOString() : null,
         outcome: battle.outcome,
         xpGain: battle.cancellationReason === 'flee' || battle.cancelledAt ? 0 : Number(battle.xpGain ?? 0),

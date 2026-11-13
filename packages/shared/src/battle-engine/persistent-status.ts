@@ -3,7 +3,7 @@
  * FLEE commits its checkpoint. Persist those carried effects against wall-clock
  * time; expiresAtTick is meaningful only inside one immutable battle snapshot.
  */
-const STATUS_TICK_MS = 1000;
+import { DEFAULT_BATTLE_TICK_DURATION_MS } from './time';
 
 function readExpiryMs(value: unknown): number {
   if (typeof value === 'number') return value;
@@ -53,7 +53,7 @@ export function normalizePersistentStatusEffects(
   };
 }
 
-export function statusEffectsForBattle(source: unknown, battleStartsAtMs: number): any[] {
+export function statusEffectsForBattle(source: unknown, battleStartsAtMs: number, tickDurationMs: number = DEFAULT_BATTLE_TICK_DURATION_MS): any[] {
   const normalized = normalizePersistentStatusEffects(source, battleStartsAtMs).statusEffects;
   return normalized.map((status: any) => {
     const copy = { ...status };
@@ -61,7 +61,7 @@ export function statusEffectsForBattle(source: unknown, battleStartsAtMs: number
     delete copy.expiresAt;
     copy.appliedAtTick = 0;
     if (Number.isFinite(expiry)) {
-      copy.expiresAtTick = Math.max(1, Math.ceil((expiry - battleStartsAtMs) / STATUS_TICK_MS));
+      copy.expiresAtTick = Math.max(1, Math.ceil((expiry - battleStartsAtMs) / tickDurationMs));
     } else {
       delete copy.expiresAtTick;
     }
@@ -73,6 +73,7 @@ export function persistStatusEffectsAtCheckpoint(
   source: unknown,
   checkpointTick: number,
   atMs: number,
+  tickDurationMs: number = DEFAULT_BATTLE_TICK_DURATION_MS,
 ): any[] {
   const statuses = Array.isArray(source) ? source as any[] : [];
   const persisted: any[] = [];
@@ -89,7 +90,7 @@ export function persistStatusEffectsAtCheckpoint(
     if (Number.isFinite(expiryTick)) {
       const remainingTicks = expiryTick - (Math.max(0, Math.floor(Number(checkpointTick) || 0)) + 1);
       if (remainingTicks <= 0) continue;
-      status.expiresAt = new Date(atMs + remainingTicks * STATUS_TICK_MS).toISOString();
+      status.expiresAt = new Date(atMs + remainingTicks * tickDurationMs).toISOString();
     } else {
       delete status.expiresAt;
     }

@@ -1,5 +1,6 @@
 import { Directive, ElementRef, Input, OnDestroy, OnInit, inject } from '@angular/core';
 import { BattleStore } from '../core/game.store';
+import { battleTickAt } from './battle-timing';
 
 export type BattleDamageTarget = 'character' | 'monster';
 export interface FloatingDamageEvent {
@@ -53,7 +54,8 @@ export class BattleHitFeedbackDirective implements OnInit, OnDestroy {
     if (!entry?.id || !entry.startAt || !entry.log) { this.reset(); return; }
     const startAt = Date.parse(entry.startAt);
     if (!Number.isFinite(startAt) || Date.now() < startAt) return;
-    const tick = Math.floor((Date.now() - startAt) / 1000);
+    const tick = battleTickAt(entry, Date.now());
+    if (tick === null) { this.reset(); return; }
     const events: FloatingDamageEvent[] = Array.isArray(entry.log.events) ? entry.log.events : [];
     if (entry.id !== this.battleId) {
       this.clearEffects();

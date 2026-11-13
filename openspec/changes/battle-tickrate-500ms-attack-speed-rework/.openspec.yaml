@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-11-12
+goal: Deliver finer combat timing and perceptible Attack Speed progression
+  without accelerating non-attack gameplay, while keeping the server
+  authoritative and queue processing safe.

@@ -21,6 +21,20 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             git clean -fd
+            require_env() {
+              key="$1"
+              expected="$2"
+              actual="$(grep -m1 "^${key}=" .env | cut -d= -f2- || true)"
+              if [ "$actual" != "$expected" ]; then
+                echo "Refusing deploy: set ${key}=${expected} in the server .env (actual value is absent or different)."
+                exit 1
+              fi
+            }
+            require_env BATTLE_TICK_DURATION_MS 500
+            require_env BATTLE_RESOLVE_CONCURRENCY 4
+            require_env BATTLE_QUEUE_CONCURRENCY 2
+            require_env WORLD_ACTIVITY_CONCURRENCY 1
+            require_env BATTLE_TICKRATE_500MS_CUTOVER_COMPLETE true
             docker compose up -d --build
             echo '--- Production container status ---'
             docker compose ps

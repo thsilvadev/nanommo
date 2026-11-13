@@ -16,7 +16,7 @@ const { BattleService } = require('../dist/apps/api/src/modules/battle/battle.se
     },
   };
   const character={id:'character-1',knownItemIds:['old-item']};
-  const manager={transactionId:'battle-tx'};
+  const manager={transactionId:'battle-tx',getRepository(){return {async count(){return stored.length;}};}};
   const battle={id:'battle-1',characterId:'character-1',drops:[
     {itemId:'too-large',quantity:45},
     {itemId:'good-a',quantity:3},

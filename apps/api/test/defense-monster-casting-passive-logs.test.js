@@ -32,22 +32,22 @@ function simulate(character, monster, page, seed) {
   return BattleEngine.simulateBattle(character, monster, page, seed, { monsterSkillDefs, statusEffectDefs, itemDefinitions: {} });
 }
 
-// Dire Wolf begins a four-tick Enraged Strike cast when its Gambit condition
+// Dire Wolf begins a eight-tick Enraged Strike cast when its Gambit condition
 // becomes true; neither a new basic attack nor an instant skill resolution may
-// occur during those four ticks.
-const wolf = { ...monsters.find(m => m.id === 'mon_direwolf'), hp: 100, atk: 0, maxSp: 60, gambit: [
+// occur during those eight ticks.
+const wolf = { ...monsters.find(m => m.id === 'mon_direwolf'), hp: 300, atk: 0, maxSp: 60, gambit: [
   { priority: 1, condition: { type: 'self_hp_below_percent', value: 30 }, action: { type: 'use_skill', skillId: 'monster_skill_massive_damage' } },
   { priority: 2, condition: { type: 'always' }, action: { type: 'attack' } },
 ] };
 const castResult = simulate(char(), wolf, { lines: [
   { priority: 1, conditions: [{ id: 'always' }], action: { id: 'attack' } },
-] }, 'dire-wolf-four-tick-cast');
-const attacksThatTrigger = castResult.log.events.filter(e => e.actor === 'character' && e.action === 'attack' && e.hpRemaining.monster < 30);
+] }, 'dire-wolf-eight-tick-cast');
+const attacksThatTrigger = castResult.log.events.filter(e => e.actor === 'character' && e.action === 'attack' && e.hpRemaining.monster < 90);
 const castEvent = castResult.log.events.find(e => e.actor === 'monster' && e.action === 'use_skill' && e.skillId === 'monster_skill_massive_damage');
 assert(attacksThatTrigger.length, 'a character attack should bring the test wolf below 30% HP');
 assert(castEvent, 'Dire Wolf must resolve Enraged Strike');
 const castStartTick = attacksThatTrigger[0].tick;
-assert.equal(castEvent.tick, castStartTick + 4, 'Enraged Strike resolves exactly four ticks after the triggering tick');
+assert.equal(castEvent.tick, castStartTick + 8, 'Enraged Strike resolves exactly eight ticks after the triggering tick');
 assert(!castResult.log.events.some(e => e.actor === 'monster' && e.action === 'attack' && e.tick >= castStartTick && e.tick < castEvent.tick), 'monster basic attacks are paused while the skill cast is pending');
 assert(!castResult.log.events.some(e => e.action === 'action_suppressed'), 'stun/disarm suppression is no longer emitted as a combat log event');
 

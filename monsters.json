@@ -13,7 +13,7 @@
       "accuracy": 85,
       "evasion": 89,
       "critChance": 3.4,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "warrior",
@@ -105,7 +105,7 @@
       "accuracy": 95,
       "evasion": 110,
       "critChance": 3.6,
-      "atkSpeedTicks": 4,
+      "atkSpeedTicks": 8,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "archer",
@@ -190,7 +190,7 @@
       "accuracy": 103,
       "evasion": 118,
       "critChance": 4.2,
-      "atkSpeedTicks": 5,
+      "atkSpeedTicks": 10,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "archer",
@@ -286,7 +286,7 @@
       "accuracy": 99,
       "evasion": 100,
       "critChance": 3.9,
-      "atkSpeedTicks": 6,
+      "atkSpeedTicks": 12,
       "element": "earth",
       "elementalResistances": [
         "earth"
@@ -377,7 +377,7 @@
       "accuracy": 95,
       "evasion": 100,
       "critChance": 4,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": "water",
       "elementalResistances": [
         "water"
@@ -464,7 +464,7 @@
       "accuracy": 105,
       "evasion": 100,
       "critChance": 4.2,
-      "atkSpeedTicks": 3,
+      "atkSpeedTicks": 6,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -564,7 +564,7 @@
       "accuracy": 98,
       "evasion": 107,
       "critChance": 4.3,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": "earth",
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -649,7 +649,7 @@
       "accuracy": 99,
       "evasion": 103,
       "critChance": 4.3,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -734,7 +734,7 @@
       "accuracy": 97,
       "evasion": 109,
       "critChance": 4.4,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": "earth",
       "elementalResistances": [
         "earth"
@@ -829,7 +829,7 @@
       "accuracy": 101,
       "evasion": 104,
       "critChance": 4.5,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": "earth",
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -958,7 +958,7 @@
       "accuracy": 82,
       "evasion": 112,
       "critChance": 4.5,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": "earth",
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -1087,7 +1087,7 @@
       "accuracy": 112,
       "evasion": 125,
       "critChance": 4.6,
-      "atkSpeedTicks": 5,
+      "atkSpeedTicks": 10,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -1206,7 +1206,8 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true
-    },{
+    },
+    {
       "id": "mon_giantspider",
       "name": "Giant Spider",
       "level": 22,
@@ -1219,7 +1220,7 @@
       "accuracy": 108,
       "evasion": 124,
       "critChance": 4.6,
-      "atkSpeedTicks": 3,
+      "atkSpeedTicks": 6,
       "element": null,
       "elementalResistances": [],
       "elementalDamageTakenMultiplier": {
@@ -1354,7 +1355,7 @@
       "accuracy": 118,
       "evasion": 120,
       "critChance": 4.6,
-      "atkSpeedTicks": 5,
+      "atkSpeedTicks": 10,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "archer",
@@ -1483,7 +1484,7 @@
       "accuracy": 104,
       "evasion": 115,
       "critChance": 4.6,
-      "atkSpeedTicks": 6,
+      "atkSpeedTicks": 12,
       "element": "shadow",
       "elementalResistances": [
         "shadow"
@@ -1624,7 +1625,7 @@
       "accuracy": 104,
       "evasion": 115,
       "critChance": 4.6,
-      "atkSpeedTicks": 5,
+      "atkSpeedTicks": 10,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -1764,7 +1765,7 @@
       "accuracy": 104,
       "evasion": 128,
       "critChance": 4.7,
-      "atkSpeedTicks": 4,
+      "atkSpeedTicks": 8,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -1893,7 +1894,7 @@
       "accuracy": 98,
       "evasion": 104,
       "critChance": 4.7,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": "earth",
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -2018,7 +2019,7 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true
-    },  
+    },
     {
       "id": "mon_unicorn",
       "name": "Unicorn",
@@ -2032,7 +2033,7 @@
       "accuracy": 118,
       "evasion": 118,
       "critChance": 4.7,
-      "atkSpeedTicks": 6,
+      "atkSpeedTicks": 12,
       "element": "holy",
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -2133,11 +2134,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -2183,7 +2184,7 @@
       "accuracy": 135,
       "evasion": 130,
       "critChance": 4.8,
-      "atkSpeedTicks": 4,
+      "atkSpeedTicks": 8,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -2281,11 +2282,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -2332,7 +2333,7 @@
       "accuracy": 102,
       "evasion": 150,
       "critChance": 4.8,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -2430,11 +2431,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -2469,7 +2470,7 @@
       "accuracy": 106,
       "evasion": 108,
       "critChance": 4.8,
-      "atkSpeedTicks": 8,
+      "atkSpeedTicks": 16,
       "element": "fire",
       "elementalResistances": [
         "fire"
@@ -2572,11 +2573,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -2611,7 +2612,7 @@
       "accuracy": 127,
       "evasion": 120,
       "critChance": 4.9,
-      "atkSpeedTicks": 4,
+      "atkSpeedTicks": 8,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -2709,11 +2710,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -2748,7 +2749,7 @@
       "accuracy": 115,
       "evasion": 115,
       "critChance": 4.3,
-      "atkSpeedTicks": 5,
+      "atkSpeedTicks": 10,
       "element": "wind",
       "elementalResistances": [
         "wind"
@@ -2848,11 +2849,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -2887,7 +2888,7 @@
       "accuracy": 108,
       "evasion": 130,
       "critChance": 4.9,
-      "atkSpeedTicks": 6,
+      "atkSpeedTicks": 12,
       "element": "holy",
       "elementalResistances": [
         "holy"
@@ -2987,11 +2988,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -3044,7 +3045,7 @@
       "accuracy": 148,
       "evasion": 125,
       "critChance": 5,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": "earth",
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -3142,11 +3143,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -3191,7 +3192,7 @@
       "accuracy": 139,
       "evasion": 123,
       "critChance": 5,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": "earth",
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -3289,11 +3290,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -3328,7 +3329,7 @@
       "accuracy": 135,
       "evasion": 115,
       "critChance": 5.1,
-      "atkSpeedTicks": 5,
+      "atkSpeedTicks": 10,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
@@ -3426,19 +3427,18 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
         {
           "priority": 1,
           "condition": {
-            "type": "every_n_ticks",
-            "value": 8
+            "type": "always"
           },
           "action": {
             "type": "use_skill",
@@ -3476,7 +3476,7 @@
       "accuracy": 110,
       "evasion": 105,
       "critChance": 5.1,
-      "atkSpeedTicks": 7,
+      "atkSpeedTicks": 14,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "priest",
@@ -3574,11 +3574,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -3624,7 +3624,7 @@
       "accuracy": 111,
       "evasion": 110,
       "critChance": 5.1,
-      "atkSpeedTicks": 8,
+      "atkSpeedTicks": 16,
       "element": null,
       "elementalResistances": [],
       "favoredAgainstArchetype": "warrior",
@@ -3722,11 +3722,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -3769,7 +3769,7 @@
       "accuracy": 97,
       "evasion": 106,
       "critChance": 4.2,
-      "atkSpeedTicks": 9,
+      "atkSpeedTicks": 18,
       "element": "fire",
       "elementalResistances": [
         "fire"
@@ -3869,11 +3869,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -3908,7 +3908,7 @@
       "accuracy": 111,
       "evasion": 125,
       "critChance": 5.2,
-      "atkSpeedTicks": 4,
+      "atkSpeedTicks": 8,
       "element": "shadow",
       "elementalResistances": [
         "shadow"
@@ -4008,11 +4008,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 5e-05
+          "chance": 0.00005
         }
       ],
       "gambit": [
@@ -4045,6 +4045,5 @@
       "spRegenPerTenTicks": 2,
       "isAggressive": true
     }
-   
   ]
 }

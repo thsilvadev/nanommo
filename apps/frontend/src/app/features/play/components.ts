@@ -1,3 +1,4 @@
+import { battleTickAt, battleTickDurationMs, battleTickExpiryRemainingSeconds } from '../../shared/battle-timing';
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, effect, inject, signal, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Router } from '@angular/router';
@@ -71,13 +72,14 @@ export class CharacterSummary implements OnDestroy {
     const entry: any = this.battle.active(); const now = this.battleDisplayNow();
     if (!entry) return [];
     const startMs = Date.parse(entry.startAt);
-    if (now < startMs || now >= Date.parse(entry.endAt)) return [];
-    const tick = Math.floor((now - startMs) / 1000);
+    const tickDurationMs = battleTickDurationMs(entry);
+    const tick = battleTickAt(entry, now);
+    if (tickDurationMs === null || tick === null || now < startMs || now >= Date.parse(entry.endAt)) return [];
     const snapshot = target === 'character' ? entry.log?.header?.characterSnapshot : entry.log?.header?.monsterSnapshot;
     const active = projectStatusTimeline(snapshot?.statusEffects, entry.log?.events, target, tick);
     return [...active.entries()].map(([id, stacks]) => {
       const def: any = this.catalog.statusEffect(id) ?? {name:id, maxStacks:1};
-      const durations = stacks.map(status => Number.isFinite(status.expiresAtTick) ? Math.max(0, Math.ceil((startMs + status.expiresAtTick * 1000 - now) / 1000)) : Number.POSITIVE_INFINITY);
+      const durations = stacks.map(status => Number.isFinite(status.expiresAtTick) ? (battleTickExpiryRemainingSeconds(entry, status.expiresAtTick, now) ?? Number.POSITIVE_INFINITY) : Number.POSITIVE_INFINITY);
       const remaining = Math.max(0, ...durations);
       const movePenalty = Number(def.moveSpeedPenaltyPerStack ?? def.moveSpeedPenalty ?? 0);
       const attackPenalty = Number(def.attackSpeedPenaltyPerStack ?? def.attackSpeedPenalty ?? 0);
@@ -102,7 +104,7 @@ export class CharacterSummary implements OnDestroy {
   dietRemainingSeconds(index: number) { const e = this.dietEntry(index); if (!e) return 0; return Math.max(0, Math.ceil((Date.parse(e.digestUntil) - this.battleDisplayNow()) / 1000)) }
   dietTimerLabel(index: number) { return Math.ceil(this.dietRemainingSeconds(index) / 60) + 'm' }
   formatDuration(seconds: number) { if (!Number.isFinite(seconds)) return 'Until removed'; const s = Math.max(0, seconds); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60; return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m ${String(sec).padStart(2, '0')}s` }
-  dietTooltipLines(index: number) { const e = this.dietEntry(index); if (!e) return []; const d: any = this.catalog.item(e.itemId); const effect = d?.effect; if (!effect) return []; const lines: any[] = []; if (effect.type === 'food_buff') { const level = this.dietLevel(index); lines.push({ label: 'HP Regen', value: `+${effectiveFoodStatValue(effect.hpRegenPerTenTicks, level)} / 10 ticks` }); lines.push({ label: 'SP Regen', value: `+${effectiveFoodStatValue(effect.spRegenPerTenTicks, level)} / 10 ticks` }); } lines.push({ label: 'Diet', value: e.dietLevel > 0 ? '★'.repeat(Math.min(3, e.dietLevel)) : '—' }); lines.push({ label: 'Remaining', value: this.formatDuration(this.dietRemainingSeconds(index)) }); return lines }
+  dietTooltipLines(index: number) { const e = this.dietEntry(index); if (!e) return []; const d: any = this.catalog.item(e.itemId); const effect = d?.effect; if (!effect) return []; const lines: any[] = []; if (effect.type === 'food_buff') { const level = this.dietLevel(index); lines.push({ label: 'HP Regen', value: `+${effectiveFoodStatValue(effect.hpRegenPerTenTicks, level)} / 10 seconds` }); lines.push({ label: 'SP Regen', value: `+${effectiveFoodStatValue(effect.spRegenPerTenTicks, level)} / 10 seconds` }); } lines.push({ label: 'Diet', value: e.dietLevel > 0 ? '★'.repeat(Math.min(3, e.dietLevel)) : '—' }); lines.push({ label: 'Remaining', value: this.formatDuration(this.dietRemainingSeconds(index)) }); return lines }
   async toggleAutoFeed() { const c = this.character.character(); if (!c) return; try { await this.character.setAutoFeed(!c.autoFeed) } catch { } }
   foodLabel() { const now = this.battleDisplayNow(); const count = (this.character.character()?.diet ?? []).filter(e => { const digestUntil = Date.parse(e.digestUntil); return Number.isFinite(digestUntil) && digestUntil > now }).length; return count <= 0 ? 'HUNGRY' : count === 1 ? 'FED' : count === 2 ? 'SATISFIED' : 'FULL' }
   go(p: string) { void this.router.navigateByUrl(p) } equipped(slot: string) { return this.inventory.equipment().find(x => x.slot === slot) } canEnterEquipmentSlot(slot: string, drag: CdkDrag) { const data: any = drag?.data; if (data?.source !== 'inventory') return false; const item: any = this.catalog.item(data.itemId); return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } itemIcon(slot: string, fallback: string) { const e = this.equipped(slot); return e ? this.catalog.itemIcon(e.itemId) : fallback } slotDropId(slot: string) { return `character-slot-${slot}` } isSlotFocused(slot: string) { const id = this.inventory.draggedItemId(); const item: any = id ? this.catalog.item(id) : null; return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } onEquipmentDragStart(itemId: string) { this.inventory.beginDrag(itemId); document.dispatchEvent(new Event('nm:drag-start')) } onEquipmentDragEnd() { this.inventory.endDrag(); document.dispatchEvent(new Event('nm:drag-end')) } equipDragData(slot: string, it: any) { return { source: 'equipment', slot, ...it } } async dropEquipment(slot: string, ev: CdkDragDrop<any>) { const data = ev.item.data; try { if (data?.source === 'inventory') { await this.inventory.equip(slot, data.itemId, data.id) } } catch { } finally { this.inventory.endDrag() } } async unequip(slot: string) { try { await this.inventory.unequip(slot) } catch { } } ngOnDestroy() { clearInterval(this.townTimer); clearInterval(this.battleDisplayTimer) }
@@ -648,7 +650,7 @@ export class InventoryGrid implements OnDestroy {
   formatItemEffect(effect: any) { if (!effect) return ''; if (effect.status) { const status = String(effect.status).replace(/_/g, ' '); return `Cures ${status}.` } if (effect.type === 'heal_hp') return `Restores ${Number(effect.amount) || 0} HP.`; if (effect.type === 'heal_sp') return `Restores ${Number(effect.amount) || 0} SP.`; if (effect.type === 'food_buff') return `Regenerates HP/SP for ${Math.round((Number(effect.durationSeconds) || 0) / 60)} minutes.`; return String(effect.type ?? '').replace(/_/g, ' ').replace(/^./, x => x.toUpperCase()) + '.' }
   itemTierClass(i: any) { const tier = Number((this.itemDefinition(i) as any)?.tier ?? 0); return tier >= 2 && tier <= 5 ? 'tier-' + tier : '' }
   glyph(i: any) { return this.catalog.itemIcon(i.itemId) }
-  elapsedTick() { const b = this.battle.active(); if (!b) return -1; return Math.max(0, Math.floor((this.now() - Date.parse(b.startAt)) / 1000)) }
+  elapsedTick() { const b = this.battle.active(); return b ? (battleTickAt(b, this.now()) ?? -1) : -1 }
   displayQuantity(it: any) { return Number(it.quantity ?? 0) }
   onItemClick(event: MouseEvent, item: any) {
     if (!event.ctrlKey) return;
@@ -982,8 +984,7 @@ export class GrindInfo implements OnDestroy {
   searchEntry(entry: any) { return { startAt: entry.log?.searchStartAt ?? new Date(Date.parse(entry.startAt) - 2000).toISOString(), endAt: entry.startAt } }
   monsterSnapshot(entry: any) { return (entry.log as any)?.header?.monsterSnapshot ?? {} }
   monsterStatusEffects(entry: any) {
-    const now=this.now(); const start=Date.parse(entry.startAt); if(now<start||now>=Date.parse(entry.endAt)) return [];
-    const tick=Math.floor((now-start)/1000);
+    const now=this.now(); const start=Date.parse(entry.startAt); const tick=battleTickAt(entry,now); if(tick===null||now<start||now>=Date.parse(entry.endAt)) return [];
     const active=projectStatusTimeline(this.monsterSnapshot(entry).statusEffects, this.events(entry), 'monster', tick);
     return [...active.entries()].map(([id,stacks])=>{
       const def:any=this.catalog.statusEffect(id)??{name:id,maxStacks:1};
@@ -1008,7 +1009,7 @@ export class GrindInfo implements OnDestroy {
   monster(id: string) { return this.catalog.monster(id) }
   monsterSprite(id: string) { return '/assets/monsters/' + id + '.svg'; }
   consumableItems() { return this.inventory.items().filter(x => this.catalog.item(x.itemId)?.type === 'consumable').slice(0, 3) } displayQuantity(it: any) { return Number(it.quantity ?? 0) }
-  elapsedTicks(entry: any) { const start = Date.parse(entry.startAt); const duration = Number(entry.log?.durationTicks ?? Math.max(1, (Date.parse(entry.endAt) - start) / 1000)); return Math.max(0, Math.min(duration, Math.floor((this.now() - start) / 1000))) }
+  elapsedTicks(entry: any) { const tick = battleTickAt(entry,this.now()); if(tick===null)return -1; const start=Date.parse(entry.startAt); const tickMs=battleTickDurationMs(entry); const duration=Number(entry.log?.durationTicks ?? (tickMs ? Math.ceil((Date.parse(entry.endAt)-start)/tickMs) : 0)); return Math.max(0,Math.min(duration,tick)); }
   events(entry: any) { return Array.isArray(entry.log?.events) ? entry.log.events : [] }
   lastEvent(entry: any) { const tick = this.elapsedTicks(entry); let state = entry.log?.header?.characterSnapshot && { tick: -1, hpRemaining: { character: Number(entry.log.header.characterSnapshot.hp ?? 0), monster: Number(entry.log.header.monsterSnapshot?.hp ?? 0) } }; for (const e of this.events(entry)) { if (Number(e.tick ?? 0) <= tick) state = e; else break } return state }
   characterHp(entry: any) { return Number(this.lastEvent(entry)?.hpRemaining?.character ?? entry.hpAfter ?? 0) }

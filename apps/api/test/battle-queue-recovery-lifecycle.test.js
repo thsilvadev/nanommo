@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const { BattleRecoveryService } = require('../dist/apps/api/src/modules/battle/battle-recovery.service');
 
-function harness({failPresence=false,pendingMigrations=false}={}) {
+function harness({failPresence=false,pendingMigrations=false,legacyBattleMetadata=false}={}) {
   const calls=[];let activeReads=0;let ready=false;let closed=false;let lease=false;
   const queueGate={
     async acquireStartupLease(){assert.equal(lease,false);lease=true;calls.push('lease-acquired');},
@@ -14,12 +14,13 @@ function harness({failPresence=false,pendingMigrations=false}={}) {
     async pause(global){assert.equal(global,false);closed=true;calls.push('queue-paused');},
     async getJobCounts(){calls.push('active-count');activeReads++;return {active:activeReads===1?1:0};},
     async resume(global){assert.equal(global,false);assert.equal(ready,true,'readiness must open while queue is still paused');closed=false;calls.push('queue-resumed');},
-    async getJobs(){return [];},async getJob(){return null;},async add(){throw new Error('unexpected queue add');},
+    async getJobs(){return [];},async getJob(){return null;},async add(name){assert.equal(name,'resume-world-activities');calls.push('world-activity-resume-scheduled');return {id:'resume-world-activities-test'};},
   };
   const characterRepo={async find(){return [];},async save(row){return row;}};
   const dataSource={options:{},
     migrations: pendingMigrations ? [{name:'AppliedMigration'},{name:'PendingMigration'}] : [{name:'AppliedMigration'}],
     createQueryRunner(){return {async connect(){},async release(){},async hasTable(){return true;},async query(){return [{name:'AppliedMigration'}];},async getTables(){return [{name:'migrations'},{name:'characters'}];}};},
+    async query(sql){return sql.includes('tickDurationMs') && legacyBattleMetadata ? [{id:'legacy-battle'}] : [];},
   };
   const battleQueueRepo={async find(){return [];},async findOne(){return null;},async delete(){return {affected:0};}};
   const presence={async reconcileAllPresenceOrThrow(){calls.push('presence-reconciled');if(failPresence)throw new Error('simulated Redis presence outage');},enablePeriodicReconciliation(){calls.push('presence-periodic-enabled');}};
@@ -34,6 +35,7 @@ function harness({failPresence=false,pendingMigrations=false}={}) {
   assert.ok(h.calls.indexOf('queue-paused')<h.calls.indexOf('presence-reconciled'));
   assert.ok(h.calls.indexOf('active-count')<h.calls.indexOf('presence-reconciled'),'active jobs must drain before reconciliation begins');
   assert.ok(h.calls.indexOf('gate-open')<h.calls.indexOf('queue-resumed'),'queue resumes only after authoritative recovery');
+  assert.ok(h.calls.indexOf('queue-resumed')<h.calls.indexOf('world-activity-resume-scheduled'),'persisted world activities are resumed only after workers are released');
   assert.equal(h.calls.filter(x=>x==='presence-reconciled').length,3,'presence rebuilt before stale recovery, after stale recovery, and after top-up');
 
   const failed=harness({failPresence:true});
@@ -42,6 +44,13 @@ function harness({failPresence=false,pendingMigrations=false}={}) {
   assert.equal(failed.closed,true,'global queue remains paused on recovery failure');
   assert.equal(failed.calls.includes('queue-resumed'),false,'failed recovery must never resume Bull consumers');
   assert.equal(failed.lease,false,'exclusive lease is released even on failure');
+
+  const legacyClock=harness({legacyBattleMetadata:true});
+  await assert.rejects(()=>legacyClock.svc.onApplicationBootstrap(),/Legacy battle entry legacy-battle has no authoritative 500 ms tick metadata/);
+  assert.equal(legacyClock.ready,false,'mixed-clock battle rows keep the startup gate closed');
+  assert.equal(legacyClock.closed,true,'mixed-clock battle rows keep Bull globally paused');
+  assert.equal(legacyClock.calls.includes('presence-reconciled'),false,'the application must not replay or reconcile legacy battle rows before the targeted cutover');
+  assert.equal(legacyClock.calls.includes('queue-resumed'),false,'legacy battle rows never release queue consumers');
 
   const migrationPending=harness({pendingMigrations:true});
   await assert.rejects(()=>migrationPending.svc.onApplicationBootstrap(),/Pending TypeORM migrations detected/);

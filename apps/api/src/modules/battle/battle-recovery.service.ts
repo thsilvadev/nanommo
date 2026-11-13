@@ -58,7 +58,13 @@ export class BattleRecoveryService implements OnApplicationBootstrap {
       if (migrationHistory.pendingMigrationNames.length > 0) {
         throw new Error(`Pending TypeORM migrations detected (${migrationHistory.pendingMigrationNames.join(', ')}). Run the explicit guarded migration command only after auditing migration history and while all API/Bull consumers are stopped. Queue gate remains closed.`);
       }
-      this.logger.log('Battle queue startup gate closed, Bull consumers paused/drained, and migration history is current; beginning authoritative reconciliation');
+      const legacyBattleRows = await this.dataSource.query(
+        `SELECT "id" FROM "battle_queue_entries" WHERE "tickDurationMs" IS DISTINCT FROM 500 OR "log" #>> '{header,tickDurationMs}' IS DISTINCT FROM '500' LIMIT 1`,
+      );
+      if (legacyBattleRows.length > 0) {
+        throw new Error(`Legacy battle entry ${legacyBattleRows[0].id} has no authoritative 500 ms tick metadata. Startup refuses to replay or project mixed-clock battles; stop all consumers and run the guarded battle tick-rate cutover utility before restarting.`);
+      }
+      this.logger.log('Battle queue startup gate closed, Bull consumers paused/drained, migration history is current, and all retained battle entries use 500 ms metadata; beginning authoritative reconciliation');
       const before = await this.reconcilePersistedQueueAndJobs();
       await this.mapPresenceService.reconcileAllPresenceOrThrow();
       const resolvedCount = await this.resolveStaleBattles();

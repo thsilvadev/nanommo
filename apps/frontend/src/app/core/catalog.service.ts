@@ -35,7 +35,7 @@ export class CatalogService {
  formatItemEffect(effect:any){if(!effect)return '';if(effect.type==='apply_status'&&effect.status){const status=String(effect.status).replace(/_/g,' ');return `Applies ${status} for ${Number(effect.durationSeconds??0)} seconds.`;}if(effect.type==='revive_full_cleanse')return 'Revives you upon death with full HP/SP and removes all active status effects.';if(effect.type==='cure_status'&&effect.status){const status=String(effect.status).replace(/_/g,' ');return `Cures ${status}.`;}if(effect.type==='heal_hp')return `Restores ${Number(effect.amount)||0} HP.`;if(effect.type==='heal_sp')return `Restores ${Number(effect.amount)||0} SP.`;if(effect.type==='heal_hp_sp')return `Restores ${Number(effect.hpAmount)||0} HP and ${Number(effect.spAmount)||0} SP.`;if(effect.type==='food_buff'){
  const lines:string[]=[];
  const hp=Number(effect.hpRegenPerTenTicks??0);const sp=Number(effect.spRegenPerTenTicks??0);
- if(hp)lines.push('HP Regen: +'+hp+' / 10 ticks');
+ if(hp)lines.push('HP Regen: +'+hp+' / 10 seconds');
  if(sp)lines.push('SP Regen: +'+sp+' / 10 ticks');
  const duration=Number(effect.durationSeconds)||0;
  if(duration)lines.push('Duration: '+this.formatDuration(duration));

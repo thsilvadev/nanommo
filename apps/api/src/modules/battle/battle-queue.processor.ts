@@ -5,6 +5,9 @@ import { BattleService } from './battle.service';
 import { CharacterService } from '../character/character.service';
 import { BattleQueueGateService } from './battle-queue-gate.service';
 import { IdleJournalService } from '../chat/chat-history.service';
+import { getBattleRuntimeConfig } from '../../config/battle-runtime.config';
+
+const BATTLE_RUNTIME = getBattleRuntimeConfig();
 
 /**
  * BattleQueueProcessor - Handles delayed battle resolution via BullMQ
@@ -26,13 +29,18 @@ export class BattleQueueProcessor {
    * Process 'resolve-battle' job
    * Runs when battle endAt timestamp is reached
    */
-  @Process('resolve-battle')
+  @Process({ name: 'resolve-battle', concurrency: BATTLE_RUNTIME.battleResolveConcurrency })
   async resolveBattle(job: Job<{ battleId: string }>) {
     const { battleId } = job.data;
+    const handlerStartedAt = Date.now();
+    let scheduledLagMs = 0;
 
     try {
       await this.queueGate.assertReadyForProcessing();
-      this.logger.log(`[battle-job] resolve-start jobId=${job.id} battleId=${battleId} attempt=${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)} delayMs=${Number(job.opts.delay ?? 0)}`);
+      const scheduledBattle = await this.battleService.getBattleById(battleId);
+      const scheduledEndAt = scheduledBattle?.endAt?.getTime?.() ?? Number.NaN;
+      scheduledLagMs = Number.isFinite(scheduledEndAt) ? Math.max(0, handlerStartedAt - scheduledEndAt) : 0;
+      this.logger.log(`[battle-job] resolve-start jobId=${job.id} battleId=${battleId} attempt=${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)} scheduledLagMs=${scheduledLagMs} tickDurationMs=${Number(scheduledBattle?.tickDurationMs ?? 0)}`);
 
       // Resolve the battle (apply XP, gold, drops, level-ups, death handling).
       // A duplicate delivery is a successful no-op; do not race the winning
@@ -72,7 +80,7 @@ export class BattleQueueProcessor {
         }
       }
 
-      this.logger.log(`[battle-job] resolve-finished jobId=${job.id} battleId=${battleId} characterId=${battle.characterId}`);
+      this.logger.log(`[battle-job] resolve-finished jobId=${job.id} battleId=${battleId} characterId=${battle.characterId} scheduledLagMs=${scheduledLagMs} handlerDurationMs=${Date.now() - handlerStartedAt}`);
       return { success: true, battleId };
     } catch (error) {
       // A battle row can legitimately be gone by the time its job fires: SPEC
@@ -99,9 +107,10 @@ export class BattleQueueProcessor {
    * Generates 5 new battles for a character
    * Used on initial map entry or periodic top-up
    */
-  @Process('queue-battles')
+  @Process({ name: 'queue-battles', concurrency: BATTLE_RUNTIME.battleQueueConcurrency })
   async queueBattles(job: Job<{ characterId: string }>) {
     const { characterId } = job.data;
+    const handlerStartedAt = Date.now();
 
     try {
       await this.queueGate.assertReadyForProcessing();
@@ -113,9 +122,11 @@ export class BattleQueueProcessor {
       }
       this.logger.log(`[battle-job] queue-battles-start jobId=${job.id} characterId=${characterId} map=${String(character.currentMapId)} attempt=${Number(job.attemptsMade ?? 0) + 1}/${Number(job.opts.attempts ?? 1)}`);
 
+      const before = await this.battleService.getBattleQueue(characterId, 100);
       await this.battleService.queueBattles(characterId, 5);
+      const after = await this.battleService.getBattleQueue(characterId, 100);
 
-      this.logger.log(`[battle-job] queue-battles-finished jobId=${job.id} characterId=${characterId}`);
+      this.logger.log(`[battle-job] queue-battles-finished jobId=${job.id} characterId=${characterId} depthBefore=${before.length} depthAfter=${after.length} handlerDurationMs=${Date.now() - handlerStartedAt}`);
       return { success: true, characterId };
     } catch (error) {
       this.logger.error(
@@ -126,7 +137,7 @@ export class BattleQueueProcessor {
   }
 
   /** Publish a pre-combat Gathering/Travel journal event when its projected encounter interval arrives. */
-  @Process('idle-journal-precombat')
+  @Process({ name: 'idle-journal-precombat', concurrency: BATTLE_RUNTIME.worldActivityConcurrency })
   async publishPreCombatJournal(job: Job<{
     characterId: string;
     mapId: string;
