@@ -1,0 +1,971 @@
+{
+  "version": 1,
+  "male": {
+    "hair": [
+      {
+        "id": "bald",
+        "name": {
+          "locales": {
+            "en": "Bald",
+            "pt": "Careca"
+          }
+        }
+      },
+      {
+        "id": "buzzed",
+        "name": {
+          "locales": {
+            "en": "Buzz cut",
+            "pt": "Raspado"
+          }
+        },
+        "asset": "hair/buzzed.glb"
+      },
+      {
+        "id": "parted",
+        "name": {
+          "locales": {
+            "en": "Parted",
+            "pt": "Repartido"
+          }
+        },
+        "asset": "hair/parted.glb"
+      },
+      {
+        "id": "long",
+        "name": {
+          "locales": {
+            "en": "Long",
+            "pt": "Longo"
+          }
+        },
+        "asset": "hair/long.glb"
+      }
+    ],
+    "hairColor": [
+      {
+        "id": "black",
+        "name": {
+          "locales": {
+            "en": "Black",
+            "pt": "Preto"
+          }
+        },
+        "color": "#1c1a1a"
+      },
+      {
+        "id": "brown",
+        "name": {
+          "locales": {
+            "en": "Brown",
+            "pt": "Castanho"
+          }
+        },
+        "color": "#5a3a22"
+      },
+      {
+        "id": "blonde",
+        "name": {
+          "locales": {
+            "en": "Blonde",
+            "pt": "Loiro"
+          }
+        },
+        "color": "#c9a55c"
+      },
+      {
+        "id": "red",
+        "name": {
+          "locales": {
+            "en": "Red",
+            "pt": "Ruivo"
+          }
+        },
+        "color": "#8f3a1c"
+      },
+      {
+        "id": "white",
+        "name": {
+          "locales": {
+            "en": "White",
+            "pt": "Branco"
+          }
+        },
+        "color": "#d9d6cf"
+      }
+    ],
+    "skin": [
+      {
+        "id": "fair",
+        "name": {
+          "locales": {
+            "en": "Fair",
+            "pt": "Clara"
+          }
+        },
+        "color": "#f0c9a8"
+      },
+      {
+        "id": "light",
+        "name": {
+          "locales": {
+            "en": "Light",
+            "pt": "Morena clara"
+          }
+        },
+        "color": "#dba67e"
+      },
+      {
+        "id": "tan",
+        "name": {
+          "locales": {
+            "en": "Tan",
+            "pt": "Morena"
+          }
+        },
+        "color": "#b97f56"
+      },
+      {
+        "id": "brown",
+        "name": {
+          "locales": {
+            "en": "Brown",
+            "pt": "Parda"
+          }
+        },
+        "color": "#8a5636"
+      },
+      {
+        "id": "dark",
+        "name": {
+          "locales": {
+            "en": "Dark",
+            "pt": "Negra"
+          }
+        },
+        "color": "#553220"
+      }
+    ],
+    "nose": [
+      {
+        "id": "straight",
+        "name": {
+          "locales": {
+            "en": "Straight",
+            "pt": "Reto"
+          }
+        },
+        "params": {
+          "width": 0,
+          "length": 0,
+          "bridge": 0
+        }
+      },
+      {
+        "id": "broad",
+        "name": {
+          "locales": {
+            "en": "Broad",
+            "pt": "Largo"
+          }
+        },
+        "params": {
+          "width": 1,
+          "length": 0,
+          "bridge": 0
+        }
+      },
+      {
+        "id": "long",
+        "name": {
+          "locales": {
+            "en": "Long",
+            "pt": "Comprido"
+          }
+        },
+        "params": {
+          "width": 0,
+          "length": 1,
+          "bridge": 0
+        }
+      },
+      {
+        "id": "hooked",
+        "name": {
+          "locales": {
+            "en": "Hooked",
+            "pt": "Adunco"
+          }
+        },
+        "params": {
+          "width": 0.3,
+          "length": 0.6,
+          "bridge": 1
+        }
+      },
+      {
+        "id": "short",
+        "name": {
+          "locales": {
+            "en": "Short",
+            "pt": "Curto"
+          }
+        },
+        "params": {
+          "width": 0.2,
+          "length": -1,
+          "bridge": 0
+        }
+      }
+    ],
+    "mouth": [
+      {
+        "id": "neutral",
+        "name": {
+          "locales": {
+            "en": "Neutral",
+            "pt": "Neutra"
+          }
+        },
+        "asset": "face/mouth_m_neutral.png"
+      },
+      {
+        "id": "thin",
+        "name": {
+          "locales": {
+            "en": "Thin",
+            "pt": "Fina"
+          }
+        },
+        "asset": "face/mouth_m_thin.png"
+      },
+      {
+        "id": "wide",
+        "name": {
+          "locales": {
+            "en": "Wide",
+            "pt": "Larga"
+          }
+        },
+        "asset": "face/mouth_m_wide.png"
+      },
+      {
+        "id": "stern",
+        "name": {
+          "locales": {
+            "en": "Stern",
+            "pt": "Severa"
+          }
+        },
+        "asset": "face/mouth_m_stern.png"
+      },
+      {
+        "id": "smirk",
+        "name": {
+          "locales": {
+            "en": "Smirk",
+            "pt": "Sorriso de canto"
+          }
+        },
+        "asset": "face/mouth_m_smirk.png"
+      }
+    ],
+    "chest": [
+      {
+        "id": "lean",
+        "name": {
+          "locales": {
+            "en": "Lean",
+            "pt": "Esguio"
+          }
+        },
+        "params": {
+          "size": -1
+        }
+      },
+      {
+        "id": "slim",
+        "name": {
+          "locales": {
+            "en": "Slim",
+            "pt": "Magro"
+          }
+        },
+        "params": {
+          "size": -0.5
+        }
+      },
+      {
+        "id": "average",
+        "name": {
+          "locales": {
+            "en": "Average",
+            "pt": "Médio"
+          }
+        },
+        "params": {
+          "size": 0
+        }
+      },
+      {
+        "id": "broad",
+        "name": {
+          "locales": {
+            "en": "Broad",
+            "pt": "Largo"
+          }
+        },
+        "params": {
+          "size": 0.5
+        }
+      },
+      {
+        "id": "massive",
+        "name": {
+          "locales": {
+            "en": "Massive",
+            "pt": "Maciço"
+          }
+        },
+        "params": {
+          "size": 1
+        }
+      }
+    ],
+    "facialHair": [
+      {
+        "id": "none",
+        "name": {
+          "locales": {
+            "en": "None",
+            "pt": "Nenhum"
+          }
+        }
+      },
+      {
+        "id": "stubble",
+        "name": {
+          "locales": {
+            "en": "Stubble",
+            "pt": "Barba por fazer"
+          }
+        },
+        "asset": "face/facial_m_stubble.png"
+      },
+      {
+        "id": "mustache",
+        "name": {
+          "locales": {
+            "en": "Mustache",
+            "pt": "Bigode"
+          }
+        },
+        "asset": "face/facial_m_mustache.png"
+      },
+      {
+        "id": "goatee",
+        "name": {
+          "locales": {
+            "en": "Goatee",
+            "pt": "Cavanhaque"
+          }
+        },
+        "asset": "face/facial_m_goatee.png"
+      },
+      {
+        "id": "full_beard",
+        "name": {
+          "locales": {
+            "en": "Full beard",
+            "pt": "Barba cheia"
+          }
+        },
+        "asset": "hair/beard.glb"
+      }
+    ],
+    "piercing": [
+      {
+        "id": "none",
+        "name": {
+          "locales": {
+            "en": "None",
+            "pt": "Nenhum"
+          }
+        }
+      },
+      {
+        "id": "nose_ring",
+        "name": {
+          "locales": {
+            "en": "Nose ring",
+            "pt": "Argola no nariz"
+          }
+        }
+      },
+      {
+        "id": "eyebrow_stud",
+        "name": {
+          "locales": {
+            "en": "Eyebrow stud",
+            "pt": "Pino na sobrancelha"
+          }
+        }
+      },
+      {
+        "id": "ear_rings",
+        "name": {
+          "locales": {
+            "en": "Earrings",
+            "pt": "Brincos de argola"
+          }
+        }
+      },
+      {
+        "id": "lip_ring",
+        "name": {
+          "locales": {
+            "en": "Lip ring",
+            "pt": "Argola no lábio"
+          }
+        }
+      }
+    ],
+    "tattoo": [
+      {
+        "id": "none",
+        "name": {
+          "locales": {
+            "en": "None",
+            "pt": "Nenhuma"
+          }
+        }
+      },
+      {
+        "id": "arm_band",
+        "name": {
+          "locales": {
+            "en": "Arm band",
+            "pt": "Bracelete no braço"
+          }
+        },
+        "asset": "tattoo/arm_band.png"
+      },
+      {
+        "id": "chest_sigil",
+        "name": {
+          "locales": {
+            "en": "Chest sigil",
+            "pt": "Sigilo no peito"
+          }
+        },
+        "asset": "tattoo/chest_sigil.png"
+      },
+      {
+        "id": "face_marks",
+        "name": {
+          "locales": {
+            "en": "Face marks",
+            "pt": "Marcas no rosto"
+          }
+        },
+        "asset": "tattoo/face_marks.png"
+      },
+      {
+        "id": "shoulder_knot",
+        "name": {
+          "locales": {
+            "en": "Shoulder knot",
+            "pt": "Nó no ombro"
+          }
+        },
+        "asset": "tattoo/shoulder_knot.png"
+      }
+    ]
+  },
+  "female": {
+    "hair": [
+      {
+        "id": "buzzed",
+        "name": {
+          "locales": {
+            "en": "Buzz cut",
+            "pt": "Raspado"
+          }
+        },
+        "asset": "hair/buzzed_female.glb"
+      },
+      {
+        "id": "buns",
+        "name": {
+          "locales": {
+            "en": "Buns",
+            "pt": "Coques"
+          }
+        },
+        "asset": "hair/buns.glb"
+      },
+      {
+        "id": "long",
+        "name": {
+          "locales": {
+            "en": "Long",
+            "pt": "Longo"
+          }
+        },
+        "asset": "hair/long.glb"
+      },
+      {
+        "id": "parted",
+        "name": {
+          "locales": {
+            "en": "Parted",
+            "pt": "Repartido"
+          }
+        },
+        "asset": "hair/parted.glb"
+      }
+    ],
+    "hairColor": [
+      {
+        "id": "black",
+        "name": {
+          "locales": {
+            "en": "Black",
+            "pt": "Preto"
+          }
+        },
+        "color": "#1c1a1a"
+      },
+      {
+        "id": "brown",
+        "name": {
+          "locales": {
+            "en": "Brown",
+            "pt": "Castanho"
+          }
+        },
+        "color": "#5a3a22"
+      },
+      {
+        "id": "blonde",
+        "name": {
+          "locales": {
+            "en": "Blonde",
+            "pt": "Loiro"
+          }
+        },
+        "color": "#c9a55c"
+      },
+      {
+        "id": "red",
+        "name": {
+          "locales": {
+            "en": "Red",
+            "pt": "Ruivo"
+          }
+        },
+        "color": "#8f3a1c"
+      },
+      {
+        "id": "white",
+        "name": {
+          "locales": {
+            "en": "White",
+            "pt": "Branco"
+          }
+        },
+        "color": "#d9d6cf"
+      }
+    ],
+    "skin": [
+      {
+        "id": "fair",
+        "name": {
+          "locales": {
+            "en": "Fair",
+            "pt": "Clara"
+          }
+        },
+        "color": "#f0c9a8"
+      },
+      {
+        "id": "light",
+        "name": {
+          "locales": {
+            "en": "Light",
+            "pt": "Morena clara"
+          }
+        },
+        "color": "#dba67e"
+      },
+      {
+        "id": "tan",
+        "name": {
+          "locales": {
+            "en": "Tan",
+            "pt": "Morena"
+          }
+        },
+        "color": "#b97f56"
+      },
+      {
+        "id": "brown",
+        "name": {
+          "locales": {
+            "en": "Brown",
+            "pt": "Parda"
+          }
+        },
+        "color": "#8a5636"
+      },
+      {
+        "id": "dark",
+        "name": {
+          "locales": {
+            "en": "Dark",
+            "pt": "Negra"
+          }
+        },
+        "color": "#553220"
+      }
+    ],
+    "nose": [
+      {
+        "id": "straight",
+        "name": {
+          "locales": {
+            "en": "Straight",
+            "pt": "Reto"
+          }
+        },
+        "params": {
+          "width": 0,
+          "length": 0,
+          "bridge": 0
+        }
+      },
+      {
+        "id": "button",
+        "name": {
+          "locales": {
+            "en": "Button",
+            "pt": "Arrebitado"
+          }
+        },
+        "params": {
+          "width": -0.5,
+          "length": -1,
+          "bridge": -0.5
+        }
+      },
+      {
+        "id": "narrow",
+        "name": {
+          "locales": {
+            "en": "Narrow",
+            "pt": "Fino"
+          }
+        },
+        "params": {
+          "width": -1,
+          "length": 0,
+          "bridge": 0
+        }
+      },
+      {
+        "id": "broad",
+        "name": {
+          "locales": {
+            "en": "Broad",
+            "pt": "Largo"
+          }
+        },
+        "params": {
+          "width": 1,
+          "length": 0,
+          "bridge": 0
+        }
+      },
+      {
+        "id": "long",
+        "name": {
+          "locales": {
+            "en": "Long",
+            "pt": "Comprido"
+          }
+        },
+        "params": {
+          "width": 0,
+          "length": 1,
+          "bridge": 0.3
+        }
+      }
+    ],
+    "mouth": [
+      {
+        "id": "neutral",
+        "name": {
+          "locales": {
+            "en": "Neutral",
+            "pt": "Neutra"
+          }
+        },
+        "asset": "face/mouth_f_neutral.png"
+      },
+      {
+        "id": "full",
+        "name": {
+          "locales": {
+            "en": "Full",
+            "pt": "Carnuda"
+          }
+        },
+        "asset": "face/mouth_f_full.png"
+      },
+      {
+        "id": "thin",
+        "name": {
+          "locales": {
+            "en": "Thin",
+            "pt": "Fina"
+          }
+        },
+        "asset": "face/mouth_f_thin.png"
+      },
+      {
+        "id": "dark",
+        "name": {
+          "locales": {
+            "en": "Dark lips",
+            "pt": "Lábios escuros"
+          }
+        },
+        "asset": "face/mouth_f_dark.png"
+      },
+      {
+        "id": "smile",
+        "name": {
+          "locales": {
+            "en": "Soft smile",
+            "pt": "Sorriso leve"
+          }
+        },
+        "asset": "face/mouth_f_smile.png"
+      }
+    ],
+    "chest": [
+      {
+        "id": "flat",
+        "name": {
+          "locales": {
+            "en": "Flat",
+            "pt": "Reto"
+          }
+        },
+        "params": {
+          "size": -1
+        }
+      },
+      {
+        "id": "small",
+        "name": {
+          "locales": {
+            "en": "Small",
+            "pt": "Pequeno"
+          }
+        },
+        "params": {
+          "size": -0.5
+        }
+      },
+      {
+        "id": "average",
+        "name": {
+          "locales": {
+            "en": "Average",
+            "pt": "Médio"
+          }
+        },
+        "params": {
+          "size": 0
+        }
+      },
+      {
+        "id": "full",
+        "name": {
+          "locales": {
+            "en": "Full",
+            "pt": "Cheio"
+          }
+        },
+        "params": {
+          "size": 0.5
+        }
+      },
+      {
+        "id": "large",
+        "name": {
+          "locales": {
+            "en": "Large",
+            "pt": "Grande"
+          }
+        },
+        "params": {
+          "size": 1
+        }
+      }
+    ],
+    "facialHair": [
+      {
+        "id": "natural",
+        "name": {
+          "locales": {
+            "en": "Natural brows",
+            "pt": "Sobrancelha natural"
+          }
+        },
+        "params": {
+          "thickness": 0,
+          "arch": 0
+        }
+      },
+      {
+        "id": "thin",
+        "name": {
+          "locales": {
+            "en": "Thin brows",
+            "pt": "Sobrancelha fina"
+          }
+        },
+        "params": {
+          "thickness": -1,
+          "arch": 0
+        }
+      },
+      {
+        "id": "thick",
+        "name": {
+          "locales": {
+            "en": "Thick brows",
+            "pt": "Sobrancelha grossa"
+          }
+        },
+        "params": {
+          "thickness": 1,
+          "arch": 0
+        }
+      },
+      {
+        "id": "arched",
+        "name": {
+          "locales": {
+            "en": "Arched brows",
+            "pt": "Sobrancelha arqueada"
+          }
+        },
+        "params": {
+          "thickness": 0,
+          "arch": 1
+        }
+      }
+    ],
+    "piercing": [
+      {
+        "id": "none",
+        "name": {
+          "locales": {
+            "en": "None",
+            "pt": "Nenhum"
+          }
+        }
+      },
+      {
+        "id": "nose_ring",
+        "name": {
+          "locales": {
+            "en": "Nose ring",
+            "pt": "Argola no nariz"
+          }
+        }
+      },
+      {
+        "id": "eyebrow_stud",
+        "name": {
+          "locales": {
+            "en": "Eyebrow stud",
+            "pt": "Pino na sobrancelha"
+          }
+        }
+      },
+      {
+        "id": "ear_rings",
+        "name": {
+          "locales": {
+            "en": "Earrings",
+            "pt": "Brincos de argola"
+          }
+        }
+      },
+      {
+        "id": "lip_ring",
+        "name": {
+          "locales": {
+            "en": "Lip ring",
+            "pt": "Argola no lábio"
+          }
+        }
+      }
+    ],
+    "tattoo": [
+      {
+        "id": "none",
+        "name": {
+          "locales": {
+            "en": "None",
+            "pt": "Nenhuma"
+          }
+        }
+      },
+      {
+        "id": "arm_band",
+        "name": {
+          "locales": {
+            "en": "Arm band",
+            "pt": "Bracelete no braço"
+          }
+        },
+        "asset": "tattoo/arm_band.png"
+      },
+      {
+        "id": "chest_sigil",
+        "name": {
+          "locales": {
+            "en": "Chest sigil",
+            "pt": "Sigilo no peito"
+          }
+        },
+        "asset": "tattoo/chest_sigil.png"
+      },
+      {
+        "id": "face_marks",
+        "name": {
+          "locales": {
+            "en": "Face marks",
+            "pt": "Marcas no rosto"
+          }
+        },
+        "asset": "tattoo/face_marks.png"
+      },
+      {
+        "id": "shoulder_knot",
+        "name": {
+          "locales": {
+            "en": "Shoulder knot",
+            "pt": "Nó no ombro"
+          }
+        },
+        "asset": "tattoo/shoulder_knot.png"
+      }
+    ]
+  }
+}

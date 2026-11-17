@@ -1,7 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { StatusEffectDefinition } from '@nanommo/shared';
+import { validateAppearanceCatalog } from '@nanommo/shared';
+import type { AppearanceCatalog, StatusEffectDefinition } from '@nanommo/shared';
 
 const hasLocalizedText = (value: any): boolean =>
   typeof value === 'string'
@@ -29,6 +30,7 @@ export class DataService implements OnModuleInit {
   private blacksmithRecipes: any = null;
   private globalItemDrops: any = null;
   private quests: any = null;
+  private appearanceCatalog: AppearanceCatalog | null = null;
 
   onModuleInit() {
     this.loadAllData();
@@ -53,6 +55,7 @@ export class DataService implements OnModuleInit {
       this.blacksmithRecipes = this.loadJsonFile(path.join(dataDir, 'blacksmith_recipes.json'));
       this.globalItemDrops = this.loadJsonFile(path.join(dataDir, 'global_item_drops.json'));
       this.quests = this.loadJsonFile(path.join(dataDir, 'quests.json'));
+      this.appearanceCatalog = this.loadJsonFile(path.join(dataDir, 'appearance_catalog.json'));
 
       this.validateCatalogues();
       this.logger.log('All data files loaded successfully');
@@ -63,6 +66,8 @@ export class DataService implements OnModuleInit {
   }
 
   private validateCatalogues(): void {
+    const appearanceErrors = validateAppearanceCatalog(this.appearanceCatalog);
+    if (appearanceErrors.length) throw new Error('Invalid appearance_catalog.json: ' + appearanceErrors.join('; '));
     const maps = this.maps?.maps;
     const monsters = this.monsters?.monsters;
     if (!Array.isArray(maps) || !Array.isArray(monsters)) throw new Error('maps.json and monsters.json must contain maps/species arrays');
@@ -371,6 +376,8 @@ export class DataService implements OnModuleInit {
   getGlobalItemDrops() { return this.globalItemDrops; }
 
   getQuests() { return this.quests; }
+
+  getAppearanceCatalog(): AppearanceCatalog | null { return this.appearanceCatalog; }
 
   // Specific getters
   getMonsterById(monsterId: string): any {

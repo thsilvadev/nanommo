@@ -24,6 +24,7 @@ const dataFiles = [
   'alchemy_recipes.json',
   'blacksmith_recipes.json',
   'global_item_drops.json',
+  'appearance_catalog.json',
 ];
 
 const rootDir = path.join(__dirname, '..');
