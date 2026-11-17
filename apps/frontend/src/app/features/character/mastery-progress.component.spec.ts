@@ -2,9 +2,11 @@ import { signal } from '@angular/core';
 import { CharacterPageComponent } from './character-page.component';
 
 describe('Mastery cumulative XP progress and authoritative refresh', () => {
+  // Thresholds from the current curve (MASTERY_LEVEL_XP_THRESHOLDS): Level 7 starts at 5,382 XP,
+  // Level 8 at 8,647 and the Level 10 cap at 21,152.
   it('derives relative XP, Level 7 and available points from each server snapshot', async () => {
     let rows: any[] = [
-      { weaponType: 'greatsword', level: 6, xp: 19_999, spentSkillPoints: 6, skillRanks: { heavy_swing: 5 } },
+      { weaponType: 'greatsword', level: 6, xp: 5_381, spentSkillPoints: 6, skillRanks: { heavy_swing: 5 } },
     ];
     const component: any = Object.create(CharacterPageComponent.prototype);
     component.api = { get: () => ({ toPromise: async () => rows }) };
@@ -13,24 +15,24 @@ describe('Mastery cumulative XP progress and authoritative refresh', () => {
     component.selectedWeapon = signal('greatsword');
     await component.loadWeaponLevels();
     expect(component.masteryLevel()).toBe(6);
-    expect(component.getXpAtCurrentLevel()).toBe(19_499);
-    expect(component.getXpToNextLevel()).toBe(19_500);
+    expect(component.getXpAtCurrentLevel()).toBe(2_126);
+    expect(component.getXpToNextLevel()).toBe(2_127);
     expect(component.availableMasteryPoints()).toBe(0);
     expect(component.masteryRows().greatsword.skillRanks).toEqual({ heavy_swing: 5 });
 
     // Simulate the authoritative /characters/weapon-proficiency response after
     // battle:resolved awards enough XP to cross the cumulative Level 7 boundary.
-    rows = [{ weaponType: 'greatsword', level: 7, xp: 20_120, spentSkillPoints: 6, skillRanks: { heavy_swing: 5 } }];
+    rows = [{ weaponType: 'greatsword', level: 7, xp: 5_502, spentSkillPoints: 6, skillRanks: { heavy_swing: 5 } }];
     await component.loadWeaponLevels();
     expect(component.masteryLevel()).toBe(7);
     expect(component.getXpAtCurrentLevel()).toBe(120);
-    expect(component.getXpToNextLevel()).toBe(15_000);
-    expect(component.getTotalMasteryXp()).toBe(20_120);
+    expect(component.getXpToNextLevel()).toBe(3_265);
+    expect(component.getTotalMasteryXp()).toBe(5_502);
     expect(component.availableMasteryPoints()).toBe(1);
     expect(component.weaponLevels().greatsword).toBe(7);
     expect(component.masteryRows().greatsword.skillRanks).toEqual({ heavy_swing: 5 }, 'server refresh preserves allocated ranks');
 
-    rows = [{ weaponType: 'greatsword', level: 10, xp: 60_000, spentSkillPoints: 11, skillRanks: { heavy_swing: 5 } }];
+    rows = [{ weaponType: 'greatsword', level: 10, xp: 21_152, spentSkillPoints: 11, skillRanks: { heavy_swing: 5 } }];
     await component.loadWeaponLevels();
     expect(component.masteryLevel()).toBe(10);
     expect(component.getXpAtCurrentLevel()).toBe(0);

@@ -22,6 +22,8 @@ describe('Vendor sell modal stack-scoped quantity', () => {
 
 
 describe('Town NPC selection state', () => {
+  // load() now awaits the canonical catalogue before it requests /town/npcs.
+  const flush = () => new Promise(resolve => setTimeout(resolve, 0));
   function makeStore() {
     const store: any = Object.create(VendorStore.prototype);
     store.api = {
@@ -68,6 +70,15 @@ describe('Town NPC selection state', () => {
     store.error = signal<any>(null);
     store.busy = signal(false);
     store.npcLoadSequence = 0;
+    // State and collaborators the store gained after these tests were written
+    // (Town panel reset, quest discovery acknowledgements, mailbox indicators).
+    store.cookingModal = signal(false);
+    store.mailboxSendConfirm = signal(false);
+    store.respecConfirm = signal(false);
+    store.availableQuestNotifications = signal<any[]>([]);
+    store.notifications = { acknowledge: jasmine.createSpy('acknowledge').and.returnValue(Promise.resolve()) };
+    store.refreshMailboxInbox = jasmine.createSpy('refreshMailboxInbox').and.returnValue(Promise.resolve());
+    store.audio = { play: jasmine.createSpy('play') };
     store.selectedNpc = computed(() => store.npcs().find((npc: any) => npc.id === store.selectedNpcId()) ?? null);
     return store;
   }
@@ -157,12 +168,16 @@ describe('Town NPC selection state', () => {
     let currentCharacter: any = { currentMapId: 'town_a', status: 'town' };
     store.character = { character: () => currentCharacter };
     const requests: Array<(value: any[]) => void> = [];
-    store.api.get.and.returnValue({ toPromise: () => new Promise(resolve => requests.push(resolve)) });
+    store.api.get.and.callFake((path: string) => ({
+      toPromise: () => path === '/town/npcs' ? new Promise(resolve => requests.push(resolve)) : Promise.resolve([]),
+    }));
 
     const oldTownLoad = store.load();
+    await flush();
     currentCharacter = { currentMapId: 'town_b', status: 'town' };
     requests[0]([{ id: 'stale_vendor', name: 'Stale Vendor', location: 'town', types: ['vendor'] }]);
     await oldTownLoad;
+    await flush();
     expect(requests.length).toBe(2, 'the stale response should trigger a load for the current Town');
 
     const destinationNpc = [{ id: 'storage', name: 'Storage', location: 'town', types: ['storage'] }];
@@ -176,12 +191,16 @@ describe('Town NPC selection state', () => {
     let currentCharacter: any = { currentMapId: 'town_a', status: 'town' };
     store.character = { character: () => currentCharacter };
     const requests: Array<(value: any[]) => void> = [];
-    store.api.get.and.returnValue({ toPromise: () => new Promise(resolve => requests.push(resolve)) });
+    store.api.get.and.callFake((path: string) => ({
+      toPromise: () => path === '/town/npcs' ? new Promise(resolve => requests.push(resolve)) : Promise.resolve([]),
+    }));
 
     const oldTownLoad = store.load();
+    await flush();
     currentCharacter = { currentMapId: 'town_b', status: 'town' };
     store.resetForTownEntry();
     const destinationTownLoad = store.load();
+    await flush();
 
     const destinationNpcs = [{ id: 'destination_vendor', name: 'Destination Vendor', location: 'town', types: ['vendor'] }];
     requests[1](destinationNpcs);

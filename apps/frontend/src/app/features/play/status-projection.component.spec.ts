@@ -6,7 +6,8 @@ describe('shared status timeline in Character Summary and Grind STATUS', () => {
     const startAt = '2026-10-16T12:00:00.000Z';
     const startMs = Date.parse(startAt);
     const entry: any = {
-      id: 'battle-1', startAt, endAt: new Date(startMs + 10_000).toISOString(), monsterId: 'monster-1',
+      // Battle entries record their combat clock; the projection never guesses it (500 ms per tick).
+      id: 'battle-1', startAt, endAt: new Date(startMs + 10_000).toISOString(), monsterId: 'monster-1', tickDurationMs: 500,
       log: {
         header: {
           characterSnapshot: { statusEffects: [] },
@@ -37,31 +38,31 @@ describe('shared status timeline in Character Summary and Grind STATUS', () => {
 
   it('shows character-target and monster-target statuses at the same event ticks only', () => {
     const h = harness();
-    h.now.set(h.startMs + 500);
+    h.now.set(h.startMs + 250);
     expect(h.characterSummary.activeStatusEffects('character').map((row: any) => row.id)).toEqual([]);
     expect(h.grindInfo.monsterStatusEffects(h.entry).map((row: any) => row.id)).toEqual(['freeze']);
 
-    h.now.set(h.startMs + 1000);
+    h.now.set(h.startMs + 500);
     expect(h.characterSummary.activeStatusEffects('character').map((row: any) => row.id)).toEqual(['poison']);
     expect(h.grindInfo.monsterStatusEffects(h.entry).map((row: any) => row.id)).toEqual(['freeze']);
 
-    h.now.set(h.startMs + 2000);
+    h.now.set(h.startMs + 1000);
     const monsterStatuses = h.grindInfo.monsterStatusEffects(h.entry);
     expect(monsterStatuses.map((row: any) => row.id)).toEqual(['freeze', 'bleed']);
     expect(monsterStatuses.find((row: any) => row.id === 'bleed')?.stacks).toBe(1);
     expect(h.characterSummary.activeStatusEffects('character').map((row: any) => row.id)).toEqual(['poison']);
 
-    h.now.set(h.startMs + 3000);
+    h.now.set(h.startMs + 1500);
     expect(h.characterSummary.activeStatusEffects('character').map((row: any) => row.id)).toEqual([]);
     expect(h.grindInfo.monsterStatusEffects(h.entry).find((row: any) => row.id === 'bleed')?.stacks).toBe(1);
 
-    h.now.set(h.startMs + 4000);
+    h.now.set(h.startMs + 2000);
     expect(h.grindInfo.monsterStatusEffects(h.entry).find((row: any) => row.id === 'freeze')).toBeUndefined();
     expect(h.grindInfo.monsterStatusEffects(h.entry).find((row: any) => row.id === 'bleed')?.stacks).toBe(2);
 
-    h.now.set(h.startMs + 8000);
+    h.now.set(h.startMs + 4000);
     expect(h.grindInfo.monsterStatusEffects(h.entry).find((row: any) => row.id === 'bleed')?.stacks).toBe(1);
-    h.now.set(h.startMs + 9000);
+    h.now.set(h.startMs + 4500);
     expect(h.grindInfo.monsterStatusEffects(h.entry).find((row: any) => row.id === 'bleed')).toBeUndefined();
   });
 
