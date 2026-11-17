@@ -194,7 +194,8 @@ export class CharacterRig implements CharacterRigHandle {
     const yawKey = `${config.framing}|${config.dominantHand}`;
     if (yawKey !== this.yawKey) {
       this.yawKey = yawKey;
-      this.model.rotation.y = (config.dominantHand === 'left' ? -1 : 1) * (config.framing === 'portrait' ? 0.6 : 0.32);
+      // portrait: whole body facing the screen; otherwise a slight turn towards the dominant side.
+      this.model.rotation.y = config.framing === 'portrait' ? 0 : (config.dominantHand === 'left' ? -1 : 1) * 0.32;
     }
     this.framing = config.framing;
     this.interactive = config.interactive;
@@ -718,20 +719,19 @@ export class CharacterRig implements CharacterRigHandle {
     const { clientWidth: w, clientHeight: h } = this.host;
     this.camera.aspect = w > 0 && h > 0 ? w / h : 0.75;
     const halfFov = THREE.MathUtils.degToRad(this.camera.fov / 2);
-    if (this.framing !== 'full' && this.current) {
+    if (this.framing === 'bust' && this.current) {
       // Follow the animated head (the idle pose lowers it a few centimetres).
       const head = this.current.bones.get('Head')!;
       this.model.updateMatrixWorld(true);
       const headY = new THREE.Vector3().setFromMatrixPosition(head.matrixWorld).y;
       const bindHeadY = new THREE.Vector3().setFromMatrixPosition(this.current.bind.get('Head')!).y;
       const eyes = headY + (this.current.noseTip.y + 0.04 - bindHeadY) * this.model.scale.y;
-      // bust: head and shoulders; portrait: from the thighs up, so the hands and their items show.
-      const [half, centreBelowEyes] = this.framing === 'bust' ? [0.36, 0.17] : [0.62 * this.model.scale.y, 0.45 * this.model.scale.y];
+      const [half, centreBelowEyes] = [0.36, 0.17];
       const distance = Math.max(half, half * 0.62 / this.camera.aspect) / Math.tan(halfFov);
       this.camera.position.set(0, eyes - centreBelowEyes + 0.12, distance);
       this.camera.lookAt(0, eyes - centreBelowEyes, 0);
     } else {
-      // Fixed frame (2.24 m), so a shorter character really looks shorter.
+      // full and portrait: fixed frame (2.24 m), so a shorter character really looks shorter.
       const half = 1.12;
       const distance = Math.max(half, half * 0.62 / this.camera.aspect) / Math.tan(halfFov);
       this.camera.position.set(0, 1.12, distance);
