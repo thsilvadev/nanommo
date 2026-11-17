@@ -72,7 +72,7 @@ export interface CombatantSnapshot {
   foodDigestRemainingTicksByItem?: Record<string, number>;
   /** Persisted Diet level per food; absent means the food has never been consumed. */
   dietLevelByFood?: Record<string, number>;
-  /** Ticks left per cooldown key. Keys: `skill:<id>`, `item:potion`, `defend`. */
+  /** Ticks left per skill or item cooldown key. */
   cooldowns?: Record<string, number>;
   /**
    * Ticks left while a previously triggered action of that gauge is still
@@ -82,14 +82,18 @@ export interface CombatantSnapshot {
    */
   attackLockTicks?: number;
   castLockTicks?: number;
-  /** Set by the engine when the combatant braced; cleared on the next hit taken. */
-  defending?: boolean;
   element?: string | null;
   characterName?: string;
   /** Distinguishes player-only rules such as Disarm from monster behavior. */
   isPlayerCharacter?: boolean;
   combatStyle?: 'melee' | 'ranged';
   position?: number;
+  characterId?: string;
+  targetId?: string;
+  partyLeaderId?: string;
+  partyLeaderTargetId?: string;
+  elementalDamageTakenMultiplier?: Record<string, number>;
+  elementalResistances?: string[];
   basicAttackDamageType?: 'melee' | 'ranged' | 'magic';
   basicAttackRange?: number;
   moveSpeedBase?: number;
@@ -107,33 +111,7 @@ export type GambitGaugeType = 'attack' | 'cast';
  * Pure function for deterministic automation (SPEC §7.3, §8)
  */
 export class GambitEvaluator {
-  /**
-   * HP/SP bands per SPEC §8.3: FULL(100%), HIGH(70-99%), MEDIUM(30-69%),
-   * LOW(10-29%), CRITICAL(1-9%). Half-open so a value of exactly 100 is FULL
-   * and 69.5 is MEDIUM (not HIGH).
-   */
-  private static readonly BANDS: Record<string, [number, number]> = {
-    FULL: [100, Number.POSITIVE_INFINITY],
-    HIGH: [70, 100],
-    MEDIUM: [30, 70],
-    LOW: [10, 30],
-    CRITICAL: [0, 10],
-  };
-
-  static isInHpBand(currentHp: number, maxHp: number, band: string): boolean {
-    if (!maxHp || maxHp <= 0) return false;
-    const bounds = GambitEvaluator.BANDS[band];
-    if (!bounds) return false;
-    const percent = (currentHp / maxHp) * 100;
-    return percent >= bounds[0] && percent < bounds[1];
-  }
-
-  /**
-   * Gambit conditions exist in two shapes in this codebase:
-   *  - SPEC §8.2 nested:      { id: 'self_hp_band', params: { band: 'LOW' } }
-   *  - gambit_catalog.json:   { id: 'self_hp_band', band: 'LOW' }
-   * Both must work, otherwise every catalog-shaped page silently never matches.
-   */
+  /** Merge canonical nested params and older inline Gambit payloads. */
   private static readParams(node: any): Record<string, any> {
     if (!node) return {};
     const { id, params, ...rest } = node;
@@ -153,62 +131,46 @@ export class GambitEvaluator {
     const id = condition?.id ?? condition?.type;
     const params = GambitEvaluator.readParams(condition);
 
+    const scope = String(id).startsWith('self_') || String(id).startsWith('ally_') ? 'self' : 'foe';
+    const subject = scope === 'self' ? self : foe;
+    const suffix = String(id).replace(/^(self|ally|foe)_/, '');
+    const hasStatus = (unit: CombatantSnapshot, status: string) => status.toLowerCase() === 'ko'
+      ? unit.hp <= 0
+      : (unit.statusEffects ?? []).some((s: any) => String(s.type ?? s.id ?? '').toLowerCase() === status.toLowerCase());
+
+    if (suffix === 'has_status') return hasStatus(subject, String(params.status ?? ''));
+    if (suffix === 'missing_status') return !hasStatus(subject, String(params.status ?? ''));
+    if (suffix === 'hp' || suffix === 'sp') {
+      const current = Number(suffix === 'hp' ? subject.hp : subject.sp);
+      const maximum = Number(suffix === 'hp' ? subject.maxHp : subject.maxSp);
+      const threshold = Number(params.value);
+      if (!Number.isFinite(current) || !Number.isFinite(threshold)) return false;
+      const observed = params.unit === 'percent' ? (maximum > 0 ? current / maximum * 100 : NaN) : current;
+      if (!Number.isFinite(observed)) return false;
+      return params.comparator === 'lt' ? observed < threshold : params.comparator === 'gt' ? observed > threshold : false;
+    }
+
     switch (id) {
-      case 'always':
-        return true;
-
-      // monsters.json raw conditions (SPEC §7.3: monsters use the same engine)
-      case 'self_hp_below_percent':
-        return self.maxHp > 0 && (self.hp / self.maxHp) * 100 < Number(params.value);
-      case 'self_sp_below_percent':
-        return self.maxSp > 0 && (self.sp / self.maxSp) * 100 < Number(params.value);
-      case 'foe_hp_below_percent':
-        return foe.maxHp > 0 && (foe.hp / foe.maxHp) * 100 < Number(params.value);
-      case 'self_hp_band':
-        return GambitEvaluator.isInHpBand(self.hp, self.maxHp, params.band);
-
-      case 'self_sp_band':
-        return GambitEvaluator.isInHpBand(self.sp, self.maxSp, params.band);
-
-      case 'foe_hp_band':
-        return GambitEvaluator.isInHpBand(foe.hp, foe.maxHp, params.band);
-
-      case 'self_has_status':
-        return (self.statusEffects ?? []).some(
-          (s: any) => (s.type ?? s.id) === params.status,
-        );
-
-      case 'self_missing_status':
-        return !(self.statusEffects ?? []).some(
-          (s: any) => (s.type ?? s.id) === params.status,
-        );
-
-      case 'foe_has_status':
-        return (foe.statusEffects ?? []).some(
-          (s: any) => (s.type ?? s.id) === params.status,
-        );
-
-      case 'foe_element_is':
-        return (foe.element ?? null) === params.element;
-
-      case 'skill_ready': {
-        const cooldown = self.cooldowns?.[`skill:${params.skillId}`] ?? 0;
-        return cooldown <= 0;
-      }
-
-      case 'upon_death':
-        return self.hp <= 0;
-
-      case 'item_in_stock': {
-        const quantity = inventory[params.itemId] ?? 0;
-        const comparator = params.comparator ?? 'ANY';
-        if (comparator === 'ANY') return quantity > 0;
-        if (comparator === 'NONE') return quantity === 0;
+      case 'always': return true;
+      case 'upon_death': return self.hp <= 0; // legacy saved Gambit migration
+      case 'foe_element_weak': {
+        const configured = Number(foe.elementalDamageTakenMultiplier?.[String(params.element)]);
+        if (Number.isFinite(configured)) return configured > 1;
         return false;
       }
-
-      default:
-        return false;
+      case 'ally_targeted_by_foe': return foe.targetId === self.characterId || !foe.targetId;
+      case 'ally_targeted_by_ally': return false;
+      case 'ally_lowest_hp': case 'ally_lowest_def': case 'ally_lowest_mdef': return true;
+      case 'foe_targeting_self': return foe.targetId ? foe.targetId === self.characterId : true;
+      case 'foe_targeting_leader': return foe.partyLeaderId ? foe.targetId === foe.partyLeaderId : (foe.targetId ? foe.targetId === self.characterId : true);
+      case 'foe_party_leader_target': return foe.partyLeaderTargetId ? foe.partyLeaderTargetId === foe.characterId : true;
+      case 'foe_not_targeted_by_ally': return true;
+      case 'foe_highest_hp': case 'foe_lowest_hp': case 'foe_highest_mp': case 'foe_lowest_mp':
+      case 'foe_highest_matk': case 'foe_lowest_matk': case 'foe_highest_defense': case 'foe_highest_mdef':
+      case 'foe_highest_max_hp': case 'foe_lowest_max_hp': case 'foe_highest_max_mp': case 'foe_lowest_max_mp':
+      case 'foe_highest_speed': case 'foe_lowest_speed': case 'foe_furthest': case 'foe_nearest': return true;
+      // Previous condition/action catalogue entries are deliberately retired.
+      default: return false;
     }
   }
 
@@ -273,11 +235,6 @@ export class GambitEvaluator {
         return true;
       }
 
-      case 'defend':
-        return self.hp > 0;
-
-      case 'wait':
-        return true;
 
       default:
         return false;
@@ -287,11 +244,11 @@ export class GambitEvaluator {
   /**
    * Actions reachable from each gauge fire (SPEC §7.3 step 1):
    * an Attack-gauge fire can only trigger `attack`; a Cast-gauge fire can
-   * trigger `use_skill`, `use_item`, `defend` or `wait`.
+   * trigger `use_skill` or `use_item`.
    */
   private static readonly GAUGE_ACTIONS: Record<GambitGaugeType, string[]> = {
     attack: ['attack'],
-    cast: ['use_skill', 'use_item', 'defend', 'wait'],
+    cast: ['use_skill', 'use_item'],
   };
 
   /**
@@ -382,7 +339,6 @@ export class BattleEngine {
   static readonly MAX_ATTACK_DURATION_TICKS = 16;
   static readonly MAX_ATTACK_SPEED = 800;
   static readonly DEFAULT_MONSTER_CAST_TICKS = 12;
-  static readonly DEFEND_DAMAGE_REDUCTION = 0.3;
   static readonly DEF_FLAT_REDUCTION_PER_POINT = 0.425;
   static readonly DEF_RELATIVE_SCALE = 250;
   static readonly MIN_PHYSICAL_DAMAGE_MULTIPLIER = 0.01;
@@ -445,6 +401,8 @@ export class BattleEngine {
       dex: Number(monsterDefinition?.dex ?? 0),
       statusEffects: [...(monsterDefinition?.statusEffects ?? [])],
       element: monsterDefinition?.element ?? null,
+      elementalDamageTakenMultiplier: monsterDefinition?.elementalDamageTakenMultiplier ?? {},
+      elementalResistances: monsterDefinition?.elementalResistances ?? [],
       combatStyle: monsterDefinition?.combatStyle === 'ranged' ? 'ranged' : 'melee',
       basicAttackDamageType: monsterDefinition?.basicAttackDamageType ?? 'melee',
       basicAttackRange: Number(monsterDefinition?.basicAttackRange ?? 0),
@@ -596,7 +554,6 @@ export class BattleEngine {
       cooldowns,
       attackLockTicks: 0,
       castLockTicks: 0,
-      defending: false,
       foodBuffTicksRemaining: Math.max(0, Number(characterSnapshot.foodBuffTicksRemaining ?? 0)),
       foodBuffItemId: characterSnapshot.foodBuffItemId,
       foodBuffHpRegenPerTenTicks: characterSnapshot.foodBuffHpRegenPerTenTicks,
@@ -795,7 +752,7 @@ export class BattleEngine {
       if (self.hp > 0) return false;
       const choice = GambitEvaluator.evaluateGambitPage(normalizedGambitPage, 'cast', self, foe, inventory, itemDefinitions);
       if (!choice || choice.action.id !== 'use_item') return false;
-      const hasUponDeathCondition = (choice.line?.conditions ?? []).some((condition: any) => (condition.id ?? condition.type) === 'upon_death');
+      const hasUponDeathCondition = (choice.line?.conditions ?? []).some((condition: any) => ((condition.id ?? condition.type) === 'self_has_status' && String(condition.params?.status ?? condition.status ?? '').toLowerCase() === 'ko') || (condition.id ?? condition.type) === 'upon_death');
       if (!hasUponDeathCondition) return false;
       const itemId = String(choice.action.itemId ?? choice.action.params?.itemId ?? '');
       const definition = itemDefinitions[itemId];
@@ -1511,13 +1468,6 @@ export class BattleEngine {
               }
 
               self.castLockTicks = 2;
-            } else if (action.id === 'defend') {
-              self.defending = true;
-              self.castLockTicks = 2;
-              record({ tick, actor: 'character', action: 'defend', target: 'character' });
-            } else if (action.id === 'wait') {
-              self.castLockTicks = 2;
-              record({ tick, actor: 'character', action: 'wait', target: 'self' });
             }
           }
           // no legal cast line -> wasted fire (§7.3 step 5)
@@ -1627,11 +1577,6 @@ export class BattleEngine {
           let finalDamage = monsterAttackType === 'magic'
             ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(self))
             : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
-          // SPEC §8.3: defend reduces the next incoming hit by a flat 30%.
-          if (self.defending) {
-            finalDamage *= 1 - BattleEngine.DEFEND_DAMAGE_REDUCTION;
-            self.defending = false;
-          }
           const rolledDamage = landed
             ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
             : 0;

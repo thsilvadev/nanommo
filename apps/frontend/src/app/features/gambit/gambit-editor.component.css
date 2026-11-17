@@ -361,3 +361,18 @@
     font-size: 18px;
   }
 }
+
+/* Scope colors echo the requested Gambit rows while staying within Idle Lords' dark UI palette. */
+.gambit-line.scope-self .condition-block,
+.gambit-line.scope-ally .condition-block { background: #111b25; border-color: #294967; }
+.gambit-line.scope-self .condition-block > small,
+.gambit-line.scope-ally .condition-block > small { color: #84acd0; }
+.gambit-line.scope-self .condition-block > select,
+.gambit-line.scope-ally .condition-block > select { background: #172737; border-color: #345879; color: #c2d9ea; }
+.gambit-line.scope-foe .condition-block { background: #251515; border-color: #673536; }
+.gambit-line.scope-foe .condition-block > small { color: #d28c83; }
+.gambit-line.scope-foe .condition-block > select { background: #321d1d; border-color: #74403e; color: #e5c3b9; }
+
+.gambit-line.scope-self,
+.gambit-line.scope-ally { background: #111923; border-color: #30475d; }
+.gambit-line.scope-foe { background: #211415; border-color: #5d3434; }

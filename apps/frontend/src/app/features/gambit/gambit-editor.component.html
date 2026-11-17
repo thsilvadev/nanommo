@@ -18,19 +18,18 @@
     </div>
     <div *ngIf="page() as p" cdkDropList class="line-list" (cdkDropListDropped)="reorder($event)">
         <article *ngFor="let line of p.lines;let i=index" cdkDrag class="gambit-line"
-            [class.disabled]="line.enabled===false" [class.missing-equipment]="skillEquipmentMissing(line)">
+            [class.disabled]="line.enabled===false" [class.missing-equipment]="skillEquipmentMissing(line)" [class.scope-self]="conditionScope(line)==='Self'" [class.scope-ally]="conditionScope(line)==='Ally'" [class.scope-foe]="conditionScope(line)==='Foe'">
             <div class="priority">{{i+1}}</div>
             <div class="line-main">
-                <div class="node-block"><small>CONDITION</small><select [ngModel]="line.conditions[0].id"
-                        (ngModelChange)="changeCondition(line,0,$event)">
-                        <option *ngFor="let c of conditionOptions()" [value]="c.id">{{c.label}}</option>
+                <div class="node-block condition-block"><small>CONDITION</small><select class="condition-select" [ngModel]="line.conditions[0].id"
+                        (ngModelChange)="changeCondition(line,0,$event)"><optgroup label="Self"><option *ngFor="let c of conditionsForScope('Self')" [value]="c.id">{{c.label}}</option></optgroup><optgroup label="Ally"><option *ngFor="let c of conditionsForScope('Ally')" [value]="c.id">{{c.label}}</option></optgroup><optgroup label="Foe"><option *ngFor="let c of conditionsForScope('Foe')" [value]="c.id">{{c.label}}</option></optgroup>
                     </select>
                     <div class="param-row"><ng-container
                             *ngFor="let spec of paramSpecs(line.conditions[0],'condition',line)"><label>{{paramLabel(spec.name)}}<ng-container
                                     [ngSwitch]="spec.type"><select *ngSwitchCase="'enum'"
                                         [ngModel]="paramValue(line.conditions[0],spec.name)"
                                         (ngModelChange)="setParam(line.conditions[0],spec.name,$event)">
-                                        <option *ngFor="let v of spec.values" [value]="v">{{v}}</option>
+                                        <option *ngFor="let v of spec.values" [value]="v">{{paramOptionLabel(v)}}</option>
                                     </select><select *ngSwitchCase="'itemRef'"
                                         [ngModel]="paramValue(line.conditions[0],spec.name)"
                                         (ngModelChange)="setParam(line.conditions[0],spec.name,$event)">
@@ -43,7 +42,7 @@
                                         <option value="">Select skill...</option>
                                         <option *ngFor="let skill of skillOptions()" [value]="skill.id">{{skill.name}}
                                         </option>
-                                    </select><input *ngSwitchDefault [type]="spec.type==='number'?'number':'text'"
+                                    </select><input *ngSwitchDefault [type]="spec.type==='number'?'number':'text'" [attr.min]="inputMin(spec)" [attr.max]="inputMax(spec,line.conditions[0])"
                                         [ngModel]="paramValue(line.conditions[0],spec.name)"
                                         (ngModelChange)="setParam(line.conditions[0],spec.name,valueForInput(spec,$event))"></ng-container></label></ng-container>
                     </div>
@@ -57,7 +56,7 @@
                                     [ngSwitch]="spec.type"><select *ngSwitchCase="'enum'"
                                         [ngModel]="paramValue(line.action,spec.name)"
                                         (ngModelChange)="setParam(line.action,spec.name,$event)">
-                                        <option *ngFor="let v of spec.values" [value]="v">{{v}}</option>
+                                        <option *ngFor="let v of spec.values" [value]="v">{{paramOptionLabel(v)}}</option>
                                     </select><select *ngSwitchCase="'itemRef'"
                                         [ngModel]="paramValue(line.action,spec.name)"
                                         (ngModelChange)="setParam(line.action,spec.name,$event);selectDiscoveredOption('item',$event)">
@@ -70,7 +69,7 @@
                                         <option value="">Select skill...</option>
                                         <option *ngFor="let skill of skillOptions()" [value]="skill.id">{{skill.name}}{{!notifications.hasAcknowledged(skillDiscoveryKey(skill.id)) ? ' •' : ''}}
                                         </option>
-                                    </select><input *ngSwitchDefault [type]="spec.type==='number'?'number':'text'"
+                                    </select><input *ngSwitchDefault [type]="spec.type==='number'?'number':'text'" [attr.min]="spec.min??null"
                                         [ngModel]="paramValue(line.action,spec.name)"
                                         (ngModelChange)="setParam(line.action,spec.name,valueForInput(spec,$event))"></ng-container></label></ng-container>
                     </div>

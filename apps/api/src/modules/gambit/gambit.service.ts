@@ -114,6 +114,17 @@ export class GambitService {
         continue;
       }
 
+      if (spec.type === 'number') {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue) || (spec.min !== undefined && numericValue < Number(spec.min)) || (spec.max !== undefined && numericValue > Number(spec.max))) {
+          errors.push({ path: `${path}.${spec.name}`, message: `${kind} "${id}" param "${spec.name}" must be a valid number${spec.min !== undefined ? ` >= ${spec.min}` : ''}${spec.max !== undefined ? ` and <= ${spec.max}` : ''}` });
+        }
+        if (spec.name === 'value' && params.unit === 'percent' && numericValue > 100) {
+          errors.push({ path: `${path}.${spec.name}`, message: 'percentage values must not exceed 100' });
+        }
+        continue;
+      }
+
       if (spec.type === 'enum') {
         if (!(spec.values ?? []).includes(value)) {
           errors.push({
@@ -187,6 +198,16 @@ export class GambitService {
         path: `${path}.combinator`,
         message: 'combinator is no longer supported; each gambit line has exactly 1 condition',
       });
+    }
+
+    const condition = Array.isArray(conditions) ? conditions[0] : null;
+    const conditionParams = GambitService.readParams(condition);
+    const isSelfKo = condition?.id === 'self_has_status' && String(conditionParams.status ?? '').toLowerCase() === 'ko';
+    if (isSelfKo) {
+      const actionParams = GambitService.readParams(line.action);
+      if (line.action?.id !== 'use_item' || actionParams.itemId !== 'fairy_in_a_bottle') {
+        errors.push({ path: `${path}.action`, message: 'Self: Status = KO can only use Fairy in a Bottle' });
+      }
     }
 
     // --- action: must exist, and its skill/item refs must be real

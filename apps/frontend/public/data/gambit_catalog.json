@@ -5,111 +5,449 @@
     "maxConditionsPerLine": 1,
     "onlyOneActivePageAtATime": true,
     "pageSwitchAllowedOnlyOutOfBattle": true,
-    "executionRule": "Each tick, evaluate lines top to bottom. The first line whose condition(s) evaluate true AND whose action can currently be legally executed (skill known+equipped+off cooldown, item in stock, enough SP, etc.) performs its action and ends the tick. If a line's condition is true but its action cannot be legally executed, that line is skipped (NOT counted as 'first true'), and evaluation continues to the next line.",
+    "executionRule": "Each tick, evaluate enabled lines top to bottom. The first line whose single scoped condition is true and whose action is currently legal performs its action and ends the tick. If a matching action is illegal, continue to the next line.",
     "botFallbackPage": "If the active page produces no legal action on a tick (all conditions false or all matching actions illegal), the character does nothing that tick (idles) and simply re-evaluates on the next tick.",
     "uiRule": "Any gambit line referencing a skill not unlocked/equipped, or an item with 0 stock, must render greyed-out in the editor with a tooltip explaining why it cannot fire."
   },
   "conditions": [
     {
-      "id": "always",
-      "label": "Always",
-      "params": [],
-      "category": "generic"
-    },
-    {
-      "id": "self_hp_below_percent",
-      "label": "Self HP is below...",
-      "params": [
-        {
-          "name": "value",
-          "type": "number"
-        }
-      ],
-      "category": "self"
-    },
-    {
-      "id": "self_sp_below_percent",
-      "label": "Self SP is below...",
-      "params": [
-        {
-          "name": "value",
-          "type": "number"
-        }
-      ],
-      "category": "self"
-    },
-    {
-      "id": "foe_hp_band",
-      "label": "Target HP is...",
-      "params": [
-        {
-          "name": "band",
-          "type": "enum",
-          "values": [
-            "FULL",
-            "HIGH",
-            "MEDIUM",
-            "LOW",
-            "CRITICAL"
-          ]
-        }
-      ],
-      "category": "foe"
-    },
-    {
       "id": "self_has_status",
-      "label": "Self afflicted by...",
+      "label": "Self: Status = …",
+      "scope": "Self",
+      "category": "self",
       "params": [
         {
           "name": "status",
           "type": "enum",
           "values": [
-            "poison",
-            "stun",
+            "freeze",
+            "slow",
             "bleed",
-            "slow"
+            "burn",
+            "stun",
+            "disarm",
+            "war_cry_def",
+            "magic_barrier",
+            "poison",
+            "prowess",
+            "physical_reflection",
+            "magic_reflection",
+            "rage",
+            "silence",
+            "tip_of_pain",
+            "fontoura",
+            "kombucha",
+            "haste_shot",
+            "capo",
+            "web_pack",
+            "magic_prowess",
+            "violent_shot_slow",
+            "ko",
+            "ko"
           ]
         }
-      ],
-      "category": "self"
+      ]
     },
     {
       "id": "self_missing_status",
-      "label": "Self NOT afflicted by...",
+      "label": "Self: Status NOT …",
+      "scope": "Self",
+      "category": "self",
       "params": [
         {
           "name": "status",
           "type": "enum",
           "values": [
-            "poison",
-            "stun",
+            "freeze",
+            "slow",
             "bleed",
-            "slow"
+            "burn",
+            "stun",
+            "disarm",
+            "war_cry_def",
+            "magic_barrier",
+            "poison",
+            "prowess",
+            "physical_reflection",
+            "magic_reflection",
+            "rage",
+            "silence",
+            "tip_of_pain",
+            "fontoura",
+            "kombucha",
+            "haste_shot",
+            "capo",
+            "web_pack",
+            "magic_prowess",
+            "violent_shot_slow",
+            "ko"
           ]
         }
-      ],
-      "category": "self"
+      ]
+    },
+    {
+      "id": "self_hp",
+      "label": "Self: HP …",
+      "scope": "Self",
+      "category": "self",
+      "params": [
+        {
+          "name": "comparator",
+          "type": "enum",
+          "values": [
+            "lt",
+            "gt"
+          ]
+        },
+        {
+          "name": "unit",
+          "type": "enum",
+          "values": [
+            "percent",
+            "value"
+          ]
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "min": 0
+        }
+      ]
+    },
+    {
+      "id": "self_sp",
+      "label": "Self: SP …",
+      "scope": "Self",
+      "category": "self",
+      "params": [
+        {
+          "name": "comparator",
+          "type": "enum",
+          "values": [
+            "lt",
+            "gt"
+          ]
+        },
+        {
+          "name": "unit",
+          "type": "enum",
+          "values": [
+            "percent",
+            "value"
+          ]
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "min": 0
+        }
+      ]
+    },
+    {
+      "id": "ally_has_status",
+      "label": "Ally: Status = …",
+      "scope": "Ally",
+      "category": "ally",
+      "params": [
+        {
+          "name": "status",
+          "type": "enum",
+          "values": [
+            "freeze",
+            "slow",
+            "bleed",
+            "burn",
+            "stun",
+            "disarm",
+            "war_cry_def",
+            "magic_barrier",
+            "poison",
+            "prowess",
+            "physical_reflection",
+            "magic_reflection",
+            "rage",
+            "silence",
+            "tip_of_pain",
+            "fontoura",
+            "kombucha",
+            "haste_shot",
+            "capo",
+            "web_pack",
+            "magic_prowess",
+            "violent_shot_slow",
+            "ko",
+            "ko"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ally_missing_status",
+      "label": "Ally: Status NOT …",
+      "scope": "Ally",
+      "category": "ally",
+      "params": [
+        {
+          "name": "status",
+          "type": "enum",
+          "values": [
+            "freeze",
+            "slow",
+            "bleed",
+            "burn",
+            "stun",
+            "disarm",
+            "war_cry_def",
+            "magic_barrier",
+            "poison",
+            "prowess",
+            "physical_reflection",
+            "magic_reflection",
+            "rage",
+            "silence",
+            "tip_of_pain",
+            "fontoura",
+            "kombucha",
+            "haste_shot",
+            "capo",
+            "web_pack",
+            "magic_prowess",
+            "violent_shot_slow",
+            "ko"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ally_hp",
+      "label": "Ally: HP …",
+      "scope": "Ally",
+      "category": "ally",
+      "params": [
+        {
+          "name": "comparator",
+          "type": "enum",
+          "values": [
+            "lt",
+            "gt"
+          ]
+        },
+        {
+          "name": "unit",
+          "type": "enum",
+          "values": [
+            "percent",
+            "value"
+          ]
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "min": 0
+        }
+      ]
+    },
+    {
+      "id": "ally_sp",
+      "label": "Ally: SP …",
+      "scope": "Ally",
+      "category": "ally",
+      "params": [
+        {
+          "name": "comparator",
+          "type": "enum",
+          "values": [
+            "lt",
+            "gt"
+          ]
+        },
+        {
+          "name": "unit",
+          "type": "enum",
+          "values": [
+            "percent",
+            "value"
+          ]
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "min": 0
+        }
+      ]
     },
     {
       "id": "foe_has_status",
-      "label": "Target afflicted by...",
+      "label": "Foe: Status = …",
+      "scope": "Foe",
+      "category": "foe",
       "params": [
         {
           "name": "status",
           "type": "enum",
           "values": [
-            "poison",
-            "stun",
+            "freeze",
+            "slow",
             "bleed",
-            "slow"
+            "burn",
+            "stun",
+            "disarm",
+            "war_cry_def",
+            "magic_barrier",
+            "poison",
+            "prowess",
+            "physical_reflection",
+            "magic_reflection",
+            "rage",
+            "silence",
+            "tip_of_pain",
+            "fontoura",
+            "kombucha",
+            "haste_shot",
+            "capo",
+            "web_pack",
+            "magic_prowess",
+            "violent_shot_slow",
+            "ko"
           ]
         }
-      ],
-      "category": "foe"
+      ]
     },
     {
-      "id": "foe_element_is",
-      "label": "Target element is...",
+      "id": "foe_missing_status",
+      "label": "Foe: Status NOT …",
+      "scope": "Foe",
+      "category": "foe",
+      "params": [
+        {
+          "name": "status",
+          "type": "enum",
+          "values": [
+            "freeze",
+            "slow",
+            "bleed",
+            "burn",
+            "stun",
+            "disarm",
+            "war_cry_def",
+            "magic_barrier",
+            "poison",
+            "prowess",
+            "physical_reflection",
+            "magic_reflection",
+            "rage",
+            "silence",
+            "tip_of_pain",
+            "fontoura",
+            "kombucha",
+            "haste_shot",
+            "capo",
+            "web_pack",
+            "magic_prowess",
+            "violent_shot_slow",
+            "ko"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "foe_hp",
+      "label": "Foe: HP …",
+      "scope": "Foe",
+      "category": "foe",
+      "params": [
+        {
+          "name": "comparator",
+          "type": "enum",
+          "values": [
+            "lt",
+            "gt"
+          ]
+        },
+        {
+          "name": "unit",
+          "type": "enum",
+          "values": [
+            "percent",
+            "value"
+          ]
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "min": 0
+        }
+      ]
+    },
+    {
+      "id": "foe_sp",
+      "label": "Foe: SP …",
+      "scope": "Foe",
+      "category": "foe",
+      "params": [
+        {
+          "name": "comparator",
+          "type": "enum",
+          "values": [
+            "lt",
+            "gt"
+          ]
+        },
+        {
+          "name": "unit",
+          "type": "enum",
+          "values": [
+            "percent",
+            "value"
+          ]
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "min": 0
+        }
+      ]
+    },
+    {
+      "id": "ally_targeted_by_foe",
+      "label": "Ally: targeted by foe",
+      "scope": "Ally",
+      "category": "ally",
+      "params": []
+    },
+    {
+      "id": "ally_targeted_by_ally",
+      "label": "Ally: targeted by ally",
+      "scope": "Ally",
+      "category": "ally",
+      "params": []
+    },
+    {
+      "id": "ally_lowest_hp",
+      "label": "Ally: lowest HP",
+      "scope": "Ally",
+      "category": "ally",
+      "params": []
+    },
+    {
+      "id": "ally_lowest_def",
+      "label": "Ally: lowest DEF",
+      "scope": "Ally",
+      "category": "ally",
+      "params": []
+    },
+    {
+      "id": "ally_lowest_mdef",
+      "label": "Ally: lowest MDEF",
+      "scope": "Ally",
+      "category": "ally",
+      "params": []
+    },
+    {
+      "id": "foe_element_weak",
+      "label": "Foe: {element}-weak",
+      "scope": "Foe",
+      "category": "foe",
       "params": [
         {
           "name": "element",
@@ -121,47 +459,158 @@
             "wind",
             "holy",
             "shadow",
-            "none"
+            "lightning",
+            "ice"
           ]
         }
-      ],
-      "category": "foe"
+      ]
     },
     {
-      "id": "skill_ready",
-      "label": "Skill <X> is off cooldown",
-      "params": [
-        {
-          "name": "skillId",
-          "type": "skillRef"
-        }
-      ],
-      "category": "self"
+      "id": "foe_party_leader_target",
+      "label": "Foe: party leader's target",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
     },
     {
-      "id": "item_in_stock",
-      "label": "Item <X> quantity in inventory is...",
-      "params": [
-        {
-          "name": "itemId",
-          "type": "itemRef"
-        },
-        {
-          "name": "comparator",
-          "type": "enum",
-          "values": [
-            "ANY",
-            "NONE"
-          ]
-        }
-      ],
-      "category": "self"
+      "id": "foe_targeting_leader",
+      "label": "Foe: targeting leader",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
     },
     {
-      "id": "upon_death",
-      "label": "Upon Death",
-      "params": [],
-      "category": "self"
+      "id": "foe_targeting_self",
+      "label": "Foe: targeting self",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_not_targeted_by_ally",
+      "label": "Foe: not targeted by ally",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_highest_hp",
+      "label": "Foe: highest HP",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_highest_mp",
+      "label": "Foe: highest MP",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_highest_matk",
+      "label": "Foe: highest mAtk",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_highest_defense",
+      "label": "Foe: highest defense",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_lowest_hp",
+      "label": "Foe: lowest HP",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_lowest_mp",
+      "label": "Foe: lowest MP",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_lowest_matk",
+      "label": "Foe: lowest mAtk",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_highest_mdef",
+      "label": "Foe: highest mDef",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_highest_max_hp",
+      "label": "Foe: highest max HP",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_highest_max_mp",
+      "label": "Foe: highest max MP",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_highest_speed",
+      "label": "Foe: highest speed",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_lowest_max_hp",
+      "label": "Foe: lowest max HP",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_lowest_max_mp",
+      "label": "Foe: lowest max MP",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_lowest_speed",
+      "label": "Foe: lowest speed",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_furthest",
+      "label": "Foe: furthest",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "foe_nearest",
+      "label": "Foe: nearest",
+      "scope": "Foe",
+      "category": "foe",
+      "params": []
+    },
+    {
+      "id": "always",
+      "label": "Always",
+      "scope": "Self",
+      "category": "self",
+      "params": []
     }
   ],
   "actions": [
@@ -192,27 +641,8 @@
         }
       ],
       "requires": "item present in inventory, item off cooldown (potions share a 5s cooldown category)"
-    },
-    {
-      "id": "defend",
-      "label": "Brace (reduce next incoming hit)",
-      "params": [],
-      "requires": "none"
-    },
-    {
-      "id": "wait",
-      "label": "Wait / regenerate",
-      "params": [],
-      "requires": "none"
     }
   ],
-  "hpBandThresholds": {
-    "FULL": "100%",
-    "HIGH": "70-99%",
-    "MEDIUM": "30-69%",
-    "LOW": "10-29%",
-    "CRITICAL": "1-9%"
-  },
   "exampleGambitPage": {
     "title": "Balanced Grind",
     "lines": [
@@ -220,13 +650,19 @@
         "priority": 1,
         "conditions": [
           {
-            "id": "self_hp_below_percent",
-            "value": 10
+            "id": "self_hp",
+            "params": {
+              "comparator": "lt",
+              "unit": "percent",
+              "value": 30
+            }
           }
         ],
         "action": {
           "id": "use_item",
-          "itemId": "pot_hp_large"
+          "params": {
+            "itemId": "pot_hp_medium"
+          }
         }
       },
       {
@@ -234,42 +670,56 @@
         "conditions": [
           {
             "id": "self_has_status",
-            "status": "poison"
+            "params": {
+              "status": "poison"
+            }
           }
         ],
         "action": {
           "id": "use_item",
-          "itemId": "antidote"
+          "params": {
+            "itemId": "antidote"
+          }
         }
       },
       {
         "priority": 3,
         "conditions": [
           {
-            "id": "self_hp_below_percent",
-            "value": 30
+            "id": "self_has_status",
+            "params": {
+              "status": "ko"
+            }
           }
         ],
         "action": {
           "id": "use_item",
-          "itemId": "pot_hp_medium"
+          "params": {
+            "itemId": "fairy_in_a_bottle"
+          }
         }
       },
       {
         "priority": 4,
         "conditions": [
           {
-            "id": "foe_hp_band",
-            "band": "CRITICAL"
+            "id": "foe_hp",
+            "params": {
+              "comparator": "lt",
+              "unit": "percent",
+              "value": 10
+            }
           }
         ],
         "action": {
           "id": "use_skill",
-          "skillId": "sword_execute"
+          "params": {
+            "skillId": "sword_execute"
+          }
         }
       },
       {
-        "priority": 6,
+        "priority": 5,
         "conditions": [
           {
             "id": "always"

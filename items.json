@@ -1623,15 +1623,15 @@
       "sellPriceToVendor": 1000,
       "cooldownInSeconds": 30,
       "rarity": "epic",
-      "description": "When triggered by the Upon Death Gambit condition, revives you with full HP and SP and removes every active buff and debuff.",
+      "description": "When triggered by Self: Status = KO, revives you with full HP and SP and removes every active buff and debuff.",
       "locales": {
         "pt-BR": {
           "name": "Fada na Garrafa",
-          "description": "Quando ativada pela condição de Gambit Ao Morrer, revive você com HP e SP completos e remove todos os buffs e debuffs ativos."
+          "description": "Quando ativada por Self: Status = KO, revive você com HP e SP completos e remove todos os buffs e debuffs ativos."
         },
         "en-US": {
           "name": "Fairy in a Bottle",
-          "description": "When triggered by the Upon Death Gambit condition, revives you with full HP and SP and removes every active buff and debuff."
+          "description": "When triggered by Self: Status = KO, revives you with full HP and SP and removes every active buff and debuff."
         }
       }
     }
