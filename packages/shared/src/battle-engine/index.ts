@@ -158,6 +158,14 @@ export class GambitEvaluator {
         if (Number.isFinite(configured)) return configured > 1;
         return false;
       }
+      case 'foe_in_range': {
+        const selfPosition = Number(self.position);
+        const foePosition = Number(foe.position);
+        const requestedRange = Number(params.value);
+        if (![selfPosition, foePosition, requestedRange].every(Number.isFinite)) return false;
+        const emptySpacesBetween = Math.max(0, Math.abs(selfPosition - foePosition) - 1);
+        return emptySpacesBetween === requestedRange;
+      }
       case 'ally_targeted_by_foe': return foe.targetId === self.characterId || !foe.targetId;
       case 'ally_targeted_by_ally': return false;
       case 'ally_lowest_hp': case 'ally_lowest_def': case 'ally_lowest_mdef': return true;

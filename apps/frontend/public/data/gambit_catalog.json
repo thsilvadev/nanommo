@@ -444,6 +444,29 @@
       "params": []
     },
     {
+      "id": "foe_in_range",
+      "label": "Foe: in range",
+      "scope": "Foe",
+      "category": "foe",
+      "params": [
+        {
+          "name": "value",
+          "type": "enum",
+          "values": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8"
+          ]
+        }
+      ]
+    },
+    {
       "id": "foe_element_weak",
       "label": "Foe: {element}-weak",
       "scope": "Foe",
@@ -604,13 +627,6 @@
       "scope": "Foe",
       "category": "foe",
       "params": []
-    },
-    {
-      "id": "always",
-      "label": "Always",
-      "scope": "Self",
-      "category": "self",
-      "params": []
     }
   ],
   "actions": [
@@ -722,7 +738,12 @@
         "priority": 5,
         "conditions": [
           {
-            "id": "always"
+            "id": "self_hp",
+            "params": {
+              "comparator": "gt",
+              "unit": "value",
+              "value": 0
+            }
           }
         ],
         "action": {

@@ -94,6 +94,7 @@ export enum GambitConditionId {
   FOE_HP = 'foe_hp',
   FOE_SP = 'foe_sp',
   FOE_ELEMENT_WEAK = 'foe_element_weak',
+  FOE_IN_RANGE = 'foe_in_range',
   FOE_PARTY_LEADER_TARGET = 'foe_party_leader_target',
   FOE_TARGETING_LEADER = 'foe_targeting_leader',
   FOE_TARGETING_SELF = 'foe_targeting_self',
@@ -114,7 +115,6 @@ export enum GambitConditionId {
   FOE_LOWEST_SPEED = 'foe_lowest_speed',
   FOE_FURTHEST = 'foe_furthest',
   FOE_NEAREST = 'foe_nearest',
-  ALWAYS = 'always',
 }
 export enum GambitActionId {
   ATTACK = 'attack',

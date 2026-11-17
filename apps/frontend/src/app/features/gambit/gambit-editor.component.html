@@ -3,7 +3,7 @@
         <h2>Gambits</h2>
         <div class="gambit-desc">
             <small>Regras automáticas de combate: seu personagem age sozinho, sem comandos manuais.</small>
-            <small>Cada linha une condição e ação, executada por ordem de prioridade — a de cima primeiro. Ex.: “HP &lt; 50% → poção” antes de “sempre → atacar”.</small>
+            <small>Cada linha une condição e ação, executada por ordem de prioridade — a de cima primeiro. Ex.: “HP &lt; 50% → poção” antes de “HP > 0 → atacar”.</small>
             <small>Crie até 3 páginas, edite as linhas e ative a que quer usar no combate.</small>
         </div>
     </header>
@@ -21,11 +21,11 @@
             [class.disabled]="line.enabled===false" [class.missing-equipment]="skillEquipmentMissing(line)" [class.scope-self]="conditionScope(line)==='Self'" [class.scope-ally]="conditionScope(line)==='Ally'" [class.scope-foe]="conditionScope(line)==='Foe'">
             <div class="priority">{{i+1}}</div>
             <div class="line-main">
-                <div class="node-block condition-block"><small>CONDITION</small><select class="condition-select" [ngModel]="line.conditions[0].id"
+                <div class="node-block condition-block"><select class="condition-select" [ngModel]="line.conditions[0].id"
                         (ngModelChange)="changeCondition(line,0,$event)"><optgroup label="Self"><option *ngFor="let c of conditionsForScope('Self')" [value]="c.id">{{c.label}}</option></optgroup><optgroup label="Ally"><option *ngFor="let c of conditionsForScope('Ally')" [value]="c.id">{{c.label}}</option></optgroup><optgroup label="Foe"><option *ngFor="let c of conditionsForScope('Foe')" [value]="c.id">{{c.label}}</option></optgroup>
                     </select>
                     <div class="param-row"><ng-container
-                            *ngFor="let spec of paramSpecs(line.conditions[0],'condition',line)"><label>{{paramLabel(spec.name)}}<ng-container
+                            *ngFor="let spec of paramSpecs(line.conditions[0],'condition',line)"><label><span [class.sr-only]="!showParamLabel(spec.name)">{{paramLabel(spec.name)}}</span><ng-container
                                     [ngSwitch]="spec.type"><select *ngSwitchCase="'enum'"
                                         [ngModel]="paramValue(line.conditions[0],spec.name)"
                                         (ngModelChange)="setParam(line.conditions[0],spec.name,$event)">
@@ -47,12 +47,12 @@
                                         (ngModelChange)="setParam(line.conditions[0],spec.name,valueForInput(spec,$event))"></ng-container></label></ng-container>
                     </div>
                 </div>
-                <div class="node-block action-block"><small>ACTION</small><select [ngModel]="line.action.id"
+                <div class="node-block action-block"><small aria-label="Action" title="Action">►</small><select [ngModel]="line.action.id"
                         (ngModelChange)="changeAction(line,$event)">
                         <option *ngFor="let a of actionOptionsForLine(line)" [value]="a.id">{{a.label}}</option>
                     </select>
                     <div class="param-row"><ng-container
-                            *ngFor="let spec of paramSpecs(line.action,'action',line)"><label>{{paramLabel(spec.name)}}<ng-container
+                            *ngFor="let spec of paramSpecs(line.action,'action',line)"><label><span [class.sr-only]="!showParamLabel(spec.name)">{{paramLabel(spec.name)}}</span><ng-container
                                     [ngSwitch]="spec.type"><select *ngSwitchCase="'enum'"
                                         [ngModel]="paramValue(line.action,spec.name)"
                                         (ngModelChange)="setParam(line.action,spec.name,$event)">

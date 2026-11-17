@@ -733,3 +733,18 @@ app-character-summary .equip-slot > img.mirrored-hand {
 .character-page > nav.sheet-tabs > button:last-child{border-right:0!important;}
 .character-page > nav.sheet-tabs > button.active{background:#3b2818!important;color:#e1bd70!important;box-shadow:inset 0 -2px #c49a50!important;}
 @media(max-width:899px){.character-page > nav.sheet-tabs > button{font-size:13px!important;padding:9px 5px!important;}}
+
+/* Scoped Gambit editor palette, compact controls, and drag affordance. */
+.gambit-editor .gambit-line.scope-self,.gambit-editor .gambit-line.scope-ally { background:#111923;border-color:#30475d; }
+.gambit-editor .gambit-line.scope-foe { background:#211415;border-color:#5d3434; }
+.gambit-editor .gambit-line.scope-self .condition-block,.gambit-editor .gambit-line.scope-ally .condition-block { background:#111b25;border-color:#294967; }
+.gambit-editor .gambit-line.scope-foe .condition-block { background:#251515;border-color:#673536; }
+.gambit-editor .gambit-line.scope-self .condition-block > select,.gambit-editor .gambit-line.scope-self .condition-block .param-row select,.gambit-editor .gambit-line.scope-ally .condition-block > select,.gambit-editor .gambit-line.scope-ally .condition-block .param-row select { background:#172737;border-color:#345879;color:#c2d9ea; }
+.gambit-editor .gambit-line.scope-foe .condition-block > select,.gambit-editor .gambit-line.scope-foe .condition-block .param-row select { background:#321d1d;border-color:#74403e;color:#e5c3b9; }
+.gambit-editor .gambit-line .action-block > select,.gambit-editor .gambit-line .action-block .param-row select { background:#172737;border-color:#345879;color:#c2d9ea; }
+.gambit-editor .gambit-line { cursor:grab; }
+.gambit-editor .gambit-line.cdk-drag-dragging { cursor:grabbing;z-index:1000;opacity:.92; }
+.gambit-editor .gambit-line select,.gambit-editor .gambit-line button,.gambit-editor .gambit-line .switch { cursor:pointer; }
+.gambit-editor .gambit-line input { cursor:text; }
+.gambit-editor .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+@media (max-width:899px) { .gambit-editor .node-block.condition-block { grid-template-columns:1fr; } .gambit-editor .node-block.condition-block > select,.gambit-editor .node-block.condition-block .param-row { grid-column:1; } }
