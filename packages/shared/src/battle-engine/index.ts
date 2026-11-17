@@ -695,9 +695,15 @@ export class BattleEngine {
       return Number.isFinite(value) && value >= 0 ? value : 1;
     };
 
+    // Set while a pending character cast resolves: its use_skill event records when the
+    // cast began, so clients can animate the cast from the pre-computed log. Log-only.
+    let resolvingCastStartedAtTick: number | null = null;
     const record = (event: any) => {
       events.push({
         ...event,
+        ...(resolvingCastStartedAtTick !== null && event.actor === 'character' && event.action === 'use_skill'
+          ? { castStartedAtTick: resolvingCastStartedAtTick }
+          : {}),
         hpRemaining: { character: self.hp, monster: foe.hp },
         spRemaining: { character: self.sp, monster: foe.sp },
       });
@@ -1187,7 +1193,12 @@ export class BattleEngine {
         const pending = pendingCharacterCast;
         if (pending.resolutionTick <= tick) {
           pendingCharacterCast = null;
-          resolveCharacterSkill(pending.skillId);
+          resolvingCastStartedAtTick = pending.castStartedAtTick;
+          try {
+            resolveCharacterSkill(pending.skillId);
+          } finally {
+            resolvingCastStartedAtTick = null;
+          }
         }
         // Both casting ticks and the resolution tick exclude all other
         // character actions, and Cast gauge progress pauses with the cast.
