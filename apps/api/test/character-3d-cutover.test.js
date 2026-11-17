@@ -189,6 +189,9 @@ function harness({ active = 0, activeAfterPause = 0, characters, battles = 3, jo
     assert.ok(runbook.includes(needle), `runbook mentions ${needle}`);
   }
   assert.ok(runbook.indexOf('docker compose stop backend') < runbook.indexOf('--execute'), 'consumers stop before the destructive step');
+  // The frontend publishes on its own (Vercel); old and new client/API are incompatible for character creation.
+  assert.match(runbook, /Vercel/, 'runbook coordinates the frontend release');
+  assert.match(runbook, /APPEARANCE_REQUIRED|\/characters\/appearance/, 'runbook explains why the frontend and API must ship together');
   assert.ok(runbook.indexOf('--execute') < runbook.indexOf('CHARACTER_3D_CUTOVER_COMPLETE=true'), 'the flag is set only after the cutover');
 
   console.log('character-3d-cutover: patch, job allow-list, confirmations, dry run, guarded execution, startup guard and operator wiring passed');
