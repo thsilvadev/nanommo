@@ -6,7 +6,7 @@ import { BattleStore, CharacterStore, InventoryStore } from './game.store';
 import { GameSocketService } from './game.socket.service';
 
 const character = (hp: number, sp: number): Character => ({
-  id: 'char-1', userId: 'user-1', name: 'Tester', dominantHand: 'right', sex: 'male', height: 2, heightCm: 170, appearance: { v: 1, hair: 0, hairColor: 0, skin: 0, nose: 0, mouth: 0, chest: 0, facialHair: 0, piercing: 0, tattoo: 0 }, level: 1, xp: 0, xpToNext: 10,
+  id: 'char-1', userId: 'user-1', name: 'Tester', dominantHand: 'right', sex: 'male', height: 2, heightCm: 170, appearance: { v: 1, hair: 0, hairColor: 0, skin: 0, face: 0, nose: 0, mouth: 0, chest: 0, facialHair: 0, piercing: 0, tattoo: 0 }, level: 1, xp: 0, xpToNext: 10,
   unspentAttributePoints: 0, attributeBonuses: {}, str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5,
   gold: 0, soulTokens: 0, hpCurrent: hp, spCurrent: sp, maxHp: 100, maxSp: 50, attack: 10, magicAttack: 0,
   defense: 0, attackSpeed: 1, castTimeReduction: 10, evasion: 5, accuracy: 5,

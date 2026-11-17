@@ -8,7 +8,7 @@ Dar a cada personagem um corpo 3D customizável, criado uma única vez, e exibi-
 
 ## Objetivos
 
-1. Tela de criação gráfica com 11 traços: sexo, cabelo, cor do cabelo, nariz, boca, altura, chest size, cor de pele, pelos faciais, piercing, tattoo. Até 5 opções por traço, listas distintas por sexo (exceto piercing e tattoo, que são compartilhadas).
+1. Tela de criação gráfica com 12 traços: sexo, cabelo, cor do cabelo, formato do rosto, nariz, boca, altura, chest size, cor de pele, pelos faciais, piercing, tattoo. Até 5 opções por traço (8 para boca), listas distintas por sexo (exceto piercing e tattoo, que são compartilhadas).
 2. Personagem existente sem aparência é congelado ao conectar e levado ao criador com nome e mão dominante travados; salva a aparência sem perder nada.
 3. `sex` e `height` (1–4) persistidos; altura aplica ajuste de STR/LUK uma única vez, para personagens novos e existentes.
 4. Portrait do Character Summary mostra o modelo em idle, com as armas de mão equipadas (um modelo placeholder por tipo de arma) na mão correta conforme `dominantHand`.
@@ -72,6 +72,15 @@ A versão gratuita do pack é menor que o previsto (ver `2026-11-16-criador-pers
 - **Nariz e chest size:** deslocamento de vértices por região (os modelos não têm ossos de rosto/peito nem morphs).
 - **Armas:** `dagger`, `sword`, `greatsword`, `bow`, `shield` do pack Medieval Weapons; `staff`, `rod`, `rune` gerados em código.
 - Trocar para o pack pago depois é substituir arquivos e ampliar as listas do catálogo, sem mudar código.
+
+## Ajustes após revisão das capturas (2026-11-17)
+
+Pedidos do usuário depois de ver o visualizador:
+
+- **Formato do rosto:** novo traço `face` (11º traço), 5 opções por sexo. Masculino: oval, quadrado, redondo, alongado, queixo forte. Feminino: oval, coração, redondo, quadrado, alongado. Feito por deformação (largura da mandíbula, comprimento e largura do queixo, bochechas). A barba 3D não acompanha a deformação.
+- **Bocas:** +3 por sexo (8 no total). O limite por traço sobe de 5 para 8 (`MAX_APPEARANCE_OPTIONS`). Masculino: carnuda, caída, com cicatriz. Feminino: coração, larga, biquinho.
+- **Armas:** o cabo passa pelo furo da mão fechada, medido na pose Idle. Sem animação própria por arma nesta entrega (armas de duas mãos continuam numa mão só).
+- **Piercings:** nariz na asa do nariz, argola no lábio inferior.
 
 ## Modelo de dados
 

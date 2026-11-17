@@ -12,6 +12,7 @@ const {
   defaultAppearance,
   resolveHandAttachments,
   validateAppearanceCatalog,
+  MAX_APPEARANCE_OPTIONS,
 } = require('../../../packages/shared/dist');
 
 const root = path.resolve(__dirname, '../../..');
@@ -47,6 +48,14 @@ assert.deepEqual(heightAttributeAdjustment(1), { str: -2, luk: 2 });
 assert.deepEqual(heightAttributeAdjustment(2), { str: -1, luk: 1 });
 assert.deepEqual(heightAttributeAdjustment(3), { str: 1, luk: -1 });
 assert.deepEqual(heightAttributeAdjustment(4), { str: 2, luk: -2 });
+
+assert.equal(MAX_APPEARANCE_OPTIONS, 8);
+assert.deepEqual([...APPEARANCE_TRAITS], ['hair', 'hairColor', 'skin', 'face', 'nose', 'mouth', 'chest', 'facialHair', 'piercing', 'tattoo']);
+for (const sex of ['male', 'female']) {
+  assert.equal(catalog[sex].mouth.length, 8, `${sex} has eight mouths`);
+  assert.equal(catalog[sex].face.length, 5, `${sex} has five face shapes`);
+  for (const option of catalog[sex].face) for (const key of ['jaw', 'chin', 'chinWidth', 'cheeks']) assert.equal(typeof option.params?.[key], 'number', `${sex}.face.${option.id}.${key}`);
+}
 
 // --- Default appearance -----------------------------------------------------
 const def = defaultAppearance();
@@ -117,10 +126,10 @@ assert.deepEqual(resolveHandAttachments('right', null, null), { right: null, lef
 assert.equal(catalog.version, 1);
 assert.deepEqual([...SHARED_APPEARANCE_TRAITS].sort(), ['piercing', 'tattoo']);
 for (const sex of ['male', 'female']) {
-  assert.deepEqual(Object.keys(catalog[sex]).sort(), [...APPEARANCE_TRAITS].sort(), `${sex} declares exactly the nine traits`);
+  assert.deepEqual(Object.keys(catalog[sex]).sort(), [...APPEARANCE_TRAITS].sort(), `${sex} declares exactly the ten traits`);
   for (const trait of APPEARANCE_TRAITS) {
     const options = catalog[sex][trait];
-    assert.ok(Array.isArray(options) && options.length >= 1 && options.length <= 5, `${sex}.${trait} has 1–5 options`);
+    assert.ok(Array.isArray(options) && options.length >= 1 && options.length <= MAX_APPEARANCE_OPTIONS, `${sex}.${trait} has 1–${MAX_APPEARANCE_OPTIONS} options`);
     const ids = options.map((o) => o.id);
     assert.equal(new Set(ids).size, ids.length, `${sex}.${trait} ids are unique`);
     for (const option of options) {
@@ -153,7 +162,7 @@ assert.ok(brokenCatalog((c) => { delete c.female; }).length > 0, 'missing sex');
 assert.ok(brokenCatalog((c) => { delete c.male.nose; }).length > 0, 'missing trait');
 assert.ok(brokenCatalog((c) => { c.male.wings = []; }).length > 0, 'unknown trait');
 assert.ok(brokenCatalog((c) => { c.male.hair = []; }).length > 0, 'empty list');
-assert.ok(brokenCatalog((c) => { c.male.skin.push({ ...c.male.skin[0], id: 'sixth' }); }).length > 0, 'more than five options');
+assert.ok(brokenCatalog((c) => { for (let i = c.male.mouth.length; i <= MAX_APPEARANCE_OPTIONS; i++) c.male.mouth.push({ ...c.male.mouth[0], id: `extra${i}` }); }).length > 0, 'more than eight options');
 assert.ok(brokenCatalog((c) => { c.male.skin[1].id = c.male.skin[0].id; }).length > 0, 'duplicate id');
 assert.ok(brokenCatalog((c) => { delete c.female.mouth[0].name.locales.pt; }).length > 0, 'missing pt name');
 assert.ok(brokenCatalog((c) => { c.male.skin[0].color = 'red'; }).length > 0, 'invalid colour');

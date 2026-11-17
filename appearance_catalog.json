@@ -146,6 +146,83 @@
         "color": "#553220"
       }
     ],
+    "face": [
+      {
+        "id": "oval",
+        "name": {
+          "locales": {
+            "en": "Oval",
+            "pt": "Oval"
+          }
+        },
+        "params": {
+          "jaw": 0,
+          "chin": 0,
+          "chinWidth": 0,
+          "cheeks": 0
+        }
+      },
+      {
+        "id": "square",
+        "name": {
+          "locales": {
+            "en": "Square",
+            "pt": "Quadrado"
+          }
+        },
+        "params": {
+          "jaw": 1,
+          "chin": 0,
+          "chinWidth": 0.6,
+          "cheeks": -0.3
+        }
+      },
+      {
+        "id": "round",
+        "name": {
+          "locales": {
+            "en": "Round",
+            "pt": "Redondo"
+          }
+        },
+        "params": {
+          "jaw": 0.3,
+          "chin": -0.6,
+          "chinWidth": 0.3,
+          "cheeks": 1
+        }
+      },
+      {
+        "id": "long",
+        "name": {
+          "locales": {
+            "en": "Long",
+            "pt": "Alongado"
+          }
+        },
+        "params": {
+          "jaw": -0.6,
+          "chin": 1,
+          "chinWidth": -0.4,
+          "cheeks": -0.6
+        }
+      },
+      {
+        "id": "strong_chin",
+        "name": {
+          "locales": {
+            "en": "Strong chin",
+            "pt": "Queixo forte"
+          }
+        },
+        "params": {
+          "jaw": 0.5,
+          "chin": 0.6,
+          "chinWidth": 1,
+          "cheeks": 0
+        }
+      }
+    ],
     "nose": [
       {
         "id": "straight",
@@ -267,6 +344,36 @@
           }
         },
         "asset": "face/mouth_m_smirk.png"
+      },
+      {
+        "id": "full",
+        "name": {
+          "locales": {
+            "en": "Full",
+            "pt": "Carnuda"
+          }
+        },
+        "asset": "face/mouth_m_full.png"
+      },
+      {
+        "id": "downturned",
+        "name": {
+          "locales": {
+            "en": "Downturned",
+            "pt": "Caída"
+          }
+        },
+        "asset": "face/mouth_m_downturned.png"
+      },
+      {
+        "id": "scarred",
+        "name": {
+          "locales": {
+            "en": "Scarred",
+            "pt": "Com cicatriz"
+          }
+        },
+        "asset": "face/mouth_m_scarred.png"
       }
     ],
     "chest": [
@@ -628,6 +735,83 @@
         "color": "#553220"
       }
     ],
+    "face": [
+      {
+        "id": "oval",
+        "name": {
+          "locales": {
+            "en": "Oval",
+            "pt": "Oval"
+          }
+        },
+        "params": {
+          "jaw": 0,
+          "chin": 0,
+          "chinWidth": 0,
+          "cheeks": 0
+        }
+      },
+      {
+        "id": "heart",
+        "name": {
+          "locales": {
+            "en": "Heart",
+            "pt": "Coração"
+          }
+        },
+        "params": {
+          "jaw": -0.8,
+          "chin": 0.4,
+          "chinWidth": -0.8,
+          "cheeks": 0.6
+        }
+      },
+      {
+        "id": "round",
+        "name": {
+          "locales": {
+            "en": "Round",
+            "pt": "Redondo"
+          }
+        },
+        "params": {
+          "jaw": 0.2,
+          "chin": -0.6,
+          "chinWidth": 0.2,
+          "cheeks": 1
+        }
+      },
+      {
+        "id": "square",
+        "name": {
+          "locales": {
+            "en": "Square",
+            "pt": "Quadrado"
+          }
+        },
+        "params": {
+          "jaw": 0.9,
+          "chin": 0,
+          "chinWidth": 0.5,
+          "cheeks": -0.2
+        }
+      },
+      {
+        "id": "long",
+        "name": {
+          "locales": {
+            "en": "Long",
+            "pt": "Alongado"
+          }
+        },
+        "params": {
+          "jaw": -0.5,
+          "chin": 1,
+          "chinWidth": -0.3,
+          "cheeks": -0.6
+        }
+      }
+    ],
     "nose": [
       {
         "id": "straight",
@@ -749,6 +933,36 @@
           }
         },
         "asset": "face/mouth_f_smile.png"
+      },
+      {
+        "id": "heart",
+        "name": {
+          "locales": {
+            "en": "Heart",
+            "pt": "Coração"
+          }
+        },
+        "asset": "face/mouth_f_heart.png"
+      },
+      {
+        "id": "wide",
+        "name": {
+          "locales": {
+            "en": "Wide",
+            "pt": "Larga"
+          }
+        },
+        "asset": "face/mouth_f_wide.png"
+      },
+      {
+        "id": "pout",
+        "name": {
+          "locales": {
+            "en": "Pout",
+            "pt": "Biquinho"
+          }
+        },
+        "asset": "face/mouth_f_pout.png"
       }
     ],
     "chest": [

@@ -17,8 +17,7 @@ export const NATIVE_HEIGHT_CM: Record<Sex, number> = { male: 181, female: 177 };
 const SKIN_TEXTURE_SIZE = 1024;
 const CLIP_NAMES = ['Idle', 'Walk', 'Attack', 'Damage', 'Dead'];
 const HAND_BONES = { right: 'hand_r', left: 'hand_l' } as const;
-const FINGER_BONES = { right: 'middle_01_r', left: 'middle_01_l' } as const;
-const THUMB_BONES = { right: 'thumb_01_r', left: 'thumb_01_l' } as const;
+const FINGERS = ['index', 'middle', 'ring', 'pinky'] as const;
 
 interface BodyAsset {
   sex: Sex;
@@ -37,12 +36,29 @@ interface BodyAsset {
   skinTexture: THREE.CanvasTexture;
   noseTip: THREE.Vector3;
   chestCenters: THREE.Vector3[];
+  /** Face landmarks for the face-shape trait. */
+  jaw: THREE.Vector3[];
+  chin: THREE.Vector3;
+  cheeks: THREE.Vector3[];
   earLobes: THREE.Vector3[];
   mixer: THREE.AnimationMixer;
   clips: THREE.AnimationClip[];
   idle: THREE.AnimationAction;
+  /** Closed-fist frame of each hand in the Idle pose, in hand-bone space. */
+  fists: Record<'right' | 'left', Fist>;
   deformKey: string;
   skinKey: string;
+}
+
+interface Fist {
+  /** Centre of the hole formed by the curled fingers. */
+  centre: THREE.Vector3;
+  /** Along the hole, towards the index/thumb side. */
+  lateral: THREE.Vector3;
+  /** From the wrist towards the knuckles. */
+  along: THREE.Vector3;
+  /** Towards the palm (where the fingers curl). */
+  palm: THREE.Vector3;
 }
 
 const smooth = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
@@ -162,7 +178,7 @@ export class CharacterRig implements CharacterRigHandle {
       body.idle.reset().play();
     }
 
-    this.deform(body, pick('nose'), pick('chest'), config.sex === 'female' ? facial : null);
+    this.deform(body, pick('face'), pick('nose'), pick('chest'), config.sex === 'female' ? facial : null);
     this.composeSkin(body, pick('skin'), pick('hairColor'), pick('mouth'), facial, pick('tattoo'), skinImages);
     const hairColor = new THREE.Color().setStyle(pick('hairColor').color ?? '#3a2a20').multiplyScalar(1.6);
     (body.brows.material as THREE.MeshStandardMaterial).color.copy(hairColor).multiplyScalar(0.8);
@@ -288,6 +304,22 @@ export class CharacterRig implements CharacterRigHandle {
         if (z > chest[side].z) chest[side].set(x, y, z);
       }
     }
+    const jaw = [new THREE.Vector3(-Infinity, 0, 0), new THREE.Vector3(Infinity, 0, 0)];
+    const chin = new THREE.Vector3(0, 0, -Infinity);
+    const cheeks = [new THREE.Vector3(0, 0, -Infinity), new THREE.Vector3(0, 0, -Infinity)];
+    for (let i = 0; i < position.count; i++) {
+      const x = originalBody[i * 3], y = originalBody[i * 3 + 1], z = originalBody[i * 3 + 2];
+      const dy = y - noseTip.y, dz = z - noseTip.z;
+      if (dy > -0.075 && dy < -0.045 && dz > -0.12 && dz < -0.06) {
+        if (x > jaw[0].x) jaw[0].set(x, y, z);
+        if (x < jaw[1].x) jaw[1].set(x, y, z);
+      }
+      if (Math.abs(x) < 0.01 && dy > -0.075 && dy < -0.055 && z > chin.z) chin.set(x, y, z);
+      if (Math.abs(Math.abs(x) - 0.045) < 0.008 && Math.abs(dy + 0.008) < 0.01 && normal.getZ(i) > 0.3) {
+        const side = x > 0 ? 0 : 1;
+        if (z > cheeks[side].z) cheeks[side].set(x, y, z);
+      }
+    }
     for (let i = 0; i < position.count; i++) {
       const x = originalBody[i * 3], y = originalBody[i * 3 + 1], z = originalBody[i * 3 + 2];
       if (y > noseTip.y && y < noseTip.y + 0.03 && Math.abs(z) < 0.06) {
@@ -324,18 +356,26 @@ export class CharacterRig implements CharacterRigHandle {
     });
     const idle = mixer.clipAction(clips.find((clip) => clip.name === 'Idle')!);
 
+    // Measure the closed fist in the Idle pose (in the bind pose the fingers are straight).
+    idle.play();
+    mixer.update(0);
+    root.updateMatrixWorld(true);
+    const fists = { right: measureFist(bones, 'r'), left: measureFist(bones, 'l') };
+    idle.stop();
+    mixer.update(0);
+
     return {
       sex, root, body: bodyMesh, brows: browsMesh, bones, bind, originalBody, originalBrows, surface,
       baseSkin, skinReference: averageSkinColor(baseSkin.data), skinCanvas, skinTexture,
-      noseTip, chestCenters: chest, earLobes: ears, mixer, clips, idle, deformKey: '', skinKey: '',
+      noseTip, chestCenters: chest, jaw, chin, cheeks, earLobes: ears, mixer, clips, idle, fists, deformKey: '', skinKey: '',
     };
   }
 
   // ---- Appearance ------------------------------------------------------------
 
   /** Nose, chest and (female) brow shape: vertex displacement from the original bind-pose positions. */
-  private deform(body: BodyAsset, nose: AppearanceOption, chest: AppearanceOption, brows: AppearanceOption | null): void {
-    const key = [nose.id, chest.id, brows?.id ?? ''].join('|');
+  private deform(body: BodyAsset, face: AppearanceOption, nose: AppearanceOption, chest: AppearanceOption, brows: AppearanceOption | null): void {
+    const key = [face.id, nose.id, chest.id, brows?.id ?? ''].join('|');
     if (body.deformKey === key) return;
     body.deformKey = key;
 
@@ -351,6 +391,7 @@ export class CharacterRig implements CharacterRigHandle {
     const chestSize = param(chest, 'size');
     const chestRadius = body.sex === 'female' ? 0.078 : 0.09;
     const chestAmount = chestSize * (body.sex === 'female' ? 0.024 : 0.014);
+    const jawWidth = param(face, 'jaw'), chinLength = param(face, 'chin'), chinWidth = param(face, 'chinWidth'), cheekFull = param(face, 'cheeks');
 
     for (let i = 0; i < position.count; i++) {
       const x = src[i * 3], y = src[i * 3 + 1], z = src[i * 3 + 2];
@@ -361,6 +402,33 @@ export class CharacterRig implements CharacterRigHandle {
         out[i * 3] = x * (1 + 0.38 * width * f);
         out[i * 3 + 1] = y - 0.004 * length * f * front;
         out[i * 3 + 2] = z + 0.008 * length * f * front + 0.006 * bridge * f * Math.max(0, Math.min(1, (y - tip.y) / 0.02));
+      }
+      // Face shape: wider/narrower jaw angles, longer/shorter and wider/narrower chin, fuller cheeks.
+      if (jawWidth !== 0) {
+        for (const corner of body.jaw) {
+          const d = Math.hypot(x - corner.x, y - corner.y, z - corner.z);
+          if (d < 0.05) out[i * 3] += Math.sign(corner.x) * 0.009 * jawWidth * smooth(1 - d / 0.05);
+        }
+      }
+      if (chinLength !== 0 || chinWidth !== 0) {
+        const c = body.chin;
+        const d = Math.hypot(x - c.x, y - c.y, z - c.z);
+        if (d < 0.038) {
+          const f = smooth(1 - d / 0.038);
+          out[i * 3] += x * 0.3 * chinWidth * f;
+          out[i * 3 + 1] -= 0.008 * chinLength * f;
+          out[i * 3 + 2] += 0.004 * chinLength * f;
+        }
+      }
+      if (cheekFull !== 0) {
+        for (const cheek of body.cheeks) {
+          const d = Math.hypot(x - cheek.x, y - cheek.y, z - cheek.z);
+          if (d >= 0.032) continue;
+          const f = smooth(1 - d / 0.032) * 0.005 * cheekFull;
+          out[i * 3] += normal.getX(i) * f;
+          out[i * 3 + 1] += normal.getY(i) * f;
+          out[i * 3 + 2] += normal.getZ(i) * f;
+        }
       }
       if (chestAmount !== 0 && normal.getZ(i) > 0) {
         for (const center of body.chestCenters) {
@@ -514,7 +582,7 @@ export class CharacterRig implements CharacterRigHandle {
     const ring = (radius: number, target: THREE.Vector3, axis: 'x' | 'normal' = 'x') => {
       const { at, normal } = onSkin(target, radius * 0.6);
       const mesh = new THREE.Mesh(new THREE.TorusGeometry(radius, radius * 0.24, 6, 16), metal);
-      mesh.position.copy(at).addScaledVector(new THREE.Vector3(0, -1, 0), radius * 0.7);
+      mesh.position.copy(at);
       // Hang the ring in the plane that contains "down" and the skin normal (it passes through the skin).
       const facing = axis === 'normal' ? normal : new THREE.Vector3(1, 0, 0);
       mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), facing.clone().cross(new THREE.Vector3(0, -1, 0)).normalize());
@@ -526,8 +594,8 @@ export class CharacterRig implements CharacterRigHandle {
       mesh.position.copy(onSkin(target, radius * 0.5).at);
       group.add(mesh);
     };
-    if (piercing.id === 'nose_ring') ring(0.0055, new THREE.Vector3(tip.x + 0.011, tip.y - 0.009, tip.z - 0.008), 'normal');
-    if (piercing.id === 'lip_ring') ring(0.006, new THREE.Vector3(0.012, tip.y - 0.041, tip.z - 0.012), 'normal');
+    if (piercing.id === 'nose_ring') ring(0.0055, new THREE.Vector3(tip.x + 0.013, tip.y - 0.004, tip.z - 0.014), 'normal');
+    if (piercing.id === 'lip_ring') ring(0.0058, new THREE.Vector3(0.011, tip.y - 0.037, tip.z - 0.01), 'normal');
     if (piercing.id === 'eyebrow_stud') {
       stud(new THREE.Vector3(0.038, tip.y + 0.058, tip.z - 0.03));
       stud(new THREE.Vector3(0.046, tip.y + 0.05, tip.z - 0.035));
@@ -580,51 +648,42 @@ export class CharacterRig implements CharacterRigHandle {
   }
 
   /**
-   * Where an item sits relative to the hand bone. Built in the body's bind pose
-   * from the hand's own finger and thumb directions, so it works for both rigs
-   * and both hands.
+   * Where an item sits in hand-bone space. The handle goes through the hole of
+   * the closed fist (measured from the Idle pose), so the hand wraps it.
    */
   private gripMatrix(body: BodyAsset, side: 'right' | 'left', type: HandWeaponType): THREE.Matrix4 {
-    const at = (bone: string) => new THREE.Vector3().setFromMatrixPosition(body.bind.get(bone)!);
-    const hand = at(HAND_BONES[side]);
-    const finger = at(FINGER_BONES[side]).sub(hand).normalize();
-    const thumbRaw = at(THUMB_BONES[side]).sub(hand);
-    const thumb = thumbRaw.sub(finger.clone().multiplyScalar(thumbRaw.dot(finger))).normalize();
-    let palm = new THREE.Vector3().crossVectors(finger, thumb).normalize();
-    if (palm.y > 0) palm.negate(); // palms face down in the bind pose
-
+    const { centre, lateral, along, palm } = body.fists[side];
     const basis = (y: THREE.Vector3, zHint: THREE.Vector3) => {
       const yAxis = y.clone().normalize();
       const xAxis = new THREE.Vector3().crossVectors(yAxis, zHint).normalize();
       const zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis);
       return new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
     };
-    const fist = hand.clone().addScaledVector(finger, 0.075).addScaledVector(palm, 0.022);
-    // One-handed blades and wands hang along the leg, point tilted slightly forward.
-    const hanging = finger.clone().multiplyScalar(Math.cos(0.45)).addScaledVector(thumb, Math.sin(0.45));
-    let rotation = basis(hanging, palm.clone().negate());
-    let position = fist;
+    /** Handle axis: out of the thumb side, tipped towards the fingertips (downwards when the arm hangs). */
+    const through = (tilt: number, outwards = 0) => lateral.clone().multiplyScalar(Math.cos(tilt)).addScaledVector(along, Math.sin(tilt)).addScaledVector(palm, -outwards);
+    let matrix: THREE.Matrix4;
     switch (type) {
-      case 'dagger': case 'sword': case 'rod':
-        break;
-      case 'greatsword': case 'staff':
-        rotation = basis(finger.clone().negate(), thumb);
-        position = fist.clone().addScaledVector(thumb, 0.02);
+      case 'greatsword':
+        matrix = basis(through(0.95, 0.35), palm).setPosition(centre);
         break;
       case 'bow':
-        rotation = basis(finger.clone().negate(), thumb.clone().negate());
+        matrix = basis(through(1.25), palm.clone().negate()).setPosition(centre);
+        break;
+      case 'staff':
+        matrix = basis(through(-1.3), palm).setPosition(centre);
         break;
       case 'shield':
-        rotation = basis(finger.clone().negate(), palm.clone().negate());
-        position = hand.clone().addScaledVector(finger, -0.12).addScaledVector(palm, -0.055);
+        // On the back of the forearm, facing outwards.
+        matrix = basis(along.clone().negate(), palm.clone().negate())
+          .setPosition(centre.clone().addScaledVector(along, -0.16).addScaledVector(palm, -0.075));
         break;
       case 'rune':
-        rotation = basis(finger.clone().negate(), thumb);
-        position = fist.clone().addScaledVector(palm, 0.06);
+        matrix = basis(along.clone().negate(), lateral).setPosition(centre.clone().addScaledVector(along, 0.085));
         break;
+      default: // dagger, sword, rod
+        matrix = basis(through(0.5, 0.15), palm).setPosition(centre);
     }
-    const world = rotation.setPosition(position);
-    return body.bind.get(HAND_BONES[side])!.clone().invert().multiply(world);
+    return matrix;
   }
 
   // ---- Rendering ---------------------------------------------------------------
@@ -751,6 +810,21 @@ export class CharacterRig implements CharacterRigHandle {
     this.renderer.forceContextLoss();
     this.renderer.domElement.remove();
   }
+}
+
+/** Closed-fist frame of one hand, from its finger bones in the current pose, in hand-bone space. */
+function measureFist(bones: Map<string, THREE.Bone>, side: 'r' | 'l'): Fist {
+  const hand = bones.get(`hand_${side}`)!;
+  const local = (name: string) => hand.worldToLocal(new THREE.Vector3().setFromMatrixPosition(bones.get(`${name}_${side}`)!.matrixWorld));
+  const average = (names: string[]) => names.map(local).reduce((sum, p) => sum.add(p), new THREE.Vector3()).divideScalar(names.length);
+  const knuckles = average(FINGERS.map((f) => `${f}_01`));
+  const tips = average(FINGERS.map((f) => `${f}_03`));
+  const along = knuckles.clone().normalize();
+  const lateral = local('index_01').sub(local('pinky_01'));
+  lateral.addScaledVector(along, -lateral.dot(along)).normalize();
+  const palm = tips.clone().sub(knuckles);
+  palm.addScaledVector(along, -palm.dot(along)).addScaledVector(lateral, -palm.dot(lateral)).normalize();
+  return { centre: knuckles.clone().add(tips).multiplyScalar(0.5), lateral, along, palm };
 }
 
 /**

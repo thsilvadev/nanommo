@@ -10,8 +10,11 @@ export const HEIGHT_CM_MIN = 145;
 export const HEIGHT_CM_MAX = 205;
 
 export const APPEARANCE_TRAITS = [
-  'hair', 'hairColor', 'skin', 'nose', 'mouth', 'chest', 'facialHair', 'piercing', 'tattoo',
+  'hair', 'hairColor', 'skin', 'face', 'nose', 'mouth', 'chest', 'facialHair', 'piercing', 'tattoo',
 ] as const;
+
+/** Most options any single trait may list. */
+export const MAX_APPEARANCE_OPTIONS = 8;
 export type AppearanceTrait = typeof APPEARANCE_TRAITS[number];
 
 /** Traits whose option list is identical for both sexes. */
@@ -162,8 +165,8 @@ export function validateAppearanceCatalog(catalog: unknown): string[] {
     }
     for (const trait of APPEARANCE_TRAITS) {
       const options = traits[trait];
-      if (!Array.isArray(options) || options.length < 1 || options.length > 5) {
-        errors.push(`${sex}.${trait} must list 1 to 5 options`);
+      if (!Array.isArray(options) || options.length < 1 || options.length > MAX_APPEARANCE_OPTIONS) {
+        errors.push(`${sex}.${trait} must list 1 to ${MAX_APPEARANCE_OPTIONS} options`);
         continue;
       }
       const ids = new Set<string>();

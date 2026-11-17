@@ -34,14 +34,15 @@ function mulberry32(seed) {
 const svg = (w, h, body, defs = '') => `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${defs}</defs>${body}</svg>`;
 
 /** Lips: upper and lower shapes in a 256×128 box centred on the mouth line (y = 64). */
-function lips({ width, upper, lower, corner = 0, tilt = 0, color, line, gloss = false }) {
+function lips({ width, upper, lower, corner = 0, tilt = 0, color, line, gloss = false, cupid = 1, scar = false }) {
   const l = 128 - width / 2, r = 128 + width / 2;
   const cl = 64 + corner + tilt, cr = 64 + corner - tilt;
-  const top = `M ${l} ${cl} C ${l + width * 0.2} ${64 - upper * 0.6}, ${128 - width * 0.12} ${64 - upper * 1.15}, 128 ${64 - upper * 0.75} C ${128 + width * 0.12} ${64 - upper * 1.15}, ${r - width * 0.2} ${64 - upper * 0.6}, ${r} ${cr} C ${r - width * 0.25} ${66}, ${l + width * 0.25} ${66}, ${l} ${cl} Z`;
+  const top = `M ${l} ${cl} C ${l + width * 0.2} ${64 - upper * 0.6}, ${128 - width * 0.12} ${64 - upper * 1.15}, 128 ${64 - upper * (1.15 - 0.4 * cupid)} C ${128 + width * 0.12} ${64 - upper * 1.15}, ${r - width * 0.2} ${64 - upper * 0.6}, ${r} ${cr} C ${r - width * 0.25} ${66}, ${l + width * 0.25} ${66}, ${l} ${cl} Z`;
   const bottom = `M ${l} ${cl} C ${l + width * 0.25} ${66}, ${r - width * 0.25} ${66}, ${r} ${cr} C ${r - width * 0.15} ${64 + lower * 1.1}, ${l + width * 0.15} ${64 + lower * 1.1}, ${l} ${cl} Z`;
   const seam = `M ${l + 2} ${cl} C ${l + width * 0.25} ${66}, ${r - width * 0.25} ${66}, ${r - 2} ${cr}`;
   const shine = gloss ? `<ellipse cx="128" cy="${64 + lower * 0.55}" rx="${width * 0.14}" ry="${Math.max(2, lower * 0.18)}" fill="#ffffff" opacity="0.28"/>` : '';
-  return svg(256, 128, `<g filter="url(#soft)"><path d="${top}" fill="${color}"/><path d="${bottom}" fill="${color}"/>${shine}<path d="${seam}" stroke="${line}" stroke-width="3" fill="none" stroke-linecap="round"/></g>`,
+  const scarLine = scar ? `<path d="M 150 ${64 - upper * 1.9} L 140 ${64 + lower * 1.6}" stroke="#e8c3b0" stroke-width="5" stroke-linecap="round" opacity="0.85"/>` : '';
+  return svg(256, 128, `<g filter="url(#soft)"><path d="${top}" fill="${color}"/><path d="${bottom}" fill="${color}"/>${shine}<path d="${seam}" stroke="${line}" stroke-width="3" fill="none" stroke-linecap="round"/>${scarLine}</g>`,
     '<filter id="soft"><feGaussianBlur stdDeviation="1.1"/></filter>');
 }
 
@@ -113,10 +114,16 @@ const FILES = {
   'face/mouth_m_wide.png': lips({ width: 205, upper: 19, lower: 23, color: '#a96259', line: '#5b2b27' }),
   'face/mouth_m_stern.png': lips({ width: 170, upper: 13, lower: 16, corner: 7, color: '#9a5852', line: '#4f2522' }),
   'face/mouth_m_smirk.png': lips({ width: 170, upper: 17, lower: 20, tilt: 6, color: '#a95f57', line: '#5b2b27' }),
+  'face/mouth_m_full.png': lips({ width: 178, upper: 21, lower: 27, color: '#ac645b', line: '#5b2b27' }),
+  'face/mouth_m_downturned.png': lips({ width: 165, upper: 14, lower: 17, corner: 12, color: '#a05c55', line: '#542724' }),
+  'face/mouth_m_scarred.png': lips({ width: 170, upper: 15, lower: 18, color: '#a65f57', line: '#5b2b27', scar: true }),
   'face/mouth_f_full.png': lips({ width: 175, upper: 24, lower: 30, color: '#c46a6c', line: '#6e2c33', gloss: true }),
   'face/mouth_f_thin.png': lips({ width: 160, upper: 12, lower: 15, color: '#b8676a', line: '#6a2d32' }),
   'face/mouth_f_dark.png': lips({ width: 170, upper: 20, lower: 25, color: '#6b2539', line: '#2c0c16', gloss: true }),
   'face/mouth_f_smile.png': lips({ width: 178, upper: 18, lower: 22, corner: -7, color: '#c06b6b', line: '#6e2c33', gloss: true }),
+  'face/mouth_f_heart.png': lips({ width: 150, upper: 24, lower: 22, cupid: 2.2, color: '#c9636d', line: '#6e2c33', gloss: true }),
+  'face/mouth_f_wide.png': lips({ width: 205, upper: 18, lower: 23, color: '#bd6a68', line: '#6a2d32', gloss: true }),
+  'face/mouth_f_pout.png': lips({ width: 140, upper: 20, lower: 32, color: '#cf7277', line: '#702e36', gloss: true }),
   'face/facial_m_stubble.png': stubble(),
   'face/facial_m_mustache.png': mustache,
   'face/facial_m_goatee.png': goatee,
