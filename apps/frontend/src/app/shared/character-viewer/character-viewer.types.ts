@@ -6,7 +6,7 @@ import type { AppearanceCatalog, CharacterAppearance, HandWeaponType, Sex } from
  * three.js with it) is loaded on demand.
  */
 
-/** full: whole body in a fixed 2.24 m frame (creator); portrait: thighs up (small panels); bust: head and shoulders. */
+/** full: whole body in a fixed 2.24 m frame (creator); portrait: whole body facing the screen (Character Summary); bust: head and shoulders. */
 export type ViewerFraming = 'full' | 'portrait' | 'bust';
 
 export interface ViewerConfig {
