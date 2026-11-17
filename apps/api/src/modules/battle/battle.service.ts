@@ -1866,11 +1866,9 @@ export class BattleService {
     // Auto Feed is evaluated at every authoritative battle-resolution boundary.
     // An already-active food buff does not suppress feeding: any Diet entry whose
     // digestion has reached 0 and whose food is available may be consumed now.
-    // boundaryAt remains part of the caller's Grind-continuity calculation, but
-    // eligibility is defined by the current Diet digestion state.
-    void boundaryAt;
-
-    const now = Date.now();
+    // Offline recovery must evaluate both eligibility and the new Diet window
+    // at the same historical boundary; zero retains legacy wall-clock behavior.
+    const now = boundaryAt > 0 ? boundaryAt : Date.now();
     const consumedItems: string[] = [];
 
     // Fill every currently eligible Diet slot in the same authoritative boundary.
@@ -1898,7 +1896,7 @@ export class BattleService {
 
         let updated: Character;
         try {
-          updated = await this.inventoryService.consumeFood(character.id, itemId, manager, true, false);
+          updated = await this.inventoryService.consumeFood(character.id, itemId, manager, true, false, now);
         } catch (error) {
           // A concurrent inventory/digestion change is a normal lost
           // eligibility race, not a battle-resolution failure. Try another food.

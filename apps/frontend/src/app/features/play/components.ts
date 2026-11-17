@@ -323,10 +323,11 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   private rebuildDiscovery(ids?:string[]){const c=this.character.character();this.discovered=new Set(Array.isArray(ids??c?.discoveredMapIds)?(ids??c?.discoveredMapIds??[]):[TOWN_MAP_ID]);if(!this.discovered.size)this.discovered.add(TOWN_MAP_ID);if(c?.currentMapId)this.discovered.add(c.currentMapId);if(c?.currentMapId===TOWN_MAP_ID&&[...this.discovered].every(id=>id===TOWN_MAP_ID||id==='map_green_grounds_4'))this.discovered.delete('map_green_grounds_4');}
   trackMap(_i:number,m:any){return m.id} trackCell(_i:number,c:any){return `${c.x},${c.y}`}
   gridColumn(map:any){return Number(map?.coordinates?.x??0)+7} gridRow(map:any){return 6-Number(map?.coordinates?.y??0)}
-  private activeBattleAt(now=this.activityNow()){const b=this.battle.active();return !!b&&now>=Date.parse(String(b.startAt))&&now<Date.parse(String(b.endAt));}
+  private activeBattleAt(now=this.activityNow()){const shared=this.party?.battle?.();if(shared?.state==='started'&&now>=Date.parse(String(shared.startAt))&&now<Date.parse(String(shared.endAt)))return true;const b=this.battle.active();return !!b&&now>=Date.parse(String(b.startAt))&&now<Date.parse(String(b.endAt));}
   private nonBattleElapsedSeconds(fromMs:number,toMs:number){
     if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs<=fromMs)return 0;
     const intervals:Array<{start:number;end:number}>=[
+      ...((()=>{const shared=this.party?.battle?.();return shared?.state==='started'?[{start:Date.parse(String(shared.startAt)),end:Date.parse(String(shared.endAt))}]:[];})()),
       ...this.battle.queue().map((entry:any)=>({
         start:Date.parse(String(entry.startAt??'')),
         end:Date.parse(String(entry.cancellationReason==='flee'&&entry.cancelledAt?entry.cancelledAt:entry.endAt??'')),
@@ -351,6 +352,8 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   activityProgress(){
     const c:any=this.character.character();const now=this.activityNow();if(!c)return 0;
     const activeBattle=this.activeBattleAt(now);let progress=0;let duration=300;
+    const route=this.party?.party?.()?.routeActivity;
+    if(c.travelIntent&&route?.kind==='route'&&c.travelIntent.partyId){const total=Number(c.travelIntent.lastDurationSeconds)*1000;const remaining=route.paused?Number(route.remainingMs):Math.max(0,Number(route.segmentDueAt)-now);return Number.isFinite(total)&&total>0?Math.round(Math.max(0,Math.min(1,1-remaining/total))*1000)/10:0;}
     if(c.travelIntent){const intent=c.travelIntent;progress=Math.max(0,Math.min(1,Number(intent.segmentProgress??0)));duration=Number(intent.lastDurationSeconds??30);const last=Date.parse(String(intent.lastAccruedAt??now));if(!activeBattle&&!intent.waitingForBattle&&intent.speedPaused!==true&&Number.isFinite(duration)&&duration>0&&Number.isFinite(last))progress=Math.min(1,progress+Math.max(0,now-last)/1000/duration);}
     else{const map=this.currentMap();const cycle=c.gatheringCycle??{};const population=Math.max(1,this.playersInMap());duration=Math.max(30,12*Number(map?.mapLength??25)+30*(population-1)-(Math.max(1,Number(c.gatheringLevel??1))-1))+Math.max(0,Number(cycle.varianceSeconds??0));progress=Math.max(0,Math.min(1,Number(cycle.progress??0)));const last=Date.parse(String(cycle.lastUpdatedAt??now));if(Number.isFinite(last)&&duration>0)progress=Math.min(1,progress+this.nonBattleElapsedSeconds(last,now)/duration);}
     return Math.round(progress*1000)/10;

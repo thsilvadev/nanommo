@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Inject, forwardRef, BadRequestException, Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
 import { randomUUID, createHash } from 'crypto';
@@ -15,7 +15,7 @@ import type { PartyContext } from './party.service';
 
 @Injectable()
 export class SharedBattleService {
-  constructor(@InjectDataSource() private readonly db:DataSource, private readonly battle:BattleService,private readonly data:DataService,private readonly inventory:InventoryService,private readonly quests:QuestService, private readonly gambits:GambitService){}
+  constructor(@InjectDataSource() private readonly db:DataSource, @Inject(forwardRef(() => BattleService)) private readonly battle:BattleService,private readonly data:DataService,private readonly inventory:InventoryService,private readonly quests:QuestService, private readonly gambits:GambitService){}
   private async event(manager:EntityManager,id:string,event:string,payload:any){await manager.query('INSERT INTO party_outbox(id,"characterId",event,payload) VALUES($1,$2,$3,$4)',[randomUUID(),id,event,JSON.stringify(payload)]);}
   private async inventoryMap(manager:EntityManager,id:string){const result:Record<string,number>={};for(const row of await manager.getRepository(InventoryItem).findBy({characterId:id,location:'inventory'}))result[row.itemId]=(result[row.itemId]??0)+Number(row.quantity);return result;}
   async start(ctx:PartyContext,clock:any){
@@ -73,8 +73,8 @@ export class SharedBattleService {
     await ctx.manager.query(`UPDATE encounter_clocks SET status='consumed',roster=$2 WHERE "ownerKind"='party' AND "ownerId"=$1`,[p.id,JSON.stringify(roster)]);
     return true;
   }
-  private async advanceCounters(ctx:PartyContext,roster:any[]){
-    for(const entry of roster){const repo=ctx.manager.getRepository(MapKillCounter);const counter=await repo.findOneBy({characterId:entry.characterId,mapId:ctx.party!.mapId});if(!counter)continue;counter.mapKillCount=Number(counter.mapKillCount)+1;counter.perMonsterKillCount={...(counter.perMonsterKillCount??{}),[entry.monsterId]:Number(counter.perMonsterKillCount?.[entry.monsterId]??0)+1};if(counter.mapKillCount>=10000){counter.mapKillCount=0;counter.epoch++;}await repo.save(counter);}
+  private async advanceCounters(ctx:PartyContext,roster:any[],mapId:string=ctx.party!.mapId){
+    for(const entry of roster){const repo=ctx.manager.getRepository(MapKillCounter);const counter=await repo.findOneBy({characterId:entry.characterId,mapId});if(!counter)continue;counter.mapKillCount=Number(counter.mapKillCount)+1;counter.perMonsterKillCount={...(counter.perMonsterKillCount??{}),[entry.monsterId]:Number(counter.perMonsterKillCount?.[entry.monsterId]??0)+1};if(counter.mapKillCount>=10000){counter.mapKillCount=0;counter.epoch++;}await repo.save(counter);}
   }
   async resolve(ctx:PartyContext,row:any,remove:(id:string,reason:string)=>Promise<void>,fled=false,checkpoint?:any){
     // Caller already locked every participant before claiming this shared result.
@@ -113,7 +113,16 @@ export class SharedBattleService {
         const mastery=Shared.calculateGroupMasteryXpAwards(input,result,getMasteryXpPolicy())[c.id]??{};
         for(const [category,xp]of Object.entries(mastery)){const repo=ctx.manager.getRepository(WeaponProficiency);let prof=await repo.findOneBy({characterId:c.id,weaponType:category});if(!prof)prof=repo.create({characterId:c.id,weaponType:category,xp:0,level:0,spentSkillPoints:0,skillRanks:{}});prof.xp=Number(prof.xp)+xp;prof.level=masteryLevelForXp(prof.xp);await repo.save(prof);}
       }
-      for(const drop of awards[c.id].drops){if(await this.inventory.canFitInventoryDrop(c.id,drop.itemId,1,ctx.manager)){await this.inventory.addItem(c.id,drop.itemId,1,'inventory',drop.instanceData,ctx.manager);c.knownItemIds=[...new Set([...(c.knownItemIds??[]),drop.itemId])];}}
+      const grantedDrops:any[]=[];
+      for(const drop of awards[c.id].drops){
+        if(await this.inventory.canFitInventoryDrop(c.id,drop.itemId,1,ctx.manager)){
+          await this.inventory.addItem(c.id,drop.itemId,1,'inventory',drop.instanceData,ctx.manager);
+          c.knownItemIds=[...new Set([...(c.knownItemIds??[]),drop.itemId])];
+          grantedDrops.push(drop);
+        }
+      }
+      // Results and outbox reflect grants, not rolls discarded for capacity.
+      awards[c.id].drops=grantedDrops;
       if(win&&alive.includes(c.id))for(const monster of input.actors.filter(a=>a.kind==='monster'))await this.quests.recordBattleVictory(ctx.manager,c,{id:`${locked.id}:${monster.id}`,monsterId:monster.definitionId,mapId:locked.mapId,endAt:new Date(at)},true);
       if(c.hpCurrent<=0){c.hpCurrent=1;c.spCurrent=0;c.currentMapId=c.savedTownMapId??TOWN_MAP_ID;c.status='town';c.travelIntent=null;c.lastDeathLog={version:2,battleId:locked.id,log:locked.log};await remove(c.id,'death');}
       await ctx.manager.getRepository(Character).save(c);
@@ -122,7 +131,7 @@ export class SharedBattleService {
       await this.event(ctx.manager,c.id,'party:updated',{refresh:true});
       await this.event(ctx.manager,c.id,'battle:resolved',{hydrate:true,entryId:locked.id,startAt:locked.startAt,endAt:fled?new Date(ctx.now):locked.endAt,tickDurationMs:500,outcome:win?'win':'loss',xpGain:awards[c.id].xp,goldGain:0,drops:awards[c.id].drops,cancelled:fled,cancellationReason:fled?'flee':undefined});
     }
-    if(ctx.party)await this.advanceCounters(ctx,locked.result?.roster??[]);
+    await this.advanceCounters(ctx,locked.result?.roster??[],locked.mapId);
     await ctx.manager.query('DELETE FROM active_battle_participants WHERE "battleId"=$1',[locked.id]);
     await ctx.manager.query('UPDATE shared_battles SET state=$2,revision=revision+1,result=$3 WHERE id=$1',[locked.id,fled?'fled':'resolved',JSON.stringify({awards,checkpoint:fled?checkpoint:null,roster:locked.result?.roster??[]})]);
     return true;
@@ -137,6 +146,7 @@ export class SharedBattleService {
   }
   async flee(ctx:PartyContext,leaderId:string,remove:(id:string,reason:string)=>Promise<void>){
     const row=(await ctx.manager.query(`SELECT b.* FROM shared_battles b JOIN active_battle_participants a ON a."battleId"=b.id WHERE a."characterId"=$1 FOR UPDATE OF b`,[leaderId]))[0];if(!row)throw new BadRequestException('No active shared battle');
+    if(new Date(row.endAt).getTime()<=ctx.now)throw new BadRequestException('Battle has already ended');
     const tick=Math.max(0,Math.min(row.log.durationTicks,Math.floor((ctx.now-new Date(row.startAt).getTime())/500)));
     const state=Shared.replayBattleV2(row.snapshot,tick);
     if(state.actorsAfter[leaderId].hp<=0)throw new BadRequestException('KO leader cannot flee');
@@ -168,7 +178,7 @@ export class SharedBattleService {
     const active=await ctx.manager.query('SELECT 1 FROM active_battle_participants WHERE "characterId"=ANY($1::uuid[]) LIMIT 1',[ids]);if(active.length)return;
     const legacy=await ctx.manager.query(`SELECT 1 FROM battle_queue_entries WHERE "characterId"=ANY($1::uuid[]) AND NOT resolved AND "startAt"<=to_timestamp($2/1000.0) LIMIT 1`,[ids,ctx.now]);if(legacy.length)return;
     const due=await ctx.manager.query(`SELECT 1 FROM encounter_clocks WHERE status='searching' AND "dueAt"<=to_timestamp($2/1000.0) AND (("ownerKind"='party' AND "ownerId"=$3) OR ("ownerKind"='character' AND "ownerId"=ANY($1::uuid[]))) LIMIT 1`,[ids,ctx.now,ctx.party?.id??null]);if(due.length)return;
-    const pending=await ctx.manager.query(`SELECT * FROM character_action_intents WHERE "characterId"=ANY($1::uuid[]) AND status='pending' ORDER BY "characterId",sequence FOR UPDATE`,[ids]);
+    const pending=await ctx.manager.query(`SELECT * FROM character_action_intents WHERE "characterId"=ANY($1::uuid[]) AND status='pending' AND "createdAt" <= to_timestamp($2/1000.0) ORDER BY "characterId",sequence FOR UPDATE`,[ids,ctx.now]);
     for(const intent of pending){
       // Savepoint contains both command mutation and its status; a rejected command cannot poison the next.
       await ctx.manager.query('SAVEPOINT action_execution');
@@ -192,7 +202,24 @@ export class SharedBattleService {
     if(intent.kind==='gambit_activate'||intent.kind==='gambit_update'){
       const page=await ctx.manager.getRepository(GambitPage).findOneBy({id:String(p.pageId??''),characterId:id});if(!page)throw new BadRequestException('Gambit page not found');
       if(intent.kind==='gambit_activate')c.activeGambitPageId=page.id;
-      else{if(!Array.isArray(p.lines)||p.lines.length>20)throw new BadRequestException('Invalid Gambit lines');await this.gambits.assertValidGambitPage(p.lines);page.lines=this.gambits.canonicalizeLines(p.lines);await ctx.manager.getRepository(GambitPage).save(page);}
+      else {
+        if (p.title !== undefined) {
+          if (typeof p.title !== 'string' || p.title.trim().length === 0 || p.title.length > 30) throw new BadRequestException('Invalid Gambit title');
+          page.title = p.title;
+        }
+        if (p.slotIndex !== undefined) {
+          if (!Number.isInteger(p.slotIndex) || p.slotIndex < 0 || p.slotIndex > 2) throw new BadRequestException('Invalid Gambit slot');
+          const other = await ctx.manager.getRepository(GambitPage).findOneBy({characterId:id,slotIndex:p.slotIndex});
+          if (other && other.id !== page.id) throw new BadRequestException('Gambit slot already occupied');
+          page.slotIndex = p.slotIndex;
+        }
+        if (p.lines !== undefined) {
+          if (!Array.isArray(p.lines) || p.lines.length > 20) throw new BadRequestException('Invalid Gambit lines');
+          await this.gambits.assertValidGambitPage(p.lines);
+          page.lines = this.gambits.canonicalizeLines(p.lines);
+        }
+        await ctx.manager.getRepository(GambitPage).save(page);
+      }
     }else if(intent.kind==='attributes'){
       let spend=0;for(const key of Object.keys(p)){if(!['str','agi','dex','vit','int','luk'].includes(key)||!Number.isInteger(p[key])||p[key]<0)throw new BadRequestException('Invalid attributes');spend+=p[key];}
       if(spend<1||spend>c.unspentAttributePoints)throw new BadRequestException('Not enough attribute points');for(const [key,n]of Object.entries(p))c[key]+=Number(n);c.unspentAttributePoints-=spend;

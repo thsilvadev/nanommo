@@ -27,7 +27,19 @@ export class PartyWorkerService implements OnApplicationBootstrap,OnModuleDestro
     try{
       await this.gate.assertReadyForProcessing();
       const parties=await this.db.query('SELECT id FROM parties ORDER BY "createdAt",id');
-      for(const p of parties)try{await this.party.tickParty(p.id);}catch(error){this.logger.error(`Party ${p.id} recovery failed`,error instanceof Error?error.stack:String(error));}
+      for(const p of parties)try{
+        // Bound each batch so one long offline history cannot starve other groups.
+        for(let step=0;step<100;step++){
+          await this.party.tickParty(p.id);
+          const [state]=await this.db.query(`SELECT EXISTS (
+            SELECT 1 FROM parties p WHERE p.id=$1 AND (
+              EXISTS (SELECT 1 FROM shared_battles b WHERE b."partyId"=p.id AND b.state IN ('started','scheduled') AND b."endAt"<=clock_timestamp()) OR
+              (NOT EXISTS (SELECT 1 FROM shared_battles b WHERE b."partyId"=p.id AND b.state IN ('started','scheduled')) AND
+               EXISTS (SELECT 1 FROM encounter_clocks c WHERE c."ownerKind"='party' AND c."ownerId"=p.id AND c.status='searching' AND c."dueAt"<=clock_timestamp()))
+            )) AS "due"`,[p.id]);
+          if(!state?.due)break;
+        }
+      }catch(error){this.logger.error(`Party ${p.id} recovery failed`,error instanceof Error?error.stack:String(error));}
       await this.party.tryAccepted();await this.party.matchmake();
       // Solo commands queued while a legacy battle was active also survive restart.
       const solo=await this.db.query(`SELECT DISTINCT i."characterId" FROM character_action_intents i LEFT JOIN party_members m ON m."characterId"=i."characterId" WHERE i.status='pending' AND m."characterId" IS NULL`);

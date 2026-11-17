@@ -1,10 +1,12 @@
 
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { ApiService } from './api.service';
 import { GameSocketService } from './game.socket.service';
 import { Character, InventoryItem, EquippedItem, EquipmentMutationResponse, BattleQueueEntry, BattleQueueUpdated, BattleResolved, CharacterLeveledUp, CharacterDied, MapPresence } from './game.models';
 import { CatalogService } from './catalog.service';
 import { GameAudioService } from '../shared/game-audio.service';
+import { PartyStore } from './party.store';
+import { combatIntentStatus } from './combat-intent';
 import { battleTickAt } from '../shared/battle-timing';
 import type { AppearanceInput } from '@nanommo/shared';
 type LoadState='idle'|'loading'|'loaded'|'error'|'reconnecting';
@@ -34,12 +36,20 @@ export class CharacterStore {
  /** One-time 3D appearance for a character created before the creator existed. */
  async setAppearance(input:AppearanceInput):Promise<Character>{const value=await this.api.post<Character>('/characters/appearance',{sex:input.sex,heightCm:input.heightCm,appearance:input.appearance}).toPromise();if(value&&value.stateVersion>this.realtimeRevision)this.applyRealtimeSnapshot(value,value.stateVersion);return value as Character;}
  async setAutoFeed(enabled:boolean):Promise<Character>{const value=await this.api.post<Character>('/characters/auto-feed',{enabled}).toPromise();if(value&&value.stateVersion>this.realtimeRevision)this.applyRealtimeSnapshot(value,value.stateVersion);return value as Character;}
- spend(attributes:Record<string,number>):Promise<Character>{const generation=this.realtimeGeneration;return new Promise((resolve,reject)=>this.api.post<Character>('/characters/attributes/spend',{attributes}).subscribe({next:c=>{if(generation!==this.realtimeGeneration||c.stateVersion<this.realtimeRevision){reject(new Error('Character changed while attribute update was in flight'));return;}this.realtimeRevision=Math.max(this.realtimeRevision,c.stateVersion);this.realtimeGeneration++;this._character.set(this.preserveConfirmedStance(c));resolve(this._character()??c)},error:e=>reject(e)}));}
+ spend(attributes:Record<string,number>):Promise<Character>{const generation=this.realtimeGeneration;return new Promise((resolve,reject)=>this.api.post<Character>('/characters/attributes/spend',{attributes}).subscribe({next:c=>{try{combatIntentStatus(c as any);}catch(error){reject(error);return;}if(generation!==this.realtimeGeneration||c.stateVersion<this.realtimeRevision){reject(new Error('Character changed while attribute update was in flight'));return;}this.realtimeRevision=Math.max(this.realtimeRevision,c.stateVersion);this.realtimeGeneration++;this._character.set(this.preserveConfirmedStance(c));resolve(this._character()??c)},error:e=>reject(e)}));}
 }
 @Injectable({providedIn:'root'})
 export class InventoryStore {
  private readonly api=inject(ApiService); private readonly character=inject(CharacterStore); private readonly catalog=inject(CatalogService); private readonly audio=inject(GameAudioService);private readonly _items=signal<InventoryItem[]>([]);private readonly _equipment=signal<EquippedItem[]>([]);private readonly _state=signal<LoadState>('idle');private readonly _draggedItemId=signal<string|null>(null);
  readonly items=this._items.asReadonly();readonly equipment=this._equipment.asReadonly();readonly state=this._state.asReadonly();readonly draggedItemId=this._draggedItemId.asReadonly();private loadSeq=0;private realtimeGeneration=0;private realtimeRevision=0;
+ private readonly party=inject(PartyStore);private readonly pendingConsumables=new Map<string,string>();private readonly pendingConsumableGeneration=signal(0);
+ constructor(){effect(()=>{this.pendingConsumableGeneration();for(const action of this.party.actions()){const itemId=this.pendingConsumables.get(action.id);if(!itemId||action.status==='pending')continue;this.pendingConsumables.delete(action.id);if(action.status==='applied')this.playConsumableSound(itemId);}});}
+ private playConsumableSound(itemId:string){const itemType=this.catalog.item(itemId)?.type;
+  if(itemType==='food'||itemId.startsWith('food_'))this.audio.play('eat');
+  else if(itemType==='consumable'&&itemId.startsWith('tonic_'))this.audio.play('use_tonic');
+  else if(itemType==='consumable'&&(itemId.startsWith('pot_')||itemId.includes('potion')||itemId.startsWith('elixir_')))this.audio.play('potion_drink');
+ }
+
  async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const [inventory,equipment]=await Promise.all([this.api.get<{items:InventoryItem[];stateVersion:number}>('/inventory').toPromise(),this.api.get<EquippedItem[]>('/equipment').toPromise()]);if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if((inventory?.stateVersion??0)<this.realtimeRevision)return;this.realtimeRevision=Math.max(this.realtimeRevision,inventory?.stateVersion??0);this._items.set(inventory?.items??[]);this._equipment.set(equipment??[]);this.catalog.setEquippedEquipment(equipment??[]);this._state.set('loaded')}catch{if(seq===this.loadSeq&&generation===this.realtimeGeneration)this._state.set('error')}}
  applyRealtimeSnapshot(items:InventoryItem[],revision:number){if(revision<=this.realtimeRevision)return;this.realtimeRevision=revision;this.realtimeGeneration++;this._items.set(items);this._state.set('loaded');}
  applyMutationSnapshot(snapshot:EquipmentMutationResponse){
@@ -72,19 +82,16 @@ export class InventoryStore {
   const snapshot=await this.api.put<{items:InventoryItem[];character:Character;stateVersion:number}>('/inventory/split',{itemId,quantity}).toPromise();
   if(snapshot)this.applyInventoryLayoutSnapshot(snapshot);
  }
- async equip(slot:string,itemId:string,inventoryItemId?:string){const snapshot=await this.api.put<EquipmentMutationResponse>('/equipment/equip',{slot,itemId,...(inventoryItemId?{inventoryItemId}:{})}).toPromise();if(snapshot)this.applyMutationSnapshot(snapshot);}
- async unequip(slot:string){const snapshot=await this.api.delete<EquipmentMutationResponse>('/equipment/slot/'+slot).toPromise();if(snapshot)this.applyMutationSnapshot(snapshot);}
+ async equip(slot:string,itemId:string,inventoryItemId?:string){const snapshot=await this.api.put<EquipmentMutationResponse>('/equipment/equip',{slot,itemId,...(inventoryItemId?{inventoryItemId}:{})}).toPromise();if(snapshot){combatIntentStatus(snapshot as any);this.applyMutationSnapshot(snapshot);}}
+ async unequip(slot:string){const snapshot=await this.api.delete<EquipmentMutationResponse>('/equipment/slot/'+slot).toPromise();if(snapshot){combatIntentStatus(snapshot as any);this.applyMutationSnapshot(snapshot);}}
  beginDrag(itemId:string){this._draggedItemId.set(itemId)}
  endDrag(){this._draggedItemId.set(null)}
  async useConsumable(itemId:string){
   const snapshot=await this.api.post<{character:Character;inventory:InventoryItem[];stateVersion:number}>('/inventory/use',{itemId}).toPromise();
   if(!snapshot)return;
-  // A successful response confirms the consume action even if a realtime snapshot
-  // with the same/newer revision arrived before this HTTP response.
-  const itemType=this.catalog.item(itemId)?.type;
-  if(itemType==='food'||itemId.startsWith('food_'))this.audio.play('eat');
-  else if(itemType==='consumable' && itemId.startsWith('tonic_'))this.audio.play('use_tonic');
-  else if(itemType==='consumable' && (itemId.startsWith('pot_')||itemId.includes('potion')||itemId.startsWith('elixir_')))this.audio.play('potion_drink');
+  const status=combatIntentStatus(snapshot as any);
+  if(status==='applied')this.playConsumableSound(itemId);
+  else if((snapshot as any).intent?.id){this.pendingConsumables.set((snapshot as any).intent.id,itemId);this.pendingConsumableGeneration.update(value=>value+1);}
   if(snapshot.stateVersion<=this.realtimeRevision)return;
   this.realtimeRevision=snapshot.stateVersion;
   this.realtimeGeneration++;

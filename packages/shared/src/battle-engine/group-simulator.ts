@@ -4,6 +4,7 @@ import { Mulberry32 } from './prng';
 import { createActorStates } from './actors';
 import { findGridPathToRange, gridDistance, gridKey, nearestFreeGridPosition, validGridPosition } from './grid';
 import { actionParams, selectGroupGambit, TargetedGambitChoice } from './targeting';
+import { activeGambitLines } from './active-gambits';
 import { actorEvent } from './events';
 import { secondsToBattleTicks } from './time';
 
@@ -61,7 +62,8 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
     self.pendingCast=null;self.movementIntent=false;
     record(self,[self],'ko',{type:'lifecycle',reason:'damage'});
     const choice=selectGroupGambit(actorById.get(self.id)!,self,units,'cast',definitions,()=>stream(self,'death-target').next());
-    if(choice?.action.id==='use_item'&&definitions.items?.[String(actionParams(choice.action).itemId)]?.effect?.type==='revive_full_cleanse')resolveItem(self,choice.action,self);
+    const deathCondition=choice?.line.conditions?.some((condition:any)=>condition.id==='upon_death'||(condition.id==='self_has_status'&&String(condition.params?.status??condition.status??'').toLowerCase()==='ko'));
+    if(deathCondition&&choice?.action.id==='use_item'&&definitions.items?.[String(actionParams(choice.action).itemId)]?.effect?.type==='revive_full_cleanse')resolveItem(self,choice.action,self);
   };
   const damage=(source:BattleActorState,target:BattleActorState,raw:number,damageType:string,domain:string,variance=true):number=>{
     let final=damageType==='pure'?raw:damageType==='magical'||damageType==='magic'?BattleEngine.calculateMagicDamage(raw,Math.min(100,target.mdefPercent+sumStatus(target,'mdefPercentBonus'))):BattleEngine.calculatePhysicalDamage(raw,target.def+sumStatus(target,'defBonus'));
@@ -69,8 +71,8 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
     final*=Number(actor.damageTakenMultiplier?.[archetype]??1);
     const weapon=(source.equippedWeaponTypes??[]).find(type=>!['shield','rune'].includes(type));if(weapon)final*=Number(actor.weaponCategoryDamageTakenMultiplier?.[weapon]??1);
     if(variance)final=BattleEngine.applyDirectDamageVariance(final,stream(source,domain));
-    let value=Math.max(raw>0?1:0,Math.floor(final));
-    if(['magical','magic'].includes(damageType)) for(const status of target.statusEffects??[]) if(statusId(status)==='magic_barrier') {const absorbed=Math.min(value,Number(status.absorbRemaining??0));value-=absorbed;status.absorbRemaining=Number(status.absorbRemaining??0)-absorbed;}
+    let value=Math.max(0,Math.floor(final));
+    if(['magical','magic'].includes(damageType)) for(const status of [...target.statusEffects??[]]) if(statusId(status)==='magic_barrier') {const absorbed=Math.min(value,Math.max(0,Number(status.absorbRemaining??0)));value-=absorbed;status.absorbRemaining=Number(status.absorbRemaining??0)-absorbed;if(status.absorbRemaining<=0){target.statusEffects=(target.statusEffects??[]).filter(current=>current!==status);record(target,[target],'status_expire',{type:'status',statusId:'magic_barrier'});}}
     target.hp=Math.max(0,target.hp-value);return value;
   };
   function resolveItem(self:BattleActorState,action:GroupGambitAction,target:BattleActorState):void {
@@ -149,7 +151,7 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
     }
     record(self,[target],'use_skill',{type:'action',skillId,damage:dealt,damageType:def.damageType??(type.startsWith('magic_')?'magical':'physical'),hit:true,crit:false,spSpent:spCost,healAmount:Math.max(0,target.hp-hpBefore)});
     if(target.team!==self.team&&target.hp>0){const species=actorById.get(target.id)?.definitionId;if(species==='mon_unicorn')applyStatus(target,target,'magic_prowess',40,{matkBonus:20,sourceSkillId:'monster_skill_channel'});if(species==='mon_ruinsguardian')applyStatus(target,target,'prowess',40,{atkBonus:10,defBonus:10,sourceSkillId:'monster_skill_prowess'});}
-    if(dynamoRank>0)self.sp=Math.min(self.maxSp,self.sp+2*dynamoRank);
+    if(dynamoRank>0){const before=self.sp;self.sp=Math.min(self.maxSp,self.sp+2*dynamoRank);if(self.sp>before)record(self,[self],'sp_refund',{type:'action',spGain:self.sp-before});}
     if(target.hp<=0)death(target);if(target.team!==self.team)reflect(self,target,dealt,def.damageType??(type.startsWith('magic_')?'magical':'physical'));
   };
   const reflect=(source:BattleActorState,target:BattleActorState,dealt:number,damageType:string)=>{
@@ -196,7 +198,23 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
   };
   const inRange=(self:BattleActorState,target:BattleActorState,range:number)=>self.id===target.id||gridDistance(self.position,target.position)-1<=range;
   const choose=(actor:BattleActor,self:BattleActorState,gauge:'attack'|'cast')=>selectGroupGambit(actor,self,units,gauge,definitions,()=>stream(self,`target:${gauge}`).next());
-  const anyActions=actors.some(a=>{const lines=Array.isArray(a.gambits)?a.gambits:a.gambits?.lines??[];return lines.length>0;});
+  const anyActions=actors.some(a=>activeGambitLines(a.gambits).length>0);
+  // Prove this narrow stalemate without applying a general duration limit: no
+  // actor can move, no active line can do anything except attack, no status
+  // can change that, and every opposing pair starts outside attack range.
+  const immobileMeleeOnly = units.every(unit => unit.hp>0) && actors.every(actor => {
+    const unit=states[actor.id];
+    const immobile=unit.canMove===false || Number(unit.moveSpeedBase??unit.moveSpeed??50)<=0;
+    const attacksOnly=activeGambitLines(actor.gambits).every(line => {
+      const action=line.action as GroupGambitAction;
+      return (action.id??action.type)==='attack';
+    });
+    return immobile && attacksOnly && (unit.statusEffects??[]).length===0;
+  }) && units.every(unit => units.filter(target=>target.team!==unit.team).every(target => {
+    const range=Number(unit.basicAttackRange??(unit.basicAttackDamageType==='ranged'?6:0));
+    return gridDistance(unit.position,target.position)-1>range;
+  }));
+  if(immobileMeleeOnly)return {version:2,outcome:'loss',events,actorsAfter:states,durationTicks:0,ended:true,termination:'stalemate'};
   if(!anyActions&&units.every(s=>!(s.statusEffects??[]).some(x=>Number(x.damagePerTick??0)>0)))return {version:2,outcome:'loss',events,actorsAfter:states,durationTicks:0,ended:true,termination:'stalemate'};
   for(tick=0;tick<maxTicks&&tick<=throughTick;tick++) {
     // A dead team still gets its immediate Fairy opportunity from the death handler.

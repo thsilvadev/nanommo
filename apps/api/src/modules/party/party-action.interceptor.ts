@@ -20,16 +20,18 @@ export class PartyActionInterceptor implements NestInterceptor {
    case 'EquipmentController.equipItem':kind='equip';payload=body;break;
    case 'EquipmentController.unequipItem':kind='unequip';payload={slot:req.params.slot};break;
    case 'InventoryController.useConsumable':kind='use_item';payload=body;break;
-   case 'GambitController.updateGambitPage':if(body.lines===undefined)return next.handle();kind='gambit_update';payload={pageId:req.params.pageId,lines:body.lines};break;
+   case 'GambitController.updateGambitPage':if(body.lines===undefined)return next.handle();kind='gambit_update';payload={pageId:req.params.pageId,...body};break;
    case 'GambitController.activateGambitPage':kind='gambit_activate';payload={pageId:req.params.pageId};break;
    case 'CharacterController.spendAttributes':kind='attributes';payload=body.attributes??body;break;
    default:return next.handle();
   }
   return from((async()=>{
    const c=await this.characters.getCharacterByUserId(req.user.userId);if(!c)throw new NotFoundException('Character not found');
-   const state=await this.party.enqueue(c.id,String(body.clientRequestId??req.headers['idempotency-key']??randomUUID()),kind,payload);
+   const requestId=String(body.clientRequestId??req.headers['idempotency-key']??randomUUID());
+   if(kind==='gambit_update')delete payload.clientRequestId;
+   const state=await this.party.enqueue(c.id,requestId,kind,payload);
    const character=await this.characters.getCharacterDtoById(c.id);
-   const action=state.actions[0];
+   const action=state.intent ?? state.actions.find((item:any)=>item.clientRequestId===requestId);
    return {...(route==='CharacterController.spendAttributes'?character:{}),...state,intent:action,character,equipment:await this.equipment.getEquipment(c.id),inventory:await this.inventory.getInventory(c.id),stateVersion:character?.stateVersion};
   })());
  }

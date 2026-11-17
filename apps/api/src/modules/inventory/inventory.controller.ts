@@ -120,7 +120,16 @@ export class InventoryController {
   async removeItem(@Request() req: any, @Body() body: { itemId: string; quantity: number }) {
     const userId = req.user.userId;
     const character = await this.characterService.getCharacterByUserId(userId);
-    await this.inventoryService.removeItem(character.id, body.itemId, body.quantity);
+    const party = this.battleService.partyCoordinator?.();
+    if (party) {
+      await party.serialized([character.id], async ctx => {
+        const active = await ctx.manager.query('SELECT 1 FROM active_battle_participants WHERE "characterId"=$1', [character.id]);
+        if (active.length) throw new BadRequestException('Items are reserved during a shared battle');
+        await this.inventoryService.removeItem(character.id, body.itemId, body.quantity, ctx.manager);
+      });
+    } else {
+      await this.inventoryService.removeItem(character.id, body.itemId, body.quantity);
+    }
     return { success: true };
   }
 

@@ -1,8 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Inject, forwardRef, BadRequestException, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In } from 'typeorm';
 import { randomUUID } from 'crypto';
-import { Character, BattleQueueEntry, InventoryItem, GambitPage, MapKillCounter, EquippedItem } from '../../database/entities';
+import { Character, User, BattleQueueEntry, InventoryItem, GambitPage, MapKillCounter, EquippedItem } from '../../database/entities';
 import { Mulberry32, rngForIndex, mulberry32Seed, TOWN_MAP_ID, findCardinalRoute, calculateTravelDurationSeconds, isInstantTownExitEdge } from '@nanommo/shared';
 import { BattleService, calculateEncounterSearchDelayMs } from '../battle/battle.service';
 import { DataService } from '../data/data.service';
@@ -16,7 +16,7 @@ class MembershipChanged extends Error {}
 
 @Injectable()
 export class PartyService {
-  constructor(@InjectDataSource() private readonly db: DataSource, private readonly battle: BattleService, private readonly data: DataService, private readonly shared: SharedBattleService) {}
+  constructor(@InjectDataSource() private readonly db: DataSource, @Inject(forwardRef(() => BattleService)) private readonly battle: BattleService, private readonly data: DataService, private readonly shared: SharedBattleService) {}
 
   async member(characterId: string, manager: EntityManager = this.db.manager): Promise<PartyMemberRow|null> {
     return (await manager.query('SELECT * FROM party_members WHERE "characterId"=$1',[characterId]))[0] ?? null;
@@ -105,7 +105,7 @@ export class PartyService {
       if(['accepted','joined'].includes(i.status))return;
       if(i.status!=='offered'||new Date(i.expiresAt).getTime()<=ctx.now)this.error('INVITE_EXPIRED');
       await ctx.manager.query(`UPDATE party_invites SET status='accepted',revision=revision+1 WHERE id=$1`,[id]);
-      await this.event(ctx.manager,characterId,'party:updated',{refresh:true});
+      for (const participant of [characterId, i.inviterId]) await this.event(ctx.manager,participant,'party:updated',{refresh:true});
     });
     await this.tryAccepted();return this.get(characterId);
   }
@@ -118,8 +118,12 @@ export class PartyService {
   }
   async tryAccepted(){
     await this.db.query(`UPDATE party_invites SET status='expired',revision=revision+1 WHERE status='offered' AND "expiresAt"<=clock_timestamp()`);
-    const offers=await this.db.query(`SELECT * FROM party_invites WHERE status='accepted' ORDER BY "createdAt",id LIMIT 100`);
-    for(const inv of offers)await this.serialized([inv.inviterId,inv.candidateId],async ctx=>{
+    let cursor: {createdAt: string; id: string} | null = null;
+    for (;;) {
+      const offers=await this.db.query(`SELECT *, "createdAt"::text AS "cursorCreatedAt" FROM party_invites WHERE status='accepted' AND ($1::timestamptz IS NULL OR ("createdAt",id) > ($1::timestamptz,$2::uuid)) ORDER BY "createdAt",id LIMIT 100`,[cursor?.createdAt??null,cursor?.id??null]);
+      if (!offers.length) break;
+      cursor={createdAt:offers[offers.length-1].cursorCreatedAt,id:offers[offers.length-1].id};
+      for(const inv of offers)await this.serialized([inv.inviterId,inv.candidateId],async ctx=>{
       const i=(await ctx.manager.query('SELECT * FROM party_invites WHERE id=$1 FOR UPDATE',[inv.id]))[0];if(i.status!=='accepted')return;
       const a=ctx.characters.find(c=>c.id===i.inviterId)!,b=ctx.characters.find(c=>c.id===i.candidateId)!;
       const targetMember=await this.member(b.id,ctx.manager);
@@ -145,6 +149,8 @@ export class PartyService {
       ctx.members.push({partyId:ctx.party.id,characterId:b.id,orderIndex:ctx.members.length,pendingLeave:false});
       await this.changed(ctx);
     });
+      if (offers.length < 100) break;
+    }
   }
   async reserveClock(ctx:PartyContext,dueAt?:Date|string,seed?:string){
     if(!ctx.party||this.data.getMapById(ctx.party.mapId)?.type!=='grind')return;
@@ -159,8 +165,19 @@ export class PartyService {
   async remove(ctx:PartyContext,id:string,reason='leave'){
     if(!ctx.party)return;
     const p=ctx.party;
-    await ctx.manager.query('DELETE FROM party_members WHERE "partyId"=$1 AND "characterId"=$2',[p.id,id]);
     const remaining=ctx.members.filter(m=>m.characterId!==id);
+    const dissolving=remaining.length<2||(p.kind==='auto'&&id===p.leaderCharacterId&&reason==='map');
+    // Shared route jobs are owned by the Party. A removed member cannot retain
+    // an orphan route, and cancellation/dissolution must release all followers.
+    const routeStops = dissolving || id===p.leaderCharacterId ? ctx.members.map(m=>m.characterId) : [id];
+    for (const characterId of routeStops) {
+      const character=ctx.characters.find(c=>c.id===characterId);
+      if (character?.travelIntent?.partyId !== p.id) continue;
+      character.travelIntent=null;
+      character.gatheringCycle={...(character.gatheringCycle??{}),lastUpdatedAt:new Date(ctx.now).toISOString()};
+      await ctx.manager.getRepository(Character).save(character);
+    }
+    await ctx.manager.query('DELETE FROM party_members WHERE "partyId"=$1 AND "characterId"=$2',[p.id,id]);
     if(remaining.length<2||(p.kind==='auto'&&id===p.leaderCharacterId&&reason==='map')){
       await ctx.manager.query('DELETE FROM parties WHERE id=$1',[p.id]);
       await ctx.manager.query(`UPDATE encounter_clocks SET status='cancelled' WHERE "ownerKind"='party' AND "ownerId"=$1`,[p.id]);
@@ -192,7 +209,19 @@ export class PartyService {
     await this.matchmake();return this.get(characterId);
   }
   async matchmake(){
-    const candidates=await this.db.query(`SELECT c.id,c."currentMapId" FROM characters c LEFT JOIN party_members m ON m."characterId"=c.id WHERE c."autoPartyEnabled" AND c.appearance IS NOT NULL AND m."characterId" IS NULL ORDER BY c."autoPartyEnabledAt",c.id LIMIT 100`);
+    const candidates:Array<{id:string;currentMapId:string;cursorAt:string}>=[];
+    let cursor:{at:string;id:string}|null=null;
+    for (;;) {
+      const page=await this.db.query(`SELECT c.id,c."currentMapId",COALESCE(c."autoPartyEnabledAt",'infinity'::timestamptz)::text AS "cursorAt"
+        FROM characters c LEFT JOIN party_members m ON m."characterId"=c.id
+        WHERE c."autoPartyEnabled" AND c.appearance IS NOT NULL AND m."characterId" IS NULL
+          AND NOT EXISTS (SELECT 1 FROM party_invites i WHERE i.mode='auto' AND i.status IN ('offered','accepted') AND (i."candidateId"=c.id OR i."inviterId"=c.id))
+          AND ($1::timestamptz IS NULL OR (COALESCE(c."autoPartyEnabledAt",'infinity'::timestamptz),c.id)>($1::timestamptz,$2::uuid))
+        ORDER BY COALESCE(c."autoPartyEnabledAt",'infinity'::timestamptz),c.id LIMIT 100`,[cursor?.at??null,cursor?.id??null]);
+      candidates.push(...page);
+      if(page.length<100)break;
+      const last=page[page.length-1];cursor={at:last.cursorAt,id:last.id};
+    }
     const available=new Map<string,string[]>();for(const c of candidates){const group=available.get(c.currentMapId)??[];group.push(c.id);available.set(c.currentMapId,group);}
     for(const [mapId,ids]of available){
       const auto=await this.db.query(`SELECT p."leaderCharacterId" AS id FROM parties p WHERE p.kind='auto' AND p."mapId"=$1 AND p.activity IS NULL AND (SELECT count(*) FROM party_members m WHERE m."partyId"=p.id)<5 ORDER BY p."createdAt",p.id`,[mapId]);
@@ -200,7 +229,7 @@ export class PartyService {
       for(const id of ids.slice(0,4)){const prior=await this.db.query(`SELECT id FROM party_invites WHERE mode='auto' AND status IN ('offered','accepted') AND ("candidateId"=$1 OR "inviterId"=$1)`,[id]);if(prior.length)continue;try{await this.invite(leader,id,undefined,`auto:${randomUUID()}`,'auto');}catch(e){if(!(e instanceof BadRequestException))throw e;}}
     }
   }
-  async actions(characterId:string){return this.db.query('SELECT id,kind,status,result,sequence,"createdAt" FROM character_action_intents WHERE "characterId"=$1 ORDER BY sequence DESC LIMIT 64',[characterId]);}
+  async actions(characterId:string){return this.db.query('SELECT id,kind,status,result,sequence,"clientRequestId","createdAt" FROM character_action_intents WHERE "characterId"=$1 ORDER BY sequence DESC LIMIT 64',[characterId]);}
   async cancelAction(characterId:string,id:string){await this.db.query(`UPDATE character_action_intents SET status='cancelled',"completedAt"=clock_timestamp() WHERE id=$1 AND "characterId"=$2 AND status='pending'`,[id,characterId]);return this.get(characterId);}
   async queueIfMember(characterId:string):Promise<boolean>{const m=await this.member(characterId);if(!m)return false;await this.tickParty(m.partyId);return true;}
   async tickParty(partyId:string){
@@ -208,7 +237,18 @@ export class PartyService {
     await this.serialized([first.characterId],async ctx=>{
       if(ctx.party?.id!==partyId)return;
       const active=(await ctx.manager.query(`SELECT b.* FROM shared_battles b JOIN active_battle_participants a ON a."battleId"=b.id WHERE a."characterId"=$1`,[first.characterId]))[0];
-      if(active){if(new Date(active.endAt).getTime()<=ctx.now)await this.shared.resolve(ctx,active,(id,reason)=>this.remove(ctx,id,reason));else return;}
+      if(active){
+        const endAt=new Date(active.endAt).getTime();
+        if(endAt>ctx.now)return;
+        ctx.now=endAt;
+        await this.shared.resolve(ctx,active,(id,reason)=>this.remove(ctx,id,reason));
+      } else {
+        // Catch up one persisted boundary at a time, rather than discarding offline time.
+        const next=(await ctx.manager.query(`SELECT "dueAt" FROM encounter_clocks WHERE "ownerKind"='party' AND "ownerId"=$1 AND status='searching'`,[partyId]))[0];
+        const activity=ctx.party.activity;
+        const activityDue=!activity||activity.paused?Infinity:activity.kind==='route'?Number(activity.segmentDueAt??Infinity):Number(activity.lastAccruedAt)+(10000-Number(activity.elapsedMs));
+        ctx.now=Math.min(ctx.now,next?new Date(next.dueAt).getTime():Infinity,activityDue);
+      }
       if(!ctx.party)return;
       for(const m of [...ctx.members])if(m.pendingLeave)await this.remove(ctx,m.characterId,m.reason);
       if(!ctx.party)return;
@@ -273,6 +313,14 @@ export class PartyService {
       if(!known.some(node=>Math.abs(node.coordinates.x-map.coordinates.x)+Math.abs(node.coordinates.y-map.coordinates.y)<=1)&&!known.some(node=>node.id===destination))this.error('MAP_NOT_REVEALED');
       const route=findCardinalRoute(this.data.getMaps(),leader.currentMapId,destination).map(node=>node.id);
       if(!route||route.length<2)this.error('MAP_NOT_REVEALED');
+      if(map.type==='grind'){
+        const travelers=p.kind==='manual'?ctx.members.map(m=>m.characterId):[characterId];
+        for(const id of travelers){
+          const character=ctx.characters.find(c=>c.id===id)!;
+          const user=await ctx.manager.getRepository(User).findOneBy({id:character.userId});
+          if(user?.emailVerified!==true)this.error('EMAIL_NOT_VERIFIED');
+        }
+      }
       const hungry:string[]=[];
       if(this.data.getMapById(p.mapId)?.type==='town')for(const m of ctx.members){const c=ctx.characters.find(c=>c.id===m.characterId)!;if(!await this.battle.preparePartyFood(c,ctx.now,ctx.manager))hungry.push(c.name);}
       if(hungry.length){for(const m of ctx.members)await this.event(ctx.manager,m.characterId,'party:actionUpdated',{status:'failed',message:`Town Guard: ${hungry.join(', ')} need to eat or cleanse their sins.`});return;}
@@ -308,7 +356,9 @@ export class PartyService {
   async flee(characterId:string){await this.serialized([characterId],async ctx=>{this.leader(ctx,characterId);await this.shared.flee(ctx,characterId,(id,reason)=>this.remove(ctx,id,reason));await this.changed(ctx);});return this.get(characterId);}
   async enqueueDrain(characterId:string){await this.serialized([characterId],ctx=>this.shared.drain(ctx));}
   async enqueue(characterId:string,requestId:string,kind:string,payload:any){
-    await this.serialized([characterId],async ctx=>{await this.shared.enqueue(ctx,characterId,requestId,kind,payload);await this.shared.drain(ctx);await this.event(ctx.manager,characterId,'party:actionUpdated',{refresh:true});});return this.get(characterId);
+    await this.serialized([characterId],async ctx=>{await this.shared.enqueue(ctx,characterId,requestId,kind,payload);ctx.now=Number((await ctx.manager.query('SELECT extract(epoch FROM clock_timestamp())*1000 AS now'))[0].now);await this.shared.drain(ctx);await this.event(ctx.manager,characterId,'party:actionUpdated',{refresh:true});});
+    const intent=(await this.db.query('SELECT id,kind,status,result,sequence,"clientRequestId","createdAt" FROM character_action_intents WHERE "characterId"=$1 AND "clientRequestId"=$2',[characterId,requestId]))[0];
+    return {...await this.get(characterId),intent};
   }
   async setStance(characterId:string,stance:'hunting'|'gathering'){
     await this.serialized([characterId],async ctx=>{this.leader(ctx,characterId);for(const m of ctx.members){const c=ctx.characters.find(c=>c.id===m.characterId)!;c.lastGrindStance=stance;await ctx.manager.getRepository(Character).save(c);}await this.changed(ctx);});return this.get(characterId);

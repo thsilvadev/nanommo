@@ -5,7 +5,8 @@ import { GameSocketService } from './game.socket.service';
 import { SharedBattleView } from './party-projection';
 export interface PartyMember { characterId: string; name: string; orderIndex: number; pendingLeave: boolean; hp?: number; sp?: number; maxHp?: number; maxSp?: number; statusEffects?: Array<{id?:string;type?:string;stacks?:number}> }
 export interface PartyTeleport { destinationMapId: string; startedAt: string; elapsedMs: number; lastAccruedAt: string|number; paused: boolean; generation: number|string; participantIds: string[] }
-export interface PartyView { id: string; kind: 'manual'|'auto'; leaderCharacterId: string; mapId: string; revision: number; members: PartyMember[]; teleport?: PartyTeleport|null }
+export interface PartyRouteActivity { kind:'route'; segmentStartedAt:number; segmentDueAt:number; remainingMs:number; paused:boolean }
+export interface PartyView { id: string; kind: 'manual'|'auto'; leaderCharacterId: string; mapId: string; revision: number; members: PartyMember[]; teleport?: PartyTeleport|null; routeActivity?:PartyRouteActivity|null }
 export interface PartyInvite { id:string; inviterId:string; candidateId:string; inviterName?:string; candidateName?:string; status:string; expiresAt:string; mode:string; revision?:number }
 export interface PartyAction { id:string; kind:string; status:'pending'|'applied'|'failed'|'cancelled'; message?:string; result?:{message?:string}; revision?:number }
 export interface PartyState { party:PartyView|null; invites:PartyInvite[]; actions:PartyAction[]; battle?:SharedBattleView|null; autoPartyEnabled:boolean }

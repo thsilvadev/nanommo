@@ -1,10 +1,11 @@
 import type { BattleActor, BattleActorState, CombatSkillDefinition } from '../types/group-battle';
 import { GambitEvaluator } from './index';
+import { activeGambitLines } from './active-gambits';
 import { gridKey } from './grid';
 export const stableActorOrder = (a:{id:string;orderIndex?:number},b:{id:string;orderIndex?:number}):number => (a.orderIndex??0)-(b.orderIndex??0) || (a.id<b.id?-1:a.id>b.id?1:0);
 export function firstHostileStyle(actor:BattleActor):'melee'|'ranged' {
   const snapshot={...actor.snapshot};
-  const page=GambitEvaluator.normalizeGambitPage(actor.gambits);
+  const page=GambitEvaluator.normalizeGambitPage(activeGambitLines(actor.gambits));
   for(const line of [...page.lines].sort((a,b)=>(a.priority??0)-(b.priority??0))) {
     if(!GambitEvaluator.isActionLegal(line.action,snapshot,actor.inventory)) continue;
     if(line.action.id==='attack') return snapshot.basicAttackDamageType==='ranged'||Number(snapshot.basicAttackRange??0)>0||snapshot.combatStyle==='ranged'?'ranged':'melee';
