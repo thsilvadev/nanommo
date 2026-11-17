@@ -370,3 +370,19 @@
     font-size: 18px;
   }
 }
+
+/* Match every editable field to its Gambit scope. */
+.gambit-line.scope-self .node-block select,
+.gambit-line.scope-self .node-block input,
+.gambit-line.scope-ally .node-block select,
+.gambit-line.scope-ally .node-block input {
+  background: #172737;
+  border-color: #345879;
+  color: #c2d9ea;
+}
+.gambit-line.scope-foe .node-block select,
+.gambit-line.scope-foe .node-block input {
+  background: #321d1d;
+  border-color: #74403e;
+  color: #e5c3b9;
+}
