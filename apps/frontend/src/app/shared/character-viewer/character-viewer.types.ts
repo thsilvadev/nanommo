@@ -1,4 +1,8 @@
 import type { AppearanceCatalog, CharacterAppearance, HandWeaponType, Sex } from '@nanommo/shared';
+import type { AnimationState } from '../character-animation/animation-state';
+
+/** A fixed pose, or a function evaluated by the rig on every frame with the current time. */
+export type AnimationSource = AnimationState | ((nowMs: number) => AnimationState);
 
 /**
  * Types shared by the Angular component and the three.js rig. This file must
@@ -25,7 +29,19 @@ export interface ViewerConfig {
 export interface CharacterRigHandle {
   bone(name: string): { readonly children: ReadonlyArray<{ readonly name: string }> };
   clipNames(): string[];
+  /** The clip with the largest effective weight. */
   playingClip(): string | null;
+  clipWeight(name: string): number;
+  /** Current time of a clip, in seconds. */
+  clipTime(name: string): number;
+  /**
+   * What to play. A function is evaluated on every rendered frame with `clock()`
+   * (default Date.now), so the pose follows the clock, not the caller's timers.
+   * Changes crossfade; the first frame of a body shows the pose directly.
+   */
+  setAnimation(source: AnimationSource, clock?: () => number): void;
+  /** Renders a frame now (tests and the screenshot harness). */
+  renderNow(): void;
   modelScale(): number;
   isDisposed(): boolean;
   isRendering(): boolean;

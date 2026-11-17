@@ -9,13 +9,24 @@
 import * as THREE from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { AppearanceCatalog, AppearanceOption, AppearanceTrait, HandWeaponType, Sex } from '@nanommo/shared';
-import type { CharacterRigHandle, CharacterRigOptions, ViewerConfig, ViewerFraming } from './character-viewer.types';
+import type { AnimationSource, CharacterRigHandle, CharacterRigOptions, ViewerConfig, ViewerFraming } from './character-viewer.types';
+import type { AnimationState } from '../character-animation/animation-state';
 import { averageSkinColor, bakeDecal, hexToRgb, sampleColor, tintSkinPixels, type BodySurface, type Decal, type Vec3 } from './skin-compositor';
 
 /** Height of each body as modelled, in cm (assets report, Task 0). */
 export const NATIVE_HEIGHT_CM: Record<Sex, number> = { male: 181, female: 177 };
 const SKIN_TEXTURE_SIZE = 1024;
-const CLIP_NAMES = ['Idle', 'Walk', 'Attack', 'Damage', 'Dead', 'CombatIdle', 'CastStart', 'CastLoop', 'Damage2'];
+/** Background loops, phased by the absolute clock (two views of the same character walk in step). */
+const BASE_CLIPS = ['Idle', 'Walk', 'CombatIdle'] as const;
+/** Full-body clips that take over from the loop: actions, casting, death. */
+const OVERLAY_CLIPS = ['Attack', 'Dead', 'CastStart', 'CastLoop'] as const;
+/** Flinches, blended over whatever plays. */
+const HIT_CLIPS = ['Damage', 'Damage2'] as const;
+const CLIP_NAMES: string[] = [...BASE_CLIPS, ...OVERLAY_CLIPS, ...HIT_CLIPS];
+const FADE_IN_SECONDS = 0.12;
+const FADE_OUT_SECONDS = 0.2;
+/** Peak weight of a flinch: enough to read as a hit, not enough to cut the action under it. */
+const HIT_PEAK = 0.4;
 const HAND_BONES = { right: 'hand_r', left: 'hand_l' } as const;
 const FINGERS = ['index', 'middle', 'ring', 'pinky'] as const;
 
@@ -43,7 +54,12 @@ interface BodyAsset {
   earLobes: THREE.Vector3[];
   mixer: THREE.AnimationMixer;
   clips: THREE.AnimationClip[];
-  idle: THREE.AnimationAction;
+  /** One action per clip, all playing; the rig sets their time and weight on every frame. */
+  actions: Map<string, THREE.AnimationAction>;
+  /** Smoothed (crossfaded) layer weights, before composition. */
+  weights: Map<string, number>;
+  /** Clock time of the last animated frame; null until the body's first frame (which snaps). */
+  animatedAtMs: number | null;
   /** Closed-fist frame of each hand in the Idle pose, in hand-bone space. */
   fists: Record<'right' | 'left', Fist>;
   deformKey: string;
@@ -88,7 +104,8 @@ export class CharacterRig implements CharacterRigHandle {
   private readonly camera = new THREE.PerspectiveCamera(26, 0.75, 0.05, 50);
   /** Yaw + height scale of the whole character. */
   private readonly model = new THREE.Group();
-  private readonly clock = new THREE.Clock();
+  private animation: AnimationSource = { base: 'Idle' };
+  private animationClock: () => number = Date.now;
   private readonly bodies = new Map<Sex, Promise<BodyAsset>>();
   private readonly glbCache = new Map<string, Promise<THREE.Object3D>>();
   private readonly imageCache = new Map<string, Promise<ImageBitmap>>();
@@ -147,7 +164,21 @@ export class CharacterRig implements CharacterRigHandle {
     return bone;
   }
   clipNames(): string[] { return this.current?.clips.map((clip) => clip.name) ?? []; }
-  playingClip(): string | null { return this.current?.idle.isRunning() ? this.current.idle.getClip().name : null; }
+  playingClip(): string | null {
+    let best: string | null = null, bestWeight = 0;
+    for (const [name, action] of this.current?.actions ?? []) {
+      const weight = action.getEffectiveWeight();
+      if (weight > bestWeight) { best = name; bestWeight = weight; }
+    }
+    return best;
+  }
+  clipWeight(name: string): number { return this.current?.actions.get(name)?.getEffectiveWeight() ?? 0; }
+  clipTime(name: string): number { return this.current?.actions.get(name)?.time ?? 0; }
+  setAnimation(source: AnimationSource, clock: () => number = Date.now): void {
+    this.animation = source;
+    this.animationClock = clock;
+  }
+  renderNow(): void { this.renderOnce(); }
   modelScale(): number { return this.model.scale.y; }
   isDisposed(): boolean { return this.disposed; }
   isRendering(): boolean { return this.frame !== null; }
@@ -173,10 +204,11 @@ export class CharacterRig implements CharacterRigHandle {
     if (this.disposed) return;
 
     if (this.current !== body) {
-      if (this.current) { this.current.idle.stop(); this.model.remove(this.current.root); }
+      if (this.current) this.model.remove(this.current.root);
       this.model.add(body.root);
       this.current = body;
-      body.idle.reset().play();
+      // The body's first frame shows the current pose directly (no fade from a stale one).
+      body.animatedAtMs = null;
     }
 
     this.deform(body, pick('face'), pick('nose'), pick('mouth'), pick('chest'), config.sex === 'female' ? facial : null);
@@ -363,20 +395,32 @@ export class CharacterRig implements CharacterRigHandle {
       }
       return clip;
     });
-    const idle = mixer.clipAction(clips.find((clip) => clip.name === 'Idle')!);
+    // Every clip plays all the time at time scale 0: the rig positions each one by the
+    // clock and decides its weight, so the mixer never advances anything by itself.
+    const actions = new Map<string, THREE.AnimationAction>();
+    for (const clip of clips) {
+      const action = mixer.clipAction(clip);
+      if (!(BASE_CLIPS as readonly string[]).includes(clip.name)) {
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = true; // Dead (and every one-shot) holds its last frame
+      }
+      action.timeScale = 0;
+      action.setEffectiveWeight(clip.name === 'Idle' ? 1 : 0);
+      action.play();
+      actions.set(clip.name, action);
+    }
 
     // Measure the closed fist in the Idle pose (in the bind pose the fingers are straight).
-    idle.play();
     mixer.update(0);
     root.updateMatrixWorld(true);
     const fists = { right: measureFist(bones, 'r'), left: measureFist(bones, 'l') };
-    idle.stop();
-    mixer.update(0);
 
     return {
       sex, root, body: bodyMesh, brows: browsMesh, bones, bind, originalBody, originalBrows, surface,
       baseSkin, skinReference: averageSkinColor(baseSkin.data), skinCanvas, skinTexture,
-      noseTip, chestCenters: chest, jaw, chin, cheeks, earLobes: ears, mixer, clips, idle, fists, deformKey: '', skinKey: '',
+      noseTip, chestCenters: chest, jaw, chin, cheeks, earLobes: ears, mixer, clips, actions,
+      weights: new Map(CLIP_NAMES.map((name) => [name, name === 'Idle' ? 1 : 0])), animatedAtMs: null,
+      fists, deformKey: '', skinKey: '',
     };
   }
 
@@ -742,14 +786,74 @@ export class CharacterRig implements CharacterRigHandle {
 
   private renderOnce(): void {
     if (this.disposed) return;
-    const delta = Math.min(this.clock.getDelta(), 0.1);
-    this.current?.mixer.update(delta);
+    if (this.current) this.animate(this.current, this.animationClock());
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /**
+   * Turns the AnimationState at `nowMs` into a time and an effective weight per clip.
+   * Times come from the clock alone; only the crossfade weights carry over between
+   * frames (the body's first frame snaps to the targets).
+   */
+  private animate(body: BodyAsset, nowMs: number): void {
+    const state: AnimationState = typeof this.animation === 'function' ? this.animation(nowMs) : this.animation;
+    const snap = body.animatedAtMs === null;
+    const dt = snap ? 0 : Math.max(0, (nowMs - body.animatedAtMs!) / 1000);
+    body.animatedAtMs = nowMs;
+    const action = (name: string) => body.actions.get(name)!;
+    const duration = (name: string) => action(name).getClip().duration;
+    const hold = (name: string, seconds: number) => { action(name).time = Math.max(0, Math.min(duration(name), seconds)); };
+
+    for (const name of BASE_CLIPS) action(name).time = ((nowMs / 1000) % duration(name) + duration(name)) % duration(name);
+    let overlay: string | null = null;
+    if (state.oneShot) {
+      overlay = state.oneShot.clip;
+      hold(overlay, ((nowMs - state.oneShot.startedAtMs) / 1000) * state.oneShot.speed);
+    } else if (state.cast) {
+      const elapsed = (nowMs - state.cast.startedAtMs) / 1000;
+      const enter = duration('CastStart');
+      if (elapsed < enter) {
+        overlay = 'CastStart';
+        hold('CastStart', elapsed);
+      } else {
+        overlay = 'CastLoop';
+        hold('CastLoop', (elapsed - enter) % duration('CastLoop'));
+      }
+    }
+    // Clips that leave the state keep their last time while they fade out.
+
+    const ease = (name: string, target: number) => {
+      const from = body.weights.get(name) ?? 0;
+      const next = snap ? target : target > from ? Math.min(target, from + dt / FADE_IN_SECONDS) : Math.max(target, from - dt / FADE_OUT_SECONDS);
+      body.weights.set(name, next);
+      return next;
+    };
+    const baseWeights = BASE_CLIPS.map((name) => ease(name, name === state.base ? 1 : 0));
+    const overlayWeights = OVERLAY_CLIPS.map((name) => ease(name, name === overlay ? 1 : 0));
+
+    // Compose so the weights always sum to one: a deficit would blend in the bind pose.
+    const overlaySum = overlayWeights.reduce((a, b) => a + b, 0);
+    const overlayScale = overlaySum > 1 ? 1 / overlaySum : 1;
+    const overlayTotal = Math.min(1, overlaySum);
+    const baseSum = baseWeights.reduce((a, b) => a + b, 0) || 1;
+    let hitWeight = 0;
+    if (state.hit) {
+      const elapsed = (nowMs - state.hit.startedAtMs) / 1000;
+      const length = duration(state.hit.clip);
+      if (elapsed >= 0 && elapsed < length) {
+        hitWeight = HIT_PEAK * Math.sin((Math.PI * elapsed) / length);
+        hold(state.hit.clip, elapsed);
+      }
+    }
+    const rest = 1 - hitWeight;
+    BASE_CLIPS.forEach((name, i) => action(name).setEffectiveWeight(rest * (1 - overlayTotal) * (baseWeights[i] / baseSum)));
+    OVERLAY_CLIPS.forEach((name, i) => action(name).setEffectiveWeight(rest * overlayWeights[i] * overlayScale));
+    for (const name of HIT_CLIPS) action(name).setEffectiveWeight(state.hit?.clip === name ? hitWeight : 0);
+    body.mixer.update(0);
   }
 
   private startLoop(): void {
     if (this.frame !== null || this.disposed || !this.visible || document.hidden) return;
-    this.clock.getDelta();
     const tick = () => {
       this.frame = requestAnimationFrame(tick);
       this.renderOnce();

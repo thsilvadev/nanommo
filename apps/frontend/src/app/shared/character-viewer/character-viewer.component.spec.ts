@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { APPEARANCE_TRAITS, defaultAppearance, type AppearanceCatalog, type HandWeaponType } from '@nanommo/shared';
 import { CHARACTER_VIEWER_ENV, CharacterViewerComponent, type CharacterViewerEnv } from './character-viewer.component';
+import type { CharacterRigHandle } from './character-viewer.types';
+import type { AnimationState } from '../character-animation/animation-state';
 
 const ASSETS = '/assets/character/';
 
@@ -98,6 +100,88 @@ describe('CharacterViewerComponent', () => {
     const rig = fixture.componentInstance.rig()!;
     expect(rig.clipNames().sort()).toEqual(['Attack', 'CastLoop', 'CastStart', 'CombatIdle', 'Damage', 'Damage2', 'Dead', 'Idle', 'Walk']);
     expect(rig.playingClip()).toBe('Idle');
+  });
+
+  describe('animation', () => {
+    async function ready() {
+      const created = await create();
+      fixture = created.fixture;
+      await settle(fixture, created.events);
+      const rig = fixture.componentInstance.rig()!;
+      let now = 1_000_000;
+      let state: AnimationState = { base: 'Idle' };
+      rig.setAnimation(() => state, () => now);
+      const frame = (advanceMs = 0) => { now += advanceMs; rig.renderNow(); };
+      frame();
+      return { rig, frame, set: (next: AnimationState) => { state = next; }, now: () => now, events: created.events };
+    }
+    const total = (rig: CharacterRigHandle, names: string[]) => names.reduce((sum, name) => sum + rig.clipWeight(name), 0);
+    const ALL = ['Idle', 'Walk', 'CombatIdle', 'Attack', 'Dead', 'CastStart', 'CastLoop', 'Damage', 'Damage2'];
+
+    it('crossfades between loops in about 0.2 s, weights always summing to one', async () => {
+      const { rig, frame, set } = await ready();
+      expect(rig.playingClip()).toBe('Idle');
+      set({ base: 'Walk' });
+      frame(100);
+      expect(rig.clipWeight('Walk')).toBeGreaterThan(0.2);
+      expect(rig.clipWeight('Idle')).toBeGreaterThan(0.2);
+      expect(total(rig, ALL)).toBeCloseTo(1, 5);
+      frame(150);
+      expect(rig.playingClip()).toBe('Walk');
+      expect(rig.clipWeight('Idle')).toBe(0);
+    });
+
+    it('positions a one-shot by absolute time and speed', async () => {
+      const { rig, frame, set, now } = await ready();
+      set({ base: 'CombatIdle', oneShot: { clip: 'Attack', startedAtMs: now() - 300, speed: 1.5 } });
+      frame(400);
+      expect(rig.playingClip()).toBe('Attack');
+      expect(rig.clipTime('Attack')).toBeCloseTo(0.7 * 1.5, 3);
+      expect(total(rig, ALL)).toBeCloseTo(1, 5);
+    });
+
+    it('joins the hands (CastStart), then holds them (CastLoop) until the cast ends', async () => {
+      const { rig, frame, set, now } = await ready();
+      const start = now();
+      set({ base: 'CombatIdle', cast: { startedAtMs: start, endsAtMs: start + 3000 } });
+      frame(300);
+      expect(rig.playingClip()).toBe('CastStart');
+      expect(rig.clipTime('CastStart')).toBeCloseTo(0.3, 3);
+      frame(900);
+      expect(rig.playingClip()).toBe('CastLoop');
+      expect(rig.clipTime('CastLoop')).toBeCloseTo(1.2 - 0.533, 2);
+    });
+
+    it('blends Damage over an Attack without replacing it', async () => {
+      const { rig, frame, set, now } = await ready();
+      const start = now();
+      set({ base: 'CombatIdle', oneShot: { clip: 'Attack', startedAtMs: start, speed: 1 }, hit: { clip: 'Damage', startedAtMs: start + 300 } });
+      frame(300 + 333 / 2);
+      expect(rig.playingClip()).toBe('Attack');
+      expect(rig.clipWeight('Damage')).toBeGreaterThan(0.2);
+      expect(total(rig, ALL)).toBeCloseTo(1, 5);
+    });
+
+    it('holds Dead on its last frame', async () => {
+      const { rig, frame, set, now } = await ready();
+      set({ base: 'CombatIdle', oneShot: { clip: 'Dead', startedAtMs: now(), speed: 1 } });
+      frame(10_000);
+      expect(rig.playingClip()).toBe('Dead');
+      const end = rig.clipTime('Dead');
+      expect(end).toBeCloseTo(2.4, 2);
+      frame(5_000);
+      expect(rig.clipTime('Dead')).toBe(end);
+    });
+
+    it('shows the right pose on the very first frame of a new body (opening mid-cast)', async () => {
+      const { rig, frame, set, now, events } = await ready();
+      set({ base: 'CombatIdle', cast: { startedAtMs: now() - 1500, endsAtMs: now() + 1500 } });
+      fixture!.componentRef.setInput('sex', 'female');
+      await settle(fixture!, events, { loaded: 2 });
+      frame();
+      expect(rig.playingClip()).toBe('CastLoop');
+      expect(rig.clipWeight('CastLoop')).toBeCloseTo(1, 5);
+    });
   });
 
   it('puts the main-hand item in the dominant hand and the off-hand item in the other', async () => {
