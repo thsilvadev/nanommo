@@ -1,3 +1,4 @@
+import { guardEncounterDeadline } from './party-deadline';
 import { Inject, forwardRef, BadRequestException, Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
@@ -176,13 +177,14 @@ export class SharedBattleService {
   async drain(ctx:PartyContext){
     const ids=ctx.characters.map(c=>c.id);
     const active=await ctx.manager.query('SELECT 1 FROM active_battle_participants WHERE "characterId"=ANY($1::uuid[]) LIMIT 1',[ids]);if(active.length)return;
-    const legacy=await ctx.manager.query(`SELECT 1 FROM battle_queue_entries WHERE "characterId"=ANY($1::uuid[]) AND NOT resolved AND "startAt"<=to_timestamp($2/1000.0) LIMIT 1`,[ids,ctx.now]);if(legacy.length)return;
-    const due=await ctx.manager.query(`SELECT 1 FROM encounter_clocks WHERE status='searching' AND "dueAt"<=to_timestamp($2/1000.0) AND (("ownerKind"='party' AND "ownerId"=$3) OR ("ownerKind"='character' AND "ownerId"=ANY($1::uuid[]))) LIMIT 1`,[ids,ctx.now,ctx.party?.id??null]);if(due.length)return;
+    const legacy=await ctx.manager.query(`SELECT 1 FROM battle_queue_entries WHERE "characterId"=ANY($1::uuid[]) AND NOT resolved AND "startAt"<=to_timestamp($2/1000.0) + interval '50 milliseconds' LIMIT 1`,[ids,ctx.now]);if(legacy.length)return;
+    const due=await ctx.manager.query(`SELECT 1 FROM encounter_clocks WHERE status='searching' AND "dueAt"<=to_timestamp($2/1000.0) + interval '50 milliseconds' AND (("ownerKind"='party' AND "ownerId"=$3) OR ("ownerKind"='character' AND "ownerId"=ANY($1::uuid[]))) LIMIT 1`,[ids,ctx.now,ctx.party?.id??null]);if(due.length)return;
     const pending=await ctx.manager.query(`SELECT * FROM character_action_intents WHERE "characterId"=ANY($1::uuid[]) AND status='pending' AND "createdAt" <= to_timestamp($2/1000.0) ORDER BY "characterId",sequence FOR UPDATE`,[ids,ctx.now]);
     for(const intent of pending){
       // Savepoint contains both command mutation and its status; a rejected command cannot poison the next.
       await ctx.manager.query('SAVEPOINT action_execution');
       try{
+        await guardEncounterDeadline(ctx.manager, [intent.characterId], ctx.party?.id ?? null);
         await this.apply(ctx,intent);
         const now=Number((await ctx.manager.query('SELECT extract(epoch FROM clock_timestamp())*1000 AS now'))[0].now);
         const late=await ctx.manager.query(`SELECT 1 FROM encounter_clocks WHERE status='searching' AND "dueAt"<=to_timestamp(($2::double precision+50)/1000.0) AND (("ownerKind"='party' AND "ownerId"=$3) OR ("ownerKind"='character' AND "ownerId"=$1)) LIMIT 1`,[intent.characterId,now,ctx.party?.id??null]);

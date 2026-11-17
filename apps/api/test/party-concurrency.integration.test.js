@@ -4,6 +4,7 @@ const {DataSource}=require('typeorm'),entities=require('../dist/apps/api/src/dat
 const {PartyService}=require('../dist/apps/api/src/modules/party/party.service');
 const {SharedBattleService}=require('../dist/apps/api/src/modules/party/shared-battle.service');
 const {PartyGroupCombat1800500000000}=require('../dist/apps/api/src/database/migrations/1800500000000-PartyGroupCombat');
+const {PartyDeadlineGuard1800600000000}=require('../dist/apps/api/src/database/migrations/1800600000000-PartyDeadlineGuard');
 const {InventoryService}=require('../dist/apps/api/src/modules/inventory/inventory.service');
 const {QuestService}=require('../dist/apps/api/src/modules/quests/quest.service');
 const {DataService}=require('../dist/apps/api/src/modules/data/data.service');
@@ -11,8 +12,9 @@ if(process.env.PARTY_TEST_DATABASE!=='nanommo_party_test')throw new Error('Set P
 const db=new DataSource({type:'postgres',host:'127.0.0.1',port:55439,username:'party_test',database:'nanommo_party_test',entities:Object.values(entities).filter(e=>typeof e==='function'&&!['Party','PartyMember','PartyInvite','CharacterActionIntent','EncounterClock','SharedBattle','SharedBattleParticipant','ActiveBattleParticipant','PartyOutbox'].includes(e.name)),synchronize:false});
 (async()=>{
  await db.initialize();await db.synchronize(true);
+ await db.query('DROP FUNCTION IF EXISTS check_party_deadline_at_commit()');
  await db.query('ALTER TABLE characters DROP COLUMN "autoPartyEnabled", DROP COLUMN "autoPartyEnabledAt"');
- const runner=db.createQueryRunner();await runner.startTransaction();await new PartyGroupCombat1800500000000().up(runner);await runner.commitTransaction();await runner.release();
+ const runner=db.createQueryRunner();await runner.startTransaction();await new PartyGroupCombat1800500000000().up(runner);await new PartyDeadlineGuard1800600000000().up(runner);await runner.commitTransaction();await runner.release();
  const data=new DataService(),cwd=process.cwd();process.chdir(path.resolve(__dirname,'..'));data.onModuleInit();process.chdir(cwd);
  const snapshot={level:1,hp:100,sp:50,maxHp:100,maxSp:50,atk:30,matk:20,def:5,mdefPercent:0,accuracy:100,evasion:0,critChance:0,hpRegenPerTenTicks:0,spRegenPerTenTicks:0,agi:5,dex:5,luk:5,attackSpeed:200,moveSpeed:100,moveSpeedBase:100,isPlayerCharacter:true,basicAttackDamageType:'melee',basicAttackRange:0};
  const battle={buildCharacterSnapshot:async c=>({...snapshot,hp:c.hpCurrent,sp:c.spCurrent}),preparePartyFood:async()=>true};

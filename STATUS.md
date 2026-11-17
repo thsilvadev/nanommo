@@ -1,3 +1,9 @@
+### Party deadline check during commit — 2026-11-17
+
+Party command processing and invite acceptance record the earliest applicable encounter deadline under the existing advisory locks. A deferred PostgreSQL constraint checks that original deadline during COMMIT, before the locks are released. If the transaction has reached the cutoff, PostgreSQL rolls back the mutation and its events, and the service retries with the request pending. The encounter clock stays unchanged. Migration `1800600000000-PartyDeadlineGuard` adds the deferred check. The 50 ms cutoff leaves time for PostgreSQL to finish committing after the final check. This does not certify the physical commit timestamp under an unbounded database stall.
+
+Validation: API build and strict Party OpenSpec passed. On disposable PostgreSQL, a delay after mutation caused both a character action and a Party join to roll back, preserve their requests, and apply once after the encounter cleared. Party concurrency, clock and offline recovery regressions passed. The Nest startup and outbox integration checks used disposable PostgreSQL and Redis.
+
 ### Party branch integration and recovery work — 2026-11-17
 
 Integrated the latest local `main` into `feat-party`, resolving the Character portrait and locale conflicts while preserving both the 3D creator and Party UI. Restored canonical/frontend Party item and Alchemy mirrors after the merge. Solo queue processing now shares PostgreSQL advisory authority with Party membership changes, rechecks membership after acquiring it, and serializes legacy future-combat mutations. Party recovery wakes solo grinders whose future projections were invalidated and isolates per-party failures. Group snapshots retain leader identity and monster resistances, and food expiring at a regeneration boundary no longer grants an extra regeneration tick.

@@ -1,3 +1,4 @@
+import { guardEncounterDeadline, PARTY_DEADLINE_REACHED } from './party-deadline';
 import { Inject, forwardRef, BadRequestException, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In } from 'typeorm';
@@ -43,7 +44,7 @@ export class PartyService {
           const now=Number((await manager.query('SELECT extract(epoch FROM clock_timestamp())*1000 AS now'))[0].now);
           return operation({manager,characters,party,members:members.filter(m=>m.partyId===party?.id),now});
         });
-      } catch(e) { if (e instanceof MembershipChanged || ['40001','40P01'].includes(e?.code)) continue; throw e; }
+      } catch(e) { if (e instanceof MembershipChanged || ['40001','40P01',PARTY_DEADLINE_REACHED].includes(e?.code)) continue; throw e; }
     }
     throw new ConflictException('Party changed; retry request');
   }
@@ -52,8 +53,8 @@ export class PartyService {
   private leader(ctx:PartyContext,id:string): PartyRow { if(!ctx.party||ctx.party.leaderCharacterId!==id)this.error('PARTY_LEADER_REQUIRED'); return ctx.party; }
   async isBusy(ctx:PartyContext,ids:string[]):Promise<boolean> {
     const shared=await ctx.manager.query('SELECT 1 FROM active_battle_participants WHERE "characterId"=ANY($1::uuid[]) LIMIT 1',[ids]);
-    const legacy=await ctx.manager.query(`SELECT 1 FROM battle_queue_entries WHERE "characterId"=ANY($1::uuid[]) AND NOT resolved AND "startAt" <= to_timestamp($2/1000.0) LIMIT 1`,[ids,ctx.now]);
-    const clocks=await ctx.manager.query(`SELECT 1 FROM encounter_clocks WHERE (("ownerKind"='character' AND "ownerId"=ANY($1::uuid[])) OR ("ownerKind"='party' AND "ownerId"=$3::uuid)) AND status='searching' AND "dueAt"<=to_timestamp($2/1000.0) LIMIT 1`,[ids,ctx.now,ctx.party?.id??null]);
+    const legacy=await ctx.manager.query(`SELECT 1 FROM battle_queue_entries WHERE "characterId"=ANY($1::uuid[]) AND NOT resolved AND "startAt" <= to_timestamp($2/1000.0) + interval '50 milliseconds' LIMIT 1`,[ids,ctx.now]);
+    const clocks=await ctx.manager.query(`SELECT 1 FROM encounter_clocks WHERE (("ownerKind"='character' AND "ownerId"=ANY($1::uuid[])) OR ("ownerKind"='party' AND "ownerId"=$3::uuid)) AND status='searching' AND "dueAt"<=to_timestamp($2/1000.0) + interval '50 milliseconds' LIMIT 1`,[ids,ctx.now,ctx.party?.id??null]);
     return !!(shared.length||legacy.length||clocks.length);
   }
   async event(manager:EntityManager,characterId:string,event:string,payload:any):Promise<void> {
@@ -131,6 +132,7 @@ export class PartyService {
         await ctx.manager.query(`UPDATE party_invites SET status='cancelled',revision=revision+1 WHERE id=$1`,[i.id]);return;
       }
       if(ctx.party?.activity||a.travelIntent||b.travelIntent||await this.isBusy(ctx,ctx.characters.map(c=>c.id)))return;
+      await guardEncounterDeadline(ctx.manager, ctx.characters.map(c => c.id), ctx.party?.id ?? null);
       if(!ctx.party){
         const id=randomUUID();
         await ctx.manager.query(`INSERT INTO parties(id,kind,"leaderCharacterId","mapId") VALUES($1,$2,$3,$4)`,[id,i.mode,a.id,a.currentMapId]);
