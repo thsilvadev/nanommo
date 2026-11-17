@@ -61,6 +61,18 @@ Assets: pack CC0 como base (decisão do usuário), em vez de modelos sob encomen
 - `dominantHand` continua sendo escolhida na criação e define a mão da arma principal.
 - Armas de mão equipadas aparecem no modelo, um placeholder por `weaponType`, sem distinção de tier.
 
+## Ajustes após a inspeção dos assets (2026-11-17)
+
+A versão gratuita do pack é menor que o previsto (ver `2026-11-16-criador-personagem-3d-assets.md`). O usuário decidiu seguir com ela; onde este documento disser o contrário, vale o seguinte:
+
+- **Biotipo:** corpos "Superhero" (não "Regular").
+- **Cabelos:** 4 opções por sexo; "longo" e "repartido" aparecem nos dois.
+- **Roupa:** não há roupa básica; o personagem aparece de roupa de baixo, com a cor escurecida na textura.
+- **Pelos faciais:** além dos pintados, há uma barba 3D e sobrancelhas 3D do pack.
+- **Nariz e chest size:** deslocamento de vértices por região (os modelos não têm ossos de rosto/peito nem morphs).
+- **Armas:** `dagger`, `sword`, `greatsword`, `bow`, `shield` do pack Medieval Weapons; `staff`, `rod`, `rune` gerados em código.
+- Trocar para o pack pago depois é substituir arquivos e ampliar as listas do catálogo, sem mudar código.
+
 ## Modelo de dados
 
 Novas colunas em `characters` (todas anuláveis; `NULL` = personagem ainda sem aparência):
