@@ -166,7 +166,7 @@ export class CharacterRig implements CharacterRigHandle {
     const [hairObject, beardObject, skinImages, weaponObjects] = await Promise.all([
       hair.asset ? this.loadGlb(hair.asset) : Promise.resolve(null),
       facial.asset?.endsWith('.glb') ? this.loadGlb(facial.asset) : Promise.resolve(null),
-      this.loadSkinImages([pick('mouth'), facial, pick('tattoo')]),
+      this.loadSkinImages([pick('mouthDetails'), facial, pick('tattoo')]),
       Promise.all((['right', 'left'] as const).map((side) => (config.hands[side] ? this.loadWeapon(config.hands[side]!) : null))),
     ]);
     if (this.disposed) return;
@@ -178,8 +178,8 @@ export class CharacterRig implements CharacterRigHandle {
       body.idle.reset().play();
     }
 
-    this.deform(body, pick('face'), pick('nose'), pick('chest'), config.sex === 'female' ? facial : null);
-    this.composeSkin(body, pick('skin'), pick('hairColor'), pick('mouth'), facial, pick('tattoo'), skinImages);
+    this.deform(body, pick('face'), pick('nose'), pick('mouth'), pick('chest'), config.sex === 'female' ? facial : null);
+    this.composeSkin(body, pick('skin'), pick('hairColor'), pick('mouthDetails'), facial, pick('tattoo'), skinImages);
     const hairColor = new THREE.Color().setStyle(pick('hairColor').color ?? '#3a2a20').multiplyScalar(1.6);
     (body.brows.material as THREE.MeshStandardMaterial).color.copy(hairColor).multiplyScalar(0.8);
     this.attachHead(body, 'hair', hairObject, hairColor);
@@ -374,8 +374,8 @@ export class CharacterRig implements CharacterRigHandle {
   // ---- Appearance ------------------------------------------------------------
 
   /** Nose, chest and (female) brow shape: vertex displacement from the original bind-pose positions. */
-  private deform(body: BodyAsset, face: AppearanceOption, nose: AppearanceOption, chest: AppearanceOption, brows: AppearanceOption | null): void {
-    const key = [face.id, nose.id, chest.id, brows?.id ?? ''].join('|');
+  private deform(body: BodyAsset, face: AppearanceOption, nose: AppearanceOption, mouth: AppearanceOption, chest: AppearanceOption, brows: AppearanceOption | null): void {
+    const key = [face.id, nose.id, mouth.id, chest.id, brows?.id ?? ''].join('|');
     if (body.deformKey === key) return;
     body.deformKey = key;
 
@@ -391,6 +391,9 @@ export class CharacterRig implements CharacterRigHandle {
     const chestSize = param(chest, 'size');
     const chestRadius = body.sex === 'female' ? 0.078 : 0.09;
     const chestAmount = chestSize * (body.sex === 'female' ? 0.024 : 0.014);
+    const mouthWidth = param(mouth, 'width'), lipThickness = param(mouth, 'thickness');
+    // Mouth centre: the slit between the lips, a fixed drop below the nose tip on both bodies.
+    const mouthY = tip.y - 0.033, mouthZ = tip.z - 0.02, mouthRadius = 0.036;
     const jawWidth = param(face, 'jaw'), chinLength = param(face, 'chin'), chinWidth = param(face, 'chinWidth'), cheekFull = param(face, 'cheeks');
 
     for (let i = 0; i < position.count; i++) {
@@ -402,6 +405,18 @@ export class CharacterRig implements CharacterRigHandle {
         out[i * 3] = x * (1 + 0.38 * width * f);
         out[i * 3 + 1] = y - 0.004 * length * f * front;
         out[i * 3 + 2] = z + 0.008 * length * f * front + 0.006 * bridge * f * Math.max(0, Math.min(1, (y - tip.y) / 0.02));
+      }
+      // Mouth shape: wider/narrower and thicker/thinner lips (lips spread away from the slit).
+      if ((mouthWidth !== 0 || lipThickness !== 0) && z > mouthZ - 0.03) {
+        const d = Math.hypot(x, (y - mouthY) * 1.6, z - mouthZ);
+        if (d < mouthRadius) {
+          const f = smooth(1 - d / mouthRadius);
+          out[i * 3] += x * 0.28 * mouthWidth * f;
+          // Keep the slit itself in place (a 2 mm dead zone) so thicker lips do not open the mouth.
+          const dy = y - mouthY;
+          out[i * 3 + 1] += Math.sign(dy) * Math.max(0, Math.abs(dy) - 0.002) * 0.55 * lipThickness * f;
+          out[i * 3 + 2] += 0.003 * lipThickness * f;
+        }
       }
       // Face shape: wider/narrower jaw angles, longer/shorter and wider/narrower chin, fuller cheeks.
       if (jawWidth !== 0) {
@@ -595,7 +610,9 @@ export class CharacterRig implements CharacterRigHandle {
       group.add(mesh);
     };
     if (piercing.id === 'nose_ring') ring(0.0055, new THREE.Vector3(tip.x + 0.013, tip.y - 0.004, tip.z - 0.014), 'normal');
-    if (piercing.id === 'lip_ring') ring(0.0058, new THREE.Vector3(0.011, tip.y - 0.037, tip.z - 0.01), 'normal');
+    // Lower lip: it sits lower on the male face (measured: 4.3 cm vs 3.7 cm below the nose tip).
+    const lowerLip = body.sex === 'male' ? 0.043 : 0.037;
+    if (piercing.id === 'lip_ring') ring(0.0058, new THREE.Vector3(0.011, tip.y - lowerLip, tip.z - 0.012), 'normal');
     if (piercing.id === 'eyebrow_stud') {
       stud(new THREE.Vector3(0.038, tip.y + 0.058, tip.z - 0.03));
       stud(new THREE.Vector3(0.046, tip.y + 0.05, tip.z - 0.035));
@@ -670,12 +687,13 @@ export class CharacterRig implements CharacterRigHandle {
         matrix = basis(through(1.25), palm.clone().negate()).setPosition(centre);
         break;
       case 'staff':
-        matrix = basis(through(-1.3), palm).setPosition(centre);
+        // Top leans forward, following the fist's hole, so it clears the arm.
+        matrix = basis(through(-0.62, 0.22), palm).setPosition(centre);
         break;
       case 'shield':
         // On the back of the forearm, facing outwards.
         matrix = basis(along.clone().negate(), palm.clone().negate())
-          .setPosition(centre.clone().addScaledVector(along, -0.16).addScaledVector(palm, -0.075));
+          .setPosition(centre.clone().addScaledVector(along, -0.15).addScaledVector(palm, -0.038));
         break;
       case 'rune':
         matrix = basis(along.clone().negate(), lateral).setPosition(centre.clone().addScaledVector(along, 0.085));

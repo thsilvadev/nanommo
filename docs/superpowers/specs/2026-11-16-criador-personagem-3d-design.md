@@ -8,7 +8,7 @@ Dar a cada personagem um corpo 3D customizável, criado uma única vez, e exibi-
 
 ## Objetivos
 
-1. Tela de criação gráfica com 12 traços: sexo, cabelo, cor do cabelo, formato do rosto, nariz, boca, altura, chest size, cor de pele, pelos faciais, piercing, tattoo. Até 5 opções por traço (8 para boca), listas distintas por sexo (exceto piercing e tattoo, que são compartilhadas).
+1. Tela de criação gráfica com 13 traços: sexo, cabelo, cor do cabelo, formato do rosto, nariz, boca, detalhes da boca, altura, chest size, cor de pele, pelos faciais, piercing, tattoo. Até 5 opções por traço (8 para detalhes da boca), listas distintas por sexo (exceto piercing e tattoo, que são compartilhadas).
 2. Personagem existente sem aparência é congelado ao conectar e levado ao criador com nome e mão dominante travados; salva a aparência sem perder nada.
 3. `sex` e `height` (1–4) persistidos; altura aplica ajuste de STR/LUK uma única vez, para personagens novos e existentes.
 4. Portrait do Character Summary mostra o modelo em idle, com as armas de mão equipadas (um modelo placeholder por tipo de arma) na mão correta conforme `dominantHand`.
@@ -81,6 +81,11 @@ Pedidos do usuário depois de ver o visualizador:
 - **Bocas:** +3 por sexo (8 no total). O limite por traço sobe de 5 para 8 (`MAX_APPEARANCE_OPTIONS`). Masculino: carnuda, caída, com cicatriz. Feminino: coração, larga, biquinho.
 - **Armas:** o cabo passa pelo furo da mão fechada, medido na pose Idle. Sem animação própria por arma nesta entrega (armas de duas mãos continuam numa mão só).
 - **Piercings:** nariz na asa do nariz, argola no lábio inferior.
+
+Segunda revisão (mesmo dia):
+
+- **Boca** passa a ser dois traços: `mouth` (3 formatos por sexo, deformação de largura/espessura dos lábios; masculino: regular, fina e larga, grossa e estreita; feminino: regular, carnuda, pequena) e `mouthDetails` (as 8 variações de cor e desenho de antes). Total de 12 traços na tela, contando sexo e altura.
+- Argola do lábio masculino no lábio inferior; escudo encostado no antebraço; cajado inclinado para a frente, seguindo o punho.
 
 ## Modelo de dados
 

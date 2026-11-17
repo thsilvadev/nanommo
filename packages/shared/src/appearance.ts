@@ -10,7 +10,7 @@ export const HEIGHT_CM_MIN = 145;
 export const HEIGHT_CM_MAX = 205;
 
 export const APPEARANCE_TRAITS = [
-  'hair', 'hairColor', 'skin', 'face', 'nose', 'mouth', 'chest', 'facialHair', 'piercing', 'tattoo',
+  'hair', 'hairColor', 'skin', 'face', 'nose', 'mouth', 'mouthDetails', 'chest', 'facialHair', 'piercing', 'tattoo',
 ] as const;
 
 /** Most options any single trait may list. */
