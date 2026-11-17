@@ -91,12 +91,12 @@ describe('CharacterViewerComponent', () => {
     expect(fixture.nativeElement.querySelector('canvas')).toBeNull();
   });
 
-  it('plays Idle and ships the five named clips', async () => {
+  it('plays Idle and ships the named clips', async () => {
     const created = await create();
     fixture = created.fixture;
     await settle(fixture, created.events);
     const rig = fixture.componentInstance.rig()!;
-    expect(rig.clipNames().sort()).toEqual(['Attack', 'Damage', 'Dead', 'Idle', 'Walk']);
+    expect(rig.clipNames().sort()).toEqual(['Attack', 'CastLoop', 'CastStart', 'CombatIdle', 'Damage', 'Damage2', 'Dead', 'Idle', 'Walk']);
     expect(rig.playingClip()).toBe('Idle');
   });
 

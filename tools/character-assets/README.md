@@ -31,7 +31,8 @@ variações no nome das pastas (procura pelo prefixo).
 - **Corpos:** mantém corpo, olhos e sobrancelhas (o mesmo esqueleto de 65 ossos nos dois),
   renomeia as malhas para `Body` / `Eyes` / `Brows` e reduz as texturas à cor base. A textura
   de pele é recomposta em tempo de execução (tom, boca, pelos pintados, tattoo).
-- **Animações:** só os cinco clipes usados, só rotações (mais a translação da pélvis), sem a
+- **Animações:** só os clipes usados (`CLIPS` em `build.mjs`: Idle, Walk, Attack, Damage, Dead,
+  CombatIdle, CastStart, CastLoop, Damage2), só rotações (mais a translação da pélvis), sem a
   malha do manequim. Servem aos dois corpos.
 - **Cabelos e barba:** gravados no espaço local do osso `Head` do corpo para o qual foram
   modelados, para encaixarem em qualquer um dos dois corpos.

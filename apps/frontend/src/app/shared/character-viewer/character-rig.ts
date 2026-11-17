@@ -15,7 +15,7 @@ import { averageSkinColor, bakeDecal, hexToRgb, sampleColor, tintSkinPixels, typ
 /** Height of each body as modelled, in cm (assets report, Task 0). */
 export const NATIVE_HEIGHT_CM: Record<Sex, number> = { male: 181, female: 177 };
 const SKIN_TEXTURE_SIZE = 1024;
-const CLIP_NAMES = ['Idle', 'Walk', 'Attack', 'Damage', 'Dead'];
+const CLIP_NAMES = ['Idle', 'Walk', 'Attack', 'Damage', 'Dead', 'CombatIdle', 'CastStart', 'CastLoop', 'Damage2'];
 const HAND_BONES = { right: 'hand_r', left: 'hand_l' } as const;
 const FINGERS = ['index', 'middle', 'ring', 'pinky'] as const;
 
