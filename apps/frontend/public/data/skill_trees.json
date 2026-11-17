@@ -56,7 +56,7 @@
           "base": "atk",
           "flatPerRank": 50
         },
-        "target": "monster"
+        "target": "foe"
       }
     ],
     "greatsword": [
@@ -120,7 +120,7 @@
             15
           ]
         },
-        "target": "monster"
+        "target": "foe"
       }
     ],
     "dagger": [
@@ -177,7 +177,7 @@
           55,
           40
         ],
-        "target": "monster",
+        "target": "foe",
         "maxRange": 7,
         "ranged": true,
         "effect": {
@@ -237,7 +237,7 @@
         ],
         "baseCastTicks": 4,
         "cooldownTicks": 36,
-        "target": "monster",
+        "target": "foe",
         "ranged": true,
         "maxRange": 7,
         "effect": {
@@ -249,7 +249,7 @@
           "targetDebuffDurationTicks": 12,
           "targetMoveSpeedMultiplier": 0.2
         },
-        "damageType": "ranged"
+        "damageType": "physical"
       }
     ],
     "staff": [
@@ -269,10 +269,10 @@
         "spCostPerRank": 10,
         "baseCastTicks": 6,
         "cooldownTicks": 2,
-        "target": "monster",
+        "target": "foe",
         "ranged": true,
         "maxRange": 7,
-        "damageType": "magic",
+        "damageType": "magical",
         "effect": {
           "type": "magic_damage",
           "base": "matk",
@@ -303,10 +303,10 @@
         "spCostPerRank": 100,
         "baseCastTicks": 12,
         "cooldownTicks": 50,
-        "target": "monster",
+        "target": "foe",
         "ranged": true,
         "maxRange": 7,
-        "damageType": "magic",
+        "damageType": "magical",
         "effect": {
           "type": "magic_damage",
           "base": "matk",
@@ -336,10 +336,10 @@
         "spCostPerRank": 5,
         "baseCastTicks": 4,
         "cooldownTicks": 2,
-        "target": "monster",
+        "target": "foe",
         "ranged": true,
         "maxRange": 7,
-        "damageType": "magic",
+        "damageType": "magical",
         "effect": {
           "type": "magic_damage_light_wisp",
           "base": "matk_plus_rank_and_pre_cost_sp"
@@ -483,41 +483,43 @@
     {
       "id": "monster_skill_massive_damage",
       "name": "Enraged Strike",
-      "damageType": "melee",
+      "damageType": "physical",
       "effect": {
         "dmgMult": 3
       },
       "baseCastTicks": 8,
       "cooldownTicks": 1998,
-      "spCost": 30
+      "spCost": 30,
+      "target": "foe"
     },
     {
       "id": "monster_skill_self_heal",
       "name": "Regenerate",
-      "damageType": "heal_self",
       "effect": {
         "healPercentMaxHp": 0.25
       },
       "baseCastTicks": 6,
       "cooldownTicks": 20,
-      "spCost": 15
+      "spCost": 15,
+      "target": "self"
     },
     {
       "id": "monster_skill_stun",
       "name": "Ground Slam",
-      "damageType": "melee",
+      "damageType": "physical",
       "effect": {
         "dmgMult": 1.2,
         "applyStatus": "stun"
       },
       "baseCastTicks": 8,
       "cooldownTicks": 1998,
-      "spCost": 30
+      "spCost": 30,
+      "target": "foe"
     },
     {
       "id": "monster_skill_ice_bolt",
       "name": "Ice Bolt",
-      "damageType": "magic",
+      "damageType": "magical",
       "ranged": true,
       "maxRange": 7,
       "effect": {
@@ -527,7 +529,8 @@
       },
       "baseCastTicks": 4,
       "cooldownTicks": 0,
-      "spCost": 0
+      "spCost": 0,
+      "target": "foe"
     },
     {
       "id": "monster_skill_pickpocket",
@@ -552,7 +555,7 @@
         "targetHpBelowPercent": 20,
         "excludeItemType": "food"
       },
-      "damageType": "melee"
+      "damageType": "physical"
     },
     {
       "id": "monster_skill_poison_sting",
@@ -581,7 +584,7 @@
         "durationTicks": 50,
         "damageIntervalTicks": 10
       },
-      "damageType": "magic"
+      "damageType": "magical"
     },
     {
       "id": "monster_skill_prowess",
@@ -684,7 +687,7 @@
         "statusChance": 0.5,
         "durationTicks": 40
       },
-      "damageType": "melee"
+      "damageType": "physical"
     },
     {
       "id": "monster_skill_arcane_surge",
@@ -696,7 +699,7 @@
       "baseCastTicks": 6,
       "ranged": true,
       "maxRange": 7,
-      "damageType": "magic",
+      "damageType": "magical",
       "effect": {
         "type": "magic_damage",
         "dmgMult": 2
@@ -722,7 +725,7 @@
         "applyStatus": "tip_of_pain",
         "durationTicks": 19998
       },
-      "damageType": "melee"
+      "damageType": "physical"
     },
     {
       "id": "monster_skill_silk_prey",
@@ -750,7 +753,7 @@
       "baseCastTicks": 6,
       "ranged": true,
       "maxRange": 7,
-      "damageType": "magic",
+      "damageType": "magical",
       "effect": {
         "type": "magic_damage",
         "dmgMult": 3

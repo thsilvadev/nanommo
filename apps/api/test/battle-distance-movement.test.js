@@ -121,7 +121,7 @@ function run() {
 
   const castSpeedTestSkill = {
     id: 'test_cast_attack_speed_independence', name: 'Cast Timing Test',
-    damageType: 'magic', ranged: true, maxRange: 7, spCost: 0,
+    damageType: 'magical', ranged: true, maxRange: 7, spCost: 0,
     baseCastTicks: 1, cooldownTicks: 999, effect: { dmgMult: 0.01 },
   };
   const castSpeedTestPage = { lines: [
@@ -219,7 +219,7 @@ function run() {
   assert.equal(equippedSpeed.log.header.characterSnapshot.moveSpeedBase, 108, 'combat preserves effective Move Speed including equipment bonuses');
 
   const iceBolt = skillTree.monsterSkills.find((skill) => skill.id === 'monster_skill_ice_bolt');
-  assert(iceBolt && iceBolt.damageType === 'magic' && iceBolt.ranged && iceBolt.maxRange === 7);
+  assert(iceBolt && iceBolt.damageType === 'magical' && iceBolt.ranged && iceBolt.maxRange === 7);
   assert.equal(iceBolt.spCost, 0, 'Ice Bolt costs no SP');
   assert.equal(iceBolt.baseCastTicks, 4, 'double Ice Bolt baseCastTicks while preserving its two-second cast time');
   assert.equal(iceBolt.cooldownTicks, 0, 'Ice Bolt has no cooldown');
@@ -334,7 +334,7 @@ function run() {
   assert(!cappedFreezeResult.log.events.some((event) => event.action === 'freeze_applied'), 'Freeze cannot exceed three active stacks');
 
   const slowSkill = {
-    id: 'monster_skill_test_slow', name: 'Test Slow', damageType: 'magic',
+    id: 'monster_skill_test_slow', name: 'Test Slow', damageType: 'magical',
     ranged: true, maxRange: 7, spCost: 0, baseCastTicks: 1, cooldownTicks: 999,
     effect: { dmgMult: 0.1, applyStatus: 'slow' },
   };

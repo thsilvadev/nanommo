@@ -315,6 +315,14 @@ export class GambitEvaluator {
       const action = line?.action;
       if (!action?.id || !allowedActions.includes(action.id)) continue;
 
+      if (action.id === 'use_skill') {
+        const skillId = GambitEvaluator.readParams(action).skillId;
+        const target = self.skillDefs?.[skillId]?.target;
+        const conditionId = String(line.conditions?.[0]?.id ?? '');
+        const scope = conditionId.startsWith('foe_') ? 'foe' : conditionId.startsWith('ally_') ? 'ally' : 'self';
+        const skillTarget = target;
+        if (skillTarget && conditionId !== 'always' && skillTarget !== scope) continue;
+      }
       const conditionsMet = GambitEvaluator.evaluateConditions(
         line.conditions,
         self,
@@ -793,11 +801,11 @@ export class BattleEngine {
 
     const reflectMonsterDamage = (damage: number, damageType: string): void => {
       if (damage <= 0 || self.hp <= 0) return;
-      const statusId = damageType === 'magic' ? 'magic_reflection' : 'physical_reflection';
+      const statusId = ['magic', 'magical'].includes(damageType) ? 'magic_reflection' : 'physical_reflection';
       const status = (foe.statusEffects ?? []).find((entry: any) => statusIdOf(entry) === statusId);
       if (!status) return;
       const raw = damage * Math.max(0, Number(status.reflectPercent ?? 30)) / 100;
-      const mitigated = damageType === 'magic'
+      const mitigated = ['magic', 'magical'].includes(damageType)
         ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(self))
         : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
       const reflected = Math.max(0, Math.floor(mitigated));
@@ -811,7 +819,7 @@ export class BattleEngine {
       damageType: string,
       incomingDamage: number,
     ): { damage: number; absorbed: number } => {
-      if (damageType !== 'magic' || incomingDamage <= 0) {
+      if (!['magic', 'magical'].includes(damageType) || incomingDamage <= 0) {
         return { damage: Math.max(0, incomingDamage), absorbed: 0 };
       }
       const barrier = (target.statusEffects ?? []).find((status: any) => statusIdOf(status) === 'magic_barrier');
@@ -1009,12 +1017,12 @@ export class BattleEngine {
                   raw = Number(self.atk ?? 0);
                 }
 
-                const damageType = String(def.damageType ?? (effectType.startsWith('magic_') ? 'magic' : 'melee'));
-                const isMagic = damageType === 'magic';
-                const mitigation = isMagic
+                const damageType = String(def.damageType ?? (effectType.startsWith('magic_') ? 'magical' : 'physical'));
+                const isMagic = damageType === 'magical';
+                const mitigation = damageType === 'pure' ? raw : isMagic
                   ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(foe))
                   : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(foe));
-                const archetypeMultiplier = isMagic ? magicMult : damageType === 'ranged' ? rangedMult : meleeMult;
+                const archetypeMultiplier = isMagic ? magicMult : def.ranged === true ? rangedMult : meleeMult;
                 const elementMultiplier = elementalDamageMultiplier(def.element);
                 const weaponCategory = (self.equippedWeaponTypes ?? []).find((type: string) => !['shield', 'rune'].includes(type));
                 const finalDamage = mitigation * archetypeMultiplier * elementMultiplier * weaponCategoryMultiplier(weaponCategory);
@@ -1686,10 +1694,10 @@ export class BattleEngine {
             // Monster active skills follow the same guaranteed-hit/no-crit contract.
             const landed = true;
             const raw =
-              (String(def.damageType ?? 'melee') === 'magic' ? effectiveMatk(foe) : effectiveAttack(foe)) *
+              (String(def.damageType ?? 'physical') === 'magical' ? effectiveMatk(foe) : effectiveAttack(foe)) *
               Number(effect.dmgMult ?? 1);
-            const monsterSkillDamageType = String(def.damageType ?? 'melee');
-            const finalDamage = monsterSkillDamageType === 'magic'
+            const monsterSkillDamageType = String(def.damageType ?? 'physical');
+            const finalDamage = monsterSkillDamageType === 'pure' ? raw : monsterSkillDamageType === 'magical'
               ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(self))
               : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
             const rolledDamage = landed

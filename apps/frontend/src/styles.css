@@ -748,3 +748,9 @@ app-character-summary .equip-slot > img.mirrored-hand {
 .gambit-editor .gambit-line input { cursor:text; }
 .gambit-editor .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
 @media (max-width:899px) { .gambit-editor .node-block.condition-block { grid-template-columns:1fr; } .gambit-editor .node-block.condition-block > select,.gambit-editor .node-block.condition-block .param-row { grid-column:1; } }
+
+.gambit-editor .gambit-line.scope-self .node-block,.gambit-editor .gambit-line.scope-ally .node-block {background:#111b25;border-color:#294967}
+.gambit-editor .gambit-line.scope-foe .node-block {background:#251515;border-color:#673536}
+.gambit-editor .gambit-line.scope-self input,.gambit-editor .gambit-line.scope-ally input {background:#172737;border-color:#345879;color:#c2d9ea}
+.gambit-editor .gambit-line.scope-foe input {background:#321d1d;border-color:#74403e;color:#e5c3b9}
+.gambit-editor input[type=number] {color-scheme:dark}
