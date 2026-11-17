@@ -9,7 +9,7 @@
   </header>
   <div #history class="chat-history" [class.chat-size-1]="fontSizeLevel() === 1" [class.chat-size-2]="fontSizeLevel() === 2" role="log" aria-live="polite" (scroll)="onScroll()">
     <div *ngFor="let row of visibleMessages(); trackBy: trackRow" class="chat-row" [class.journal-row]="row.channel==='journal'" [class.system-error]="row.channel==='journal' && row.severity==='error'">
-      <time>{{row.sentAt | date:'HH:mm:ss'}}</time><span class="chat-name" *ngIf="row.channel!=='journal'"><button type="button" [disabled]="!canInvite(row)" [attr.aria-expanded]="inviteMenu()===row.id" (click)="inviteMenu.set(inviteMenu()===row.id?null:row.id)">{{rowLabel(row)}}</button><button class="chat-invite" type="button" *ngIf="inviteMenu()===row.id && canInvite(row)" [disabled]="party.busy()" (click)="inviteToGroup(row)">{{locale.t('Invite to group')}}</button></span><span>{{row.message}}</span>
+      <time>{{row.sentAt | date:'HH:mm:ss'}}</time><b *ngIf="row.channel!=='journal'">{{rowLabel(row)}}</b><span>{{row.message}}</span>
     </div>
     <p class="empty-history" *ngIf="!visibleMessages().length">No messages yet.</p>
   </div>

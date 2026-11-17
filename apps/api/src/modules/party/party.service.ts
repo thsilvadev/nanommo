@@ -214,12 +214,12 @@ export class PartyService {
     const candidates:Array<{id:string;currentMapId:string;cursorAt:string}>=[];
     let cursor:{at:string;id:string}|null=null;
     for (;;) {
-      const page=await this.db.query(`SELECT c.id,c."currentMapId",COALESCE(c."autoPartyEnabledAt",'infinity'::timestamptz)::text AS "cursorAt"
+      const page=await this.db.query(`SELECT c.id,c."currentMapId",c."mapEnteredAt"::text AS "cursorAt"
         FROM characters c LEFT JOIN party_members m ON m."characterId"=c.id
         WHERE c."autoPartyEnabled" AND c.appearance IS NOT NULL AND m."characterId" IS NULL
           AND NOT EXISTS (SELECT 1 FROM party_invites i WHERE i.mode='auto' AND i.status IN ('offered','accepted') AND (i."candidateId"=c.id OR i."inviterId"=c.id))
-          AND ($1::timestamptz IS NULL OR (COALESCE(c."autoPartyEnabledAt",'infinity'::timestamptz),c.id)>($1::timestamptz,$2::uuid))
-        ORDER BY COALESCE(c."autoPartyEnabledAt",'infinity'::timestamptz),c.id LIMIT 100`,[cursor?.at??null,cursor?.id??null]);
+          AND ($1::timestamptz IS NULL OR (c."mapEnteredAt",c.id)>($1::timestamptz,$2::uuid))
+        ORDER BY c."mapEnteredAt",c.id LIMIT 100`,[cursor?.at??null,cursor?.id??null]);
       candidates.push(...page);
       if(page.length<100)break;
       const last=page[page.length-1];cursor={at:last.cursorAt,id:last.id};

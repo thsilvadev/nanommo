@@ -279,4 +279,4 @@
   .fog-cell::before, .fog-cell::after { animation-duration: 90s; }
 }
 
-.activity-gauge.teleporting{background:#fff;border-color:#6fa9e3}.activity-gauge.teleporting strong{color:#000;text-shadow:none}.teleporting .activity-gauge-fill{background:#8fc6ff;animation:teleport-pulse 100ms steps(1,end) infinite}@keyframes teleport-pulse{0%,100%{background:#fff}50%{background:#7bbaff}}@media(prefers-reduced-motion:reduce){.teleporting .activity-gauge-fill{animation:none;background:#8fc6ff}}
+.activity-gauge.teleporting{background:#fff;border-color:#6fa9e3}.activity-gauge.teleporting strong{color:#000;text-shadow:none}.teleporting .activity-gauge-fill{background:#8fc6ff;animation:teleport-pulse 200ms steps(1,end) infinite}@keyframes teleport-pulse{0%,100%{background:#fff}50%{background:#7bbaff}}@media(prefers-reduced-motion:reduce){.teleporting .activity-gauge-fill{animation:none;background:#8fc6ff}}

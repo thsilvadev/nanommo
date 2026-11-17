@@ -13,8 +13,11 @@ const db=new DataSource({type:'postgres',host:'127.0.0.1',port:55439,username:'p
 (async()=>{
  await db.initialize();await db.synchronize(true);
  await db.query('DROP FUNCTION IF EXISTS check_party_deadline_at_commit()');
+ await db.query('DROP FUNCTION IF EXISTS record_character_map_arrival()');
+ await db.query('ALTER TABLE characters DROP COLUMN "mapEnteredAt"');
+ const {CharacterMapArrival1800700000000}=require('../dist/apps/api/src/database/migrations/1800700000000-CharacterMapArrival');
  await db.query('ALTER TABLE characters DROP COLUMN "autoPartyEnabled", DROP COLUMN "autoPartyEnabledAt"');
- const runner=db.createQueryRunner();await runner.startTransaction();await new PartyGroupCombat1800500000000().up(runner);await new PartyDeadlineGuard1800600000000().up(runner);await runner.commitTransaction();await runner.release();
+ const runner=db.createQueryRunner();await runner.startTransaction();await new PartyGroupCombat1800500000000().up(runner);await new PartyDeadlineGuard1800600000000().up(runner);await new CharacterMapArrival1800700000000().up(runner);await runner.commitTransaction();await runner.release();
  const data=new DataService(),cwd=process.cwd();process.chdir(path.resolve(__dirname,'..'));data.onModuleInit();process.chdir(cwd);
  const snapshot={level:1,hp:100,sp:50,maxHp:100,maxSp:50,atk:30,matk:20,def:5,mdefPercent:0,accuracy:100,evasion:0,critChance:0,hpRegenPerTenTicks:0,spRegenPerTenTicks:0,agi:5,dex:5,luk:5,attackSpeed:200,moveSpeed:100,moveSpeedBase:100,isPlayerCharacter:true,basicAttackDamageType:'melee',basicAttackRange:0};
  const battle={buildCharacterSnapshot:async c=>({...snapshot,hp:c.hpCurrent,sp:c.spCurrent}),preparePartyFood:async()=>true};
@@ -23,6 +26,16 @@ const db=new DataSource({type:'postgres',host:'127.0.0.1',port:55439,username:'p
  const shared=new SharedBattleService(db,battle,data,inventory,quests, {assertValidGambitPage:async()=>{},canonicalizeLines:x=>x});
  const party=new PartyService(db,battle,data,shared),chars=[];
  for(let n=0;n<8;n++){const user=await db.getRepository(entities.User).save({email:`p${n}@test.invalid`,emailVerified:true,provider:'local'});chars.push(await db.getRepository(entities.Character).save({userId:user.id,name:`Party${n}`,hpCurrent:100,spCurrent:50,lastSeenAt:new Date(),appearance:{test:true},currentMapId:'map_town'}));}
+ // Map arrival, not AutoParty opt-in time, decides the initial leader.
+ const [longest, newest]=chars;
+ await db.query(`UPDATE characters SET "currentMapId"='other' WHERE id=$1`,[newest.id]);
+ await db.query(`UPDATE characters SET "currentMapId"='map_town' WHERE id=$1`,[newest.id]);
+ await db.query(`UPDATE characters SET "autoPartyEnabled"=true,"autoPartyEnabledAt"=clock_timestamp() WHERE id=$1`,[newest.id]);
+ await db.query(`UPDATE characters SET "autoPartyEnabled"=true,"autoPartyEnabledAt"=clock_timestamp() WHERE id=$1`,[longest.id]);
+ await party.matchmake();
+ assert.equal((await party.get(newest.id)).party?.leaderCharacterId,longest.id);
+ await party.setAuto(newest.id,false);
+ await party.setAuto(longest.id,false);
  // More than 100 accepted, blocked invitations must not starve a later eligible pair.
  await db.getRepository(entities.Character).update(chars[0].id,{travelIntent:{kind:'route'}});
  for(let n=0;n<100;n++) await db.query(`INSERT INTO party_invites(id,"inviterId","candidateId",mode,status,"expiresAt","clientRequestId","createdAt") VALUES($1,$2,$3,'manual','accepted',clock_timestamp()+interval '1 minute',$4,TIMESTAMPTZ '2026-01-01 00:00:00.123456+00')`,[randomUUID(),chars[0].id,chars[1].id,`blocked-${n}`]);

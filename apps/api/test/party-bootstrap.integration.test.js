@@ -7,9 +7,12 @@ const db=new DataSource({type:'postgres',host:process.env.DB_HOST,port:55439,use
 (async()=>{
  await db.initialize();await db.synchronize(true);
  await db.query('DROP FUNCTION IF EXISTS check_party_deadline_at_commit()');
+ await db.query('DROP FUNCTION IF EXISTS record_character_map_arrival()');
+ await db.query('ALTER TABLE characters DROP COLUMN "mapEnteredAt"');
+ const {CharacterMapArrival1800700000000}=require('../dist/apps/api/src/database/migrations/1800700000000-CharacterMapArrival');
  const {PartyDeadlineGuard1800600000000}=require('../dist/apps/api/src/database/migrations/1800600000000-PartyDeadlineGuard');
  const runner=db.createQueryRunner();
- try { await new PartyDeadlineGuard1800600000000().up(runner); }
+ try { await new PartyDeadlineGuard1800600000000().up(runner); await new CharacterMapArrival1800700000000().up(runner); }
  finally { await runner.release(); }
  await db.query('CREATE TABLE migrations(id serial PRIMARY KEY, timestamp bigint NOT NULL, name varchar NOT NULL)');
  for(const m of db.migrations){const match=m.name.match(/(\d{13})$/);if(match)await db.query('INSERT INTO migrations(timestamp,name) VALUES($1,$2)',[Number(match[1]),m.name]);}

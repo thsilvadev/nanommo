@@ -14,6 +14,7 @@ import { InventoryService } from '../inventory/inventory.service';
 import { IdleJournalService } from '../chat/chat-history.service';
 import { QuestService } from '../quests/quest.service';
 
+const FAST_TRAVEL_SECONDS = 10;
 const TOWN_GUARD_HUNGER_MESSAGE = 'Town Guard: You are hungry! Eat something or go cleanse your sins for a change.';
 
 @Injectable()
@@ -49,7 +50,10 @@ export class MapService {
   async enterMap(characterId: string, mapId: string, requestedAt?: string): Promise<any> {
     const party=this.battleService.partyCoordinator?.();
     if(party&&await party.member(characterId)){
-      const state=await party.travel(characterId,mapId);
+      const traveler = await this.characterRepo.findOneBy({id:characterId});
+      const state = traveler?.savedTownMapId === mapId && traveler.currentMapId !== mapId
+        ? await party.teleport(characterId)
+        : await party.travel(characterId,mapId);
       const character=await this.characterRepo.findOneBy({id:characterId});
       return {success:true,...state,character:this.mapCharacterState(character!)};
     }
@@ -150,6 +154,13 @@ export class MapService {
         ...(active && active.endAt.getTime() > now && oldIntent?.fleeRequested === true ? { fleeBattleId: oldIntent.fleeBattleId ?? active.id } : (active && active.endAt.getTime() > now ? { fleeBattleId: active.id } : {})),
         ...(savedTownTeleport ? { teleportAfterBattle: !!active } : {}),
       };
+      if (savedTownTeleport || routeViaSavedTown) {
+        newIntent.lastDurationSeconds = FAST_TRAVEL_SECONDS;
+        if (oldIntent?.kind === newIntent.kind && oldIntent.destinationMapId === mapId) {
+          newIntent.segmentProgress = oldIntent.segmentProgress ?? 0;
+          if (!active) newIntent.lastAccruedAt = oldIntent.lastAccruedAt ?? newIntent.lastAccruedAt;
+        }
+      }
       character.travelIntent = newIntent;
       character.pendingMapTransition = null; // Legacy deferred transitions may never override this intent.
       character.gatheringCycle = { ...(character.gatheringCycle ?? {}), lastUpdatedAt: new Date(now).toISOString() };
@@ -320,6 +331,24 @@ export class MapService {
         intent.fleeBattleId = null;
         intent.fleeNextAttemptAt = null;
         character.fleeNextAttemptAt = null;
+      }
+
+      if (intent.kind === 'saved-town-teleport' || intent.kind === 'saved-town-route-teleport') {
+        const lastAccruedAt = Date.parse(String(intent.lastAccruedAt ?? ''));
+        const start = Number.isFinite(lastAccruedAt) ? lastAccruedAt : now;
+        const progress = accrueTravelSegmentProgress(Number(intent.segmentProgress ?? 0), start, now, FAST_TRAVEL_SECONDS);
+        if (progress.progress < 1) {
+          intent.segmentProgress = progress.progress;
+          intent.lastAccruedAt = new Date(Math.max(start, now)).toISOString();
+          intent.lastDurationSeconds = FAST_TRAVEL_SECONDS;
+          const scheduled = this.nextTravelSchedule(characterId, intent);
+          intent.scheduleVersion = scheduled.scheduleVersion;
+          intent.scheduledJobId = scheduled.jobId;
+          character.travelIntent = intent;
+          await characterRepo.save(character);
+          return { kind: 'wait' as const, reason: 'teleport-in-progress', currentMapId: previousMapId,
+            intent: { ...intent }, delayMs: Math.ceil(Math.max(0, start - now) + (1 - progress.progress) * FAST_TRAVEL_SECONDS * 1000) };
+        }
       }
 
       if (intent.kind === 'saved-town-route-teleport') {

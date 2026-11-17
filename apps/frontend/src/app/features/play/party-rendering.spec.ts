@@ -30,7 +30,9 @@ describe('party components in constrained viewports',()=>{
     group.now.set(start+50000);combat.now.set(start+50000);fixture.detectChanges();
     const log=host.querySelector<HTMLElement>('.shared-feed')!,loot=host.querySelector<HTMLElement>('[data-loot]')!,skills=host.querySelector<HTMLElement>('[data-skills]')!,panel=host.querySelector<HTMLElement>('app-party-panel')!;
     expect(host.querySelectorAll('.party-member').length).toBe(5);
-    expect(host.querySelector('input[placeholder="Character name"]')).not.toBeNull();
+    expect(host.querySelector('input[placeholder="Character name"]')).toBeNull();
+    expect(host.querySelector('.auto-party input[type="checkbox"]')).not.toBeNull();
+    expect(host.querySelector('.action-history')).toBeNull();
     expect(log.scrollHeight).toBeGreaterThan(log.clientHeight);
     expect(log.getBoundingClientRect().bottom).toBeLessThanOrEqual(skills.getBoundingClientRect().top+1);
     expect(loot.getBoundingClientRect().bottom).toBeLessThanOrEqual(host.getBoundingClientRect().bottom+1);

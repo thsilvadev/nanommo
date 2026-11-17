@@ -136,7 +136,21 @@ export class CharacterSummary implements OnDestroy {
 export class MapBoard implements OnDestroy, AfterViewInit {
   readonly party = inject(PartyStore);
   partyCanTravel(){const party=this.party.party();return !party || party.kind==='auto' || party.leaderCharacterId===this.character.character()?.id;}
-  teleportProgress(){const teleport=this.party.party()?.teleport;return teleport?teleportProgress(teleport,this.activityNow()):0;}
+  teleportActivity() {
+    const group = this.party.party()?.teleport;
+    if (group) return group;
+    const intent = this.character.character()?.travelIntent;
+    if (!intent || !['saved-town-teleport', 'saved-town-route-teleport'].includes(intent.kind)) return null;
+    return {
+      elapsedMs: Number(intent.segmentProgress ?? 0) * 10_000,
+      lastAccruedAt: intent.lastAccruedAt,
+      paused: intent.waitingForBattle === true,
+    };
+  }
+  teleportProgress() {
+    const activity = this.teleportActivity();
+    return activity ? teleportProgress(activity, this.activityNow()) : 0;
+  }
   readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); readonly locale = inject(LocaleService); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService); private readonly catalog = inject(CatalogService); private readonly notifications = inject(BrowserNotificationsService); private readonly vendor = inject(VendorStore);
   maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
   readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly mapTransitionPending = signal(false); readonly destinationMapId = signal<string|null>(null); readonly routeOriginMapId = signal<string|null>(null);

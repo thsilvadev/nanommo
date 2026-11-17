@@ -23,11 +23,12 @@
   <small *ngIf="!isLeader()">{{locale.t('The leader controls stance and travel.')}}</small>
 </section>
 <section class="party-panel party-controls" [attr.aria-label]="locale.t('Group controls')">
-  <label class="auto-party"><input type="checkbox" [checked]="party.autoPartyEnabled()" [disabled]="party.busy()" (change)="party.setAuto($any($event.target).checked)"> AutoParty</label>
-  <form *ngIf="!party.party() || isLeader()" (submit)="$event.preventDefault(); invite()" class="invite-form">
-    <input [value]="candidate()" (input)="candidate.set($any($event.target).value)" [placeholder]="locale.t('Character name')" [attr.aria-label]="locale.t('Character name')" maxlength="16">
-    <button type="submit" [disabled]="party.busy() || !candidate().trim() || party.members().length>=5">{{locale.t('Invite')}}</button>
-  </form>
+  <label class="auto-party">
+    <input type="checkbox" [checked]="party.autoPartyEnabled()" [disabled]="party.busy()" (change)="party.setAuto($any($event.target).checked)">
+    <span>AutoParty</span>
+  </label>
+</section>
+<section class="party-panel" *ngIf="activeInvites().length || party.error()">
   <article class="invite" *ngFor="let invite of activeInvites()">
     <span>{{invite.candidateId===character.character()?.id ? invite.inviterName || invite.inviterId : invite.candidateName || invite.candidateId}}</span>
     <small *ngIf="invite.status==='accepted'"><i class="spinner" aria-hidden="true"></i>{{locale.t('Waiting for a safe battle boundary')}}</small>
@@ -37,13 +38,5 @@
       <button type="button" [disabled]="party.busy()" (click)="party.cancelInvite(invite.id)">{{locale.t(invite.candidateId===character.character()?.id?'Decline':'Cancel')}}</button>
     </div>
   </article>
-  <div class="action-history" role="status" aria-live="polite">
-    <div *ngFor="let action of visibleActions()" class="action-row" [class.failed]="action.status==='failed'">
-      <i *ngIf="action.status==='pending'" class="spinner" aria-hidden="true"></i>
-      <span>{{locale.t(action.kind)}} · {{locale.t(action.status)}}<small *ngIf="action.message || action.result?.message">{{action.message || action.result?.message}}</small></span>
-      <button type="button" *ngIf="action.status==='pending'" [disabled]="party.busy()" (click)="party.cancelAction(action.id)">{{locale.t('Cancel')}}</button>
-    </div>
-  </div>
-  <small *ngIf="party.connection()!=='connected'">{{locale.t('Reconnecting group…')}}</small>
   <p class="party-error" role="alert" *ngIf="party.error()">{{locale.t(party.error())}} <button type="button" (click)="party.refresh()">{{locale.t('Retry')}}</button></p>
 </section>

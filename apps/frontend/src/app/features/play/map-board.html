@@ -3,10 +3,10 @@
     <div class="map-head">
       <h1>Currently in: {{mapName()}}</h1>
       <div class="map-meta">
-        <div *ngIf="party.party()?.teleport as teleport" class="activity-gauge teleporting" role="progressbar" [attr.aria-label]="locale.t('Teleporting…')" [attr.aria-valuenow]="teleportProgress()" aria-valuemin="0" aria-valuemax="100">
+        <div *ngIf="teleportActivity() as teleport" class="activity-gauge teleporting" role="progressbar" [attr.aria-label]="locale.t('Teleporting…')" [attr.aria-valuenow]="teleportProgress()" aria-valuemin="0" aria-valuemax="100">
           <div class="activity-gauge-fill" [style.width.%]="teleportProgress()"></div><strong>{{locale.t('Teleporting…')}}{{teleport.paused ? ' · '+locale.t('Paused during battle') : ''}}</strong>
         </div>
-        <div *ngIf="!party.party()?.teleport && activityGaugeVisible()" class="activity-gauge" [class.traveling]="activityKind()==='traveling'" [class.gathering]="activityKind()==='gathering'" role="progressbar" [attr.aria-label]="activityLabel()" [attr.aria-valuenow]="activityProgress()" aria-valuemin="0" aria-valuemax="100">
+        <div *ngIf="!teleportActivity() && activityGaugeVisible()" class="activity-gauge" [class.traveling]="activityKind()==='traveling'" [class.gathering]="activityKind()==='gathering'" role="progressbar" [attr.aria-label]="activityLabel()" [attr.aria-valuenow]="activityProgress()" aria-valuemin="0" aria-valuemax="100">
           <div class="activity-gauge-fill" [style.width.%]="activityProgress()"></div>
           <strong>{{activityLabel()}}</strong>
         </div>

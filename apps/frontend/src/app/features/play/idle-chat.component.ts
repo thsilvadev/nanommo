@@ -1,11 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { GameSocketService } from '../../core/game.socket.service';
-import { PartyStore } from '../../core/party.store';
-import { CharacterStore } from '../../core/game.store';
-import { LocaleService } from '../../core/locale.service';
 
 type ChatRow = {
   id: string;
@@ -26,12 +23,6 @@ type ChatRow = {
 })
 export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('history') history?: ElementRef<HTMLDivElement>;
-  readonly party = inject(PartyStore);
-  readonly character = inject(CharacterStore);
-  readonly locale = inject(LocaleService);
-  readonly inviteMenu = signal<string|null>(null);
-  canInvite(row: ChatRow): boolean { const party=this.party.party(); return row.channel==='global' && row.username!==this.character.character()?.name && (!party || party.leaderCharacterId===this.character.character()?.id) && !party?.members.some(member=>member.characterId===row.characterId || member.name===row.username); }
-  inviteToGroup(row: ChatRow): void { this.inviteMenu.set(null); void this.party.invite(row.characterId ? {candidateId:row.characterId} : {candidateName:row.username}); }
   readonly messages = signal<ChatRow[]>([]);
   readonly connectedUsersOnline = signal(0);
   readonly journalEnabled = signal(localStorage.getItem('nanommo.chat.journal.enabled') !== 'false');

@@ -48,6 +48,10 @@ export class Character {
   @Column({ type: 'timestamptz', nullable: true })
   autoPartyEnabledAt?: Date | null;
 
+  /** PostgreSQL sets this when the character enters a different map. */
+  @Column({ type: 'timestamptz', default: () => 'clock_timestamp()', update: false })
+  mapEnteredAt!: Date;
+
   /** Catalogue IDs known to this character for Gambit configuration. */
   @Column({ type: 'jsonb', default: '[]' })
   knownItemIds!: string[];
