@@ -8,6 +8,8 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppearanceRequiredInterceptor } from './modules/character/appearance-required.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
 import { CharacterModule } from './modules/character/character.module';
+import { PartyActionInterceptor } from './modules/party/party-action.interceptor';
+import { PartyModule } from './modules/party/party.module';
 import { BattleModule } from './modules/battle/battle.module';
 import { GambitModule } from './modules/gambit/gambit.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
@@ -68,6 +70,7 @@ import { getBattleRuntimeConfig } from './config/battle-runtime.config';
     AuthModule,
     CharacterModule,
     BattleModule,
+    PartyModule,
     GambitModule,
     InventoryModule,
     EquipmentModule,
@@ -92,6 +95,7 @@ import { getBattleRuntimeConfig } from './config/battle-runtime.config';
       provide: APP_INTERCEPTOR,
       useClass: AppearanceRequiredInterceptor,
     },
+    { provide: APP_INTERCEPTOR, useClass: PartyActionInterceptor },
   ],
 })
 export class AppModule {}

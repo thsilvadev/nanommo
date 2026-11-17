@@ -29,7 +29,7 @@ describe('shared status timeline in Character Summary and Grind STATUS', () => {
     const now = signal(startMs);
     const active = signal<any>(entry);
     const characterSummary: any = Object.create(CharacterSummary.prototype);
-    Object.assign(characterSummary, { battle: { active: () => active() }, battleDisplayNow: now, catalog });
+    Object.assign(characterSummary, { party:{battle:()=>null}, character:{character:()=>null}, battle: { active: () => active() }, battleDisplayNow: now, catalog });
     const grindInfo: any = Object.create(GrindInfo.prototype);
     Object.assign(grindInfo, { now, catalog });
     return { entry, now, active, characterSummary, grindInfo, startMs };

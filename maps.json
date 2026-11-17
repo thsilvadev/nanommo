@@ -42,11 +42,35 @@
       "monsters": [
         {
           "monsterId": "mon_slime",
-          "presenceRate": 85
+          "presenceRate": 85,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_slime",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_fieldbat",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_fieldbat",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_slime",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_fieldbat",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -79,15 +103,63 @@
       "monsters": [
         {
           "monsterId": "mon_mutantbee",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mutantbee",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_fieldbat",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_thornsprout",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_fieldbat",
-          "presenceRate": 5
+          "presenceRate": 5,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mutantbee",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_fieldbat",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_thornsprout",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_thornsprout",
-          "presenceRate": 80
+          "presenceRate": 80,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mutantbee",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_fieldbat",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_thornsprout",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -124,11 +196,35 @@
       "monsters": [
         {
           "monsterId": "mon_direwolf",
-          "presenceRate": 20
+          "presenceRate": 20,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_mudcrawler",
-          "presenceRate": 80
+          "presenceRate": 80,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -161,11 +257,35 @@
       "monsters": [
         {
           "monsterId": "mon_slime",
-          "presenceRate": 50
+          "presenceRate": 50,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_slime",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_fieldbat",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_fieldbat",
-          "presenceRate": 50
+          "presenceRate": 50,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_slime",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_fieldbat",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -194,15 +314,63 @@
       "monsters": [
         {
           "monsterId": "mon_mutantbee",
-          "presenceRate": 45
+          "presenceRate": 45,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mutantbee",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_fieldbat",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_fieldbat",
-          "presenceRate": 5
+          "presenceRate": 5,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mutantbee",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_fieldbat",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_mudcrawler",
-          "presenceRate": 50
+          "presenceRate": 50,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mutantbee",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_fieldbat",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -235,11 +403,35 @@
       "monsters": [
         {
           "monsterId": "mon_mudcrawler",
-          "presenceRate": 95
+          "presenceRate": 95,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_thornsprout",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_thornsprout",
-          "presenceRate": 5
+          "presenceRate": 5,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_thornsprout",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -268,7 +460,12 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": ["storage", "mailbox", "william", "father_marcelus"],
+      "npcIds": [
+        "storage",
+        "mailbox",
+        "william",
+        "father_marcelus"
+      ],
       "mapLength": 0
     },
     {
@@ -286,7 +483,15 @@
       "monsters": [
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 100
+          "presenceRate": 100,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -309,15 +514,63 @@
       "monsters": [
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 35
+          "presenceRate": 35,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_sandscorpion",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_thornsprout",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_sandscorpion",
-          "presenceRate": 60
+          "presenceRate": 60,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_sandscorpion",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_thornsprout",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_thornsprout",
-          "presenceRate": 5
+          "presenceRate": 5,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_sandscorpion",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_thornsprout",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -346,15 +599,63 @@
       "monsters": [
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 30
+          "presenceRate": 30,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_sandscorpion",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_saltfangcrab",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_sandscorpion",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_sandscorpion",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_saltfangcrab",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_saltfangcrab",
-          "presenceRate": 55
+          "presenceRate": 55,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_sandscorpion",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_saltfangcrab",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -383,15 +684,63 @@
       "monsters": [
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 50
+          "presenceRate": 50,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantspider",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 10
+          "presenceRate": 10,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantspider",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_giantspider",
-          "presenceRate": 40
+          "presenceRate": 40,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantspider",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -424,15 +773,63 @@
       "monsters": [
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 60
+          "presenceRate": 60,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantspider",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 5
+          "presenceRate": 5,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantspider",
+                "chance": 0
+              }
+            ]
+          }
         },
-                {
+        {
           "monsterId": "mon_giantspider",
-          "presenceRate": 35
+          "presenceRate": 35,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantspider",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -465,15 +862,63 @@
       "monsters": [
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 55
+          "presenceRate": 55,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_saltfangcrab",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantspider",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_saltfangcrab",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_saltfangcrab",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantspider",
+                "chance": 0
+              }
+            ]
+          }
         },
-                {
+        {
           "monsterId": "mon_giantspider",
-          "presenceRate": 30
+          "presenceRate": 30,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_saltfangcrab",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantspider",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -506,15 +951,63 @@
       "monsters": [
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_thornsprout",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 70
+          "presenceRate": 70,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_thornsprout",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_thornsprout",
-          "presenceRate": 5
+          "presenceRate": 5,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_thornsprout",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -547,23 +1040,143 @@
       "monsters": [
         {
           "monsterId": "mon_flamingtreant",
-          "presenceRate": 30
+          "presenceRate": 30,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_flamingtreant",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_arcanewisp",
-          "presenceRate": 22.4
+          "presenceRate": 22.4,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_flamingtreant",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_kwaiouaranger",
-          "presenceRate": 22.4
+          "presenceRate": 22.4,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_flamingtreant",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 11.2
+          "presenceRate": 11.2,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_flamingtreant",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 14
+          "presenceRate": 14,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_flamingtreant",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -596,23 +1209,143 @@
       "monsters": [
         {
           "monsterId": "mon_flamingtreant",
-          "presenceRate": 35
+          "presenceRate": 35,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_flamingtreant",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_arcanewisp",
-          "presenceRate": 22.1
+          "presenceRate": 22.1,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_flamingtreant",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_kwaiouaranger",
-          "presenceRate": 16.9
+          "presenceRate": 16.9,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_flamingtreant",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 13
+          "presenceRate": 13,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_flamingtreant",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 13
+          "presenceRate": 13,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_flamingtreant",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -645,19 +1378,99 @@
       "monsters": [
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 35
+          "presenceRate": 35,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmantis",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 30
+          "presenceRate": 30,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmantis",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 20
+          "presenceRate": 20,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmantis",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_giantmantis",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmantis",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -694,19 +1507,99 @@
       "monsters": [
         {
           "monsterId": "mon_sacredforestguardian",
-          "presenceRate": 50
+          "presenceRate": 50,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 22.5
+          "presenceRate": 22.5,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_venomviper",
-          "presenceRate": 17.5
+          "presenceRate": 17.5,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_mudflatcrocodile",
-          "presenceRate": 10
+          "presenceRate": 10,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_venomviper",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudflatcrocodile",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -767,15 +1660,63 @@
       "monsters": [
         {
           "monsterId": "mon_aramaianwarden",
-          "presenceRate": 45
+          "presenceRate": 45,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_aramaianwarden",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_moonleafarcanist",
-          "presenceRate": 40
+          "presenceRate": 40,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_aramaianwarden",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_sacredforestguardian",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_aramaianwarden",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -808,15 +1749,63 @@
       "monsters": [
         {
           "monsterId": "mon_sacredforestguardian",
-          "presenceRate": 35
+          "presenceRate": 35,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_aramaianwarden",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_moonleafarcanist",
-          "presenceRate": 20
+          "presenceRate": 20,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_aramaianwarden",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_aramaianwarden",
-          "presenceRate": 45
+          "presenceRate": 45,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_aramaianwarden",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -849,15 +1838,63 @@
       "monsters": [
         {
           "monsterId": "mon_sacredforestguardian",
-          "presenceRate": 40
+          "presenceRate": 40,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_aramaianwarden",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_moonleafarcanist",
-          "presenceRate": 20
+          "presenceRate": 20,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_aramaianwarden",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_aramaianwarden",
-          "presenceRate": 40
+          "presenceRate": 40,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_aramaianwarden",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -890,15 +1927,63 @@
       "monsters": [
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_moonleafarcanist",
-          "presenceRate": 40
+          "presenceRate": 40,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_kwaiouaranger",
-          "presenceRate": 45
+          "presenceRate": 45,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -927,15 +2012,63 @@
       "monsters": [
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 70
+          "presenceRate": 70,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_unicorn",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_kwaiouaranger",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_unicorn",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_unicorn",
-          "presenceRate": 5
+          "presenceRate": 5,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_unicorn",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -964,15 +2097,63 @@
       "monsters": [
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 20
+          "presenceRate": 20,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmosquito",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_kwaiouaranger",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmosquito",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_giantmosquito",
-          "presenceRate": 65
+          "presenceRate": 65,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmosquito",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1001,15 +2182,63 @@
       "monsters": [
         {
           "monsterId": "mon_sacredforestguardian",
-          "presenceRate": 45
+          "presenceRate": 45,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_moonleafarcanist",
-          "presenceRate": 45
+          "presenceRate": 45,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_arcanewisp",
-          "presenceRate": 10
+          "presenceRate": 10,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sacredforestguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_moonleafarcanist",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1019,11 +2248,15 @@
       "gatheringPool": [
         {
           "itemId": "mat_herbs",
-          "weight": 70
+          "weight": 63.0
         },
         {
           "itemId": "mat_mystic_dust",
-          "weight": 30
+          "weight": 27.0
+        },
+        {
+          "itemId": "mat_sapupema_leaf",
+          "weight": 10
         }
       ]
     },
@@ -1042,19 +2275,99 @@
       "monsters": [
         {
           "monsterId": "mon_rootboundbrute",
-          "presenceRate": 20
+          "presenceRate": 20,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmosquito",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_saltfangcrab",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_kwaiouaranger",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmosquito",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_saltfangcrab",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_giantmosquito",
-          "presenceRate": 45
+          "presenceRate": 45,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmosquito",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_saltfangcrab",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_saltfangcrab",
-          "presenceRate": 20
+          "presenceRate": 20,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_rootboundbrute",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_kwaiouaranger",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmosquito",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_saltfangcrab",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1083,7 +2396,13 @@
       "monsters": [],
       "unlockLevel": 0,
       "isTown": true,
-      "npcIds": ["storage", "william", "mailbox", "father_marcelus", "oracle"],
+      "npcIds": [
+        "storage",
+        "william",
+        "mailbox",
+        "father_marcelus",
+        "oracle"
+      ],
       "mapLength": 0
     },
     {
@@ -1101,23 +2420,143 @@
       "monsters": [
         {
           "monsterId": "mon_brokensentinel",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_ruinsguardian",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_boneknight",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_arcanewisp",
-          "presenceRate": 10
+          "presenceRate": 10,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_wraith",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1146,23 +2585,143 @@
       "monsters": [
         {
           "monsterId": "mon_brokensentinel",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_ruinsguardian",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_boneknight",
-          "presenceRate": 20
+          "presenceRate": 20,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_arcanewisp",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_wraith",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1191,23 +2750,143 @@
       "monsters": [
         {
           "monsterId": "mon_brokensentinel",
-          "presenceRate": 30
+          "presenceRate": 30,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_ruinsguardian",
-          "presenceRate": 10
+          "presenceRate": 10,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_boneknight",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_arcanewisp",
-          "presenceRate": 10
+          "presenceRate": 10,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_wraith",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ruinsguardian",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1236,19 +2915,99 @@
       "monsters": [
         {
           "monsterId": "mon_brokensentinel",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_boneknight",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_arcanewisp",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_wraith",
-          "presenceRate": 35
+          "presenceRate": 35,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_brokensentinel",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_boneknight",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_arcanewisp",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_wraith",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1277,15 +3036,63 @@
       "monsters": [
         {
           "monsterId": "mon_gravelhorn",
-          "presenceRate": 30
+          "presenceRate": 30,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_mudcrawler",
-          "presenceRate": 45
+          "presenceRate": 45,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_direwolf",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1314,15 +3121,63 @@
       "monsters": [
         {
           "monsterId": "mon_gravelhorn",
-          "presenceRate": 35
+          "presenceRate": 35,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_mudcrawler",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_direwolf",
-          "presenceRate": 40
+          "presenceRate": 40,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1351,15 +3206,63 @@
       "monsters": [
         {
           "monsterId": "mon_gravelhorn",
-          "presenceRate": 45
+          "presenceRate": 45,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_mudcrawler",
-          "presenceRate": 20
+          "presenceRate": 20,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_direwolf",
-          "presenceRate": 35
+          "presenceRate": 35,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1388,19 +3291,99 @@
       "monsters": [
         {
           "monsterId": "mon_sandscorpion",
-          "presenceRate": 40
+          "presenceRate": 40,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sandscorpion",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_gravelhorn",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sandscorpion",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_mudcrawler",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sandscorpion",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_direwolf",
-          "presenceRate": 20
+          "presenceRate": 20,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_sandscorpion",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_gravelhorn",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_mudcrawler",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_direwolf",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1429,11 +3412,35 @@
       "monsters": [
         {
           "monsterId": "mon_ridgebreaker",
-          "presenceRate": 50
+          "presenceRate": 50,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_ridgebreaker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_needlebackstalker",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_needlebackstalker",
-          "presenceRate": 50
+          "presenceRate": 50,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_ridgebreaker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_needlebackstalker",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1462,15 +3469,63 @@
       "monsters": [
         {
           "monsterId": "mon_bandit",
-          "presenceRate": 55
+          "presenceRate": 55,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_bandit",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ridgebreaker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_needlebackstalker",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_ridgebreaker",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_bandit",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ridgebreaker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_needlebackstalker",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_needlebackstalker",
-          "presenceRate": 30
+          "presenceRate": 30,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_bandit",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ridgebreaker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_needlebackstalker",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,
@@ -1499,19 +3554,99 @@
       "monsters": [
         {
           "monsterId": "mon_bandit",
-          "presenceRate": 20
+          "presenceRate": 20,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_bandit",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ridgebreaker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_needlebackstalker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmosquito",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_ridgebreaker",
-          "presenceRate": 25
+          "presenceRate": 25,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_bandit",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ridgebreaker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_needlebackstalker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmosquito",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_needlebackstalker",
-          "presenceRate": 15
+          "presenceRate": 15,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_bandit",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ridgebreaker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_needlebackstalker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmosquito",
+                "chance": 0
+              }
+            ]
+          }
         },
         {
           "monsterId": "mon_giantmosquito",
-          "presenceRate": 40
+          "presenceRate": 40,
+          "raid": {
+            "candidates": [
+              {
+                "monsterId": "mon_bandit",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_ridgebreaker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_needlebackstalker",
+                "chance": 0
+              },
+              {
+                "monsterId": "mon_giantmosquito",
+                "chance": 0
+              }
+            ]
+          }
         }
       ],
       "unlockLevel": 0,

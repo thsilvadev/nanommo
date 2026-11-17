@@ -490,6 +490,7 @@ export class CharacterService {
         .andWhere('battle."startAt" <= :now', { now: new Date(now) })
         .getOne();
       if (startedBattle) return { character, resourcesChanged: false };
+      if(this.battleService.partyCoordinator?.() && (await manager.query('SELECT 1 FROM active_battle_participants WHERE \"characterId\"=$1 LIMIT 1',[characterId])).length) return {character,resourcesChanged:false};
 
       const anchorAt = character.regenAnchorAt?.getTime?.() ?? character.createdAt?.getTime?.() ?? now;
       const checkpointAt = character.resourceRegenAt?.getTime?.() ?? character.lastSeenAt?.getTime?.() ?? anchorAt;
@@ -505,6 +506,7 @@ export class CharacterService {
         .orderBy('battle."startAt"', 'ASC')
         .getMany();
 
+      if(this.battleService.partyCoordinator?.()){const shared=await manager.query(`SELECT b."startAt",b."endAt" FROM shared_battles b JOIN shared_battle_participants p ON p."battleId"=b.id WHERE p."characterId"=$1 AND b."endAt">$2 AND b."startAt"<$3`,[characterId,new Date(checkpointAt),new Date(lastBoundaryAt+1)]);battles.push(...shared);}
       const equipped = await this.equippedItemRepository.find({ where: { characterId } });
       const equipment = this.buildEquipmentStats(equipped);
       const attributeBonuses = await this.buildTotalAttributeBonuses(characterId, equipped, equipment.statBonus);

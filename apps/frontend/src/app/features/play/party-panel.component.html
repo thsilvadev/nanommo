@@ -1,0 +1,49 @@
+<div class="party-tabs" *ngIf="party.party()" role="tablist" [attr.aria-label]="locale.t('Character and group')">
+  <button type="button" role="tab" [attr.aria-selected]="tab()==='character'" [class.active]="tab()==='character'" (click)="tab.set('character')">{{locale.t('CHARACTER')}}</button>
+  <button type="button" role="tab" [attr.aria-selected]="tab()==='group'" [class.active]="tab()==='group'" (click)="tab.set('group')">{{locale.t('GROUP')}}</button>
+</div>
+<app-character-summary [class.solo-summary]="!party.party()" *ngIf="!party.party() || tab()==='character'" />
+<section class="party-panel" *ngIf="party.party() && tab()==='group'" [attr.aria-label]="locale.t('Group members')">
+  <header><strong>{{locale.t('GROUP')}}</strong><small>{{party.members().length}} / 5 · {{party.party()?.kind==='auto'?'AutoParty':locale.t('Manual')}}</small></header>
+  <article class="party-member" *ngFor="let member of party.members(); let index=index">
+    <div class="member-title"><strong>{{member.name}}</strong><span class="leader" *ngIf="member.characterId===party.party()?.leaderCharacterId">{{locale.t('Leader')}}</span></div>
+    <div class="resource-label">HP <span>{{resources(member).hp}} / {{member.maxHp ?? '—'}}</span></div>
+    <div class="resource-bar hp"><i [style.width.%]="percent(resources(member).hp,member.maxHp)"></i></div>
+    <div class="resource-label">SP <span>{{resources(member).sp}} / {{member.maxSp ?? '—'}}</span></div>
+    <div class="resource-bar sp"><i [style.width.%]="percent(resources(member).sp,member.maxSp)"></i></div>
+    <div class="member-status"><span *ngFor="let effect of statuses(member)">{{locale.t(effect.id || effect.type || '')}}{{effect.stacks ? ' ×'+effect.stacks : ''}}</span></div>
+    <small class="pending" *ngIf="member.pendingLeave"><i class="spinner" aria-hidden="true"></i>{{locale.t('Leaving after battle')}}</small>
+    <div class="member-controls" *ngIf="isLeader()">
+      <button type="button" [disabled]="party.busy() || index===0" (click)="move(member,-1)" [attr.aria-label]="locale.t('Move up')+' '+member.name">↑</button>
+      <button type="button" [disabled]="party.busy() || index===party.members().length-1" (click)="move(member,1)" [attr.aria-label]="locale.t('Move down')+' '+member.name">↓</button>
+      <button type="button" *ngIf="member.characterId!==character.character()?.id" [disabled]="party.busy() || member.pendingLeave" (click)="party.kick(member.characterId)">{{locale.t('Remove')}}</button>
+    </div>
+  </article>
+  <button type="button" [disabled]="party.busy()" (click)="party.leave(!!ownMember()?.pendingLeave)">{{locale.t(ownMember()?.pendingLeave?'Cancel leaving':'Leave group')}}</button>
+  <small *ngIf="!isLeader()">{{locale.t('The leader controls stance and travel.')}}</small>
+</section>
+<section class="party-panel party-controls" [attr.aria-label]="locale.t('Group controls')">
+  <label class="auto-party"><input type="checkbox" [checked]="party.autoPartyEnabled()" [disabled]="party.busy()" (change)="party.setAuto($any($event.target).checked)"> AutoParty</label>
+  <form *ngIf="!party.party() || isLeader()" (submit)="$event.preventDefault(); invite()" class="invite-form">
+    <input [value]="candidate()" (input)="candidate.set($any($event.target).value)" [placeholder]="locale.t('Character name')" [attr.aria-label]="locale.t('Character name')" maxlength="16">
+    <button type="submit" [disabled]="party.busy() || !candidate().trim() || party.members().length>=5">{{locale.t('Invite')}}</button>
+  </form>
+  <article class="invite" *ngFor="let invite of activeInvites()">
+    <span>{{invite.candidateId===character.character()?.id ? invite.inviterName || invite.inviterId : invite.candidateName || invite.candidateId}}</span>
+    <small *ngIf="invite.status==='accepted'"><i class="spinner" aria-hidden="true"></i>{{locale.t('Waiting for a safe battle boundary')}}</small>
+    <small *ngIf="invite.status==='offered'">{{locale.t(invite.candidateId===character.character()?.id?'Group invitation':'Invitation pending')}}</small>
+    <div class="invite-actions">
+      <button type="button" *ngIf="invite.status==='offered' && invite.candidateId===character.character()?.id" [disabled]="party.busy()" (click)="party.accept(invite.id)">{{locale.t('Accept')}}</button>
+      <button type="button" [disabled]="party.busy()" (click)="party.cancelInvite(invite.id)">{{locale.t(invite.candidateId===character.character()?.id?'Decline':'Cancel')}}</button>
+    </div>
+  </article>
+  <div class="action-history" role="status" aria-live="polite">
+    <div *ngFor="let action of visibleActions()" class="action-row" [class.failed]="action.status==='failed'">
+      <i *ngIf="action.status==='pending'" class="spinner" aria-hidden="true"></i>
+      <span>{{locale.t(action.kind)}} · {{locale.t(action.status)}}<small *ngIf="action.message || action.result?.message">{{action.message || action.result?.message}}</small></span>
+      <button type="button" *ngIf="action.status==='pending'" [disabled]="party.busy()" (click)="party.cancelAction(action.id)">{{locale.t('Cancel')}}</button>
+    </div>
+  </div>
+  <small *ngIf="party.connection()!=='connected'">{{locale.t('Reconnecting group…')}}</small>
+  <p class="party-error" role="alert" *ngIf="party.error()">{{locale.t(party.error())}} <button type="button" (click)="party.refresh()">{{locale.t('Retry')}}</button></p>
+</section>

@@ -49,7 +49,7 @@ export class VendorStore {
   readonly professionModal=signal(false);
   readonly professionCraftQuantity=signal<Record<string,number>>({});
   readonly professionType=signal<'alchemy'|'blacksmith'>('alchemy');
-  readonly alchemyCategory=signal<'potions'|'tonics'>('potions');
+  readonly alchemyCategory=signal<'potions'|'tonics'|'super_tonics'>('potions');
   readonly professionState=signal<ProfessionState|null>(null);
   readonly professionNow=signal(Date.now());
   private professionTimer:ReturnType<typeof setInterval>|null=null;
@@ -508,7 +508,7 @@ export class VendorStore {
     } catch(e:any){this.error.set(e?.error?.message??'Unable to load profession');}
   }
   openProfession(profession:'alchemy'|'blacksmith'){this.professionType.set(profession);if(profession==='alchemy')this.alchemyCategory.set('potions');this.professionModal.set(true);void this.loadProfession(profession);}
-  setAlchemyCategory(category:'potions'|'tonics'){this.alchemyCategory.set(category);}
+  setAlchemyCategory(category:'potions'|'tonics'|'super_tonics'){this.alchemyCategory.set(category);}
   professionRecipes(){const recipes=this.professionState()?.recipes??[];return this.professionType()==='alchemy'?recipes.filter((recipe:any)=>(recipe.category??'potions')===this.alchemyCategory()):recipes;}
   professionRemaining(){const session=this.professionState()?.session;if(!session)return 0;return Math.max(0,Math.ceil((Date.parse(session.completesAt)-this.professionNow())/1000));}
   professionPercent(){const session=this.professionState()?.session;if(!session)return 0;return Math.max(0,Math.min(100,(this.professionNow()-Date.parse(session.startedAt))/Math.max(1,Date.parse(session.completesAt)-Date.parse(session.startedAt))*100));}

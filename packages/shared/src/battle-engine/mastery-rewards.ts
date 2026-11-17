@@ -129,3 +129,21 @@ export function calculateMasteryXpAwards(log: any, policy: MasteryXpPolicy): Mas
   }
   return awards;
 }
+
+/** Reuse the established per-character policy with actor-identified V2 events. */
+export function calculateGroupMasteryXpAwards(
+  input: import('../types/group-battle').BattleInputV2,
+  result: Pick<import('../types/group-battle').BattleResultV2,'events'>,
+  policy: MasteryXpPolicy,
+): Record<string, MasteryXpAward> {
+  const teams=new Map(input.actors.map(actor=>[actor.id,actor.team]));
+  return Object.fromEntries(input.actors.filter(actor=>actor.kind==='character').map(actor=>{
+    const events=result.events.flatMap(event=>{
+      if(event.payload.type!=='action'||!['attack','use_skill'].includes(event.action))return [];
+      if(event.actorId===actor.id)return [{actor:'character',target:event.targetIds.some(id=>teams.get(id)!==actor.team)?'monster':'character',action:event.action,hit:event.payload.hit}];
+      if(event.targetIds.includes(actor.id)&&teams.get(event.actorId)!==actor.team)return [{actor:'monster',target:'character',action:event.action,hit:event.payload.hit}];
+      return [];
+    });
+    return [actor.id,calculateMasteryXpAwards({header:{characterSnapshot:actor.snapshot},events},policy)];
+  }));
+}

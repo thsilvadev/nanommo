@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict');
+const s=require('../../../packages/shared/dist');
+assert.equal(typeof s.composeGroupEncounter,'function','group encounter composer exported');
+const base={seed:'enc',members:[{characterId:'a',monsterId:'slime'},{characterId:'b',monsterId:'slime'}],entries:[{monsterId:'slime',raid:{candidates:[{monsterId:'wolf',chance:100}]}}],knownMonsterIds:['slime','wolf']};
+const enc=s.composeGroupEncounter(base);assert.equal(enc.length,4);assert.equal(new Set(enc.map(e=>e.id)).size,4);assert.deepEqual(enc,s.composeGroupEncounter(base));
+assert.equal(s.composeGroupEncounter({...base,entries:[{monsterId:'slime',raid:{candidates:[{monsterId:'wolf',chance:0}]}}]}).length,2);
+assert.throws(()=>s.composeGroupEncounter({...base,entries:[{monsterId:'slime',raid:{candidates:[{monsterId:'wolf',chance:101}]}}]}),/chance/i);
+assert.throws(()=>s.composeGroupEncounter({...base,entries:[{monsterId:'slime',raid:{candidates:[{monsterId:'wolf',chance:60},{monsterId:'slime',chance:60}]}}]}),/100/);
+assert.equal(s.composeGroupEncounter({...base,members:Array.from({length:5},(_,i)=>({characterId:'id'+i,monsterId:'slime'}))}).length,10);
+const reward={seed:'reward',outcome:'win',participants:[{characterId:'b',alive:true},{characterId:'a',alive:true},{characterId:'dead',alive:false}],monsters:[{id:'m1',monsterId:'slime',killed:true,xp:5,drops:[{itemId:'herb',quantity:3}]}],questDrops:[{id:'objective',monsterId:'slime',itemId:'quest',chancePercent:100,quantity:1,eligible:[{characterId:'a',questInstanceId:'qa'},{characterId:'b',questInstanceId:'qb'},{characterId:'dead',questInstanceId:'qd'}]}]};
+const rewards=s.allocateGroupRewards(reward);assert.equal(rewards.a.xpGain,3);assert.equal(rewards.b.xpGain,2);assert.equal(rewards.dead.xpGain,0);assert.equal(Object.values(rewards).reduce((n,r)=>n+r.drops.reduce((a,d)=>a+d.quantity,0),0),3);assert.deepEqual(rewards.a.questDrops,[{itemId:'quest',quantity:1,questInstanceId:'qa',objectiveId:'objective'}]);assert.deepEqual(rewards.dead.questDrops,[]);assert.deepEqual(rewards,s.allocateGroupRewards(reward));
+assert(Object.values(s.allocateGroupRewards({...reward,outcome:'fled'})).every(r=>r.xpGain===0&&r.drops.length===0&&r.questDrops.length===0));
+const full=s.allocateGroupRewards({...reward,participants:reward.participants.map(p=>({...p,inventoryFreeUnits:0}))});assert(Object.values(full).every(r=>r.drops.length===0));
+const member=(id,hp,targetId,team='a')=>({id,hp,targetId,team,moveSpeed:100,luk:5});
+const flee={seed:'flee',attempt:0,leaderId:'a',actors:[member('a',100),member('b',100),member('enemy',100,'a','b')]};
+const f=s.evaluateGroupFlee(flee);assert.equal(f.rolls.length,1);assert.equal(f.rolls[0].characterId,'a');assert.deepEqual(f,s.evaluateGroupFlee(flee));assert.equal(s.evaluateGroupFlee({...flee,actors:[member('a',0),member('b',100)]}).allowed,false);
+assert.equal(s.evaluateGroupFlee({...flee,actors:[member('a',100),member('enemy',100,undefined,'b')]}).success,true);
+assert.equal(s.evaluateGroupEncounterEvasion({...flee,aggressiveEnemyIds:['enemy']}).rolls.length,2);
+const mastery=s.calculateGroupMasteryXpAwards({actors:[{id:'a',kind:'character',team:'a',snapshot:{masteryEquipment:[{category:'sword',twoHanded:false},{category:'shield',twoHanded:false}]}},{id:'b',kind:'character',team:'a',snapshot:{masteryEquipment:[{category:'staff',twoHanded:true}]}}]}, {events:[{actorId:'a',targetIds:['monster'],action:'attack',payload:{type:'action',hit:true}},{actorId:'monster',targetIds:['a'],action:'use_skill',payload:{type:'action',hit:true}},{actorId:'b',targetIds:['b'],action:'use_skill',payload:{type:'action',hit:true}}]}, {oneHandedAction:1,twoHandedAction:2,shieldOnHit:3,runeOnHit:4});
+assert.deepEqual(mastery,{a:{sword:1,shield:3},b:{staff:2}});
+
+console.log('group-battle-rewards: passed');

@@ -3,7 +3,10 @@
     <div class="map-head">
       <h1>Currently in: {{mapName()}}</h1>
       <div class="map-meta">
-        <div *ngIf="activityGaugeVisible()" class="activity-gauge" [class.traveling]="activityKind()==='traveling'" [class.gathering]="activityKind()==='gathering'" role="progressbar" [attr.aria-label]="activityLabel()" [attr.aria-valuenow]="activityProgress()" aria-valuemin="0" aria-valuemax="100">
+        <div *ngIf="party.party()?.teleport as teleport" class="activity-gauge teleporting" role="progressbar" [attr.aria-label]="locale.t('Teleporting…')" [attr.aria-valuenow]="teleportProgress()" aria-valuemin="0" aria-valuemax="100">
+          <div class="activity-gauge-fill" [style.width.%]="teleportProgress()"></div><strong>{{locale.t('Teleporting…')}}{{teleport.paused ? ' · '+locale.t('Paused during battle') : ''}}</strong>
+        </div>
+        <div *ngIf="!party.party()?.teleport && activityGaugeVisible()" class="activity-gauge" [class.traveling]="activityKind()==='traveling'" [class.gathering]="activityKind()==='gathering'" role="progressbar" [attr.aria-label]="activityLabel()" [attr.aria-valuenow]="activityProgress()" aria-valuemin="0" aria-valuemax="100">
           <div class="activity-gauge-fill" [style.width.%]="activityProgress()"></div>
           <strong>{{activityLabel()}}</strong>
         </div>
@@ -18,7 +21,7 @@
       <svg *ngIf="destinationRoute().length>1" class="destination-route" viewBox="0 0 2295 1989" preserveAspectRatio="none" aria-hidden="true">
         <polyline [attr.points]="destinationRoutePoints()" />
       </svg>
-      <button *ngFor="let tile of maps; trackBy: trackMap" type="button" class="map-tile" [style.left.px]="gridColumn(tile)*153" [style.top.px]="gridRow(tile)*153" [class.current]="tile.id===character.character()?.currentMapId" [class.destination]="tile.id===displayDestinationMapId()" [attr.aria-label]="tile.name" [attr.data-map-id]="tile.id" [disabled]="!isRevealed(tile.coordinates.x,tile.coordinates.y) || tile.isClickable===false" (pointerenter)="showTileTooltip(tile,$event)" (pointermove)="moveTileTooltip($event)" (pointerleave)="hideTileTooltip()" (focus)="showTileTooltip(tile,$event)" (blur)="hideTileTooltip()">
+      <button *ngFor="let tile of maps; trackBy: trackMap" type="button" class="map-tile" [style.left.px]="gridColumn(tile)*153" [style.top.px]="gridRow(tile)*153" [class.current]="tile.id===character.character()?.currentMapId" [class.destination]="tile.id===displayDestinationMapId()" [attr.aria-label]="tile.name" [attr.data-map-id]="tile.id" [disabled]="!partyCanTravel() || !isRevealed(tile.coordinates.x,tile.coordinates.y) || tile.isClickable===false" (pointerenter)="showTileTooltip(tile,$event)" (pointermove)="moveTileTooltip($event)" (pointerleave)="hideTileTooltip()" (focus)="showTileTooltip(tile,$event)" (blur)="hideTileTooltip()">
         <img *ngIf="tile.id===displayDestinationMapId()" class="destination-pinpoint" src="/project/destination_pinpoint.png" alt="Destination">
         <img *ngIf="mapHasNpcNotification(tile)" class="map-notification-dot" src="/assets/ui/notification_dot.png" alt="New NPC available"><img *ngIf="tile.type==='town' && tile.id===character.character()?.savedTownMapId" class="town-waypoint" src="/project/T_waypoint.png" alt="Saved Town waypoint">
         <span class="map-tooltip-content"><strong>{{tile.name}}</strong><small *ngIf="tile.type==='grind'">Recommended level: {{tile.recommendedLevel ?? 1}}</small><small *ngIf="tile.type==='town'">Town</small><small *ngIf="tile.type!=='town' && tile.type!=='grind'">{{tile.type | titlecase}}</small></span>

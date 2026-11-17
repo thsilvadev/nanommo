@@ -201,3 +201,5 @@ export interface NpcDialogueState { npcId: string; nodeId: string; npcText: stri
 export interface VendorStockItem { slotIndex: number; itemId: string; quantity: number | null; infiniteStock: boolean; buyPrice: number; item: Record<string, unknown>; }
 export interface VendorQuote { vendorId: string; itemId: string; buyPrice: number | null; sellPrice: number | null; stackable: boolean; maxStack: number; }
 export interface VendorTransactionResponse { itemId: string; quantity: number; unitPrice: number; goldSpent?: number; goldReceived?: number; }
+
+export * from './group-battle';

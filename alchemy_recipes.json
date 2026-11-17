@@ -124,8 +124,8 @@
     {
       "id": "fairy_in_a_bottle",
       "name": "Fairy in a Bottle",
-      "category": "tonics",
-      "requiredLevel": 6,
+      "category": "super_tonics",
+      "requiredLevel": 10,
       "ingredients": [
         {
           "itemId": "mat_herbs",
@@ -133,12 +133,46 @@
         },
         {
           "itemId": "mat_mystic_dust",
-          "quantity": 1
+          "quantity": 10
         }
       ],
       "outputItemId": "fairy_in_a_bottle",
       "xpReward": 30,
       "order": 8
+    },
+    {
+      "id": "antidote",
+      "name": "Antidote",
+      "category": "potions",
+      "requiredLevel": 1,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "antidote",
+      "xpReward": 5,
+      "order": 9
+    },
+    {
+      "id": "sapupema_tea",
+      "name": "Sapupema Leaf Tea",
+      "category": "super_tonics",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 25
+        },
+        {
+          "itemId": "mat_sapupema_leaf",
+          "quantity": 8
+        }
+      ],
+      "outputItemId": "super_tonic_sapupema_tea",
+      "xpReward": 25,
+      "order": 10
     }
   ]
 }

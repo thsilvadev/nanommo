@@ -1,0 +1,76 @@
+/** Explicit opt-in disposable PostgreSQL only; never reads game .env. */
+const assert=require('node:assert/strict'),path=require('node:path'),{randomUUID}=require('node:crypto');
+const {DataSource}=require('typeorm'),entities=require('../dist/apps/api/src/database/entities');
+const {PartyService}=require('../dist/apps/api/src/modules/party/party.service');
+const {SharedBattleService}=require('../dist/apps/api/src/modules/party/shared-battle.service');
+const {PartyGroupCombat1800500000000}=require('../dist/apps/api/src/database/migrations/1800500000000-PartyGroupCombat');
+const {InventoryService}=require('../dist/apps/api/src/modules/inventory/inventory.service');
+const {QuestService}=require('../dist/apps/api/src/modules/quests/quest.service');
+const {DataService}=require('../dist/apps/api/src/modules/data/data.service');
+if(process.env.PARTY_TEST_DATABASE!=='nanommo_party_test')throw new Error('Set PARTY_TEST_DATABASE=nanommo_party_test for disposable DB');
+const db=new DataSource({type:'postgres',host:'127.0.0.1',port:55439,username:'party_test',database:'nanommo_party_test',entities:Object.values(entities).filter(e=>typeof e==='function'&&!['Party','PartyMember','PartyInvite','CharacterActionIntent','EncounterClock','SharedBattle','SharedBattleParticipant','ActiveBattleParticipant','PartyOutbox'].includes(e.name)),synchronize:false});
+(async()=>{
+ await db.initialize();await db.synchronize(true);
+ await db.query('ALTER TABLE characters DROP COLUMN "autoPartyEnabled", DROP COLUMN "autoPartyEnabledAt"');
+ const runner=db.createQueryRunner();await runner.startTransaction();await new PartyGroupCombat1800500000000().up(runner);await runner.commitTransaction();await runner.release();
+ const data=new DataService(),cwd=process.cwd();process.chdir(path.resolve(__dirname,'..'));data.onModuleInit();process.chdir(cwd);
+ const snapshot={level:1,hp:100,sp:50,maxHp:100,maxSp:50,atk:30,matk:20,def:5,mdefPercent:0,accuracy:100,evasion:0,critChance:0,hpRegenPerTenTicks:0,spRegenPerTenTicks:0,agi:5,dex:5,luk:5,attackSpeed:200,moveSpeed:100,moveSpeedBase:100,isPlayerCharacter:true,basicAttackDamageType:'melee',basicAttackRange:0};
+ const battle={buildCharacterSnapshot:async c=>({...snapshot,hp:c.hpCurrent,sp:c.spCurrent}),preparePartyFood:async()=>true};
+ const inventory=new InventoryService(db.getRepository(entities.InventoryItem),db.getRepository(entities.Character),data);
+ const quests=new QuestService(db.getRepository(entities.Character),db.getRepository(entities.InventoryItem),db.getRepository(entities.QuestInstance),data,{get:()=>undefined});
+ const shared=new SharedBattleService(db,battle,data,inventory,quests, {assertValidGambitPage:async()=>{},canonicalizeLines:x=>x});
+ const party=new PartyService(db,battle,data,shared),chars=[];
+ for(let n=0;n<8;n++){const user=await db.getRepository(entities.User).save({email:`p${n}@test.invalid`,emailVerified:true,provider:'local'});chars.push(await db.getRepository(entities.Character).save({userId:user.id,name:`Party${n}`,hpCurrent:100,spCurrent:50,lastSeenAt:new Date(),appearance:{test:true},currentMapId:'map_town'}));}
+ const invite=async(a,b)=>{await party.invite(a.id,b.id,undefined,randomUUID());return(await db.query('SELECT * FROM party_invites WHERE "inviterId"=$1 AND "candidateId"=$2 ORDER BY "createdAt" DESC',[a.id,b.id]))[0];};
+ let inv=await invite(chars[0],chars[1]);await party.accept(chars[1].id,inv.id);await party.accept(chars[1].id,inv.id);
+ let state=await party.get(chars[0].id);assert.equal(state.party.members.length,2);
+ for(let n=2;n<4;n++){inv=await invite(chars[0],chars[n]);await party.accept(chars[n].id,inv.id);}
+ const a=await invite(chars[0],chars[4]),b=await invite(chars[0],chars[5]);await Promise.allSettled([party.accept(chars[4].id,a.id),party.accept(chars[5].id,b.id)]);
+ state=await party.get(chars[0].id);assert.equal(state.party.members.length,5,'last slot cannot be double-claimed');
+ await assert.rejects(()=>party.reorder(chars[1].id,state.party.members.map(m=>m.characterId)),/PARTY LEADER REQUIRED/);
+ await party.reorder(chars[0].id,state.party.members.map(m=>m.characterId).reverse());
+ const candidate=chars.find(c=>!state.party.members.some(m=>m.characterId===c.id));
+ await assert.rejects(()=>db.query('INSERT INTO party_members("partyId","characterId","orderIndex") VALUES($1,$2,0)',[state.party.id,candidate.id]),/unique/i);
+ const battleIds=[randomUUID(),randomUUID()];for(const id of battleIds)await db.query(`INSERT INTO shared_battles(id,"mapId",seed,"startAt","endAt",state,snapshot,log) VALUES($1,'field','seed',clock_timestamp(),clock_timestamp(),'started','{}','{}')`,[id]);
+ const claims=await Promise.allSettled(battleIds.map(id=>db.transaction(m=>m.query('INSERT INTO active_battle_participants("characterId","battleId") VALUES($1,$2)',[candidate.id,id]))));assert.equal(claims.filter(c=>c.status==='fulfilled').length,1);
+ await db.query('DELETE FROM active_battle_participants');
+ await party.enqueue(candidate.id,'bad','attributes',{str:999});await party.enqueue(candidate.id,'good','attributes',{str:1});
+ let actions=await party.actions(candidate.id);assert.equal(actions.find(a=>a.sequence==='1').status,'failed');assert.equal(actions.find(a=>a.sequence==='2').status,'failed');
+ await db.getRepository(entities.Character).update(candidate.id,{unspentAttributePoints:200});await party.enqueue(candidate.id,'valid','attributes',{str:1});await party.enqueue(candidate.id,'valid','attributes',{str:1});assert.equal((await db.getRepository(entities.Character).findOneBy({id:candidate.id})).str,6);
+ await db.query(`INSERT INTO encounter_clocks("ownerKind","ownerId","mapId","searchStartedAt","dueAt",seed,status,roster) VALUES('character',$1,'field',clock_timestamp(),clock_timestamp()+interval '30 seconds','reserved','searching','[{"monsterId":"fixed"}]')`,[candidate.id]);
+ const before=(await db.query('SELECT * FROM encounter_clocks WHERE "ownerId"=$1',[candidate.id]))[0];
+ for(let n=0;n<100;n++)await party.enqueue(candidate.id,`spam-${n}`,'attributes',{str:1});
+ const after=(await db.query('SELECT * FROM encounter_clocks WHERE "ownerId"=$1',[candidate.id]))[0];assert.equal(after.dueAt.getTime(),before.dueAt.getTime());assert.equal(after.seed,'reserved');assert.deepEqual(after.roster,[{monsterId:'fixed'}]);
+ await db.query(`UPDATE encounter_clocks SET "dueAt"=clock_timestamp()-interval '1 second' WHERE "ownerId"=$1`,[candidate.id]);
+ for(let n=0;n<32;n++)await party.enqueue(candidate.id,`pending-${n}`,'attributes',{str:1});
+ await assert.rejects(()=>party.enqueue(candidate.id,'over-limit','attributes',{str:1}),/Too many pending/);
+ const pending=await party.actions(candidate.id);assert.equal(pending.filter(a=>a.status==='pending').length,32);const cancelled=pending.find(a=>a.status==='pending');await party.cancelAction(candidate.id,cancelled.id);await party.cancelAction(candidate.id,cancelled.id);assert.equal((await party.actions(candidate.id)).find(a=>a.id===cancelled.id).status,'cancelled');
+ await party.leave(chars[0].id);state=await party.get(chars[1].id);assert.notEqual(state.party.leaderCharacterId,chars[0].id);assert.equal(state.party.members.length,4);
+ for(const m of state.party.members.slice(0,3))await party.leave(m.characterId);assert.equal(Number((await db.query('SELECT count(*) AS n FROM parties'))[0].n),0);
+ // Actual V2 2v2 encounter, immutable shared log, redelivery-safe rewards and private snapshot.
+ const field='map_green_grounds_0';
+ const fighters=chars.slice(6,8);
+ await db.query(`UPDATE characters SET "currentMapId"=$1,status='grinding',"autoPartyEnabled"=false WHERE id=ANY($2::uuid[])`,[field,fighters.map(c=>c.id)]);
+ const originalPool=data.getMonstersInMap.bind(data),originalMonster=data.getMonsterById.bind(data);
+ const monster={id:'test_target',name:'Training Target',level:1,hp:20,atk:1,matk:1,def:0,mdefPercent:0,accuracy:100,evasion:0,critChance:0,atkSpeedTicks:20,moveSpd:100,combatStyle:'melee',basicAttackDamageType:'melee',basicAttackRange:0,xpReward:11,gambit:[{condition:{type:'always'},action:{type:'attack'}}],drops:[]};
+ data.getMonstersInMap=()=>[monster];data.getMonsterById=id=>id===monster.id?monster:originalMonster(id);
+ for(const c of fighters){const page=await db.getRepository(entities.GambitPage).save({characterId:c.id,slotIndex:0,title:'Attack',lines:[{conditions:[{id:'always'}],action:{id:'attack'}}]});await db.getRepository(entities.Character).update(c.id,{activeGambitPageId:page.id});}
+ inv=await invite(fighters[0],fighters[1]);await party.accept(fighters[1].id,inv.id);
+ const group=(await party.get(fighters[0].id)).party;assert.equal(group.members.length,2);
+ await db.query(`UPDATE encounter_clocks SET "dueAt"=clock_timestamp()-interval '1 second' WHERE "ownerId"=$1`,[group.id]);
+ await party.tickParty(group.id);
+ const started=(await db.query('SELECT * FROM shared_battles WHERE "partyId"=$1',[group.id]))[0];assert.ok(started,'V2 party encounter starts');assert.equal(started.snapshot.actors.length,4);assert.equal(started.state,'started');
+ assert.equal(new Set(started.snapshot.actors.map(a=>JSON.stringify(a.position))).size,4,'unique formation in persisted snapshot');
+ const joining=chars[2];await db.getRepository(entities.Character).update(joining.id,{currentMapId:field,status:'grinding'});const pendingInvite=await invite(fighters[0],joining);await party.accept(joining.id,pendingInvite.id);assert.equal(await party.member(joining.id),null,'accepted invite cannot enter started battle');
+ const originalSnapshot=JSON.stringify(started.snapshot);await party.leave(fighters[1].id);assert.equal((await party.get(fighters[1].id)).party.members.find(m=>m.characterId===fighters[1].id).pendingLeave,true);assert.equal(JSON.stringify((await db.query('SELECT snapshot FROM shared_battles WHERE id=$1',[started.id]))[0].snapshot),originalSnapshot,'leave preserves started snapshot');
+ const view=await shared.publicBattle(fighters[0].id);assert.ok(view.snapshot.actors.every(a=>a.inventory===undefined&&a.gambits===undefined));assert.ok(Object.values(view.log.actorsAfter).every(a=>a.inventory===undefined));
+ const beforeXp=await db.getRepository(entities.Character).findBy({id:require('typeorm').In(fighters.map(c=>c.id))});
+ await db.query(`UPDATE shared_battles SET "endAt"=clock_timestamp()-interval '1 millisecond' WHERE id=$1`,[started.id]);
+ await Promise.all([party.tickParty(group.id),party.tickParty(group.id)]);
+ const terminal=(await db.query('SELECT * FROM shared_battles WHERE id=$1',[started.id]))[0];assert.equal(terminal.state,'resolved');
+ const afterXp=await db.getRepository(entities.Character).findBy({id:require('typeorm').In(fighters.map(c=>c.id))});assert.equal(afterXp.reduce((n,c)=>n+Number(c.xp),0)-beforeXp.reduce((n,c)=>n+Number(c.xp),0),22,'shared XP grants exactly once across concurrent redelivery');
+ assert.equal(Number((await db.query('SELECT count(*) AS n FROM active_battle_participants WHERE "battleId"=$1',[started.id]))[0].n),0);
+ data.getMonstersInMap=originalPool;
+ await assert.rejects(()=>new PartyGroupCombat1800500000000().down(),/forward-only/);
+ console.log('party-concurrency.integration passed migration, constraints, last-slot race, active-claim race, intents FIFO/retry/limit/cancel, immutable clock, leader/dissolve');
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>db.isInitialized&&db.destroy());

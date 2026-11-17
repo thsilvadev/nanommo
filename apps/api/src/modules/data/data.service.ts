@@ -256,7 +256,7 @@ export class DataService implements OnModuleInit {
           map_kwaioua_forest_5: ['mat_herbs', 'mat_rushroom', 'mat_guarana'], map_kwaioua_forest_6: ['mat_herbs', 'mat_rushroom'],
           map_kwaioua_forest_7: ['mat_herbs', 'mat_guarana'],
           map_caete_0: ['mat_herbs', 'mat_mystic_dust'], map_caete_1: ['mat_herbs', 'mat_mystic_dust'],
-          map_caete_2: ['mat_herbs', 'mat_mystic_dust'], map_caete_6: ['mat_herbs', 'mat_mystic_dust'],
+          map_caete_2: ['mat_herbs', 'mat_mystic_dust'], map_caete_6: ['mat_herbs', 'mat_mystic_dust', 'mat_sapupema_leaf'],
         };
         exactGatheringAllowList.set(String(map.id), new Set(regionalResources[String(map.id)] ?? ['mat_herbs']));
       }
@@ -294,6 +294,18 @@ export class DataService implements OnModuleInit {
       }
       for (const entry of map.monsters) {
         if (!monsterIds.has(entry.monsterId)) throw new Error(`Map ${map.id} references missing monster ${entry.monsterId}`);
+        const candidates = entry.raid?.candidates;
+        if (!Array.isArray(candidates)) throw new Error(`Map ${map.id} raid must define candidates for ${entry.monsterId}`);
+        const raidIds = new Set<string>();
+        let raidChance = 0;
+        for (const candidate of candidates) {
+          if (!monsterIds.has(candidate?.monsterId)) throw new Error(`Map ${map.id} raid references missing monster ${candidate?.monsterId}`);
+          if (raidIds.has(candidate.monsterId)) throw new Error(`Map ${map.id} raid has duplicate candidate ${candidate.monsterId}`);
+          raidIds.add(candidate.monsterId);
+          if (typeof candidate.chance !== 'number' || !Number.isFinite(candidate.chance) || candidate.chance < 0 || candidate.chance > 100) throw new Error(`Map ${map.id} raid has invalid chance for ${candidate.monsterId}`);
+          raidChance += candidate.chance;
+        }
+        if (raidChance > 100) throw new Error(`Map ${map.id} raid chances exceed 100 for ${entry.monsterId}`);
         if (!Number.isFinite(Number(entry.presenceRate)) || Number(entry.presenceRate) < 0) throw new Error(`Invalid presenceRate in ${map.id}`);
       }
     }
@@ -308,11 +320,15 @@ export class DataService implements OnModuleInit {
         if (!Number.isInteger(Number(recipe.requiredLevel)) || Number(recipe.requiredLevel) < 1 || !Number.isFinite(Number(recipe.xpReward)) || Number(recipe.xpReward) < 0) throw new Error(label + ' recipe has invalid level/XP: ' + recipe.id);
         if (!validOutputIds.has(String(recipe.outputItemId)) || !Array.isArray(recipe.ingredients) || !recipe.ingredients.length) throw new Error(label + ' recipe has invalid output/ingredients: ' + recipe.id);
         if (label === 'Alchemy' && this.getItemById(recipe.outputItemId)?.type !== 'consumable') throw new Error('Alchemy outputs must be consumables: ' + recipe.id);
-        if (label === 'Alchemy' && !['potions', 'tonics'].includes(String(recipe.category))) throw new Error('Alchemy recipe must belong to potions or tonics: ' + recipe.id);
+        if (label === 'Alchemy' && !['potions', 'tonics', 'super_tonics'].includes(String(recipe.category))) throw new Error('Alchemy recipe has invalid category: ' + recipe.id);
+        if (label === 'Alchemy' && this.getItemById(recipe.outputItemId)?.alchemyCategory !== recipe.category) throw new Error('Alchemy recipe category differs from output: ' + recipe.id);
         if (label === 'Alchemy' && recipe.ingredients.some((ingredient: any) => this.getItemById(ingredient.itemId)?.type !== 'material')) throw new Error('Alchemy ingredients must be materials: ' + recipe.id);
         if (label === 'Blacksmith' && !['material', 'equipment'].includes(String(this.getItemById(recipe.outputItemId)?.type))) throw new Error('Blacksmith output must be a material/equipment: ' + recipe.id);
         for (const ingredient of recipe.ingredients) if (!validItemIds.has(String(ingredient.itemId)) || !Number.isInteger(Number(ingredient.quantity)) || Number(ingredient.quantity) < 1) throw new Error(label + ' recipe has invalid ingredient: ' + recipe.id);
       }
+    }
+    for (const item of this.items.consumables ?? []) {
+      if (item.alchemyCategory === 'super_tonics' && item.cooldownInSeconds !== 60) throw new Error('Super tonic must define a 60-second cooldown: ' + item.id);
     }
     if (!Array.isArray(this.globalItemDrops?.drops) || this.globalItemDrops.drops.length < 2) throw new Error('global_item_drops.json must define independent global drops');
     for (const drop of this.globalItemDrops.drops) {

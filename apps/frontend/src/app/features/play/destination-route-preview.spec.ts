@@ -5,6 +5,7 @@ import { MapBoard } from './components';
 describe('world map destination-route reconciliation', () => {
   function harness() {
     const board: any = Object.create(MapBoard.prototype);
+    board.party = { party: () => null };
     board.destinationMapId = signal<string | null>(null);
     board.routeOriginMapId = signal<string | null>(null);
     board.mapTransitionPending = signal(false);

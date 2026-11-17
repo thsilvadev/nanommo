@@ -1,4 +1,6 @@
-import { forwardRef, Inject, Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+import { PartyService } from '../party/party.service';
 import { randomUUID } from 'crypto';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
@@ -7,6 +9,7 @@ import { EntityManager, In, Repository } from 'typeorm';
 import { BattleQueueEntry, Character, MapKillCounter, GambitPage, InventoryItem, WeaponProficiency } from '@/database/entities';
 import {
   BattleEngine,
+  simulateBattleV2Solo,
   effectiveItemDefinition,
   GambitEvaluator,
   Mulberry32,
@@ -27,6 +30,7 @@ import {
 } from '@nanommo/shared';
 import { effectiveFoodStatValue, secondsToBattleTicks, TOWN_MAP_ID, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, isInstantTownExitEdge, calculateFleeChancePercent, deterministicIntInclusive } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
+import { EncounterClockService } from './encounter-clock.service';
 import { CharacterService } from '../character/character.service';
 import { InventoryService, buildDietStateAfterFoodConsumption, normalizeDietState } from '../inventory/inventory.service';
 import { EquipmentService } from '../equipment/equipment.service';
@@ -120,7 +124,20 @@ export class BattleService {
     private readonly idleJournal: IdleJournalService,
     private readonly questService: QuestService,
     private readonly notifications: NotificationsService,
+    private readonly moduleRef: ModuleRef,
+    @Optional() private readonly encounterClocks?: EncounterClockService,
   ) {}
+
+  partyCoordinator(): PartyService | null {
+    try { return this.moduleRef?.get(PartyService, { strict: false }) ?? null; } catch { return null; }
+  }
+
+  async preparePartyFood(character: Character, at: number, manager: EntityManager): Promise<boolean> {
+    if(this.latestFoodExpiry(this.getActiveDietFoodBuffs(character, at)) > at) return true;
+    const ate = await this.tryAutoFeed(character, at, manager);
+    if(ate.length) await manager.getRepository(Character).save(character);
+    return this.latestFoodExpiry(this.getActiveDietFoodBuffs(character, at)) > at;
+  }
 
   /** Serialize operations that may change a character's encounter chain across API/worker replicas. */
   async withCharacterQueueLock<T>(characterId: string, operation: () => Promise<T>): Promise<T> {
@@ -273,6 +290,16 @@ export class BattleService {
   }
 
   private async invalidateAndRebuildFutureCombatQueue(characterId: string): Promise<void> {
+    const previousQueue = await this.getBattleQueue(characterId, 100);
+    // Due and overdue legacy entries already own their immutable snapshot. An
+    // invalidation cannot replace them merely because their worker is delayed.
+    const started = previousQueue.find(entry => entry.startAt.getTime() <= Date.now());
+    if (started) {
+      await this.discardUnresolvedBattles(characterId, started.id);
+      await this.safePublishQueueUpdated(characterId, await this.getBattleQueue(characterId, 100));
+      return;
+    }
+    if (previousQueue[0]) await this.encounterClocks?.reserveProjection(previousQueue[0]);
     await this.discardUnresolvedBattles(characterId);
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
@@ -591,6 +618,7 @@ export class BattleService {
     targetDepth: number = this.QUEUE_DEPTH_TARGET,
     publishQueueEvent = true,
   ): Promise<BattleQueueEntry[]> {
+    if (await this.partyCoordinator()?.queueIfMember(characterId)) return [];
     return this.withCharacterQueueLock(characterId, () => this.queueBattlesLocked(characterId, targetDepth, publishQueueEvent));
   }
 
@@ -669,11 +697,14 @@ export class BattleService {
     );
 
     const mapId = character.currentMapId;
+    const reservedEncounter = currentQueue.length === 0
+      ? await this.encounterClocks?.current(characterId, mapId)
+      : null;
     const battlesToAdd = targetDepth - currentQueue.length;
     const newBattles: BattleQueueEntry[] = [];
 
     const maxSequenceIndex =
-      currentQueue.length > 0 ? Math.max(...currentQueue.map((b) => b.sequenceIndex)) : -1;
+      currentQueue.length > 0 ? Math.max(...currentQueue.map((b) => b.sequenceIndex)) : Number(reservedEncounter?.roster?.[0]?.sequenceIndex ?? 0) - 1;
 
     // SPEC §7.4: battle N+1 starts from battle N's end state.
     let chainHp = character.hpCurrent;
@@ -823,13 +854,14 @@ export class BattleService {
     const preCombatJournalEvents: Array<{ monsterId: string; monsterName: string; aggressive: boolean; key: string; occurredAt: string; activityKind: 'gathering' | 'travel' }> = [];
     for (let i = 0; i < battlesToAdd + 100; i++) {
       if (newBattles.length >= battlesToAdd) break;
-      const sequenceIndex = maxSequenceIndex + 1 + newBattles.length;
+      const reservation = i === 0 && currentQueue.length === 0 ? reservedEncounter : null;
+      const sequenceIndex = reservation?.roster?.[0]?.sequenceIndex ?? maxSequenceIndex + 1 + newBattles.length;
       const killIndex = projectedMapKillCount;
 
       // Every encounter has its own independently seeded 2–6 second + population search interval.
-      const searchStartTime = new Date(nextStartTime);
+      const searchStartTime = reservation ? new Date(reservation.searchStartedAt) : new Date(nextStartTime);
       const encounterSearchMs = options.immediateEncounter && i === 0 ? 0 : calculateEncounterSearchDelayMs(mapPlayers, `${characterId}:${mapId}:${counter.epoch}:${killIndex}:search`);
-      const encounterStartAt = nextStartTime.getTime() + encounterSearchMs;
+      const encounterStartAt = reservation ? new Date(reservation.dueAt).getTime() : nextStartTime.getTime() + encounterSearchMs;
       // Eligibility is evaluated at the actual battle start, after encounter
       // search, not at the beginning of the search gap.
       if (!projectedFoodExpiresAt || projectedFoodExpiresAt <= encounterStartAt) {
@@ -844,7 +876,9 @@ export class BattleService {
       const monsterSelectionSeed = character.lastGrindStance === 'gathering' && preCombatFleeCycle > 0
         ? mulberry32Seed(`${characterId}:${mapId}:${counter.epoch}:pre-combat-cycle:${preCombatFleeCycle}`)
         : encounterSeed;
-      const forcedMonster = options.forcedMonsterId ? monsters.find((entry: any) => entry.id === options.forcedMonsterId) : null;
+      const reservedMonsterId = reservation?.roster?.[0]?.monsterId;
+      const forcedId = reservedMonsterId ?? options.forcedMonsterId;
+      const forcedMonster = forcedId ? monsters.find((entry: any) => entry.id === forcedId) : null;
       const monster = forcedMonster ?? rngForIndex(monsterSelectionSeed, killIndex).weightedPick(monsters);
       if (!forcedMonster && (character.lastGrindStance === 'gathering' || options.allowTravel === true)) {
         performedPreCombatCheck = true;
@@ -925,7 +959,7 @@ export class BattleService {
         snapshot.hp = chainHp;
         snapshot.sp = chainSp;
       }
-      const seed = `${characterId}:${mapId}:${monsterId}:${sequenceIndex}:${counter.epoch}:${killIndex}`;
+      const seed = reservation?.seed ?? `${characterId}:${mapId}:${monsterId}:${sequenceIndex}:${counter.epoch}:${killIndex}`;
 
       // Freeze the entry combat style into this immutable battle snapshot. Bow basic
       // attacks and any enabled, available ranged Foe skill/item make the player ranged.
@@ -959,7 +993,7 @@ export class BattleService {
       // ---- Gambit is evaluated INSIDE the engine, per gauge fire (SPEC §7.3)
       const regenTickOffset = Math.max(0, Math.floor((nextStartTime.getTime() - regenAnchor) / MS_PER_TICK));
       const startingInventory = { ...workingInventory };
-      const simulation = BattleEngine.simulateBattle(snapshot, monster, gambitPage, seed, {
+      const simulation = simulateBattleV2Solo(snapshot, monster, gambitPage, seed, {
         inventory: workingInventory,
         itemDefinitions,
         monsterSkillDefs,
@@ -1045,6 +1079,7 @@ export class BattleService {
       });
 
       const saved = await this.battleQueueRepo.save(entry);
+      if (currentQueue.length === 0 && newBattles.length === 0) await this.encounterClocks?.reserveProjection(saved);
       newBattles.push(saved);
       chainTimelineMs = battleEndTime;
 
@@ -1216,6 +1251,7 @@ export class BattleService {
         const death = await this.handleCharacterDeath(character, battle, manager);
         battle.resolved = true;
         await battleRepo.save(battle);
+      await this.encounterClocks?.consumeProjection(battle, manager);
         return {
           alreadyResolved: false as const,
           kind: 'death' as const,
@@ -1344,6 +1380,7 @@ export class BattleService {
       // character state, Diet, equipment substitutions and the kill counter.
       battle.resolved = true;
       await battleRepo.save(battle);
+      await this.encounterClocks?.consumeProjection(battle, manager);
 
       const queueRepo = manager.getRepository(BattleQueueEntry);
       let discardedBattleIds: string[] = [];
@@ -1547,7 +1584,7 @@ export class BattleService {
       const battleTickDurationMs = Number(battle.tickDurationMs ?? BATTLE_TICK_DURATION_MS);
       if (!Number.isSafeInteger(battleTickDurationMs) || battleTickDurationMs <= 0) throw new Error(`Invalid persisted battle tickDurationMs for ${battle.id}`);
       const targetTick = Math.max(0, Math.floor((timestamp - battle.startAt.getTime()) / battleTickDurationMs));
-      const replay = BattleEngine.simulateBattle(
+      const replay = (battle.log?.header?.engineVersion === 2 ? simulateBattleV2Solo : BattleEngine.simulateBattle)(
         start.snapshot,
         this.dataService.getMonsterById(battle.monsterId),
         // The original log already contains the resolved Gambit choices; replay needs the same page as the original snapshot.
@@ -1653,6 +1690,7 @@ export class BattleService {
       // never let off-battle catch-up reapply pre-FLEE intervals to that state.
       this.advanceResourceRegenCheckpoint(character, new Date(timestamp));
       await battleRepo.save(battle);
+      await this.encounterClocks?.consumeProjection(battle, manager);
       const future = await queueRepo.find({ where: { characterId, resolved: false }, order: { sequenceIndex: 'ASC' } });
       const obsolete = future.filter(entry => entry.id !== battle.id).map(entry => entry.id);
       if (obsolete.length) await queueRepo.delete({ id: In(obsolete), resolved: false });

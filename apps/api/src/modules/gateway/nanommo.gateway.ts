@@ -415,6 +415,10 @@ export class NanommoGateway
    */
   private setupRedisSubscribers(characterId: string, socket: Socket): void {
     const channels = [
+      `gateway:party:updated:${characterId}`,
+      `gateway:party:invite:${characterId}`,
+      `gateway:party:actionUpdated:${characterId}`,
+      `gateway:battle:sharedUpdated:${characterId}`,
       `gateway:battle:resolved:${characterId}`,
       `gateway:character:leveledUp:${characterId}`,
       `gateway:character:died:${characterId}`,

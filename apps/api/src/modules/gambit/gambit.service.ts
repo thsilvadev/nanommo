@@ -263,7 +263,7 @@ export class GambitService {
    * line fails validation - never silently drop invalid lines."
    * Throws before any repository write happens.
    */
-  private async assertValidGambitPage(lines: any): Promise<void> {
+  async assertValidGambitPage(lines: any): Promise<void> {
     const result = await this.validateGambitPage(lines);
 
     if (!result.valid) {
@@ -303,7 +303,7 @@ export class GambitService {
   }
 
   /** Persist the canonical one-condition line shape and discard legacy null combinators. */
-  private canonicalizeLines(lines: any[]): any[] {
+  canonicalizeLines(lines: any[]): any[] {
     return lines.map((line: any) => {
       const { combinator: _legacyCombinator, ...rest } = line;
       return { ...rest, conditions: [line.conditions[0]] };

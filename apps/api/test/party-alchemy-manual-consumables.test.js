@@ -1,0 +1,41 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const { InventoryService } = require('../dist/apps/api/src/modules/inventory/inventory.service');
+const { Character } = require('../dist/apps/api/src/database/entities/character.entity');
+const items = JSON.parse(fs.readFileSync('items.json', 'utf8')).consumables;
+function fixture(overrides = {}) {
+  const state = { character: { id: 'consumer', statusEffects: [{ type: 'poison' }, { type: 'fontoura' }], consumableCooldowns: {}, ...overrides }, consumed: [], saved: 0 };
+  const manager = { getRepository: entity => entity === Character ? { findOne: async () => state.character, save: async value => { state.saved++; return value; } } : { createQueryBuilder: () => { const query = { where: () => query, andWhere: () => query, getOne: async () => null }; return query; } } };
+  const svc = Object.create(InventoryService.prototype);
+  svc.characterRepo = { manager: { transaction: async callback => callback(manager) } };
+  svc.dataService = { getItemById: id => items.find(row => row.id === id) };
+  svc.getItemCount = async () => 1;
+  svc.removeItem = async (_characterId, itemId, quantity) => state.consumed.push({ itemId, quantity });
+  return { svc, state, manager };
+}
+(async () => {
+  const external = fixture();
+  external.svc.characterRepo.manager.transaction = async () => { throw new Error('nested transaction'); };
+  await external.svc.useConsumable('consumer', 'antidote', external.manager, 1_800_000_000_000);
+  assert.equal(external.state.character.consumableCooldowns['item:potion'], new Date(1_800_000_010_000).toISOString());
+  assert.equal(external.state.character.lastSeenAt.getTime(), 1_800_000_000_000);
+  const tea = fixture();
+  await assert.rejects(() => tea.svc.useConsumable('consumer', 'super_tonic_sapupema_tea'), /KO ally|Gambit/i, 'tea requires a target and cannot be silently consumed by self-use');
+  assert.deepEqual(tea.state.consumed, []);
+  assert.equal(tea.state.saved, 0);
+  const fairy = fixture();
+  await assert.rejects(() => fairy.svc.useConsumable('consumer', 'fairy_in_a_bottle'), /Upon Death/);
+  assert.deepEqual(fairy.state.consumed, []);
+  const antidote = fixture();
+  const before = Date.now();
+  await antidote.svc.useConsumable('consumer', 'antidote');
+  assert.deepEqual(antidote.state.character.statusEffects, [{ type: 'fontoura' }], 'Antidote only cures poison');
+  assert.deepEqual(antidote.state.consumed, [{ itemId: 'antidote', quantity: 1 }]);
+  assert.ok(Date.parse(antidote.state.character.consumableCooldowns['item:potion']) >= before + 10_000);
+  await assert.rejects(() => antidote.svc.useConsumable('consumer', 'elixir_greater'), /on cooldown/);
+  assert.equal(antidote.state.consumed.length, 1, 'shared potion cooldown rejects without consumption');
+  const locked = fixture({ consumableCooldowns: { 'item:potion': new Date(Date.now() + 60_000).toISOString() } });
+  await assert.rejects(() => locked.svc.useConsumable('consumer', 'antidote'), /on cooldown/);
+  assert.deepEqual(locked.state.consumed, []);
+  console.log('party-alchemy-manual-consumables: passed tea/Fairy target guards and Antidote shared potion cooldown, poison-only cure and no duplicate consumption');
+})().catch(error => { console.error(error); process.exitCode = 1; });

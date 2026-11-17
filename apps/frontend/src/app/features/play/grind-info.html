@@ -8,7 +8,9 @@
   </div>
   <small *ngIf="townSaveError()" class="town-save-error">{{townSaveError()}}</small>
   <ng-container *ngIf="isTown();else grindContext"><app-vendor-panel></app-vendor-panel></ng-container>
-  <ng-template #grindContext><ng-container *ngIf="battle.active() as b">
+  <ng-template #grindContext>
+    <app-shared-battle-panel *ngIf="sharedBattleActive(); else legacyBattle" />
+    <ng-template #legacyBattle><ng-container *ngIf="battle.active() as b">
       <ng-container *ngIf="isSearching(b); else activeBattle">
         <div class="idle-state search-state"><strong>{{isGathering() ? 'Gathering...' : 'Searching for Monsters...'}}</strong><p *ngIf="recentFleeNotice()">You fled an aggressive enemy.</p></div>
       </ng-container>
@@ -50,6 +52,7 @@
       </ng-template>
     </ng-container>
     <div *ngIf="!battle.active()" class="idle-state"><strong>{{foodLabel()==='HUNGRY'?'HUNGRY':(character.character()?.travelIntent?'TRAVELING':(isGathering()?'Gathering...':'Searching for Monsters...'))}}</strong><small *ngIf="isGathering() && recentFleeNotice()">You fled an aggressive enemy.</small><small *ngIf="foodLabel()!=='HUNGRY'">Waiting for the authoritative encounter queue.</small></div>
+    </ng-template>
     <div class="session-drops">
       <div class="section-label">SESSION LOOT</div>
       <div *ngFor="let it of sessionDrops()" class="session-loot-item" [attr.title]="sessionDropName(it)">

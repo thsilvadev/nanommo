@@ -9,6 +9,7 @@ import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { WeaponProficiency } from '../../database/entities/weapon-proficiency.entity';
 import { BattleController } from './battle.controller';
 import { BattleService } from './battle.service';
+import { EncounterClockService } from './encounter-clock.service';
 import { BattleQueueProcessor } from './battle-queue.processor';
 import { BattleRecoveryService } from './battle-recovery.service';
 import { BattleQueueGateService } from './battle-queue-gate.service';
@@ -56,7 +57,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
   controllers: [BattleController],
   // Maintenance-only Nest context never registers Bull consumers. The recovery
   // service still runs after migrations, but no delayed job can execute in that process.
-  providers: [BattleService, ...(process.env.BATTLE_QUEUE_MAINTENANCE_ONLY === 'true' ? [] : [BattleQueueProcessor]), BattleRecoveryService, BattleQueueGateService, GatewayService],
+  providers: [BattleService, EncounterClockService, ...(process.env.BATTLE_QUEUE_MAINTENANCE_ONLY === 'true' ? [] : [BattleQueueProcessor]), BattleRecoveryService, BattleQueueGateService, GatewayService],
   exports: [BattleService, GatewayService, BattleQueueGateService],
 })
 export class BattleModule {}

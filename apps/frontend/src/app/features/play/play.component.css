@@ -167,7 +167,7 @@
   height: 99%;
   overflow: hidden;
 }
-.zone-left > app-character-summary,
+.zone-left > app-party-panel,
 .zone-right > app-grind-info {
   display: block;
   height: 100%;
@@ -382,3 +382,5 @@
   background: #302216;
   color: #ffe4b0;
 }
+
+@media(max-width:899px){.zone-left{display:block;height:auto;max-height:55dvh;overflow:auto}}

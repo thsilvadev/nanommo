@@ -13,10 +13,14 @@ import { TooltipPositionDirective } from './tooltip-position.directive';
 import { BattleHitFeedbackDirective } from '../../shared/battle-hit-feedback';
 import { GameAudioService } from '../../shared/game-audio.service';
 import { LocaleService } from '../../core/locale.service';
+import { PartyStore } from '../../core/party.store';
+import { teleportProgress, isSharedBattleCurrent, sharedActorResources, sharedActorStatuses } from '../../core/party-projection';
+import { SharedBattlePanelComponent } from './shared-battle-panel.component';
 import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkDragPreview, CdkDragPlaceholder } from '@angular/cdk/drag-drop';
 
 @Component({ selector: 'app-character-summary', standalone: true, imports: [CommonModule, CdkDrag, CdkDropList, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective, BattleHitFeedbackDirective], templateUrl: './character-summary.html', styleUrl: './character-summary.css' })
 export class CharacterSummary implements OnDestroy {
+  readonly party = inject(PartyStore);
   readonly character = inject(CharacterStore); readonly inventory = inject(InventoryStore); readonly battle = inject(BattleStore); readonly catalog = inject(CatalogService); readonly router = inject(Router); readonly battleDisplayNow = signal(Date.now()); private readonly battleDisplayTimer = setInterval(() => this.battleDisplayNow.set(Date.now()), 250);
   private lastDietBoundary = 0;
   private lastTownRefreshAt = 0;
@@ -63,13 +67,19 @@ export class CharacterSummary implements OnDestroy {
   }
   dietSlots = [0, 1, 2]; dietRainDrops = [0, 1, 2, 3, 4, 5]; equipmentPredicates = Object.fromEntries(this.slots.map(s => [s.key, (drag: CdkDrag) => this.canEnterEquipmentSlot(s.key, drag)]));
   initial() { return (this.character.character()?.name || '?').slice(0, 1).toUpperCase() }
-  displayHp() { const now = this.battleDisplayNow(); const projected = this.battle.currentBattleCharacterResources(now); return projected?.hp ?? this.character.character()?.hpCurrent ?? null }
-  displaySp() { const now = this.battleDisplayNow(); const projected = this.battle.currentBattleCharacterResources(now); return projected?.sp ?? this.character.character()?.spCurrent ?? null }
+  sharedResources(){const shared=this.party.battle(),id=this.character.character()?.id;return shared && id && isSharedBattleCurrent(shared,this.battleDisplayNow())?sharedActorResources(shared,id,this.battleDisplayNow()):null;}
+  displayHp() { const now = this.battleDisplayNow(); const projected = this.sharedResources() ?? this.battle.currentBattleCharacterResources(now); return projected?.hp ?? this.character.character()?.hpCurrent ?? null }
+  displaySp() { const now = this.battleDisplayNow(); const projected = this.sharedResources() ?? this.battle.currentBattleCharacterResources(now); return projected?.sp ?? this.character.character()?.spCurrent ?? null }
   hpPct() { const c = this.character.character(); const hp = this.displayHp(); return c?.maxHp && hp !== null ? Math.max(0, Math.min(100, hp / c.maxHp * 100)) : 0 }
   spPct() { const c = this.character.character(); const sp = this.displaySp(); return c?.maxSp && sp !== null ? Math.max(0, Math.min(100, sp / c.maxSp * 100)) : 0 }
   statusLabel() { const s = this.character.character()?.status; return s === 'grinding' ? 'Grinding' : s === 'dead_pending_return' ? 'Dead — return pending' : 'In Town' }
   activeStatusEffects(target: 'character' | 'monster' = 'character') {
-    const entry: any = this.battle.active(); const now = this.battleDisplayNow();
+    const now = this.battleDisplayNow();
+    const shared=this.party.battle();
+    const ownId=this.character.character()?.id;
+    const entry: any = target==='character' && shared && ownId && isSharedBattleCurrent(shared,now)
+      ? {startAt:shared.startAt,endAt:shared.endAt,tickDurationMs:shared.snapshot.tickDurationMs??500,log:{header:{characterSnapshot:{statusEffects:sharedActorStatuses(shared,ownId,now)}},events:[]}}
+      : this.battle.active();
     if (!entry) return [];
     const startMs = Date.parse(entry.startAt);
     const tickDurationMs = battleTickDurationMs(entry);
@@ -112,6 +122,9 @@ export class CharacterSummary implements OnDestroy {
 
 @Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule], templateUrl: './map-board.html', styleUrl: './map-board.css' })
 export class MapBoard implements OnDestroy, AfterViewInit {
+  readonly party = inject(PartyStore);
+  partyCanTravel(){const party=this.party.party();return !party || party.kind==='auto' || party.leaderCharacterId===this.character.character()?.id;}
+  teleportProgress(){const teleport=this.party.party()?.teleport;return teleport?teleportProgress(teleport,this.activityNow()):0;}
   readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); readonly locale = inject(LocaleService); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService); private readonly catalog = inject(CatalogService); private readonly notifications = inject(BrowserNotificationsService); private readonly vendor = inject(VendorStore);
   maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
   readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly mapTransitionPending = signal(false); readonly destinationMapId = signal<string|null>(null); readonly routeOriginMapId = signal<string|null>(null);
@@ -446,7 +459,8 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   enterTown(){this.requestMapTransition(TOWN_MAP_ID)}
   private requestMapTransition(id:string){
     const map=this.maps.find(m=>m.id===id); const current=this.character.character();
-    if(!map||!current)return;
+    if(!map||!current||!this.partyCanTravel())return;
+    if(this.party.party() && id===current.savedTownMapId && id!==current.currentMapId){void this.party.teleport();return;}
     if(current.currentMapId===id&&!current.pendingMapTransition&&!current.travelIntent)return;
     this.error.set(null);
     const requestSequence=++this.mapRequestSequence;
@@ -952,8 +966,10 @@ export class VendorPanel implements OnDestroy {
 @Component({ selector: 'app-battle-progress', standalone: true, imports: [CommonModule], templateUrl: './battle-progress.html', styleUrl: './battle-progress.css' })
 export class BattleProgress implements OnDestroy { @Input() entry!: any; readonly now = signal(Date.now()); private readonly timer = setInterval(() => this.now.set(Date.now()), 250); progress() { const s = Date.parse(this.entry.startAt), e = Date.parse(this.entry.endAt); return Math.max(0, Math.min(100, (this.now() - s) / Math.max(1, e - s) * 100)) } remaining() { const sec = Math.max(0, Math.ceil((Date.parse(this.entry.endAt) - this.now()) / 1000)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') } ngOnDestroy() { clearInterval(this.timer) } }
 
-@Component({ selector: 'app-grind-info', standalone: true, imports: [CommonModule, BattleProgress, VendorPanel, TooltipPositionDirective, BattleHitFeedbackDirective], templateUrl: './grind-info.html', styleUrl: './grind-info.css', styles:[`.foe-mana{height:8px;background:#10131c;border:1px solid #294c70;margin-top:3px}.foe-mana i{display:block;height:100%;background:#3e91df}.mana-label{margin-top:5px}.status-icons,.skill-icons{display:flex;gap:5px;flex-wrap:wrap}.status-icon,.monster-skill-icon{position:relative;width:34px;height:34px;display:grid;place-items:center}.status-icon img,.monster-skill-icon img{width:30px;height:30px;object-fit:contain}.status-icon .status-tooltip,.monster-skill-icon .skill-tooltip{display:none;position:absolute;z-index:100;bottom:calc(100% + 7px);left:0;min-width:180px;max-width:260px;padding:8px;background:#120d09;border:1px solid #80613a;box-shadow:0 4px 14px #000;color:#c9b79a;white-space:normal;pointer-events:none;text-align:left}.monster-skill-icon:hover .skill-tooltip,.monster-skill-icon:focus .skill-tooltip,.monster-skill-icon:focus-within .skill-tooltip{display:flex;flex-direction:column;gap:4px}.status-tooltip strong,.skill-tooltip b{color:#e1cfad;font:15px Georgia}.status-tooltip small,.skill-tooltip small{font:12px Arial;line-height:1.3}.status-icon b{position:absolute;right:-3px;bottom:-3px;font-size:10px}`] })
+@Component({ selector: 'app-grind-info', standalone: true, imports: [CommonModule, BattleProgress, VendorPanel, TooltipPositionDirective, BattleHitFeedbackDirective, SharedBattlePanelComponent], templateUrl: './grind-info.html', styleUrl: './grind-info.css', styles:[`.foe-mana{height:8px;background:#10131c;border:1px solid #294c70;margin-top:3px}.foe-mana i{display:block;height:100%;background:#3e91df}.mana-label{margin-top:5px}.status-icons,.skill-icons{display:flex;gap:5px;flex-wrap:wrap}.status-icon,.monster-skill-icon{position:relative;width:34px;height:34px;display:grid;place-items:center}.status-icon img,.monster-skill-icon img{width:30px;height:30px;object-fit:contain}.status-icon .status-tooltip,.monster-skill-icon .skill-tooltip{display:none;position:absolute;z-index:100;bottom:calc(100% + 7px);left:0;min-width:180px;max-width:260px;padding:8px;background:#120d09;border:1px solid #80613a;box-shadow:0 4px 14px #000;color:#c9b79a;white-space:normal;pointer-events:none;text-align:left}.monster-skill-icon:hover .skill-tooltip,.monster-skill-icon:focus .skill-tooltip,.monster-skill-icon:focus-within .skill-tooltip{display:flex;flex-direction:column;gap:4px}.status-tooltip strong,.skill-tooltip b{color:#e1cfad;font:15px Georgia}.status-tooltip small,.skill-tooltip small{font:12px Arial;line-height:1.3}.status-icon b{position:absolute;right:-3px;bottom:-3px;font-size:10px}`] })
 export class GrindInfo implements OnDestroy {
+  readonly party = inject(PartyStore);
+  sharedBattleActive(){return isSharedBattleCurrent(this.party.battle(),this.now());}
   isGathering(){return this.character.character()?.lastGrindStance==='gathering' && !this.character.character()?.travelIntent;}
   recentFleeNotice(){const c:any=this.character.character();const raw=c?.encounterCycle?.lastFleeSuccessAt??c?.travelIntent?.lastFleeSuccessAt;const at=Date.parse(String(raw??''));const now=Date.now();return Number.isFinite(at)&&at<=now&&now-at<5000;}
 
@@ -1018,7 +1034,7 @@ export class GrindInfo implements OnDestroy {
   monsterMaxHp(entry: any) { return Number(entry.log?.header?.monsterSnapshot?.maxHp ?? entry.log?.header?.monsterSnapshot?.hp ?? 0) }
   monsterLevel(entry: any) { return Number(this.monsterSnapshot(entry).level ?? 0) }
   percent(v: number, max: number) { return max > 0 ? Math.max(0, Math.min(100, v / max * 100)) : 0 }
-  recentEvents(entry: any) { const tick = this.elapsedTicks(entry); return this.events(entry).filter((e: any) => e.action !== 'range_blocked' && e.action !== 'action_suppressed' && Number(e.tick ?? 0) <= tick).slice(-4).reverse() }
+  recentEvents(entry: any) { const tick = this.elapsedTicks(entry); return this.events(entry).filter((e: any) => e.action !== 'range_blocked' && e.action !== 'action_suppressed' && Number(e.tick ?? 0) <= tick).slice(-120) }
   eventText(e: any) {
     if (e.action === 'range_blocked') return '';
     const playerName = this.character.character()?.name ?? 'Character';

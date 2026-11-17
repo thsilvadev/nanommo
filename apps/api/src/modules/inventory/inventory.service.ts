@@ -625,7 +625,7 @@ export class InventoryService {
     return this.transferItem(characterId, itemId, quantity, 'warehouse', 'inventory');
   }
 
-  async consumeFood(characterId: string, itemId: string, manager?: EntityManager, consumeInventory = true, journal = true): Promise<Character> {
+  async consumeFood(characterId: string, itemId: string, manager?: EntityManager, consumeInventory = true, journal = true, nowMs?: number): Promise<Character> {
     const item = this.dataService.getItemById(itemId);
     if (!item || item.type !== 'food' || item.effect?.type !== 'food_buff') {
       throw new BadRequestException('Item is not a food');
@@ -648,7 +648,7 @@ export class InventoryService {
         if (!stack) throw new BadRequestException('Insufficient item quantity');
       }
 
-      const now = Date.now();
+      const now = nowMs ?? Date.now();
       const normalizedDiet = normalizeDietState(character.diet, character.dietLevels);
       const diet = normalizedDiet.diet;
       character.diet = normalizedDiet.diet;
@@ -674,7 +674,7 @@ export class InventoryService {
         spRegenPerTenTicks: effectiveFoodStatValue(item.effect?.spRegenPerTenTicks, dietState.nextLevel),
         expiresAt: digestUntil,
       };
-      character.lastSeenAt = new Date();
+      character.lastSeenAt = new Date(now);
       return characterRepo.save(character);
     };
 
@@ -698,19 +698,19 @@ export class InventoryService {
     }
   }
 
-  async useConsumable(characterId: string, itemId: string): Promise<{ character: Character; itemId: string }> {
+  async useConsumable(characterId: string, itemId: string, manager?: EntityManager, nowMs?: number): Promise<{ character: Character; itemId: string }> {
     const item = this.dataService.getItemById(itemId);
     if (!item || !['consumable', 'food'].includes(item.type)) {
       throw new BadRequestException('Item is not a usable item');
     }
 
-    const result = await this.characterRepo.manager.transaction(async (manager) => {
-      const characterRepo = manager.getRepository(Character);
+    const apply = async (tx: EntityManager) => {
+      const characterRepo = tx.getRepository(Character);
       const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
       if (!character) throw new NotFoundException('Character not found');
 
-      const now = Date.now();
-      const startedBattle = await manager.getRepository(BattleQueueEntry).createQueryBuilder('battle')
+      const now = nowMs ?? Date.now();
+      const startedBattle = await tx.getRepository(BattleQueueEntry).createQueryBuilder('battle')
         .where('battle."characterId" = :characterId', { characterId })
         .andWhere('battle."resolved" = false')
         .andWhere('battle."startAt" <= :now', { now: new Date(now) })
@@ -719,23 +719,25 @@ export class InventoryService {
         throw new BadRequestException('Consumables can only be used outside battle');
       }
 
-      const count = await this.getItemCount(characterId, itemId, manager);
+      const count = await this.getItemCount(characterId, itemId, tx);
       if (count <= 0) throw new BadRequestException('Insufficient item quantity');
 
       const effect = item.effect ?? {};
       if (item.type === 'food' && effect.type === 'food_buff') {
         // Keep all existing diet/digestion/streak/reservation validation in the
         // canonical consumeFood transaction; do not add a second food cooldown.
-        const updated = await this.consumeFood(characterId, itemId, manager, true, false);
+        const updated = await this.consumeFood(characterId, itemId, tx, true, false, now);
         return { character: updated, itemId, usedFood: true };
       }
 
       const effectType = String(effect.type ?? '');
+      const isSuperTonic = item.type === 'consumable' && item.alchemyCategory === 'super_tonics';
       const isPotion = item.type === 'consumable' && (item.alchemyCategory === 'potions' || ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType));
       const isTonic = item.type === 'consumable' && (item.alchemyCategory === 'tonics' || effectType === 'apply_status');
+      if (effectType === 'revive_ally') throw new BadRequestException('This item requires a KO ally selected by a Gambit');
       if (effectType === 'revive_full_cleanse') throw new BadRequestException('This item can only be triggered by the Upon Death Gambit condition');
-      const configuredCooldown = Number(item.cooldownInSeconds ?? item.cooldownSeconds ?? (isPotion ? 10 : isTonic ? 30 : 0));
-      const cooldownKey = isPotion ? 'item:potion' : isTonic ? 'item:tonic' : configuredCooldown > 0 ? `item:${itemId}` : null;
+      const configuredCooldown = Number(item.cooldownInSeconds ?? item.cooldownSeconds ?? (isSuperTonic ? 60 : isPotion ? 10 : isTonic ? 30 : 0));
+      const cooldownKey = isSuperTonic ? 'item:super_tonic' : isPotion ? 'item:potion' : isTonic ? 'item:tonic' : configuredCooldown > 0 ? `item:${itemId}` : null;
       const cooldowns = { ...(character.consumableCooldowns ?? {}) };
       if (cooldownKey) {
         const expiresAt = Date.parse(String(cooldowns[cooldownKey] ?? ''));
@@ -747,13 +749,13 @@ export class InventoryService {
 
       character.lastSeenAt = new Date(now);
       if (effectType === 'heal_hp') {
-        const derived = await this.getDerivedStatsForCharacter(character);
+        const derived = await this.getDerivedStatsForCharacter(character, tx);
         character.hpCurrent = Math.min(derived.maxHp, Number(character.hpCurrent) + Number(effect.amount ?? 0));
       } else if (effectType === 'heal_sp') {
-        const derived = await this.getDerivedStatsForCharacter(character);
+        const derived = await this.getDerivedStatsForCharacter(character, tx);
         character.spCurrent = Math.min(derived.maxSp, Number(character.spCurrent) + Number(effect.amount ?? 0));
       } else if (effectType === 'heal_hp_sp') {
-        const derived = await this.getDerivedStatsForCharacter(character);
+        const derived = await this.getDerivedStatsForCharacter(character, tx);
         character.hpCurrent = Math.min(derived.maxHp, Number(character.hpCurrent) + Number(effect.hpAmount ?? 0));
         character.spCurrent = Math.min(derived.maxSp, Number(character.spCurrent) + Number(effect.spAmount ?? 0));
       } else if (effectType === 'apply_status' && effect.status) {
@@ -777,20 +779,21 @@ export class InventoryService {
         character.consumableCooldowns = cooldowns;
       }
 
-      await this.removeItem(characterId, itemId, 1, manager);
+      await this.removeItem(characterId, itemId, 1, tx);
       const saved = await characterRepo.save(character);
       return { character: saved, itemId, usedFood: false };
-    });
+    };
+    const result = manager ? await apply(manager) : await this.characterRepo.manager.transaction(apply);
 
-    if (result.usedFood && this.idleJournal) {
+    if (!manager && result.usedFood && this.idleJournal) {
       await this.idleJournal.ate(characterId, String(item.name ?? itemId), `manual-food:${characterId}:${itemId}:${result.character.lastSeenAt?.getTime() ?? Date.now()}`);
     }
     return { character: result.character, itemId: result.itemId };
   }
 
-  private async getDerivedStatsForCharacter(character: Character): Promise<{ maxHp: number; maxSp: number }> {
+  private async getDerivedStatsForCharacter(character: Character, manager: EntityManager = this.characterRepo.manager): Promise<{ maxHp: number; maxSp: number }> {
     const { BattleEngine } = await import('@nanommo/shared');
-    const equipped = await this.dataService.getItems() && await this.characterRepo.manager.getRepository('equipped_items').find({ where: { characterId: character.id } });
+    const equipped = await this.dataService.getItems() && await manager.getRepository('equipped_items').find({ where: { characterId: character.id } });
     let maxHp = 0;
     let maxSp = 0;
     for (const row of equipped as any[]) {

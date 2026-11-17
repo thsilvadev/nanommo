@@ -237,6 +237,8 @@ export class GambitEvaluator {
         const effectType = String(definition.effect?.type ?? '');
         const potion = definition.alchemyCategory === 'potions' || ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType);
         const tonic = definition.alchemyCategory === 'tonics' || effectType === 'apply_status';
+        const superTonic = definition.alchemyCategory === 'super_tonics' || effectType === 'revive_full_cleanse' || effectType === 'revive_ally';
+        if (superTonic && (cooldowns['item:super_tonic'] ?? 0) > 0) return false;
         if (potion && (cooldowns['item:potion'] ?? 0) > 0) return false;
         if (tonic && (cooldowns['item:tonic'] ?? 0) > 0) return false;
         if ((cooldowns[`item:${itemId}`] ?? 0) > 0) return false;
@@ -774,7 +776,8 @@ export class BattleEngine {
       const definition = itemDefinitions[itemId];
       if (definition?.effect?.type !== 'revive_full_cleanse' || Number(inventory[itemId] ?? 0) < 1) return false;
       inventory[itemId] = Math.max(0, Number(inventory[itemId] ?? 0) - 1);
-      cooldowns[`item:${itemId}`] = secondsToBattleTicks(Math.max(0, Number(definition.cooldownInSeconds ?? 30)));
+      cooldowns[`item:${itemId}`] = secondsToBattleTicks(Math.max(0, Number(definition.cooldownInSeconds ?? 60)));
+      cooldowns['item:super_tonic'] = secondsToBattleTicks(Math.max(0, Number(definition.cooldownInSeconds ?? 60)));
       const existing = itemsConsumed.find((entry) => entry.itemId === itemId);
       if (existing) existing.quantity += 1; else itemsConsumed.push({ itemId, quantity: 1 });
       const cleansedStatuses = (self.statusEffects ?? []).map((status: any) => String(status.type ?? status.id ?? '')).filter(Boolean);
@@ -1388,7 +1391,9 @@ export class BattleEngine {
               const def = itemDefinitions[itemId] ?? {};
               const effectType = String(def.effect?.type ?? '');
               const isPotion = def.type === 'consumable' && ['heal_hp', 'heal_sp', 'heal_hp_sp'].includes(effectType);
-              if (isPotion) {
+              if (def.alchemyCategory === 'super_tonics') {
+                cooldowns['item:super_tonic'] = secondsToBattleTicks(Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 60));
+              } else if (isPotion || def.alchemyCategory === 'potions') {
                 cooldowns['item:potion'] = secondsToBattleTicks(Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 10));
               } else if (def.alchemyCategory === 'tonics' || effectType === 'apply_status') {
                 cooldowns['item:tonic'] = secondsToBattleTicks(Number(def.cooldownInSeconds ?? def.cooldownSeconds ?? 30));
@@ -1947,3 +1952,13 @@ export default BattleEngine;
 
 export { projectStatusTimeline } from './status-timeline';
 export type { ProjectedStatusStack } from './status-timeline';
+
+export * from './grid';
+export * from './actors';
+export * from './targeting';
+export * from './group-simulator';
+export * from './encounter-composition';
+export * from './group-rewards';
+export * from './group-flee';
+export * from './legacy-adapter';
+export * from './solo-adapter';

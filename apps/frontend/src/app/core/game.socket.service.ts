@@ -9,7 +9,7 @@ export class GameSocketService {
   private readonly auth=inject(AuthStore); private socket:Socket|null=null;
   constructor(){ window.addEventListener('nanommo:auth-refreshed', () => this.reconnectWithCurrentToken()); }
   private reconnectWithCurrentToken():void{ if(!this.socket)return; this.socket.auth={token:this.auth.accessToken()}; this.socket.disconnect(); this.socket.connect(); }
-  connect():void{if(this.socket?.connected||!this.auth.accessToken())return;this.socket=io(`${environment.apiBaseUrl}/game`,{transports:['websocket'],auth:{token:this.auth.accessToken()},reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:1000});}
+  connect():void{if(this.socket||!this.auth.accessToken())return;this.socket=io(`${environment.apiBaseUrl}/game`,{transports:['websocket'],auth:{token:this.auth.accessToken()},reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:1000});}
   disconnect():void{this.socket?.disconnect();this.socket=null;}
   get connected(){return !!this.socket?.connected;}
   on<T>(event:string):Observable<T>{return new Observable<T>(s=>{if(!this.socket){s.error(new Error('Game socket not connected'));return;}const h=(v:T)=>s.next(v);this.socket.on(event,h);return()=>this.socket?.off(event,h);});}

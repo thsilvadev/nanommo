@@ -427,7 +427,7 @@ export class QuestService {
       }
     }
   }
-  async recordBattleVictory(manager: EntityManager, character: Character, battle: { id: string; monsterId: string; mapId: string; endAt: Date }): Promise<void> {
+  async recordBattleVictory(manager: EntityManager, character: Character, battle: { id: string; monsterId: string; mapId: string; endAt: Date }, sharedDropRoll = false): Promise<void> {
     // The enclosing battle-resolution transaction is the event idempotency boundary;
     // use its authoritative end timestamp for expiry, so stale quests receive no progress.
     await this.expire(manager, character.id, battle.endAt.getTime());
@@ -442,7 +442,7 @@ export class QuestService {
           progress[objective.id] = Math.min(Number(objective.quantity ?? 1), Number(progress[objective.id] ?? 0) + 1); changed = true;
         }
         if (objective.type === 'monster_drop' && (!objective.monsterIds?.length || objective.monsterIds.includes(battle.monsterId))) {
-          const rollBytes = createHash('sha256').update(`${battle.id}:${row.id}:${objective.id}`).digest();
+          const rollBytes = createHash('sha256').update(`${battle.id}:${sharedDropRoll ? row.questId : row.id}:${objective.id}`).digest();
           const roll = rollBytes.readUInt32BE(0) % 10000; const chance = Math.floor(Number(objective.chancePercent ?? 0) * 100);
           if (roll < chance) {
             const item = this.data.getItemById(objective.itemId); const def = item?.questOnly ? { questInstanceId: row.id } : null;

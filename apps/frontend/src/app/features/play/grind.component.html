@@ -14,13 +14,13 @@
     </div>
     <div class="grind-mode-select" [attr.aria-label]="locale.t('Stance')">
       <span class="stance-tooltip-anchor" tabindex="0">
-        <button type="button" [class.active]="character.character()?.status!=='town' && huntMode()==='hunting'" [disabled]="loading() || !huntMode()" (click)="selectStance('hunting')" [attr.aria-label]="locale.t('Hunting')" aria-describedby="hunting-stance-tooltip">
+        <button type="button" [class.active]="character.character()?.status!=='town' && huntMode()==='hunting'" [disabled]="loading() || !canControlStance() || !huntMode()" (click)="selectStance('hunting')" [attr.aria-label]="locale.t('Hunting')" aria-describedby="hunting-stance-tooltip">
           <img src="/assets/ui/hunting.svg" [alt]="locale.t('Hunting')">
         </button>
         <span class="item-tooltip stance-tooltip" id="hunting-stance-tooltip" role="tooltip"><strong>{{locale.t('Hunting')}}</strong><span>{{locale.t('While hunting, you fight every monster you encounter, whether aggressive or not.')}}</span></span>
       </span>
       <span class="stance-tooltip-anchor" tabindex="0">
-        <button type="button" [class.active]="character.character()?.status!=='town' && huntMode()==='gathering'" [disabled]="loading() || !huntMode()" (click)="selectStance('gathering')" [attr.aria-label]="locale.t('Gathering')" aria-describedby="gathering-stance-tooltip">
+        <button type="button" [class.active]="character.character()?.status!=='town' && huntMode()==='gathering'" [disabled]="loading() || !canControlStance() || !huntMode()" (click)="selectStance('gathering')" [attr.aria-label]="locale.t('Gathering')" aria-describedby="gathering-stance-tooltip">
           <img src="/assets/ui/gathering.svg" [alt]="locale.t('Gathering')">
         </button>
         <span class="item-tooltip stance-tooltip" id="gathering-stance-tooltip" role="tooltip"><strong>{{locale.t('Gathering')}}</strong><span>{{locale.t('While gathering, you avoid combat whenever possible. You pass non-aggressive monsters freely, but aggressive ones may catch you if you are not fast enough. If they do, you will fight until the battle ends. This is the most efficient stance for gathering map resources.')}}</span></span>

@@ -47,6 +47,12 @@ export class MapService {
 
   /** Request travel to a revealed map. Location/presence change only when a route segment commits. */
   async enterMap(characterId: string, mapId: string, requestedAt?: string): Promise<any> {
+    const party=this.battleService.partyCoordinator?.();
+    if(party&&await party.member(characterId)){
+      const state=await party.travel(characterId,mapId);
+      const character=await this.characterRepo.findOneBy({id:characterId});
+      return {success:true,...state,character:this.mapCharacterState(character!)};
+    }
     const intentAt = Number.isFinite(Date.parse(String(requestedAt ?? '')))
       ? new Date(String(requestedAt)).toISOString() : new Date().toISOString();
     // Settle all non-battle stationary time before turning on Traveling. The activity
@@ -248,6 +254,8 @@ export class MapService {
 
   /** Advance exactly one authoritative route segment. Bull jobs are hints; persisted intent and locks decide. */
   async advanceTravel(characterId: string, expectedGeneration?: number, expectedScheduleVersion?: number): Promise<void> {
+    const party=this.battleService.partyCoordinator?.();
+    if(party&&await party.member(characterId))return;
     this.logger.log(`[travel-job] advance-start characterId=${characterId} expectedGeneration=${expectedGeneration ?? 'any'} expectedScheduleVersion=${expectedScheduleVersion ?? 'any'}`);
     const result = await this.battleService.withCharacterQueueLock(characterId, async () => this.characterRepo.manager.transaction(async manager => {
       const characterRepo = manager.getRepository(Character);
@@ -276,7 +284,7 @@ export class MapService {
           intent.pausedBattleId = startedBattle.id;
           if (intent.fleeRequested === true) intent.fleeBattleId = startedBattle.id;
           const cycle: any = { cycleIndex: 0, nextAt: null, ...(character.encounterCycle ?? {}) };
-          const population = Math.max(1, await this.mapPresenceService.countActiveGrinders(character.currentMapId));
+      const population = Math.max(1, await this.mapPresenceService.countActiveGrinders(character.currentMapId));
           const delaySeconds = deterministicIntInclusive(`${character.id}:${character.currentMapId}:${cycle.cycleIndex}:search-delay`, 2, 6) + population;
           cycle.cycleIndex = Number(cycle.cycleIndex ?? 0) + 1;
           cycle.nextAt = new Date(startedBattle.endAt.getTime() + delaySeconds * 1000).toISOString();
@@ -393,7 +401,7 @@ export class MapService {
         const cycle: any = { cycleIndex: 0, nextAt: null, ...(character.encounterCycle ?? {}) };
         let nextAt = Date.parse(String(cycle.nextAt ?? ''));
         if (!Number.isFinite(nextAt)) {
-          const population = Math.max(1, await this.mapPresenceService.countActiveGrinders(character.currentMapId));
+      const population = Math.max(1, await this.mapPresenceService.countActiveGrinders(character.currentMapId));
           const delay = deterministicIntInclusive(`${character.id}:${character.currentMapId}:${cycle.cycleIndex}:search-delay`, 2, 6) + population;
           const enteredAt = Date.parse(String(intent.lastAccruedAt ?? now));
           const searchBaseAt = Number.isFinite(enteredAt) ? Math.min(now, enteredAt) : now;
@@ -413,7 +421,7 @@ export class MapService {
           if (monsters.length) {
             const encounterSeed = `${character.id}:${character.currentMapId}:${Number(cycle.cycleIndex ?? 0)}:world-encounter`;
             const monster: any = new Mulberry32(encounterSeed).weightedPick(monsters);
-            const population = Math.max(1, await this.mapPresenceService.countActiveGrinders(character.currentMapId));
+      const population = Math.max(1, await this.mapPresenceService.countActiveGrinders(character.currentMapId));
             const delay = deterministicIntInclusive(`${character.id}:${character.currentMapId}:${cycle.cycleIndex}:search-delay`, 2, 6) + population;
             const encounterAt = nextAt;
             cycle.cycleIndex = Number(cycle.cycleIndex ?? 0) + 1;
@@ -716,6 +724,8 @@ export class MapService {
   }
 
   async setStance(characterId: string, stance: 'hunting' | 'gathering'): Promise<any> {
+    const party=this.battleService.partyCoordinator?.();
+    if(party&&await party.member(characterId)){await party.setStance(characterId,stance);return this.mapCharacterState((await this.characterRepo.findOneBy({id:characterId}))!);}
     if (!['hunting', 'gathering'].includes(stance)) throw new BadRequestException('Invalid stationary stance');
     const result = await this.battleService.withCharacterQueueLock(characterId, async () => this.characterRepo.manager.transaction(async manager => {
       const repo = manager.getRepository(Character); const queueRepo = manager.getRepository(BattleQueueEntry);
@@ -773,6 +783,8 @@ export class MapService {
         .where('battle."characterId" = :characterId', { characterId })
         .andWhere('battle."startAt" < :now AND battle."endAt" > :startAt', { now: new Date(now), startAt: new Date(startAt) })
         .orderBy('battle."startAt"', 'ASC').getMany();
+      const sharedFights=await manager.query(`SELECT b."startAt",b."endAt",b.state FROM shared_battles b JOIN shared_battle_participants p ON p."battleId"=b.id WHERE p."characterId"=$1 AND b."endAt">$2 AND b."startAt"<$3`,[characterId,new Date(startAt),new Date(now)]);
+      fights.push(...sharedFights as any[]);fights.sort((a,b)=>a.startAt.getTime()-b.startAt.getTime());
       const population = Math.max(1, await this.mapPresenceService.countActiveGrinders(character.currentMapId));
       const map = this.dataService.getMapById(character.currentMapId);
       const variance = cycle.varianceSeconds === null || cycle.varianceSeconds === undefined

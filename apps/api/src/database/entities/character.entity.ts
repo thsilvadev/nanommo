@@ -42,6 +42,12 @@ export class Character {
   @Column({ name: 'notification_state', type: 'jsonb', default: () => `'{"acknowledged":[],"pendingPush":null}'::jsonb` })
   notificationState!: { acknowledged: string[]; pendingPush: any | null };
 
+  @Column({ type: 'boolean', default: false })
+  autoPartyEnabled!: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  autoPartyEnabledAt?: Date | null;
+
   /** Catalogue IDs known to this character for Gambit configuration. */
   @Column({ type: 'jsonb', default: '[]' })
   knownItemIds!: string[];
