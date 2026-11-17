@@ -7,7 +7,7 @@
       "ingredients": [
         {
           "itemId": "mat_bronze_ore",
-          "quantity": 10
+          "quantity": 5
         }
       ],
       "outputItemId": "mat_bronze_ingot",
