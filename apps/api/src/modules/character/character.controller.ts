@@ -2,7 +2,7 @@ import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException, Ba
 import { AuthGuard } from '@nestjs/passport';
 import { Request as ExpressRequest } from 'express';
 import { CharacterService } from './character.service';
-import { CreateCharacterDto, CharacterDto, SpendAttributePointsDto, SetAutoFeedDto } from '@nanommo/shared';
+import { CreateCharacterDto, CharacterDto, SpendAttributePointsDto, SetAutoFeedDto, SetCharacterAppearanceDto } from '@nanommo/shared';
 import { User } from '@/database/entities';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -23,7 +23,14 @@ export class CharacterController {
     if (!user || user.emailVerified !== true) {
       throw new ForbiddenException('Email must be verified before creating a character');
     }
-    return this.characterService.createCharacter(userId, dto.name, dto.dominantHand);
+    return this.characterService.createCharacter(userId, dto.name, dto.dominantHand, { sex: dto.sex, heightCm: dto.heightCm, appearance: dto.appearance });
+  }
+
+  /** One-time 3D appearance for a character that predates the creator. */
+  @Post('appearance')
+  @UseGuards(AuthGuard('jwt'))
+  async setAppearance(@Request() req: ExpressRequest, @Body() dto: SetCharacterAppearanceDto): Promise<CharacterDto> {
+    return this.characterService.setAppearance((req.user as any).userId, dto);
   }
 
   @Get()

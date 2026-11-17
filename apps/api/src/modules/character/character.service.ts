@@ -5,6 +5,7 @@ import { Character, WeaponProficiency, GambitPage, EquippedItem, InventoryItem, 
 import { CharacterDto, Attribute, WeaponType, BattleEngine, effectiveWeaponAttack, sumAttributeBonuses, applyAttributeBonuses, masteryPassiveAttributeBonuses, type AttributeBonuses, effectiveFoodStatValue } from '@nanommo/shared';
 import { DataService } from '../data/data.service';
 import { effectiveItemDefinition, rolledStatValue, calculateWorldMoveSpeed } from '@nanommo/shared';
+import { heightBandFromCm, heightAttributeAdjustment, validateAppearanceInput, type AppearanceInput, type HeightBand } from '@nanommo/shared';
 import { BattleService } from '../battle/battle.service';
 
 @Injectable()
@@ -124,9 +125,22 @@ export class CharacterService {
     return sumAttributeBonuses(equipmentStatBonus, masteryPassiveAttributeBonuses(skillDefs));
   }
 
-  async createCharacter(userId: string, name: string, dominantHand: 'right' | 'left'): Promise<CharacterDto> {
+  /**
+   * Validates a client appearance payload against the catalogue and derives the
+   * server-authoritative height band and its one-time STR/LUK adjustment.
+   */
+  private resolveAppearance(input: unknown): AppearanceInput & { height: HeightBand; adjustment: { str: number; luk: number } } {
+    const errors = validateAppearanceInput(input, this.dataService.getAppearanceCatalog());
+    if (errors.length) throw new BadRequestException({ message: 'Invalid character appearance', errors });
+    const { sex, heightCm, appearance } = input as AppearanceInput;
+    const height = heightBandFromCm(heightCm);
+    return { sex, heightCm, appearance: { ...appearance }, height, adjustment: heightAttributeAdjustment(height) };
+  }
+
+  async createCharacter(userId: string, name: string, dominantHand: 'right' | 'left', appearanceInput: AppearanceInput): Promise<CharacterDto> {
     this.validateName(name);
     if (dominantHand !== 'right' && dominantHand !== 'left') throw new BadRequestException('dominantHand must be right or left');
+    const look = this.resolveAppearance(appearanceInput);
 
     const existing = await this.characterRepository.findOne({
       where: { userId },
@@ -144,24 +158,30 @@ export class CharacterService {
       throw new ConflictException('Character name already in use');
     }
 
+    const str = 5 + look.adjustment.str;
+    const luk = 5 + look.adjustment.luk;
     const baseStats = BattleEngine.calculateDerivedStats(1, {
-      str: 5, agi: 5, dex: 5, vit: 5, int: 5, luk: 5,
+      str, agi: 5, dex: 5, vit: 5, int: 5, luk,
     }, {});
 
     const character = this.characterRepository.create({
       userId,
       name,
       dominantHand,
+      sex: look.sex,
+      height: look.height,
+      heightCm: look.heightCm,
+      appearance: look.appearance,
       knownItemIds: this.dataService.getNpcVendor()?.sellStock?.map((row: any) => row.itemId) ?? [],
       level: 1,
       xp: 0,
       unspentAttributePoints: 0,
-      str: 5,
+      str,
       agi: 5,
       dex: 5,
       vit: 5,
       int: 5,
-      luk: 5,
+      luk,
       gold: 0,
       soulTokens: 1000,
       hpCurrent: baseStats.maxHp,
@@ -250,6 +270,40 @@ export class CharacterService {
     await this.characterRepository.save(savedCharacter);
 
     return await this.toDto(savedCharacter);
+  }
+
+  /**
+   * One-time appearance save for a character created before the 3D creator.
+   * The write is a single conditional UPDATE (`"appearance" IS NULL`), so a
+   * retry or a second tab can never apply the height adjustment twice.
+   */
+  async setAppearance(userId: string, appearanceInput: AppearanceInput): Promise<CharacterDto> {
+    const look = this.resolveAppearance(appearanceInput);
+    const character = await this.getCharacterByUserId(userId);
+    if (!character) throw new NotFoundException('Character not found');
+    if (character.appearance != null) throw new ConflictException('Character appearance is already set');
+
+    await this.battleService.runFutureCombatMutation(character.id, async () => {
+      const claimed = await this.characterRepository.createQueryBuilder()
+        .update(Character)
+        .set({
+          sex: look.sex,
+          height: look.height,
+          heightCm: look.heightCm,
+          appearance: look.appearance,
+          // Integers from the fixed height table, never client input.
+          str: () => `"str" + (${look.adjustment.str})`,
+          luk: () => `"luk" + (${look.adjustment.luk})`,
+        })
+        .where('"id" = :id', { id: character.id })
+        .andWhere('"appearance" IS NULL')
+        .execute();
+      if (!claimed.affected) throw new ConflictException('Character appearance is already set');
+    });
+
+    const saved = await this.getCharacterById(character.id);
+    if (!saved) throw new NotFoundException('Character not found');
+    return this.toDto(saved);
   }
 
   async getCharacterByUserId(userId: string): Promise<Character | null> {
