@@ -28,7 +28,7 @@
             <!-- Inline position: character-summary.css is at its size budget. -->
             <app-character-viewer style="position:absolute;inset:6px;z-index:1"
               [sex]="model.sex" [heightCm]="model.heightCm" [appearance]="model.appearance" [dominantHand]="model.dominantHand"
-              [mainHandType]="portraitHands().main" [offHandType]="portraitHands().off" framing="portrait"
+              [mainHandType]="portraitHands().main" [offHandType]="portraitHands().off" framing="portrait" [animation]="portraitAnimation"
               [attr.aria-label]="(character.character()?.name || '') + ' portrait'"
               (loaded)="onPortraitLoaded()" (failed)="onPortraitFailed()" />
           }

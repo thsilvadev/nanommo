@@ -1,4 +1,4 @@
-import { portraitHandTypes, portraitModel } from './character-portrait';
+import { portraitAnimationSource, portraitHandTypes, portraitModel } from './character-portrait';
 
 describe('character portrait', () => {
   const items: Record<string, { weaponType?: string }> = {
@@ -27,5 +27,19 @@ describe('character portrait', () => {
     const appearance = { v: 1 } as any;
     expect(portraitModel({ sex: 'female', heightCm: 170, appearance, dominantHand: 'left' } as any))
       .toEqual({ sex: 'female', heightCm: 170, appearance, dominantHand: 'left' });
+  });
+
+  it('animates from the stores at call time: town idles, grinding walks, a running battle fights', () => {
+    const startAt = '2026-11-17T12:00:00.000Z';
+    const start = Date.parse(startAt);
+    let character: { status: string } | null = { status: 'town' };
+    let battle: any = null;
+    const source = portraitAnimationSource(() => character, () => battle);
+    expect(source(start)).toEqual({ base: 'Idle' });
+    character = { status: 'grinding' };
+    expect(source(start)).toEqual({ base: 'Walk' });
+    battle = { startAt, endAt: '2026-11-17T12:01:00.000Z', tickDurationMs: 500, outcome: 'win',
+      log: { events: [{ tick: 4, actor: 'character', action: 'attack', target: 'monster', damage: 3 }] } };
+    expect(source(start + 4 * 500 + 10)).toEqual({ base: 'CombatIdle', oneShot: { clip: 'Attack', startedAtMs: start + 2000, speed: 1 } });
   });
 });

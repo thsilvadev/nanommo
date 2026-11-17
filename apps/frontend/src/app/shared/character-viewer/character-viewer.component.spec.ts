@@ -118,6 +118,22 @@ describe('CharacterViewerComponent', () => {
     const total = (rig: CharacterRigHandle, names: string[]) => names.reduce((sum, name) => sum + rig.clipWeight(name), 0);
     const ALL = ['Idle', 'Walk', 'CombatIdle', 'Attack', 'Dead', 'CastStart', 'CastLoop', 'Damage', 'Damage2'];
 
+    it('plays the animation input from the first frame, and idles without one', async () => {
+      const created = await create({}, { animation: () => ({ base: 'Walk' }) });
+      fixture = created.fixture;
+      await settle(fixture, created.events);
+      const rig = fixture.componentInstance.rig()!;
+      rig.renderNow();
+      expect(rig.playingClip()).toBe('Walk');
+      expect(rig.clipWeight('Walk')).toBeCloseTo(1, 5);
+
+      fixture.componentRef.setInput('animation', null);
+      fixture.detectChanges();
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      rig.renderNow();
+      expect(rig.playingClip()).toBe('Idle');
+    });
+
     it('crossfades between loops in about 0.2 s, weights always summing to one', async () => {
       const { rig, frame, set } = await ready();
       expect(rig.playingClip()).toBe('Idle');
