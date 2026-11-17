@@ -195,6 +195,10 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | userId | uuid, FK → User, unique | 1:1 |
 | name | varchar(16) | denormalized copy of `User.username` |
 | dominantHand | varchar(5), default right | right/left; presentation only, never changes semantic hand API slots |
+| sex | varchar(6), nullable | `male` / `female`; set once by the 3D creator. Also reserved for gendered PT-BR text |
+| height | smallint, nullable | height band 1–4, derived by the server from `heightCm` (145 → 1, 146–175 → 2, 176–204 → 3, 205 → 4) |
+| heightCm | smallint, nullable | 145–205; model scale |
+| appearance | jsonb, nullable | `{ v: 1, hair, hairColor, skin, face, nose, mouth, mouthDetails, chest, facialHair, piercing, tattoo }`, each an index into `appearance_catalog.json` for that sex. **NULL means the character has not been through the 3D creator** |
 | knownItemIds | jsonb, default [] | item IDs the character has seen/acquired; separate from inventory quantity |
 | level | int, default 1 | 1–99 |
 | xp | bigint, default 0 | current XP toward next level |
@@ -218,6 +222,8 @@ Below is the authoritative schema. Field names are the actual TypeORM property n
 | createdAt / updatedAt | timestamptz | |
 
 Character creation bootstrap (one time only): seed the starter pack with 50 `pot_hp_small` and 5 `food_bread`. Characters start with a `Knife` (`equip_knife`, dagger, +11 ATK) equipped in `mainHand`; it is a dedicated starter item and is not added to inventory. A character with no active food buff is **Hungry** and cannot enter or continue grind until food is consumed. New characters start with current HP/SP equal to their authoritative maximums.
+
+**3D appearance (one time only).** A new character is created with name, dominant hand, `sex`, `heightCm` and `appearance` in the same request; a character created before the 3D creator saves them once through `POST /characters/appearance` (a second save is refused with 409). The server validates every index against `appearance_catalog.json` for the chosen sex, derives the height band and applies a one-time base-attribute adjustment: band 1 STR −2 / LUK +2, band 2 STR −1 / LUK +1, band 3 STR +1 / LUK −1, band 4 STR +2 / LUK −2 (through the future-combat mutation path). While `appearance` is NULL every mutating game request and socket action is refused with `403 APPEARANCE_REQUIRED`; reads, auth, notifications and the creator itself stay available. The client shows the character as a three.js model (Idle) in the creator and in the Character Summary portrait, holding one placeholder model per hand weapon type.
 
 ### 4.3 Mastery category progress (`weapon_proficiencies` legacy table)
 | field | type | notes |

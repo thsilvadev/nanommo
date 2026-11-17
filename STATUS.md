@@ -1,3 +1,19 @@
+### 3D character creator — 2026-11-17
+
+Implemented the 3D character creator end to end on branch `feat/character-creator-3d` (design `docs/superpowers/specs/2026-11-16-criador-personagem-3d-design.md`, plan `docs/superpowers/plans/2026-11-16-criador-personagem-3d.md`, OpenSpec change `character-creator-3d`).
+
+- Data/API: nullable `sex`, `height`, `heightCm`, `appearance` on `characters` (migration `1800400000000-CharacterAppearance`); `POST /characters` requires the appearance; `POST /characters/appearance` saves it once (409 afterwards) with the one-time height STR/LUK adjustment; canonical `appearance_catalog.json` (11 traits, 1–8 options each, pt-BR/en-US names) validated at boot.
+- Rollout: global `AppearanceRequiredInterceptor` (403 `APPEARANCE_REQUIRED`), offline cutover script `maintenance/cutover-character-3d.ts` + runbook `docs/deployment/character-3d-cutover.md`, `CHARACTER_3D_CUTOVER_COMPLETE` required by the deploy workflow and by API startup (which also checks the data).
+- Client: `/create-character` is the 3D creator (new character, or locked name/hand for existing characters); guards and the HTTP interceptor route characters without appearance there; the Character Summary portrait shows the model in Idle with equipped hand items.
+- Assets: `tools/character-assets/` (CC0 Quaternius packs, not versioned; original overlay art). Portrait download ≈1.1 MB; three.js is a lazy chunk.
+
+Validation: shared/API builds and frontend production build passed; API scripts `character-appearance-rules`, `character-appearance-migration`, `character-appearance-service`, `character-3d-cutover`, `character-appearance-guard`, `character-appearance-guard-integration` (real Nest app, no DB) and the adapted `battle-queue-recovery-lifecycle` passed; Karma specs for the viewer (real GLBs in headless Chromium), creator, guards, interceptor, portrait and Character Summary passed. Visual checks by screenshots (`tools/character-assets/preview/`). **Not verified:** end-to-end against a real PostgreSQL/Redis (creation, one-time save, cutover script, startup guard) — left unverified at the user's request.
+
+Full frontend Karma suite: 125 passed, 9 failed — the same 9 fail on `main` (MapBoard travelling pin, Mastery cumulative XP, older in-flight queue GET, shared status timeline, five Town NPC selection specs); every new spec passes. Pre-existing API script failures, all on files this change does not touch: `split-registration-character-creation.test.js` (live-server test, already stale), `map-presence.test.js`, `battle-tickrate-500ms.test.js` (skill_trees sword `intervalTicks`), `world-travel-gathering-flee.test.js` (`map_green_grounds_0` mapLength) and `quest-standardization.test.js` (consumable `sellPriceToVendor` 56 vs 6). Strict OpenSpec validation of `character-creator-3d` and `git diff --check` passed.
+
+The migration was written but **not executed**. No database mutation, cutover or deployment was performed. Party/group-combat work found uncommitted in the same working tree was moved by the user to branch `feat-party`.
+
+
 ### Violent Shot push slow and damage rebalance — 2026-11-13
 
 Reduced Violent Shot's direct ranged physical damage from 50 to 25 per rank (50% reduction, so ranks 1–5 deal 25/50/75/100/125 base damage before mitigation/variance). After a successful push that actually changes the monster's lane position, the monster receives `violent_shot_slow` for 12 combat ticks (6 seconds at the 500 ms tick rate), multiplying its effective battle-lane Move Speed by 0.2 (80% reduction). A push blocked completely by the lane edge grants no debuff; reapplying the non-stackable status refreshes its duration. The slow applies to the target monster, not the character. Canonical and frontend skill/status catalogues, BattleEngine, SPEC and ARCHITECTURE were synchronized.
