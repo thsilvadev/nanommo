@@ -1,9 +1,11 @@
+import { AllowWithoutAppearance } from '../character/appearance-required.interceptor';
 import { Controller, Post, Get, Delete, Body, Query, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, AuthTokenDto, ForgotPasswordDto, ResetPasswordDto } from '@nanommo/shared';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
+@AllowWithoutAppearance()
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}

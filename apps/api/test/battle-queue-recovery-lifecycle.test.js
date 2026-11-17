@@ -1,7 +1,10 @@
 const assert = require('node:assert/strict');
 const { BattleRecoveryService } = require('../dist/apps/api/src/modules/battle/battle-recovery.service');
 
-function harness({failPresence=false,pendingMigrations=false,legacyBattleMetadata=false}={}) {
+// Normal startup requires the guarded 3D character cutover to be recorded as complete.
+process.env.CHARACTER_3D_CUTOVER_COMPLETE='true';
+
+function harness({failPresence=false,pendingMigrations=false,legacyBattleMetadata=false,strayAppearanceCharacter=false}={}) {
   const calls=[];let activeReads=0;let ready=false;let closed=false;let lease=false;
   const queueGate={
     async acquireStartupLease(){assert.equal(lease,false);lease=true;calls.push('lease-acquired');},
@@ -20,7 +23,10 @@ function harness({failPresence=false,pendingMigrations=false,legacyBattleMetadat
   const dataSource={options:{},
     migrations: pendingMigrations ? [{name:'AppliedMigration'},{name:'PendingMigration'}] : [{name:'AppliedMigration'}],
     createQueryRunner(){return {async connect(){},async release(){},async hasTable(){return true;},async query(){return [{name:'AppliedMigration'}];},async getTables(){return [{name:'migrations'},{name:'characters'}];}};},
-    async query(sql){return sql.includes('tickDurationMs') && legacyBattleMetadata ? [{id:'legacy-battle'}] : [];},
+    async query(sql){
+      if(sql.includes('"appearance" IS NULL')) return strayAppearanceCharacter ? [{id:'stray-character'}] : [];
+      return sql.includes('tickDurationMs') && legacyBattleMetadata ? [{id:'legacy-battle'}] : [];
+    },
   };
   const battleQueueRepo={async find(){return [];},async findOne(){return null;},async delete(){return {affected:0};}};
   const presence={async reconcileAllPresenceOrThrow(){calls.push('presence-reconciled');if(failPresence)throw new Error('simulated Redis presence outage');},enablePeriodicReconciliation(){calls.push('presence-periodic-enabled');}};
@@ -29,6 +35,21 @@ function harness({failPresence=false,pendingMigrations=false,legacyBattleMetadat
   return {svc,calls,queueGate,bullQueue,get ready(){return ready},get closed(){return closed},get lease(){return lease}};
 }
 (async()=>{
+  // 3D character cutover: startup fails closed without the flag, and when a
+  // character without appearance is still outside Town / has queued battles.
+  {
+    const noFlag=harness();
+    delete process.env.CHARACTER_3D_CUTOVER_COMPLETE;
+    await assert.rejects(noFlag.svc.onApplicationBootstrap(),/CHARACTER_3D_CUTOVER_COMPLETE/);
+    process.env.CHARACTER_3D_CUTOVER_COMPLETE='true';
+    assert.equal(noFlag.ready,false,'the readiness gate never opens');
+    assert.ok(!noFlag.calls.includes('queue-resumed'),'Bull stays paused');
+    const stray=harness({strayAppearanceCharacter:true});
+    await assert.rejects(stray.svc.onApplicationBootstrap(),/stray-character/);
+    assert.equal(stray.ready,false);
+    assert.ok(!stray.calls.includes('queue-resumed'));
+    assert.ok(!stray.calls.includes('presence-reconciled'),'no queue repair or top-up happens before the guard passes');
+  }
   const h=harness();
   await h.svc.onApplicationBootstrap();
   assert.equal(h.ready,true);assert.equal(h.closed,false);assert.equal(h.lease,false);

@@ -1,9 +1,11 @@
+import { AllowWithoutAppearance } from '../character/appearance-required.interceptor';
 import { Controller, Get, Post, Query, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { GoogleOAuthService } from './google-oauth.service';
 import { AuthTokenDto } from '@nanommo/shared';
 
+@AllowWithoutAppearance()
 @Controller('auth/google')
 export class GoogleOAuthController {
   constructor(private readonly google: GoogleOAuthService) {}

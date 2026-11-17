@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, UseGuards, Request, ForbiddenException, Ba
 import { AuthGuard } from '@nestjs/passport';
 import { Request as ExpressRequest } from 'express';
 import { CharacterService } from './character.service';
+import { AllowWithoutAppearance } from './appearance-required.interceptor';
 import { CreateCharacterDto, CharacterDto, SpendAttributePointsDto, SetAutoFeedDto, SetCharacterAppearanceDto } from '@nanommo/shared';
 import { User } from '@/database/entities';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,6 +16,7 @@ export class CharacterController {
     private userRepository: Repository<User>,
   ) {}
 
+  @AllowWithoutAppearance()
   @Post()
   @UseGuards(AuthGuard('jwt'))
   async create(@Request() req: ExpressRequest, @Body() dto: CreateCharacterDto): Promise<CharacterDto> {
@@ -27,6 +29,7 @@ export class CharacterController {
   }
 
   /** One-time 3D appearance for a character that predates the creator. */
+  @AllowWithoutAppearance()
   @Post('appearance')
   @UseGuards(AuthGuard('jwt'))
   async setAppearance(@Request() req: ExpressRequest, @Body() dto: SetCharacterAppearanceDto): Promise<CharacterDto> {

@@ -13,6 +13,7 @@ import { DataService } from '../data/data.service';
 import { In } from 'typeorm';
 import { TOWN_MAP_ID } from '@nanommo/shared';
 import { assertSafeMigrationHistory, inspectMigrationHistory } from '../../database/migration-safety';
+import { assertCharacter3dCutoverComplete } from '../../config/character-3d-cutover.config';
 
 /**
  * SPEC §7.5 — crash / restart recovery.
@@ -64,6 +65,8 @@ export class BattleRecoveryService implements OnApplicationBootstrap {
       if (legacyBattleRows.length > 0) {
         throw new Error(`Legacy battle entry ${legacyBattleRows[0].id} has no authoritative 500 ms tick metadata. Startup refuses to replay or project mixed-clock battles; stop all consumers and run the guarded battle tick-rate cutover utility before restarting.`);
       }
+      // Characters without a 3D appearance must be parked in Town with nothing queued.
+      await assertCharacter3dCutoverComplete(process.env, this.dataSource);
       this.logger.log('Battle queue startup gate closed, Bull consumers paused/drained, migration history is current, and all retained battle entries use 500 ms metadata; beginning authoritative reconciliation');
       const before = await this.reconcilePersistedQueueAndJobs();
       await this.mapPresenceService.reconcileAllPresenceOrThrow();

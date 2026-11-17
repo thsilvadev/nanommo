@@ -1,3 +1,4 @@
+import { AllowWithoutAppearance } from '../character/appearance-required.interceptor';
 import { Body, Controller, Delete, Get, Post, Request, UseGuards, BadRequestException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Character } from '../../database/entities/character.entity';
@@ -5,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationsService } from './notifications.service';
 
+@AllowWithoutAppearance()
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notifications: NotificationsService, @InjectRepository(Character) private readonly characters: Repository<Character>) {}

@@ -1,3 +1,5 @@
+import { UseInterceptors } from '@nestjs/common';
+import { AllowWithoutAppearance, AppearanceRequiredInterceptor } from '../character/appearance-required.interceptor';
 import {
   WebSocketGateway,
   SubscribeMessage,
@@ -33,6 +35,7 @@ interface AuthenticatedSocket extends Socket {
   sessionId?: string;
 }
 
+@UseInterceptors(AppearanceRequiredInterceptor)
 @WebSocketGateway({
   namespace: '/game',
   cors: {
@@ -273,6 +276,7 @@ export class NanommoGateway
     }
   }
 
+  @AllowWithoutAppearance()
   @SubscribeMessage('map:syncPresence')
   async handleMapPresenceSync(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -397,6 +401,7 @@ export class NanommoGateway
   /**
    * Ping/pong for keep-alive
    */
+  @AllowWithoutAppearance()
   @SubscribeMessage('ping')
   async handlePing(@ConnectedSocket() client: Socket): Promise<string> {
     return 'pong';

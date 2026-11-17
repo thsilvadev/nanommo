@@ -35,6 +35,7 @@ jobs:
             require_env BATTLE_QUEUE_CONCURRENCY 2
             require_env WORLD_ACTIVITY_CONCURRENCY 1
             require_env BATTLE_TICKRATE_500MS_CUTOVER_COMPLETE true
+            require_env CHARACTER_3D_CUTOVER_COMPLETE true
             docker compose up -d --build
             echo '--- Production container status ---'
             docker compose ps

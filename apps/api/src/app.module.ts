@@ -4,7 +4,8 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { AppearanceRequiredInterceptor } from './modules/character/appearance-required.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
 import { CharacterModule } from './modules/character/character.module';
 import { BattleModule } from './modules/battle/battle.module';
@@ -85,6 +86,11 @@ import { getBattleRuntimeConfig } from './config/battle-runtime.config';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      // Deny-by-default: a character without a 3D appearance cannot perform game actions.
+      provide: APP_INTERCEPTOR,
+      useClass: AppearanceRequiredInterceptor,
     },
   ],
 })
