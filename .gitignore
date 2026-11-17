@@ -31,3 +31,6 @@ project/
 
 # Packs 3D originais (CC0) — baixados manualmente, ver tools/character-assets/README.md
 tools/character-assets/source/
+
+# Screenshots from tools/character-assets/preview/shoot.mjs (local review only)
+tools/character-assets/preview/screenshots/
