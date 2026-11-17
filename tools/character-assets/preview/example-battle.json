@@ -1,0 +1,318 @@
+{
+ "startAt": "2026-01-01T00:00:00.000Z",
+ "endAt": "2026-01-01T00:00:30.000Z",
+ "tickDurationMs": 500,
+ "outcome": "loss",
+ "log": {
+  "events": [
+   {
+    "tick": 4,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 28,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 232,
+     "monster": 100000
+    },
+    "spRemaining": {
+     "character": 400,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 6,
+    "actor": "character",
+    "action": "use_skill",
+    "skillId": "fire_ball",
+    "target": "monster",
+    "damage": 47,
+    "damageType": "magical",
+    "crit": false,
+    "hit": true,
+    "spSpent": 10,
+    "baseSpCost": 10,
+    "castStartedAtTick": 0,
+    "hpRemaining": {
+     "character": 232,
+     "monster": 99953
+    },
+    "spRemaining": {
+     "character": 390,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 9,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 28,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 204,
+     "monster": 99953
+    },
+    "spRemaining": {
+     "character": 390,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 14,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 28,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 176,
+     "monster": 99953
+    },
+    "spRemaining": {
+     "character": 390,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 19,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 28,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 148,
+     "monster": 99953
+    },
+    "spRemaining": {
+     "character": 390,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 20,
+    "actor": "character",
+    "action": "attack",
+    "target": "monster",
+    "damage": 12,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "hpRemaining": {
+     "character": 148,
+     "monster": 99941
+    },
+    "spRemaining": {
+     "character": 390,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 24,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 28,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 120,
+     "monster": 99941
+    },
+    "spRemaining": {
+     "character": 390,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 29,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 29,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 91,
+     "monster": 99941
+    },
+    "spRemaining": {
+     "character": 390,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 33,
+    "actor": "character",
+    "action": "use_skill",
+    "skillId": "fire_ball",
+    "target": "monster",
+    "damage": 48,
+    "damageType": "magical",
+    "crit": false,
+    "hit": true,
+    "spSpent": 10,
+    "baseSpCost": 10,
+    "castStartedAtTick": 27,
+    "hpRemaining": {
+     "character": 91,
+     "monster": 99893
+    },
+    "spRemaining": {
+     "character": 380,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 34,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 28,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 63,
+     "monster": 99893
+    },
+    "spRemaining": {
+     "character": 380,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 39,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 0,
+    "damageType": "melee",
+    "crit": false,
+    "hit": false,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 63,
+     "monster": 99893
+    },
+    "spRemaining": {
+     "character": 380,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 44,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 29,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 34,
+     "monster": 99893
+    },
+    "spRemaining": {
+     "character": 380,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 47,
+    "actor": "character",
+    "action": "attack",
+    "target": "monster",
+    "damage": 11,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "hpRemaining": {
+     "character": 34,
+     "monster": 99882
+    },
+    "spRemaining": {
+     "character": 380,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 49,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 28,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 6,
+     "monster": 99882
+    },
+    "spRemaining": {
+     "character": 380,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 54,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 0,
+    "damageType": "melee",
+    "crit": false,
+    "hit": false,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 6,
+     "monster": 99882
+    },
+    "spRemaining": {
+     "character": 380,
+     "monster": 60
+    }
+   },
+   {
+    "tick": 59,
+    "actor": "monster",
+    "action": "attack",
+    "target": "character",
+    "damage": 29,
+    "damageType": "melee",
+    "crit": false,
+    "hit": true,
+    "distanceAtActionStart": 0,
+    "hpRemaining": {
+     "character": 0,
+     "monster": 99882
+    },
+    "spRemaining": {
+     "character": 380,
+     "monster": 60
+    }
+   }
+  ]
+ }
+}

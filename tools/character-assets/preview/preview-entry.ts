@@ -1,6 +1,7 @@
 /** Browser entry for the screenshot harness: drives one CharacterRig from window.applyConfig(). */
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { CharacterRig } from '../../../apps/frontend/src/app/shared/character-viewer/character-rig';
+import { characterAnimationState } from '../../../apps/frontend/src/app/shared/character-animation/animation-state';
 
 const loader = new GLTFLoader();
 let rig: CharacterRig | null = null;
@@ -16,7 +17,19 @@ let rig: CharacterRig | null = null;
       onContextLost: () => { (window as any).contextLost = true; },
     });
   }
-  await rig.apply(config);
+  if (config.animation) {
+    // Pose at an exact instant of a battle log: replay the second before it at 60 fps
+    // on a fake clock, so crossfades are where they would be on screen.
+    const { status, battle, atMs } = config.animation;
+    let clock = atMs - 1000;
+    rig.setAnimation((nowMs) => characterAnimationState({ character: { status }, activeBattle: battle ?? null, nowMs }), () => clock);
+    await rig.apply(config);
+    for (; clock < atMs; clock = Math.min(atMs, clock + 1000 / 60)) rig.renderNow();
+    rig.renderNow();
+  } else {
+    rig.setAnimation({ base: 'Idle' });
+    await rig.apply(config);
+  }
   if (config.yaw !== undefined) (rig as any).model.rotation.y = config.yaw;
   (rig as any).updateCamera();
   if (config.focus) {

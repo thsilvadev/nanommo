@@ -1,5 +1,5 @@
 import { CharacterViewerComponent } from '../../shared/character-viewer/character-viewer.component';
-import { portraitHandTypes, portraitModel } from './character-portrait';
+import { portraitAnimationSource, portraitHandTypes, portraitModel } from './character-portrait';
 import { battleTickAt, battleTickDurationMs, battleTickExpiryRemainingSeconds } from '../../shared/battle-timing';
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, computed, effect, inject, signal, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
@@ -69,9 +69,11 @@ export class CharacterSummary implements OnDestroy {
   }
   dietSlots = [0, 1, 2]; dietRainDrops = [0, 1, 2, 3, 4, 5]; equipmentPredicates = Object.fromEntries(this.slots.map(s => [s.key, (drag: CdkDrag) => this.canEnterEquipmentSlot(s.key, drag)]));
   initial() { return (this.character.character()?.name || '?').slice(0, 1).toUpperCase() }
-  /** 3D portrait (idle) for characters that have an appearance; the initial stays until it has loaded. */
+  /** 3D portrait (animated by game state) for characters that have an appearance; the initial stays until it has loaded. */
   readonly portrait = computed(() => portraitModel(this.character.character()));
   readonly portraitHands = computed(() => portraitHandTypes(this.inventory.equipment(), (id) => this.catalog.item(id) as { weaponType?: string } | undefined));
+  /** Pose of the portrait: a pure function of the stores and the clock, evaluated by the rig every frame. */
+  readonly portraitAnimation = portraitAnimationSource(() => this.character.character(), () => this.battle.active());
   readonly portraitLoaded = signal(false);
   readonly portraitFailed = signal(false);
   showPortraitInitial() { return !this.portrait() || !this.portraitLoaded() || this.portraitFailed() }

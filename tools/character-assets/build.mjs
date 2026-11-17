@@ -167,10 +167,14 @@ async function buildHair(source, target, hairTexture, fitsSex) {
   return write(document, `hair/${target}.glb`);
 }
 
-const CLIPS = { Idle_Loop: 'Idle', Walk_Loop: 'Walk', Sword_Attack: 'Attack', Hit_Chest: 'Damage', Death01: 'Dead' };
+const CLIPS = {
+  Idle_Loop: 'Idle', Walk_Loop: 'Walk', Sword_Attack: 'Attack', Hit_Chest: 'Damage', Death01: 'Dead',
+  // Combat guard between actions; hands joined while a cast is charging (enter, then hold).
+  Sword_Idle: 'CombatIdle', Spell_Simple_Enter: 'CastStart', Spell_Simple_Idle_Loop: 'CastLoop', Hit_Head: 'Damage2',
+};
 
 /**
- * Animations: the five clips, shared by both bodies (identical bone names).
+ * Animations: the clips in CLIPS, shared by both bodies (identical bone names).
  * Rotation tracks only, plus the pelvis translation: bone lengths must come
  * from each body, not from the library's mannequin. The mannequin mesh is dropped.
  */

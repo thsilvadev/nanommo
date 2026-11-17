@@ -31,7 +31,8 @@ variações no nome das pastas (procura pelo prefixo).
 - **Corpos:** mantém corpo, olhos e sobrancelhas (o mesmo esqueleto de 65 ossos nos dois),
   renomeia as malhas para `Body` / `Eyes` / `Brows` e reduz as texturas à cor base. A textura
   de pele é recomposta em tempo de execução (tom, boca, pelos pintados, tattoo).
-- **Animações:** só os cinco clipes usados, só rotações (mais a translação da pélvis), sem a
+- **Animações:** só os clipes usados (`CLIPS` em `build.mjs`: Idle, Walk, Attack, Damage, Dead,
+  CombatIdle, CastStart, CastLoop, Damage2), só rotações (mais a translação da pélvis), sem a
   malha do manequim. Servem aos dois corpos.
 - **Cabelos e barba:** gravados no espaço local do osso `Head` do corpo para o qual foram
   modelados, para encaixarem em qualquer um dos dois corpos.
@@ -47,3 +48,10 @@ variações no nome das pastas (procura pelo prefixo).
   salva capturas de tela (precisa de um Chromium; `CHROMIUM=/caminho` ou `/snap/bin/chromium`).
   Cada configuração é um `ViewerConfig` mais `name` e, opcionalmente, `width`, `height`, `yaw`
   e `zoom`.
+- Animação num instante exato: a configuração ganha
+  `animation: { status, battle?: "<arquivo ao lado das configs>", tick?, offsetMs? }`, e o harness
+  fotografa a pose de `characterAnimationState` em `startAt + tick × tickDurationMs + offsetMs`
+  (tick negativo = antes do início), reproduzindo o segundo anterior para os crossfades ficarem
+  onde estariam na tela. Exemplo: `node preview/shoot.mjs preview/screenshots/animation preview/animation-configs.json`.
+- `node preview/make-example-battle.mjs` regera `preview/example-battle.json` com o motor real
+  (`packages/shared` compilado): cast de Fire Ball, ataques, dano recebido e morte num só log.

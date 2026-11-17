@@ -1,4 +1,5 @@
 import type { CharacterAppearance, HandWeaponType, Sex } from '@nanommo/shared';
+import { characterAnimationState, type AnimationBattleEntry, type AnimationInput, type AnimationState } from '../../shared/character-animation/animation-state';
 
 const HAND_TYPES: ReadonlySet<string> = new Set<HandWeaponType>(['dagger', 'sword', 'greatsword', 'bow', 'staff', 'rod', 'shield', 'rune']);
 
@@ -28,4 +29,15 @@ export function portraitModel(character: {
 } | null): PortraitModel | null {
   if (!character?.appearance || !character.sex || !character.heightCm) return null;
   return { sex: character.sex, heightCm: character.heightCm, appearance: character.appearance, dominantHand: character.dominantHand };
+}
+
+/**
+ * The portrait's pose, evaluated by the 3D rig on every frame: reads the stores
+ * at call time and derives the pose from (character, active battle, now) only.
+ */
+export function portraitAnimationSource(
+  character: () => AnimationInput['character'],
+  activeBattle: () => AnimationBattleEntry | null,
+): (nowMs: number) => AnimationState {
+  return (nowMs) => characterAnimationState({ character: character(), activeBattle: activeBattle(), nowMs });
 }

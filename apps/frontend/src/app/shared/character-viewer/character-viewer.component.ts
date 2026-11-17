@@ -2,7 +2,7 @@ import {
   ChangeDetectionStrategy, Component, ElementRef, InjectionToken, NgZone, OnDestroy, computed, effect, inject, input, output, signal, untracked,
 } from '@angular/core';
 import { resolveHandAttachments, type AppearanceCatalog, type CharacterAppearance, type HandWeaponType, type Sex } from '@nanommo/shared';
-import type { CharacterRigHandle, ViewerConfig, ViewerFraming } from './character-viewer.types';
+import type { AnimationSource, CharacterRigHandle, ViewerConfig, ViewerFraming } from './character-viewer.types';
 
 export interface CharacterViewerEnv {
   /** Base URL of the character assets, with a trailing slash. */
@@ -44,10 +44,12 @@ export function loadAppearanceCatalog(url = DEFAULT_CATALOG_URL): Promise<Appear
 }
 
 type ViewerState = 'loading' | 'ready' | 'failed';
+const IDLE: AnimationSource = { base: 'Idle' };
 interface Rig extends CharacterRigHandle { apply(config: ViewerConfig): Promise<void>; dispose(): void }
 
 /**
- * 3D character preview: body, appearance and hand items, playing Idle.
+ * 3D character preview: body, appearance and hand items, playing `animation`
+ * (Idle when none is given, as in the creator).
  *
  * three.js is loaded on demand the first time a viewer is shown. On any failure
  * (no WebGL, an asset that does not load, a lost GPU context) the canvas is
@@ -79,6 +81,11 @@ export class CharacterViewerComponent implements OnDestroy {
   /** Drag to rotate (creator). */
   readonly interactive = input(false);
   readonly framing = input<ViewerFraming>('full');
+  /**
+   * What the character plays: a fixed AnimationState, or a function of the time that
+   * the rig evaluates on every frame (the portrait passes one built from the stores).
+   */
+  readonly animation = input<AnimationSource | null>(null);
 
   readonly failed = output<void>();
   readonly loaded = output<void>();
@@ -111,6 +118,10 @@ export class CharacterViewerComponent implements OnDestroy {
     effect(() => {
       const config = this.config();
       untracked(() => this.request(config));
+    });
+    effect(() => {
+      const animation = this.animation();
+      untracked(() => this.instance?.setAnimation(animation ?? IDLE));
     });
   }
 
@@ -177,6 +188,8 @@ export class CharacterViewerComponent implements OnDestroy {
       load,
       onContextLost: () => this.zone.run(() => this.fail()),
     }));
+    // Before the first apply, so the body's first frame already shows the right pose.
+    rig.setAnimation(untracked(() => this.animation()) ?? IDLE);
     this.instance = rig;
     this.rig.set(rig);
     return rig;

@@ -1,3 +1,11 @@
+## Avatar animation as a pure function of time — 2026-11-17
+
+The character's pose is computed, never accumulated from events: `characterAnimationState({ character, activeBattle, nowMs })` (`apps/frontend/src/app/shared/character-animation/`, no three.js) derives it from the character status and the pre-computed battle log alone, looking ahead where needed (interval to the next action, a cast resolving later). Opening the screen mid-battle or mid-cast, reconnecting, or two views asking at the same instant all agree. This is option A of `docs/avatar-animacao-portrait-e-arena.md`: the portrait keeps its own model and renderer, and the future arena will call the same function (plus a position function) rather than share a scene.
+
+The battle log records `castStartedAtTick` on the character `use_skill` event that resolves a pending cast. It is purely descriptive (no PRNG draws, no extra events), keeping determinism intact; consumers must tolerate its absence in older logs.
+
+The rig evaluates the state on every rendered frame through `setAnimation(source, clock)`. Clip times come only from the clock (base loops are phased by absolute time, so two views walk in step); the only frame-to-frame memory is the crossfade weight, and a body's first frame snaps to the pose. Weights always sum to one (a deficit would blend in the bind pose); the damage flinch is a weighted overlay capped below the action under it.
+
 ## 3D character appearance and creator — 2026-11-17
 
 `Character` gains nullable `sex`, `height` (band 1–4), `heightCm` and `appearance` (jsonb of indices into the canonical `appearance_catalog.json`). NULL `appearance` is the single signal that a character has not been through the creator. Rules (height band, one-time STR/LUK adjustment, payload and catalogue validation, which hand shows which item) live in `packages/shared/src/appearance.ts` so the API is authoritative and the creator previews with the same code. The one-time save is a single conditional UPDATE (`... WHERE "appearance" IS NULL`) inside `runFutureCombatMutation`, so concurrent saves apply the adjustment once.
