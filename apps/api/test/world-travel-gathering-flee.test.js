@@ -117,7 +117,7 @@ for (const [id, pool] of Object.entries({
   map_kwaioua_forest_4: {mat_herbs:60,mat_ironshroom:20,mat_ashwagandha:20}, map_kwaioua_forest_5: {mat_herbs:60,mat_rushroom:20,mat_guarana:20},
   map_kwaioua_forest_6: {mat_herbs:70,mat_rushroom:30}, map_kwaioua_forest_7: {mat_herbs:70,mat_guarana:30},
   map_caete_0: {mat_herbs:70,mat_mystic_dust:30}, map_caete_1: {mat_herbs:70,mat_mystic_dust:30},
-  map_caete_2: {mat_herbs:70,mat_mystic_dust:30}, map_caete_6: {mat_herbs:70,mat_mystic_dust:30},
+  map_caete_2: {mat_herbs:70,mat_mystic_dust:30}, map_caete_6: {mat_herbs:63,mat_mystic_dust:27,mat_sapupema_leaf:10},
 })) regionalGathering.set(id, pool);
 assert.ok(maps.filter(map=>map.type==='town').every(map=>map.gatheringPool===undefined), 'Town maps never gather materials');
 for (const map of maps) {

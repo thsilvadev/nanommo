@@ -21,6 +21,16 @@ const db=new DataSource({type:'postgres',host:'127.0.0.1',port:55439,username:'p
  const shared=new SharedBattleService(db,battle,data,inventory,quests, {assertValidGambitPage:async()=>{},canonicalizeLines:x=>x});
  const party=new PartyService(db,battle,data,shared),chars=[];
  for(let n=0;n<8;n++){const user=await db.getRepository(entities.User).save({email:`p${n}@test.invalid`,emailVerified:true,provider:'local'});chars.push(await db.getRepository(entities.Character).save({userId:user.id,name:`Party${n}`,hpCurrent:100,spCurrent:50,lastSeenAt:new Date(),appearance:{test:true},currentMapId:'map_town'}));}
+ // Legacy solo operations and Party transactions share PostgreSQL authority.
+ const {BattleService}=require('../dist/apps/api/src/modules/battle/battle.service');
+ const {AsyncLocalStorage}=require('node:async_hooks');
+ const legacy=Object.create(BattleService.prototype);
+ Object.assign(legacy,{characterRepo:db.getRepository(entities.Character),queueAuthority:new AsyncLocalStorage(),redis:{set:async()=>"OK",eval:async()=>1},logger:{log(){},error(){}}});
+ let release,entered;const held=new Promise(resolve=>release=resolve),locked=new Promise(resolve=>entered=resolve);
+ const soloOperation=legacy.withCharacterQueueLock(chars[0].id,async()=>{entered();await held;});await locked;
+ let partyEntered=false;const joiningOperation=party.serialized([chars[0].id],async()=>{partyEntered=true;});
+ await new Promise(resolve=>setTimeout(resolve,30));assert.equal(partyEntered,false,'Party must wait for the solo PostgreSQL authority');
+ release();await Promise.all([soloOperation,joiningOperation]);assert.equal(partyEntered,true);
  const invite=async(a,b)=>{await party.invite(a.id,b.id,undefined,randomUUID());return(await db.query('SELECT * FROM party_invites WHERE "inviterId"=$1 AND "candidateId"=$2 ORDER BY "createdAt" DESC',[a.id,b.id]))[0];};
  let inv=await invite(chars[0],chars[1]);await party.accept(chars[1].id,inv.id);await party.accept(chars[1].id,inv.id);
  let state=await party.get(chars[0].id);assert.equal(state.party.members.length,2);

@@ -1,4 +1,5 @@
 import { forwardRef, Inject, Injectable, Logger, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
+import { AsyncLocalStorage } from 'async_hooks';
 import { ModuleRef } from '@nestjs/core';
 import { PartyService } from '../party/party.service';
 import { randomUUID } from 'crypto';
@@ -97,6 +98,7 @@ export function applyLevelXpResolution(
 export class BattleService {
   private readonly logger = new Logger(BattleService.name);
   private readonly QUEUE_DEPTH_TARGET = 5;
+  private readonly queueAuthority = new AsyncLocalStorage<{characterId: string; manager: EntityManager}>();
 
   constructor(
     @InjectQueue('battle-queue')
@@ -141,6 +143,7 @@ export class BattleService {
 
   /** Serialize operations that may change a character's encounter chain across API/worker replicas. */
   async withCharacterQueueLock<T>(characterId: string, operation: () => Promise<T>): Promise<T> {
+    if (this.queueAuthority?.getStore()?.characterId === characterId) return operation();
     const lockStartedAt = Date.now();
     const lockKey = `battle:character-queue-lock:${characterId}`;
     const token = randomUUID();
@@ -164,9 +167,18 @@ export class BattleService {
       }).catch(error => this.logger.error(`Could not renew encounter-chain lock for ${characterId}: ${error instanceof Error ? error.message : String(error)}`));
     }, 60_000);
     (renewal as any).unref?.();
+    let runner: ReturnType<EntityManager['connection']['createQueryRunner']> | undefined;
     try {
-      return await operation();
+      runner = this.characterRepo?.manager?.connection?.createQueryRunner?.();
+      if (!runner) return await operation();
+      await runner.connect();
+      await runner.query('SELECT pg_advisory_lock(hashtextextended($1,0))', [`character:${characterId}`]);
+      return await this.queueAuthority.run({characterId,manager:runner.manager}, operation);
     } finally {
+      if (runner) {
+        try { await runner.query('SELECT pg_advisory_unlock(hashtextextended($1,0))', [`character:${characterId}`]); }
+        finally { await runner.release(); }
+      }
       clearInterval(renewal);
       try { await this.redis.eval(releaseScript, 1, lockKey, token); }
       catch (error) { this.logger.error(`Could not release encounter-chain lock for ${characterId}; TTL will expire it`, error instanceof Error ? error.stack : String(error)); }
@@ -194,10 +206,11 @@ export class BattleService {
    * When no battle is running, the mutation immediately rebuilds the canonical
    * queue from the post-mutation authoritative state.
    */
-  async runFutureCombatMutation<T>(
-    characterId: string,
-    mutation: () => Promise<T>,
-  ): Promise<T> {
+  async runFutureCombatMutation<T>(characterId: string, mutation: () => Promise<T>): Promise<T> {
+    return this.withCharacterQueueLock(characterId, () => this.runFutureCombatMutationLocked(characterId, mutation));
+  }
+
+  private async runFutureCombatMutationLocked<T>(characterId: string, mutation: () => Promise<T>): Promise<T> {
     const queue = await this.getBattleQueue(characterId, 100);
     const now = Date.now();
     const activeBattle = queue.find(
@@ -299,7 +312,7 @@ export class BattleService {
       await this.safePublishQueueUpdated(characterId, await this.getBattleQueue(characterId, 100));
       return;
     }
-    if (previousQueue[0]) await this.encounterClocks?.reserveProjection(previousQueue[0]);
+    if (previousQueue[0]) await this.encounterClocks?.reserveProjection(previousQueue[0], this.queueAuthority?.getStore()?.manager);
     await this.discardUnresolvedBattles(characterId);
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
@@ -647,6 +660,8 @@ export class BattleService {
     publishQueueEvent = true,
     options: { allowTravel?: boolean; immediateEncounter?: boolean; forcedMonsterId?: string } = {},
   ): Promise<BattleQueueEntry[]> {
+    const party = this.partyCoordinator();
+    if (party && await party.member(characterId, this.queueAuthority?.getStore()?.manager)) return [];
     const queueGenerationStartedAt = Date.now();
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
@@ -1079,7 +1094,7 @@ export class BattleService {
       });
 
       const saved = await this.battleQueueRepo.save(entry);
-      if (currentQueue.length === 0 && newBattles.length === 0) await this.encounterClocks?.reserveProjection(saved);
+      if (currentQueue.length === 0 && newBattles.length === 0) await this.encounterClocks?.reserveProjection(saved, this.queueAuthority?.getStore()?.manager);
       newBattles.push(saved);
       chainTimelineMs = battleEndTime;
 

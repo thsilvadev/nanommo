@@ -27,6 +27,7 @@ export class SharedBattleService {
       const c=ctx.characters.find(c=>c.id===member.characterId)!;
       if(c.hpCurrent<=0)throw new BadRequestException('KO member cannot start encounter');
       const snapshot=await this.battle.buildCharacterSnapshot(c,c.hpCurrent,c.spCurrent,startAt);
+      snapshot.partyLeaderId=p.leaderCharacterId;
       const weapons=snapshot.equippedWeaponTypes??[];
       snapshot.basicAttackDamageType=weapons.includes('bow')?'ranged':weapons.some(w=>['staff','rod'].includes(w))?'magic':'melee';
       snapshot.basicAttackRange=snapshot.basicAttackDamageType==='melee'?0:6;
@@ -37,7 +38,7 @@ export class SharedBattleService {
       const pool=this.data.getMonstersInMap(p.mapId);if(!pool.length)throw new BadRequestException('Empty encounter roster');
       const mon=rngForIndex(mulberry32Seed(`${c.id}:${p.mapId}:${counter.epoch}`),Number(counter.mapKillCount)).weightedPick(pool);
       roster.push({characterId:c.id,monsterId:mon.id,epoch:counter.epoch,killIndex:counter.mapKillCount});
-      const add=(def:any,index:number)=>actors.push({id:`monster:${c.id}:${index}`,name:def.name,definitionId:def.id,orderIndex:member.orderIndex+(index?10:0),principalActorId:c.id,encounterRole:index?'raid':'principal',kind:'monster',team:'b',position:{row:0,column:9},snapshot:BattleEngine.buildMonsterSnapshot(def),gambits:def.gambit??def.gambits??[],inventory:{},attackIntervalTicks:Number(def.atkSpeedTicks??6)});
+      const add=(def:any,index:number)=>actors.push({id:`monster:${c.id}:${index}`,name:def.name,definitionId:def.id,orderIndex:member.orderIndex+(index?10:0),principalActorId:c.id,encounterRole:index?'raid':'principal',kind:'monster',team:'b',position:{row:0,column:9},snapshot:BattleEngine.buildMonsterSnapshot(def),gambits:def.gambit??def.gambits??[],inventory:{},attackIntervalTicks:Number(def.atkSpeedTicks??6),damageTakenMultiplier:def.damageTakenMultiplier,weaponCategoryDamageTakenMultiplier:def.weaponCategoryDamageTakenMultiplier});
       add(mon,0);
       const candidates=this.data.getMapById(p.mapId)?.monsters.find((m:any)=>m.monsterId===mon.id)?.raid?.candidates??[];
       const roll=new Mulberry32(`${clock.seed}:${c.id}:raid`).nextPercent();let cumulative=0;
@@ -63,7 +64,7 @@ export class SharedBattleService {
     const id=randomUUID(),endAt=startAt+Math.max(500,result.durationTicks*500);
     await ctx.manager.query(`INSERT INTO shared_battles(id,"partyId","mapId",seed,"startAt","endAt",state,snapshot,log,result) VALUES($1,$2,$3,$4,to_timestamp($5/1000.0),to_timestamp($6/1000.0),'started',$7,$8,$9)`,[id,p.id,p.mapId,clock.seed,startAt,endAt,JSON.stringify(input),JSON.stringify(result),JSON.stringify({roster})]);
     for(const actor of actors.filter(a=>a.team==='a')){
-      await ctx.manager.query('INSERT INTO shared_battle_participants("battleId","characterId",snapshot) VALUES($1,$2,$3)',[id,actor.id,JSON.stringify(actor)]);
+      await ctx.manager.query('INSERT INTO shared_battle_participants("battleId","characterId",snapshot) VALUES($1,$2,$3)',[id,actor.id,JSON.stringify(input.actors.find((a:any)=>a.id===actor.id))]);
       await ctx.manager.query('INSERT INTO active_battle_participants("characterId","battleId") VALUES($1,$2)',[actor.id,id]);
       const c=ctx.characters.find(c=>c.id===actor.id)!;
 

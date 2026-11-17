@@ -1262,7 +1262,18 @@
       "maxStack": 20,
       "sellPriceToVendor": 50,
       "cooldownInSeconds": 10,
-      "description": "Removes the poison status effect."
+      "description": "Removes the poison status effect.",
+      "alchemyCategory": "potions",
+      "locales": {
+        "en-US": {
+          "name": "Antidote",
+          "description": "Removes poison. Shares the Potion cooldown."
+        },
+        "pt-BR": {
+          "name": "Antídoto",
+          "description": "Remove veneno. Compartilha o cooldown de Poções."
+        }
+      }
     },
     {
       "id": "elixir_greater",
@@ -1615,23 +1626,51 @@
       "effect": {
         "type": "revive_full_cleanse"
       },
-      "alchemyCategory": "special",
+      "alchemyCategory": "super_tonics",
       "vendorSells": false,
       "type": "consumable",
       "stackable": true,
       "maxStack": 20,
       "sellPriceToVendor": 1000,
-      "cooldownInSeconds": 30,
+      "cooldownInSeconds": 60,
       "rarity": "epic",
-      "description": "When triggered by Self: Status = KO, revives you with full HP and SP and removes every active buff and debuff.",
+      "description": "When triggered by Self: Status = KO, revives you with full HP and SP and removes every active buff and debuff. Shares a 60-second cooldown with Super Tonics.",
       "locales": {
         "pt-BR": {
           "name": "Fada na Garrafa",
-          "description": "Quando ativada por Self: Status = KO, revive você com HP e SP completos e remove todos os buffs e debuffs ativos."
+          "description": "Quando ativada por Self: Status = KO, revive você com HP e SP completos e remove todos os buffs e debuffs ativos. Compartilha um cooldown de 60 segundos com Super Tônicos."
         },
         "en-US": {
           "name": "Fairy in a Bottle",
-          "description": "When triggered by Self: Status = KO, revives you with full HP and SP and removes every active buff and debuff."
+          "description": "When triggered by Self: Status = KO, revives you with full HP and SP and removes every active buff and debuff. Shares a 60-second cooldown with Super Tonics."
+        }
+      }
+    },
+    {
+      "id": "super_tonic_sapupema_tea",
+      "name": "Sapupema Leaf Tea",
+      "effect": {
+        "type": "revive_ally",
+        "hpPercent": 50,
+        "spPercent": 50
+      },
+      "alchemyCategory": "super_tonics",
+      "vendorSells": false,
+      "type": "consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 250,
+      "cooldownInSeconds": 60,
+      "rarity": "rare",
+      "description": "Revives a KO ally with 50% of maximum HP and SP, preserving all other effects. Shares a 60-second cooldown with Super Tonics.",
+      "locales": {
+        "en-US": {
+          "name": "Sapupema Leaf Tea",
+          "description": "Revives a KO ally with 50% of maximum HP and SP, preserving all other effects. Shares a 60-second cooldown with Super Tonics."
+        },
+        "pt-BR": {
+          "name": "Chá de Folha de Sapupema",
+          "description": "Revive um aliado KO com 50% do HP e SP máximos, preservando todos os outros efeitos. Compartilha um cooldown de 60 segundos com Super Tônicos."
         }
       }
     }
@@ -5534,6 +5573,30 @@
         "en-US": {
           "name": "Mystic Dust",
           "description": "A small mound of cosmic dust shimmering violet, pink, blue and orange."
+        }
+      }
+    },
+    {
+      "id": "mat_sapupema_leaf",
+      "name": "Sapupema Leaf",
+      "type": "material",
+      "rarity": "rare",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 40,
+      "marketBasePrice": 30,
+      "usableFor": [
+        "alchemy"
+      ],
+      "description": "A broad, veined leaf gathered in Caetê 6 and brewed into a restorative tea.",
+      "locales": {
+        "en-US": {
+          "name": "Sapupema Leaf",
+          "description": "A broad, veined leaf gathered in Caetê 6 and brewed into a restorative tea."
+        },
+        "pt-BR": {
+          "name": "Folha de Sapupema",
+          "description": "Uma folha larga de nervuras marcadas, coletada em Caetê 6 para preparar um chá revigorante."
         }
       }
     }
