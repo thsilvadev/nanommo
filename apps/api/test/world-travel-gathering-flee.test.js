@@ -7,7 +7,7 @@ const {
 } = require('../../../packages/shared/dist/world-activity.js');
 const maps = require('../../../maps.json').maps;
 const monsters = require('../../../monsters.json').monsters;
-const { BattleEngine } = require('../../../packages/shared/dist/battle-engine/index.js');
+const { BattleEngine, secondsToBattleTicks } = require('../../../packages/shared/dist/battle-engine/index.js');
 const route = findCardinalRoute(maps, 'map_town', 'map_green_grounds_1');
 assert.equal(route[0].id, 'map_town');
 assert.equal(route.at(-1).id, 'map_green_grounds_1');
@@ -77,12 +77,18 @@ assert.equal(calculateGatheringBaseDurationSeconds(25,1,gatheringLevelForXp(200)
 assert.equal(calculateGatheringBaseDurationSeconds(50,1,1),600);
 assert.equal(calculateGatheringBaseDurationSeconds(25,2,1),330);
 assert.ok(calculateGatheringDurationSeconds(25,1,1,'g1')>=300 && calculateGatheringDurationSeconds(25,1,1,'g1')<=305);
-for (const map of maps) assert.equal(map.mapLength, map.type==='town'?0:25, `${map.id} mapLength`);
+// Towns have no length; grind maps may differ (six beginner maps are 20, the rest 25 since c818638).
+for (const map of maps) {
+  if (map.type === 'town') assert.equal(map.mapLength, 0, `${map.id} mapLength`);
+  else assert.ok(Number.isInteger(map.mapLength) && map.mapLength > 0, `${map.id} mapLength is a positive integer`);
+}
 const peaceful = monsters.filter(monster=>!monster.isAggressive).map(monster=>monster.id).sort();
-assert.deepEqual(peaceful,['mon_giantmantis','mon_moonleafarcanist','mon_saltfangcrab','mon_slime','mon_thornsprout']);
+// Same passive set DataService enforces at boot (mon_unicorn added in 7b6c22c).
+assert.deepEqual(peaceful,['mon_giantmantis','mon_moonleafarcanist','mon_saltfangcrab','mon_slime','mon_thornsprout','mon_unicorn']);
 assert.ok(monsters.every(monster=>Number.isFinite(monster.moveSpd)&&monster.moveSpd>=0));
 const items = require('../../../items.json');
-assert.equal(items.materials.length,10);
+// The original ten gathering materials still exist; later content adds more (21 at 2026-11-17).
+for (const id of ['mat_wild_blueberries','mat_wheat','mat_cooking_oil','mat_milk','mat_sugar','mat_carrot','mat_cabbage','mat_herbs','mat_honeycomb','mat_meat']) assert.ok(items.materials.some(item=>item.id===id), `${id} still exists`);
 assert.equal(items.consumables.find(item=>item.id==='food_blueberry').name,'Blueberry Jelly');
 assert.equal(items.consumables.find(item=>item.id==='food_honey').name,'Honey');
 assert.equal(maps.filter(map=>map.type==='grind' && Array.isArray(map.gatheringPool)).length,35, 'only regionally assigned grind maps have pools; unassigned maps are valid');
@@ -104,6 +110,15 @@ const regionalGathering = new Map([
   ['map_ipora_beach_1', {mat_cooking_oil:100}],
 ]);
 for (const map of maps) if (/^map_kwaioua_forest_[0-7]$/.test(map.id) || /^map_forest_ruins_[0-3]$/.test(map.id) || /^map_caete_[0-7]$/.test(map.id)) regionalGathering.set(map.id,{mat_herbs:100});
+// Forest specialties (db9d25a): herbs plus one or two regional materials.
+for (const [id, pool] of Object.entries({
+  map_kwaioua_forest_0: {mat_herbs:70,mat_ashwagandha:30}, map_kwaioua_forest_1: {mat_herbs:70,mat_ashwagandha:30},
+  map_kwaioua_forest_2: {mat_herbs:70,mat_ironshroom:30}, map_kwaioua_forest_3: {mat_herbs:70,mat_ironshroom:30},
+  map_kwaioua_forest_4: {mat_herbs:60,mat_ironshroom:20,mat_ashwagandha:20}, map_kwaioua_forest_5: {mat_herbs:60,mat_rushroom:20,mat_guarana:20},
+  map_kwaioua_forest_6: {mat_herbs:70,mat_rushroom:30}, map_kwaioua_forest_7: {mat_herbs:70,mat_guarana:30},
+  map_caete_0: {mat_herbs:70,mat_mystic_dust:30}, map_caete_1: {mat_herbs:70,mat_mystic_dust:30},
+  map_caete_2: {mat_herbs:70,mat_mystic_dust:30}, map_caete_6: {mat_herbs:70,mat_mystic_dust:30},
+})) regionalGathering.set(id, pool);
 assert.ok(maps.filter(map=>map.type==='town').every(map=>map.gatheringPool===undefined), 'Town maps never gather materials');
 for (const map of maps) {
   const expected = regionalGathering.get(map.id);
@@ -163,16 +178,17 @@ const statefulGambit = { lines: [
 const statefulCheckpoint = BattleEngine.simulateBattle(statefulCombatant, durableMonster, statefulGambit, 'flee-stateful-checkpoint', {
   inventory: { food_checkpoint: 1, pot_checkpoint: 1 }, itemDefinitions: checkpointItems,
   statusEffectDefs: { expires_early: { statusDurationTicks: 3 }, expires_later: { statusDurationTicks: 50 } },
-  stopAfterTick: 19,
+  // 19 seconds into the battle (written for 1 s ticks; ticks are 500 ms now).
+  stopAfterTick: secondsToBattleTicks(19),
 }).checkpoint;
-assert.equal(statefulCheckpoint.tick, 19);
+assert.equal(statefulCheckpoint.tick, secondsToBattleTicks(19));
 assert.equal(statefulCheckpoint.battleEnded, false);
 assert.equal(statefulCheckpoint.inventoryAfter.food_checkpoint, 0, 'food consumption is in checkpoint inventory');
 assert.equal(statefulCheckpoint.inventoryAfter.pot_checkpoint, 0, 'potion consumption is in checkpoint inventory');
 assert.ok(!statefulCheckpoint.statusEffects.some(status => status.type === 'expires_early'), 'expired status absent at checkpoint');
 assert.ok(statefulCheckpoint.statusEffects.some(status => status.type === 'expires_later'), 'nonexpired status retained');
-assert.ok(statefulCheckpoint.foodBuffs.some(food => food.itemId === 'food_checkpoint' && food.remainingTicks > 0 && food.remainingTicks < 120), 'new food buff retains remaining duration');
-assert.ok(statefulCheckpoint.foodDigestRemainingTicksByItem.food_checkpoint > 0 && statefulCheckpoint.foodDigestRemainingTicksByItem.food_checkpoint < 120, 'food digestion retains remaining duration');
+assert.ok(statefulCheckpoint.foodBuffs.some(food => food.itemId === 'food_checkpoint' && food.remainingTicks > 0 && food.remainingTicks < secondsToBattleTicks(120)), 'new food buff retains remaining duration');
+assert.ok(statefulCheckpoint.foodDigestRemainingTicksByItem.food_checkpoint > 0 && statefulCheckpoint.foodDigestRemainingTicksByItem.food_checkpoint < secondsToBattleTicks(120), 'food digestion retains remaining duration');
 const lethalMonster = { ...durableMonster, hp: 100000, atk: 1000000, accuracy: 100, atkSpeedTicks: 1 };
 const nearDeath = { ...combatant, hp: 1, maxHp: 100, def: 0, evasion: 0, statusEffects: [] };
 const lethalCheckpoint = BattleEngine.simulateBattle(nearDeath, lethalMonster, gambit, 'flee-lethal-checkpoint', {
