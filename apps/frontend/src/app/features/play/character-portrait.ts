@@ -1,5 +1,5 @@
 import type { CharacterAppearance, HandWeaponType, Sex } from '@nanommo/shared';
-import { characterAnimationState, type AnimationBattleEntry, type AnimationInput, type AnimationState } from '../../shared/character-animation/animation-state';
+import { characterAnimationState, type AnimationBattleEntry, type AnimationInput, type AnimationState, type AttackStyle } from '../../shared/character-animation/animation-state';
 
 const HAND_TYPES: ReadonlySet<string> = new Set<HandWeaponType>(['dagger', 'sword', 'greatsword', 'bow', 'staff', 'rod', 'shield', 'rune']);
 
@@ -38,6 +38,11 @@ export function portraitModel(character: {
 export function portraitAnimationSource(
   character: () => AnimationInput['character'],
   activeBattle: () => AnimationBattleEntry | null,
+  hands: () => { main: HandWeaponType | null; off: HandWeaponType | null } = () => ({ main: null, off: null }),
 ): (nowMs: number) => AnimationState {
-  return (nowMs) => characterAnimationState({ character: character(), activeBattle: activeBattle(), nowMs });
+  return (nowMs) => {
+    const { main, off } = hands();
+    const attackStyle: AttackStyle = main === 'bow' || off === 'bow' ? 'bow' : 'melee';
+    return characterAnimationState({ character: character(), activeBattle: activeBattle(), nowMs, attackStyle });
+  };
 }

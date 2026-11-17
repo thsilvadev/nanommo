@@ -73,7 +73,7 @@ export class CharacterSummary implements OnDestroy {
   readonly portrait = computed(() => portraitModel(this.character.character()));
   readonly portraitHands = computed(() => portraitHandTypes(this.inventory.equipment(), (id) => this.catalog.item(id) as { weaponType?: string } | undefined));
   /** Pose of the portrait: a pure function of the stores and the clock, evaluated by the rig every frame. */
-  readonly portraitAnimation = portraitAnimationSource(() => this.character.character(), () => this.battle.active());
+  readonly portraitAnimation = portraitAnimationSource(() => this.character.character(), () => this.battle.active(), () => this.portraitHands());
   readonly portraitLoaded = signal(false);
   readonly portraitFailed = signal(false);
   showPortraitInitial() { return !this.portrait() || !this.portraitLoaded() || this.portraitFailed() }

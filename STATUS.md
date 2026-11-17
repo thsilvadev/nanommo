@@ -1,3 +1,11 @@
+### Bow shot timing, V2 casts and left-handed swings — 2026-11-17
+
+- Bow timing: with a bow in hand (`attackStyle: 'bow'`, from the portrait's hand items), a basic attack's shot now opens before its hit tick so the string is released `ARROW_FLIGHT_SECONDS` (0.25 s) before the hit. The draw is sped up when the previous action resolved too recently for draw + flight to fit. Melee swings keep starting on the hit tick.
+- Casts on the V2 engine: since the party merge, solo battles run on `simulateBattleV2Solo`, whose legacy event view logs a bare `cast_start` (no skill, no resolution tick) — the `castStartedAtTick` added to the V1 engine is never produced, so the portrait showed only the Attack on resolution. `characterAnimationState` now pairs each character `cast_start` with its next `use_skill` (or `cast_fizzle`, which ends the cast without an Attack). Client-only: works on already-queued battles.
+- Left-handed characters: the rig builds mirrored variants of `Attack`, `CombatIdle`, `CastStart` and `CastLoop` per body (`mirrorClip`: rotations relative to the symmetric rest pose, reflected across the body midplane and swapped `_l`/`_r`) and uses them when `dominantHand` is left, so the sword swings with the hand that holds it.
+
+Validation: new animation-state specs (V2 cast pairing, fizzle, bow lead, fast bow rate), portrait spec (bow in either hand shoots early) and viewer spec (left-handed swing/guard/cast hands are the mirror of the right-handed ones within 3 cm) pass; full frontend Karma suite 202 passed, 0 failed; frontend production build passed with the rig still lazy. Screenshots checked for left vs right handed sword poses, bow release before the hit and the V2 cast. No API change, migration, deployment or push.
+
 ### Bow grip and procedural bow shot — 2026-11-17
 
 - Grip: the bow is turned 180° around its handle, so the string faces the forearm and elbow instead of projecting in front of the character.

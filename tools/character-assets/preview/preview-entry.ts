@@ -22,7 +22,9 @@ let rig: CharacterRig | null = null;
     // on a fake clock, so crossfades are where they would be on screen.
     const { status, battle, atMs } = config.animation;
     let clock = atMs - 1000;
-    rig.setAnimation((nowMs) => characterAnimationState({ character: { status }, activeBattle: battle ?? null, nowMs }), () => clock);
+    // Same rule as the Character Summary portrait: a bow in either hand shoots early.
+    const attackStyle = Object.values(config.hands ?? {}).includes('bow') ? 'bow' : 'melee';
+    rig.setAnimation((nowMs) => characterAnimationState({ character: { status }, activeBattle: battle ?? null, nowMs, attackStyle }), () => clock);
     await rig.apply(config);
     for (; clock < atMs; clock = Math.min(atMs, clock + 1000 / 60)) rig.renderNow();
     rig.renderNow();

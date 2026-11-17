@@ -1,4 +1,4 @@
-import { CLIP_SECONDS, characterAnimationState, type AnimationBattleEntry } from './animation-state';
+import { ARROW_FLIGHT_SECONDS, BOW_RELEASE_FRACTION, CLIP_SECONDS, characterAnimationState, type AnimationBattleEntry } from './animation-state';
 
 const START = Date.parse('2026-11-17T12:00:00.000Z');
 const TICK = 500;
@@ -102,6 +102,50 @@ describe('characterAnimationState', () => {
       // Attack at tick 4, the next skill starts casting at tick 6 (1 s later).
       const state = characterAnimationState({ character: grinding, activeBattle: battle([attack(4), skill(10, 6)]), nowMs: at(4, 100) });
       expect(state.oneShot!.speed).toBeCloseTo(CLIP_SECONDS.Attack, 5);
+    });
+
+    it('reads casts from the V2 engine log: cast_start paired with the next use_skill', () => {
+      // simulateBattleV2Solo projects cast_start without its payload (no skill, no resolution tick).
+      const castStart = { tick: 6, actor: 'character', action: 'cast_start', target: 'monster' };
+      const resolve = { tick: 10, actor: 'character', action: 'use_skill', skillId: 'fire_ball', target: 'monster', damage: 30, hit: true };
+      const entry = battle([castStart, resolve, attack(28)]);
+      expect(characterAnimationState({ character: grinding, activeBattle: entry, nowMs: at(8) }))
+        .toEqual({ base: 'CombatIdle', cast: { startedAtMs: at(6), endsAtMs: at(10) } });
+      expect(characterAnimationState({ character: grinding, activeBattle: entry, nowMs: at(10, 50) }).oneShot)
+        .toEqual({ clip: 'Attack', startedAtMs: at(10), speed: 1 });
+    });
+
+    it('ends a V2 cast that fizzles without striking', () => {
+      const entry = battle([
+        { tick: 6, actor: 'character', action: 'cast_start' },
+        { tick: 10, actor: 'character', action: 'cast_fizzle' },
+      ]);
+      expect(characterAnimationState({ character: grinding, activeBattle: entry, nowMs: at(9) }).cast).toEqual({ startedAtMs: at(6), endsAtMs: at(10) });
+      expect(characterAnimationState({ character: grinding, activeBattle: entry, nowMs: at(10, 50) })).toEqual({ base: 'CombatIdle' });
+    });
+
+    it('with a bow, looses the arrow just before the hit, so it has time to fly', () => {
+      const entry = battle([attack(20), attack(40)]);
+      const lead = (CLIP_SECONDS.Attack * BOW_RELEASE_FRACTION + ARROW_FLIGHT_SECONDS) * 1000;
+      const before = characterAnimationState({ character: grinding, activeBattle: entry, nowMs: at(20) - 300, attackStyle: 'bow' });
+      expect(before.oneShot).toEqual({ clip: 'Attack', startedAtMs: at(20) - lead, speed: 1 });
+      // The release moment of the shot is ARROW_FLIGHT_SECONDS before the hit.
+      expect(before.oneShot!.startedAtMs + CLIP_SECONDS.Attack * BOW_RELEASE_FRACTION * 1000).toBeCloseTo(at(20) - ARROW_FLIGHT_SECONDS * 1000, 6);
+      // Melee keeps the swing on the hit tick.
+      expect(characterAnimationState({ character: grinding, activeBattle: entry, nowMs: at(20) - 300 }).oneShot).toBeUndefined();
+    });
+
+    it('with a bow and a fast attack rate, the next draw starts no earlier than the previous hit', () => {
+      const entry = battle([attack(20), attack(22)]);
+      const draw = CLIP_SECONDS.Attack * BOW_RELEASE_FRACTION;
+      // 1 s between hits: draw and flight must fit in it, so the draw is sped up.
+      const speed = draw / (1 - ARROW_FLIGHT_SECONDS);
+      const second = characterAnimationState({ character: grinding, activeBattle: entry, nowMs: at(22) - 100, attackStyle: 'bow' });
+      expect(second.oneShot!.speed).toBeCloseTo(speed, 5);
+      expect(second.oneShot!.startedAtMs).toBeCloseTo(at(20), 6);
+      // Until the first arrow lands, the first shot plays.
+      const first = characterAnimationState({ character: grinding, activeBattle: entry, nowMs: at(20) - 100, attackStyle: 'bow' });
+      expect(first.oneShot!.startedAtMs).toBeCloseTo(at(20) - (draw + ARROW_FLIGHT_SECONDS) * 1000, 6);
     });
 
     it('flinches on damage without cutting the cast', () => {

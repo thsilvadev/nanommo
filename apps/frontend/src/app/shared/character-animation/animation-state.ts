@@ -35,6 +35,15 @@ export const CLIP_SECONDS = {
   Dead: 2.4,
 } as const;
 
+/**
+ * Bow shots (the rig's procedural draw-and-loose) let go of the string at this fraction
+ * of the Attack window, and the arrow takes ARROW_FLIGHT_SECONDS to land: the shot
+ * starts early enough for the arrow to arrive on the hit tick.
+ */
+export const BOW_RELEASE_FRACTION = 0.62;
+export const ARROW_FLIGHT_SECONDS = 0.25;
+export type AttackStyle = 'melee' | 'bow';
+
 /** The parts of a battle queue entry the pose depends on. */
 export interface AnimationBattleEntry {
   startAt: string;
@@ -49,6 +58,8 @@ export interface AnimationInput {
   character: { status?: string | null } | null;
   activeBattle: AnimationBattleEntry | null;
   nowMs: number;
+  /** What the character attacks with; a bow shot starts before its hit. Default melee. */
+  attackStyle?: AttackStyle;
 }
 
 interface LogEvent {
@@ -61,7 +72,7 @@ interface LogEvent {
   hpRemaining?: { character?: number };
 }
 
-export function characterAnimationState({ character, activeBattle, nowMs }: AnimationInput): AnimationState {
+export function characterAnimationState({ character, activeBattle, nowMs, attackStyle = 'melee' }: AnimationInput): AnimationState {
   const status = character?.status ?? null;
   if (status === 'dead_pending_return') return deadSince(nowMs - CLIP_SECONDS.Dead * 1000);
 
@@ -75,26 +86,30 @@ export function characterAnimationState({ character, activeBattle, nowMs }: Anim
   if (nowMs >= battle.endMs) return { base: 'Walk' };
 
   const state: AnimationState = { base: 'CombatIdle' };
-  const actions = events
-    .filter((e) => e.actor === 'character' && (e.action === 'attack' || e.action === 'use_skill'))
-    .map((e) => {
-      const castStart = Number.isFinite(e.castStartedAtTick) && Number(e.castStartedAtTick) < Number(e.tick) ? Number(e.castStartedAtTick) : null;
-      return { startsAtMs: timeOf(castStart ?? Number(e.tick)), strikesAtMs: timeOf(Number(e.tick)), casts: castStart !== null };
-    })
-    .sort((a, b) => a.strikesAtMs - b.strikesAtMs);
-
+  const actions = characterActions(events, timeOf);
   const casting = actions.find((a) => a.casts && a.startsAtMs <= nowMs && nowMs < a.strikesAtMs);
   if (casting) {
     state.cast = { startedAtMs: casting.startsAtMs, endsAtMs: casting.strikesAtMs };
   } else {
-    const strike = actions.filter((a) => a.strikesAtMs <= nowMs).pop();
-    if (strike) {
+    // Each strike's Attack window. A swing starts on its hit and is sped up to end before
+    // the next action. A bow shot opens early so the arrow lands on the hit, sped up so
+    // the draw and the flight fit after the previous action has resolved.
+    const draw = CLIP_SECONDS.Attack * BOW_RELEASE_FRACTION;
+    const shots = actions.filter((a) => a.strikes).map((strike) => {
+      if (attackStyle === 'bow' && !strike.casts) {
+        const previous = actions.filter((a) => a.strikesAtMs < strike.strikesAtMs).pop();
+        const room = previous ? (strike.strikesAtMs - previous.strikesAtMs) / 1000 - ARROW_FLIGHT_SECONDS : Infinity;
+        const speed = room < draw ? draw / Math.max(room, 0.05) : 1;
+        return { startedAtMs: strike.strikesAtMs - (draw / speed + ARROW_FLIGHT_SECONDS) * 1000, speed };
+      }
       const next = actions.find((a) => a.startsAtMs > strike.strikesAtMs);
       const interval = next ? (next.startsAtMs - strike.strikesAtMs) / 1000 : Infinity;
       const speed = interval < CLIP_SECONDS.Attack ? CLIP_SECONDS.Attack / interval : 1;
-      if (nowMs < strike.strikesAtMs + (CLIP_SECONDS.Attack / speed) * 1000) {
-        state.oneShot = { clip: 'Attack', startedAtMs: strike.strikesAtMs, speed };
-      }
+      return { startedAtMs: strike.strikesAtMs, speed };
+    });
+    const shot = shots.filter((s) => s.startedAtMs <= nowMs).pop();
+    if (shot && nowMs < shot.startedAtMs + (CLIP_SECONDS.Attack / shot.speed) * 1000) {
+      state.oneShot = { clip: 'Attack', startedAtMs: shot.startedAtMs, speed: shot.speed };
     }
   }
 
@@ -107,6 +122,46 @@ export function characterAnimationState({ character, activeBattle, nowMs }: Anim
     if (nowMs < startedAtMs + CLIP_SECONDS[clip] * 1000) state.hit = { clip, startedAtMs };
   }
   return state;
+}
+
+interface CharacterAction {
+  /** When the action begins: the cast start for a cast, the strike otherwise. */
+  startsAtMs: number;
+  /** When it resolves (the hit, or the end of a fizzled cast). */
+  strikesAtMs: number;
+  casts: boolean;
+  /** False for a cast that fizzled: it ends without an Attack. */
+  strikes: boolean;
+}
+
+/**
+ * The character's attacks and skills, in time order. Two log shapes carry casts:
+ * the V1 engine puts `castStartedAtTick` on the resolving use_skill; the V2 solo
+ * projection logs a bare `cast_start`, resolved by the character's next use_skill
+ * (or `cast_fizzle`).
+ */
+function characterActions(events: LogEvent[], timeOf: (tick: number) => number): CharacterAction[] {
+  const actions: CharacterAction[] = [];
+  let openCast: number | null = null;
+  for (const e of events) {
+    if (e.actor !== 'character') continue;
+    const tick = Number(e.tick);
+    if (e.action === 'cast_start') { openCast = tick; continue; }
+    if (e.action === 'cast_fizzle') {
+      if (openCast !== null && openCast < tick) actions.push({ startsAtMs: timeOf(openCast), strikesAtMs: timeOf(tick), casts: true, strikes: false });
+      openCast = null;
+      continue;
+    }
+    if (e.action !== 'attack' && e.action !== 'use_skill') continue;
+    let castStart: number | null = null;
+    if (e.action === 'use_skill') {
+      if (Number.isFinite(e.castStartedAtTick) && Number(e.castStartedAtTick) < tick) castStart = Number(e.castStartedAtTick);
+      else if (openCast !== null && openCast < tick) castStart = openCast;
+      openCast = null;
+    }
+    actions.push({ startsAtMs: timeOf(castStart ?? tick), strikesAtMs: timeOf(tick), casts: castStart !== null, strikes: true });
+  }
+  return actions.sort((a, b) => a.strikesAtMs - b.strikesAtMs);
 }
 
 function deadSince(startedAtMs: number): AnimationState {

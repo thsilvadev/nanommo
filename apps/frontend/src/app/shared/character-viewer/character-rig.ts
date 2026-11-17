@@ -23,6 +23,9 @@ const OVERLAY_CLIPS = ['Attack', 'Dead', 'CastStart', 'CastLoop'] as const;
 /** Flinches, blended over whatever plays. */
 const HIT_CLIPS = ['Damage', 'Damage2'] as const;
 const CLIP_NAMES: string[] = [...BASE_CLIPS, ...OVERLAY_CLIPS, ...HIT_CLIPS];
+/** Clips authored right-handed (sword arm, casting arm), mirrored for left-handed characters. */
+const MIRRORED_CLIPS = ['Attack', 'CombatIdle', 'CastStart', 'CastLoop'];
+const MIRROR_SAMPLES_PER_SECOND = 30;
 const FADE_IN_SECONDS = 0.12;
 const FADE_OUT_SECONDS = 0.2;
 /** Peak weight of a flinch: enough to read as a hit, not enough to cut the action under it. */
@@ -60,6 +63,10 @@ interface BodyAsset {
   weights: Map<string, number>;
   /** Clock time of the last animated frame; null until the body's first frame (which snaps). */
   animatedAtMs: number | null;
+  /** The other handedness of MIRRORED_CLIPS; swapped with `actions` when it is in use. */
+  mirrorActions: Map<string, THREE.AnimationAction>;
+  /** Whether `actions` currently holds the left-handed (mirrored) variants. */
+  mirrored: boolean;
   /** Closed-fist frame of each hand in the Idle pose, in hand-bone space. */
   fists: Record<'right' | 'left', Fist>;
   deformKey: string;
@@ -238,6 +245,7 @@ export class CharacterRig implements CharacterRigHandle {
     this.attachPiercing(body, pick('piercing'));
     this.attachHands(body, config.hands, weaponObjects);
 
+    this.useHandedness(body, config.dominantHand === 'left');
     this.model.scale.setScalar(config.heightCm / NATIVE_HEIGHT_CM[config.sex]);
     // Turn the dominant side towards the camera. Not reset while the user can drag,
     // unless the framing or the dominant hand changes.
@@ -252,6 +260,20 @@ export class CharacterRig implements CharacterRigHandle {
     this.renderer.domElement.style.cursor = config.interactive ? 'grab' : '';
     this.updateCamera();
     this.renderOnce();
+  }
+
+  /** Left-handed characters play the mirrored swing, guard and cast. */
+  private useHandedness(body: BodyAsset, leftHanded: boolean): void {
+    if (body.mirrored === leftHanded) return;
+    for (const name of MIRRORED_CLIPS) {
+      const from = body.actions.get(name)!, to = body.mirrorActions.get(name)!;
+      to.time = from.time;
+      to.setEffectiveWeight(from.getEffectiveWeight());
+      from.setEffectiveWeight(0);
+      body.actions.set(name, to);
+      body.mirrorActions.set(name, from);
+    }
+    body.mirrored = leftHanded;
   }
 
   // ---- Loading -------------------------------------------------------------
@@ -413,10 +435,11 @@ export class CharacterRig implements CharacterRigHandle {
       }
       return clip;
     });
+    // Left-handed variants of the clips that favour one hand (sampled before the mixer binds anything).
+    const mirrorSources = clips.filter((clip) => MIRRORED_CLIPS.includes(clip.name)).map((clip) => mirrorClip(clip, root, bones));
     // Every clip plays all the time at time scale 0: the rig positions each one by the
     // clock and decides its weight, so the mixer never advances anything by itself.
-    const actions = new Map<string, THREE.AnimationAction>();
-    for (const clip of clips) {
+    const makeAction = (clip: THREE.AnimationClip) => {
       const action = mixer.clipAction(clip);
       if (!(BASE_CLIPS as readonly string[]).includes(clip.name)) {
         action.setLoop(THREE.LoopOnce, 1);
@@ -425,8 +448,11 @@ export class CharacterRig implements CharacterRigHandle {
       action.timeScale = 0;
       action.setEffectiveWeight(clip.name === 'Idle' ? 1 : 0);
       action.play();
-      actions.set(clip.name, action);
-    }
+      return action;
+    };
+    const actions = new Map<string, THREE.AnimationAction>(clips.map((clip) => [clip.name, makeAction(clip)]));
+    const mirrorActions = new Map<string, THREE.AnimationAction>(mirrorSources.map((clip) => [clip.name, makeAction(clip)]));
+    for (const action of mirrorActions.values()) action.setEffectiveWeight(0);
 
     // Measure the closed fist in the Idle pose (in the bind pose the fingers are straight).
     mixer.update(0);
@@ -436,7 +462,7 @@ export class CharacterRig implements CharacterRigHandle {
     return {
       sex, root, body: bodyMesh, brows: browsMesh, bones, bind, originalBody, originalBrows, surface,
       baseSkin, skinReference: averageSkinColor(baseSkin.data), skinCanvas, skinTexture,
-      noseTip, chestCenters: chest, jaw, chin, cheeks, earLobes: ears, mixer, clips, actions,
+      noseTip, chestCenters: chest, jaw, chin, cheeks, earLobes: ears, mixer, clips, actions, mirrorActions, mirrored: false,
       weights: new Map(CLIP_NAMES.map((name) => [name, name === 'Idle' ? 1 : 0])), animatedAtMs: null,
       fists, deformKey: '', skinKey: '',
     };
@@ -1083,6 +1109,69 @@ export class CharacterRig implements CharacterRigHandle {
     this.renderer.forceContextLoss();
     this.renderer.domElement.remove();
   }
+}
+
+/**
+ * Left-right mirror of a clip. Each frame is sampled on the body, every bone's rotation
+ * relative to its rest pose is reflected across the body's midplane (x = 0) and given to
+ * its counterpart (`_l` <-> `_r`), then turned back into local rotations. Working in body
+ * space keeps it independent of the bones' axis conventions; it relies on the rest pose
+ * being symmetric, which holds for both bodies. Must run before the body's own mixer
+ * binds the bones; the sampled pose is undone afterwards.
+ */
+function mirrorClip(clip: THREE.AnimationClip, root: THREE.Object3D, bones: Map<string, THREE.Bone>): THREE.AnimationClip {
+  const counterpart = (name: string) => (name.endsWith('_l') ? `${name.slice(0, -2)}_r` : name.endsWith('_r') ? `${name.slice(0, -2)}_l` : name);
+  const list = [...bones.values()];
+  const rest = list.map((bone) => [bone.quaternion.clone(), bone.position.clone()] as const);
+  root.updateMatrixWorld(true);
+  const rootInverse = root.getWorldQuaternion(new THREE.Quaternion()).invert();
+  const inBody = (object: THREE.Object3D) => rootInverse.clone().multiply(object.getWorldQuaternion(new THREE.Quaternion()));
+  const restInBody = new Map(list.map((bone) => [bone.name, inBody(bone)]));
+  const animated = new Set(clip.tracks.filter((t) => t.name.endsWith('.quaternion')).map((t) => t.name.slice(0, -'.quaternion'.length)));
+  const targets = list.filter((bone) => animated.has(counterpart(bone.name)));
+  const pelvis = bones.get('pelvis');
+  const movesPelvis = !!pelvis && clip.tracks.some((t) => t.name === 'pelvis.position');
+
+  const sampler = new THREE.AnimationMixer(root);
+  const action = sampler.clipAction(clip);
+  action.setLoop(THREE.LoopOnce, 1);
+  action.clampWhenFinished = true;
+  action.play();
+  const count = Math.max(2, Math.ceil(clip.duration * MIRROR_SAMPLES_PER_SECOND) + 1);
+  const times = new Float32Array(count);
+  const rotations = new Map(targets.map((bone) => [bone.name, new Float32Array(count * 4)]));
+  const pelvisPositions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    times[i] = Math.min(clip.duration, i / MIRROR_SAMPLES_PER_SECOND);
+    action.time = times[i];
+    sampler.update(0);
+    root.updateMatrixWorld(true);
+    const mirrored = new Map<string, THREE.Quaternion>();
+    for (const bone of list) {
+      const source = bones.get(counterpart(bone.name)) ?? bone;
+      const delta = inBody(source).multiply(restInBody.get(source.name)!.clone().invert());
+      // Reflection across x = 0: the rotation axis (a pseudovector) keeps x and flips y and z.
+      mirrored.set(bone.name, new THREE.Quaternion(delta.x, -delta.y, -delta.z, delta.w).multiply(restInBody.get(bone.name)!));
+    }
+    for (const bone of targets) {
+      const parent = bone.parent!;
+      const parentInBody = (parent as THREE.Bone).isBone ? mirrored.get(parent.name)! : inBody(parent);
+      parentInBody.clone().invert().multiply(mirrored.get(bone.name)!).toArray(rotations.get(bone.name)!, i * 4);
+    }
+    if (movesPelvis) {
+      const position = root.worldToLocal(pelvis!.getWorldPosition(new THREE.Vector3()));
+      position.x = -position.x;
+      pelvis!.parent!.worldToLocal(root.localToWorld(position)).toArray(pelvisPositions, i * 3);
+    }
+  }
+  sampler.stopAllAction();
+  sampler.uncacheRoot(root);
+  list.forEach((bone, i) => { bone.quaternion.copy(rest[i][0]); bone.position.copy(rest[i][1]); });
+  root.updateMatrixWorld(true);
+
+  const tracks: THREE.KeyframeTrack[] = targets.map((bone) => new THREE.QuaternionKeyframeTrack(`${bone.name}.quaternion`, times, rotations.get(bone.name)!));
+  if (movesPelvis) tracks.push(new THREE.VectorKeyframeTrack('pelvis.position', times, pelvisPositions));
+  return new THREE.AnimationClip(clip.name, clip.duration, tracks);
 }
 
 interface BowDrawParts {

@@ -42,4 +42,15 @@ describe('character portrait', () => {
       log: { events: [{ tick: 4, actor: 'character', action: 'attack', target: 'monster', damage: 3 }] } };
     expect(source(start + 4 * 500 + 10)).toEqual({ base: 'CombatIdle', oneShot: { clip: 'Attack', startedAtMs: start + 2000, speed: 1 } });
   });
+
+  it('shoots early with a bow in either hand', () => {
+    const startAt = '2026-11-17T12:00:00.000Z';
+    const battle = { startAt, endAt: '2026-11-17T12:01:00.000Z', tickDurationMs: 500, outcome: 'win',
+      log: { events: [{ tick: 20, actor: 'character', action: 'attack', target: 'monster', damage: 3 }] } };
+    const justBeforeHit = Date.parse(startAt) + 20 * 500 - 300;
+    const withBow = portraitAnimationSource(() => ({ status: 'grinding' }), () => battle, () => ({ main: 'bow', off: null }));
+    const withSword = portraitAnimationSource(() => ({ status: 'grinding' }), () => battle, () => ({ main: 'sword', off: null }));
+    expect(withBow(justBeforeHit).oneShot?.clip).toBe('Attack');
+    expect(withSword(justBeforeHit).oneShot).toBeUndefined();
+  });
 });

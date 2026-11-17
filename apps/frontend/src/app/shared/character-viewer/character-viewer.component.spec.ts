@@ -206,6 +206,36 @@ describe('CharacterViewerComponent', () => {
       rig.bonePosition('hand_r').forEach((v, i) => expect(v).withContext('back to the guard').toBeCloseTo(guardHand[i], 3));
     });
 
+    it('mirrors the sword swing (and guard and cast) for a left-handed character', async () => {
+      const created = await create({}, { mainHandType: 'sword', dominantHand: 'right' });
+      fixture = created.fixture;
+      await settle(fixture, created.events);
+      const rig = fixture.componentInstance.rig()!;
+      // Each pose is defined relative to the frame time; the clock jumps 2 s so crossfades complete.
+      let now = 3_000_000;
+      let make: (t: number) => AnimationState = () => ({ base: 'CombatIdle' });
+      rig.setAnimation((t) => make(t), () => now);
+      const swing = (t: number): AnimationState => ({ base: 'CombatIdle', oneShot: { clip: 'Attack', startedAtMs: t - 450, speed: 1 } });
+      const cast = (t: number): AnimationState => ({ base: 'CombatIdle', cast: { startedAtMs: t - 1200, endsAtMs: t + 2000 } });
+      const sample = (next: (t: number) => AnimationState) => {
+        make = next;
+        for (let i = 0; i < 3; i++) { now += 2000; rig.renderNow(); }
+        return { r: rig.bonePosition('hand_r'), l: rig.bonePosition('hand_l') };
+      };
+      const guard = (): AnimationState => ({ base: 'CombatIdle' });
+      const rightSwing = sample(swing), rightGuard = sample(guard), rightCast = sample(cast);
+
+      fixture.componentRef.setInput('dominantHand', 'left');
+      await settle(fixture, created.events, { loaded: 2 });
+      const leftSwing = sample(swing), leftGuard = sample(guard), leftCast = sample(cast);
+      const mirrored = (a: number[], b: number[]) => Math.hypot(a[0] + b[0], a[1] - b[1], a[2] - b[2]);
+      expect(mirrored(leftSwing.l, rightSwing.r)).withContext('swinging hand').toBeLessThan(0.03);
+      expect(mirrored(leftSwing.r, rightSwing.l)).withContext('other hand').toBeLessThan(0.03);
+      expect(mirrored(leftGuard.l, rightGuard.r)).withContext('guard').toBeLessThan(0.03);
+      expect(mirrored(leftCast.r, rightCast.l)).withContext('casting hand').toBeLessThan(0.03);
+      expect(rig.playingClip()).toBe('CastLoop');
+    });
+
     it('holds Dead on its last frame', async () => {
       const { rig, frame, set, now } = await ready();
       set({ base: 'CombatIdle', oneShot: { clip: 'Dead', startedAtMs: now(), speed: 1 } });
