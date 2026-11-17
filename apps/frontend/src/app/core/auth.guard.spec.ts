@@ -103,6 +103,33 @@ describe('auth guards', () => {
     });
   });
 
+  describe('3D appearance', () => {
+    const withoutAppearance = () => ({ ...fakeCharacter(), sex: null, height: null, heightCm: null, appearance: null } as Character);
+
+    it('characterGuard sends a character without appearance to the creator', async () => {
+      (authStore.isAuthenticated as any) = () => true;
+      characterStore.character.and.returnValue(withoutAppearance());
+      characterStore.load.and.returnValue(Promise.resolve());
+      const result = await runGuard(characterGuard) as any;
+      expect(result.__commands).toEqual(['/create-character']);
+    });
+
+    it('createCharacterGuard lets a character without appearance in', async () => {
+      (authStore.isAuthenticated as any) = () => true;
+      characterStore.character.and.returnValue(withoutAppearance());
+      characterStore.load.and.returnValue(Promise.resolve());
+      expect(await runGuard(createCharacterGuard)).toBe(true);
+    });
+
+    it('guestGuard sends a character without appearance to the creator', async () => {
+      (authStore.isAuthenticated as any) = () => true;
+      characterStore.character.and.returnValue(withoutAppearance());
+      characterStore.load.and.returnValue(Promise.resolve());
+      const result = await runGuard(guestGuard) as any;
+      expect(result.__commands).toEqual(['/create-character']);
+    });
+  });
+
   describe('createCharacterGuard (/create-character)', () => {
     it('redirects unauthenticated users to /login', async () => {
       (authStore.isAuthenticated as any) = () => false;

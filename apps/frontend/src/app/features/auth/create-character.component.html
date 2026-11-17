@@ -1,0 +1,106 @@
+<div class="auth-screen creator-screen">
+  <app-login-music-control />
+  <div class="creator">
+    <section class="preview" [attr.aria-label]="locale.t('Character preview')">
+      <app-character-viewer
+        [sex]="sex()" [heightCm]="heightCm()" [appearance]="appearance()"
+        [dominantHand]="dominantHand()" [mainHandType]="hands().main" [offHandType]="hands().off"
+        [interactive]="true"
+        (failed)="previewFailed.set(true)" (loaded)="previewFailed.set(false)" />
+      @if (previewFailed()) {
+        <div class="preview-fallback">
+          <p>{{ locale.t('The 3D preview is not available on this device.') }}</p>
+          <button type="button" class="ghost" data-test="preview-retry" (click)="retryPreview()">{{ locale.t('Try again') }}</button>
+        </div>
+      } @else {
+        <p class="preview-hint">{{ locale.t('Drag to rotate') }}</p>
+      }
+    </section>
+
+    <section class="panel">
+      <h2>{{ locale.t(mode() === 'update' ? 'Create your look' : 'Create your character') }}</h2>
+      @if (mode() === 'update') {
+        <p class="note">{{ locale.t('Your character now has a 3D body. Choose its look to continue playing — nothing else changes.') }}</p>
+      }
+      @if (error()) {
+        <div class="error" role="alert" data-test="error">{{ error() }}</div>
+      }
+
+      <div class="field">
+        <label for="name">{{ locale.t('Character name') }}</label>
+        <input id="name" class="auth-input" data-test="name" maxlength="16" autocomplete="off"
+          [value]="form.name" [disabled]="mode() === 'update'" (input)="setName($any($event.target).value)"
+          [placeholder]="locale.t('3–16 letters or numbers')" />
+        @if (mode() === 'new' && form.name && !nameValid()) {
+          <p class="hint-error">{{ locale.t('Use 3 to 16 letters or numbers') }}</p>
+        }
+      </div>
+
+      <fieldset class="field">
+        <legend>{{ locale.t('Dominant hand') }}</legend>
+        <div class="segmented">
+          <label><input type="radio" name="hand" data-test="hand-right" [checked]="dominantHand() === 'right'" [disabled]="mode() === 'update'" (change)="setHand('right')" />{{ locale.t('Right') }}</label>
+          <label><input type="radio" name="hand" data-test="hand-left" [checked]="dominantHand() === 'left'" [disabled]="mode() === 'update'" (change)="setHand('left')" />{{ locale.t('Left') }}</label>
+        </div>
+      </fieldset>
+
+      <fieldset class="field">
+        <legend>{{ locale.t('Sex') }}</legend>
+        <div class="segmented">
+          <label><input type="radio" name="sex" [checked]="sex() === 'male'" (change)="setSex('male')" />{{ locale.t('Male') }}</label>
+          <label><input type="radio" name="sex" [checked]="sex() === 'female'" (change)="setSex('female')" />{{ locale.t('Female') }}</label>
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="height">{{ locale.t('Height') }} <strong data-test="height-value">{{ heightLabel() }}</strong></label>
+        <input id="height" type="range" data-test="height" [min]="heightMin" [max]="heightMax" step="1"
+          [value]="heightCm()" (input)="setHeight($any($event.target).value)" [attr.aria-valuetext]="heightLabel()" />
+        <p class="adjust"><span data-test="adjustment">{{ adjustmentLabel() }}</span> <small>{{ locale.t('(at creation)') }}</small></p>
+      </div>
+
+      @for (group of groups(); track group.title) {
+        <h3>{{ locale.t(group.title) }}</h3>
+        @for (trait of group.traits; track trait) {
+          <div class="trait">
+            <span class="trait-label" [id]="'trait-' + trait">{{ traitLabel(trait) }}</span>
+            @if (isSwatch(trait)) {
+              <div class="swatches" role="radiogroup" [attr.aria-labelledby]="'trait-' + trait">
+                @for (option of options(trait); track option.id; let i = $index) {
+                  <button type="button" class="swatch" role="radio" [style.background]="option.color"
+                    [attr.aria-checked]="appearance()[trait] === i" [attr.aria-label]="optionName(option)" [title]="optionName(option)"
+                    (click)="pick(trait, i)"></button>
+                }
+              </div>
+            } @else {
+              <div class="stepper" [attr.aria-labelledby]="'trait-' + trait">
+                <button type="button" [attr.aria-label]="locale.t('Previous')" (click)="step(trait, -1)">‹</button>
+                <span aria-live="polite">{{ optionName(selected(trait)) }} <small>{{ appearance()[trait] + 1 }}/{{ options(trait).length }}</small></span>
+                <button type="button" [attr.aria-label]="locale.t('Next')" (click)="step(trait, 1)">›</button>
+              </div>
+            }
+          </div>
+        }
+      }
+
+      <button type="button" class="auth-button confirm" data-test="confirm" [disabled]="!canConfirm()" (click)="requestConfirm()">
+        {{ locale.t(mode() === 'update' ? 'Save look' : 'Create character') }}
+      </button>
+    </section>
+  </div>
+
+  @if (confirming()) {
+    <div class="backdrop">
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title" data-test="confirm-dialog">
+        <h3 id="confirm-title">{{ locale.t('This choice is permanent') }}</h3>
+        <p>{{ locale.t('Your look and height cannot be changed later. Height also adjusts your attributes:') }} <strong>{{ adjustmentLabel() }}</strong>.</p>
+        <div class="actions">
+          <button type="button" class="ghost" data-test="cancel" [disabled]="submitting()" (click)="cancelConfirm()">{{ locale.t('Keep editing') }}</button>
+          <button type="button" class="auth-button" data-test="submit" [disabled]="submitting()" (click)="submit()">
+            {{ submitting() ? locale.t('Saving…') : locale.t('Confirm') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

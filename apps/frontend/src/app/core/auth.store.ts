@@ -1,3 +1,4 @@
+import type { AppearanceInput } from '@nanommo/shared';
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Observable, defer, shareReplay, tap, catchError, finalize, throwError } from 'rxjs';
 import { ApiService } from './api.service';
@@ -168,12 +169,12 @@ export class AuthStore {
     });
   }
 
-  createCharacter(name: string, dominantHand: 'right' | 'left'): Observable<Character> {
+  createCharacter(name: string, dominantHand: 'right' | 'left', appearance: AppearanceInput): Observable<Character> {
     this._isLoading.set(true);
     this._error.set(null);
 
     return new Observable<Character>((observer) => {
-      this.api.post<Character>('/characters', { name, dominantHand }).subscribe({
+      this.api.post<Character>('/characters', { name, dominantHand, ...appearance }).subscribe({
         next: (character) => {
           this._isLoading.set(false);
           this.characterStore.applyRealtimeSnapshot(character, character.stateVersion);

@@ -31,7 +31,9 @@ export const characterGuard: CanActivateFn = (route, state): boolean | UrlTree |
         return router.createUrlTree(['/verify-email-pending']);
       }
       if (!loaded) return characterLoadErrorTree(router, state.url);
-      if (characterStore.character()) return true;
+      const character = characterStore.character();
+      // A character without a 3D appearance must go through the creator first.
+      if (character && hasAppearance(character)) return true;
       return router.createUrlTree(['/create-character']);
     }),
     catchError(() => of(characterLoadErrorTree(router, state.url))),
@@ -53,7 +55,8 @@ export const createCharacterGuard: CanActivateFn = (route, state): boolean | Url
         return router.createUrlTree(['/verify-email-pending']);
       }
       if (!loaded) return characterLoadErrorTree(router, state.url);
-      if (characterStore.character()) {
+      const character = characterStore.character();
+      if (character && hasAppearance(character)) {
         return router.createUrlTree(['/play']);
       }
       return true;
@@ -74,7 +77,8 @@ export const guestGuard: CanActivateFn = (route, state): boolean | UrlTree | Obs
   return from(ensureCharacterLoaded(characterStore)).pipe(
     map((loaded) => {
       if (!loaded) return characterLoadErrorTree(router, state.url);
-      if (characterStore.character()) {
+      const character = characterStore.character();
+      if (character && hasAppearance(character)) {
         return router.createUrlTree(['/play']);
       }
       return router.createUrlTree(['/create-character']);
@@ -82,6 +86,10 @@ export const guestGuard: CanActivateFn = (route, state): boolean | UrlTree | Obs
     catchError(() => of(characterLoadErrorTree(router, state.url))),
   );
 };
+
+function hasAppearance(character: { appearance?: unknown }): boolean {
+  return character.appearance != null;
+}
 
 /**
  * CharacterStore.load() deliberately records failures in its state instead of throwing.

@@ -27,6 +27,11 @@ export const apiInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, nex
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
+      // The server refuses game actions until the character has a 3D appearance.
+      if (error.status === 403 && error.error?.code === 'APPEARANCE_REQUIRED') {
+        void router.navigate(['/create-character']);
+        return throwError(() => error);
+      }
       if (error.status !== 401) return throwError(() => error);
       const errorCode = error.error?.code || error.error?.message;
       const finalUnauthorized = () => {

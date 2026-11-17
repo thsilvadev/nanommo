@@ -25,7 +25,8 @@ export type CharacterAppearance = { v: 1 } & Record<AppearanceTrait, number>;
 
 export interface AppearanceOption {
   id: string;
-  name: { locales: { en: string; pt: string } };
+  /** Same shape as the other catalogues: keys are LocaleService locales. */
+  name: { locales: { 'pt-BR': string; 'en-US': string } };
   asset?: string;
   color?: string;
   params?: Record<string, number>;
@@ -178,7 +179,7 @@ export function validateAppearanceCatalog(catalog: unknown): string[] {
         }
         ids.add(id);
         const locales = isPlainObject(option.name) && isPlainObject(option.name.locales) ? option.name.locales : {};
-        for (const locale of ['en', 'pt']) {
+        for (const locale of ['en-US', 'pt-BR']) {
           const text = (locales as Record<string, unknown>)[locale];
           if (typeof text !== 'string' || !text.trim()) errors.push(`${sex}.${trait}.${id} is missing its ${locale} name`);
         }

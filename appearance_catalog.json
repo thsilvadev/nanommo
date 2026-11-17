@@ -3,43 +3,43 @@
   "male": {
     "hair": [
       {
-        "id": "bald",
-        "name": {
-          "locales": {
-            "en": "Bald",
-            "pt": "Careca"
-          }
-        }
-      },
-      {
-        "id": "buzzed",
-        "name": {
-          "locales": {
-            "en": "Buzz cut",
-            "pt": "Raspado"
-          }
-        },
-        "asset": "hair/buzzed.glb"
-      },
-      {
         "id": "parted",
         "name": {
           "locales": {
-            "en": "Parted",
-            "pt": "Repartido"
+            "pt-BR": "Repartido",
+            "en-US": "Parted"
           }
         },
         "asset": "hair/parted.glb"
       },
       {
+        "id": "buzzed",
+        "name": {
+          "locales": {
+            "pt-BR": "Raspado",
+            "en-US": "Buzz cut"
+          }
+        },
+        "asset": "hair/buzzed.glb"
+      },
+      {
         "id": "long",
         "name": {
           "locales": {
-            "en": "Long",
-            "pt": "Longo"
+            "pt-BR": "Longo",
+            "en-US": "Long"
           }
         },
         "asset": "hair/long.glb"
+      },
+      {
+        "id": "bald",
+        "name": {
+          "locales": {
+            "pt-BR": "Careca",
+            "en-US": "Bald"
+          }
+        }
       }
     ],
     "hairColor": [
@@ -47,8 +47,8 @@
         "id": "black",
         "name": {
           "locales": {
-            "en": "Black",
-            "pt": "Preto"
+            "pt-BR": "Preto",
+            "en-US": "Black"
           }
         },
         "color": "#1c1a1a"
@@ -57,8 +57,8 @@
         "id": "brown",
         "name": {
           "locales": {
-            "en": "Brown",
-            "pt": "Castanho"
+            "pt-BR": "Castanho",
+            "en-US": "Brown"
           }
         },
         "color": "#5a3a22"
@@ -67,8 +67,8 @@
         "id": "blonde",
         "name": {
           "locales": {
-            "en": "Blonde",
-            "pt": "Loiro"
+            "pt-BR": "Loiro",
+            "en-US": "Blonde"
           }
         },
         "color": "#c9a55c"
@@ -77,8 +77,8 @@
         "id": "red",
         "name": {
           "locales": {
-            "en": "Red",
-            "pt": "Ruivo"
+            "pt-BR": "Ruivo",
+            "en-US": "Red"
           }
         },
         "color": "#8f3a1c"
@@ -87,8 +87,8 @@
         "id": "white",
         "name": {
           "locales": {
-            "en": "White",
-            "pt": "Branco"
+            "pt-BR": "Branco",
+            "en-US": "White"
           }
         },
         "color": "#d9d6cf"
@@ -99,8 +99,8 @@
         "id": "fair",
         "name": {
           "locales": {
-            "en": "Fair",
-            "pt": "Clara"
+            "pt-BR": "Clara",
+            "en-US": "Fair"
           }
         },
         "color": "#f0c9a8"
@@ -109,8 +109,8 @@
         "id": "light",
         "name": {
           "locales": {
-            "en": "Light",
-            "pt": "Morena clara"
+            "pt-BR": "Morena clara",
+            "en-US": "Light"
           }
         },
         "color": "#dba67e"
@@ -119,8 +119,8 @@
         "id": "tan",
         "name": {
           "locales": {
-            "en": "Tan",
-            "pt": "Morena"
+            "pt-BR": "Morena",
+            "en-US": "Tan"
           }
         },
         "color": "#b97f56"
@@ -129,8 +129,8 @@
         "id": "brown",
         "name": {
           "locales": {
-            "en": "Brown",
-            "pt": "Parda"
+            "pt-BR": "Parda",
+            "en-US": "Brown"
           }
         },
         "color": "#8a5636"
@@ -139,8 +139,8 @@
         "id": "dark",
         "name": {
           "locales": {
-            "en": "Dark",
-            "pt": "Negra"
+            "pt-BR": "Negra",
+            "en-US": "Dark"
           }
         },
         "color": "#553220"
@@ -151,8 +151,8 @@
         "id": "oval",
         "name": {
           "locales": {
-            "en": "Oval",
-            "pt": "Oval"
+            "pt-BR": "Oval",
+            "en-US": "Oval"
           }
         },
         "params": {
@@ -166,8 +166,8 @@
         "id": "square",
         "name": {
           "locales": {
-            "en": "Square",
-            "pt": "Quadrado"
+            "pt-BR": "Quadrado",
+            "en-US": "Square"
           }
         },
         "params": {
@@ -181,8 +181,8 @@
         "id": "round",
         "name": {
           "locales": {
-            "en": "Round",
-            "pt": "Redondo"
+            "pt-BR": "Redondo",
+            "en-US": "Round"
           }
         },
         "params": {
@@ -196,8 +196,8 @@
         "id": "long",
         "name": {
           "locales": {
-            "en": "Long",
-            "pt": "Alongado"
+            "pt-BR": "Alongado",
+            "en-US": "Long"
           }
         },
         "params": {
@@ -211,8 +211,8 @@
         "id": "strong_chin",
         "name": {
           "locales": {
-            "en": "Strong chin",
-            "pt": "Queixo forte"
+            "pt-BR": "Queixo forte",
+            "en-US": "Strong chin"
           }
         },
         "params": {
@@ -228,8 +228,8 @@
         "id": "straight",
         "name": {
           "locales": {
-            "en": "Straight",
-            "pt": "Reto"
+            "pt-BR": "Reto",
+            "en-US": "Straight"
           }
         },
         "params": {
@@ -242,8 +242,8 @@
         "id": "broad",
         "name": {
           "locales": {
-            "en": "Broad",
-            "pt": "Largo"
+            "pt-BR": "Largo",
+            "en-US": "Broad"
           }
         },
         "params": {
@@ -256,8 +256,8 @@
         "id": "long",
         "name": {
           "locales": {
-            "en": "Long",
-            "pt": "Comprido"
+            "pt-BR": "Comprido",
+            "en-US": "Long"
           }
         },
         "params": {
@@ -270,8 +270,8 @@
         "id": "hooked",
         "name": {
           "locales": {
-            "en": "Hooked",
-            "pt": "Adunco"
+            "pt-BR": "Adunco",
+            "en-US": "Hooked"
           }
         },
         "params": {
@@ -284,8 +284,8 @@
         "id": "short",
         "name": {
           "locales": {
-            "en": "Short",
-            "pt": "Curto"
+            "pt-BR": "Curto",
+            "en-US": "Short"
           }
         },
         "params": {
@@ -300,8 +300,8 @@
         "id": "regular",
         "name": {
           "locales": {
-            "en": "Regular",
-            "pt": "Regular"
+            "pt-BR": "Regular",
+            "en-US": "Regular"
           }
         },
         "params": {
@@ -313,8 +313,8 @@
         "id": "thin_wide",
         "name": {
           "locales": {
-            "en": "Thin and wide",
-            "pt": "Fina e larga"
+            "pt-BR": "Fina e larga",
+            "en-US": "Thin and wide"
           }
         },
         "params": {
@@ -326,8 +326,8 @@
         "id": "full_narrow",
         "name": {
           "locales": {
-            "en": "Full and narrow",
-            "pt": "Grossa e estreita"
+            "pt-BR": "Grossa e estreita",
+            "en-US": "Full and narrow"
           }
         },
         "params": {
@@ -341,8 +341,8 @@
         "id": "neutral",
         "name": {
           "locales": {
-            "en": "Neutral",
-            "pt": "Neutra"
+            "pt-BR": "Neutra",
+            "en-US": "Neutral"
           }
         }
       },
@@ -350,8 +350,8 @@
         "id": "thin",
         "name": {
           "locales": {
-            "en": "Thin",
-            "pt": "Fina"
+            "pt-BR": "Fina",
+            "en-US": "Thin"
           }
         },
         "asset": "face/mouth_m_thin.png"
@@ -360,8 +360,8 @@
         "id": "wide",
         "name": {
           "locales": {
-            "en": "Wide",
-            "pt": "Larga"
+            "pt-BR": "Larga",
+            "en-US": "Wide"
           }
         },
         "asset": "face/mouth_m_wide.png"
@@ -370,8 +370,8 @@
         "id": "stern",
         "name": {
           "locales": {
-            "en": "Stern",
-            "pt": "Severa"
+            "pt-BR": "Severa",
+            "en-US": "Stern"
           }
         },
         "asset": "face/mouth_m_stern.png"
@@ -380,8 +380,8 @@
         "id": "smirk",
         "name": {
           "locales": {
-            "en": "Smirk",
-            "pt": "Sorriso de canto"
+            "pt-BR": "Sorriso de canto",
+            "en-US": "Smirk"
           }
         },
         "asset": "face/mouth_m_smirk.png"
@@ -390,8 +390,8 @@
         "id": "full",
         "name": {
           "locales": {
-            "en": "Full",
-            "pt": "Carnuda"
+            "pt-BR": "Carnuda",
+            "en-US": "Full"
           }
         },
         "asset": "face/mouth_m_full.png"
@@ -400,8 +400,8 @@
         "id": "downturned",
         "name": {
           "locales": {
-            "en": "Downturned",
-            "pt": "Caída"
+            "pt-BR": "Caída",
+            "en-US": "Downturned"
           }
         },
         "asset": "face/mouth_m_downturned.png"
@@ -410,8 +410,8 @@
         "id": "scarred",
         "name": {
           "locales": {
-            "en": "Scarred",
-            "pt": "Com cicatriz"
+            "pt-BR": "Com cicatriz",
+            "en-US": "Scarred"
           }
         },
         "asset": "face/mouth_m_scarred.png"
@@ -419,35 +419,11 @@
     ],
     "chest": [
       {
-        "id": "lean",
-        "name": {
-          "locales": {
-            "en": "Lean",
-            "pt": "Esguio"
-          }
-        },
-        "params": {
-          "size": -1
-        }
-      },
-      {
-        "id": "slim",
-        "name": {
-          "locales": {
-            "en": "Slim",
-            "pt": "Magro"
-          }
-        },
-        "params": {
-          "size": -0.5
-        }
-      },
-      {
         "id": "average",
         "name": {
           "locales": {
-            "en": "Average",
-            "pt": "Médio"
+            "pt-BR": "Médio",
+            "en-US": "Average"
           }
         },
         "params": {
@@ -458,8 +434,8 @@
         "id": "broad",
         "name": {
           "locales": {
-            "en": "Broad",
-            "pt": "Largo"
+            "pt-BR": "Largo",
+            "en-US": "Broad"
           }
         },
         "params": {
@@ -470,12 +446,36 @@
         "id": "massive",
         "name": {
           "locales": {
-            "en": "Massive",
-            "pt": "Maciço"
+            "pt-BR": "Maciço",
+            "en-US": "Massive"
           }
         },
         "params": {
           "size": 1
+        }
+      },
+      {
+        "id": "lean",
+        "name": {
+          "locales": {
+            "pt-BR": "Esguio",
+            "en-US": "Lean"
+          }
+        },
+        "params": {
+          "size": -1
+        }
+      },
+      {
+        "id": "slim",
+        "name": {
+          "locales": {
+            "pt-BR": "Magro",
+            "en-US": "Slim"
+          }
+        },
+        "params": {
+          "size": -0.5
         }
       }
     ],
@@ -484,8 +484,8 @@
         "id": "none",
         "name": {
           "locales": {
-            "en": "None",
-            "pt": "Nenhum"
+            "pt-BR": "Nenhum",
+            "en-US": "None"
           }
         }
       },
@@ -493,8 +493,8 @@
         "id": "stubble",
         "name": {
           "locales": {
-            "en": "Stubble",
-            "pt": "Barba por fazer"
+            "pt-BR": "Barba por fazer",
+            "en-US": "Stubble"
           }
         },
         "asset": "face/facial_m_stubble.png"
@@ -503,8 +503,8 @@
         "id": "mustache",
         "name": {
           "locales": {
-            "en": "Mustache",
-            "pt": "Bigode"
+            "pt-BR": "Bigode",
+            "en-US": "Mustache"
           }
         },
         "asset": "face/facial_m_mustache.png"
@@ -513,8 +513,8 @@
         "id": "goatee",
         "name": {
           "locales": {
-            "en": "Goatee",
-            "pt": "Cavanhaque"
+            "pt-BR": "Cavanhaque",
+            "en-US": "Goatee"
           }
         },
         "asset": "face/facial_m_goatee.png"
@@ -523,8 +523,8 @@
         "id": "full_beard",
         "name": {
           "locales": {
-            "en": "Full beard",
-            "pt": "Barba cheia"
+            "pt-BR": "Barba cheia",
+            "en-US": "Full beard"
           }
         },
         "asset": "hair/beard.glb"
@@ -535,8 +535,8 @@
         "id": "none",
         "name": {
           "locales": {
-            "en": "None",
-            "pt": "Nenhum"
+            "pt-BR": "Nenhum",
+            "en-US": "None"
           }
         }
       },
@@ -544,8 +544,8 @@
         "id": "nose_ring",
         "name": {
           "locales": {
-            "en": "Nose ring",
-            "pt": "Argola no nariz"
+            "pt-BR": "Argola no nariz",
+            "en-US": "Nose ring"
           }
         }
       },
@@ -553,8 +553,8 @@
         "id": "eyebrow_stud",
         "name": {
           "locales": {
-            "en": "Eyebrow stud",
-            "pt": "Pino na sobrancelha"
+            "pt-BR": "Pino na sobrancelha",
+            "en-US": "Eyebrow stud"
           }
         }
       },
@@ -562,8 +562,8 @@
         "id": "ear_rings",
         "name": {
           "locales": {
-            "en": "Earrings",
-            "pt": "Brincos de argola"
+            "pt-BR": "Brincos de argola",
+            "en-US": "Earrings"
           }
         }
       },
@@ -571,8 +571,8 @@
         "id": "lip_ring",
         "name": {
           "locales": {
-            "en": "Lip ring",
-            "pt": "Argola no lábio"
+            "pt-BR": "Argola no lábio",
+            "en-US": "Lip ring"
           }
         }
       }
@@ -582,8 +582,8 @@
         "id": "none",
         "name": {
           "locales": {
-            "en": "None",
-            "pt": "Nenhuma"
+            "pt-BR": "Nenhuma",
+            "en-US": "None"
           }
         }
       },
@@ -591,8 +591,8 @@
         "id": "arm_band",
         "name": {
           "locales": {
-            "en": "Arm band",
-            "pt": "Bracelete no braço"
+            "pt-BR": "Bracelete no braço",
+            "en-US": "Arm band"
           }
         },
         "asset": "tattoo/arm_band.png"
@@ -601,8 +601,8 @@
         "id": "chest_sigil",
         "name": {
           "locales": {
-            "en": "Chest sigil",
-            "pt": "Sigilo no peito"
+            "pt-BR": "Sigilo no peito",
+            "en-US": "Chest sigil"
           }
         },
         "asset": "tattoo/chest_sigil.png"
@@ -611,8 +611,8 @@
         "id": "face_marks",
         "name": {
           "locales": {
-            "en": "Face marks",
-            "pt": "Marcas no rosto"
+            "pt-BR": "Marcas no rosto",
+            "en-US": "Face marks"
           }
         },
         "asset": "tattoo/face_marks.png"
@@ -621,8 +621,8 @@
         "id": "shoulder_knot",
         "name": {
           "locales": {
-            "en": "Shoulder knot",
-            "pt": "Nó no ombro"
+            "pt-BR": "Nó no ombro",
+            "en-US": "Shoulder knot"
           }
         },
         "asset": "tattoo/shoulder_knot.png"
@@ -635,8 +635,8 @@
         "id": "buzzed",
         "name": {
           "locales": {
-            "en": "Buzz cut",
-            "pt": "Raspado"
+            "pt-BR": "Raspado",
+            "en-US": "Buzz cut"
           }
         },
         "asset": "hair/buzzed_female.glb"
@@ -645,8 +645,8 @@
         "id": "buns",
         "name": {
           "locales": {
-            "en": "Buns",
-            "pt": "Coques"
+            "pt-BR": "Coques",
+            "en-US": "Buns"
           }
         },
         "asset": "hair/buns.glb"
@@ -655,8 +655,8 @@
         "id": "long",
         "name": {
           "locales": {
-            "en": "Long",
-            "pt": "Longo"
+            "pt-BR": "Longo",
+            "en-US": "Long"
           }
         },
         "asset": "hair/long.glb"
@@ -665,8 +665,8 @@
         "id": "parted",
         "name": {
           "locales": {
-            "en": "Parted",
-            "pt": "Repartido"
+            "pt-BR": "Repartido",
+            "en-US": "Parted"
           }
         },
         "asset": "hair/parted.glb"
@@ -677,8 +677,8 @@
         "id": "black",
         "name": {
           "locales": {
-            "en": "Black",
-            "pt": "Preto"
+            "pt-BR": "Preto",
+            "en-US": "Black"
           }
         },
         "color": "#1c1a1a"
@@ -687,8 +687,8 @@
         "id": "brown",
         "name": {
           "locales": {
-            "en": "Brown",
-            "pt": "Castanho"
+            "pt-BR": "Castanho",
+            "en-US": "Brown"
           }
         },
         "color": "#5a3a22"
@@ -697,8 +697,8 @@
         "id": "blonde",
         "name": {
           "locales": {
-            "en": "Blonde",
-            "pt": "Loiro"
+            "pt-BR": "Loiro",
+            "en-US": "Blonde"
           }
         },
         "color": "#c9a55c"
@@ -707,8 +707,8 @@
         "id": "red",
         "name": {
           "locales": {
-            "en": "Red",
-            "pt": "Ruivo"
+            "pt-BR": "Ruivo",
+            "en-US": "Red"
           }
         },
         "color": "#8f3a1c"
@@ -717,8 +717,8 @@
         "id": "white",
         "name": {
           "locales": {
-            "en": "White",
-            "pt": "Branco"
+            "pt-BR": "Branco",
+            "en-US": "White"
           }
         },
         "color": "#d9d6cf"
@@ -729,8 +729,8 @@
         "id": "fair",
         "name": {
           "locales": {
-            "en": "Fair",
-            "pt": "Clara"
+            "pt-BR": "Clara",
+            "en-US": "Fair"
           }
         },
         "color": "#f0c9a8"
@@ -739,8 +739,8 @@
         "id": "light",
         "name": {
           "locales": {
-            "en": "Light",
-            "pt": "Morena clara"
+            "pt-BR": "Morena clara",
+            "en-US": "Light"
           }
         },
         "color": "#dba67e"
@@ -749,8 +749,8 @@
         "id": "tan",
         "name": {
           "locales": {
-            "en": "Tan",
-            "pt": "Morena"
+            "pt-BR": "Morena",
+            "en-US": "Tan"
           }
         },
         "color": "#b97f56"
@@ -759,8 +759,8 @@
         "id": "brown",
         "name": {
           "locales": {
-            "en": "Brown",
-            "pt": "Parda"
+            "pt-BR": "Parda",
+            "en-US": "Brown"
           }
         },
         "color": "#8a5636"
@@ -769,8 +769,8 @@
         "id": "dark",
         "name": {
           "locales": {
-            "en": "Dark",
-            "pt": "Negra"
+            "pt-BR": "Negra",
+            "en-US": "Dark"
           }
         },
         "color": "#553220"
@@ -781,8 +781,8 @@
         "id": "oval",
         "name": {
           "locales": {
-            "en": "Oval",
-            "pt": "Oval"
+            "pt-BR": "Oval",
+            "en-US": "Oval"
           }
         },
         "params": {
@@ -796,8 +796,8 @@
         "id": "heart",
         "name": {
           "locales": {
-            "en": "Heart",
-            "pt": "Coração"
+            "pt-BR": "Coração",
+            "en-US": "Heart"
           }
         },
         "params": {
@@ -811,8 +811,8 @@
         "id": "round",
         "name": {
           "locales": {
-            "en": "Round",
-            "pt": "Redondo"
+            "pt-BR": "Redondo",
+            "en-US": "Round"
           }
         },
         "params": {
@@ -826,8 +826,8 @@
         "id": "square",
         "name": {
           "locales": {
-            "en": "Square",
-            "pt": "Quadrado"
+            "pt-BR": "Quadrado",
+            "en-US": "Square"
           }
         },
         "params": {
@@ -841,8 +841,8 @@
         "id": "long",
         "name": {
           "locales": {
-            "en": "Long",
-            "pt": "Alongado"
+            "pt-BR": "Alongado",
+            "en-US": "Long"
           }
         },
         "params": {
@@ -858,8 +858,8 @@
         "id": "straight",
         "name": {
           "locales": {
-            "en": "Straight",
-            "pt": "Reto"
+            "pt-BR": "Reto",
+            "en-US": "Straight"
           }
         },
         "params": {
@@ -872,8 +872,8 @@
         "id": "button",
         "name": {
           "locales": {
-            "en": "Button",
-            "pt": "Arrebitado"
+            "pt-BR": "Arrebitado",
+            "en-US": "Button"
           }
         },
         "params": {
@@ -886,8 +886,8 @@
         "id": "narrow",
         "name": {
           "locales": {
-            "en": "Narrow",
-            "pt": "Fino"
+            "pt-BR": "Fino",
+            "en-US": "Narrow"
           }
         },
         "params": {
@@ -900,8 +900,8 @@
         "id": "broad",
         "name": {
           "locales": {
-            "en": "Broad",
-            "pt": "Largo"
+            "pt-BR": "Largo",
+            "en-US": "Broad"
           }
         },
         "params": {
@@ -914,8 +914,8 @@
         "id": "long",
         "name": {
           "locales": {
-            "en": "Long",
-            "pt": "Comprido"
+            "pt-BR": "Comprido",
+            "en-US": "Long"
           }
         },
         "params": {
@@ -930,8 +930,8 @@
         "id": "regular",
         "name": {
           "locales": {
-            "en": "Regular",
-            "pt": "Regular"
+            "pt-BR": "Regular",
+            "en-US": "Regular"
           }
         },
         "params": {
@@ -943,8 +943,8 @@
         "id": "full",
         "name": {
           "locales": {
-            "en": "Full",
-            "pt": "Carnuda"
+            "pt-BR": "Carnuda",
+            "en-US": "Full"
           }
         },
         "params": {
@@ -956,8 +956,8 @@
         "id": "small",
         "name": {
           "locales": {
-            "en": "Small",
-            "pt": "Pequena"
+            "pt-BR": "Pequena",
+            "en-US": "Small"
           }
         },
         "params": {
@@ -971,8 +971,8 @@
         "id": "neutral",
         "name": {
           "locales": {
-            "en": "Neutral",
-            "pt": "Neutra"
+            "pt-BR": "Neutra",
+            "en-US": "Neutral"
           }
         }
       },
@@ -980,8 +980,8 @@
         "id": "full",
         "name": {
           "locales": {
-            "en": "Full",
-            "pt": "Carnuda"
+            "pt-BR": "Carnuda",
+            "en-US": "Full"
           }
         },
         "asset": "face/mouth_f_full.png"
@@ -990,8 +990,8 @@
         "id": "thin",
         "name": {
           "locales": {
-            "en": "Thin",
-            "pt": "Fina"
+            "pt-BR": "Fina",
+            "en-US": "Thin"
           }
         },
         "asset": "face/mouth_f_thin.png"
@@ -1000,8 +1000,8 @@
         "id": "dark",
         "name": {
           "locales": {
-            "en": "Dark lips",
-            "pt": "Lábios escuros"
+            "pt-BR": "Lábios escuros",
+            "en-US": "Dark lips"
           }
         },
         "asset": "face/mouth_f_dark.png"
@@ -1010,8 +1010,8 @@
         "id": "smile",
         "name": {
           "locales": {
-            "en": "Soft smile",
-            "pt": "Sorriso leve"
+            "pt-BR": "Sorriso leve",
+            "en-US": "Soft smile"
           }
         },
         "asset": "face/mouth_f_smile.png"
@@ -1020,8 +1020,8 @@
         "id": "heart",
         "name": {
           "locales": {
-            "en": "Heart",
-            "pt": "Coração"
+            "pt-BR": "Coração",
+            "en-US": "Heart"
           }
         },
         "asset": "face/mouth_f_heart.png"
@@ -1030,8 +1030,8 @@
         "id": "wide",
         "name": {
           "locales": {
-            "en": "Wide",
-            "pt": "Larga"
+            "pt-BR": "Larga",
+            "en-US": "Wide"
           }
         },
         "asset": "face/mouth_f_wide.png"
@@ -1040,8 +1040,8 @@
         "id": "pout",
         "name": {
           "locales": {
-            "en": "Pout",
-            "pt": "Biquinho"
+            "pt-BR": "Biquinho",
+            "en-US": "Pout"
           }
         },
         "asset": "face/mouth_f_pout.png"
@@ -1049,35 +1049,11 @@
     ],
     "chest": [
       {
-        "id": "flat",
-        "name": {
-          "locales": {
-            "en": "Flat",
-            "pt": "Reto"
-          }
-        },
-        "params": {
-          "size": -1
-        }
-      },
-      {
-        "id": "small",
-        "name": {
-          "locales": {
-            "en": "Small",
-            "pt": "Pequeno"
-          }
-        },
-        "params": {
-          "size": -0.5
-        }
-      },
-      {
         "id": "average",
         "name": {
           "locales": {
-            "en": "Average",
-            "pt": "Médio"
+            "pt-BR": "Médio",
+            "en-US": "Average"
           }
         },
         "params": {
@@ -1088,8 +1064,8 @@
         "id": "full",
         "name": {
           "locales": {
-            "en": "Full",
-            "pt": "Cheio"
+            "pt-BR": "Cheio",
+            "en-US": "Full"
           }
         },
         "params": {
@@ -1100,12 +1076,36 @@
         "id": "large",
         "name": {
           "locales": {
-            "en": "Large",
-            "pt": "Grande"
+            "pt-BR": "Grande",
+            "en-US": "Large"
           }
         },
         "params": {
           "size": 1
+        }
+      },
+      {
+        "id": "flat",
+        "name": {
+          "locales": {
+            "pt-BR": "Reto",
+            "en-US": "Flat"
+          }
+        },
+        "params": {
+          "size": -1
+        }
+      },
+      {
+        "id": "small",
+        "name": {
+          "locales": {
+            "pt-BR": "Pequeno",
+            "en-US": "Small"
+          }
+        },
+        "params": {
+          "size": -0.5
         }
       }
     ],
@@ -1114,8 +1114,8 @@
         "id": "natural",
         "name": {
           "locales": {
-            "en": "Natural brows",
-            "pt": "Sobrancelha natural"
+            "pt-BR": "Sobrancelha natural",
+            "en-US": "Natural brows"
           }
         },
         "params": {
@@ -1127,8 +1127,8 @@
         "id": "thin",
         "name": {
           "locales": {
-            "en": "Thin brows",
-            "pt": "Sobrancelha fina"
+            "pt-BR": "Sobrancelha fina",
+            "en-US": "Thin brows"
           }
         },
         "params": {
@@ -1140,8 +1140,8 @@
         "id": "thick",
         "name": {
           "locales": {
-            "en": "Thick brows",
-            "pt": "Sobrancelha grossa"
+            "pt-BR": "Sobrancelha grossa",
+            "en-US": "Thick brows"
           }
         },
         "params": {
@@ -1153,8 +1153,8 @@
         "id": "arched",
         "name": {
           "locales": {
-            "en": "Arched brows",
-            "pt": "Sobrancelha arqueada"
+            "pt-BR": "Sobrancelha arqueada",
+            "en-US": "Arched brows"
           }
         },
         "params": {
@@ -1168,8 +1168,8 @@
         "id": "none",
         "name": {
           "locales": {
-            "en": "None",
-            "pt": "Nenhum"
+            "pt-BR": "Nenhum",
+            "en-US": "None"
           }
         }
       },
@@ -1177,8 +1177,8 @@
         "id": "nose_ring",
         "name": {
           "locales": {
-            "en": "Nose ring",
-            "pt": "Argola no nariz"
+            "pt-BR": "Argola no nariz",
+            "en-US": "Nose ring"
           }
         }
       },
@@ -1186,8 +1186,8 @@
         "id": "eyebrow_stud",
         "name": {
           "locales": {
-            "en": "Eyebrow stud",
-            "pt": "Pino na sobrancelha"
+            "pt-BR": "Pino na sobrancelha",
+            "en-US": "Eyebrow stud"
           }
         }
       },
@@ -1195,8 +1195,8 @@
         "id": "ear_rings",
         "name": {
           "locales": {
-            "en": "Earrings",
-            "pt": "Brincos de argola"
+            "pt-BR": "Brincos de argola",
+            "en-US": "Earrings"
           }
         }
       },
@@ -1204,8 +1204,8 @@
         "id": "lip_ring",
         "name": {
           "locales": {
-            "en": "Lip ring",
-            "pt": "Argola no lábio"
+            "pt-BR": "Argola no lábio",
+            "en-US": "Lip ring"
           }
         }
       }
@@ -1215,8 +1215,8 @@
         "id": "none",
         "name": {
           "locales": {
-            "en": "None",
-            "pt": "Nenhuma"
+            "pt-BR": "Nenhuma",
+            "en-US": "None"
           }
         }
       },
@@ -1224,8 +1224,8 @@
         "id": "arm_band",
         "name": {
           "locales": {
-            "en": "Arm band",
-            "pt": "Bracelete no braço"
+            "pt-BR": "Bracelete no braço",
+            "en-US": "Arm band"
           }
         },
         "asset": "tattoo/arm_band.png"
@@ -1234,8 +1234,8 @@
         "id": "chest_sigil",
         "name": {
           "locales": {
-            "en": "Chest sigil",
-            "pt": "Sigilo no peito"
+            "pt-BR": "Sigilo no peito",
+            "en-US": "Chest sigil"
           }
         },
         "asset": "tattoo/chest_sigil.png"
@@ -1244,8 +1244,8 @@
         "id": "face_marks",
         "name": {
           "locales": {
-            "en": "Face marks",
-            "pt": "Marcas no rosto"
+            "pt-BR": "Marcas no rosto",
+            "en-US": "Face marks"
           }
         },
         "asset": "tattoo/face_marks.png"
@@ -1254,8 +1254,8 @@
         "id": "shoulder_knot",
         "name": {
           "locales": {
-            "en": "Shoulder knot",
-            "pt": "Nó no ombro"
+            "pt-BR": "Nó no ombro",
+            "en-US": "Shoulder knot"
           }
         },
         "asset": "tattoo/shoulder_knot.png"
