@@ -1,4 +1,5 @@
 import { Attribute } from '../types';
+import type { AppearanceInput, CharacterAppearance, HeightBand, Sex } from '../appearance';
 
 // Auth DTOs
 export class RegisterDto {
@@ -27,9 +28,19 @@ export class ResetPasswordDto {
 }
 
 // Character DTOs
-export class CreateCharacterDto {
+export class CreateCharacterDto implements AppearanceInput {
   name!: string;
   dominantHand!: 'right' | 'left';
+  sex!: Sex;
+  heightCm!: number;
+  appearance!: CharacterAppearance;
+}
+
+/** One-time appearance save for a character created before the 3D creator existed. */
+export class SetCharacterAppearanceDto implements AppearanceInput {
+  sex!: Sex;
+  heightCm!: number;
+  appearance!: CharacterAppearance;
 }
 
 export class SpendAttributePointsDto {
@@ -45,6 +56,11 @@ export class CharacterDto {
   userId!: string;
   name!: string;
   dominantHand!: 'right' | 'left';
+  /** Null on all four until the character has been through the 3D creator. */
+  sex!: Sex | null;
+  height!: HeightBand | null;
+  heightCm!: number | null;
+  appearance!: CharacterAppearance | null;
   knownItemIds!: string[];
   level!: number;
   xp!: number;

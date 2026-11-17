@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, VersionColumn, ManyToOne, JoinColumn, Unique, Index } from 'typeorm';
 import { User } from './user.entity';
 import { PendingMapTransition } from '@nanommo/shared';
+import type { CharacterAppearance, HeightBand, Sex } from '@nanommo/shared';
 
 @Entity('characters')
 @Index(['userId'])
@@ -22,6 +23,20 @@ export class Character {
 
   @Column({ type: 'varchar', length: 5, default: 'right' })
   dominantHand!: 'right' | 'left';
+
+  /** 3D appearance. All four stay NULL until the character goes through the creator. */
+  @Column({ type: 'varchar', length: 6, nullable: true })
+  sex!: Sex | null;
+
+  /** Height band 1–4, derived by the server from heightCm. */
+  @Column({ type: 'smallint', nullable: true })
+  height!: HeightBand | null;
+
+  @Column({ type: 'smallint', nullable: true })
+  heightCm!: number | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  appearance!: CharacterAppearance | null;
 
   /** Durable notification acknowledgements and the single latest undelivered browser push. */
   @Column({ name: 'notification_state', type: 'jsonb', default: () => `'{"acknowledged":[],"pendingPush":null}'::jsonb` })
