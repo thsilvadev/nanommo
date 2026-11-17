@@ -178,6 +178,34 @@ describe('CharacterViewerComponent', () => {
       expect(total(rig, ALL)).toBeCloseTo(1, 5);
     });
 
+    it('draws and looses with a bow instead of swinging the sword clip', async () => {
+      const created = await create({}, { mainHandType: 'bow' });
+      fixture = created.fixture;
+      await settle(fixture, created.events);
+      const rig = fixture.componentInstance.rig()!;
+      const now = 2_000_000;
+      const attackAt = (fraction: number): AnimationState => ({ base: 'CombatIdle', oneShot: { clip: 'Attack', startedAtMs: now - fraction * 1533, speed: 1 } });
+      let state: AnimationState = { base: 'CombatIdle' };
+      rig.setAnimation(() => state, () => now);
+      rig.renderNow();
+      const guardHand = rig.bonePosition('hand_r');
+      state = attackAt(0.55);
+      rig.renderNow();
+      const head = rig.bonePosition('Head');
+      const bowShoulder = rig.bonePosition('upperarm_r');
+      const bowHand = rig.bonePosition('hand_r');
+      const drawHand = rig.bonePosition('hand_l');
+      expect(rig.clipWeight('Attack')).toBe(0);
+      expect(bowHand[2] - bowShoulder[2]).withContext('bow arm reaches forward').toBeGreaterThan(0.35);
+      expect(Math.hypot(drawHand[0] - head[0], drawHand[1] - head[1], drawHand[2] - head[2])).withContext('draw hand at the face').toBeLessThan(0.3);
+      expect(rig.bowDrawn()).toBeGreaterThan(0.9);
+
+      state = { base: 'CombatIdle' };
+      rig.renderNow();
+      expect(rig.bowDrawn()).toBe(0);
+      rig.bonePosition('hand_r').forEach((v, i) => expect(v).withContext('back to the guard').toBeCloseTo(guardHand[i], 3));
+    });
+
     it('holds Dead on its last frame', async () => {
       const { rig, frame, set, now } = await ready();
       set({ base: 'CombatIdle', oneShot: { clip: 'Dead', startedAtMs: now(), speed: 1 } });

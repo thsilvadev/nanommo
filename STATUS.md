@@ -1,3 +1,11 @@
+### Bow grip and procedural bow shot — 2026-11-17
+
+- Grip: the bow is turned 180° around its handle, so the string faces the forearm and elbow instead of projecting in front of the character.
+- Attack with a bow in hand: the sword clip is replaced by a procedural draw-and-loose in `CharacterRig.poseBowShot()`, over the combat guard. Two-bone IK puts the bow arm straight out (slightly away from the face, so the front-facing portrait keeps it visible) with the bow upright and the string towards the archer; the other hand goes from the string to under the chin and lets go. The string bends into a V towards that hand and an arrow (built in code) sits on it until release. Phases follow the Attack window (`startedAtMs`, `speed`), so the pose is still a pure function of time. The IK-touched arm bones are restored to the mixer's values before each frame, because three.js only rewrites a bone when its mixed value changes.
+- Harness: `preview/bow-configs.json` + `preview/bow-shot.json` shoot guard, nock, full draw (front/side/3/4), release and a left-handed draw.
+
+Validation: new viewer spec (draw hand at the face, bow arm forward, Attack clip unused, back to the guard afterwards) failed then passed; viewer spec 18/18; full frontend Karma suite 196 passed, 0 failed; frontend production build passed with the rig still a lazy chunk. No API change, migration, deployment or push.
+
 ### Party deadline check during commit — 2026-11-17
 
 Party command processing and invite acceptance record the earliest applicable encounter deadline under the existing advisory locks. A deferred PostgreSQL constraint checks that original deadline during COMMIT, before the locks are released. If the transaction has reached the cutoff, PostgreSQL rolls back the mutation and its events, and the service retries with the request pending. The encounter clock stays unchanged. Migration `1800600000000-PartyDeadlineGuard` adds the deferred check. The 50 ms cutoff leaves time for PostgreSQL to finish committing after the final check. This does not certify the physical commit timestamp under an unbounded database stall.

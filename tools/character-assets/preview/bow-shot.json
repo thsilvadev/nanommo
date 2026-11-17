@@ -1,0 +1,10 @@
+{
+ "startAt": "2026-01-01T00:00:00.000Z",
+ "endAt": "2026-01-01T00:00:30.000Z",
+ "tickDurationMs": 500,
+ "outcome": "win",
+ "log": { "events": [
+  { "tick": 4, "actor": "character", "action": "attack", "target": "monster", "damage": 12, "hit": true, "damageType": "ranged" },
+  { "tick": 40, "actor": "character", "action": "attack", "target": "monster", "damage": 12, "hit": true, "damageType": "ranged" }
+ ] }
+}

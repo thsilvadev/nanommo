@@ -42,6 +42,10 @@ export interface CharacterRigHandle {
   setAnimation(source: AnimationSource, clock?: () => number): void;
   /** Renders a frame now (tests and the screenshot harness). */
   renderNow(): void;
+  /** Position of a bone in the body's own space (metres, facing +Z), after the last frame. */
+  bonePosition(name: string): [number, number, number];
+  /** How far the bow string is drawn on the last frame (0 = at rest, 1 = full draw). */
+  bowDrawn(): number;
   modelScale(): number;
   isDisposed(): boolean;
   isRendering(): boolean;
