@@ -226,8 +226,7 @@
             "en": "Neutral",
             "pt": "Neutra"
           }
-        },
-        "asset": "face/mouth_m_neutral.png"
+        }
       },
       {
         "id": "thin",
@@ -709,8 +708,7 @@
             "en": "Neutral",
             "pt": "Neutra"
           }
-        },
-        "asset": "face/mouth_f_neutral.png"
+        }
       },
       {
         "id": "full",

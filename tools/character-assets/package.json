@@ -1,0 +1,16 @@
+{
+  "name": "nanommo-character-assets",
+  "private": true,
+  "description": "Offline pipeline: CC0 source packs -> GLBs used by the character viewer. Not part of the pnpm workspace.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "4.1.1",
+    "@gltf-transform/extensions": "4.1.1",
+    "@gltf-transform/functions": "4.1.1",
+    "gl-matrix": "3.4.3",
+    "sharp": "0.33.5"
+  }
+}

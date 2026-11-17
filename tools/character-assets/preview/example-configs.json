@@ -1,0 +1,4 @@
+[
+  {"name":"male_sword_shield","sex":"male","heightCm":181,"appearance":{"v":1,"hair":2,"hairColor":1,"skin":1,"nose":0,"mouth":0,"chest":2,"facialHair":1,"piercing":0,"tattoo":1},"hands":{"right":"sword","left":"shield"},"interactive":false,"framing":"full"},
+  {"name":"female_staff_bust","sex":"female","heightCm":170,"appearance":{"v":1,"hair":1,"hairColor":3,"skin":2,"nose":1,"mouth":1,"chest":2,"facialHair":3,"piercing":1,"tattoo":3},"hands":{"right":"staff","left":null},"interactive":false,"framing":"bust","yaw":0}
+]
