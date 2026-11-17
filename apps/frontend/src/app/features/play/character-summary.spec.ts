@@ -44,4 +44,19 @@ describe('CharacterSummary paper-doll layout', () => {
     expect(summary.isMirroredHandSlot('mainHand')).toBeTrue();
     expect(summary.isMirroredHandSlot('offHand')).toBeFalse();
   });
+
+  it('shows the 3D portrait only once it has loaded, and the initial otherwise', () => {
+    const summary = createSummary('right');
+    const state = (model: boolean, loaded: boolean, failed: boolean) => {
+      Object.defineProperty(summary, 'portrait', { value: () => (model ? { sex: 'male' } : null), configurable: true });
+      (summary as any).portraitLoaded = () => loaded;
+      (summary as any).portraitFailed = () => failed;
+      return summary.showPortraitInitial();
+    };
+    expect(state(false, false, false)).toBeTrue();
+    expect(state(true, false, false)).toBeTrue();
+    expect(state(true, true, false)).toBeFalse();
+    expect(state(true, true, true)).toBeTrue();
+  });
 });
+

@@ -95,6 +95,7 @@ export class CharacterViewerComponent implements OnDestroy {
     heightCm: this.heightCm(),
     appearance: this.appearance(),
     hands: resolveHandAttachments(this.dominantHand(), this.mainHandType(), this.offHandType()),
+    dominantHand: this.dominantHand(),
     interactive: this.interactive(),
     framing: this.framing(),
   }));
