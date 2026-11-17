@@ -19,6 +19,16 @@ const { chromium } = createRequire(path.join(repo, 'package.json'))('playwright'
 
 const [outDir, configsFile] = process.argv.slice(2);
 const configs = JSON.parse(fs.readFileSync(configsFile, 'utf8'));
+// animation: { status, battle?: "<file next to the configs>", tick?, offsetMs? } -> the pose at
+// startAt + tick x tickDurationMs + offsetMs of that battle (tick may be negative: before it starts).
+for (const config of configs) {
+  const animation = config.animation;
+  if (!animation) continue;
+  const battle = animation.battle ? JSON.parse(fs.readFileSync(path.resolve(path.dirname(configsFile), animation.battle), 'utf8')) : null;
+  const start = battle ? Date.parse(battle.startAt) : Date.parse('2026-01-01T00:00:00.000Z');
+  const tickMs = battle?.tickDurationMs ?? 500;
+  config.animation = { status: animation.status ?? 'grinding', battle, atMs: start + (animation.tick ?? 0) * tickMs + (animation.offsetMs ?? 0) };
+}
 fs.mkdirSync(outDir, { recursive: true });
 
 const bundle = await esbuild.build({

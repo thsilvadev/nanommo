@@ -48,3 +48,10 @@ variações no nome das pastas (procura pelo prefixo).
   salva capturas de tela (precisa de um Chromium; `CHROMIUM=/caminho` ou `/snap/bin/chromium`).
   Cada configuração é um `ViewerConfig` mais `name` e, opcionalmente, `width`, `height`, `yaw`
   e `zoom`.
+- Animação num instante exato: a configuração ganha
+  `animation: { status, battle?: "<arquivo ao lado das configs>", tick?, offsetMs? }`, e o harness
+  fotografa a pose de `characterAnimationState` em `startAt + tick × tickDurationMs + offsetMs`
+  (tick negativo = antes do início), reproduzindo o segundo anterior para os crossfades ficarem
+  onde estariam na tela. Exemplo: `node preview/shoot.mjs preview/screenshots/animation preview/animation-configs.json`.
+- `node preview/make-example-battle.mjs` regera `preview/example-battle.json` com o motor real
+  (`packages/shared` compilado): cast de Fire Ball, ataques, dano recebido e morte num só log.
