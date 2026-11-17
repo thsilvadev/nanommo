@@ -178,7 +178,7 @@
           40
         ],
         "target": "foe",
-        "maxRange": 7,
+        "maxRange": 8,
         "ranged": true,
         "effect": {
           "type": "blinkstrike",
@@ -239,7 +239,7 @@
         "cooldownTicks": 36,
         "target": "foe",
         "ranged": true,
-        "maxRange": 7,
+        "maxRange": 9,
         "effect": {
           "type": "physical_push",
           "base": "flat",
@@ -271,7 +271,7 @@
         "cooldownTicks": 2,
         "target": "foe",
         "ranged": true,
-        "maxRange": 7,
+        "maxRange": 9,
         "damageType": "magical",
         "effect": {
           "type": "magic_damage",
@@ -305,7 +305,7 @@
         "cooldownTicks": 50,
         "target": "foe",
         "ranged": true,
-        "maxRange": 7,
+        "maxRange": 9,
         "damageType": "magical",
         "effect": {
           "type": "magic_damage",
@@ -521,7 +521,7 @@
       "name": "Ice Bolt",
       "damageType": "magical",
       "ranged": true,
-      "maxRange": 7,
+      "maxRange": 9,
       "effect": {
         "dmgMult": 1,
         "applyStatus": "freeze",
@@ -752,7 +752,7 @@
       "cooldownTicks": 40,
       "baseCastTicks": 6,
       "ranged": true,
-      "maxRange": 7,
+      "maxRange": 3,
       "damageType": "magical",
       "effect": {
         "type": "magic_damage",
