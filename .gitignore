@@ -28,3 +28,6 @@ project/
 !apps/frontend/public/project/
 !apps/frontend/public/project/destination_pinpoint.png
 !apps/frontend/public/project/T_waypoint.png
+
+# Packs 3D originais (CC0) — baixados manualmente, ver tools/character-assets/README.md
+tools/character-assets/source/
