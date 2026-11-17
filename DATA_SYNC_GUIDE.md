@@ -30,6 +30,7 @@ O script sincroniza automaticamente:
 - `status_effects.json`
 - `weapon_xp_curve.json`
 - `char_xp_curve.json`
+- `appearance_catalog.json` (opções do criador de personagem 3D)
 
 ## Como Usar
 

@@ -1,6 +1,8 @@
+import { CharacterViewerComponent } from '../../shared/character-viewer/character-viewer.component';
+import { portraitHandTypes, portraitModel } from './character-portrait';
 import { battleTickAt, battleTickDurationMs, battleTickExpiryRemainingSeconds } from '../../shared/battle-timing';
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, effect, inject, signal, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, computed, effect, inject, signal, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
@@ -18,7 +20,7 @@ import { teleportProgress, isSharedBattleCurrent, sharedActorResources, sharedAc
 import { SharedBattlePanelComponent } from './shared-battle-panel.component';
 import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkDragPreview, CdkDragPlaceholder } from '@angular/cdk/drag-drop';
 
-@Component({ selector: 'app-character-summary', standalone: true, imports: [CommonModule, CdkDrag, CdkDropList, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective, BattleHitFeedbackDirective], templateUrl: './character-summary.html', styleUrl: './character-summary.css' })
+@Component({ selector: 'app-character-summary', standalone: true, imports: [CommonModule, CdkDrag, CdkDropList, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective, BattleHitFeedbackDirective, CharacterViewerComponent], templateUrl: './character-summary.html', styleUrl: './character-summary.css' })
 export class CharacterSummary implements OnDestroy {
   readonly party = inject(PartyStore);
   readonly character = inject(CharacterStore); readonly inventory = inject(InventoryStore); readonly battle = inject(BattleStore); readonly catalog = inject(CatalogService); readonly router = inject(Router); readonly battleDisplayNow = signal(Date.now()); private readonly battleDisplayTimer = setInterval(() => this.battleDisplayNow.set(Date.now()), 250);
@@ -67,6 +69,14 @@ export class CharacterSummary implements OnDestroy {
   }
   dietSlots = [0, 1, 2]; dietRainDrops = [0, 1, 2, 3, 4, 5]; equipmentPredicates = Object.fromEntries(this.slots.map(s => [s.key, (drag: CdkDrag) => this.canEnterEquipmentSlot(s.key, drag)]));
   initial() { return (this.character.character()?.name || '?').slice(0, 1).toUpperCase() }
+  /** 3D portrait (idle) for characters that have an appearance; the initial stays until it has loaded. */
+  readonly portrait = computed(() => portraitModel(this.character.character()));
+  readonly portraitHands = computed(() => portraitHandTypes(this.inventory.equipment(), (id) => this.catalog.item(id) as { weaponType?: string } | undefined));
+  readonly portraitLoaded = signal(false);
+  readonly portraitFailed = signal(false);
+  showPortraitInitial() { return !this.portrait() || !this.portraitLoaded() || this.portraitFailed() }
+  onPortraitLoaded() { this.portraitFailed.set(false); this.portraitLoaded.set(true) }
+  onPortraitFailed() { this.portraitLoaded.set(false); this.portraitFailed.set(true) }
   sharedResources(){const shared=this.party.battle(),id=this.character.character()?.id;return shared && id && isSharedBattleCurrent(shared,this.battleDisplayNow())?sharedActorResources(shared,id,this.battleDisplayNow()):null;}
   displayHp() { const now = this.battleDisplayNow(); const projected = this.sharedResources() ?? this.battle.currentBattleCharacterResources(now); return projected?.hp ?? this.character.character()?.hpCurrent ?? null }
   displaySp() { const now = this.battleDisplayNow(); const projected = this.sharedResources() ?? this.battle.currentBattleCharacterResources(now); return projected?.sp ?? this.character.character()?.spCurrent ?? null }

@@ -55,7 +55,7 @@ describe('MapBoard Traveling location pin', () => {
     expect(southEnd).toEqual({ x: 7 * 153 + 153 / 2, y: 7 * 153 });
   });
 
-  it('uses the incoming edge on intermediate maps and preserves the shared edge across a segment handoff', () => {
+  it('uses the incoming edge on intermediate maps and settles at the centre of the destination map', () => {
     const route = [
       maps.find(map => map.id === 'origin')!,
       maps.find(map => map.id === 'east')!,
@@ -70,8 +70,10 @@ describe('MapBoard Traveling location pin', () => {
     const outEast = harness('east', route.map(map => map.id), 1, 100).locationPinPosition();
     expect(outEast).toEqual({ x: 8 * 153 + 153 / 2, y: 6 * 153 });
 
-    const inNorth = harness('turn-north', route.map(map => map.id), 2, 0, 'east').locationPinPosition();
-    expect(inNorth).toEqual(outEast);
+    // The last map of the route is the destination: the pin settles at its centre
+    // (intended since 2bf837b), not at the edge it entered through.
+    const atDestination = harness('turn-north', route.map(map => map.id), 2, 0, 'east').locationPinPosition();
+    expect(atDestination).toEqual({ x: 8 * 153 + 153 / 2, y: 5 * 153 + 153 / 2 });
   });
 
   it('keeps destination pin and route after battle/segment updates even when a stale suppression key exists', () => {

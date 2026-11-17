@@ -88,7 +88,9 @@ const presence = new MapPresenceService(characterRepo, redis);
   const disconnectInstance = Object.create(NanommoGateway.prototype);
   disconnectInstance.connectedSockets = new Map([['c', 'socket-1']]);
   disconnectInstance.cleanupRedisSubscribers = () => {};
-  disconnectInstance.onlinePresenceService = { setOffline: async () => {} };
+  // Disconnect also broadcasts the online count to the global chat room.
+  disconnectInstance.onlinePresenceService = { setOffline: async () => {}, getOnlineCount: async () => 0 };
+  disconnectInstance.server = { to: () => ({ emit: () => {} }) };
   disconnectInstance.logger = { log: () => {}, error: error => { throw error; } };
   await disconnectInstance.handleDisconnect({ characterId: 'c' });
   assert.equal(hashes.get('map:players:map_2').has('c'), true);

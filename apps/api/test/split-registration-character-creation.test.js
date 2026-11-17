@@ -17,6 +17,10 @@
  * Run: node test/split-registration-character-creation.test.js
  */
 
+// Creation needs the dominant hand and the one-time 3D appearance (same rules as the API).
+const { defaultAppearance, heightBandFromCm, heightAttributeAdjustment } = require('../../../packages/shared/dist');
+const LOOK = { dominantHand: 'right', sex: 'male', heightCm: 176, appearance: defaultAppearance() };
+const LOOK_STR = 5 + heightAttributeAdjustment(heightBandFromCm(LOOK.heightCm)).str;
 const assert = require('assert');
 
 const BASE_URL = process.env.SPLIT_REG_API_URL || 'http://localhost:3000';
@@ -81,7 +85,7 @@ const password = 'Test123456';
 
   // ---- 10.3 (part 1): POST /characters is 403 for unverified users ----
   const unverifiedCreate = await request(
-    'POST', '/characters', { name: 'ShouldNotCreate' }, reg.data.accessToken,
+    'POST', '/characters', { name: 'ShouldNotCreate', ...LOOK }, reg.data.accessToken,
   );
   assert.strictEqual(unverifiedCreate.status, 403, `unverified create status: ${unverifiedCreate.status}`);
 
@@ -115,18 +119,18 @@ const password = 'Test123456';
   await client.end();
 
   // ---- 10.3 (part 2): name validation ----
-  const tooShort = await request('POST', '/characters', { name: 'ab' }, reg.data.accessToken);
+  const tooShort = await request('POST', '/characters', { name: 'ab', ...LOOK }, reg.data.accessToken);
   assert.strictEqual(tooShort.status, 400, `too-short name status: ${tooShort.status}`);
 
-  const badChars = await request('POST', '/characters', { name: 'bad-name!' }, reg.data.accessToken);
+  const badChars = await request('POST', '/characters', { name: 'bad-name!', ...LOOK }, reg.data.accessToken);
   assert.strictEqual(badChars.status, 400, `bad-chars name status: ${badChars.status}`);
 
   // ---- 10.3 (part 3): valid creation returns 201 with starter state ----
-  const created = await request('POST', '/characters', { name: `Hero${stamp}` }, reg.data.accessToken);
+  const created = await request('POST', '/characters', { name: `Hero${stamp}`, ...LOOK }, reg.data.accessToken);
   assert.strictEqual(created.status, 201, `valid create status: ${created.status} ${JSON.stringify(created.data)}`);
   assert.strictEqual(created.data.name, `Hero${stamp}`, 'created character carries the submitted name');
   assert.strictEqual(created.data.level, 1, 'starter level is 1');
-  assert.strictEqual(created.data.str, 5, 'starter str is 5');
+  assert.strictEqual(created.data.str, LOOK_STR, 'starter str is 5 plus the height adjustment');
   assert.strictEqual(created.data.currentMapId, 'map_town', 'new character is born in Sierra Village');
   assert.strictEqual(created.data.savedTownMapId, 'map_town', 'Sierra Village is the new character saved Town waypoint');
 
@@ -165,7 +169,7 @@ const password = 'Test123456';
   await client2.query('UPDATE users SET "emailVerified" = true WHERE email = $1', [email2]);
   await client2.end();
 
-  const duplicate = await request('POST', '/characters', { name: `Hero${stamp}` }, reg2.data.accessToken);
+  const duplicate = await request('POST', '/characters', { name: `Hero${stamp}`, ...LOOK }, reg2.data.accessToken);
   assert.strictEqual(duplicate.status, 409, `duplicate name status: ${duplicate.status}`);
 
   // ---- 10.2 (part 2): login by character name ----

@@ -29,7 +29,8 @@ export const CHARACTER_VIEWER_ENV = new InjectionToken<CharacterViewerEnv>('CHAR
 
 const DEFAULT_CATALOG_URL = '/data/appearance_catalog.json';
 const catalogs = new Map<string, Promise<AppearanceCatalog>>();
-function loadCatalog(url: string): Promise<AppearanceCatalog> {
+/** Appearance catalogue mirror, fetched once and shared by every viewer and the creator. */
+export function loadAppearanceCatalog(url = DEFAULT_CATALOG_URL): Promise<AppearanceCatalog> {
   let pending = catalogs.get(url);
   if (!pending) {
     pending = fetch(url).then((response) => {
@@ -94,6 +95,7 @@ export class CharacterViewerComponent implements OnDestroy {
     heightCm: this.heightCm(),
     appearance: this.appearance(),
     hands: resolveHandAttachments(this.dominantHand(), this.mainHandType(), this.offHandType()),
+    dominantHand: this.dominantHand(),
     interactive: this.interactive(),
     framing: this.framing(),
   }));
@@ -171,7 +173,7 @@ export class CharacterViewerComponent implements OnDestroy {
     // The render loop runs outside Angular so animation frames do not trigger change detection.
     const rig = await this.zone.runOutsideAngular(() => CharacterRig.create(this.host, {
       assetBase: this.env.assetBase,
-      catalog: () => loadCatalog(catalogUrl),
+      catalog: () => loadAppearanceCatalog(catalogUrl),
       load,
       onContextLost: () => this.zone.run(() => this.fail()),
     }));

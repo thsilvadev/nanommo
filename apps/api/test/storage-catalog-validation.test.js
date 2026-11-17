@@ -5,6 +5,8 @@ const { DataService } = require('../dist/apps/api/src/modules/data/data.service'
 const read = name => JSON.parse(fs.readFileSync(name, 'utf8'));
 function serviceWith({maps=read('maps.json'), monsters=read('monsters.json'), npcCatalog=read('npc_catalog.json'), npcVendor=read('npc_vendor.json')}={}) {
   const svc=Object.create(DataService.prototype);
+  // validateCatalogues() also checks the 3D appearance catalogue.
+  svc.appearanceCatalog=read('appearance_catalog.json');
   svc.maps=maps;svc.monsters=monsters;svc.npcCatalog=npcCatalog;svc.npcVendor=npcVendor;svc.items=read('items.json');svc.quests=read('quests.json');svc.cookingRecipes=read('cooking_recipes.json');svc.alchemyRecipes=read('alchemy_recipes.json');svc.blacksmithRecipes=read('blacksmith_recipes.json');svc.globalItemDrops=read('global_item_drops.json');
   return svc;
 }

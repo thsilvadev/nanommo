@@ -209,12 +209,20 @@ function run() {
     }
   }
 
-  // Catalogue mirrors are exact; only tick-native numeric *Ticks fields were doubled.
+  // Catalogue mirrors are exact.
   for (const file of ['skill_trees.json', 'monsters.json', 'status_effects.json']) {
     const current = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
     const mirror = JSON.parse(fs.readFileSync(path.join(root, 'apps/frontend/public/data', file), 'utf8'));
     assert.deepEqual(mirror, current, `${file} frontend mirror matches canonical root data`);
-    const previous = JSON.parse(execFileSync('git', ['show', `HEAD:${file}`], { cwd: root, encoding: 'utf8' }));
+  }
+  // The 500 ms conversion doubled only tick-native numeric *Ticks fields. Compare the
+  // conversion commit with its parent: comparing the working tree with HEAD only held
+  // until that commit landed, and later balance changes legitimately edit these fields.
+  const TICKRATE_CONVERSION_COMMIT = '015198d';
+  const atRevision = (revision, file) => JSON.parse(execFileSync('git', ['show', `${revision}:${file}`], { cwd: root, encoding: 'utf8' }));
+  for (const file of ['skill_trees.json', 'monsters.json', 'status_effects.json']) {
+    const current = atRevision(TICKRATE_CONVERSION_COMMIT, file);
+    const previous = atRevision(`${TICKRATE_CONVERSION_COMMIT}^`, file);
     const before = new Map(getTickFields(previous, file));
     for (const [field, value] of getTickFields(current, file)) {
       if (field.endsWith('.hpRegenPerTenTicks') || field.endsWith('.spRegenPerTenTicks')) {

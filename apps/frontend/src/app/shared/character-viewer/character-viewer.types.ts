@@ -6,7 +6,8 @@ import type { AppearanceCatalog, CharacterAppearance, HandWeaponType, Sex } from
  * three.js with it) is loaded on demand.
  */
 
-export type ViewerFraming = 'full' | 'bust';
+/** full: whole body in a fixed 2.24 m frame (creator); portrait: thighs up (small panels); bust: head and shoulders. */
+export type ViewerFraming = 'full' | 'portrait' | 'bust';
 
 export interface ViewerConfig {
   sex: Sex;
@@ -14,6 +15,8 @@ export interface ViewerConfig {
   appearance: CharacterAppearance;
   /** Item shown in each physical hand (already resolved from dominant hand + main/off hand). */
   hands: { right: HandWeaponType | null; left: HandWeaponType | null };
+  /** Decides which side is turned towards the camera, so the main-hand item shows in profile. */
+  dominantHand: 'right' | 'left';
   interactive: boolean;
   framing: ViewerFraming;
 }

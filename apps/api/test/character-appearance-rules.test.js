@@ -137,7 +137,8 @@ for (const sex of ['male', 'female']) {
     assert.equal(new Set(ids).size, ids.length, `${sex}.${trait} ids are unique`);
     for (const option of options) {
       assert.ok(typeof option.id === 'string' && option.id.length > 0, `${sex}.${trait} option id`);
-      for (const locale of ['en', 'pt']) {
+      // Same shape as every other catalogue: { locales: { 'pt-BR', 'en-US' } } (LocaleService keys).
+      for (const locale of ['en-US', 'pt-BR']) {
         assert.ok(typeof option.name?.locales?.[locale] === 'string' && option.name.locales[locale].trim().length > 0, `${sex}.${trait}.${option.id} has a ${locale} name`);
       }
     }
@@ -167,7 +168,7 @@ assert.ok(brokenCatalog((c) => { c.male.wings = []; }).length > 0, 'unknown trai
 assert.ok(brokenCatalog((c) => { c.male.hair = []; }).length > 0, 'empty list');
 assert.ok(brokenCatalog((c) => { for (let i = c.male.mouthDetails.length; i <= MAX_APPEARANCE_OPTIONS; i++) c.male.mouthDetails.push({ ...c.male.mouthDetails[0], id: `extra${i}` }); }).length > 0, 'more than eight options');
 assert.ok(brokenCatalog((c) => { c.male.skin[1].id = c.male.skin[0].id; }).length > 0, 'duplicate id');
-assert.ok(brokenCatalog((c) => { delete c.female.mouth[0].name.locales.pt; }).length > 0, 'missing pt name');
+assert.ok(brokenCatalog((c) => { delete c.female.mouth[0].name.locales['pt-BR']; }).length > 0, 'missing pt name');
 assert.ok(brokenCatalog((c) => { c.male.skin[0].color = 'red'; }).length > 0, 'invalid colour');
 assert.ok(brokenCatalog((c) => { c.female.tattoo = c.female.tattoo.slice(0, 2); }).length > 0, 'shared trait differs between sexes');
 assert.ok(brokenCatalog((c) => { c.male.piercing[0].id = 'ring'; c.female.piercing[0].id = 'ring'; }).length > 0, 'optional trait without "none" first');

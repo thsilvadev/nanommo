@@ -6,6 +6,7 @@ import { Character, InventoryItem, EquippedItem, EquipmentMutationResponse, Batt
 import { CatalogService } from './catalog.service';
 import { GameAudioService } from '../shared/game-audio.service';
 import { battleTickAt } from '../shared/battle-timing';
+import type { AppearanceInput } from '@nanommo/shared';
 type LoadState='idle'|'loading'|'loaded'|'error'|'reconnecting';
 @Injectable({providedIn:'root'})
 export class CharacterStore {
@@ -30,6 +31,8 @@ export class CharacterStore {
  // by the server; the client only re-reads state at the server-reported boundary.
  async refreshDiet(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;try{const value=await this.readCharacter();if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if(!value)return;if(value.stateVersion<this.realtimeRevision)return;this.realtimeRevision=value.stateVersion;this._character.set(this.preserveConfirmedStance(value));this._state.set('loaded')}catch{}}
  applyRealtimeSnapshot(value:Character,revision:number){if(revision<=this.realtimeRevision)return;this.realtimeRevision=revision;this.realtimeGeneration++;this._character.set(this.preserveConfirmedStance(value));this._state.set('loaded');}
+ /** One-time 3D appearance for a character created before the creator existed. */
+ async setAppearance(input:AppearanceInput):Promise<Character>{const value=await this.api.post<Character>('/characters/appearance',{sex:input.sex,heightCm:input.heightCm,appearance:input.appearance}).toPromise();if(value&&value.stateVersion>this.realtimeRevision)this.applyRealtimeSnapshot(value,value.stateVersion);return value as Character;}
  async setAutoFeed(enabled:boolean):Promise<Character>{const value=await this.api.post<Character>('/characters/auto-feed',{enabled}).toPromise();if(value&&value.stateVersion>this.realtimeRevision)this.applyRealtimeSnapshot(value,value.stateVersion);return value as Character;}
  spend(attributes:Record<string,number>):Promise<Character>{const generation=this.realtimeGeneration;return new Promise((resolve,reject)=>this.api.post<Character>('/characters/attributes/spend',{attributes}).subscribe({next:c=>{if(generation!==this.realtimeGeneration||c.stateVersion<this.realtimeRevision){reject(new Error('Character changed while attribute update was in flight'));return;}this.realtimeRevision=Math.max(this.realtimeRevision,c.stateVersion);this.realtimeGeneration++;this._character.set(this.preserveConfirmedStance(c));resolve(this._character()??c)},error:e=>reject(e)}));}
 }

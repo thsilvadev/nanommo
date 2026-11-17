@@ -220,6 +220,8 @@ describe('realtime resource synchronization', () => {
     const characterStore = TestBed.inject(CharacterStore);
     const inventoryStore = TestBed.inject(InventoryStore);
     const battleStore = TestBed.inject(BattleStore);
+    // active() only projects battles for a grinding character on the battle's map.
+    characterStore.applyRealtimeSnapshot(character(100, 50), 1);
     battleStore.bindEvents(characterStore, inventoryStore);
     const load = battleStore.load();
 

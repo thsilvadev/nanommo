@@ -20,6 +20,15 @@ CHARACTER_3D_CUTOVER_COMPLETE=false
 
 O workflow de deploy recusa subir a nova imagem enquanto o valor não for `true`. A própria API também recusa iniciar se o valor não for `true`, **ou** se encontrar personagem sem aparência fora da cidade ou com batalha na fila — a variável sozinha não é a garantia.
 
+## Frontend (Vercel) e API precisam sair juntos
+
+O frontend é publicado sozinho pela Vercel a cada push, e o backend novo só sobe depois do cutover. As duas versões não são compatíveis na criação de personagem:
+
+- **Frontend novo + API antiga:** a API antiga ignora a aparência e cria o personagem sem ela; o frontend leva o jogador ao criador, e `POST /characters/appearance` não existe (404). O jogador fica preso no criador.
+- **Frontend antigo + API nova:** `POST /characters` recusa a criação sem aparência (400), e qualquer ação de jogo de quem ainda não tem aparência recebe `403 APPEARANCE_REQUIRED`, que o frontend antigo não sabe tratar.
+
+Por isso: segure a publicação do frontend na Vercel (ou publique-o) **no mesmo momento** em que o backend novo sobe no passo 7, e não antes. Personagens já existentes não são afetados pela janela; só cadastros novos.
+
 ## Procedimento, em ordem
 
 1. Leve o código novo para o servidor (o push em `main` dispara o workflow, que vai parar na checagem do `.env` enquanto a variável for `false`; não suba o backend novo manualmente ainda).
@@ -71,6 +80,8 @@ O workflow de deploy recusa subir a nova imagem enquanto o valor não for `true`
    docker compose logs --tail=200 backend
    docker compose ps
    ```
+
+   Publique o frontend novo na Vercel agora (ver "Frontend (Vercel) e API precisam sair juntos").
 
    A inicialização normal reconcilia fila, presença e atividades e só então retoma o Bull. Se ela recusar com a mensagem de personagem sem aparência fora da cidade, pare o backend e repita os passos 4–5; não contorne a guarda.
 
