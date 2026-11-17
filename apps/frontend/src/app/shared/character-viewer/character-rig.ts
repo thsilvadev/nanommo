@@ -737,7 +737,9 @@ export class CharacterRig implements CharacterRigHandle {
         matrix = basis(through(0.95, 0.35), palm).setPosition(centre);
         break;
       case 'bow':
-        matrix = basis(through(1.25), palm.clone().negate()).setPosition(centre);
+        // Turned 90° back in the plane of the bow: nearly upright at the side, upper limb
+        // forward, string in front (instead of lying almost flat behind the hand).
+        matrix = basis(through(1.25).applyAxisAngle(palm, -Math.PI / 2), palm.clone().negate()).setPosition(centre);
         break;
       case 'staff':
         // Top leans forward, following the fist's hole, so it clears the arm.
