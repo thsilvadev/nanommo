@@ -8,7 +8,7 @@ import { TownCharacterFactory } from './town-character';
 import { createTownRuntime, type TownRuntime } from './town-runtime';
 
 const propKinds = (id: string) => NPC_VISUALS[id].props.map(p => p.kind);
-const costume = (id: string) => { const f = NPC_VISUALS[id].figure; return f.kind === 'body' ? f.costume : []; };
+const costume = (id: string): string[] => { const f = NPC_VISUALS[id].figure; return f.kind === 'body' ? f.costume : []; };
 
 describe('NPC_VISUALS registry', () => {
   it('covers every town NPC', async () => {
@@ -29,11 +29,28 @@ describe('NPC_VISUALS registry', () => {
     expect(costume('whitesmith_spitz')).toEqual(jasmine.arrayContaining(['star-hat', 'big-nose']));
     expect(propKinds('paje_piata')).toEqual(jasmine.arrayContaining(['table', 'gourds', 'herbs']));
     expect(propKinds('uncle_phillip')).toEqual(jasmine.arrayContaining(['counter']));
-    expect(costume('uncle_phillip')).toEqual(jasmine.arrayContaining(['mustache', 'apron']));
+    expect(costume('uncle_phillip')).toEqual(jasmine.arrayContaining(['mustache', 'chef-hat', 'chubby']));
     expect(propKinds('storage')).toEqual(jasmine.arrayContaining(['chest']));
     expect(costume('william')).toEqual(jasmine.arrayContaining(['giant-backpack']));
     expect(costume('oracle')).toEqual(jasmine.arrayContaining(['faceless']));
     expect(propKinds('cecilia')).toEqual(jasmine.arrayContaining(['crystal-ball', 'cards']));
+  });
+
+  it('follows the review of 2026-11-18', () => {
+    const body = (id: string) => NPC_VISUALS[id].figure as Extract<NpcVisualDef['figure'], { kind: 'body' }>;
+    expect(costume('blacksmith_loren')).not.toContain('leather-apron');
+    expect(costume('whitesmith_spitz')).not.toContain('leather-apron');
+    expect(costume('uncle_phillip')).not.toContain('apron');
+    expect(costume('uncle_phillip')).not.toContain('belly');
+    expect(body('whitesmith_spitz').appearance.hairColor).toBe(2); // blonde hair and beard
+    expect(costume('cecilia')).toContain('skirt');
+    expect(costume('cecilia')).not.toContain('shawl');
+    expect(body('paje_piata').outfit).toBeUndefined(); // underwear for now
+    expect(costume('paje_piata')).toEqual([]);
+    expect(body('paje_piata').appearance.hairColor).toBe(4); // white hair: an elder
+    expect(NPC_VISUALS['storage'].props.find(p => p.kind === 'chest')!.scale).toBe(2);
+    expect(body('storage').recolor).toBeDefined();
+    expect(costume('father_marcelus')).toContain('hide-legs');
   });
 
   it('props stay clear of every POI in every town', async () => {

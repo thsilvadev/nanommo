@@ -111,6 +111,45 @@ export class TownCharacterFactory {
     };
   }
 
+  private readonly rehued = new Map<string, THREE.Texture>();
+
+  /**
+   * The outfit texture with its green cloth re-hued to `color` (lightness and
+   * saturation kept), leather, metal and skin untouched. Once per (texture, colour).
+   */
+  rehueGreen(source: THREE.Texture, color: string): THREE.Texture {
+    const key = `${source.uuid}|${color}`;
+    let texture = this.rehued.get(key);
+    if (!texture) {
+      const image = source.image as CanvasImageSource & { width: number; height: number };
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width; canvas.height = image.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(image, 0, 0);
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      // Canvas pixels are sRGB: convert in sRGB both ways.
+      const srgb = THREE.SRGBColorSpace;
+      const target = new THREE.Color(color).getHSL({ h: 0, s: 0, l: 0 }, srgb);
+      const c = new THREE.Color();
+      const hsl = { h: 0, s: 0, l: 0 };
+      const rgb = { r: 0, g: 0, b: 0 };
+      const d = pixels.data;
+      for (let i = 0; i < d.length; i += 4) {
+        c.setRGB(d[i] / 255, d[i + 1] / 255, d[i + 2] / 255, srgb).getHSL(hsl, srgb);
+        if (hsl.h < 70 / 360 || hsl.h > 170 / 360 || hsl.s < 0.15) continue; // only greens
+        c.setHSL(target.h, Math.max(hsl.s, target.s * 0.8), hsl.l, srgb).getRGB(rgb, srgb);
+        d[i] = rgb.r * 255; d[i + 1] = rgb.g * 255; d[i + 2] = rgb.b * 255;
+      }
+      ctx.putImageData(pixels, 0, 0);
+      texture = new THREE.CanvasTexture(canvas);
+      texture.flipY = source.flipY;
+      texture.colorSpace = source.colorSpace;
+      texture.wrapS = source.wrapS; texture.wrapT = source.wrapT;
+      this.rehued.set(key, texture);
+    }
+    return texture;
+  }
+
   /**
    * The body reduced to the triangles driven by the head and neck: a dressed NPC
    * wears an outfit over everything else (the outfit pack asks for the head only,
@@ -148,6 +187,8 @@ export class TownCharacterFactory {
     this.hairMaterials.clear();
     for (const g of this.heads.values()) g.dispose();
     this.heads.clear();
+    for (const t of this.rehued.values()) t.dispose();
+    this.rehued.clear();
   }
 }
 
@@ -301,7 +342,7 @@ export class TownCharacter {
       f.skin(sex, template, skinOption),
       hairOption.asset ? f.hair(hairOption.asset, hairColor) : Promise.resolve(null),
       facialOption.asset?.endsWith('.glb') ? f.hair(facialOption.asset, hairColor) : Promise.resolve(null),
-      figure ? f.cache.glb(npcOutfitAsset(figure.outfit)) : Promise.resolve(null),
+      figure?.outfit ? f.cache.glb(npcOutfitAsset(figure.outfit)) : Promise.resolve(null),
     ]);
     if (this.disposed) return;
 
@@ -324,6 +365,7 @@ export class TownCharacter {
       }
     });
     if (figure && outfit) this.wear(root, outfit, figure, skinOption.color ?? '#d9a37a');
+    if (figure?.costume.includes('chubby')) this.widenBelly(root);
     const head = root.getObjectByName('Head');
     if (head) for (const item of [hair, beard]) if (item) head.add(item);
     const scale = (entry.heightCm ?? NATIVE_HEIGHT_CM[sex]) / NATIVE_HEIGHT_CM[sex];
@@ -353,6 +395,37 @@ export class TownCharacter {
     if (idle) idle.time = (Math.abs(mulberry32Seed(entry.characterId)) % 1000) / 1000 * idle.getClip().duration;
   }
 
+  /**
+   * A belly without a new body: the lower spine bones widen across (not along
+   * the spine) and the chest bone undoes it, so the chest, arms and head keep
+   * their size. Bone axes differ per bone, so "along" is found from the bind pose.
+   */
+  private widenBelly(root: THREE.Object3D): void {
+    const body = root.getObjectByName('Body') as THREE.SkinnedMesh | undefined;
+    if (!body) return;
+    const across = (name: string, factor: number) => {
+      const index = body.skeleton.bones.findIndex((b) => b.name === name);
+      if (index < 0) return;
+      const rotation = new THREE.Quaternion();
+      body.skeleton.boneInverses[index].clone().invert().decompose(new THREE.Vector3(), rotation, new THREE.Vector3());
+      const up = new THREE.Vector3(0, 1, 0);
+      const axes = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)];
+      const along = axes.map((a) => Math.abs(a.applyQuaternion(rotation).dot(up)));
+      const alongIndex = along.indexOf(Math.max(...along));
+      const scale = [factor, factor, factor];
+      scale[alongIndex] = 1;
+      body.skeleton.bones[index].scale.multiply(new THREE.Vector3(...scale));
+    };
+    // Cumulative widths: hips 1.2, belly 1.56 → 1.72, chest and arms 1.12, head 1, legs 1.12.
+    across('pelvis', 1.2);
+    across('spine_01', 1.3);
+    across('spine_02', 1.1);
+    across('spine_03', 1.12 / 1.72);
+    across('neck_01', 1 / 1.12);
+    across('thigh_l', 1.12 / 1.2);
+    across('thigh_r', 1.12 / 1.2);
+  }
+
   /** Centre of the eyes in the body's bind pose (armature space). */
   private faceCentre(root: THREE.Object3D): THREE.Vector3 {
     const eyes = root.getObjectByName('Eyes') as THREE.Mesh | undefined;
@@ -378,6 +451,7 @@ export class TownCharacter {
     const tint = new THREE.Color(figure.tint ?? '#ffffff');
     for (const mesh of meshes) {
       if (figure.costume.includes('no-hood') && /Head_Hood/.test(mesh.name)) continue;
+      if (figure.costume.includes('hide-legs') && /_(Legs|Feet)/.test(mesh.name)) continue;
       const skeleton = new THREE.Skeleton(mesh.skeleton.bones.map((b) => bones.get(b.name) ?? b), mesh.skeleton.boneInverses);
       const bindMatrix = mesh.bindMatrix.clone();
       body.parent!.add(mesh);
@@ -385,6 +459,7 @@ export class TownCharacter {
       const recolor = (m: THREE.Material) => {
         const material = (m as THREE.MeshStandardMaterial).clone();
         material.color.set(material.name === 'Skin' ? skinColor : tint);
+        if (figure.recolor && material.name !== 'Skin' && material.map) material.map = this.factory.rehueGreen(material.map, figure.recolor);
         this.owned.push(material);
         return material;
       };

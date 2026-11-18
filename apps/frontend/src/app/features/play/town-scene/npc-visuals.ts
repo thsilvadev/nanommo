@@ -14,9 +14,9 @@ import type { TownCharacterFactory } from './town-character';
 
 export type NpcOutfit = 'male-peasant' | 'female-peasant' | 'male-ranger' | 'female-ranger';
 export type NpcCostume =
-  | 'leather-apron' | 'apron' | 'belly' | 'mustache' | 'giant-backpack' | 'cassock' | 'collar'
+  | 'mustache' | 'chef-hat' | 'chubby' | 'giant-backpack' | 'cassock' | 'collar' | 'hide-legs'
   | 'leaf-crown' | 'leaf-bundles' | 'star-hat' | 'big-nose' | 'faceless' | 'long-robe' | 'staff'
-  | 'headscarf' | 'shawl' | 'no-hood';
+  | 'headscarf' | 'skirt' | 'no-hood';
 /** Pack models (props.glb nodes) and primitives built here. */
 export type NpcPropKind =
   | 'anvil' | 'hammer' | 'tongs' | 'bucket' | 'chest' | 'table' | 'counter' | 'pot' | 'cauldron'
@@ -28,9 +28,12 @@ export interface NpcFigureBody {
   sex: Sex;
   heightCm: number;
   appearance: Partial<CharacterAppearance>;
-  outfit: NpcOutfit;
+  /** Pack outfit; without one the NPC shows the base body (underwear). */
+  outfit?: NpcOutfit;
   /** Multiplies the outfit texture (recolours a whole outfit). */
   tint?: string;
+  /** Re-hues only the outfit's green cloth to this colour (leather and metal keep theirs). */
+  recolor?: string;
   costume: NpcCostume[];
 }
 export type NpcFigure = NpcFigureBody | { kind: 'none' };
@@ -59,36 +62,36 @@ export const NPC_VISUALS: Record<string, NpcVisualDef> = {
   },
   // Strong smith with anvil and hammer.
   blacksmith_loren: {
-    figure: { kind: 'body', sex: 'female', heightCm: 184, appearance: { skin: 2, hair: 1, hairColor: 3 }, outfit: 'female-ranger', costume: ['leather-apron', 'no-hood'] },
+    figure: { kind: 'body', sex: 'female', heightCm: 184, appearance: { skin: 2, hair: 1, hairColor: 3 }, outfit: 'female-ranger', costume: ['no-hood'] },
     props: [{ kind: 'anvil', x: 1.1, z: -0.4, rot: 70 }, { kind: 'hammer', x: 1.1, z: -0.4, y: 0.56, rot: 90, scale: 0.5 }],
   },
   // A simple priest (not a cardinal).
   father_marcelus: {
-    figure: { kind: 'body', sex: 'male', heightCm: 172, appearance: { skin: 0, hair: 1, hairColor: 4 }, outfit: 'male-peasant', tint: '#4a4752', costume: ['cassock', 'collar'] },
+    figure: { kind: 'body', sex: 'male', heightCm: 172, appearance: { skin: 0, hair: 1, hairColor: 4 }, outfit: 'male-peasant', tint: '#4a4752', costume: ['cassock', 'collar', 'hide-legs'] },
     props: [{ kind: 'candles', x: 0.9, z: -0.7 }, { kind: 'book-stand', x: -0.9, z: -0.6, rot: 30 }],
   },
-  // Indigenous shaman: table with gourds and herbs, tied leaves.
+  // Indigenous elder shaman: for now the base body (underwear) with white hair; table with gourds and herbs.
   paje_piata: {
-    figure: { kind: 'body', sex: 'male', heightCm: 170, appearance: { skin: 3, hair: 2, hairColor: 0 }, outfit: 'male-peasant', tint: '#c9a57a', costume: ['leaf-crown', 'leaf-bundles'] },
+    figure: { kind: 'body', sex: 'male', heightCm: 166, appearance: { skin: 3, hair: 2, hairColor: 4, facialHair: 0 }, costume: [] },
     props: [
       { kind: 'table', x: 0, z: -1.2, scale: [0.55, 0.75, 0.75] },
       { kind: 'gourds', x: -0.35, z: -1.2, y: 0.61 },
       { kind: 'herbs', x: 0.35, z: -1.2, y: 0.61 },
     ],
   },
-  // Chubby cook with a mustache, apron and a kitchen counter.
+  // Chubby cook with a mustache, a chef's hat and a kitchen counter.
   uncle_phillip: {
-    figure: { kind: 'body', sex: 'male', heightCm: 170, appearance: { skin: 1, hair: 3, hairColor: 1 }, outfit: 'male-peasant', costume: ['belly', 'apron', 'mustache'] },
+    figure: { kind: 'body', sex: 'male', heightCm: 170, appearance: { skin: 1, hair: 3, hairColor: 1 }, outfit: 'male-peasant', tint: '#f2efe6', costume: ['chubby', 'mustache', 'chef-hat'] },
     props: [{ kind: 'counter', x: 0, z: -1.2 }, { kind: 'pot', x: 0.4, z: -1.2, y: 0.89 }, { kind: 'cauldron', x: 1.6, z: -0.7 }],
   },
   // A man unlike the others, with a big treasure chest.
   storage: {
-    figure: { kind: 'body', sex: 'male', heightCm: 190, appearance: { skin: 4, hair: 1, hairColor: 0, facialHair: 4 }, outfit: 'male-ranger', tint: '#9fb2c8', costume: ['no-hood'] },
-    props: [{ kind: 'chest', x: 0, z: -1.4 }],
+    figure: { kind: 'body', sex: 'male', heightCm: 190, appearance: { skin: 4, hair: 1, hairColor: 0, facialHair: 4 }, outfit: 'male-ranger', recolor: '#b3262a', costume: ['no-hood'] },
+    props: [{ kind: 'chest', x: 0, z: -2.0, scale: 2 }],
   },
   // Big-nosed whitesmith: forge behind, anvil, bucket of cooling tools, hat with a red star.
   whitesmith_spitz: {
-    figure: { kind: 'body', sex: 'male', heightCm: 168, appearance: { skin: 0, hair: 0, hairColor: 1, facialHair: 3 }, outfit: 'male-peasant', costume: ['star-hat', 'big-nose', 'leather-apron'] },
+    figure: { kind: 'body', sex: 'male', heightCm: 168, appearance: { skin: 0, hair: 0, hairColor: 2, facialHair: 3 }, outfit: 'male-peasant', costume: ['star-hat', 'big-nose'] },
     props: [
       { kind: 'forge', x: -0.2, z: -1.5 },
       { kind: 'anvil', x: 1.2, z: -0.5, rot: 70 },
@@ -103,7 +106,7 @@ export const NPC_VISUALS: Record<string, NpcVisualDef> = {
   },
   // Fortune teller (user decision 2026-11-18): headscarf, shawl, crystal ball and cards.
   cecilia: {
-    figure: { kind: 'body', sex: 'female', heightCm: 166, appearance: { skin: 2, hair: 2, hairColor: 0 }, outfit: 'female-peasant', tint: '#d7b0c4', costume: ['headscarf', 'shawl'] },
+    figure: { kind: 'body', sex: 'female', heightCm: 166, appearance: { skin: 2, hair: 2, hairColor: 0 }, outfit: 'female-peasant', tint: '#d7b0c4', costume: ['headscarf', 'skirt'] },
     props: [
       { kind: 'table', x: 0, z: -1.0, scale: [0.3, 0.95, 0.6] },
       { kind: 'crystal-ball', x: 0.05, z: -1.0, y: 0.77 },
@@ -308,19 +311,20 @@ export function dressCostume(model: THREE.Object3D, figure: NpcFigureBody, skinC
     const at = new THREE.Vector3().setFromMatrixPosition(rig.skeleton.boneInverses[index].clone().invert());
     pinBind(rig.skeleton, name, piece, at.add(new THREE.Vector3(dx, dy, dz)));
   };
-  const apron = (key: string, color: string) => part(geo(key, () => new THREE.CylinderGeometry(0.27, 0.33, 0.82, 12, 1, true, -0.95, 1.9)), cloth(color));
   for (const item of figure.costume) {
     switch (item) {
-      case 'leather-apron':
-        onBone('spine_02', apron('apron-leather', '#5a3a22'), 0, -0.3, -0.06);
-        break;
-      case 'apron':
-        onBone('spine_02', apron('apron-white', '#ece6d8'), 0, -0.3, 0.0);
-        break;
-      case 'belly': {
-        const belly = part(geo('belly', () => new THREE.SphereGeometry(0.2, 12, 10)), npcMaterial('#bfae8c'));
-        belly.scale.set(1.05, 0.95, 0.85);
-        onBone('spine_01', belly, 0, 0.06, 0.06);
+      case 'chubby':
+      case 'hide-legs':
+      case 'no-hood':
+        break; // applied to the body and the outfit (TownCharacter)
+      case 'chef-hat': {
+        const hat = new THREE.Group();
+        const white = npcMaterial('#f7f5ef');
+        hat.add(part(geo('chef-band', () => new THREE.CylinderGeometry(0.115, 0.11, 0.12, 16)), white, 0, 0.03, 0));
+        const puff = part(geo('chef-puff', () => new THREE.SphereGeometry(0.16, 16, 10)), white, 0, 0.17, 0);
+        puff.scale.set(1, 0.75, 1);
+        hat.add(puff);
+        onHead(hat, 0, 0.1, -0.045);
         break;
       }
       case 'mustache': {
@@ -329,7 +333,7 @@ export function dressCostume(model: THREE.Object3D, figure: NpcFigureBody, skinC
         for (const side of [-1, 1]) {
           const t = part(tuft, npcMaterial('#3a2416'));
           t.rotation.z = side * 1.15;
-          onHead(t, side * 0.03, -0.065, 0.075);
+          onHead(t, side * 0.028, -0.06, 0.06);
         }
         break;
       }
@@ -348,7 +352,7 @@ export function dressCostume(model: THREE.Object3D, figure: NpcFigureBody, skinC
         break;
       }
       case 'cassock':
-        onBone('pelvis', part(geo('cassock', () => new THREE.CylinderGeometry(0.21, 0.4, 0.95, 14, 1, true)), cloth('#22222a')), 0, -0.44, 0);
+        onBone('pelvis', part(geo('cassock', () => new THREE.CylinderGeometry(0.22, 0.42, 1.0, 16, 1, true)), cloth('#22222a')), 0, -0.47, 0);
         break;
       case 'collar': {
         const collar = part(geo('collar', () => new THREE.TorusGeometry(0.07, 0.018, 6, 16)), npcMaterial('#f4f4f0'));
@@ -386,9 +390,10 @@ export function dressCostume(model: THREE.Object3D, figure: NpcFigureBody, skinC
         break;
       }
       case 'big-nose': {
-        const nose = part(geo('nose', () => new THREE.SphereGeometry(0.035, 10, 8)), npcMaterial(skinColor));
-        nose.scale.set(0.9, 0.9, 1.7);
-        onHead(nose, 0, -0.035, 0.045);
+        // Long and pointy.
+        const nose = part(geo('nose-pointy', () => new THREE.ConeGeometry(0.026, 0.12, 10)), npcMaterial(skinColor));
+        nose.rotation.x = Math.PI / 2;
+        onHead(nose, 0, -0.035, 0.07);
         break;
       }
       case 'faceless': {
@@ -416,11 +421,10 @@ export function dressCostume(model: THREE.Object3D, figure: NpcFigureBody, skinC
         onHead(part(geo('scarf-knot', () => new THREE.SphereGeometry(0.04, 8, 6)), npcMaterial('#8a2a4a')), 0, 0, -0.18);
         break;
       }
-      case 'shawl':
-        onBone('spine_03', part(geo('shawl', () => new THREE.ConeGeometry(0.36, 0.34, 16, 1, true)), cloth('#5a2a6a')), 0, 0.02, 0);
+      case 'skirt':
+        // A flared skirt from the waist.
+        onBone('pelvis', part(geo('skirt', () => new THREE.CylinderGeometry(0.19, 0.36, 0.42, 16, 1, true)), cloth('#5a2a6a')), 0, -0.13, 0);
         break;
-      case 'no-hood':
-        break; // handled when the outfit is bound (hides *_Head_Hood)
     }
   }
 }
