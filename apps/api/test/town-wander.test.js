@@ -179,6 +179,19 @@ test('tower and campfire default radii', () => {
   assert.equal(nav.blocked(17, 15), false);
 });
 
+const realTowns = JSON.parse(require('node:fs').readFileSync(require('node:path').join(__dirname, '../../../town_scenes.json'), 'utf8')).towns;
+for (const mapId of ['map_emperial_capital_caelum', 'map_kwaioua_taba', 'map_outpost']) {
+  test(`${mapId}: never blocked (balconies, stairs, campfire, tower)`, () => {
+    const def = realTowns.find(t => t.mapId === mapId);
+    assert.ok(def, `${mapId} scene`);
+    const nav = new TownNav(def);
+    for (let i = 0; i < 10_000; i++) {
+      const p = positionAt(def, nav, awake(i), i * 997);
+      assert.equal(nav.blocked(Math.floor(p.x), Math.floor(p.z)), false, `seed ${i} at (${p.x}, ${p.z})`);
+    }
+  });
+}
+
 let failed = 0;
 for (const [name, fn] of tests) {
   try { fn(); console.log(`ok - ${name}`); } catch (e) { failed++; console.error(`FAIL - ${name}\n  ${e.message}`); }

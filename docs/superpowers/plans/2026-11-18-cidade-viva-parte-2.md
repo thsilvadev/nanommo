@@ -108,19 +108,19 @@ Defaults de raio: `tower r=4`, `campfire r=1.2`. `balcony` exige `w`, `d`, `heig
 
 **Files:** Modify `town_scenes.json` (+ `node scripts/sync-frontend-data.js`), `apps/api/test/town-scenes-catalog.test.js`, `apps/api/test/town-wander.test.js`.
 
-- [ ] **Step 1: Testes que falham** (`town-scenes-catalog.test.js`):
+- [x] **Step 1: Testes que falham** (`town-scenes-catalog.test.js`):
   - `TOWNS` passa a ter as 5 cidades (incluir `map_outpost`); o teste "exactly the four towns" vira "exactly the five towns".
   - Caelum: `lighting.preset === 'day'`, `sun.intensity >= 1.4`, `ambientIntensity >= 0.5`, `points.length === 0`; exatamente 20 `house`; ≥ 2 `balcony`; `npcSpots.father_marcelus.y > 0` e `npcSpots.oracle.y > 0`.
   - Taba: há um `campfire` em `(36, 36)`; nenhum POI a menos de `r + 0.4 + raio do POI` dele; não existe mais o POI `patio`.
   - Outpost: um `tower` com `height >= 80` (e `80 > 70 * Math.sin(55°)`); os 4 NPCs (`storage`, `mailbox`, `william`, `father_marcelus`) a ≤ 10 u do centro da torre.
   - `town-wander.test.js`: para Caelum, Taba e Outpost reais, 10 000 amostras `(seed=i, t=i*997)` nunca em célula bloqueada.
-- [ ] **Step 2:** rodar → FAIL.
-- [ ] **Step 3: Editar o catálogo** (direto no JSON; o gerador da parte 1 não foi versionado):
+- [x] **Step 2:** rodar → FAIL.
+- [x] **Step 3: Editar o catálogo** (direto no JSON; o gerador da parte 1 não foi versionado):
   - **Caelum:** iluminação de meio-dia (`preset:'day'`, sol `#fff4dc` intensidade 1.6 `dir [-0.3,-1,-0.2]`, ambiente `#cfe0ff` 0.6, `points: []`), névoa clara (`#dfe6f0`, 55/110), calçamento mais claro (`base #9aa0ab`, `accent #7c838f`). Lampiões ficam (apagados). **Casas que ficam (20):** internas `24,25 48,25 24,47 48,47 12,12 60,12 12,60 60,60`; anel `26,3.5 46,3.5 26,68.5 46,68.5 3.5,26 3.5,46 68.5,26 68.5,46 6,3.5 66,3.5 6,68.5 66,68.5`. **Varandas** onde havia casas: `{balcony x:13 z:25 w:7 d:6 height:3.2 stairs:'e'}` e `{balcony x:59 z:47 w:7 d:6 height:3.2 stairs:'w'}`; `father_marcelus` em `(13,25,y 3.2)` e `oracle` em `(59,47,y 3.2)`, virados pra praça; os POIs `npc_father_marcelus`/`npc_oracle` vão pro pé de cada escada (≤ 3 u).
   - **Taba:** `{campfire x:36 z:36 r:1.2}`; trocar o POI `patio` por `fire_n/s/e/w` a 3.6 u do centro, raio 1.4, peso 2, `lookAt [36,36]`; luz `points += {x:36,z:36,color:'#ff9a3c',intensity:1.6,range:14}`.
   - **Outpost** (`map_outpost`, 72×72): posto avançado de dia nublado (`preset:'day'`, sol `#f2ead8` 1.2, ambiente `#c9d2dc` 0.55, chão `dirt`); `{tower x:36 z:36 r:4 height:90}`; paliçada em anel de `fence` com 4 portões, tendas (`tent`) e pedras; NPCs a 6–8 u da torre com POIs a ≤ 3 u; ≥ 16 POIs; spawn ao sul.
-- [ ] **Step 4:** `node scripts/sync-frontend-data.js`; builds; `town-scenes-catalog.test.js`, `town-wander.test.js`, `node scripts/validate-town-scenes.js` → PASS (o boot do `DataService` no teste também).
-- [ ] **Step 5: Commit** `feat(data): Caelum ao meio-dia com varandas, fogueira na Taba e cena do Outpost`.
+- [x] **Step 4:** `node scripts/sync-frontend-data.js`; builds; `town-scenes-catalog.test.js`, `town-wander.test.js`, `node scripts/validate-town-scenes.js` → PASS (o boot do `DataService` no teste também).
+- [x] **Step 5: Commit** `feat(data): Caelum ao meio-dia com varandas, fogueira na Taba e cena do Outpost`.
 
 ### Task 5: Renderizar varanda, torre, fogueira e NPC no alto
 
