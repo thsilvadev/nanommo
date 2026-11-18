@@ -96,13 +96,13 @@ export function balconyStairsFoot(o: TownObstacle): { x: number; z: number } // 
 ```
 Defaults de raio: `tower r=4`, `campfire r=1.2`. `balcony` exige `w`, `d`, `height` e `stairs`; o footprint bloqueado é o retângulo `w×d` **mais** a faixa da escada (largura 2 u, comprimento `TOWN_STAIRS_LENGTH`) no lado `stairs`.
 
-- [ ] **Step 1: Testes que falham:**
+- [x] **Step 1: Testes que falham:**
   - `town-wander.test.js`: fixture 30×30 com `{kind:'balcony',x:10,z:10,w:6,d:4,height:3,stairs:'e',rot:0}`: as células da plataforma e da escada (`x` de 13 a 15.5, `z` de 9 a 11) estão bloqueadas; `balconyStairsFoot` = `{x: 16.5, z: 10}` e essa célula está livre; com `rot: 90` o pé gira junto (`{x:10, z: 3.5}` para `stairs:'e'` — conferir com a mesma convenção de rotação de `obstacleCovers`).
   - `town-scenes-catalog.test.js` (validador, com cópia da cena de Caelum): um npcSpot com `y > 0` **dentro** de uma `balcony` e um POI a ≤ 3 u do pé da escada é válido mesmo com a célula bloqueada; o mesmo spot sem POI perto do pé → erro citando o NPC; `y > 0` fora de qualquer `balcony` → erro.
-- [ ] **Step 2:** `pnpm --filter @nanommo/shared build && node apps/api/test/town-wander.test.js` → FAIL.
-- [ ] **Step 3: Implementar** (tipos, rasterização, `balconyStairsFoot`, regra do validador: para `y > 0`, exigir que `(x,z)` esteja dentro do retângulo de alguma `balcony` e que haja POI a ≤ 3 u do `balconyStairsFoot` dela; o POI e o pé têm de ser livres e alcançáveis como sempre).
-- [ ] **Step 4:** builds + os dois testes → PASS; `node scripts/validate-town-scenes.js` continua passando com o catálogo atual.
-- [ ] **Step 5: Commit** `feat(shared): varanda com escada, torre, fogueira e NPC elevado`.
+- [x] **Step 2:** `pnpm --filter @nanommo/shared build && node apps/api/test/town-wander.test.js` → FAIL.
+- [x] **Step 3: Implementar** (tipos, rasterização, `balconyStairsFoot`, regra do validador: para `y > 0`, exigir que `(x,z)` esteja dentro do retângulo de alguma `balcony` e que haja POI a ≤ 3 u do `balconyStairsFoot` dela; o POI e o pé têm de ser livres e alcançáveis como sempre).
+- [x] **Step 4:** builds + os dois testes → PASS; `node scripts/validate-town-scenes.js` continua passando com o catálogo atual.
+- [x] **Step 5: Commit** `feat(shared): varanda com escada, torre, fogueira e NPC elevado`.
 
 ### Task 4: Catálogo — Caelum ao meio-dia, fogueira na Taba, Outpost
 

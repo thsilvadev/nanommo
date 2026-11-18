@@ -1,7 +1,7 @@
 // Direct-execution Node test: `node apps/api/test/town-wander.test.js`
 // (after `pnpm --filter @nanommo/shared build`).
 const assert = require('node:assert/strict');
-const { TownNav, positionAt, TOWN_LEG_MS, TOWN_WALK_SPEED } = require('../../../packages/shared/dist');
+const { TownNav, positionAt, TOWN_LEG_MS, TOWN_WALK_SPEED, TOWN_STAIRS_LENGTH, balconyStairsFoot, obstacleRadius } = require('../../../packages/shared/dist');
 
 assert.equal(typeof positionAt, 'function', 'positionAt is not a function');
 assert.equal(typeof TownNav, 'function', 'TownNav is not a function');
@@ -141,6 +141,42 @@ test('path avoids the fountain and keeps its endpoints', () => {
   assert.deepStrictEqual(path.at(-1), [15.5, 22.5]);
   assert.ok(path.length >= 3, 'path went straight through the fountain');
   assert.ok(nav.reachableFrom(15, 26).has(8 * 30 + 15));
+});
+
+const balconyFixture = (o) => ({ ...fixture, obstacles: [o], pointsOfInterest: [], npcSpots: {} });
+const BALCONY = { kind: 'balcony', x: 10, z: 10, w: 6, d: 4, height: 3, stairs: 'e', rot: 0 };
+
+test('balcony blocks its platform and its stairs, the stairs foot stays free', () => {
+  assert.equal(TOWN_STAIRS_LENGTH, 2.5);
+  const nav = new TownNav(balconyFixture(BALCONY));
+  for (let x = 7; x <= 12; x++) for (let z = 8; z <= 11; z++) assert.equal(nav.blocked(x, z), true, `platform cell ${x},${z}`);
+  // Stairs strip: x from 13 to 15.5, z from 9 to 11.
+  for (const x of [13, 14, 15]) for (const z of [9, 10]) assert.equal(nav.blocked(x, z), true, `stairs cell ${x},${z}`);
+  // Outside the 2u-wide stairs strip, next to the platform's east edge, the ground is free.
+  assert.equal(nav.blocked(14, 7), false, 'beside the stairs (north) is free');
+  assert.equal(nav.blocked(14, 12), false, 'beside the stairs (south) is free');
+  assert.deepStrictEqual(balconyStairsFoot(BALCONY), { x: 16.5, z: 10 });
+  assert.equal(nav.blocked(16, 10), false, 'stairs foot is free');
+});
+
+test('balcony stairs foot rotates with the obstacle', () => {
+  const rotated = { ...BALCONY, rot: 90 };
+  const foot = balconyStairsFoot(rotated);
+  assert.ok(Math.abs(foot.x - 10) < 1e-9 && Math.abs(foot.z - 3.5) < 1e-9, JSON.stringify(foot));
+  const nav = new TownNav(balconyFixture(rotated));
+  assert.equal(nav.blocked(Math.floor(foot.x), Math.floor(foot.z)), false, 'rotated foot is free');
+  assert.equal(nav.blocked(10, 5), true, 'rotated stairs are blocked');
+  assert.deepStrictEqual(balconyStairsFoot({ ...BALCONY, stairs: 'w' }), { x: 3.5, z: 10 });
+  assert.deepStrictEqual(balconyStairsFoot({ ...BALCONY, stairs: 's' }), { x: 10, z: 15.5 });
+  assert.deepStrictEqual(balconyStairsFoot({ ...BALCONY, stairs: 'n' }), { x: 10, z: 4.5 });
+});
+
+test('tower and campfire default radii', () => {
+  assert.equal(obstacleRadius({ kind: 'tower', x: 0, z: 0 }), 4);
+  assert.equal(obstacleRadius({ kind: 'campfire', x: 0, z: 0 }), 1.2);
+  const nav = new TownNav(balconyFixture({ kind: 'campfire', x: 15, z: 15 }));
+  assert.equal(nav.blocked(15, 15), true);
+  assert.equal(nav.blocked(17, 15), false);
 });
 
 let failed = 0;

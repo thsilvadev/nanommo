@@ -1,4 +1,4 @@
-import type { TownObstacle, TownSceneDef } from './town-scene.types';
+import type { TownObstacle, TownSceneDef, TownStairsSide } from './town-scene.types';
 
 /** Clearance added around every obstacle footprint when rasterising. */
 export const TOWN_OBSTACLE_CLEARANCE = 0.4;
@@ -9,7 +9,15 @@ const DEFAULT_RADIUS: Partial<Record<TownObstacle['kind'], number>> = {
   lamp: 0.4,
   pillar: 0.8,
   rock: 1,
+  tower: 4,
+  campfire: 1.2,
 };
+
+/** A balcony's stairs reach this far out from the platform edge on their side. */
+export const TOWN_STAIRS_LENGTH = 2.5;
+/** Stairs strip width (across the stairs). */
+const STAIRS_WIDTH = 2;
+const STAIRS_DIR: Record<TownStairsSide, [number, number]> = { e: [1, 0], w: [-1, 0], s: [0, 1], n: [0, -1] };
 
 const SQRT2 = Math.SQRT2;
 const MAX_FIELDS = 128;
@@ -38,19 +46,58 @@ function rotation(deg: number): [number, number] {
   return [Math.cos(a), Math.sin(a)];
 }
 
-function obstacleCovers(o: TownObstacle, px: number, pz: number): boolean {
-  const radius = obstacleRadius(o);
+/** Point (px, pz) in the obstacle's local frame (inverse of its `rot`). */
+function toLocal(o: TownObstacle, px: number, pz: number): [number, number] {
+  const [cos, sin] = rotation(o.rot ?? 0);
   const dx = px - o.x;
   const dz = pz - o.z;
+  return [dx * cos - dz * sin, dx * sin + dz * cos];
+}
+
+/** Local-frame point of an obstacle back to world coordinates. */
+function toWorld(o: TownObstacle, lx: number, lz: number): { x: number; z: number } {
+  const [cos, sin] = rotation(o.rot ?? 0);
+  return { x: o.x + lx * cos + lz * sin, z: o.z - lx * sin + lz * cos };
+}
+
+/** Half extent of a balcony's platform along its stairs axis. */
+function stairsEdge(o: TownObstacle): number {
+  const [ux] = STAIRS_DIR[o.stairs ?? 'e'];
+  return ux !== 0 ? o.w! / 2 : o.d! / 2;
+}
+
+/** True when (px, pz) lies on a balcony's platform (no clearance): NPCs may stand there. */
+export function balconyContains(o: TownObstacle, px: number, pz: number): boolean {
+  if (o.kind !== 'balcony' || o.w == null || o.d == null) return false;
+  const [lx, lz] = toLocal(o, px, pz);
+  return Math.abs(lx) <= o.w / 2 && Math.abs(lz) <= o.d / 2;
+}
+
+/** Ground point 1u past the end of a balcony's stairs (where its NPC's POI goes), already rotated. */
+export function balconyStairsFoot(o: TownObstacle): { x: number; z: number } {
+  const [ux, uz] = STAIRS_DIR[o.stairs ?? 'e'];
+  const reach = stairsEdge(o) + TOWN_STAIRS_LENGTH + 1;
+  return toWorld(o, ux * reach, uz * reach);
+}
+
+function obstacleCovers(o: TownObstacle, px: number, pz: number): boolean {
+  const radius = obstacleRadius(o);
   if (radius != null) {
+    const dx = px - o.x;
+    const dz = pz - o.z;
     const rr = radius + TOWN_OBSTACLE_CLEARANCE;
     return dx * dx + dz * dz <= rr * rr;
   }
-  const [cos, sin] = rotation(o.rot ?? 0);
-  // Rotate the point into the rectangle's local frame (inverse rotation).
-  const lx = dx * cos - dz * sin;
-  const lz = dx * sin + dz * cos;
-  return Math.abs(lx) <= o.w! / 2 + TOWN_OBSTACLE_CLEARANCE && Math.abs(lz) <= o.d! / 2 + TOWN_OBSTACLE_CLEARANCE;
+  const [lx, lz] = toLocal(o, px, pz);
+  if (Math.abs(lx) <= o.w! / 2 + TOWN_OBSTACLE_CLEARANCE && Math.abs(lz) <= o.d! / 2 + TOWN_OBSTACLE_CLEARANCE) return true;
+  if (o.kind !== 'balcony') return false;
+  // The stairs strip in front of the `stairs` edge.
+  const [ux, uz] = STAIRS_DIR[o.stairs ?? 'e'];
+  const along = lx * ux + lz * uz;
+  const across = lx * -uz + lz * ux;
+  const edge = stairsEdge(o);
+  return along >= edge - TOWN_OBSTACLE_CLEARANCE && along <= edge + TOWN_STAIRS_LENGTH + TOWN_OBSTACLE_CLEARANCE
+    && Math.abs(across) <= STAIRS_WIDTH / 2 + TOWN_OBSTACLE_CLEARANCE;
 }
 
 /** Min-heap of cell indices keyed by a distance array. */

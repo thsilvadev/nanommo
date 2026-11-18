@@ -87,6 +87,38 @@ test('validateTownScenes accepts the catalogue and rejects broken entries', () =
   assert.ok(validateTownScenes(noSpot, maps).some(e => e.includes(npc)));
 });
 
+// Caelum copy with the house at (59,47) turned into a balcony whose stairs face west (foot at 52,47).
+function caelumWithBalcony({ y = 3.2, poi = [52.5, 47.5], spot = [59, 47] } = {}) {
+  const copy = JSON.parse(JSON.stringify(root));
+  const caelum = copy.towns.find(t => t.mapId === 'map_emperial_capital_caelum');
+  caelum.obstacles = caelum.obstacles.filter(o => !(o.kind === 'house' && o.x === 59 && o.z === 47));
+  caelum.obstacles.push({ kind: 'balcony', x: 59, z: 47, w: 7, d: 6, height: 3.2, stairs: 'w' });
+  caelum.npcSpots.oracle = { x: spot[0], z: spot[1], facing: -90, y };
+  const p = caelum.pointsOfInterest.find(q => q.id === 'npc_oracle');
+  p.x = poi[0]; p.z = poi[1]; p.lookAt = [59, 47];
+  return copy;
+}
+
+test('validator: an NPC up on a balcony is valid with a POI by the stairs foot', () => {
+  assert.deepStrictEqual(validateTownScenes(caelumWithBalcony(), maps), []);
+});
+
+test('validator: an NPC up on a balcony needs a POI by the stairs foot', () => {
+  const errors = validateTownScenes(caelumWithBalcony({ poi: [40.69, 59] }), maps);
+  assert.ok(errors.some(e => e.includes('oracle') && e.includes('stairs')), errors.join('\n'));
+});
+
+test('validator: an elevated NPC must stand on a balcony', () => {
+  const errors = validateTownScenes(caelumWithBalcony({ spot: [42.49, 59], poi: [40.69, 59] }), maps);
+  assert.ok(errors.some(e => e.includes('oracle') && e.includes('balcony')), errors.join('\n'));
+});
+
+test('validator: a balcony needs w, d, height and stairs', () => {
+  const copy = caelumWithBalcony();
+  delete copy.towns.find(t => t.mapId === 'map_emperial_capital_caelum').obstacles.at(-1).stairs;
+  assert.ok(validateTownScenes(copy, maps).some(e => e.includes('balcony')));
+});
+
 test('scripts/validate-town-scenes.js exits 0', () => {
   const run = spawnSync(process.execPath, [path.join(repo, 'scripts/validate-town-scenes.js')], { encoding: 'utf8' });
   assert.equal(run.status, 0, run.stderr || run.stdout);

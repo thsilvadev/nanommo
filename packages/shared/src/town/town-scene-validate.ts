@@ -1,4 +1,4 @@
-import { TownNav } from './town-nav';
+import { TownNav, balconyContains, balconyStairsFoot } from './town-nav';
 import { TOWN_OBSTACLE_KINDS, type TownSceneDef } from './town-scene.types';
 
 export const TOWN_MIN_FREE_CELLS = 2500;
@@ -34,7 +34,8 @@ export function validateTownScenes(catalog: unknown, mapsCatalog: MapsCatalogLik
       errors.push(`${at}: size must be integer w/h >= 8`);
       continue;
     }
-    const badObstacle = (def.obstacles ?? []).find(o => !TOWN_OBSTACLE_KINDS.includes(o?.kind) || !isNum(o.x) || !isNum(o.z));
+    const badObstacle = (def.obstacles ?? []).find(o => !TOWN_OBSTACLE_KINDS.includes(o?.kind) || !isNum(o.x) || !isNum(o.z)
+      || (o.kind === 'balcony' && (!isNum(o.w) || !isNum(o.d) || !isNum(o.height) || !['n', 's', 'e', 'w'].includes(o.stairs as string))));
     if (!Array.isArray(def.obstacles) || badObstacle) { errors.push(`${at}: invalid obstacle ${JSON.stringify(badObstacle)}`); continue; }
     if (!isNum(def.spawn?.x) || !isNum(def.spawn?.z)) { errors.push(`${at}: spawn must have x/z`); continue; }
 
@@ -64,6 +65,19 @@ export function validateTownScenes(catalog: unknown, mapsCatalog: MapsCatalogLik
     for (const npcId of npcIds) {
       const spot = spots[npcId];
       if (!spot || !isNum(spot.x) || !isNum(spot.z) || !isNum(spot.facing)) { errors.push(`${at}: NPC ${npcId} has no npcSpot`); continue; }
+      if (spot.y != null && (!isNum(spot.y) || spot.y < 0)) { errors.push(`${at}: NPC ${npcId} spot y must be a number >= 0`); continue; }
+      if (isNum(spot.y) && spot.y > 0) {
+        // Up on a balcony: the spot itself is blocked ground; players walk to the stairs foot.
+        const balcony = def.obstacles.find(o => balconyContains(o, spot.x, spot.z));
+        if (!balcony) { errors.push(`${at}: NPC ${npcId} is elevated (y=${spot.y}) but not on a balcony`); continue; }
+        const foot = balconyStairsFoot(balcony);
+        if (!free(foot.x, foot.z)) errors.push(`${at}: NPC ${npcId} balcony stairs foot is blocked`);
+        else if (!reach.has(cell(foot.x, foot.z))) errors.push(`${at}: NPC ${npcId} balcony stairs foot is unreachable from spawn`);
+        if (!pois.some(p => Math.hypot(p.x - foot.x, p.z - foot.z) <= TOWN_NPC_POI_MAX_DIST)) {
+          errors.push(`${at}: NPC ${npcId} has no POI within ${TOWN_NPC_POI_MAX_DIST}u of its balcony stairs foot`);
+        }
+        continue;
+      }
       if (!free(spot.x, spot.z)) errors.push(`${at}: NPC ${npcId} spot is blocked`);
       else if (!reach.has(cell(spot.x, spot.z))) errors.push(`${at}: NPC ${npcId} spot is unreachable from spawn`);
       if (!pois.some(p => Math.hypot(p.x - spot.x, p.z - spot.z) <= TOWN_NPC_POI_MAX_DIST)) {
