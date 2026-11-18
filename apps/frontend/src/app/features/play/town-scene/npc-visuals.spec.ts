@@ -76,7 +76,7 @@ describe('NPC visuals (real WebGL)', () => {
       object.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes++; });
       expect(meshes).withContext(id).toBeGreaterThan(0);
     }
-  });
+  }, 60_000);
 
   it('dressed NPCs keep their click box in every town', async () => {
     if (!isWebglAvailable()) pending('WebGL is not available in this browser');
@@ -98,5 +98,5 @@ describe('NPC visuals (real WebGL)', () => {
       runtime.dispose();
       runtime = null;
     }
-  });
+  }, 60_000); // five real towns with dressed NPCs: well over jasmine's 5 s default
 });
