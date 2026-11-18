@@ -199,6 +199,15 @@ test('sleep then wake in town', async () => {
   assert.notEqual(woke.wakeFrom, null);
 });
 
+test('snapshot SQL types every parameter once (Postgres rejects $2 deduced as both uuid and text)', () => {
+  const src = fs.readFileSync(path.join(repo, 'apps/api/src/modules/presence/town-roster.service.ts'), 'utf8');
+  const sql = src.slice(src.indexOf('SELECT c.id'), src.indexOf('LIMIT $4') + 'LIMIT $4'.length);
+  const uses = sql.match(/\$2(::\w+)?/g) ?? [];
+  assert.ok(uses.length >= 2, 'viewer id is used in the join and the ordering');
+  assert.deepStrictEqual([...new Set(uses)], ['$2::uuid'], `every $2 must be cast to uuid, got ${uses.join(', ')}`);
+  assert.doesNotMatch(sql, /c\.id::text = \$2/);
+});
+
 test('lazy offline entry', async () => {
   const w = world();
   const lastSeenAt = new Date(Date.UTC(2026, 9, 3, 4, 5, 6));

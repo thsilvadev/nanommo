@@ -39,10 +39,21 @@ export class TownStore {
     this.socket.connect();
     this.subscriptions.push(
       this.socket.on<TownRosterSnapshot>('town:roster').subscribe(s => this.applySnapshot(s)),
-      this.socket.on<{ mapId: string; entry: TownRosterEntry }>('town:join').subscribe(d => this.upsert(d)),
+      this.socket.on<{ mapId: string; entry: TownRosterEntry }>('town:join').subscribe(d => {
+        // My own join (a trip cancelled in town, an arrival): take the authoritative roster.
+        if (d?.entry && d.entry.characterId === this.characters.character()?.id && d.mapId !== this._mapId()) { void this.syncRoster(); return; }
+        this.upsert(d);
+      }),
       this.socket.on<{ mapId: string; entry: TownRosterEntry }>('town:update').subscribe(d => this.upsert(d)),
       this.socket.on<{ mapId: string; characterId: string }>('town:leave').subscribe(d => {
         if (d?.mapId !== this._mapId()) return;
+        if (d.characterId === this.characters.character()?.id) {
+          // I left (trip started): my town scene closes now, not when currentMapId changes later.
+          this._mapId.set(null);
+          this._entries.set([]);
+          void this.syncRoster();
+          return;
+        }
         this._entries.update(list => list.filter(e => e.characterId !== d.characterId));
       }),
       this.socket.onConnectionState().subscribe(state => {

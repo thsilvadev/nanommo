@@ -11,15 +11,16 @@ No migration. Nothing was executed against any database. No deploy, no push.
 
 Validation (run on 2026-11-18 in the worktree `.claude/worktrees/cidade-viva`):
 - `pnpm --filter @nanommo/shared build` and `pnpm --filter @nanommo/api build`: pass.
-- `node apps/api/test/town-wander.test.js` 9/9; `town-scenes-catalog.test.js` 14/14; `town-roster.test.js` 16/16; `party-invite-declined.test.js` 6/6; `map-presence.test.js` 13 assertions passed.
+- `node apps/api/test/town-wander.test.js` 9/9; `town-scenes-catalog.test.js` 14/14; `town-roster.test.js` 17/17; `party-invite-declined.test.js` 6/6; `map-presence.test.js` 13 assertions passed.
 - `node apps/api/test/map-presence-cleanup.test.js`: FAILS, pre-existing at the branch base (`TypeError: queueRepo.createQueryBuilder is not a function`, stale fixture). Also pre-existing and unchanged: `gathering-cycle-regression`, `map-leave-town-idempotency`, `map-transition-and-counter-concurrency` (stale fakes), `party-alchemy-*` (3), and `*.integration` party tests (need a disposable DB).
 - `node scripts/validate-town-scenes.js`: pass (4 scenes + mirror).
 - `pnpm --filter @nanommo/api lint`: FAILS, pre-existing — ESLint finds no configuration file in the repo (nothing was modified by it).
-- `cd apps/frontend && npx tsc -p tsconfig.spec.json --noEmit`: pass. `npx ng test --watch=false --browsers=ChromeHeadless` (CHROME_BIN=/snap/bin/chromium): 258 SUCCESS, 0 failed.
+- `cd apps/frontend && npx tsc -p tsconfig.spec.json --noEmit`: pass. `npx ng test --watch=false --browsers=ChromeHeadless` (CHROME_BIN=/snap/bin/chromium): 259 SUCCESS, 0 failed.
 - `pnpm --filter @nanommo/frontend build --configuration production`: pass; known CSS/initial budget warnings only (initial 543.87 kB; `map-board.css` was already over budget, +147 B); `town-runtime` is a lazy chunk (18.27 kB) and three.js stays out of the initial bundle.
 - `pnpm exec openspec validate town-living-scene --strict`: valid.
 - Performance: NOT measured on a real GPU. Headless Chromium (snap) could not create a hardware WebGL context on this Optimus laptop (Intel UHD + RTX 3060; `BindToCurrentSequence failed` with ANGLE gl-egl, Vulkan and GL, Mesa forced). With software WebGL (SwiftShader) and 100 characters + NPCs, the JS work of the worst frame was 11.8 ms (Caelum), 12.7 ms (Sierra), 15.4 ms (Kwaiouá Taba), 16.7 ms (Aramaia); the 1.2–1.4 fps measured there is software rasterization, not a GPU figure. The 60 fps / "disable `TOWN_CHARACTER_SHADOWS` below 45 fps" check from the plan still has to be done in a real browser.
 - Visual check: all four Towns rendered in headless Chrome and reviewed (layouts, lighting, sleepers, name plates, self ring).
+- Final whole-branch review (self-review by the implementer, no separate reviewer): fixed the roster SQL (`$2` was deduced as both uuid and text — Postgres would reject every snapshot; now `$2::uuid`, guarded by a source-contract test since no database may be used) and made `TownStore` close the own Town scene on the own `town:leave` (trip start) and reopen it on the own `town:join`.
 
 ### Bow shot timing, V2 casts and left-handed swings — 2026-11-17
 

@@ -72,9 +72,9 @@ export class TownRosterService {
               (vp."characterId" IS NOT NULL) AS "inViewerParty"
          FROM characters c
          LEFT JOIN party_members pm ON pm."characterId" = c.id
-         LEFT JOIN party_members vp ON vp."partyId" = pm."partyId" AND vp."characterId" = $2
+         LEFT JOIN party_members vp ON vp."partyId" = pm."partyId" AND vp."characterId" = $2::uuid
         WHERE c."currentMapId" = $1 AND c."travelIntent" IS NULL AND c."pendingMapTransition" IS NULL
-        ORDER BY (c.id::text = $2) DESC, (vp."characterId" IS NOT NULL) DESC,
+        ORDER BY (c.id = $2::uuid) DESC, (vp."characterId" IS NOT NULL) DESC,
                  (c.id::text = ANY($3::text[])) DESC, c."lastSeenAt" DESC, c.id
         LIMIT $4`,
       [mapId, viewerId, [...onlineIds], TOWN_ROSTER_CAP],

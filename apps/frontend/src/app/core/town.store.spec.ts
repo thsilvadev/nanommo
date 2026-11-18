@@ -66,6 +66,21 @@ describe('TownStore', () => {
     expect(ids()).toEqual(['hero', 'b']);
   });
 
+  it('my own town:leave (trip start) closes my town and resyncs; my own town:join reopens it', async () => {
+    events.get('town:roster')!.next({ mapId: 'map_town', serverNow: 1, entries: [entry('hero'), entry('a')] });
+    socket.emit.calls.reset();
+    socket.emit.and.callFake(async (event: string) => event === 'town:syncRoster' ? { mapId: null, serverNow: 2, entries: [] } : {});
+    events.get('town:leave')!.next({ mapId: 'map_town', characterId: 'hero' });
+    expect(store.mapId()).toBeNull();
+    expect(store.isTown('map_town')).toBeFalse();
+    expect(store.entries()).toEqual([]);
+    socket.emit.and.callFake(async (event: string) => event === 'town:syncRoster' ? { mapId: 'map_town', serverNow: 3, entries: [entry('hero')] } : {});
+    events.get('town:join')!.next({ mapId: 'map_town', entry: entry('hero') });
+    await Promise.resolve(); await Promise.resolve();
+    expect(socket.emit).toHaveBeenCalledWith('town:syncRoster', undefined);
+    expect(store.mapId()).toBe('map_town');
+  });
+
   it('ignores deltas for another mapId', () => {
     events.get('town:roster')!.next({ mapId: 'map_town', serverNow: 1, entries: [entry('hero')] });
     events.get('town:join')!.next({ mapId: 'map_aramaia_city', entry: entry('x') });
