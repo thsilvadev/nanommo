@@ -265,7 +265,7 @@
               [disabled]="vendor.busy()" (valueChange)="vendor.setCookingQuantity(recipe,$event)" />
             <button type="button" class="cooking-button"
               [disabled]="!recipe.available || vendor.busy() || !!vendor.cookingState()?.session"
-              (click)="vendor.startCooking(recipe.id)">{{vendor.t('COOK')}}<ng-container *ngIf="vendor.cookingQuantity(recipe)>1"> ×{{vendor.cookingQuantity(recipe)}}</ng-container></button>
+              (click)="vendor.startCooking(recipe.id)">{{vendor.t('COOK')}}</button>
           </article>
         </div>
       </section>
