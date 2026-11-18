@@ -163,7 +163,7 @@ Esta task **termina parada**, esperando o usuário decidir. Nada de baixar arqui
 - [x] **Step 3: Escrever "até onde o Claude consegue editar":** consegue — compor/recolorir/reduzir/re-exportar GLB com `@gltf-transform` (`tools/character-assets`), montar figurinos e adereços com primitivas, prender malhas em ossos, gerar texturas em canvas, desenhar SVG; não consegue — esculpir malhas novas ou fazer skinning/rig novo (não há Blender), nem desenhar sprites ilustrados de qualidade.
 - [x] **Step 4: Recomendar** um caminho (ou mistura, ex.: adereços B + figuras C) com motivo, e listar os downloads exatos (pack, URL, pasta de destino — `tools/npc-assets/source/<pack>/`, fora do git como `tools/character-assets/source/`).
 - [x] **Step 5: Perguntar ao usuário** (e parar): qual caminho; o visual da **Cecília** (`cecilia`, Sierra), que não está no briefing; e pedir os downloads. Registrar a resposta no doc.
-- [ ] **Step 6: Commit** `docs: pesquisa e decisão do visual dos NPCs`.
+- [x] **Step 6: Commit** `docs: pesquisa e decisão do visual dos NPCs`.
 
 ### Task 7: Visual dos NPCs (conforme a decisão da Task 6)
 

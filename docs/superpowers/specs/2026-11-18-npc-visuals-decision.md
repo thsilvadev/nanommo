@@ -1,6 +1,6 @@
 # Visual dos NPCs — pesquisa e decisão (Cidade Viva parte 2, Task 6)
 
-Data: 2026-11-18 · Status: **aguardando decisão do usuário** (perguntas no fim).
+Data: 2026-11-18 · Status: **decidido** (B + C; Cecília cartomante) — 2026-11-18.
 
 Hoje os NPCs da cidade usam o mesmo corpo 3D dos jogadores (Universal Base Characters, 65 ossos),
 com uma aparência sorteada pelo id, de roupa de baixo, e uma plaquinha com o id. Esta etapa decide
@@ -144,7 +144,8 @@ reduzido vai para `apps/frontend/public/assets/npcs/`.
 
 2026-11-18: **caminho B + C.** Os três packs foram baixados pelo usuário (zips em `tools/npc-assets/`)
 e extraídos por mim em `tools/npc-assets/source/{modular-character-outfits-fantasy,rpg-tools-bits,fantasy-props-megakit}/`
-(fora do git: `tools/npc-assets/.gitignore` ignora `source/` e `*.zip`). Cecília: _pendente_.
+(fora do git: `tools/npc-assets/.gitignore` ignora `source/` e `*.zip`). **Cecília: cartomante** (lenço, xale,
+mesinha com bola de cristal e cartas) — aprovado pelo usuário em 2026-11-18.
 
 ### O que os arquivos mostraram
 
@@ -176,5 +177,5 @@ e extraídos por mim em `tools/npc-assets/source/{modular-character-outfits-fant
 | Storage | Male_Ranger (sem capuz, recolorido) | — | `Chest_Wood` grande |
 | Spitz | Male_Peasant | chapéu com estrela vermelha, nariz grande | `Anvil`, fornalha (C) com brasa animada, `Bucket_Wooden_1` + `tongs`/`hammer` |
 | Oráculo | Male_Ranger (capuz) recolorido roxo | manto longo, rosto vazio, olhos de luz | cajado com cristal (C) |
-| Cecília | Female_Peasant | lenço, xale (se aprovado) | mesinha + bola de cristal + cartas (C) |
+| Cecília | Female_Peasant | lenço, xale | mesinha + bola de cristal + cartas (C) |
 | Correio | — | caixa de correio (C) | — |
