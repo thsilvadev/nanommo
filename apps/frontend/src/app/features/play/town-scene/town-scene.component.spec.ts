@@ -108,6 +108,35 @@ describe('TownSceneComponent', () => {
     expect(picked[0].screen).toEqual([50, 40]);
   });
 
+  it('a 20 px drag that ends over a character pans and never selects it', async () => {
+    entries.set([entry('ana', { online: true })]);
+    const fixture = await create();
+    runtime.pick.and.returnValue({ kind: 'character', id: 'ana' });
+    const picked: any[] = [];
+    fixture.componentInstance.characterSelected.subscribe(e => picked.push(e));
+    fixture.componentInstance.npcSelected.subscribe(e => picked.push(e));
+    const host: HTMLElement = fixture.nativeElement.querySelector('.town-scene');
+    host.dispatchEvent(new PointerEvent('pointerdown', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
+    for (let x = 104; x <= 120; x += 4) host.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: 100, pointerId: 1, bubbles: true }));
+    host.dispatchEvent(new PointerEvent('pointerup', { clientX: 120, clientY: 100, pointerId: 1, bubbles: true }));
+    expect(picked).toEqual([]);
+    expect(runtime.pick).not.toHaveBeenCalled();
+    expect(runtime.pan).toHaveBeenCalled();
+  });
+
+  it('a drag that returns to its start is still a drag (path length counts)', async () => {
+    const fixture = await create();
+    runtime.pick.and.returnValue({ kind: 'npc', id: 'blacksmith_loren' });
+    const picked: string[] = [];
+    fixture.componentInstance.npcSelected.subscribe(id => picked.push(id));
+    const host: HTMLElement = fixture.nativeElement.querySelector('.town-scene');
+    host.dispatchEvent(new PointerEvent('pointerdown', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
+    host.dispatchEvent(new PointerEvent('pointermove', { clientX: 115, clientY: 100, pointerId: 1, bubbles: true }));
+    host.dispatchEvent(new PointerEvent('pointermove', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
+    host.dispatchEvent(new PointerEvent('pointerup', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
+    expect(picked).toEqual([]);
+  });
+
   it('disposes the runtime when destroyed', async () => {
     const fixture = await create();
     fixture.destroy();

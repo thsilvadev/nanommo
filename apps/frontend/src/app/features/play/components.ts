@@ -18,6 +18,11 @@ import { LocaleService } from '../../core/locale.service';
 import { PartyStore } from '../../core/party.store';
 import { teleportProgress, isSharedBattleCurrent, sharedActorResources, sharedActorStatuses } from '../../core/party-projection';
 import { SharedBattlePanelComponent } from './shared-battle-panel.component';
+import { TownStore } from '../../core/town.store';
+import { TownSceneComponent } from './town-scene/town-scene.component';
+import { TownActionMenuComponent } from './town-scene/town-action-menu.component';
+import { TownViewToggleComponent, mapViewMode, type MapViewMode } from './town-scene/town-view-toggle.component';
+import type { TownRosterEntry } from '@nanommo/shared';
 import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkDragPreview, CdkDragPlaceholder } from '@angular/cdk/drag-drop';
 
 @Component({ selector: 'app-character-summary', standalone: true, imports: [CommonModule, CdkDrag, CdkDropList, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective, BattleHitFeedbackDirective, CharacterViewerComponent], templateUrl: './character-summary.html', styleUrl: './character-summary.css' })
@@ -132,9 +137,25 @@ export class CharacterSummary implements OnDestroy {
   go(p: string) { void this.router.navigateByUrl(p) } equipped(slot: string) { return this.inventory.equipment().find(x => x.slot === slot) } canEnterEquipmentSlot(slot: string, drag: CdkDrag) { const data: any = drag?.data; if (data?.source !== 'inventory') return false; const item: any = this.catalog.item(data.itemId); return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } itemIcon(slot: string, fallback: string) { const e = this.equipped(slot); return e ? this.catalog.itemIcon(e.itemId) : fallback } slotDropId(slot: string) { return `character-slot-${slot}` } isSlotFocused(slot: string) { const id = this.inventory.draggedItemId(); const item: any = id ? this.catalog.item(id) : null; return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } onEquipmentDragStart(itemId: string) { this.inventory.beginDrag(itemId); document.dispatchEvent(new Event('nm:drag-start')) } onEquipmentDragEnd() { this.inventory.endDrag(); document.dispatchEvent(new Event('nm:drag-end')) } equipDragData(slot: string, it: any) { return { source: 'equipment', slot, ...it } } async dropEquipment(slot: string, ev: CdkDragDrop<any>) { const data = ev.item.data; try { if (data?.source === 'inventory') { await this.inventory.equip(slot, data.itemId, data.id) } } catch { } finally { this.inventory.endDrag() } } async unequip(slot: string) { try { await this.inventory.unequip(slot) } catch { } } ngOnDestroy() { clearInterval(this.townTimer); clearInterval(this.battleDisplayTimer) }
 }
 
-@Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule], templateUrl: './map-board.html', styleUrl: './map-board.css' })
+@Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule, TownSceneComponent, TownActionMenuComponent, TownViewToggleComponent], templateUrl: './map-board.html', styleUrl: './map-board.css' })
 export class MapBoard implements OnDestroy, AfterViewInit {
   readonly party = inject(PartyStore);
+  // ---- Town scene (map | house toggle) ----
+  readonly town = inject(TownStore);
+  private readonly viewChoice = signal<{ mapId: string; mode: MapViewMode } | null>(null);
+  readonly inTownScene = computed(() => this.town.isTown(this.character.character()?.currentMapId));
+  readonly viewMode = computed(() => mapViewMode(this.inTownScene(), this.character.character()?.currentMapId, this.viewChoice()));
+  readonly townMenu = signal<{ entry: TownRosterEntry; screen: [number, number] } | null>(null);
+  setViewMode(mode: MapViewMode) { const mapId = this.character.character()?.currentMapId; if (mapId) this.viewChoice.set({ mapId, mode }); this.townMenu.set(null); }
+  onTownNpcSelected(npcId: string) {
+    this.townMenu.set(null);
+    this.vendor.selectNpc(npcId);
+    if (this.town.self()?.sleeping) void this.town.wake().catch(() => undefined);
+  }
+  onTownCharacterSelected(selection: { entry: TownRosterEntry; screen: [number, number] }) {
+    if (selection.entry.characterId === this.character.character()?.id) { this.townMenu.set(null); return; }
+    this.townMenu.set(selection);
+  }
   partyCanTravel(){const party=this.party.party();return !party || party.kind==='auto' || party.leaderCharacterId===this.character.character()?.id;}
   teleportActivity() {
     const group = this.party.party()?.teleport;
@@ -471,13 +492,13 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   isRevealed(x:number,y:number){if(!this.discovered.size)return x===0&&y===0;for(const id of this.discovered){const m=this.maps.find(v=>v.id===id);if(!m)continue;const dx=Math.abs(Number(m.coordinates.x)-x),dy=Math.abs(Number(m.coordinates.y)-y);if(dx+dy<=1)return true;}return false}
   private clampCamera(x:number,y:number,zoom=this.zoom()){const visibleWidth=this.viewportWidth/zoom,visibleHeight=this.viewportHeight/zoom;const maxX=this.worldWidth-visibleWidth,maxY=this.worldHeight-visibleHeight;return {x:Math.max(Math.min(0,maxX),Math.min(Math.max(0,maxX),x)),y:Math.max(Math.min(0,maxY),Math.min(Math.max(0,maxY),y))}}
   private centerOnCurrentMap(){const m=this.currentMap();if(!m||this.viewportWidth<=0||this.viewportHeight<=0||this.lastCenteredMapId===m.id)return;this.lastCenteredMapId=m.id;const z=this.zoom();const p=this.clampCamera(this.gridColumn(m)*153+76.5-this.viewportWidth/(2*z),this.gridRow(m)*153+76.5-this.viewportHeight/(2*z),z);this.cameraX.set(p.x);this.cameraY.set(p.y)}
-  onPointerDown(e:PointerEvent){if(e.button!==0&&e.pointerType==='mouse')return;this.hideTileTooltip();this.drag={id:e.pointerId,startX:e.clientX,startY:e.clientY,cameraX:this.cameraX(),cameraY:this.cameraY(),moved:false}}
-  onPointerMove(e:PointerEvent){const d=this.drag;if(!d||d.id!==e.pointerId)return;const dx=e.clientX-d.startX,dy=e.clientY-d.startY;if(Math.abs(dx)+Math.abs(dy)>5)d.moved=true;if(!d.moved)return;const viewport=e.currentTarget as HTMLElement;if(!viewport.hasPointerCapture(e.pointerId))viewport.setPointerCapture(e.pointerId);const z=this.zoom();const p=this.clampCamera(d.cameraX-dx/z,d.cameraY-dy/z,z);this.cameraX.set(p.x);this.cameraY.set(p.y)}
-  onPointerUp(e:PointerEvent){const d=this.drag;if(!d||d.id!==e.pointerId)return;if(d.moved)this.suppressClickUntil=Date.now()+250;this.drag=null}
-  onPointerCancel(e:PointerEvent){if(this.drag?.id===e.pointerId)this.drag=null}
-  onViewportClick(e:MouseEvent){if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}const target=e.target as HTMLElement;const button=target.closest?.('.map-tile') as HTMLButtonElement|null;if(!button||button.disabled)return;const tile=this.maps.find(m=>m.id===button.getAttribute('data-map-id'));if(tile)this.onTileClick(e,tile)}
+  onPointerDown(e:PointerEvent){if(this.viewMode()==='town')return;if(e.button!==0&&e.pointerType==='mouse')return;this.hideTileTooltip();this.drag={id:e.pointerId,startX:e.clientX,startY:e.clientY,cameraX:this.cameraX(),cameraY:this.cameraY(),moved:false}}
+  onPointerMove(e:PointerEvent){if(this.viewMode()==='town')return;const d=this.drag;if(!d||d.id!==e.pointerId)return;const dx=e.clientX-d.startX,dy=e.clientY-d.startY;if(Math.abs(dx)+Math.abs(dy)>5)d.moved=true;if(!d.moved)return;const viewport=e.currentTarget as HTMLElement;if(!viewport.hasPointerCapture(e.pointerId))viewport.setPointerCapture(e.pointerId);const z=this.zoom();const p=this.clampCamera(d.cameraX-dx/z,d.cameraY-dy/z,z);this.cameraX.set(p.x);this.cameraY.set(p.y)}
+  onPointerUp(e:PointerEvent){if(this.viewMode()==='town')return;const d=this.drag;if(!d||d.id!==e.pointerId)return;if(d.moved)this.suppressClickUntil=Date.now()+250;this.drag=null}
+  onPointerCancel(e:PointerEvent){if(this.viewMode()==='town')return;if(this.drag?.id===e.pointerId)this.drag=null}
+  onViewportClick(e:MouseEvent){if(this.viewMode()==='town')return;if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}const target=e.target as HTMLElement;const button=target.closest?.('.map-tile') as HTMLButtonElement|null;if(!button||button.disabled)return;const tile=this.maps.find(m=>m.id===button.getAttribute('data-map-id'));if(tile)this.onTileClick(e,tile)}
   onTileClick(e:MouseEvent,tile:any){if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}if(!this.isRevealed(tile.coordinates.x,tile.coordinates.y))return;this.selected.set(tile.id);this.enter(tile.id)}
-  onWheel(e:WheelEvent){e.preventDefault();const viewport=e.currentTarget as HTMLElement;const rect=viewport.getBoundingClientRect();const localX=e.clientX-rect.left,localY=e.clientY-rect.top;const oldZoom=this.zoom();const nextZoom=Math.max(this.zoomMin,Math.min(this.zoomMax,Number((oldZoom*(e.deltaY>0?.9:1.1)).toFixed(4))));if(nextZoom===oldZoom)return;const worldX=this.cameraX()+localX/oldZoom,worldY=this.cameraY()+localY/oldZoom;const p=this.clampCamera(worldX-localX/nextZoom,worldY-localY/nextZoom,nextZoom);this.zoom.set(nextZoom);this.cameraX.set(p.x);this.cameraY.set(p.y)}
+  onWheel(e:WheelEvent){if(this.viewMode()==='town')return;e.preventDefault();const viewport=e.currentTarget as HTMLElement;const rect=viewport.getBoundingClientRect();const localX=e.clientX-rect.left,localY=e.clientY-rect.top;const oldZoom=this.zoom();const nextZoom=Math.max(this.zoomMin,Math.min(this.zoomMax,Number((oldZoom*(e.deltaY>0?.9:1.1)).toFixed(4))));if(nextZoom===oldZoom)return;const worldX=this.cameraX()+localX/oldZoom,worldY=this.cameraY()+localY/oldZoom;const p=this.clampCamera(worldX-localX/nextZoom,worldY-localY/nextZoom,nextZoom);this.zoom.set(nextZoom);this.cameraX.set(p.x);this.cameraY.set(p.y)}
   showTileTooltip(tile:any,e:PointerEvent|FocusEvent){this.hoveredMap.set(tile);if(e instanceof PointerEvent)this.tooltipPointer={x:e.clientX,y:e.clientY};else{const r=(e.target as HTMLElement).getBoundingClientRect();this.tooltipPointer={x:r.left+r.width/2,y:r.top+r.height/2}}this.renderTileTooltip()}
   moveTileTooltip(e:PointerEvent){this.tooltipPointer={x:e.clientX,y:e.clientY};this.positionTileTooltip()}
   hideTileTooltip(){this.hoveredMap.set(null);this.tooltipEl?.remove();this.tooltipEl=null}

@@ -2,6 +2,7 @@
   <div #viewport class="viewport" role="application" aria-label="World map. Drag to explore and select a revealed location." (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp($event)" (pointercancel)="onPointerCancel($event)" (lostpointercapture)="onPointerCancel($event)" (wheel)="onWheel($event)" (click)="onViewportClick($event)">
     <div class="map-head">
       <h1>Currently in: {{mapName()}}</h1>
+      <app-town-view-toggle *ngIf="inTownScene()" class="town-view-toggle" [mode]="viewMode()" (modeChange)="setViewMode($event)" />
       <div class="map-meta">
         <div *ngIf="teleportActivity() as teleport" class="activity-gauge teleporting" role="progressbar" [attr.aria-label]="locale.t('Teleporting…')" [attr.aria-valuenow]="teleportProgress()" aria-valuemin="0" aria-valuemax="100">
           <div class="activity-gauge-fill" [style.width.%]="teleportProgress()"></div><strong>{{locale.t('Teleporting…')}}{{teleport.paused ? ' · '+locale.t('Paused during battle') : ''}}</strong>
@@ -13,7 +14,11 @@
         <span *ngIf="character.character()?.currentMapId">Players in map: {{playersInMap()}}</span>
       </div>
     </div>
-    <div class="world" [style.transform]="'translate3d('+(-cameraX()*zoom())+'px,'+(-cameraY()*zoom())+'px,0) scale('+zoom()+')'">
+    <div *ngIf="viewMode()==='town'" class="town-scene-area">
+      <app-town-scene [mapId]="character.character()!.currentMapId" (npcSelected)="onTownNpcSelected($event)" (characterSelected)="onTownCharacterSelected($event)" />
+      <app-town-action-menu *ngIf="townMenu() as menu" [entry]="menu.entry" [screen]="menu.screen" (closed)="townMenu.set(null)" />
+    </div>
+    <div *ngIf="viewMode()==='map'" class="world" [style.transform]="'translate3d('+(-cameraX()*zoom())+'px,'+(-cameraY()*zoom())+'px,0) scale('+zoom()+')'">
       <img class="world-art" src="/assets/maps/map-background.png" alt="" draggable="false">
       <ng-container *ngFor="let cell of cells; trackBy: trackCell">
         <div class="fog-cell" *ngIf="!isRevealed(cell.x,cell.y)" [style.left.px]="cell.col*153" [style.top.px]="cell.row*153" aria-hidden="true"></div>

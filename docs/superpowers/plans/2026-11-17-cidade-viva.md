@@ -274,14 +274,14 @@ class TownCharacter { constructor(cache: CharacterAssetCache, entry: TownRosterE
   - desativado com a dica "offline" se `!entry.online`;
   - chama o `PartyStore`/`ApiService` existente (`POST /party/invites {candidateId}`). `CANDIDATE_ALREADY_IN_PARTY` → `ChatNoticeService.error(t('The character is already in a group.'))`; outro erro → `ChatNoticeService.error(mensagem mapeada)`.
 
-- [ ] **Step 1: Specs que falham:**
+- [x] **Step 1: Specs que falham:**
   - `town-action-menu.spec`: alvo = eu → nenhum item; alvo no meu grupo → nenhum item; grupo com 5 → nenhum item; alvo offline → item desativado; erro `CANDIDATE_ALREADY_IN_PARTY` → `ChatNoticeService.error` chamado com "The character is already in a group."
   - `town-scene` spec: um arrasto de 20 px que termina sobre um personagem não emite `characterSelected`.
   - map-board spec: em cidade, o alternador aparece com a casinha ativa; fora da cidade, não aparece.
-- [ ] **Step 2:** rodar → FAIL.
-- [ ] **Step 3:** implementar.
-- [ ] **Step 4:** rodar → PASS, + `party-rendering.spec.ts`, `vendor-storage.component.spec.ts` → PASS.
-- [ ] **Step 5: Commit** `feat(frontend): alternador mapa/cidade, menu de ação e convite`.
+- [x] **Step 2:** rodar → FAIL.
+- [x] **Step 3:** implementar.
+- [x] **Step 4:** rodar → PASS, + `party-rendering.spec.ts`, `vendor-storage.component.spec.ts` → PASS.
+- [x] **Step 5: Commit** `feat(frontend): alternador mapa/cidade, menu de ação e convite`.
 
 ### Task 9: Docs, OpenSpec e verificação final
 
