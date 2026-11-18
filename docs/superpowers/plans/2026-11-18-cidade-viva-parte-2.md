@@ -197,7 +197,7 @@ Só os ramos de `figure` escolhidos na Task 6 são implementados; os outros saem
 
 **Files:** `openspec/changes/town-living-scene-2/{proposal.md,design.md,tasks.md,specs/town-scene/spec.md}`, `STATUS.md` (topo), `ARCHITECTURE.md` (decisão: sono pela idade; obstáculos elevados com grade 2D; visual de NPC por registro), `ENGINEERING_NOTES.md` (armadilha: a grade é 2D — ninguém sobe em varanda; o footprint precisa incluir a escada).
 
-- [ ] **Step 1:** escrever os docs; o STATUS lista os comandos rodados com resultado real e diz "sem migração, nada executado em banco, sem deploy".
-- [ ] **Step 2:** `pnpm exec openspec validate town-living-scene-2 --strict` → valid.
-- [ ] **Step 3:** verificação completa (rodar tudo e registrar cada resultado, sem parar no primeiro erro): builds shared/api; `town-wander`, `town-scenes-catalog`, `town-roster`, `party-invite-declined`, `map-presence`; `node scripts/validate-town-scenes.js`; `npx tsc -p tsconfig.spec.json --noEmit`; suíte Karma inteira; build de produção do frontend. Falhas que já existem (`map-presence-cleanup`, `api lint` sem config do ESLint) entram no STATUS como pré-existentes.
-- [ ] **Step 4: Commit** `docs: Cidade Viva parte 2 (STATUS, ARCHITECTURE, ENGINEERING_NOTES, OpenSpec)`.
+- [x] **Step 1:** escrever os docs; o STATUS lista os comandos rodados com resultado real e diz "sem migração, nada executado em banco, sem deploy".
+- [x] **Step 2:** `pnpm exec openspec validate town-living-scene-2 --strict` → valid.
+- [x] **Step 3:** verificação completa (rodar tudo e registrar cada resultado, sem parar no primeiro erro): builds shared/api; `town-wander`, `town-scenes-catalog`, `town-roster`, `party-invite-declined`, `map-presence`; `node scripts/validate-town-scenes.js`; `npx tsc -p tsconfig.spec.json --noEmit`; suíte Karma inteira; build de produção do frontend. Falhas que já existem (`map-presence-cleanup`, `api lint` sem config do ESLint) entram no STATUS como pré-existentes.
+- [x] **Step 4: Commit** `docs: Cidade Viva parte 2 (STATUS, ARCHITECTURE, ENGINEERING_NOTES, OpenSpec)`.

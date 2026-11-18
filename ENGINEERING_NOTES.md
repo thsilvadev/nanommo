@@ -179,3 +179,13 @@ The gateway `ping` handler is a plain keep-alive returning `'pong'`; it carries 
 
 A page refresh can connect the new socket before the old one's `disconnect` runs. Gateway `handleDisconnect` must ignore a socket that is no longer `connectedSockets.get(characterId)`; otherwise it clears online presence and Redis subscribers of the live socket (and, for Towns, puts a connected character to sleep).
 
+## 4.21 The Town walk grid is 2D: footprints must include stairs, and nothing climbs
+
+`TownNav` rasterises footprints on one 2D grid. A `balcony` blocks its `w×d` platform **and** its stairs strip (2 u wide, `TOWN_STAIRS_LENGTH` = 2.5 u, on the `stairs` side in the local frame before `rot`: e = +x, w = −x, s = +z, n = −z). An NPC with `y > 0` is drawn on the platform but its spot is a blocked cell: the validator checks the balcony's stairs foot instead (free, reachable, POI within 3 u). Grid cells are blocked by their centre, so a stairs foot exactly on a cell edge can land inside a neighbouring house — check it with `node scripts/validate-town-scenes.js`.
+
+## 4.22 NPC outfits and costume pieces: bind space, not the posed bone
+
+- Outfit meshes from `/assets/npcs/outfit-*.glb` must be rebound to the body's bones **by name** (`new Skeleton(ourBones, outfit.boneInverses)`); a plain `clone()` of a skinned mesh keeps drawing at its source bones (this also applies to skinned pack props like the chest — use `SkeletonUtils.clone`).
+- Pin costume pieces in the bone's **bind** space (`boneInverses`), not from the bone's world position in the Idle pose: Idle tilts the head and torso, and offsets measured on the bind pose land wrong. Head pieces start from the eyes' centre (`Eyes` mesh bounds).
+- The catalogue's mustache and other facial overlays are painted on the face texture by the portrait compositor; the Town does not compose them.
+- Recolouring textures runs on the main thread when a Town opens: keep it byte math on a small canvas (512 px) and cached; `THREE.Color` per pixel over 1024² textures cost seconds.
