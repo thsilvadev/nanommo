@@ -92,7 +92,7 @@ function positionAt(def: TownSceneDef, nav: TownNav, entry: Pick<TownRosterEntry
 const TOWN_LEG_MS = 24000, TOWN_WALK_SPEED = 2.2;
 ```
 
-- [ ] **Step 1: Escrever os testes que falham** em `town-wander.test.js`, usando uma cena fixture 30×30 com uma fonte `r=3` no centro, 4 POIs e `spawn`:
+- [x] **Step 1: Escrever os testes que falham** em `town-wander.test.js`, usando uma cena fixture 30×30 com uma fonte `r=3` no centro, 4 POIs e `spawn`:
   - `deterministic`: duas `TownNav` independentes, mesmo `(seed=12345, t)` → `deepStrictEqual` do pose, para 50 valores de `t`.
   - `never blocked`: 10 000 amostras `(seed=i, t=i*997)`: `!nav.blocked(floor(x), floor(z))`.
   - `stops at poi`: para seed fixa, existem `t` com `state==='idle'` a ≤ `radius` de algum POI e com `state==='walk'` em outros. Na mesma perna, `idle` só ocorre depois de `walk`.
@@ -100,16 +100,16 @@ const TOWN_LEG_MS = 24000, TOWN_WALK_SPEED = 2.2;
   - `sleep freezes`: com `sleeping={at:T}`, o pose de qualquer `t ≥ T` é igual ao de `positionAt(..., {sleeping:null}, T)`, com `state==='sleep'`.
   - `wake starts from wakeFrom`: `wakeFrom={x,z,at:T}` → `pose(T)` ≈ `(x,z)`.
   - `different seeds diverge`: as seeds 1 e 2 dão posições diferentes em pelo menos 90% de 100 amostras.
-- [ ] **Step 2:** `pnpm --filter @nanommo/shared build && node apps/api/test/town-wander.test.js` → FAIL (`positionAt is not a function`).
-- [ ] **Step 3: Implementar `TownNav`.** Rasterizar obstáculos (círculo `r`; retângulo `w×d` rotacionado por `rot` graus; padrões: `tree r=1`, `tall_tree r=1.2`, `lamp r=0.4`, `pillar r=0.8`, `rock r=1`) com 0.4 u de folga. Campos de fluxo BFS de 8 direções, com custo 1/√2 e sem cortar quina bloqueada, gerados preguiçosamente por célula-destino e guardados num `Map`. `path` desce o campo e suaviza por linha de visada (amostragem a cada 0.25 u).
-- [ ] **Step 4: Implementar `positionAt`**:
+- [x] **Step 2:** `pnpm --filter @nanommo/shared build && node apps/api/test/town-wander.test.js` → FAIL (`positionAt is not a function`).
+- [x] **Step 3: Implementar `TownNav`.** Rasterizar obstáculos (círculo `r`; retângulo `w×d` rotacionado por `rot` graus; padrões: `tree r=1`, `tall_tree r=1.2`, `lamp r=0.4`, `pillar r=0.8`, `rock r=1`) com 0.4 u de folga. Campos de fluxo BFS de 8 direções, com custo 1/√2 e sem cortar quina bloqueada, gerados preguiçosamente por célula-destino e guardados num `Map`. `path` desce o campo e suaviza por linha de visada (amostragem a cada 0.25 u).
+- [x] **Step 4: Implementar `positionAt`**:
   - `phase = rngForIndex(seed, -1).next() * LEG_MS`; `k = floor((t + phase) / LEG_MS)`; `legStart = k*LEG_MS - phase`.
   - `dest(k)`: `r = rngForIndex(seed, k)`. Com chance `0.25`, é passeio: um ponto em raio 6 u em volta de `poiPoint(k-1)`. Senão, POI ponderado por `weight` e diferente do POI de `k-1` (recalcular `k-1` só pela escolha de POI, que é O(1) e não recursivo: o "anterior" de um passeio é o POI-base dele). O offset fica dentro de `radius`. Se cair bloqueado ou fora de `reachableFrom(spawn)`, tenta até 8 vezes e depois usa o centro do POI.
   - O caminho vai de `dest(k-1)` até `dest(k)` a `TOWN_WALK_SPEED`. Se o comprimento passar de `0.8*LEG_MS`, a velocidade escala. Depois do caminho, `idle`, virado pro `lookAt` (ou na direção da última aresta).
   - `wakeFrom` com `at` na perna `k`: a origem dessa perna é `wakeFrom` e a perna termina normalmente.
   - `sleeping`: retorna `positionAt(..., {seed, wakeFrom, sleeping:null}, sleeping.at)` com `state:'sleep'`.
-- [ ] **Step 5:** build + rodar o teste → PASS.
-- [ ] **Step 6: Commit** `feat(shared): navegação e movimento determinístico de cidade`.
+- [x] **Step 5:** build + rodar o teste → PASS.
+- [x] **Step 6: Commit** `feat(shared): navegação e movimento determinístico de cidade`.
 
 ### Task 2: Catálogo `town_scenes.json` das 4 cidades
 
