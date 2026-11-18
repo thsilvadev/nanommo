@@ -183,15 +183,15 @@ export function buildNpcVisual(def: NpcVisualDef, deps: { factory: TownCharacter
 ```
 Só os ramos de `figure` escolhidos na Task 6 são implementados; os outros saem do tipo.
 
-- [ ] **Step 1: Specs que falham** (`npc-visuals.spec.ts`):
+- [x] **Step 1: Specs que falham** (`npc-visuals.spec.ts`):
   - `covers every town NPC`: todo id em `npcIds` das 5 cidades (ler `/data/maps.json`) tem entrada em `NPC_VISUALS`.
   - `mailbox is only a prop`: `NPC_VISUALS.mailbox.figure.kind === 'none'` e tem 1 prop `mailbox`.
   - Briefing → props: `blacksmith_loren` tem `anvil` e `hammer`; `whitesmith_spitz` tem `forge`, `anvil` e `bucket`; `paje_piata` tem `table` com `gourds` e `herbs`; `uncle_phillip` tem `counter`; `storage` tem `chest`; `william` tem `backpack` (ou figura de modelo com mochila).
   - Em WebGL real: `buildNpcVisual` de cada entrada resolve um `Object3D` com pelo menos uma malha, e a caixa de clique do NPC continua funcionando (`pick` no `screenPositionOf`).
-- [ ] **Step 2:** rodar → FAIL.
-- [ ] **Step 3: Implementar** o registro com o briefing do spec (aparência, figurino e adereços de cada NPC) e o(s) construtor(es) escolhido(s). Adereços ficam ao lado do `npcSpot` sem invadir POIs (o validador não os conhece: posicioná-los no lado oposto ao POI do NPC).
-- [ ] **Step 4:** rodar → PASS; suíte do frontend; build de produção. Prints de cada NPC (spec descartável) no reporte.
-- [ ] **Step 5: Commit** `feat(frontend): visual próprio dos NPCs`.
+- [x] **Step 2:** rodar → FAIL.
+- [x] **Step 3: Implementar** o registro com o briefing do spec (aparência, figurino e adereços de cada NPC) e o(s) construtor(es) escolhido(s). Adereços ficam ao lado do `npcSpot` sem invadir POIs (o validador não os conhece: posicioná-los no lado oposto ao POI do NPC).
+- [x] **Step 4:** rodar → PASS; suíte do frontend; build de produção. Prints de cada NPC (spec descartável) no reporte.
+- [x] **Step 5: Commit** `feat(frontend): visual próprio dos NPCs`.
 
 ### Task 8: Docs, OpenSpec e verificação
 

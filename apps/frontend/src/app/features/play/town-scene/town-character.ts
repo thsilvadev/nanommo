@@ -15,6 +15,7 @@ import { APPEARANCE_TRAITS } from '@nanommo/shared';
 import type { BodyAsset } from '../../../shared/character-viewer/body-asset';
 import type { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { hexToRgb, tintSkinPixels } from '../../../shared/character-viewer/skin-compositor';
+import { dressCostume, npcOutfitAsset, type NpcFigure, type NpcFigureBody } from './npc-visuals';
 
 /** Characters cast shadows from the main light; first thing to switch off if the town drops frames. */
 export const TOWN_CHARACTER_SHADOWS = true;
@@ -38,6 +39,7 @@ let ringMaterial: THREE.MeshBasicMaterial | null = null;
 export class TownCharacterFactory {
   private readonly templates = new Map<Sex, Promise<BodyAsset>>();
   private readonly hairMaterials = new Map<string, THREE.MeshStandardMaterial>();
+  private readonly heads = new Map<string, THREE.BufferGeometry>();
 
   constructor(readonly cache: CharacterAssetCache, readonly catalog: AppearanceCatalog) {}
 
@@ -109,9 +111,43 @@ export class TownCharacterFactory {
     };
   }
 
+  /**
+   * The body reduced to the triangles driven by the head and neck: a dressed NPC
+   * wears an outfit over everything else (the outfit pack asks for the head only,
+   * the rest of the body would poke through the cloth).
+   */
+  headOnly(sex: Sex, body: THREE.SkinnedMesh): THREE.BufferGeometry {
+    let head = this.heads.get(sex);
+    if (!head) {
+      const source = body.geometry;
+      const keep = new Set(body.skeleton.bones.map((b, i) => (b.name === 'Head' || b.name === 'neck_01' ? i : -1)).filter((i) => i >= 0));
+      const joints = source.getAttribute('skinIndex');
+      const weights = source.getAttribute('skinWeight');
+      const dominant = (v: number) => {
+        let best = 0;
+        for (let k = 1; k < 4; k++) if (weights.getComponent(v, k) > weights.getComponent(v, best)) best = k;
+        return joints.getComponent(v, best);
+      };
+      const index = source.getIndex();
+      const count = index ? index.count : source.getAttribute('position').count;
+      const vertex = (i: number) => (index ? index.getX(i) : i);
+      const kept: number[] = [];
+      for (let i = 0; i < count; i += 3) {
+        const tri = [vertex(i), vertex(i + 1), vertex(i + 2)];
+        if (tri.every((v) => keep.has(dominant(v)))) kept.push(...tri);
+      }
+      head = source.clone();
+      head.setIndex(kept);
+      this.heads.set(sex, head);
+    }
+    return head;
+  }
+
   dispose(): void {
     for (const m of this.hairMaterials.values()) m.dispose();
     this.hairMaterials.clear();
+    for (const g of this.heads.values()) g.dispose();
+    this.heads.clear();
   }
 }
 
@@ -135,7 +171,9 @@ export class TownCharacter {
   /** Height the character stands at (NPCs up on a balcony); the click box rises with it. */
   elevation = 0;
 
-  constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean } = {}) {
+  private isDressed = false;
+
+  constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean; visual?: NpcFigure } = {}) {
     this.entry = entry;
     const pick: TownPickInfo = { kind: opts.npc ? 'npc' : 'character', id: entry.characterId };
     this.object3d.name = `${pick.kind}:${pick.id}`;
@@ -158,6 +196,9 @@ export class TownCharacter {
   }
 
   get hitObject(): THREE.Object3D { return this.hitbox; }
+  /** True once an NPC wears its own visual (outfit and costume, or nothing for a prop-only NPC). */
+  dressed(): boolean { return this.isDressed; }
+
   /** Name of the clip currently playing (null until loaded). */
   animation(): TownClip | null { return this.current; }
 
@@ -245,6 +286,7 @@ export class TownCharacter {
   }
 
   private async build(): Promise<void> {
+    if (this.opts.visual?.kind === 'none') { this.isDressed = true; return; }
     const entry = this.entry;
     const sex: Sex = entry.sex ?? 'male';
     const appearance = entry.appearance ?? ({ v: 1 } as CharacterAppearance);
@@ -254,10 +296,12 @@ export class TownCharacter {
     const hairOption = f.option(sex, appearance, 'hair');
     const facialOption = f.option(sex, appearance, 'facialHair');
     const hairColor = new THREE.Color().setStyle(f.option(sex, appearance, 'hairColor').color ?? '#3a2a20').multiplyScalar(1.6);
-    const [skin, hair, beard] = await Promise.all([
+    const figure = this.opts.visual?.kind === 'body' ? this.opts.visual : null;
+    const [skin, hair, beard, outfit] = await Promise.all([
       f.skin(sex, template, skinOption),
       hairOption.asset ? f.hair(hairOption.asset, hairColor) : Promise.resolve(null),
       facialOption.asset?.endsWith('.glb') ? f.hair(facialOption.asset, hairColor) : Promise.resolve(null),
+      figure ? f.cache.glb(npcOutfitAsset(figure.outfit)) : Promise.resolve(null),
     ]);
     if (this.disposed) return;
 
@@ -279,6 +323,7 @@ export class TownCharacter {
         this.owned.push(material);
       }
     });
+    if (figure && outfit) this.wear(root, outfit, figure, skinOption.color ?? '#d9a37a');
     const head = root.getObjectByName('Head');
     if (head) for (const item of [hair, beard]) if (item) head.add(item);
     const scale = (entry.heightCm ?? NATIVE_HEIGHT_CM[sex]) / NATIVE_HEIGHT_CM[sex];
@@ -296,7 +341,57 @@ export class TownCharacter {
     }
     // Idle loops start at a per-character phase so a crowd does not breathe in sync.
     const idle = this.actions.get('Idle');
+    if (figure) {
+      // Costume pieces are fitted on the Idle pose, then follow their bones.
+      if (idle) { idle.reset().setEffectiveWeight(1).play(); this.mixer.update(0); }
+      this.object3d.updateMatrixWorld(true);
+      const body = root.getObjectByName('Body') as THREE.SkinnedMesh;
+      dressCostume(this.model, figure, skinOption.color ?? '#d9a37a', { skeleton: body.skeleton, face: this.faceCentre(root) });
+      idle?.stop();
+      this.isDressed = true;
+    }
     if (idle) idle.time = (Math.abs(mulberry32Seed(entry.characterId)) % 1000) / 1000 * idle.getClip().duration;
+  }
+
+  /** Centre of the eyes in the body's bind pose (armature space). */
+  private faceCentre(root: THREE.Object3D): THREE.Vector3 {
+    const eyes = root.getObjectByName('Eyes') as THREE.Mesh | undefined;
+    if (!eyes) return new THREE.Vector3(0, 1.68, 0.09);
+    eyes.geometry.computeBoundingBox();
+    return eyes.geometry.boundingBox!.getCenter(new THREE.Vector3());
+  }
+
+  /**
+   * Puts the outfit on: its skinned meshes are bound to this body's bones by
+   * name (same 65-bone rig), the body keeps only its head, bare skin takes the
+   * NPC's skin tone and the cloth the figure's tint.
+   */
+  private wear(root: THREE.Object3D, outfitSource: THREE.Object3D, figure: NpcFigureBody, skinColor: string): void {
+    const bones = new Map<string, THREE.Bone>();
+    root.traverse((o) => { if ((o as THREE.Bone).isBone) bones.set(o.name, o as THREE.Bone); });
+    const body = root.getObjectByName('Body') as THREE.SkinnedMesh | undefined;
+    if (!body) return;
+    body.geometry = this.factory.headOnly(this.entry.sex ?? 'male', body);
+    const outfit = cloneSkinned(outfitSource);
+    const meshes: THREE.SkinnedMesh[] = [];
+    outfit.traverse((o) => { if ((o as THREE.SkinnedMesh).isSkinnedMesh) meshes.push(o as THREE.SkinnedMesh); });
+    const tint = new THREE.Color(figure.tint ?? '#ffffff');
+    for (const mesh of meshes) {
+      if (figure.costume.includes('no-hood') && /Head_Hood/.test(mesh.name)) continue;
+      const skeleton = new THREE.Skeleton(mesh.skeleton.bones.map((b) => bones.get(b.name) ?? b), mesh.skeleton.boneInverses);
+      const bindMatrix = mesh.bindMatrix.clone();
+      body.parent!.add(mesh);
+      mesh.bind(skeleton, bindMatrix);
+      const recolor = (m: THREE.Material) => {
+        const material = (m as THREE.MeshStandardMaterial).clone();
+        material.color.set(material.name === 'Skin' ? skinColor : tint);
+        this.owned.push(material);
+        return material;
+      };
+      mesh.material = Array.isArray(mesh.material) ? mesh.material.map(recolor) : recolor(mesh.material);
+      mesh.frustumCulled = false;
+      mesh.castShadow = TOWN_CHARACTER_SHADOWS;
+    }
   }
 
   private updatePlate(): void {

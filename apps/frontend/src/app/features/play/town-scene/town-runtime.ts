@@ -12,6 +12,7 @@ import { loadAppearanceCatalog } from '../../../shared/character-viewer/characte
 import { TownCamera } from './town-camera';
 import { TownCharacter, TownCharacterFactory, type TownPickInfo } from './town-character';
 import { buildTownWorld, type TownWorld } from './town-world';
+import { NPC_VISUALS, buildNpcVisual, npcAppearance } from './npc-visuals';
 import type { TownPick, TownSceneRuntimeHandle, TownSceneRuntimeInit } from './town-scene.types';
 
 const MAX_PIXEL_RATIO = 1.5;
@@ -34,6 +35,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   private readonly characters = new Map<string, TownCharacter>();
   private readonly npcs = new Map<string, TownCharacter>();
   private readonly npcPoses = new Map<string, TownPose>();
+  private readonly npcProps: Promise<void>[] = [];
   private readonly raycaster = new THREE.Raycaster();
   private readonly frustum = new THREE.Frustum();
   private readonly cleanups: Array<() => void> = [];
@@ -68,8 +70,23 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     this.renderer.setSize(w, h, false);
 
     for (const [npcId, spot] of Object.entries(init.def.npcSpots)) {
-      const npc = new TownCharacter(factory, factory.npcEntry(npcId, init.npcNames[npcId] ?? npcId), { npc: true });
+      const visual = NPC_VISUALS[npcId];
+      const entry = factory.npcEntry(npcId, init.npcNames[npcId] ?? npcId);
+      if (visual?.figure.kind === 'body') {
+        entry.sex = visual.figure.sex;
+        entry.heightCm = visual.figure.heightCm;
+        entry.appearance = npcAppearance(factory.npcEntry(npcId, '').appearance!, visual.figure);
+      }
+      const npc = new TownCharacter(factory, entry, { npc: true, visual: visual?.figure });
       npc.elevation = spot.y ?? 0;
+      if (visual) {
+        this.npcProps.push(buildNpcVisual(visual, { factory }).then((props) => {
+          if (this.disposed) return;
+          props.position.set(spot.x, spot.y ?? 0, spot.z);
+          props.rotation.y = (spot.facing * Math.PI) / 180;
+          this.scene.add(props);
+        }));
+      }
       npc.object3d.position.set(spot.x, npc.elevation, spot.z);
       this.npcs.set(npcId, npc);
       this.npcPoses.set(npcId, { x: spot.x, z: spot.z, facing: (spot.facing * Math.PI) / 180, state: 'idle' });
@@ -117,12 +134,13 @@ export class TownRuntime implements TownSceneRuntimeHandle {
 
   /** Resolves when every character and NPC finished loading (tests, first frame). */
   async settled(): Promise<void> {
-    await Promise.all([...this.characters.values(), ...this.npcs.values()].map((c) => c.ready));
+    await Promise.all([...[...this.characters.values(), ...this.npcs.values()].map((c) => c.ready), ...this.npcProps]);
     this.tick(0);
   }
 
   activeCount(): number { return this.characters.size; }
   npcCount(): number { return this.npcs.size; }
+  npcDressed(id: string): boolean { return this.npcs.get(id)?.dressed() ?? false; }
   animationOf(id: string): string | null { return this.characters.get(id)?.animation() ?? null; }
   deadProgressOf(id: string): number | null { return this.characters.get(id)?.deadProgress() ?? null; }
 
