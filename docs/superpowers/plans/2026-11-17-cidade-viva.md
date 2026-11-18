@@ -287,9 +287,9 @@ class TownCharacter { constructor(cache: CharacterAssetCache, entry: TownRosterE
 
 **Files:** `openspec/changes/town-living-scene/{proposal.md,design.md,tasks.md,specs/town-scene/spec.md}`, `STATUS.md` (entrada no topo), `ARCHITECTURE.md` (decisão), `ENGINEERING_NOTES.md` (armadilhas: `CharacterRig` = 1 renderer por instância; roster de cidade inclui offline; `ping` não serve pra relógio).
 
-- [ ] **Step 1:** escrever os docs. A entrada do STATUS lista exatamente os comandos rodados e diz "sem migração, nada executado em banco, sem deploy".
-- [ ] **Step 2:** `pnpm exec openspec validate town-living-scene --strict` → valid.
-- [ ] **Step 3: Verificação completa:**
+- [x] **Step 1:** escrever os docs. A entrada do STATUS lista exatamente os comandos rodados e diz "sem migração, nada executado em banco, sem deploy".
+- [x] **Step 2:** `pnpm exec openspec validate town-living-scene --strict` → valid.
+- [x] **Step 3: Verificação completa:**
   ```bash
   pnpm --filter @nanommo/shared build && pnpm --filter @nanommo/api build
   for t in town-wander town-scenes-catalog town-roster party-invite-declined map-presence map-presence-cleanup; do node apps/api/test/$t.test.js || exit 1; done
@@ -299,5 +299,5 @@ class TownCharacter { constructor(cache: CharacterAssetCache, entry: TownRosterE
   pnpm --filter @nanommo/frontend build --configuration production
   ```
   Esperado: tudo passa. As falhas conhecidas e pré-existentes do CLAUDE.md não contam, mas são listadas no STATUS.
-- [ ] **Step 4: Teste manual de desempenho** (skill `run`): API + frontend locais, 100 entries injetadas no roster via script de seed de dev (não commitar dados), ~60 fps nas 4 cidades. Anotar o fps medido no STATUS. Se ficar abaixo de 45 fps, desligar `TOWN_CHARACTER_SHADOWS` e medir de novo.
-- [ ] **Step 5: Commit** `docs: Cidade Viva (STATUS, ARCHITECTURE, ENGINEERING_NOTES, OpenSpec)`.
+- [ ] **Step 4: Teste manual de desempenho** _(pendente: sem GPU real no headless e sem banco — ver STATUS 2026-11-18)_ (skill `run`): API + frontend locais, 100 entries injetadas no roster via script de seed de dev (não commitar dados), ~60 fps nas 4 cidades. Anotar o fps medido no STATUS. Se ficar abaixo de 45 fps, desligar `TOWN_CHARACTER_SHADOWS` e medir de novo.
+- [x] **Step 5: Commit** `docs: Cidade Viva (STATUS, ARCHITECTURE, ENGINEERING_NOTES, OpenSpec)`.

@@ -4,7 +4,7 @@ Permanent, append-only reference of hard-won technical traps and lessons from
 `STATUS.md` sessions. Re-read only when a new bug falls in the same class
 (JWT claims, ownership/IDOR, cwd, TypeORM `undefined`, idempotence, etc.).
 
-Last session that added entries: 2026-09-27.
+Last session that added entries: 2026-11-18.
 
 ---
 
@@ -160,3 +160,22 @@ node dist/apps/api/src/main.js
 - (i) Sets processor `concurrency > 1` (e.g., `@Processor('battle-queue', { concurrency: 5 })`)
 - (ii) Parallelizes the recovery pass loop (e.g., `Promise.all(stale.map(...))`)
 - (iii) Creates a new code path calling `requeueBattlesAfterLevelUp()` or `resolveBattle()` outside the two mapped callers (`battle-queue.processor.ts:33` and `battle-recovery.service.ts:79`)
+
+---
+
+## 4.17 `CharacterRig` = one WebGLRenderer per instance
+
+`CharacterRig` (portrait, creator) creates its own `WebGLRenderer`, scene and camera per character. It is fine for one or two viewers and wrong for crowds: browsers cap live WebGL contexts (~16) and drop the oldest. Anything that shows many characters (the Town scene) must render them in one shared scene (`features/play/town-scene/town-runtime.ts`) and share assets through `CharacterAssetCache`. A `BodyAsset` is mutable (deformed vertices, skin canvas, single-parent root, mixer): never hand the same instance to two consumers — `CharacterAssetCache.body(sex)` returns a new one per call; only raw files are shared. A rig's `dispose()` must free only what it owns (never `ImageBitmap.close()` a cached image).
+
+## 4.18 The Town roster includes offline characters
+
+Town presence is **not** socket presence: the roster lists every character whose `currentMapId` is that Town and who is not travelling, online or offline (offline = asleep). Do not use it for "players online" — the indicator above the chat still uses `chat:connectedUsers` / online presence. Any new code path that starts or ends a trip, or moves a character in or out of a Town, must call `TownRosterService.syncCharacter(id, previousMapId)` after commit, or viewers keep a frozen character until they resync. `previousMapId` is tri-state: a map id, `null` (certainly not in a Town) or `undefined` (unknown — never re-joins a lazy entry, which would teleport it to the spawn).
+
+## 4.19 `ping` is not a clock
+
+The gateway `ping` handler is a plain keep-alive returning `'pong'`; it carries no time. Client code that needs server time (Town movement) must use `ServerClockService` (`time:sync` acks `{serverNow}`). Also: `rngForIndex(seed, k)` forks by advancing k steps — O(k). Never call it with epoch-derived indices (Town legs use a hash-seeded `Mulberry32` per leg instead).
+
+## 4.20 Socket refresh race
+
+A page refresh can connect the new socket before the old one's `disconnect` runs. Gateway `handleDisconnect` must ignore a socket that is no longer `connectedSockets.get(characterId)`; otherwise it clears online presence and Redis subscribers of the live socket (and, for Towns, puts a connected character to sleep).
+
