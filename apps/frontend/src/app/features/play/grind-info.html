@@ -20,10 +20,7 @@
           <small>Battle #{{b.sequenceIndex+1}} · {{elapsedTicks(b)}}s</small>
           <div class="foe-sprite-wrap" [battleHitFeedback]="'monster'">
             <app-combatant-portrait imageClass="foe-sprite" [src]="monsterSprite(b.monsterId)" [name]="monster(b.monsterId)?.name || b.monsterId">
-              <div portraitDetails><small class="portrait-section-label">DROP RATES</small>
-                <div *ngFor="let drop of monsterDrops(b)" class="portrait-detail-row"><span>{{drop.name}}</span><b>{{drop.percent | number:'1.0-3'}}%</b></div>
-                <small *ngIf="!monsterDrops(b).length">No listed drops.</small>
-              </div>
+              <app-combatant-details portraitDetails [stats]="monsterStats(b)" [drops]="monsterDrops(b)" />
             </app-combatant-portrait>
             <span *ngIf="monster(b.monsterId)?.isAggressive === true" class="aggression-badge" tabindex="0" role="img"
               aria-label="Aggressive: this monster will try to interrupt your gathering or traveling">
@@ -43,11 +40,6 @@
           <div class="status-icons"><div *ngFor="let effect of monsterStatusEffects(b); trackBy: trackMonsterStatusEffect" class="status-effect status-icon" tabindex="0"><img [src]="'/assets/ui/status/' + effect.id + '.svg'" [alt]="effect.name"><b>{{effect.stacks}}</b><span class="status-tooltip"><strong>{{effect.name}}</strong><small>{{effect.tooltip}}</small><small>{{effect.expiryLabel}}</small></span></div></div>
         </div>
 
-        <div class="monster-stats">
-          <div class="section-label">STATS</div>
-          <div class="stats-grid"><span
-              *ngFor="let stat of monsterStats(b)"><b>{{stat.label}}: </b><small>{{stat.value}}</small></span></div>
-        </div>
         <div class="event-feed" followLog role="log" aria-live="off">
           <div *ngFor="let e of recentEvents(b)" class="event" [attr.data-tone]="eventTone(e)"><small>T{{e.tick}}</small><span>{{eventText(e)}}</span>
           </div>

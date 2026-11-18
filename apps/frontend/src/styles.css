@@ -769,3 +769,6 @@ app-character-summary .equip-slot > img.mirrored-hand {
 .nm-floating-tooltip.combatant-details .portrait-detail-row{display:flex;justify-content:space-between;align-items:baseline;gap:18px;margin:5px 0}
 .nm-floating-tooltip.combatant-details .portrait-detail-row span,.nm-floating-tooltip.combatant-details small{font:12px/1.4 Arial;color:#c9b79a}
 .nm-floating-tooltip.combatant-details .portrait-detail-row b{flex:0 0 auto;color:#dfc581;font:600 12px Arial}
+
+[data-tone="foe-regen"]>span,[data-tone="foe-regen"] .event-body{color:#2d6338;font-weight:600}
+.nm-floating-tooltip.combatant-details .portrait-drops-heading{margin-top:12px}

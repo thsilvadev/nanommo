@@ -21,8 +21,12 @@ export function battleEventText(event: any, actor: string, target: string, name:
     }
     case 'sp_regen': return `${actor} regenerates ${Number(e.amount ?? 0)} SP.`;
     case 'move': {
-      const from = e.from?.column ?? e.fromPosition, to = e.to?.column ?? e.toPosition;
-      return `${actor} ${e.reason === 'violent_shot_push' ? 'is pushed' : 'moves'} ${Math.abs(Number(to ?? 0) - Number(from ?? 0))} spaces${to > from ? ' →' : to < from ? ' ←' : ''}.`;
+      const from = e.from?.column ?? e.fromGridPosition?.column ?? e.fromPosition;
+      const to = e.to?.column ?? e.toGridPosition?.column ?? e.toPosition;
+      const rowDelta = Math.abs(Number(e.to?.row ?? e.toGridPosition?.row ?? 0) - Number(e.from?.row ?? e.fromGridPosition?.row ?? 0));
+      const spaces = Number(e.spacesMoved ?? Math.max(rowDelta, Math.abs(Number(to ?? 0) - Number(from ?? 0))));
+      const arrow = to > from ? ' →' : to < from ? ' ←' : e.direction === 'right' || e.direction === 1 ? ' →' : e.direction === 'left' || e.direction === -1 ? ' ←' : '';
+      return `${actor} ${e.reason === 'violent_shot_push' ? 'is pushed' : 'moves'} ( ${spaces} ) ${spaces === 1 ? 'space' : 'spaces'}${arrow}.`;
     }
     case 'ko': return `${actor} is knocked out!`;
     case 'revive': return `${target} returns to battle!`;
@@ -31,6 +35,7 @@ export function battleEventText(event: any, actor: string, target: string, name:
 }
 export function battleEventTone(event: any): string {
   const e = { ...event, ...(event.payload ?? {}) };
+  if (e.actor === 'monster' && ['regen', 'sp_regen'].includes(e.action)) return 'foe-regen';
   if (['regen', 'sp_regen', 'revive'].includes(e.action) || Number(e.healAmount) > 0 && !Number(e.damage)) return 'healing';
   if (['attack', 'use_skill', 'status_damage'].includes(e.action) && Number(e.damage) > 0) return e.actor === 'character' ? 'outgoing' : 'incoming';
   if (String(e.action).startsWith('status')) return 'status';

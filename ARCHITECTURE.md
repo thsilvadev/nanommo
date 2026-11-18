@@ -1065,3 +1065,7 @@ V2 solo projections retain descriptive cast and status payload data so live/hist
 ### Combatant portrait details — 2026-11-18
 
 CombatantPortraitComponent owns only the portrait trigger and floating details presentation, reusing TooltipPositionDirective. Callers project details through [portraitDetails]; monster drop data stays in the grind/shared callers, so future PvP content can differ completely. The optional imageClass preserves existing hit-feedback hooks without coupling the component to monsters.
+
+### Target stats and public combat snapshots — 2026-11-18
+
+CombatantDetailsComponent renders the seven combat stats and an optional drop section; null drops means a player-style tooltip. Both solo and shared portraits use the same snapshot formatting. SharedBattleService.publicBattle explicitly exposes monster definitionId and these combat stats while retaining its private-state boundary. Enemy regeneration has a separate event tone; shared logs map event actor teams before applying it.

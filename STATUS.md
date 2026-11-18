@@ -1,3 +1,10 @@
+### Compact combat logs and target stats in tooltips — 2026-11-18
+
+- Live solo logs now use 13px text, 2px row padding and no row gap. Shared/history logs also use smaller text and spacing. Movement uses `( N ) space/spaces`, including grid movement and legacy movement fields. Enemy HP/SP regen has a separate dark-green tone.
+- Removed the standalone grind STATS block. Monster portraits show name, STATS, the seven snapshot stats, DROPS and drop rates. CombatantDetailsComponent omits the entire drop section when drops is null, ready for future player portraits with only name/stats.
+- Fixed the real shared API projection: publicBattle now includes monster definitionId and an explicit seven-field combat-stat allowlist. Private inventory, gambits, cooldowns and Diet remain excluded. The previous projection omitted the fields needed by shared portrait details.
+- Validation: shared/API/production frontend builds passed (frontend budget warnings). Movement/tone and public-target API regression scripts passed; both reproduced their original failures before fixes. All 269 browser assertions passed, including tooltip order, player drop omission and actual public target shape. Karma still returns its known Chromium teardown kill error after successful assertions. Focused review confirmed the public-projection fix. No migrations, deployment or live database changes.
+
 ### Monster drop details on portrait hover — 2026-11-18
 
 - Removed always-visible drop lists from solo/shared combat panels. Hover or keyboard focus on a monster portrait now opens its drop rates; shared combat uses compact monster portraits.

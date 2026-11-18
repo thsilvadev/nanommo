@@ -140,7 +140,14 @@ export class SharedBattleService {
   async publicBattle(characterId:string){
     const row=(await this.db.query(`SELECT b.* FROM shared_battles b JOIN shared_battle_participants a ON a."battleId"=b.id WHERE a."characterId"=$1 ORDER BY b."startAt" DESC LIMIT 1`,[characterId]))[0];
     if(!row)return null;
-    const actors=row.snapshot.actors.map(a=>({id:a.id,name:a.name,kind:a.kind,team:a.team,position:a.position,snapshot:{hp:a.snapshot.hp,sp:a.snapshot.sp,maxHp:a.snapshot.maxHp,maxSp:a.snapshot.maxSp,statusEffects:a.snapshot.statusEffects}}));
+    const actors=row.snapshot.actors.map(a=>({
+      id:a.id,name:a.name,kind:a.kind,team:a.team,position:a.position,
+      ...(a.kind==='monster'?{definitionId:a.definitionId}:{}),
+      snapshot:{hp:a.snapshot.hp,sp:a.snapshot.sp,maxHp:a.snapshot.maxHp,maxSp:a.snapshot.maxSp,
+        atk:a.snapshot.atk,matk:a.snapshot.matk,def:a.snapshot.def,mdefPercent:a.snapshot.mdefPercent,
+        accuracy:a.snapshot.accuracy,evasion:a.snapshot.evasion,critChance:a.snapshot.critChance,
+        statusEffects:a.snapshot.statusEffects},
+    }));
     const actorsAfter=Object.fromEntries(Object.entries(row.log.actorsAfter).map(([id,a]:[string,any])=>[id,{hp:a.hp,sp:a.sp,position:a.position,statusEffects:a.statusEffects,targetId:a.targetId}]));
     // No party member's private inventory, Gambits, cooldowns or Diet cross this boundary.
     return {id:row.id,revision:Number(row.revision),partyId:row.partyId,mapId:row.mapId,startAt:row.startAt,endAt:row.endAt,state:row.state,snapshot:{version:2,tickDurationMs:500,actors},log:{version:2,outcome:row.log.outcome,events:row.log.events,durationTicks:row.log.durationTicks,actorsAfter}};

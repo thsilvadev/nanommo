@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript');
 const moduleOut={exports:{}};
 new Function('exports',ts.transpileModule(fs.readFileSync('apps/frontend/src/app/features/play/battle-event-text.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(moduleOut.exports);
-const {battleEventText:text,visibleBattleEvent}=moduleOut.exports;
+const {battleEventText:text,battleEventTone:tone,visibleBattleEvent}=moduleOut.exports;
 const name=id=>({stun:'Stun',violent_shot:'Violent Shot',pot_hp_large:'Large HP Potion'}[id]??id);
 assert.equal(text({action:'status_expire',status:'stun'},'Hero','Treant',name),"Treant's Stun expires.");
 assert.equal(text({action:'target'},'Hero','Treant',name),'Hero targets Treant.');
@@ -9,4 +9,11 @@ assert.equal(text({action:'cast_start',skillId:'violent_shot'},'Hero','Treant',n
 assert.equal(text({action:'regen',hpGain:12,spGain:4},'Hero','Hero',name),'Hero regenerates 12 HP and 4 SP.');
 assert.equal(visibleBattleEvent({action:'regen',hpGain:0,spGain:0}),false);
 assert.equal(visibleBattleEvent({action:'regen',payload:{hpGain:4}}),true);
+assert.equal(text({action:'move',fromPosition:1,toPosition:2},'Hero','Foe',name),'Hero moves ( 1 ) space →.');
+assert.equal(text({action:'move',payload:{from:{column:7},to:{column:4}}},'Foe','Hero',name),'Foe moves ( 3 ) spaces ←.');
+assert.equal(text({action:'move',spacesMoved:1,direction:'left'},'Foe','Hero',name),'Foe moves ( 1 ) space ←.');
+assert.equal(tone({actor:'monster',action:'regen',hpGain:10}),'foe-regen');
+assert.equal(tone({actor:'monster',action:'sp_regen',amount:5}),'foe-regen');
+assert.equal(tone({actor:'character',action:'regen',hpGain:10}),'healing');
+assert.equal(tone({actor:'monster',action:'use_skill',healAmount:10}),'healing');
 console.log('readable-battle-events passed');

@@ -120,8 +120,7 @@
   transition: width 0.15s linear;
 }
 
-.monster-status,
-.monster-stats {
+.monster-status {
   margin: 10px 0px 10px 0px;
   border-top: 1px solid #38281a;
   padding-top: 3px;
@@ -136,37 +135,23 @@
   color: #bda779;
   font: 16px Arial;
 }
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
-}
-.stats-grid span {
-  background: #100c09;
-  padding: 2px;
-  text-align: center;
-}
-.stats-grid b,
-.stats-grid small {
-  font: 16px Arial;
-}
 .event-feed {
-  margin-top: 9px;
+  margin-top: 5px;
   border-top: 1px solid #38281a;
-  padding-top: 6px;
+  padding-top: 3px;
   display: grid;
   align-content: start;
-  gap: 3px;
+  gap: 0;
   flex: 1 1 122px;
   min-height: 0;
   overflow: auto;
 }
 .event {
   display: grid;
-  grid-template-columns: 24px 1fr;
+  grid-template-columns: 34px 1fr;
   gap: 4px;
   color: #aa987d;
-  font: 21px Arial;
+  font: 13px/1.3 Arial;
 }
 .event small {
   color: #705c48;
@@ -358,4 +343,4 @@
 }
 .save-town-button:hover .save-town-tooltip,
 .save-town-button:focus-visible .save-town-tooltip { display: block; }
-.event-feed{overflow-anchor:none}.event{gap:9px;line-height:1.5;padding:5px 0}
+.event-feed{overflow-anchor:none}.event{gap:6px;padding:2px 0}.event small{font:10px/1.3 monospace;padding-top:2px}
