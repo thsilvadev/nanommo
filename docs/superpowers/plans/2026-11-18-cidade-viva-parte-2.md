@@ -54,18 +54,18 @@
 
 **Interfaces — Produces:** `mapViewMode(inTown: boolean, mapId: string | null | undefined, choice: { mapId: string; mode: MapViewMode } | null): MapViewMode` (assinatura igual; a escolha só vale para o mesmo `mapId`). `TownViewToggleComponent` (selector `app-town-view-toggle`, `mode = input.required<MapViewMode>()`, `@Output() modeChange`) agora renderiza **um** `<button class="town-view-button">` que mostra o ícone do **outro** modo e emite esse modo.
 
-- [ ] **Step 1: Specs que falham** (`town-view-toggle.spec.ts`, substituir os testes do componente):
+- [x] **Step 1: Specs que falham** (`town-view-toggle.spec.ts`, substituir os testes do componente):
   - `mode='town'` → existe exatamente 1 `button`, `aria-label="Map"`, contém `img[src$="town-view-map.svg"]` com `alt=""`; clicar emite `'map'`.
   - `mode='map'` → `aria-label="Town"`, `img[src$="town-view-house.svg"]`; clicar emite `'town'`.
   - pointerdown/click não chegam ao pai (manter o teste atual).
   - `choice of another visit is ignored`: no MapBoard, a escolha é apagada quando `currentMapId` muda. Testar com `Object.create(MapBoard.prototype)` como os specs existentes do MapBoard: chame o método novo `forgetViewChoiceOnMapChange(previousMapId, nextMapId)` e verifique que `viewChoice()` vira `null` quando os ids diferem e fica quando são iguais.
-- [ ] **Step 2:** `cd apps/frontend && npx ng test --include='**/town-view-toggle.spec.ts' --watch=false --browsers=ChromeHeadless` → FAIL.
-- [ ] **Step 3: Implementar.**
+- [x] **Step 2:** `cd apps/frontend && npx ng test --include='**/town-view-toggle.spec.ts' --watch=false --browsers=ChromeHeadless` → FAIL.
+- [x] **Step 3: Implementar.**
   - Botão: 40×40, `border-radius: 50%`, anel dourado (`box-shadow` 2 px `#d9a441` + sombra externa), fundo radial escuro, `img` 30×30 `draggable="false"`, `:hover` sobe 1 px, `:focus-visible` com contorno `#ffd36a`. Sem `aria-pressed` (agora é ação).
   - SVGs autorais no estilo das referências: contorno escuro (`#3b2a1a`, 2–3 px), preenchimentos com `linearGradient`, um realce claro e uma sombra interna. Mapa: folha dobrada em 3 painéis (bege), água azul, terra verde, rota branca tracejada terminando num X vermelho. Casa: casinha de madeira com telhado de palha/marrom, porta e janela, sombra no chão. `viewBox="0 0 64 64"`, sem texto, sem fontes externas.
   - MapBoard: `forgetViewChoiceOnMapChange(previous, next)` zera `viewChoice` se `previous !== next`; chamado por um `effect` que observa `character.character()?.currentMapId`.
-- [ ] **Step 4:** rodar o spec → PASS. Depois a suíte inteira do frontend → sem falhas novas. Gerar um print do botão nos dois estados (spec descartável que loga `toDataURL`, como na parte 1) e anexar ao reporte.
-- [ ] **Step 5: Commit** `feat(frontend): botão ilustrado mapa↔cidade e troca automática ao chegar`.
+- [x] **Step 4:** rodar o spec → PASS. Depois a suíte inteira do frontend → sem falhas novas. Gerar um print do botão nos dois estados (spec descartável que loga `toDataURL`, como na parte 1) e anexar ao reporte.
+- [x] **Step 5: Commit** `feat(frontend): botão ilustrado mapa↔cidade e troca automática ao chegar`.
 
 ### Task 2: Offline já deitado
 
