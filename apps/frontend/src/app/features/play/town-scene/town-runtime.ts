@@ -69,6 +69,8 @@ export class TownRuntime implements TownSceneRuntimeHandle {
 
     for (const [npcId, spot] of Object.entries(init.def.npcSpots)) {
       const npc = new TownCharacter(factory, factory.npcEntry(npcId, init.npcNames[npcId] ?? npcId), { npc: true });
+      npc.elevation = spot.y ?? 0;
+      npc.object3d.position.set(spot.x, npc.elevation, spot.z);
       this.npcs.set(npcId, npc);
       this.npcPoses.set(npcId, { x: spot.x, z: spot.z, facing: (spot.facing * Math.PI) / 180, state: 'idle' });
       this.scene.add(npc.object3d);
@@ -127,6 +129,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   // ---- input ----------------------------------------------------------------
 
   pan(dxPx: number, dyPx: number): void { this.cam.pan(dxPx, dyPx); }
+  centerOn(x: number, z: number): void { this.cam.centerOn(x, z); }
   zoom(factor: number, atPx?: [number, number]): void { this.cam.zoomBy(factor, atPx); }
 
   /** NPCs win over players; empty ground picks nothing. */
@@ -144,6 +147,15 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     const point = character.hitObject.getWorldPosition(new THREE.Vector3()).project(this.cam.camera);
     const { w, h } = this.size();
     return [((point.x + 1) / 2) * w, ((1 - point.y) / 2) * h];
+  }
+
+  /** Vertical extent of a character's click box in world units (tests: elevated NPCs). */
+  hitBoxOf(kind: TownPick['kind'], id: string): { minY: number; maxY: number } | null {
+    const character = (kind === 'npc' ? this.npcs : this.characters).get(id);
+    if (!character) return null;
+    character.object3d.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(character.hitObject);
+    return { minY: box.min.y, maxY: box.max.y };
   }
 
   worldPositionOf(kind: TownPick['kind'], id: string): [number, number] | null {
@@ -202,6 +214,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
       const pose = this.npcPoses.get(id)!;
       npc.update(pose, dtMs, lodOf(pose.x, pose.z), now);
     }
+    this.world.update(now);
     this.renderNow();
   }
 

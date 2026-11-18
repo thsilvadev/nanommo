@@ -132,6 +132,8 @@ export class TownCharacter {
   private readonly owned: Array<{ dispose(): void }> = [];
   private disposed = false;
   entry: TownRosterEntry;
+  /** Height the character stands at (NPCs up on a balcony); the click box rises with it. */
+  elevation = 0;
 
   constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean } = {}) {
     this.entry = entry;
@@ -173,7 +175,7 @@ export class TownCharacter {
   }
 
   update(pose: TownPose, dtMs: number, lod: TownLod, nowMs: number): void {
-    this.object3d.position.set(pose.x, 0, pose.z);
+    this.object3d.position.set(pose.x, this.elevation, pose.z);
     this.model.rotation.y = pose.facing;
     if (this.plate) this.plate.visible = lod === 'full';
     this.firstSeenAt ??= nowMs;

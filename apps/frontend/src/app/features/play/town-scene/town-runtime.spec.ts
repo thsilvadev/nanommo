@@ -1,7 +1,9 @@
 import type { TownRosterEntry, TownSceneDef } from '@nanommo/shared';
 import { TownNav, positionAt } from '@nanommo/shared';
 import { isWebglAvailable } from '../../../shared/character-viewer/character-viewer.component';
+import * as THREE from 'three';
 import { createTownRuntime, type TownRuntime } from './town-runtime';
+import { buildTownWorld } from './town-world';
 
 const appearance = { v: 1, hair: 1, hairColor: 2, skin: 3, face: 0, nose: 0, mouth: 0, mouthDetails: 0, chest: 0, facialHair: 0, piercing: 0, tattoo: 0 } as const;
 const entry = (characterId: string, extra: Partial<TownRosterEntry> = {}): TownRosterEntry => ({
@@ -15,7 +17,7 @@ describe('TownRuntime (real WebGL)', () => {
   let runtime: TownRuntime | null = null;
   const NOW = Date.UTC(2026, 10, 18, 12);
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     const all = await fetch('/data/town_scenes.json').then(r => r.json());
     def = all.towns.find((t: TownSceneDef) => t.mapId === 'map_town');
   });
@@ -87,6 +89,31 @@ describe('TownRuntime (real WebGL)', () => {
     expect(rt.deadProgressOf('hero')).toBeNull();
   });
 
+  it('builds all five towns', async () => {
+    const all: TownSceneDef[] = (await fetch('/data/town_scenes.json').then(r => r.json())).towns;
+    expect(all.map(t => t.mapId).sort()).toEqual(['map_aramaia_city', 'map_emperial_capital_caelum', 'map_kwaioua_taba', 'map_outpost', 'map_town']);
+    for (const town of all) {
+      def = town;
+      const rt = await start([entry('hero')], 'hero');
+      expect(rt.npcCount()).withContext(town.mapId).toBe(Object.keys(town.npcSpots).length);
+      rt.dispose();
+      runtime = null;
+    }
+  });
+
+  it('elevated NPC is pickable', async () => {
+    def = (await fetch('/data/town_scenes.json').then(r => r.json())).towns.find((t: TownSceneDef) => t.mapId === 'map_emperial_capital_caelum');
+    const rt = await start([], null);
+    const spot = def.npcSpots['oracle'];
+    expect(spot.y).toBeGreaterThan(0);
+    rt.centerOn(spot.x, spot.z);
+    rt.renderNow();
+    const at = rt.screenPositionOf('npc', 'oracle')!;
+    expect(rt.pick(at[0], at[1])).toEqual({ kind: 'npc', id: 'oracle' });
+    expect(rt.worldPositionOf('npc', 'oracle')).toEqual([59, 47]);
+    expect(rt.hitBoxOf('npc', 'oracle')!.minY).toBeGreaterThanOrEqual(3.2 - 1e-6);
+  });
+
   it('removes characters that leave and drops its canvas on dispose', async () => {
     const rt = await start([entry('a'), entry('b')], null);
     rt.setCharacters([entry('a')], null);
@@ -95,5 +122,23 @@ describe('TownRuntime (real WebGL)', () => {
     rt.dispose();
     runtime = null;
     expect(host.querySelector('canvas')).toBeNull();
+  });
+});
+
+describe('TownWorld campfire', () => {
+  it('campfire light flickers deterministically', async () => {
+    const all = await fetch('/data/town_scenes.json').then(r => r.json());
+    const taba: TownSceneDef = all.towns.find((t: TownSceneDef) => t.mapId === 'map_kwaioua_taba');
+    const world = buildTownWorld(taba);
+    const fire = world.group.getObjectByName('campfire-light') as THREE.PointLight;
+    expect(fire).toBeTruthy();
+    const T = Date.UTC(2026, 10, 18, 12);
+    world.update(T);
+    const first = fire.intensity;
+    world.update(T);
+    expect(fire.intensity).toBe(first);
+    world.update(T + 120);
+    expect(fire.intensity).not.toBe(first);
+    world.dispose();
   });
 });

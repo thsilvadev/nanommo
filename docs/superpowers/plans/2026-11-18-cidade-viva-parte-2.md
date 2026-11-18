@@ -128,14 +128,14 @@ Defaults de raio: `tower r=4`, `campfire r=1.2`. `balcony` exige `w`, `d`, `heig
 
 **Interfaces — Produces:** `TownWorld.update(nowMs: number): void` (anima a chama; chamado em todo `tick`). NPC com `spot.y` é posicionado em `y` (modelo e caixa de clique).
 
-- [ ] **Step 1: Specs que falham** (`town-runtime.spec.ts`):
+- [x] **Step 1: Specs que falham** (`town-runtime.spec.ts`):
   - `builds all five towns`: para cada cidade do catálogo real, `createTownRuntime` + `settled()` sem erro, `npcCount()` = nº de `npcSpots`.
   - `elevated NPC is pickable`: em Caelum, `pick(...screenPositionOf('npc','oracle'))` → `{kind:'npc', id:'oracle'}` e `worldPositionOf` mantém `(59,47)`; a caixa de clique do oráculo está em `y ≥ 3.2`.
   - `campfire light flickers deterministically`: duas chamadas `world.update(T)` dão a mesma intensidade; `update(T)` e `update(T+120)` diferem.
-- [ ] **Step 2:** rodar → FAIL.
-- [ ] **Step 3: Implementar** os construtores: `balcony` (plataforma, guarda-corpo de ripas, 4 postes, escada de degraus no lado `stairs`); `tower` (cilindro de pedra em 3 tramos que afinam, ameias só no topo; altura do catálogo); `campfire` (anel de pedras, toras cruzadas, 3 cones emissivos laranja/amarelo e `PointLight` com intensidade `base · (0.85 + 0.15·sin(t·0.011) · sin(t·0.0047 + 1.3))`). Mantém as regras de sombra (só a luz principal projeta).
-- [ ] **Step 4:** rodar → PASS; suíte do frontend inteira; build de produção (só os avisos de orçamento já conhecidos). Prints de Caelum, Taba e Outpost (spec descartável, não versionado) anexados ao reporte.
-- [ ] **Step 5: Commit** `feat(frontend): varandas, torre do Outpost, fogueira e NPCs no alto`.
+- [x] **Step 2:** rodar → FAIL.
+- [x] **Step 3: Implementar** os construtores: `balcony` (plataforma, guarda-corpo de ripas, 4 postes, escada de degraus no lado `stairs`); `tower` (cilindro de pedra em 3 tramos que afinam, ameias só no topo; altura do catálogo); `campfire` (anel de pedras, toras cruzadas, 3 cones emissivos laranja/amarelo e `PointLight` com intensidade `base · (0.85 + 0.15·sin(t·0.011) · sin(t·0.0047 + 1.3))`). Mantém as regras de sombra (só a luz principal projeta).
+- [x] **Step 4:** rodar → PASS; suíte do frontend inteira; build de produção (só os avisos de orçamento já conhecidos). Prints de Caelum, Taba e Outpost (spec descartável, não versionado) anexados ao reporte.
+- [x] **Step 5: Commit** `feat(frontend): varandas, torre do Outpost, fogueira e NPCs no alto`.
 
 ### Task 6: NPCs — pesquisa e decisão com o usuário (sem código de produção)
 
