@@ -142,3 +142,35 @@ describe('TownWorld campfire', () => {
     world.dispose();
   });
 });
+
+describe('TownWorld animated pieces', () => {
+  const T = Date.UTC(2026, 10, 18, 12);
+  const pieces: Array<[string, string]> = [
+    ['map_emperial_capital_caelum', 'fountain-water'],
+    ['map_emperial_capital_caelum', 'fountain-ripple'],
+    ['map_kwaioua_taba', 'ember'],
+    ['map_aramaia_city', 'altar-pebble'],
+    ['map_town', 'well-bell'],
+  ];
+  const state = (o: THREE.Object3D) => {
+    const mesh = o as THREE.Mesh;
+    const map = (mesh.material as THREE.MeshStandardMaterial | undefined)?.map;
+    return JSON.stringify([o.position.toArray(), o.rotation.toArray(), o.scale.toArray(), map ? map.offset.toArray() : null]);
+  };
+
+  for (const [mapId, name] of pieces) {
+    it(`${name} (${mapId}) moves with the clock, deterministically`, async () => {
+      const all = await fetch('/data/town_scenes.json').then(r => r.json());
+      const world = buildTownWorld(all.towns.find((t: TownSceneDef) => t.mapId === mapId));
+      const piece = world.group.getObjectByName(name);
+      expect(piece).withContext(name).toBeTruthy();
+      world.update(T);
+      const first = state(piece!);
+      world.update(T);
+      expect(state(piece!)).toBe(first);
+      world.update(T + 120);
+      expect(state(piece!)).not.toBe(first);
+      world.dispose();
+    });
+  }
+});

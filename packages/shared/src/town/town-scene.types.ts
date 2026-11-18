@@ -2,7 +2,7 @@ import type { CharacterAppearance, Sex } from '../appearance';
 
 export const TOWN_OBSTACLE_KINDS = [
   'tree', 'tall_tree', 'fountain', 'house', 'hut', 'tent', 'pillar', 'pyramid_wall', 'lamp', 'rock', 'fence',
-  'balcony', 'tower', 'campfire',
+  'balcony', 'tower', 'campfire', 'altar', 'well',
 ] as const;
 export type ObstacleKind = typeof TOWN_OBSTACLE_KINDS[number];
 

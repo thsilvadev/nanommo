@@ -137,6 +137,18 @@ Defaults de raio: `tower r=4`, `campfire r=1.2`. `balcony` exige `w`, `d`, `heig
 - [x] **Step 4:** rodar → PASS; suíte do frontend inteira; build de produção (só os avisos de orçamento já conhecidos). Prints de Caelum, Taba e Outpost (spec descartável, não versionado) anexados ao reporte.
 - [x] **Step 5: Commit** `feat(frontend): varandas, torre do Outpost, fogueira e NPCs no alto`.
 
+### Task 5b: Fonte com água, fogueira viva, altar de Aramaia e poço de Sierra (pedido do usuário, 2026-11-18)
+
+**Files:** Modify `packages/shared/src/town/town-scene.types.ts`, `town-nav.ts`; `town_scenes.json` (+ espelho); `town-scene/town-world.ts`, `town-scene/town-runtime.spec.ts`; `apps/api/test/town-wander.test.js`, `apps/api/test/town-scenes-catalog.test.js`.
+
+**Interfaces — Produces:** `TOWN_OBSTACLE_KINDS += 'altar' | 'well'` (defaults `altar r=4.5`, `well r=1.4`). Peças animadas por `TownWorld.update(nowMs)`, todas determinísticas pelo relógio: `fountain-water`/`fountain-ripple`, `ember`, `altar-pebble`, `well-bell`.
+
+- [x] **Step 1: Testes que falham:** raios padrão (`town-wander`); Aramaia com `altar` em (36,36) e Sierra com `well` em (36,36), nenhum POI invadindo, POIs `sunshaft`/`square` substituídos (`town-scenes-catalog`); 10 000 amostras de Aramaia e Sierra nunca bloqueadas; spec do frontend: cada peça animada tem o mesmo estado em `update(T)` repetido e muda em `update(T+120)`.
+- [x] **Step 2:** rodar → FAIL.
+- [x] **Step 3: Implementar.** Fonte: bacia com borda (toro) e água por cima, cortina de água caindo da taça com textura rolando, ondas que se expandem. Fogueira: brasas que sobem em espiral e chamas que balançam. Altar: degraus circulares concêntricos (escada anelar), pirâmide fina de 4 lados, esfera no topo, pedrinhas em órbitas inclinadas. Poço: mureta de pedra com água escura, dois postes, telhadinho de duas águas, sino que balança.
+- [x] **Step 4:** testes → PASS; suíte do frontend; build de produção; prints.
+- [x] **Step 5: Commit** `feat: fonte com água, fogueira viva, altar de Aramaia e poço de Sierra`.
+
 ### Task 6: NPCs — pesquisa e decisão com o usuário (sem código de produção)
 
 **Files:** Create `docs/superpowers/specs/2026-11-18-npc-visuals-decision.md`.

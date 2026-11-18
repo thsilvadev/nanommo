@@ -129,6 +129,19 @@ test('Outpost has a tower whose top the camera never sees, with its NPCs around 
   }
 });
 
+for (const [mapId, kind, replaced] of [['map_aramaia_city', 'altar', 'sunshaft'], ['map_town', 'well', 'square']]) {
+  test(`${mapId}: ${kind} in the middle of the town`, () => {
+    const def = root.towns.find(t => t.mapId === mapId);
+    const centre = def.obstacles.find(o => o.kind === kind && o.x === 36 && o.z === 36);
+    assert.ok(centre, `${kind} at (36,36)`);
+    const r = obstacleRadius(centre);
+    for (const poi of def.pointsOfInterest) {
+      assert.ok(Math.hypot(poi.x - 36, poi.z - 36) >= r + 0.4 + poi.radius, `${poi.id} overlaps the ${kind}`);
+    }
+    assert.ok(!def.pointsOfInterest.some(p => p.id === replaced), `${replaced} POI replaced`);
+  });
+}
+
 // Caelum copy with the house at (59,47) turned into a balcony whose stairs face west (foot at 52,47).
 function caelumWithBalcony({ y = 3.2, poi = [52.5, 47.5], spot = [59, 47] } = {}) {
   const copy = JSON.parse(JSON.stringify(root));

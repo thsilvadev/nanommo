@@ -11,6 +11,8 @@ const DEFAULT_RADIUS: Partial<Record<TownObstacle['kind'], number>> = {
   rock: 1,
   tower: 4,
   campfire: 1.2,
+  altar: 4.5,
+  well: 1.4,
 };
 
 /** A balcony's stairs reach this far out from the platform edge on their side. */

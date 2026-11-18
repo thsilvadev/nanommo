@@ -153,7 +153,8 @@
         { "kind": "tree", "x": 68, "z": 2.5, "height": 5 },
         { "kind": "tree", "x": 68, "z": 69.5, "height": 5 },
         { "kind": "rock", "x": 30, "z": 62, "r": 1 },
-        { "kind": "rock", "x": 60, "z": 8, "r": 1.2 }
+        { "kind": "rock", "x": 60, "z": 8, "r": 1.2 },
+        { "kind": "well", "x": 36, "z": 36, "r": 1.4, "height": 3 }
       ],
       "npcSpots": {
         "storage": { "x": 25.54, "z": 25.54, "facing": 45 },
@@ -174,7 +175,10 @@
         { "id": "npc_father_marcelus", "x": 36, "z": 51.2, "radius": 1.6, "weight": 3, "lookAt": [36, 53] },
         { "id": "npc_oracle", "x": 20.8, "z": 36, "radius": 1.6, "weight": 3, "lookAt": [19, 36] },
         { "id": "npc_mailbox", "x": 39.5, "z": 38.8, "radius": 1.5, "weight": 3, "lookAt": [41, 40] },
-        { "id": "square", "x": 36, "z": 36, "radius": 4, "weight": 5 },
+        { "id": "well_n", "x": 36, "z": 32.8, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
+        { "id": "well_e", "x": 39.2, "z": 36, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
+        { "id": "well_s", "x": 36, "z": 39.2, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
+        { "id": "well_w", "x": 32.8, "z": 36, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
         { "id": "square_n", "x": 36, "z": 28, "radius": 2, "weight": 2, "lookAt": [36, 36] },
         { "id": "square_s", "x": 36, "z": 44, "radius": 2, "weight": 2, "lookAt": [36, 36] },
         { "id": "square_w", "x": 28, "z": 36, "radius": 2, "weight": 2, "lookAt": [36, 36] },
@@ -318,7 +322,8 @@
         { "kind": "pillar", "x": 50, "z": 22, "r": 0.8, "height": 7 },
         { "kind": "pillar", "x": 50, "z": 30, "r": 0.8, "height": 7 },
         { "kind": "pillar", "x": 50, "z": 42, "r": 0.8, "height": 7 },
-        { "kind": "pillar", "x": 50, "z": 50, "r": 0.8, "height": 7 }
+        { "kind": "pillar", "x": 50, "z": 50, "r": 0.8, "height": 7 },
+        { "kind": "altar", "x": 36, "z": 36, "r": 4.5, "height": 5 }
       ],
       "npcSpots": {
         "storage": { "x": 26.01, "z": 26.01, "facing": 45 },
@@ -333,7 +338,10 @@
         { "id": "npc_mailbox", "x": 27.28, "z": 44.72, "radius": 1.6, "weight": 3, "lookAt": [26.01, 45.99] },
         { "id": "npc_father_marcelus", "x": 44.72, "z": 44.72, "radius": 1.6, "weight": 3, "lookAt": [45.99, 45.99] },
         { "id": "npc_oracle", "x": 36, "z": 27.81, "radius": 1.6, "weight": 3, "lookAt": [36, 26.01] },
-        { "id": "sunshaft", "x": 36, "z": 36, "radius": 4, "weight": 5 },
+        { "id": "altar_n", "x": 36, "z": 29.7, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
+        { "id": "altar_e", "x": 42.3, "z": 36, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
+        { "id": "altar_s", "x": 36, "z": 42.3, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
+        { "id": "altar_w", "x": 29.7, "z": 36, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
         { "id": "corridor_nw", "x": 8, "z": 8, "radius": 2, "weight": 1 },
         { "id": "corridor_n", "x": 36, "z": 7.5, "radius": 2, "weight": 1 },
         { "id": "corridor_ne", "x": 64, "z": 8, "radius": 2, "weight": 1 },

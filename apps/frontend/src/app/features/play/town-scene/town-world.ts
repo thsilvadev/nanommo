@@ -65,8 +65,10 @@ export function buildTownWorld(def: TownSceneDef): TownWorld {
   ground.name = 'ground';
   group.add(ground);
 
+  const animators: Animator[] = [];
+  const own = <T extends { dispose(): void }>(item: T) => { owned.push(item); return item; };
   for (const obstacle of def.obstacles) {
-    const object = buildObstacle(obstacle, palette, mat, geo);
+    const object = buildObstacle(obstacle, palette, mat, geo, own, animators);
     object.position.set(obstacle.x, 0, obstacle.z);
     // TownNav maps world offsets to local with R(+rot); three's rotation.y = +rot is the inverse map, so mesh and grid agree.
     object.rotation.y = ((obstacle.rot ?? 0) * Math.PI) / 180;
@@ -127,7 +129,12 @@ export function buildTownWorld(def: TownSceneDef): TownWorld {
     update: (nowMs: number) => {
       const k = campfireFlicker(nowMs);
       for (const f of flickering) f.light.intensity = f.base * k;
-      for (const [i, flame] of flames.entries()) flame.scale.y = campfireFlicker(nowMs + i * 173);
+      for (const [i, flame] of flames.entries()) {
+        flame.scale.y = campfireFlicker(nowMs + i * 173);
+        flame.rotation.y = Math.sin(nowMs * 0.003 + i * 2.1) * 0.35;
+        flame.rotation.z = Math.sin(nowMs * 0.0042 + i * 1.3) * 0.08;
+      }
+      for (const animate of animators) animate(nowMs);
     },
     dispose: () => {
       for (const item of owned) item.dispose();
@@ -138,6 +145,50 @@ export function buildTownWorld(def: TownSceneDef): TownWorld {
 
 type MatFn = (color: string, extra?: THREE.MeshStandardMaterialParameters) => THREE.MeshStandardMaterial;
 type GeoFn = <T extends THREE.BufferGeometry>(g: T) => T;
+type OwnFn = <T extends { dispose(): void }>(item: T) => T;
+/** Moves part of an obstacle from the shared clock (same input, same pose on every client). */
+type Animator = (nowMs: number) => void;
+
+const GOLDEN = 0.6180339887;
+const frac = (v: number) => v - Math.floor(v);
+
+/** Light streaks on transparent blue: scrolled to make water move. */
+function waterTexture(color: string | null): THREE.CanvasTexture {
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  if (color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, size, size);
+  } else {
+    // Falling streams: soft vertical bands on transparent.
+    for (let x = 0; x < size; x += 8) {
+      const band = ctx.createLinearGradient(x, 0, x + 8, 0);
+      band.addColorStop(0, 'rgba(190,225,255,0)');
+      band.addColorStop(0.5, 'rgba(190,225,255,0.85)');
+      band.addColorStop(1, 'rgba(190,225,255,0)');
+      ctx.fillStyle = band;
+      ctx.fillRect(x, 0, 8, size);
+    }
+  }
+  const rng = new Mulberry32('town:water');
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  for (let i = 0; i < 14; i++) {
+    ctx.lineWidth = 1 + rng.next() * 2;
+    const x = rng.next() * size;
+    const y = rng.next() * size;
+    const len = 8 + rng.next() * 18;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x + 3, y + len / 2, x, y + len);
+    ctx.stroke();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
 
 function mesh(geometry: THREE.BufferGeometry, material: THREE.Material, y = 0): THREE.Mesh {
   const m = new THREE.Mesh(geometry, material);
@@ -146,7 +197,7 @@ function mesh(geometry: THREE.BufferGeometry, material: THREE.Material, y = 0): 
 }
 
 /** Low-poly primitive per obstacle kind (footprint = the one TownNav blocks). */
-function buildObstacle(o: TownObstacle, p: Palette, mat: MatFn, geo: GeoFn): THREE.Object3D {
+function buildObstacle(o: TownObstacle, p: Palette, mat: MatFn, geo: GeoFn, own: OwnFn, animators: Animator[]): THREE.Object3D {
   const g = new THREE.Group();
   g.name = `obstacle:${o.kind}`;
   const r = obstacleRadius(o) ?? 1;
@@ -165,10 +216,52 @@ function buildObstacle(o: TownObstacle, p: Palette, mat: MatFn, geo: GeoFn): THR
       break;
     }
     case 'fountain': {
-      g.add(mesh(geo(new THREE.CylinderGeometry(r, r * 1.05, 0.7, 16)), mat(p.stone), 0.35));
-      g.add(mesh(geo(new THREE.CylinderGeometry(r * 0.88, r * 0.88, 0.1, 16)), mat(p.water, { roughness: 0.2, emissive: p.water, emissiveIntensity: 0.15 }), 0.62));
-      g.add(mesh(geo(new THREE.CylinderGeometry(r * 0.16, r * 0.22, (o.height ?? 2) + 0.4, 8)), mat(p.stone), ((o.height ?? 2) + 0.4) / 2));
-      g.add(mesh(geo(new THREE.CylinderGeometry(r * 0.45, r * 0.35, 0.25, 12)), mat(p.stone), (o.height ?? 2) + 0.4));
+      // Basin with a stone rim and water on top, a column, a bowl that overflows in a falling curtain.
+      const top = (o.height ?? 2) + 0.4;
+      const surface = 0.5;
+      g.add(mesh(geo(new THREE.CylinderGeometry(r, r * 1.05, 0.45, 24)), mat(p.stone), 0.225));
+      const rim = mesh(geo(new THREE.TorusGeometry(r * 0.93, Math.max(0.12, r * 0.07), 8, 32)), mat(p.stone), surface);
+      rim.rotation.x = Math.PI / 2;
+      g.add(rim);
+      const basinMap = own(waterTexture(p.water));
+      basinMap.repeat.set(3, 3);
+      const basinMat = own(new THREE.MeshStandardMaterial({ color: '#ffffff', map: basinMap, roughness: 0.15, emissive: p.water, emissiveIntensity: 0.2, transparent: true, opacity: 0.88 }));
+      const basin = mesh(geo(new THREE.CircleGeometry(r * 0.9, 32)), basinMat, surface + 0.02);
+      basin.rotation.x = -Math.PI / 2;
+      basin.userData['noShadow'] = true;
+      g.add(basin);
+      g.add(mesh(geo(new THREE.CylinderGeometry(r * 0.16, r * 0.22, top - surface, 8)), mat(p.stone), surface + (top - surface) / 2));
+      g.add(mesh(geo(new THREE.CylinderGeometry(r * 0.45, r * 0.3, 0.25, 16)), mat(p.stone), top));
+      const bowlWater = mesh(geo(new THREE.CircleGeometry(r * 0.4, 24)), basinMat, top + 0.13);
+      bowlWater.rotation.x = -Math.PI / 2;
+      bowlWater.userData['noShadow'] = true;
+      g.add(bowlWater);
+      const curtainMap = own(waterTexture(null));
+      curtainMap.repeat.set(3, 1.5);
+      const curtainMat = own(new THREE.MeshStandardMaterial({ color: '#ffffff', map: curtainMap, emissive: p.water, emissiveIntensity: 0.3, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false }));
+      const curtain = mesh(geo(new THREE.CylinderGeometry(r * 0.45, r * 0.62, top - surface, 24, 1, true)), curtainMat, surface + (top - surface) / 2);
+      curtain.name = 'fountain-water';
+      curtain.userData['noShadow'] = true;
+      g.add(curtain);
+      const ringGeo = geo(new THREE.RingGeometry(0.92, 1, 40));
+      const ripples = [0, 1, 2].map(() => {
+        const ring = mesh(ringGeo, own(new THREE.MeshBasicMaterial({ color: '#e8f6ff', transparent: true, depthWrite: false })), surface + 0.04);
+        ring.rotation.x = -Math.PI / 2;
+        ring.name = 'fountain-ripple';
+        ring.userData['noShadow'] = true;
+        g.add(ring);
+        return ring;
+      });
+      animators.push((now) => {
+        curtainMap.offset.y = frac(now * 0.0007);
+        basinMap.offset.set(frac(now * 0.00004), frac(now * 0.00006));
+        ripples.forEach((ring, i) => {
+          const phase = frac(now / 2600 + i / ripples.length);
+          const radius = r * (0.62 + phase * 0.26);
+          ring.scale.set(radius, radius, 1);
+          (ring.material as THREE.MeshBasicMaterial).opacity = 0.55 * (1 - phase);
+        });
+      });
       break;
     }
     case 'house': {
@@ -301,6 +394,25 @@ function buildObstacle(o: TownObstacle, p: Palette, mat: MatFn, geo: GeoFn): THR
       const flameDefs: Array<[string, number, number, number, number]> = [
         ['#ff6a1a', 0.45, 1.1, 0, 0], ['#ff9a2e', 0.32, 0.85, 0.15, 0.1], ['#ffd34a', 0.2, 0.6, -0.1, -0.08],
       ];
+      // Embers rising in a loose spiral, each on its own phase of the clock.
+      const emberGeo = geo(new THREE.OctahedronGeometry(0.09, 0));
+      const emberMat = own(new THREE.MeshBasicMaterial({ color: '#ffc04d', toneMapped: false }));
+      const embers = Array.from({ length: 10 }, (_, i) => {
+        const ember = mesh(emberGeo, emberMat, 0.3);
+        ember.name = 'ember';
+        ember.userData['noShadow'] = true;
+        g.add(ember);
+        return { ember, seed: i };
+      });
+      animators.push((now) => {
+        for (const { ember, seed } of embers) {
+          const phase = frac(now / 1700 + seed * GOLDEN);
+          const angle = seed * 2.399 + phase * 3.2;
+          const spread = 0.12 + phase * 0.45;
+          ember.position.set(Math.cos(angle) * spread, 0.35 + phase * 2.6, Math.sin(angle) * spread);
+          ember.scale.setScalar(Math.max(0.05, 1 - phase));
+        }
+      });
       for (const [color, radius, height, fx, fz] of flameDefs) {
         const flame = mesh(geo(new THREE.ConeGeometry(radius, height, 7)), mat(color, { emissive: color, emissiveIntensity: 0.9, roughness: 1, toneMapped: false }), 0);
         // Pivot at the base so the flicker grows the flame upwards.
@@ -310,6 +422,81 @@ function buildObstacle(o: TownObstacle, p: Palette, mat: MatFn, geo: GeoFn): THR
         flame.userData['noShadow'] = true;
         g.add(flame);
       }
+      break;
+    }
+    case 'altar': {
+      // Concentric ring stairs up to a round altar; a thin pyramid, a sphere on top, pebbles in orbit.
+      const steps = 4;
+      const stepH = 0.35;
+      const stepIn = Math.min(0.75, (r * 0.5) / steps);
+      for (let i = 0; i < steps; i++) {
+        const radius = r - stepIn * i;
+        g.add(mesh(geo(new THREE.CylinderGeometry(radius, radius, stepH, 40)), mat(i % 2 ? p.wall : p.stone), stepH * i + stepH / 2));
+      }
+      const deck = stepH * steps;
+      const spire = o.height ?? 5;
+      const pyramid = mesh(geo(new THREE.ConeGeometry(0.42, spire, 4)), mat(p.stone, { emissive: p.stone, emissiveIntensity: 0.25 }), deck + spire / 2);
+      pyramid.rotation.y = Math.PI / 4;
+      g.add(pyramid);
+      const orbCentre = deck + spire + 0.5;
+      g.add(mesh(geo(new THREE.SphereGeometry(0.5, 24, 16)), mat('#ffe39a', { emissive: '#ffcf5a', emissiveIntensity: 0.9, roughness: 0.3 }), orbCentre));
+      const pebbleGeo = geo(new THREE.DodecahedronGeometry(0.11, 0));
+      const pebbles = Array.from({ length: 7 }, (_, i) => {
+        const pebble = mesh(pebbleGeo, mat(p.stone), orbCentre);
+        pebble.name = 'altar-pebble';
+        g.add(pebble);
+        return { pebble, radius: 0.85 + (i % 3) * 0.18, tilt: -0.6 + ((i * GOLDEN) % 1) * 1.2, speed: 0.0011 + (i % 4) * 0.00025, phase: i * 2.399 };
+      });
+      animators.push((now) => {
+        for (const { pebble, radius, tilt, speed, phase } of pebbles) {
+          const a = phase + now * speed;
+          const x = Math.cos(a) * radius;
+          const flatZ = Math.sin(a) * radius;
+          pebble.position.set(x, orbCentre + flatZ * Math.sin(tilt), flatZ * Math.cos(tilt));
+          pebble.rotation.set(a * 1.7, a * 1.3, 0);
+        }
+      });
+      break;
+    }
+    case 'well': {
+      // Stone well with dark water, two posts, a little gable roof and a bell swinging under it.
+      const h = o.height ?? 3;
+      g.add(mesh(geo(new THREE.CylinderGeometry(r, r * 1.04, 0.8, 18)), mat(p.stone), 0.4));
+      const rim = mesh(geo(new THREE.TorusGeometry(r * 0.88, 0.14, 8, 24)), mat(p.stone), 0.82);
+      rim.rotation.x = Math.PI / 2;
+      g.add(rim);
+      const water = mesh(geo(new THREE.CircleGeometry(r * 0.76, 20)), mat('#1f3a52', { roughness: 0.1, emissive: '#10283a', emissiveIntensity: 0.4 }), 0.81);
+      water.rotation.x = -Math.PI / 2;
+      g.add(water);
+      const post = geo(new THREE.BoxGeometry(0.18, h, 0.18));
+      for (const side of [-1, 1]) g.add(mesh(post, mat(p.wood), h / 2)).children.at(-1)!.position.set(side * (r + 0.05), h / 2, 0);
+      const beamY = h - 0.25;
+      g.add(mesh(geo(new THREE.BoxGeometry(2 * r + 0.5, 0.16, 0.16)), mat(p.wood), beamY));
+      const roofW = 2 * r + 1;
+      const panel = geo(new THREE.BoxGeometry(roofW, 0.1, 1.05));
+      for (const side of [-1, 1]) {
+        const half = mesh(panel, mat(p.roof), h + 0.28);
+        half.position.z = side * 0.4;
+        half.rotation.x = side * 0.6;
+        g.add(half);
+      }
+      // The bell hangs from an arm off the front post, clear of the roof so the town camera sees it.
+      const armZ = 1.35;
+      const arm = mesh(geo(new THREE.BoxGeometry(0.12, 0.12, armZ)), mat(p.wood), beamY - 0.35);
+      arm.position.set(r + 0.05, beamY - 0.35, armZ / 2);
+      g.add(arm);
+      const pivot = new THREE.Group();
+      pivot.name = 'well-bell';
+      pivot.position.set(r + 0.05, beamY - 0.42, armZ - 0.12);
+      const bellMat = mat('#c9993a', { metalness: 0.6, roughness: 0.35, side: THREE.DoubleSide });
+      pivot.add(mesh(geo(new THREE.CylinderGeometry(0.03, 0.03, 0.18, 6)), mat(p.wood), -0.09));
+      pivot.add(mesh(geo(new THREE.CylinderGeometry(0.12, 0.26, 0.36, 14, 1, true)), bellMat, -0.36));
+      pivot.add(mesh(geo(new THREE.SphereGeometry(0.12, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2)), bellMat, -0.18));
+      pivot.add(mesh(geo(new THREE.SphereGeometry(0.06, 8, 6)), mat('#6b5530', { metalness: 0.4 }), -0.52));
+      g.add(pivot);
+      animators.push((now) => {
+        pivot.rotation.x = 0.32 * Math.sin(now * 0.0021) + 0.1 * Math.sin(now * 0.0057 + 0.7);
+      });
       break;
     }
     case 'fence': {

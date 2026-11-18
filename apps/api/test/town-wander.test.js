@@ -174,13 +174,15 @@ test('balcony stairs foot rotates with the obstacle', () => {
 test('tower and campfire default radii', () => {
   assert.equal(obstacleRadius({ kind: 'tower', x: 0, z: 0 }), 4);
   assert.equal(obstacleRadius({ kind: 'campfire', x: 0, z: 0 }), 1.2);
+  assert.equal(obstacleRadius({ kind: 'altar', x: 0, z: 0 }), 4.5);
+  assert.equal(obstacleRadius({ kind: 'well', x: 0, z: 0 }), 1.4);
   const nav = new TownNav(balconyFixture({ kind: 'campfire', x: 15, z: 15 }));
   assert.equal(nav.blocked(15, 15), true);
   assert.equal(nav.blocked(17, 15), false);
 });
 
 const realTowns = JSON.parse(require('node:fs').readFileSync(require('node:path').join(__dirname, '../../../town_scenes.json'), 'utf8')).towns;
-for (const mapId of ['map_emperial_capital_caelum', 'map_kwaioua_taba', 'map_outpost']) {
+for (const mapId of ['map_emperial_capital_caelum', 'map_kwaioua_taba', 'map_outpost', 'map_aramaia_city', 'map_town']) {
   test(`${mapId}: never blocked (balconies, stairs, campfire, tower)`, () => {
     const def = realTowns.find(t => t.mapId === mapId);
     assert.ok(def, `${mapId} scene`);
