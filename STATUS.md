@@ -1,3 +1,8 @@
+### Flaming Treant tree silhouette revision — 2026-11-18
+
+- Replaced the bulky humanoid form with an elongated ancient tree trunk, slender branch arms, twig fingers, moss beard and spreading roots, following the supplied Ent reference. Preserved the monster pixel-art rendering and flames; tears are now small and muted.
+- PNG and existing SVG URL updated together. Visual inspection, real RGBA transparency and embedded-image byte parity verified.
+
 ### Gameplay fixes on isolated branch — 2026-11-17
 
 - Branch `codex/gameplay-fixes`: readable colored live/shared/history battle logs, conditional bottom following, V2 status/cast metadata; optional craft announcements with 33-output allowlist; clickable Cooking Max; transparent angry/crying Flaming Treant; monster-specific drop rates; sequential profession batches with per-unit XP and safe deadline cancellation; map size tooltips; serialized stationary scheduling to prevent stance overwrite.
