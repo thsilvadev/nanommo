@@ -19,8 +19,12 @@
           <strong>{{monster(b.monsterId)?.name||b.monsterId}} Lv.{{monsterLevel(b)}}</strong>
           <small>Battle #{{b.sequenceIndex+1}} · {{elapsedTicks(b)}}s</small>
           <div class="foe-sprite-wrap" [battleHitFeedback]="'monster'">
-            <img class="foe-sprite" [src]="monsterSprite(b.monsterId)"
-              [alt]="monster(b.monsterId)?.name||b.monsterId" width="167" height="199">
+            <app-combatant-portrait imageClass="foe-sprite" [src]="monsterSprite(b.monsterId)" [name]="monster(b.monsterId)?.name || b.monsterId">
+              <div portraitDetails><small class="portrait-section-label">DROP RATES</small>
+                <div *ngFor="let drop of monsterDrops(b)" class="portrait-detail-row"><span>{{drop.name}}</span><b>{{drop.percent | number:'1.0-3'}}%</b></div>
+                <small *ngIf="!monsterDrops(b).length">No listed drops.</small>
+              </div>
+            </app-combatant-portrait>
             <span *ngIf="monster(b.monsterId)?.isAggressive === true" class="aggression-badge" tabindex="0" role="img"
               aria-label="Aggressive: this monster will try to interrupt your gathering or traveling">
               <span class="aggression-emoji" aria-hidden="true">💢</span>
@@ -44,7 +48,6 @@
           <div class="stats-grid"><span
               *ngFor="let stat of monsterStats(b)"><b>{{stat.label}}: </b><small>{{stat.value}}</small></span></div>
         </div>
-        <div class="monster-drops" *ngIf="monsterDrops(b).length"><div class="section-label">DROP RATES</div><div *ngFor="let drop of monsterDrops(b)">{{drop.name}} <b>{{drop.percent | number:'1.0-3'}}%</b></div></div>
         <div class="event-feed" followLog role="log" aria-live="off">
           <div *ngFor="let e of recentEvents(b)" class="event" [attr.data-tone]="eventTone(e)"><small>T{{e.tick}}</small><span>{{eventText(e)}}</span>
           </div>

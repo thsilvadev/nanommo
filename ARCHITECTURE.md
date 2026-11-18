@@ -1050,3 +1050,7 @@ The refinement modal's Bliss Stone quantity is a presentation of `VendorStore.to
 Profession crafting keeps a stable batch identity and creates a fresh session id for each 10-second unit. Ingredient reservations shrink per completion; output, XP and deterministic equipment rolls commit per unit. Cancellation at a due boundary awards that unit then clears only the matching batch. Craft announcements are best-effort after commit, use an explicit output allowlist and bounded Redis history, and share gateway fanout while retaining a separate client channel filter.
 
 V2 solo projections retain descriptive cast and status payload data so live/history logs and status timelines consume the same engine vocabulary. A shared formatter names events; live scroll following is a standalone directive tracking whether the reader remains at the bottom. Stationary job scheduling serializes on the character encounter lock and patches only gatheringCycle to avoid stale stance writes.
+
+### Combatant portrait details — 2026-11-18
+
+CombatantPortraitComponent owns only the portrait trigger and floating details presentation, reusing TooltipPositionDirective. Callers project details through [portraitDetails]; monster drop data stays in the grind/shared callers, so future PvP content can differ completely. The optional imageClass preserves existing hit-feedback hooks without coupling the component to monsters.

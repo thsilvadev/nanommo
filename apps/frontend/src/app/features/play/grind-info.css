@@ -358,4 +358,4 @@
 }
 .save-town-button:hover .save-town-tooltip,
 .save-town-button:focus-visible .save-town-tooltip { display: block; }
-.monster-drops{padding:8px 0;font:11px/1.6 Arial;color:#baa789}.monster-drops>div:not(.section-label){display:flex;justify-content:space-between;gap:10px}.monster-drops b{color:#dfc581}.event-feed{overflow-anchor:none}.event{gap:9px;line-height:1.5;padding:5px 0}
+.event-feed{overflow-anchor:none}.event{gap:9px;line-height:1.5;padding:5px 0}

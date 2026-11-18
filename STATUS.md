@@ -1,3 +1,10 @@
+### Monster drop details on portrait hover — 2026-11-18
+
+- Removed always-visible drop lists from solo/shared combat panels. Hover or keyboard focus on a monster portrait now opens its drop rates; shared combat uses compact monster portraits.
+- Added a presentation-only CombatantPortraitComponent with projected details. It has no drop/PvP rules, allowing future PvP callers to supply unrelated content. Existing floating-tooltip positioning prevents panel clipping and keeps details within the viewport.
+- Preserved the inner image's foe-sprite hook for hit feedback. Review found this compatibility issue and verified the correction.
+- Validation: production frontend build passed with budget warnings; final browser run reported 265 successful assertions, including hover/focus, arbitrary replacement content, viewport placement and cleanup. Karma still exits nonzero with the known Chromium teardown kill error after successful tests. No push/deploy.
+
 ### Subtle shared craft quantity selector — 2026-11-18
 
 - Cooking, Alchemy and Blacksmith share a compact quantity component. Max is now only an understated underlined text button immediately left of the input, with no border/background. The maximum number remains available in its tooltip/accessibility label.
