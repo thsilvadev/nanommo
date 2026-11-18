@@ -1,3 +1,10 @@
+### Subtle shared craft quantity selector — 2026-11-18
+
+- Cooking, Alchemy and Blacksmith share a compact quantity component. Max is now only an understated underlined text button immediately left of the input, with no border/background. The maximum number remains available in its tooltip/accessibility label.
+- Replaced native number spinners with bronze chevrons; typing and native number-input keyboard behavior remain available. Values clamp to 1–maximum; controls respect availability/busy state.
+- Root cause: later inline `.craft-quantity-control { display:grid }` overrode the Cooking layout. Removed both conflicting legacy style blocks; the shared component owns its layout.
+- Validation: browser regression first failed for stacked/boxed Max, then all 206 frontend tests passed, including alignment at wide/narrow widths, Max, arrow bounds, input clamping and disabled state. Production frontend build passed with budget warnings. Karma still exits with its known Chromium teardown `kill` error after successful assertions. Focused code review returned no important findings. No push/deploy.
+
 ### Flaming Treant tree silhouette revision — 2026-11-18
 
 - Replaced the bulky humanoid form with an elongated ancient tree trunk, slender branch arms, twig fingers, moss beard and spreading roots, following the supplied Ent reference. Preserved the monster pixel-art rendering and flames; tears are now small and muted.

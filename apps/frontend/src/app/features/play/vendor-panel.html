@@ -260,12 +260,9 @@
                 inventory space</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients"
                 class="cooking-warning">{{vendor.t('Missing ingredients')}}</span><span *ngIf="!recipe.unlocked"
                 class="cooking-locked-label">Unlock at Cooking level {{recipe.requiredLevel}}</span></div>
-            <div class="craft-quantity-control cooking-quantity-control" *ngIf="recipe.available && !vendor.cookingState()?.session">
-              <button type="button" class="quantity-max" (click)="vendor.setCookingQuantity(recipe,recipe.maxCookQuantity)" title="Set maximum quantity">Max {{recipe.maxCookQuantity}}</button>
-              <label>{{vendor.t('Quantity')}} <input type="number" min="1" [max]="recipe.maxCookQuantity"
-                [value]="vendor.cookingQuantity(recipe)" (input)="vendor.setCookingQuantity(recipe,$any($event.target).value)"></label>
-
-            </div>
+            <app-craft-quantity *ngIf="recipe.available && !vendor.cookingState()?.session"
+              [label]="vendor.t('Quantity')" [max]="recipe.maxCookQuantity" [value]="vendor.cookingQuantity(recipe)"
+              [disabled]="vendor.busy()" (valueChange)="vendor.setCookingQuantity(recipe,$event)" />
             <button type="button" class="cooking-button"
               [disabled]="!recipe.available || vendor.busy() || !!vendor.cookingState()?.session"
               (click)="vendor.startCooking(recipe.id)">{{vendor.t('COOK')}}<ng-container *ngIf="vendor.cookingQuantity(recipe)>1"> ×{{vendor.cookingQuantity(recipe)}}</ng-container></button>
@@ -306,11 +303,10 @@
               <span *ngIf="recipe.unlocked && !recipe.hasIngredients" class="cooking-warning">{{vendor.t('Missing ingredients')}}</span>
               <span *ngIf="!recipe.canReserveOutput" class="cooking-warning">{{vendor.t('Not enough inventory space')}}</span>
             </div>
-            <div class="craft-quantity-control" *ngIf="recipe.maxCraftQuantity>1">
-              <label>{{vendor.t('Quantity')}} <input type="number" min="1" [max]="recipe.maxCraftQuantity"
-                [value]="vendor.professionQuantity(recipe)" (input)="vendor.setProfessionCraftQuantity(recipe,$any($event.target).value)"></label>
-              <small>Max {{recipe.maxCraftQuantity}}</small>
-            </div>
+            <app-craft-quantity *ngIf="recipe.maxCraftQuantity>1"
+              [label]="vendor.t('Quantity')" [max]="recipe.maxCraftQuantity" [value]="vendor.professionQuantity(recipe)"
+              [disabled]="!recipe.available || vendor.busy() || !!vendor.professionState()?.session"
+              (valueChange)="vendor.setProfessionCraftQuantity(recipe,$event)" />
             <button type="button" class="cooking-button" [disabled]="!recipe.available || vendor.busy() || !!vendor.professionState()?.session"
               (click)="vendor.startProfession(recipe.id)">{{vendor.t('Craft')}} <ng-container *ngIf="vendor.professionQuantity(recipe)>1">×{{vendor.professionQuantity(recipe)}}</ng-container></button>
           </article>

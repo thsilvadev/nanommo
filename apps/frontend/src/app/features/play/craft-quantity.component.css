@@ -1,0 +1,17 @@
+:host{display:grid;grid-template-columns:max-content 66px;grid-template-rows:auto 28px;align-items:center;column-gap:8px;row-gap:4px;flex:0 0 auto;font:11px Arial,sans-serif}
+.quantity-label{grid-area:1/2;color:#a99472;text-align:center;font-size:10px}
+.quantity-max{grid-area:2/1;justify-self:start;padding:0;border:0;background:transparent;color:#bda06c;font:inherit;cursor:pointer;text-decoration:underline;text-decoration-color:#bda06c66;text-underline-offset:3px;transition:color .15s,text-decoration-color .15s}
+.quantity-max:hover:not(:disabled){color:#edd29c;text-decoration-color:currentColor}
+.quantity-max:focus-visible{outline:1px solid #c49a50;outline-offset:4px;border-radius:1px}
+.quantity-stepper{grid-area:2/2;display:grid;grid-template-columns:minmax(0,1fr) 18px;height:28px;box-sizing:border-box;border:1px solid #715532;border-radius:3px;background:#100c09;overflow:hidden}
+.quantity-stepper:focus-within{border-color:#b08a4d}
+.quantity-stepper input{appearance:textfield;-moz-appearance:textfield;box-sizing:border-box;width:100%;min-width:0;padding:4px 2px;border:0;outline:0;background:transparent;color:#e8d5a8;font:12px Arial,sans-serif;text-align:center}
+.quantity-stepper input::-webkit-inner-spin-button,.quantity-stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.quantity-arrows{display:grid;grid-template-rows:1fr 1fr;border-left:1px solid #493521}
+.quantity-arrows button{display:grid;place-items:center;min-height:0;width:100%;padding:0;border:0;background:#21180f;color:#c6a36b;cursor:pointer}
+.quantity-arrows button:hover:not(:disabled),.quantity-arrows button:focus-visible{background:#3b2b18;color:#f0d69b;outline:0}
+.quantity-arrows .quantity-up{border-bottom:1px solid #493521}
+.quantity-arrows i{width:4px;height:4px;border-top:1px solid currentColor;border-right:1px solid currentColor;pointer-events:none}
+.quantity-up i{transform:translateY(1px) rotate(-45deg)}
+.quantity-down i{transform:translateY(-1px) rotate(135deg)}
+button:disabled,input:disabled{opacity:.4;cursor:default}
