@@ -56,5 +56,7 @@ export interface CharacterRigOptions {
   catalog: () => Promise<AppearanceCatalog>;
   /** Loads a glTF/GLB; returns three's GLTF result. Typed loosely to keep three.js out of this file. */
   load: (url: string) => Promise<unknown>;
+  /** Shared CharacterAssetCache (typed loosely to keep three.js out of this file); a private one is made from `load` otherwise. */
+  cache?: unknown;
   onContextLost: () => void;
 }

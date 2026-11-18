@@ -225,11 +225,11 @@ class CharacterAssetCache { static shared(): CharacterAssetCache;
 ```
 `BodyAsset` (já existe em `character-rig.ts`) é movido/exportado daqui. Instâncias usam `SkeletonUtils.clone(asset.scene)`.
 
-- [ ] **Step 1: Spec que falha:** duas chamadas `body('male')` → mesma Promise e um único fetch do loader (loader injetado/mocado). `skinTexture` com a mesma aparência → a mesma textura.
-- [ ] **Step 2:** rodar → FAIL.
-- [ ] **Step 3:** implementar e trocar o `CharacterRig` pra usar o cache, sem mudar comportamento.
-- [ ] **Step 4:** rodar o spec novo + `character-viewer.component.spec.ts`, `character-portrait.spec.ts`, `character-summary.spec.ts` → PASS.
-- [ ] **Step 5: Commit** `refactor(character-viewer): cache de assets compartilhado`.
+- [x] **Step 1: Spec que falha:** duas chamadas `body('male')` → mesma Promise e um único fetch do loader (loader injetado/mocado). `skinTexture` com a mesma aparência → a mesma textura.
+- [x] **Step 2:** rodar → FAIL.
+- [x] **Step 3:** implementar e trocar o `CharacterRig` pra usar o cache, sem mudar comportamento.
+- [x] **Step 4:** rodar o spec novo + `character-viewer.component.spec.ts`, `character-portrait.spec.ts`, `character-summary.spec.ts` → PASS.
+- [x] **Step 5: Commit** `refactor(character-viewer): cache de assets compartilhado`.
 
 ### Task 7: A cena (mundo, câmera, personagens)
 
