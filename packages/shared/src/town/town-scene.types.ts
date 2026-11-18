@@ -1,4 +1,4 @@
-import type { CharacterAppearance } from '../appearance';
+import type { CharacterAppearance, Sex } from '../appearance';
 
 export const TOWN_OBSTACLE_KINDS = [
   'tree', 'tall_tree', 'fountain', 'house', 'hut', 'tent', 'pillar', 'pyramid_wall', 'lamp', 'rock', 'fence',
@@ -60,6 +60,9 @@ export interface TownRosterEntry {
   name: string;
   level: number;
   appearance: CharacterAppearance | null;
+  /** Body to render (null until the character went through the creator). */
+  sex: Sex | null;
+  heightCm: number | null;
   seed: number;
   online: boolean;
   sleeping: TownSleep | null;

@@ -1,0 +1,13 @@
+<div #host class="town-scene"
+     (pointerdown)="onPointerDown($event)"
+     (pointermove)="onPointerMove($event)"
+     (pointerup)="onPointerUp($event)"
+     (pointercancel)="onPointerUp($event)"
+     (wheel)="onWheel($event)">
+  @if (state() === 'loading') {
+    <div class="town-scene__status" aria-live="polite">…</div>
+  }
+  @if (state() === 'failed') {
+    <div class="town-scene__status" role="status">{{ locale.t('The 3D preview is not available on this device.') }}</div>
+  }
+</div>

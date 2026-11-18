@@ -8,7 +8,7 @@ import { ServerClockService } from './server-clock.service';
 import { TownStore } from './town.store';
 
 const entry = (characterId: string, extra: Partial<TownRosterEntry> = {}): TownRosterEntry => ({
-  characterId, name: characterId.toUpperCase(), level: 1, appearance: null, seed: 1, online: true,
+  characterId, name: characterId.toUpperCase(), level: 1, appearance: null, sex: null, heightCm: null, seed: 1, online: true,
   sleeping: null, wakeFrom: null, lastSeenAt: '2026-11-18T00:00:00.000Z', ...extra,
 });
 

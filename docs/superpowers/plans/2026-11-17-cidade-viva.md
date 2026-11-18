@@ -255,13 +255,13 @@ class TownCharacter { constructor(cache: CharacterAssetCache, entry: TownRosterE
 - `pixelRatio = min(devicePixelRatio, 1.5)`. O loop pausa com `document.hidden`. Tudo é descartado em `ngOnDestroy`.
 - Picking: `pointerdown`/`pointerup` com deslocamento ≤ 5 px conta como clique; raycast contra caixas invisíveis por personagem (não contra a malha skinned).
 
-- [ ] **Step 1: Specs que falham:**
+- [x] **Step 1: Specs que falham:**
   - `town-camera.spec`: o pan não sai do retângulo da cidade (centro preso em `[0,w]×[0,h]`); o zoom é preso em `[18,70]`; o pitch fica constante depois de 100 pans/zooms aleatórios (o céu nunca aparece: o vetor de visão tem `y < -0.7`).
   - `town-scene.component.spec` (com three mocado onde preciso): 150 entries → exatamente 100 `TownCharacter` ativos; o próprio sempre presente; um clique sobre o NPC emite `npcSelected('blacksmith_loren')`.
-- [ ] **Step 2:** rodar → FAIL.
-- [ ] **Step 3:** implementar.
-- [ ] **Step 4:** rodar → PASS. `pnpm --filter @nanommo/frontend build --configuration production` sem erros novos.
-- [ ] **Step 5: Commit** `feat(frontend): cena 3D da cidade com personagens e NPCs`.
+- [x] **Step 2:** rodar → FAIL.
+- [x] **Step 3:** implementar.
+- [x] **Step 4:** rodar → PASS. `pnpm --filter @nanommo/frontend build --configuration production` sem erros novos.
+- [x] **Step 5: Commit** `feat(frontend): cena 3D da cidade com personagens e NPCs`.
 
 ### Task 8: Alternador no map-head, action menu, NPC e convite
 

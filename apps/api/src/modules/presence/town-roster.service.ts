@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { Redis } from 'ioredis';
 import { mulberry32Seed, positionAt, TownNav } from '@nanommo/shared';
-import type { CharacterAppearance, TownRosterEntry, TownSceneDef, TownSleep, TownWakeFrom } from '@nanommo/shared';
+import type { CharacterAppearance, Sex, TownRosterEntry, TownSceneDef, TownSleep, TownWakeFrom } from '@nanommo/shared';
 import { Character } from '../../database/entities/character.entity';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { DataService } from '../data/data.service';
@@ -28,6 +28,8 @@ interface RosterRow {
   name: string;
   level: number;
   appearance: CharacterAppearance | null;
+  sex?: Sex | null;
+  heightCm?: number | null;
   lastSeenAt: Date | string;
   inViewerParty?: boolean;
 }
@@ -66,7 +68,7 @@ export class TownRosterService {
     const onlineIds = new Set(await this.redis.smembers(ONLINE_SET));
     // One narrow query; SQL pre-orders and limits, the same order is re-applied below.
     const rows: RosterRow[] = await this.characterRepo.query(
-      `SELECT c.id, c.name, c.level, c.appearance, c."lastSeenAt",
+      `SELECT c.id, c.name, c.level, c.appearance, c.sex, c."heightCm", c."lastSeenAt",
               (vp."characterId" IS NOT NULL) AS "inViewerParty"
          FROM characters c
          LEFT JOIN party_members pm ON pm."characterId" = c.id
@@ -221,6 +223,8 @@ export class TownRosterService {
       name: row.name,
       level: Number(row.level),
       appearance: row.appearance ?? null,
+      sex: row.sex ?? null,
+      heightCm: row.heightCm == null ? null : Number(row.heightCm),
       seed: s.seed,
       online,
       sleeping,
@@ -230,7 +234,7 @@ export class TownRosterService {
   }
 
   private rowOf(c: Character): RosterRow {
-    return { id: c.id, name: c.name, level: c.level, appearance: c.appearance ?? null, lastSeenAt: c.lastSeenAt };
+    return { id: c.id, name: c.name, level: c.level, appearance: c.appearance ?? null, sex: c.sex ?? null, heightCm: c.heightCm ?? null, lastSeenAt: c.lastSeenAt };
   }
 
   private nav(mapId: string, def: TownSceneDef): TownNav {

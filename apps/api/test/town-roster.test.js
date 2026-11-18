@@ -37,12 +37,12 @@ function world() {
       .filter(c => c.currentMapId === mapId && !c.travelIntent && !c.pendingMapTransition)
       .reverse()
       .map(c => ({
-        id: c.id, name: c.name, level: c.level, appearance: c.appearance, lastSeenAt: c.lastSeenAt,
+        id: c.id, name: c.name, level: c.level, appearance: c.appearance, sex: c.sex, heightCm: c.heightCm, lastSeenAt: c.lastSeenAt,
         inViewerParty: !!partyOf.get(c.id) && partyOf.get(c.id) === partyOf.get(viewerId),
       })),
   };
   const add = (id, extra = {}) => characters.set(id, {
-    id, name: `Char ${id}`, level: 10, appearance: null, currentMapId: TOWN, travelIntent: null,
+    id, name: `Char ${id}`, level: 10, appearance: null, sex: 'female', heightCm: 170, currentMapId: TOWN, travelIntent: null,
     pendingMapTransition: null, lastSeenAt: new Date(Date.UTC(2026, 10, 1)), ...extra,
   });
   const online = id => { if (!sets.has('players:online')) sets.set('players:online', new Set()); sets.get('players:online').add(id); };
@@ -207,6 +207,20 @@ test('lazy offline entry', async () => {
   assert.equal(entry.seed, mulberry32Seed('ghost'));
   assert.deepStrictEqual(entry.sleeping, { at: lastSeenAt.getTime() });
   assert.equal(entry.lastSeenAt, lastSeenAt.toISOString());
+});
+
+test('entries carry sex and height so clients can pick the body', async () => {
+  const w = world();
+  w.add('a', { sex: 'male', heightCm: 190 });
+  w.online('a');
+  const [snapEntry] = (await w.service.snapshot(TOWN, 'a')).entries;
+  assert.equal(snapEntry.sex, 'male');
+  assert.equal(snapEntry.heightCm, 190);
+  const slept = await w.service.sleep('a');
+  assert.equal(slept.sex, 'male');
+  assert.equal(slept.heightCm, 190);
+  const service = fs.readFileSync(path.join(repo, 'apps/api/src/modules/presence/town-roster.service.ts'), 'utf8');
+  assert.match(service, /c\.sex, c\."heightCm"/);
 });
 
 test('gateway: stale socket disconnect does not put the character to sleep', async () => {
