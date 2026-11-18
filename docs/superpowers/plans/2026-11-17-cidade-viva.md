@@ -119,15 +119,15 @@ const TOWN_LEG_MS = 24000, TOWN_WALK_SPEED = 2.2;
 
 **Interfaces — Consumes:** `TownNav`, `TownSceneDef` (Task 1). **Produces:** `DataService.getTownScene`, `getTownSceneMapIds`. Mirror em `apps/frontend/public/data/town_scenes.json`. Formato `{ "towns": TownSceneDef[] }`.
 
-- [ ] **Step 1: Teste que falha** (`town-scenes-catalog.test.js`): carrega o arquivo da raiz e o mirror (`deepStrictEqual`). Os `mapId` são exatamente os 4 das Global Constraints. Pra cada cidade: `size` 72×72; `new TownNav(def).freeCellCount() ≥ 2500`; cada id em `maps.json → npcIds` daquela cidade tem `npcSpot` numa célula livre; cada POI e cada npcSpot está em `reachableFrom(spawn)`; ≥ 16 POIs; `pointsOfInterest` tem um POI a ≤ 3 u de cada npcSpot. O teste executa `scripts/validate-town-scenes.js` (exit 0).
-- [ ] **Step 2:** rodar → FAIL (arquivo ausente).
-- [ ] **Step 3: Escrever as 4 cidades**, seguindo a direção de arte do spec §1:
+- [x] **Step 1: Teste que falha** (`town-scenes-catalog.test.js`): carrega o arquivo da raiz e o mirror (`deepStrictEqual`). Os `mapId` são exatamente os 4 das Global Constraints. Pra cada cidade: `size` 72×72; `new TownNav(def).freeCellCount() ≥ 2500`; cada id em `maps.json → npcIds` daquela cidade tem `npcSpot` numa célula livre; cada POI e cada npcSpot está em `reachableFrom(spawn)`; ≥ 16 POIs; `pointsOfInterest` tem um POI a ≤ 3 u de cada npcSpot. O teste executa `scripts/validate-town-scenes.js` (exit 0).
+- [x] **Step 2:** rodar → FAIL (arquivo ausente).
+- [x] **Step 3: Escrever as 4 cidades**, seguindo a direção de arte do spec §1:
   - **Caelum:** `night`, praça com `fountain r=3` no centro, ruas em cruz, `house` nas bordas, ≥ 8 `lamp` com `points` quentes e névoa azul.
   - **Sierra:** `day`, chão `dirt`, casinhas `house` esparsas, árvores, `sun` quente.
   - **Kwaiouá Taba:** `dusk`, chão `grass`, `hut` em anel em volta de um pátio, `tall_tree` (height ≥ 10) no perímetro.
   - **Aramaia:** `sunshaft`, chão `stone`, perímetro de `pyramid_wall`, `pillar` interno, `ambientIntensity ≤ 0.15`, `spot` amarelo (`#ffd36a`) no centro com `angleDeg` cobrindo ~1/3 da área.
-- [ ] **Step 4:** fazer o validador e o `DataService` passarem a usar `TownNav` do shared. `node scripts/sync-frontend-data.js` → rodar o teste → PASS. `pnpm --filter @nanommo/api build` limpo.
-- [ ] **Step 5: Commit** `feat(data): catálogo town_scenes com as 4 cidades`.
+- [x] **Step 4:** fazer o validador e o `DataService` passarem a usar `TownNav` do shared. `node scripts/sync-frontend-data.js` → rodar o teste → PASS. `pnpm --filter @nanommo/api build` limpo.
+- [x] **Step 5: Commit** `feat(data): catálogo town_scenes com as 4 cidades`.
 
 ### Task 3: Roster da cidade no backend + relógio
 

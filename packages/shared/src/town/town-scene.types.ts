@@ -1,7 +1,9 @@
 import type { CharacterAppearance } from '../appearance';
 
-export type ObstacleKind =
-  | 'tree' | 'tall_tree' | 'fountain' | 'house' | 'hut' | 'tent' | 'pillar' | 'pyramid_wall' | 'lamp' | 'rock';
+export const TOWN_OBSTACLE_KINDS = [
+  'tree', 'tall_tree', 'fountain', 'house', 'hut', 'tent', 'pillar', 'pyramid_wall', 'lamp', 'rock', 'fence',
+] as const;
+export type ObstacleKind = typeof TOWN_OBSTACLE_KINDS[number];
 
 export interface TownObstacle {
   kind: ObstacleKind;
@@ -39,10 +41,12 @@ export interface TownSceneDef {
     ambientIntensity: number;
     sun: { color: string; intensity: number; dir: [number, number, number] } | null;
     points: { x: number; z: number; color: string; intensity: number; range: number }[];
+    /** Overhead spot light; `angleDeg` is the half-angle of the cone (three.js SpotLight.angle). */
     spot: { x: number; z: number; color: string; intensity: number; angleDeg: number; height: number } | null;
   };
   fog: { color: string; near: number; far: number };
   obstacles: TownObstacle[];
+  /** `facing` in degrees around Y; 0 faces +Z (same convention as TownPose.facing). */
   npcSpots: Record<string, { x: number; z: number; facing: number }>;
   pointsOfInterest: TownPoi[];
   spawn: { x: number; z: number };

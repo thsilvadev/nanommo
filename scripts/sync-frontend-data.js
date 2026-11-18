@@ -25,6 +25,7 @@ const dataFiles = [
   'blacksmith_recipes.json',
   'global_item_drops.json',
   'appearance_catalog.json',
+  'town_scenes.json',
 ];
 
 const rootDir = path.join(__dirname, '..');
