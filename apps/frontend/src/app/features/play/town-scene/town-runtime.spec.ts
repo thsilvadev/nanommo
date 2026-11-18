@@ -69,6 +69,24 @@ describe('TownRuntime (real WebGL)', () => {
     expect(rt.pick(2, 2)).toBeNull();
   });
 
+  it('sleeper of 60 s is lying on the first frame', async () => {
+    const rt = await start([entry('zzz', { online: false, sleeping: { at: NOW - 60_000 } })], null);
+    expect(rt.animationOf('zzz')).toBe('Dead');
+    expect(rt.deadProgressOf('zzz')).toBe(1);
+  });
+
+  it('fresh sleeper is still falling', async () => {
+    const rt = await start([entry('nap', { sleeping: { at: NOW - 200 } })], null);
+    const progress = rt.deadProgressOf('nap')!;
+    expect(progress).toBeGreaterThan(0);
+    expect(progress).toBeLessThan(1);
+  });
+
+  it('awake character has no dead progress', async () => {
+    const rt = await start([entry('hero')], 'hero');
+    expect(rt.deadProgressOf('hero')).toBeNull();
+  });
+
   it('removes characters that leave and drops its canvas on dispose', async () => {
     const rt = await start([entry('a'), entry('b')], null);
     rt.setCharacters([entry('a')], null);

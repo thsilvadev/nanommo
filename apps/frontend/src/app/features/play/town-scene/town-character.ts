@@ -126,6 +126,8 @@ export class TownCharacter {
   private actions = new Map<TownClip, THREE.AnimationAction>();
   private current: TownClip | null = null;
   private frozen = false;
+  /** Clock of the first update this character received (null until then). */
+  private firstSeenAt: number | null = null;
   private lowAccumMs = 0;
   private readonly owned: Array<{ dispose(): void }> = [];
   private disposed = false;
@@ -157,18 +159,30 @@ export class TownCharacter {
   /** Name of the clip currently playing (null until loaded). */
   animation(): TownClip | null { return this.current; }
 
+  /** How far the fall into sleep has played (0..1); null when not asleep. */
+  deadProgress(): number | null {
+    const dead = this.actions.get('Dead');
+    if (this.current !== 'Dead' || !dead) return null;
+    const duration = dead.getClip().duration;
+    return duration > 0 ? Math.min(1, dead.time / duration) : 1;
+  }
+
   setEntry(entry: TownRosterEntry): void {
     this.entry = entry;
     this.updatePlate();
   }
 
-  update(pose: TownPose, dtMs: number, lod: TownLod): void {
+  update(pose: TownPose, dtMs: number, lod: TownLod, nowMs: number): void {
     this.object3d.position.set(pose.x, 0, pose.z);
     this.model.rotation.y = pose.facing;
     if (this.plate) this.plate.visible = lod === 'full';
+    this.firstSeenAt ??= nowMs;
     if (!this.mixer) return;
     const clip: TownClip = pose.state === 'sleep' ? 'Dead' : pose.state === 'walk' ? 'Walk' : 'Idle';
-    if (clip !== this.current) this.play(clip);
+    if (clip !== this.current) {
+      if (clip === 'Dead') this.fallAsleep(nowMs);
+      else this.play(clip);
+    }
     if (this.frozen) return;
     let step = dtMs;
     if (lod === 'low') {
@@ -189,6 +203,33 @@ export class TownCharacter {
     this.mixer?.stopAllAction();
     this.object3d.removeFromParent();
     for (const item of this.owned) item.dispose();
+  }
+
+  /**
+   * The Dead pose follows the age of the sleep, so every client agrees: someone
+   * asleep for minutes is already lying on the first frame, someone who just
+   * fell asleep is caught mid-fall. Only a fall that starts while this
+   * character is already on screen crossfades in.
+   */
+  private fallAsleep(nowMs: number): void {
+    const dead = this.actions.get('Dead');
+    if (!dead || !this.mixer) return;
+    const at = this.entry.sleeping?.at ?? nowMs;
+    const duration = dead.getClip().duration;
+    const time = Math.max(0, Math.min((nowMs - at) / 1000, duration));
+    const snap = this.current === null || this.firstSeenAt === null || at < this.firstSeenAt;
+    if (!snap) {
+      this.play('Dead');
+      dead.time = time;
+      return;
+    }
+    for (const action of this.actions.values()) if (action !== dead) action.stop();
+    this.frozen = false;
+    dead.reset().setEffectiveWeight(1).play();
+    dead.time = time;
+    this.current = 'Dead';
+    this.mixer.update(0); // pose the skeleton now, even on a 10 Hz (low LOD) frame
+    if (time >= duration - 1e-3) this.frozen = true;
   }
 
   private play(clip: TownClip): void {

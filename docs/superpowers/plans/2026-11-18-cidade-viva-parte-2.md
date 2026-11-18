@@ -73,14 +73,14 @@
 
 **Interfaces — Produces:** `TownCharacter.update(pose: TownPose, dtMs: number, lod: TownLod, nowMs: number): void` (novo parâmetro). `TownCharacter.deadProgress(): number | null` (0..1, `null` fora do sono). `TownRuntime.deadProgressOf(id: string): number | null`.
 
-- [ ] **Step 1: Specs que falham** (`town-runtime.spec.ts`):
+- [x] **Step 1: Specs que falham** (`town-runtime.spec.ts`):
   - `sleeper of 60 s is lying on the first frame`: entry com `sleeping: { at: NOW - 60_000 }` → depois de `settled()` (um `tick`), `deadProgressOf(id) === 1`.
   - `fresh sleeper is still falling`: `sleeping: { at: NOW - 200 }` → `0 < deadProgressOf(id) < 1`.
   - `awake character has no dead progress`: `deadProgressOf` → `null`.
-- [ ] **Step 2:** rodar `--include='**/town-runtime.spec.ts'` → FAIL.
-- [ ] **Step 3: Implementar.** No sono, o tempo do clip `Dead` é `min((nowMs − entry.sleeping.at)/1000, duração)`, aplicado direto (sem crossfade) no primeiro quadro do personagem ou quando o sono começou antes do personagem existir na cena; com `progress === 1` congela o mixer (como hoje). Quem adormece enquanto já está na cena entra no `Dead` com crossfade normal a partir do tempo calculado. O runtime passa `this.init.now()` como `nowMs`.
-- [ ] **Step 4:** rodar → PASS; suíte da pasta `town-scene` → PASS.
-- [ ] **Step 5: Commit** `fix(frontend): quem dorme há tempo já aparece deitado`.
+- [x] **Step 2:** rodar `--include='**/town-runtime.spec.ts'` → FAIL.
+- [x] **Step 3: Implementar.** No sono, o tempo do clip `Dead` é `min((nowMs − entry.sleeping.at)/1000, duração)`, aplicado direto (sem crossfade) no primeiro quadro do personagem ou quando o sono começou antes do personagem existir na cena; com `progress === 1` congela o mixer (como hoje). Quem adormece enquanto já está na cena entra no `Dead` com crossfade normal a partir do tempo calculado. O runtime passa `this.init.now()` como `nowMs`.
+- [x] **Step 4:** rodar → PASS; suíte da pasta `town-scene` → PASS.
+- [x] **Step 5: Commit** `fix(frontend): quem dorme há tempo já aparece deitado`.
 
 ### Task 3: Obstáculos `balcony`/`tower`/`campfire` e NPC elevado (shared)
 

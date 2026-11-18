@@ -122,6 +122,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   activeCount(): number { return this.characters.size; }
   npcCount(): number { return this.npcs.size; }
   animationOf(id: string): string | null { return this.characters.get(id)?.animation() ?? null; }
+  deadProgressOf(id: string): number | null { return this.characters.get(id)?.deadProgress() ?? null; }
 
   // ---- input ----------------------------------------------------------------
 
@@ -192,13 +193,14 @@ export class TownRuntime implements TownSceneRuntimeHandle {
       const near = Math.hypot(x - target.x, z - target.z) <= LOD_DISTANCE;
       return near && this.frustum.containsPoint(new THREE.Vector3(x, 1, z)) ? 'full' : 'low';
     };
+    const now = this.init.now();
     for (const character of this.characters.values()) {
-      const pose = this.pose(character.entry);
-      character.update(pose, dtMs, lodOf(pose.x, pose.z));
+      const pose = positionAt(this.init.def, this.nav, character.entry, now);
+      character.update(pose, dtMs, lodOf(pose.x, pose.z), now);
     }
     for (const [id, npc] of this.npcs) {
       const pose = this.npcPoses.get(id)!;
-      npc.update(pose, dtMs, lodOf(pose.x, pose.z));
+      npc.update(pose, dtMs, lodOf(pose.x, pose.z), now);
     }
     this.renderNow();
   }
