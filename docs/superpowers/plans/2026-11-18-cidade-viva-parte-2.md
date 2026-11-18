@@ -155,14 +155,14 @@ Defaults de raio: `tower r=4`, `campfire r=1.2`. `balcony` exige `w`, `d`, `heig
 
 Esta task **termina parada**, esperando o usuário decidir. Nada de baixar arquivos sem o usuário.
 
-- [ ] **Step 1: Pesquisar** (WebSearch/web-fetch) e registrar no doc, para cada caminho, fontes concretas com licença conferida na página:
+- [x] **Step 1: Pesquisar** (WebSearch/web-fetch) e registrar no doc, para cada caminho, fontes concretas com licença conferida na página:
   - **A) Sprites (Paper Mario/Ragnarok):** billboard 2D no mundo 3D. Precisa de arte 2D por NPC (1 ou mais direções). O repositório não tem arte 2D de NPC; a arte teria de vir do usuário (encomenda/própria).
   - **B) Modelos 3D CC0** (ex.: Quaternius — Medieval Village / Fantasy Props / Ultimate Modular Characters; KayKit; Kenney): procurar adereços (bigorna, martelo, fornalha, balde, baú, caixa de correio, mesa, cuias/potes, balcão de cozinha, mochila) e personagens com roupa compatíveis. Conferir licença (CC0), formato (glTF/FBX/OBJ) e se o esqueleto é o mesmo dos nossos corpos (`Universal Base Characters`, 65 ossos) ou se traz animação própria de Idle.
   - **C) Procedural (no código, como `town-world.ts`):** adereços de primitivas e figuras = nosso corpo base + peças de figurino presas aos ossos (chapéu com estrela, avental, batina, manto com capuz e rosto escuro, mochila).
-- [ ] **Step 2: Prints.** Para A, B e C, montar um protótipo rápido de 2 NPCs (Loren e Oráculo) **só com o que existe no repositório** (C completo; A com um placeholder; B só se o usuário já tiver baixado algo) e renderizar no Chrome headless (spec descartável, como na parte 1). Para B, incluir os links e imagens de preview das páginas dos packs.
-- [ ] **Step 3: Escrever "até onde o Claude consegue editar":** consegue — compor/recolorir/reduzir/re-exportar GLB com `@gltf-transform` (`tools/character-assets`), montar figurinos e adereços com primitivas, prender malhas em ossos, gerar texturas em canvas, desenhar SVG; não consegue — esculpir malhas novas ou fazer skinning/rig novo (não há Blender), nem desenhar sprites ilustrados de qualidade.
-- [ ] **Step 4: Recomendar** um caminho (ou mistura, ex.: adereços B + figuras C) com motivo, e listar os downloads exatos (pack, URL, pasta de destino — `tools/npc-assets/source/<pack>/`, fora do git como `tools/character-assets/source/`).
-- [ ] **Step 5: Perguntar ao usuário** (e parar): qual caminho; o visual da **Cecília** (`cecilia`, Sierra), que não está no briefing; e pedir os downloads. Registrar a resposta no doc.
+- [x] **Step 2: Prints.** Para A, B e C, montar um protótipo rápido de 2 NPCs (Loren e Oráculo) **só com o que existe no repositório** (C completo; A com um placeholder; B só se o usuário já tiver baixado algo) e renderizar no Chrome headless (spec descartável, como na parte 1). Para B, incluir os links e imagens de preview das páginas dos packs.
+- [x] **Step 3: Escrever "até onde o Claude consegue editar":** consegue — compor/recolorir/reduzir/re-exportar GLB com `@gltf-transform` (`tools/character-assets`), montar figurinos e adereços com primitivas, prender malhas em ossos, gerar texturas em canvas, desenhar SVG; não consegue — esculpir malhas novas ou fazer skinning/rig novo (não há Blender), nem desenhar sprites ilustrados de qualidade.
+- [x] **Step 4: Recomendar** um caminho (ou mistura, ex.: adereços B + figuras C) com motivo, e listar os downloads exatos (pack, URL, pasta de destino — `tools/npc-assets/source/<pack>/`, fora do git como `tools/character-assets/source/`).
+- [x] **Step 5: Perguntar ao usuário** (e parar): qual caminho; o visual da **Cecília** (`cecilia`, Sierra), que não está no briefing; e pedir os downloads. Registrar a resposta no doc.
 - [ ] **Step 6: Commit** `docs: pesquisa e decisão do visual dos NPCs`.
 
 ### Task 7: Visual dos NPCs (conforme a decisão da Task 6)
