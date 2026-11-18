@@ -204,14 +204,14 @@ Strings pt:
 - "Cidade"
 - "Mapa"
 
-- [ ] **Step 1: Specs que falham:**
+- [x] **Step 1: Specs que falham:**
   - `server-clock.spec`: com o servidor 5000 ms adiantado e RTT 100, `now()` fica a ±60 ms de local+5000.
   - `town.store.spec`: roster → join → update(sleep) → leave aplicados na ordem; delta de outro `mapId` é ignorado.
   - `idle-chat` spec: `/sleep` na cidade chama `sleep()` e não emite `chat:send`; `/sleep` fora da cidade adiciona uma linha `severity:'error'`; `/xyz` → "Unknown command."
-- [ ] **Step 2:** `cd apps/frontend && npx tsc -p tsconfig.spec.json --noEmit` e depois `ng test --include='**/{server-clock,town.store,idle-chat}*.spec.ts' --watch=false` → FAIL.
-- [ ] **Step 3:** implementar.
-- [ ] **Step 4:** rodar → PASS.
-- [ ] **Step 5: Commit** `feat(frontend): roster da cidade, relógio do servidor e /sleep`.
+- [x] **Step 2:** `cd apps/frontend && npx tsc -p tsconfig.spec.json --noEmit` e depois `ng test --include='**/{server-clock,town.store,idle-chat}*.spec.ts' --watch=false` → FAIL.
+- [x] **Step 3:** implementar.
+- [x] **Step 4:** rodar → PASS.
+- [x] **Step 5: Commit** `feat(frontend): roster da cidade, relógio do servidor e /sleep`.
 
 ### Task 6: `CharacterAssetCache` compartilhado
 
