@@ -25,6 +25,7 @@ export class DataService implements OnModuleInit {
   private weaponXpCurve: any = null;
   private npcVendor: any = null;
   private npcCatalog: any = null;
+  private craftAnnouncements: any = null;
   private cookingRecipes: any = null;
   private alchemyRecipes: any = null;
   private blacksmithRecipes: any = null;
@@ -50,6 +51,7 @@ export class DataService implements OnModuleInit {
       this.weaponXpCurve = this.loadJsonFile(path.join(dataDir, 'weapon_xp_curve.json'));
       this.npcVendor = this.loadJsonFile(path.join(dataDir, 'npc_vendor.json'));
       this.npcCatalog = this.loadJsonFile(path.join(dataDir, 'npc_catalog.json'));
+      this.craftAnnouncements = this.loadJsonFile(path.join(dataDir, 'craft_announcements.json'));
       this.cookingRecipes = this.loadJsonFile(path.join(dataDir, 'cooking_recipes.json'));
       this.alchemyRecipes = this.loadJsonFile(path.join(dataDir, 'alchemy_recipes.json'));
       this.blacksmithRecipes = this.loadJsonFile(path.join(dataDir, 'blacksmith_recipes.json'));
@@ -383,6 +385,7 @@ export class DataService implements OnModuleInit {
     return this.npcCatalog;
   }
 
+  getCraftAnnouncementItemIds(): string[] { return this.craftAnnouncements?.enabledItemIds ?? []; }
   getCookingRecipes() { return this.cookingRecipes; }
 
   getAlchemyRecipes() { return this.alchemyRecipes; }

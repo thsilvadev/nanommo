@@ -783,16 +783,18 @@ export class MapService {
   }
 
   private async scheduleStationaryActivity(characterId: string, delayMs = 10_000): Promise<void> {
+    await this.battleService.withCharacterQueueLock(characterId, async () => {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character || character.status !== 'grinding' || character.travelIntent || this.dataService.getMapById(character.currentMapId)?.type !== 'grind') return;
     const cycle: any = character.gatheringCycle ?? { progress: 0, cycleIndex: 0, varianceSeconds: null, lastUpdatedAt: new Date().toISOString() };
     const jobId = `activity-${characterId}-${Number(cycle.cycleIndex ?? 0)}-${Math.floor(Date.now()/1000)}`;
     cycle.scheduledJobId = jobId;
     character.gatheringCycle = cycle;
-    await this.characterRepo.save(character);
+    await this.characterRepo.update({ id: characterId }, { gatheringCycle: cycle });
     const delay = Math.max(0, Math.ceil(delayMs));
     await this.bullQueue.add('advance-stationary-activity', { characterId, cycleIndex: Number(cycle.cycleIndex ?? 0) }, { jobId, delay, removeOnComplete: true, attempts: 5, backoff: { type: 'exponential', delay: 1000 } });
     this.logger.log(`[gathering-job] enqueued jobId=${jobId} characterId=${characterId} cycleIndex=${Number(cycle.cycleIndex ?? 0)} map=${String(character.currentMapId)} delayMs=${delay}`);
+    });
   }
 
   /** Accrue collection using persisted non-battle time, excluding every overlapping battle interval. */

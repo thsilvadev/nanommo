@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const {simulateBattleV2Solo,projectStatusTimeline}=require('../../../packages/shared/dist');
+const hero={characterId:'c',characterName:'Hero',level:1,hp:80,sp:50,maxHp:100,maxSp:100,atk:1,matk:1,def:0,mdefPercent:0,accuracy:100,evasion:0,critChance:0,hpRegenPerTenTicks:4,spRegenPerTenTicks:2,agi:5,dex:5,luk:5,attackSpeed:0,moveSpeed:0,skills:{},skillDefs:{},statusEffects:[]};
+const skill={id:'rage',target:'self',baseCastTicks:2,spCost:0,cooldownTicks:100,effect:{type:'apply_status',status:'rage',durationTicks:5}};
+const monster={id:'m',name:'Monster',hp:100,atk:0,matk:0,def:0,mdefPercent:0,accuracy:100,evasion:0,critChance:0,atkSpeedTicks:100,moveSpd:0,gambit:[{conditions:[{id:'always'}],action:{id:'use_skill',skillId:'rage'}}]};
+const result=simulateBattleV2Solo(hero,monster,{lines:[]},'projection',{monsterSkillDefs:{rage:skill},statusEffectDefs:{rage:{id:'rage',reapplication:'refresh',statusDurationTicks:5}},stopAfterTick:25});
+const events=result.log.events;
+const cast=events.find(e=>e.action==='cast_start');assert(cast);assert.equal(cast.skillId,'rage');assert.equal(cast.resolvesAtTick,cast.tick+2);
+const applied=events.find(e=>e.action==='status_apply');assert(applied);assert.equal(applied.status,'rage');assert(Array.isArray(applied.statusEffects));
+assert(projectStatusTimeline([],events,'monster',applied.tick).has('rage'));
+const expired=events.find(e=>e.action==='status_expire');assert(expired);assert(!projectStatusTimeline([],events,'monster',expired.tick).has('rage'));
+const regen=events.find(e=>e.action==='regen'&&e.actor==='character');assert(regen);assert.equal(regen.hpGain,4);assert.equal(regen.spGain,2);
+console.log('solo-readable-projection passed');

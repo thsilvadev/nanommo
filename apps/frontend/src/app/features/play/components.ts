@@ -1,3 +1,5 @@
+import { FollowLogDirective } from './follow-log.directive';
+import { battleEventText, battleEventTone, visibleBattleEvent } from './battle-event-text';
 import { CharacterViewerComponent } from '../../shared/character-viewer/character-viewer.component';
 import { portraitAnimationSource, portraitHandTypes, portraitModel } from './character-portrait';
 import { battleTickAt, battleTickDurationMs, battleTickExpiryRemainingSeconds } from '../../shared/battle-timing';
@@ -481,7 +483,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   showTileTooltip(tile:any,e:PointerEvent|FocusEvent){this.hoveredMap.set(tile);if(e instanceof PointerEvent)this.tooltipPointer={x:e.clientX,y:e.clientY};else{const r=(e.target as HTMLElement).getBoundingClientRect();this.tooltipPointer={x:r.left+r.width/2,y:r.top+r.height/2}}this.renderTileTooltip()}
   moveTileTooltip(e:PointerEvent){this.tooltipPointer={x:e.clientX,y:e.clientY};this.positionTileTooltip()}
   hideTileTooltip(){this.hoveredMap.set(null);this.tooltipEl?.remove();this.tooltipEl=null}
-  private renderTileTooltip(){const map=this.hoveredMap();this.tooltipEl?.remove();this.tooltipEl=null;if(!map)return;const el=document.createElement('div');el.className='nm-map-tooltip';el.style.cssText='position:fixed;z-index:10000;display:flex;flex-direction:column;gap:5px;min-width:190px;max-width:min(320px,calc(100vw - 20px));padding:12px 15px;background:linear-gradient(145deg,#21170f,#100b07);border:1px solid #a98750;box-shadow:0 6px 22px #000c,inset 0 0 0 1px #4b3521;color:#c9b79a;pointer-events:none;box-sizing:border-box;';const title=document.createElement('strong');title.textContent=map.name;title.style.cssText='color:#f0d9ac;font:bold 25px/1.05 Georgia,serif;letter-spacing:.4px;text-shadow:0 2px 3px #000;';el.appendChild(title);const sub=document.createElement('small');const mapType=String(map.type??'location').replace(/[_-]+/g,' ');sub.textContent=map.type==='grind'?('Recommended level: '+(map.recommendedLevel??1)):mapType.charAt(0).toUpperCase()+mapType.slice(1);sub.style.cssText='color:#b9a17a;font:12px/1.3 Arial,sans-serif;';el.appendChild(sub);if(map.type==='town'&&map.id===this.character.character()?.savedTownMapId){const waypoint=document.createElement('small');waypoint.textContent=this.locale.t('Saved here — click to teleport here');waypoint.style.cssText='color:#e2c66c;font:12px/1.35 Arial,sans-serif;margin-top:3px;';el.appendChild(waypoint)}if(map.type==='grind'&&map.gatheringPool&&map.gatheringPool.length>0){const resourcesEl=document.createElement('small');const resourceNames=map.gatheringPool.map((r:any)=>{const item=this.catalog.item(r.itemId);return item?.name??r.itemId;});resourcesEl.textContent='Gatherable Resources: '+resourceNames.join(', ');resourcesEl.style.cssText='color:#a89968;font:12px/1.3 Arial,sans-serif;margin-top:4px;';el.appendChild(resourcesEl)}document.body.appendChild(el);this.tooltipEl=el;this.positionTileTooltip()}
+  private renderTileTooltip(){const map=this.hoveredMap();this.tooltipEl?.remove();this.tooltipEl=null;if(!map)return;const el=document.createElement('div');el.className='nm-map-tooltip';el.style.cssText='position:fixed;z-index:10000;display:flex;flex-direction:column;gap:5px;min-width:190px;max-width:min(320px,calc(100vw - 20px));padding:12px 15px;background:linear-gradient(145deg,#21170f,#100b07);border:1px solid #a98750;box-shadow:0 6px 22px #000c,inset 0 0 0 1px #4b3521;color:#c9b79a;pointer-events:none;box-sizing:border-box;';const title=document.createElement('strong');title.textContent=map.name;title.style.cssText='color:#f0d9ac;font:bold 25px/1.05 Georgia,serif;letter-spacing:.4px;text-shadow:0 2px 3px #000;';el.appendChild(title);const sub=document.createElement('small');const mapType=String(map.type??'location').replace(/[_-]+/g,' ');sub.textContent=map.type==='grind'?('Recommended level: '+(map.recommendedLevel??1)):mapType.charAt(0).toUpperCase()+mapType.slice(1);sub.style.cssText='color:#b9a17a;font:12px/1.3 Arial,sans-serif;';el.appendChild(sub);if(map.mapLength!=null){const size=document.createElement('small');size.textContent='Map Size: '+map.mapLength;size.style.cssText='color:#b9a17a;font:12px Arial';el.appendChild(size)}if(map.type==='town'&&map.id===this.character.character()?.savedTownMapId){const waypoint=document.createElement('small');waypoint.textContent=this.locale.t('Saved here — click to teleport here');waypoint.style.cssText='color:#e2c66c;font:12px/1.35 Arial,sans-serif;margin-top:3px;';el.appendChild(waypoint)}if(map.type==='grind'&&map.gatheringPool&&map.gatheringPool.length>0){const resourcesEl=document.createElement('small');const resourceNames=map.gatheringPool.map((r:any)=>{const item=this.catalog.item(r.itemId);return item?.name??r.itemId;});resourcesEl.textContent='Gatherable Resources: '+resourceNames.join(', ');resourcesEl.style.cssText='color:#a89968;font:12px/1.3 Arial,sans-serif;margin-top:4px;';el.appendChild(resourcesEl)}document.body.appendChild(el);this.tooltipEl=el;this.positionTileTooltip()}
   private positionTileTooltip(){const el=this.tooltipEl;if(!el)return;const margin=10,gap=14;el.style.left='0px';el.style.top='0px';const r=el.getBoundingClientRect(),vw=document.documentElement.clientWidth,vh=document.documentElement.clientHeight;const x=this.tooltipPointer.x+gap+r.width<=vw-margin?this.tooltipPointer.x+gap:Math.max(margin,this.tooltipPointer.x-r.width-gap);const y=this.tooltipPointer.y+gap+r.height<=vh-margin?this.tooltipPointer.y+gap:Math.max(margin,this.tooltipPointer.y-r.height-gap);el.style.left=x+'px';el.style.top=y+'px'}
   enter(id:string){this.requestMapTransition(id)}
   enterTownMap(id:string){this.requestMapTransition(id)}
@@ -995,7 +997,7 @@ export class VendorPanel implements OnDestroy {
 @Component({ selector: 'app-battle-progress', standalone: true, imports: [CommonModule], templateUrl: './battle-progress.html', styleUrl: './battle-progress.css' })
 export class BattleProgress implements OnDestroy { @Input() entry!: any; readonly now = signal(Date.now()); private readonly timer = setInterval(() => this.now.set(Date.now()), 250); progress() { const s = Date.parse(this.entry.startAt), e = Date.parse(this.entry.endAt); return Math.max(0, Math.min(100, (this.now() - s) / Math.max(1, e - s) * 100)) } remaining() { const sec = Math.max(0, Math.ceil((Date.parse(this.entry.endAt) - this.now()) / 1000)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') } ngOnDestroy() { clearInterval(this.timer) } }
 
-@Component({ selector: 'app-grind-info', standalone: true, imports: [CommonModule, BattleProgress, VendorPanel, TooltipPositionDirective, BattleHitFeedbackDirective, SharedBattlePanelComponent], templateUrl: './grind-info.html', styleUrl: './grind-info.css', styles:[`.foe-mana{height:8px;background:#10131c;border:1px solid #294c70;margin-top:3px}.foe-mana i{display:block;height:100%;background:#3e91df}.mana-label{margin-top:5px}.status-icons,.skill-icons{display:flex;gap:5px;flex-wrap:wrap}.status-icon,.monster-skill-icon{position:relative;width:34px;height:34px;display:grid;place-items:center}.status-icon img,.monster-skill-icon img{width:30px;height:30px;object-fit:contain}.status-icon .status-tooltip,.monster-skill-icon .skill-tooltip{display:none;position:absolute;z-index:100;bottom:calc(100% + 7px);left:0;min-width:180px;max-width:260px;padding:8px;background:#120d09;border:1px solid #80613a;box-shadow:0 4px 14px #000;color:#c9b79a;white-space:normal;pointer-events:none;text-align:left}.monster-skill-icon:hover .skill-tooltip,.monster-skill-icon:focus .skill-tooltip,.monster-skill-icon:focus-within .skill-tooltip{display:flex;flex-direction:column;gap:4px}.status-tooltip strong,.skill-tooltip b{color:#e1cfad;font:15px Georgia}.status-tooltip small,.skill-tooltip small{font:12px Arial;line-height:1.3}.status-icon b{position:absolute;right:-3px;bottom:-3px;font-size:10px}`] })
+@Component({ selector: 'app-grind-info', standalone: true, imports: [CommonModule, BattleProgress, VendorPanel, TooltipPositionDirective, BattleHitFeedbackDirective, SharedBattlePanelComponent, FollowLogDirective], templateUrl: './grind-info.html', styleUrl: './grind-info.css', styles:[`.foe-mana{height:8px;background:#10131c;border:1px solid #294c70;margin-top:3px}.foe-mana i{display:block;height:100%;background:#3e91df}.mana-label{margin-top:5px}.status-icons,.skill-icons{display:flex;gap:5px;flex-wrap:wrap}.status-icon,.monster-skill-icon{position:relative;width:34px;height:34px;display:grid;place-items:center}.status-icon img,.monster-skill-icon img{width:30px;height:30px;object-fit:contain}.status-icon .status-tooltip,.monster-skill-icon .skill-tooltip{display:none;position:absolute;z-index:100;bottom:calc(100% + 7px);left:0;min-width:180px;max-width:260px;padding:8px;background:#120d09;border:1px solid #80613a;box-shadow:0 4px 14px #000;color:#c9b79a;white-space:normal;pointer-events:none;text-align:left}.monster-skill-icon:hover .skill-tooltip,.monster-skill-icon:focus .skill-tooltip,.monster-skill-icon:focus-within .skill-tooltip{display:flex;flex-direction:column;gap:4px}.status-tooltip strong,.skill-tooltip b{color:#e1cfad;font:15px Georgia}.status-tooltip small,.skill-tooltip small{font:12px Arial;line-height:1.3}.status-icon b{position:absolute;right:-3px;bottom:-3px;font-size:10px}`] })
 export class GrindInfo implements OnDestroy {
   readonly party = inject(PartyStore);
   sharedBattleActive(){return isSharedBattleCurrent(this.party.battle(),this.now());}
@@ -1063,57 +1065,15 @@ export class GrindInfo implements OnDestroy {
   monsterMaxHp(entry: any) { return Number(entry.log?.header?.monsterSnapshot?.maxHp ?? entry.log?.header?.monsterSnapshot?.hp ?? 0) }
   monsterLevel(entry: any) { return Number(this.monsterSnapshot(entry).level ?? 0) }
   percent(v: number, max: number) { return max > 0 ? Math.max(0, Math.min(100, v / max * 100)) : 0 }
-  recentEvents(entry: any) { const tick = this.elapsedTicks(entry); return this.events(entry).filter((e: any) => e.action !== 'range_blocked' && e.action !== 'action_suppressed' && Number(e.tick ?? 0) <= tick).slice(-120) }
+  recentEvents(entry: any) { const tick = this.elapsedTicks(entry); return this.events(entry).filter((e: any) => visibleBattleEvent(e) && Number(e.tick ?? 0) <= tick) }
+  eventTone = battleEventTone;
   eventText(e: any) {
-    if (e.action === 'range_blocked') return '';
-    const playerName = this.character.character()?.name ?? 'Character';
-    const monsterName = this.monster(this.battle.active()?.monsterId ?? '')?.name ?? 'Monster';
-    if (e.action === 'move') {
-      const actor = e.actor === 'character' ? playerName : monsterName;
-      const spaces = Number(e.spacesMoved ?? Math.abs(Number(e.toPosition ?? 0) - Number(e.fromPosition ?? 0)));
-      const fromPosition = Number(e.fromPosition);
-      const toPosition = Number(e.toPosition);
-      const hasPositionDelta = e.fromPosition != null && e.toPosition != null
-        && Number.isFinite(fromPosition) && Number.isFinite(toPosition) && fromPosition !== toPosition;
-      const arrow = hasPositionDelta
-        ? (toPosition > fromPosition ? '-->' : '<--')
-        : (e.direction === 'right' || e.direction === 1 || e.direction === '1')
-          ? '-->'
-          : (e.direction === 'left' || e.direction === -1 || e.direction === '-1')
-            ? '<--'
-            : '';
-      return `${actor} moved ( ${spaces} ) ${arrow}`;
-    }
-    const actor = e.actor === 'character' ? playerName : monsterName;
-    const target = e.target === 'character' ? playerName : e.target === 'monster' ? monsterName : actor;
-    if (e.action === 'sp_regen') return `${monsterName} regenerates ${Number(e.amount ?? 0)} SP.`;
-    const status = String(e.status ?? 'status').replace(/_/g, ' ').toLowerCase();
-    if (e.action === 'status_damage') return `${target} takes ${Number(e.damage ?? 0)} pure ${status} damage`;
-    if (e.action === 'freeze_applied') return `${target} is freezing (${Number(e.stackCount ?? 1)})`;
-    if (e.action === 'status_stack_applied') return `${target} gains ${status} from ${actor} (${Number(e.stackCount ?? 1)})`;
-    if (e.action === 'status_stack_lessened') return `${target}'s ${status} lessens (${Number(e.remainingStacks ?? e.stackCount ?? 0)})`;
-    if ((e.sourceSkillId === 'shield_bash' || e.passiveProc === true) && status === 'stun') return `${target} is stunned by Shield Bash.`;
-    if (e.action === 'status_ended' || e.action === 'status_expired') return `${target}'s ${status} ended`;
-    if (e.action === 'status_applied' || e.action === 'status_refreshed') return `${actor} applies ${status} to ${target}`;
-    if (e.action === 'attack') { 
-      const damage = Number(e.damage ?? 0);
-      if (damage === 0) return actor + ' misses!';
-      const critical = e.crit ? ' CRITICAL!' : ''; 
-      return actor + ' attacks for ' + damage + critical; 
-    }
-    if (e.action === 'regen') {
-      const resource = String(e.resource ?? 'HP').replace(/_regen$/, '').toUpperCase() || 'HP';
-      return `${actor} regenerated ${Number(e.amount ?? 0)} ${resource}.`;
-    }
-    if (e.action === 'use_item') return (e.actor === 'character' ? playerName + ' uses ' : monsterName + ' uses ') + String(e.itemId ?? 'item').replaceAll('_', ' ');
-    if (e.action === 'use_skill') {
-      const skill = String(e.skillId ?? 'skill') === 'monster_skill_ice_bolt' ? 'Ice Bolt' : String(e.skillId ?? 'skill').replaceAll('_', ' ');
-      const damage = e.damage != null ? ' for ' + Number(e.damage) + ' damage' : '';
-      const healing = e.healAmount != null ? ' and healed ' + Number(e.healAmount) + ' HP' : '';
-      return actor + ' casts ' + skill + damage + healing;
-    }
-    return String(e.action ?? 'event');
+    const player = this.character.character()?.name ?? 'Character';
+    const monster = this.monster(this.battle.active()?.monsterId ?? '')?.name ?? 'Monster';
+    return battleEventText(e, e.actor === 'character' ? player : monster, e.target === 'character' ? player : monster,
+      (id, kind) => String(kind === 'item' ? this.catalog.itemName(id) : kind === 'status' ? this.catalog.statusEffect(id)?.name ?? id.replace(/_/g, ' ') : this.catalog.skills().find((s: any) => s.id === id)?.name ?? id.replace(/_/g, ' ')));
   }
+  monsterDrops(entry: any) { return (this.monster(entry.monsterId)?.drops ?? []).map((drop: any) => ({ ...drop, name: this.catalog.itemName(drop.itemId), percent: Number(drop.chance) * 100 })); }
   sessionDrops() { return this.battle.sessionDrops() }
   sessionDropName(it: any) { return this.catalog.itemName(it.itemId, it.instanceData) }
   sessionDropIcon(it: any) { return this.catalog.itemIcon(it.itemId) }

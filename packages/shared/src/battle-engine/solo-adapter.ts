@@ -27,7 +27,8 @@ export function simulateBattleV2Solo(
     const state=event.actorStates??{};
     const base={tick:event.tick,actor,target,action:event.action,actorId:event.actorId,targetIds:event.targetIds,hpRemaining:{character:state[characterId]?.hp??self.hp,monster:state[monsterId]?.hp??foe.hp},spRemaining:{character:state[characterId]?.sp??self.sp,monster:state[monsterId]?.sp??foe.sp}};
     if(payload.type==='action'){const {type,...action}=payload;return {...base,...action};}
-    if(payload.type==='status')return {...base,status:payload.statusId,damage:payload.damage};
+    if(payload.type==='status')return {...base,status:payload.statusId,damage:payload.damage,statusEffects:state[event.targetIds[0]]?.statusEffects};
+    if(payload.type==='cast')return {...base,skillId:payload.skillId,resolvesAtTick:payload.resolvesAtTick};
     if(payload.type==='move')return {...base,fromPosition:payload.from.column,toPosition:payload.to.column,fromGridPosition:payload.from,toGridPosition:payload.to,reason:payload.reason};
     if(payload.type==='regen')return {...base,hpGain:payload.hpGain,spGain:payload.spGain};
     return base;

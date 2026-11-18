@@ -173,3 +173,5 @@
 .cooking-quantity-control input { width:58px; padding:7px 4px; border:1px solid #8a6638; background:#100b07; color:#f0d99f; font:bold 14px Arial; text-align:center; }
 .cooking-quantity-control small { color:#927b58; font:10px Arial; }
 @media(max-width:900px) { .cooking-quantity-control input { width:48px; padding:6px 2px; } }
+
+.cooking-quantity-control{flex-direction:row;align-items:center;gap:8px}.quantity-max{font-size:12px;font-weight:700;color:#f1d692;background:#3b2b15;border:1px solid #b08c4f;border-radius:4px;padding:6px 9px;cursor:pointer;transition:background .15s,transform .15s}.quantity-max:hover,.quantity-max:focus-visible{background:#654820;transform:translateY(-1px);outline:2px solid #d4ac62;outline-offset:2px}

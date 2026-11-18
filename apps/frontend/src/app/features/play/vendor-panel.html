@@ -261,9 +261,10 @@
                 class="cooking-warning">{{vendor.t('Missing ingredients')}}</span><span *ngIf="!recipe.unlocked"
                 class="cooking-locked-label">Unlock at Cooking level {{recipe.requiredLevel}}</span></div>
             <div class="craft-quantity-control cooking-quantity-control" *ngIf="recipe.available && !vendor.cookingState()?.session">
+              <button type="button" class="quantity-max" (click)="vendor.setCookingQuantity(recipe,recipe.maxCookQuantity)" title="Set maximum quantity">Max {{recipe.maxCookQuantity}}</button>
               <label>{{vendor.t('Quantity')}} <input type="number" min="1" [max]="recipe.maxCookQuantity"
                 [value]="vendor.cookingQuantity(recipe)" (input)="vendor.setCookingQuantity(recipe,$any($event.target).value)"></label>
-              <small>Max {{recipe.maxCookQuantity}}</small>
+
             </div>
             <button type="button" class="cooking-button"
               [disabled]="!recipe.available || vendor.busy() || !!vendor.cookingState()?.session"
@@ -284,7 +285,7 @@
         </header>
         <p class="cooking-warning" *ngIf="vendor.professionState()?.otherSessionActive">{{vendor.t('Another crafting session is already active. Return to the NPC who started it to cancel it.')}}</p>
         <div class="cooking-session" *ngIf="vendor.professionState()?.session as session">
-          <div class="cooking-session-row"><strong>{{session.recipeId}}</strong><span>{{vendor.professionRemaining()}}s</span></div>
+          <div class="cooking-session-row"><strong>{{session.recipeId}} · {{session.completedQuantity || 0}} / {{session.quantity || session.outputQuantity || 1}}</strong><span>{{vendor.professionRemaining()}}s</span></div>
           <div class="cooking-progress"><i [style.width.%]="vendor.professionPercent()"></i></div>
           <button type="button" class="cooking-cancel" (click)="vendor.cancelProfession()" [disabled]="vendor.busy()">{{vendor.t('Cancel')}}</button>
         </div>

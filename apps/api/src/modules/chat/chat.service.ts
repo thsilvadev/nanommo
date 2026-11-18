@@ -47,6 +47,10 @@ export class ChatService {
     if (channel === 'global') {
       return (await this.globalHistory.list(limit)).map(row => ({ id: row.id, channel: 'global', senderCharacterId: row.senderCharacterId, username: row.senderNameSnapshot, message: row.message, sentAt: new Date(row.sentAt).toISOString() }));
     }
+    if (channel === 'crafts') {
+      const safe = Math.max(1, Math.min(40, Math.floor(Number(limit) || 40)));
+      return (await this.redis.lrange('chat:crafts', 0, safe - 1)).map(row => JSON.parse(row)).reverse();
+    }
     if (channel === 'journal') {
       if (!characterId) throw new BadRequestException('Character context is required for Idle Journal');
       return this.transientHistory.listJournal(characterId, limit);
@@ -65,7 +69,23 @@ export class ChatService {
     await this.transientHistory.appendJournal(characterId, row);
   }
 
-  async getAvailableChannels(): Promise<any[]> { return ['global']; }
+  async announceCraft(characterId: string, characterName: string, itemId: string, completionId: string): Promise<void> {
+    if (!this.dataService.getCraftAnnouncementItemIds().includes(itemId)) return;
+    const item = this.dataService.getItemById(itemId);
+    const row = { id: `craft:${completionId}`, channel: 'crafts', senderCharacterId: characterId,
+      message: `${characterName} crafted ${item?.name ?? itemId}.`, sentAt: new Date().toISOString() };
+    try {
+      const accepted = await this.redis.set(`chat:crafts:dedupe:${completionId}`, '1', 'EX', 604800, 'NX');
+      if (accepted !== 'OK') return;
+      const serialized = JSON.stringify(row);
+      await this.redis.multi().lpush('chat:crafts', serialized).ltrim('chat:crafts', 0, 39).exec();
+      await this.redis.publish('gateway:chat:global', serialized);
+    } catch (error) {
+      this.logger.error(`Craft announcement failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  async getAvailableChannels(): Promise<any[]> { return ['global', 'journal', 'crafts']; }
 
   async mutePlayer(_characterId: string, _playerId: string, _durationMinutes?: number): Promise<void> { throw new BadRequestException('Player mute is not supported'); }
   async unmutePlayer(_characterId: string, _playerId: string): Promise<void> { throw new BadRequestException('Player mute is not supported'); }

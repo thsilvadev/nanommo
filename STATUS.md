@@ -1,3 +1,10 @@
+### Gameplay fixes on isolated branch — 2026-11-17
+
+- Branch `codex/gameplay-fixes`: readable colored live/shared/history battle logs, conditional bottom following, V2 status/cast metadata; optional craft announcements with 33-output allowlist; clickable Cooking Max; transparent angry/crying Flaming Treant; monster-specific drop rates; sequential profession batches with per-unit XP and safe deadline cancellation; map size tooltips; serialized stationary scheduling to prevent stance overwrite.
+- Existing Antidote/Fairy categories, recipes and category cooldowns verified. No balance changes.
+- Validation: shared/API/production frontend builds passed; 203 frontend assertions passed, with Karma/Chromium teardown failure causing nonzero command exit; 19 focused API scripts passed. Known stale-script failures and exact limitations are recorded in `docs/maintenance/gameplay-fixes.md`.
+- No deployment, migration or live database changes. Branch retained for review.
+
 ### Bow shot timing, V2 casts and left-handed swings — 2026-11-17
 
 - Bow timing: with a bow in hand (`attackStyle: 'bow'`, from the portrait's hand items), a basic attack's shot now opens before its hit tick so the string is released `ARROW_FLIGHT_SECONDS` (0.25 s) before the hit. The draw is sped up when the previous action resolved too recently for draw + flight to fit. Melee swings keep starting on the hit tick.

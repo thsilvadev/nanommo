@@ -36,7 +36,13 @@ export function projectStatusTimeline(
     if (!id) continue;
     const current = active.get(id) ?? [];
     const action = String(event?.action ?? '');
-    if (['status_applied', 'status_stack_applied', 'status_refreshed', 'freeze_applied'].includes(action)) {
+    if ((action === 'status_apply' || action === 'status_expire') && Array.isArray(event.statusEffects)) {
+      const stacks = event.statusEffects.filter((stack: any) => String(stack.type ?? stack.id ?? stack.statusId) === id);
+      if (stacks.length) active.set(id, stacks.map((stack: any) => ({ ...stack, type: id })));
+      else active.delete(id);
+      continue;
+    }
+    if (['status_applied', 'status_stack_applied', 'status_refreshed', 'freeze_applied', 'status_apply'].includes(action)) {
       const duration = Number(event?.durationTicks ?? 0);
       const expiresAtTick = event?.expiresAtTick != null
         ? Number(event.expiresAtTick)
@@ -52,7 +58,7 @@ export function projectStatusTimeline(
       };
       if (action === 'status_refreshed') active.set(id, [stack]);
       else active.set(id, [...current, stack]);
-    } else if (action === 'status_ended' || action === 'status_expired') {
+    } else if (action === 'status_ended' || action === 'status_expired' || action === 'status_expire') {
       active.delete(id);
     } else if (action === 'status_stack_lessened') {
       const remaining = Math.max(0, Math.floor(Number(event?.remainingStacks ?? event?.stackCount ?? current.length - 1)));

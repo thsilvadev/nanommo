@@ -754,3 +754,11 @@ app-character-summary .equip-slot > img.mirrored-hand {
 .gambit-editor .gambit-line.scope-self input,.gambit-editor .gambit-line.scope-ally input {background:#172737;border-color:#345879;color:#c2d9ea}
 .gambit-editor .gambit-line.scope-foe input {background:#321d1d;border-color:#74403e;color:#e5c3b9}
 .gambit-editor input[type=number] {color-scheme:dark}
+
+/* Shared vocabulary across live, party and historical combat feeds. */
+[data-tone="outgoing"]>span,[data-tone="outgoing"] .event-body{color:#f2ce7c;font-weight:600}
+[data-tone="incoming"]>span,[data-tone="incoming"] .event-body{color:#ff8e85;font-weight:600}
+[data-tone="healing"]>span,[data-tone="healing"] .event-body{color:#9bd778;font-weight:600}
+[data-tone="status"]>span,[data-tone="status"] .event-body{color:#c1a2f5}
+[data-tone="skill"]>span,[data-tone="skill"] .event-body{color:#82c9f2}
+[data-tone="muted"]>span,[data-tone="muted"] .event-body{color:#ae9c83}

@@ -1,3 +1,4 @@
+import { ChatService } from '../chat/chat.service';
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, EntityManager } from 'typeorm';
@@ -28,6 +29,7 @@ export class TownService {
     private readonly characterService: CharacterService,
     private readonly battleService: BattleService,
     @InjectQueue('battle-queue') private readonly bullQueue: Queue,
+    private readonly chatService?: ChatService,
   ) {}
 
   private vendor(vendorId = 'william'): Vendor {
@@ -575,9 +577,10 @@ export class TownService {
         character.cookingSession = null;
       }
       await characterRepo.save(character);
-      return { character, nextSession, levelUp: character.cookingLevel > previousLevel, previousLevel, newLevel: character.cookingLevel };
+      return { character, nextSession, announcement: { name: character.name, itemId: session.outputItemId, id: session.id + ':' + completedQuantity }, levelUp: character.cookingLevel > previousLevel, previousLevel, newLevel: character.cookingLevel };
     }));
     if (result) {
+      await this.chatService?.announceCraft(characterId, result.announcement.name, result.announcement.itemId, result.announcement.id);
       if (result.nextSession) await this.scheduleCookingCompletion(characterId, result.nextSession);
       await this.battleService.runFutureCombatMutation(characterId, async () => undefined);
       // Each unit is committed independently; the next 10-second unit starts from this completion.
@@ -686,11 +689,22 @@ export class TownService {
       const session = character.craftingSession;
       if (!session || session.profession !== profession) throw new BadRequestException('No active ' + this.professionFields(profession).label + ' session');
       if (sessionId && session.id !== sessionId) throw new BadRequestException('Crafting session has changed');
-      if (Date.now() >= Date.parse(session.completesAt)) return { complete: true, sessionId: session.id };
+      if (Date.now() >= Date.parse(session.completesAt)) return { complete: true, sessionId: session.id, batchId: session.batchId ?? session.id };
       character.craftingSession = null; await manager.getRepository(Character).save(character);
       return { complete: false, sessionId: session.id };
     }));
-    if (result.complete) await this.completeCrafting(characterId, result.sessionId);
+    if (result.complete) {
+      await this.completeCrafting(characterId, result.sessionId);
+      const pendingId = await this.battleService.withCharacterQueueLock(characterId, () => this.characterRepo.manager.transaction(async manager => {
+        const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
+        const pending = character?.craftingSession;
+        if (!pending || (pending.batchId ?? pending.id) !== result.batchId) return null;
+        character.craftingSession = null;
+        await manager.getRepository(Character).save(character);
+        return pending.id;
+      }));
+      if (pendingId) { const job = await this.bullQueue.getJob('crafting-' + characterId + '-' + pendingId); if (job) await job.remove().catch(() => undefined); }
+    }
     else { const job = await this.bullQueue.getJob('crafting-' + characterId + '-' + result.sessionId); if (job) await job.remove().catch(() => undefined); }
     return this.getProfessionState(characterId, npcId, profession);
   }
@@ -724,8 +738,8 @@ export class TownService {
       const rows = await invRepo.find({ where: { characterId, location: 'inventory' }, lock: { mode: 'pessimistic_write' } });
       const totals = new Map<string, number>();
       for (const row of rows) totals.set(row.itemId, (totals.get(row.itemId) ?? 0) + Number(row.quantity));
-      for (const req of session.ingredients ?? []) if ((totals.get(req.itemId) ?? 0) < Number(req.quantity)) throw new BadRequestException('Reserved ingredient missing: ' + req.itemId);
-      for (const req of session.ingredients ?? []) await this.inventoryService.removeItem(characterId, req.itemId, Number(req.quantity), manager, true);
+      for (const req of recipe.ingredients ?? []) if ((totals.get(req.itemId) ?? 0) < Number(req.quantity)) throw new BadRequestException('Reserved ingredient missing: ' + req.itemId);
+      for (const req of recipe.ingredients ?? []) await this.inventoryService.removeItem(characterId, req.itemId, Number(req.quantity), manager, true);
       const output = this.item(session.outputItemId);
       let instanceData: any = null;
       const roll = output.randomRollOnCraft;
@@ -737,16 +751,29 @@ export class TownService {
           instanceData = { rolledAttribute: pool[digest.readUInt32BE(0) % pool.length], rolledValue: min + digest.readUInt32BE(4) % (max - min + 1), craftedByProfession: profession, craftedRecipeId: recipe.id };
         }
       }
-      await this.inventoryService.addItem(characterId, session.outputItemId, Number(session.outputQuantity ?? 1), 'inventory', instanceData, manager, true);
+      await this.inventoryService.addItem(characterId, session.outputItemId, 1, 'inventory', instanceData, manager, true);
       const knownItems = Array.isArray(character.knownItemIds) ? character.knownItemIds : [];
       if (!knownItems.includes(session.outputItemId)) character.knownItemIds = [...knownItems, session.outputItemId];
       const previousLevel = Math.max(1, Number((character as any)[fields.levelField] ?? 1));
       (character as any)[fields.xpField] = Number((character as any)[fields.xpField] ?? 0) + Number(recipe.xpReward ?? 0);
       (character as any)[fields.levelField] = this.cookingLevelForXp(Number((character as any)[fields.xpField]));
-      character.craftingSession = null; await characterRepo.save(character);
-      return { levelUp: Number((character as any)[fields.levelField]) > previousLevel };
+      const total = Math.max(1, Number(session.quantity ?? session.outputQuantity ?? 1));
+      const completedQuantity = Number(session.completedQuantity ?? 0) + 1;
+      let nextSession: any = null;
+      if (completedQuantity < total) {
+        const now = Date.now();
+        nextSession = { ...session, id: randomUUID(), batchId: session.batchId ?? session.id, completedQuantity,
+          startedAt: new Date(now).toISOString(), completesAt: new Date(now + 10_000).toISOString(),
+          ingredients: recipe.ingredients.map((req: any) => ({ itemId: req.itemId, quantity: Number(req.quantity) * (total - completedQuantity) })) };
+      }
+      character.craftingSession = nextSession; await characterRepo.save(character);
+      return { nextSession, announcement: { name: character.name, itemId: session.outputItemId, id: session.id }, levelUp: Number((character as any)[fields.levelField]) > previousLevel };
     }));
-    if (result) await this.battleService.runFutureCombatMutation(characterId, async () => undefined);
+    if (result) {
+      await this.chatService?.announceCraft(characterId, result.announcement.name, result.announcement.itemId, result.announcement.id);
+      if (result.nextSession) await this.scheduleCraftingCompletion(characterId, result.nextSession);
+      await this.battleService.runFutureCombatMutation(characterId, async () => undefined);
+    }
     return result;
   }
 

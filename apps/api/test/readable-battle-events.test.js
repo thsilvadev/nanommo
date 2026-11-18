@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript');
+const moduleOut={exports:{}};
+new Function('exports',ts.transpileModule(fs.readFileSync('apps/frontend/src/app/features/play/battle-event-text.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(moduleOut.exports);
+const {battleEventText:text,visibleBattleEvent}=moduleOut.exports;
+const name=id=>({stun:'Stun',violent_shot:'Violent Shot',pot_hp_large:'Large HP Potion'}[id]??id);
+assert.equal(text({action:'status_expire',status:'stun'},'Hero','Treant',name),"Treant's Stun expires.");
+assert.equal(text({action:'target'},'Hero','Treant',name),'Hero targets Treant.');
+assert.equal(text({action:'cast_start',skillId:'violent_shot'},'Hero','Treant',name),'Hero begins casting Violent Shot.');
+assert.equal(text({action:'regen',hpGain:12,spGain:4},'Hero','Hero',name),'Hero regenerates 12 HP and 4 SP.');
+assert.equal(visibleBattleEvent({action:'regen',hpGain:0,spGain:0}),false);
+assert.equal(visibleBattleEvent({action:'regen',payload:{hpGain:4}}),true);
+console.log('readable-battle-events passed');

@@ -1,3 +1,4 @@
+import { ChatModule } from '../chat/chat.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
@@ -13,7 +14,7 @@ import { InventoryModule } from '../inventory/inventory.module';
 import { QuestModule } from '../quests/quest.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Character, InventoryItem]), BullModule.registerQueue({ name: 'battle-queue' }), DataModule, CharacterModule, InventoryModule, QuestModule, forwardRef(() => BattleModule)],
+  imports: [ChatModule, TypeOrmModule.forFeature([Character, InventoryItem]), BullModule.registerQueue({ name: 'battle-queue' }), DataModule, CharacterModule, InventoryModule, QuestModule, forwardRef(() => BattleModule)],
   controllers: [TownController],
   providers: [TownService],
   exports: [TownService],
