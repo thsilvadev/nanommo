@@ -151,6 +151,9 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   readonly inTownScene = computed(() => this.town.isTown(this.character.character()?.currentMapId));
   readonly viewMode = computed(() => mapViewMode(this.inTownScene(), this.character.character()?.currentMapId, this.viewChoice()));
   readonly townMenu = signal<{ entry: TownRosterEntry; screen: [number, number] } | null>(null);
+  /** A manual map/town choice only lasts while the character stays on that map: arriving anywhere forgets it. */
+  forgetViewChoiceOnMapChange(previousMapId: string | null | undefined, nextMapId: string | null | undefined) { if (previousMapId !== nextMapId) this.viewChoice.set(null); }
+  private viewChoiceMapId: string | null | undefined = undefined;
   setViewMode(mode: MapViewMode) { const mapId = this.character.character()?.currentMapId; if (mapId) this.viewChoice.set({ mapId, mode }); this.townMenu.set(null); }
   onTownNpcSelected(npcId: string) {
     this.townMenu.set(null);
@@ -206,6 +209,12 @@ export class MapBoard implements OnDestroy, AfterViewInit {
       }
       this.centerOnCurrentMap();
       this.reconcileDestinationPreview(c);
+    }, { allowSignalWrites: true });
+    effect(()=>{
+      const mapId=this.character.character()?.currentMapId;
+      if(mapId===undefined)return;
+      if(this.viewChoiceMapId!==undefined)this.forgetViewChoiceOnMapChange(this.viewChoiceMapId,mapId);
+      this.viewChoiceMapId=mapId;
     }, { allowSignalWrites: true });
     effect(()=>{
       const resolved=this.battle.lastResolved();

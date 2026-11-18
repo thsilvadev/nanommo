@@ -60,7 +60,7 @@ test('presence criterion', async () => {
   assert.equal(service.isTownPresent({ currentMapId: TOWN, travelIntent: { kind: 'route' }, pendingMapTransition: null }), null);
   assert.equal(service.isTownPresent({ currentMapId: TOWN, travelIntent: null, pendingMapTransition: { destinationMapId: 'x' } }), null);
   assert.equal(service.isTownPresent({ currentMapId: 'map_green_grounds_0', travelIntent: null, pendingMapTransition: null }), null);
-  assert.equal(service.isTownPresent({ currentMapId: 'map_outpost', travelIntent: null, pendingMapTransition: null }), null, 'Outpost has no scene');
+  assert.equal(service.isTownPresent({ currentMapId: 'map_outpost', travelIntent: null, pendingMapTransition: null }), 'map_outpost', 'Outpost has a scene');
 });
 
 test('snapshot includes offline asleep', async () => {

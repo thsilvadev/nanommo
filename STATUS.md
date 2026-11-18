@@ -1,3 +1,26 @@
+### Cidade Viva parte 2 — botão ilustrado, sono pela idade, varandas, Outpost e NPCs vestidos — 2026-11-18
+
+Branch `feat/cidade-viva-2` (worktree `.claude/worktrees/cidade-viva-2`; spec `docs/superpowers/specs/2026-11-18-cidade-viva-parte-2-design.md`, plano `docs/superpowers/plans/2026-11-18-cidade-viva-parte-2.md`, decisão dos NPCs `docs/superpowers/specs/2026-11-18-npc-visuals-decision.md`, OpenSpec `town-living-scene-2`).
+
+- Frontend: um botão ilustrado (`public/assets/ui/town-view-map.svg` / `town-view-house.svg`) no lugar do alternador; a escolha manual é esquecida a cada troca de `currentMapId` (chegar numa cidade sempre abre a cena). Pose de sono pela idade do sono (quem dorme há tempo já aparece deitado). Construtores `balcony`, `tower`, `campfire`, `altar`, `well`; água animada na fonte; fogueira com brasas; pedrinhas orbitando o altar; sino do poço balançando; `TownWorld.update(nowMs)`. NPCs no alto (caixa de clique sobe junto).
+- NPCs: registro `town-scene/npc-visuals.ts` — roupas CC0 (Quaternius Peasant/Ranger) religadas ao esqueleto do corpo por nome de osso, corpo reduzido à cabeça, figurino preso aos ossos (espaço de bind), adereços (Quaternius Fantasy Props, KayKit RPG Tools Bits ou primitivas), pintura por peça, roupa de baixo cor de palha, barriga por escala de ossos, cachimbo com fumaça. Ajustado com o usuário em duas rodadas de revisão. Pipeline offline novo `tools/npc-assets` (packs fora do git; saída `public/assets/npcs/`, ≈3,6 MB, só na cidade).
+- Shared: tipos `balcony`/`tower`/`campfire`/`altar`/`well`, faixa da escada no footprint, `balconyStairsFoot`, `balconyContains`, regra do NPC elevado no validador.
+- Dados: `town_scenes.json` (+ espelho) — Caelum ao meio-dia (20 casas, 2 varandas), fogueira na Taba, altar em Aramaia, poço em Sierra, cena nova do Outpost (torre de altura 90 > 57,3 da câmera). O Outpost passa a ter roster e cena.
+- Correção achada na verificação: recolorir roupas convertia ~1M pixels com `THREE.Color` a cada cidade aberta (Sierra levava 4,3 s para montar e o Karma desconectava); agora é aritmética em bytes numa tela de 512 px (~0,4 s na primeira montagem de todos os NPCs).
+
+Sem migração. Nada executado em banco. Sem deploy, sem push.
+
+Validação (rodada em 2026-11-18 no worktree):
+- `pnpm --filter @nanommo/shared build` e `pnpm --filter @nanommo/api build`: passam.
+- `node apps/api/test/town-wander.test.js` 17/17 (10 000 poses sem célula bloqueada em Caelum, Taba, Outpost, Aramaia e Sierra); `town-scenes-catalog.test.js` 25/25 (inclui boot do `DataService`); `town-roster.test.js` 17/17; `party-invite-declined.test.js` 6/6; `map-presence.test.js` 13 asserções.
+- `node scripts/validate-town-scenes.js`: passa (5 cenas + espelho).
+- `node apps/api/test/map-presence-cleanup.test.js`: FALHA, pré-existente (`TypeError: queueRepo.createQueryBuilder is not a function`, fixture desatualizada). `pnpm --filter @nanommo/api lint`: FALHA, pré-existente (ESLint não encontra configuração).
+- `cd apps/frontend && npx tsc -p tsconfig.spec.json --noEmit`: passa. `npx ng test --watch=false --browsers=ChromeHeadless` (CHROME_BIN=/snap/bin/chromium): 287 SUCCESS, 0 falhas (duas vezes).
+- `pnpm --filter @nanommo/frontend build --configuration production`: passa; só os avisos de orçamento conhecidos (inicial 546,37 kB, era 543,87 kB na parte 1); `town-runtime` segue chunk lazy (42,71 kB) e three.js fora do bundle inicial. Os espelhos antigos reescritos pelo build (`skill_trees.json`, `blacksmith_recipes.json`) foram revertidos.
+- `pnpm exec openspec validate town-living-scene-2 --strict`: válido (arquivar depois de `town-living-scene`).
+- `tools/npc-assets`: `node build.mjs` rodado duas vezes, saída idêntica (md5).
+- Conferência visual: prints em Chrome headless de cada cidade alterada e de cada NPC (frente e costas), revisados com o usuário. Desempenho em GPU real não medido (mesma limitação da parte 1).
+
 ### Detailed player-facing craft item tooltips — 2026-11-18
 
 - Cooking, Alchemy and Blacksmith product icons/names and ingredient names share one floating tooltip template. Refinement equipment/current selection and materials also show details. Active crafting headings use product names instead of recipe IDs.

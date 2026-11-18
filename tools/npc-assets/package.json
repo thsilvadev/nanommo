@@ -1,0 +1,15 @@
+{
+  "name": "nanommo-npc-assets",
+  "private": true,
+  "description": "Offline pipeline: CC0 source packs -> NPC outfit and prop GLBs used by the town scene. Not part of the pnpm workspace.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "4.1.1",
+    "@gltf-transform/extensions": "4.1.1",
+    "@gltf-transform/functions": "4.1.1",
+    "sharp": "0.33.5"
+  }
+}

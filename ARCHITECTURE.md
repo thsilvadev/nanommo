@@ -1,3 +1,10 @@
+## Living Town scene, part 2: elevated obstacles on a 2D grid, sleep by age, NPC visual registry — 2026-11-18
+
+- **The walk grid stays 2D.** Balconies, towers, campfires, altars and wells are footprints on the same grid; nobody climbs. A balcony blocks its platform and its stairs strip; an NPC up on it (`npcSpots.*.y`) is only drawn there, and its POI sits by the stairs foot (validator rule). A tower's top is never visible because the camera never rises above `70·sin 55° ≈ 57.3`.
+- **The sleep pose is a function of the sleep's age**, not of when the client saw it fall: `Dead` starts at `now − sleeping.at` (snapped without crossfade on the first frame), so every client shows the same pose.
+- **Set pieces animate from the server clock** (`TownWorld.update(nowMs)`, costume animators in `TownCharacter.update`): deterministic like the movement.
+- **NPC look is data in a registry** (`town-scene/npc-visuals.ts`): outfit + tint/paint + costume pieces + props per NPC id. Outfits are CC0 skinned meshes on the same 65-bone rig as our bodies, rebound by bone name at runtime (no Blender, no new rig); the body keeps only its head. Assets come from the offline pipeline `tools/npc-assets`.
+
 ## Living Town scene: shared scene + deterministic movement — 2026-11-18
 
 Towns with a scene (`town_scenes.json`: Caelum, Sierra, Kwaiouá Taba, Aramaia City) are rendered as one shared three.js scene showing every character standing in that Town. Decisions:

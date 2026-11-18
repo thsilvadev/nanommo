@@ -2,6 +2,7 @@ import type { CharacterAppearance, Sex } from '../appearance';
 
 export const TOWN_OBSTACLE_KINDS = [
   'tree', 'tall_tree', 'fountain', 'house', 'hut', 'tent', 'pillar', 'pyramid_wall', 'lamp', 'rock', 'fence',
+  'balcony', 'tower', 'campfire', 'altar', 'well',
 ] as const;
 export type ObstacleKind = typeof TOWN_OBSTACLE_KINDS[number];
 
@@ -17,7 +18,14 @@ export interface TownObstacle {
   /** Rectangle rotation in degrees around Y. */
   rot?: number;
   height?: number;
+  /**
+   * `balcony` only: side of the stairs in the obstacle's local frame (before
+   * `rot`): 'e' = +x, 'w' = -x, 's' = +z, 'n' = -z.
+   */
+  stairs?: TownStairsSide;
 }
+
+export type TownStairsSide = 'n' | 's' | 'e' | 'w';
 
 export interface TownPoi {
   id: string;
@@ -46,8 +54,12 @@ export interface TownSceneDef {
   };
   fog: { color: string; near: number; far: number };
   obstacles: TownObstacle[];
-  /** `facing` in degrees around Y; 0 faces +Z (same convention as TownPose.facing). */
-  npcSpots: Record<string, { x: number; z: number; facing: number }>;
+  /**
+   * `facing` in degrees around Y; 0 faces +Z (same convention as TownPose.facing).
+   * `y` > 0 puts the NPC up on a `balcony` (the walk grid stays 2D: nobody
+   * climbs; the NPC's POI sits by the stairs foot).
+   */
+  npcSpots: Record<string, { x: number; z: number; facing: number; y?: number }>;
   pointsOfInterest: TownPoi[];
   spawn: { x: number; z: number };
 }
