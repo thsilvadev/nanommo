@@ -26,6 +26,43 @@ type TownClip = typeof CLIPS[number];
 const FADE_SECONDS = 0.25;
 const LOW_LOD_STEP_MS = 100; // 10 Hz
 const frac = (v: number) => v - Math.floor(v);
+/** Recoloured outfit textures are painted at this size (seen from the Town camera, plenty). */
+const PAINT_SIZE = 512;
+
+/** sRGB bytes → HSL in 0..1 (plain math: these loops run over whole textures). */
+function rgbToHslInto(r8: number, g8: number, b8: number, out: [number, number, number]): void {
+  const r = r8 / 255, g = g8 / 255, b = b8 / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) { out[0] = 0; out[1] = 0; out[2] = l; return; }
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h /= 6;
+  out[0] = h; out[1] = s; out[2] = l;
+}
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  const out: [number, number, number] = [0, 0, 0];
+  rgbToHslInto(r, g, b, out);
+  return out;
+}
+function hueToRgb(p: number, q: number, t: number): number {
+  if (t < 0) t += 1;
+  if (t > 1) t -= 1;
+  if (t < 1 / 6) return p + (q - p) * 6 * t;
+  if (t < 1 / 2) return q;
+  if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+  return p;
+}
+/** HSL in 0..1 → sRGB bytes. */
+function hslToRgb(h: number, s: number, l: number, out: [number, number, number]): void {
+  if (s === 0) { out[0] = out[1] = out[2] = l * 255; return; }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  out[0] = hueToRgb(p, q, h + 1 / 3) * 255;
+  out[1] = hueToRgb(p, q, h) * 255;
+  out[2] = hueToRgb(p, q, h - 1 / 3) * 255;
+}
 const PLATE_HEIGHT = 2.15;
 
 export type TownLod = 'full' | 'low';
@@ -133,48 +170,31 @@ export class TownCharacterFactory {
   /**
    * The outfit texture painted `color` where `geometry` samples it: each texel
    * keeps its lightness relative to the part's average (folds, seams, belt stay
-   * readable). Once per (texture, part, colour).
+   * readable). Once per (texture, part, colour); done at PAINT_SIZE in plain
+   * byte math (it runs on the main thread when a Town opens).
    */
   paintPart(source: THREE.Texture, color: string, geometry: THREE.BufferGeometry, part: string): THREE.Texture {
-    const key = `${source.uuid}|${part}|${color}`;
-    let texture = this.rehued.get(key);
-    if (!texture) {
-      const image = source.image as CanvasImageSource & { width: number; height: number };
-      const canvas = document.createElement('canvas');
-      canvas.width = image.width; canvas.height = image.height;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(image, 0, 0);
-      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const d = pixels.data;
+    return this.recoloured(`${source.uuid}|${part}|${color}`, source, (d, size) => {
       const lum = (i: number) => (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
       // Average lightness of the part, sampled at its vertices' UVs.
       const uv = geometry.getAttribute('uv');
       let sum = 0, n = 0;
       for (let v = 0; v < uv.count; v += 3) {
-        const x = Math.min(canvas.width - 1, Math.max(0, Math.floor(frac(uv.getX(v)) * canvas.width)));
-        const y = Math.min(canvas.height - 1, Math.max(0, Math.floor(frac(uv.getY(v)) * canvas.height)));
-        sum += lum((y * canvas.width + x) * 4); n++;
+        const x = Math.min(size - 1, Math.floor(frac(uv.getX(v)) * size));
+        const y = Math.min(size - 1, Math.floor(frac(uv.getY(v)) * size));
+        sum += lum((y * size + x) * 4); n++;
       }
       const mean = n ? sum / n : 0.5;
-      const srgb = THREE.SRGBColorSpace;
-      const target = new THREE.Color(color).getHSL({ h: 0, s: 0, l: 0 }, srgb);
-      const c = new THREE.Color();
-      const rgb = { r: 0, g: 0, b: 0 };
+      const [h, sat, l0] = rgbToHsl(...hexToRgb(color));
       // A white target sits a little under 1 so highlights still show.
-      const base = Math.min(target.l, 0.88);
+      const base = Math.min(l0, 0.88);
+      const out: [number, number, number] = [0, 0, 0];
       for (let i = 0; i < d.length; i += 4) {
         const l = Math.max(0.02, Math.min(0.98, base + (lum(i) - mean) * 0.9));
-        c.setHSL(target.h, target.s, l, srgb).getRGB(rgb, srgb);
-        d[i] = rgb.r * 255; d[i + 1] = rgb.g * 255; d[i + 2] = rgb.b * 255;
+        hslToRgb(h, sat, l, out);
+        d[i] = out[0]; d[i + 1] = out[1]; d[i + 2] = out[2];
       }
-      ctx.putImageData(pixels, 0, 0);
-      texture = new THREE.CanvasTexture(canvas);
-      texture.flipY = source.flipY;
-      texture.colorSpace = source.colorSpace;
-      texture.wrapS = source.wrapS; texture.wrapT = source.wrapT;
-      this.rehued.set(key, texture);
-    }
-    return texture;
+    });
   }
 
   /**
@@ -182,28 +202,28 @@ export class TownCharacterFactory {
    * saturation kept), leather, metal and skin untouched. Once per (texture, colour).
    */
   rehueGreen(source: THREE.Texture, color: string): THREE.Texture {
-    const key = `${source.uuid}|${color}`;
+    return this.recoloured(`${source.uuid}|green|${color}`, source, (d) => {
+      const [th, ts] = rgbToHsl(...hexToRgb(color));
+      const hsl: [number, number, number] = [0, 0, 0];
+      const out: [number, number, number] = [0, 0, 0];
+      for (let i = 0; i < d.length; i += 4) {
+        rgbToHslInto(d[i], d[i + 1], d[i + 2], hsl);
+        if (hsl[0] < 70 / 360 || hsl[0] > 170 / 360 || hsl[1] < 0.15) continue; // only greens
+        hslToRgb(th, Math.max(hsl[1], ts * 0.8), hsl[2], out);
+        d[i] = out[0]; d[i + 1] = out[1]; d[i + 2] = out[2];
+      }
+    });
+  }
+
+  private recoloured(key: string, source: THREE.Texture, paint: (pixels: Uint8ClampedArray, size: number) => void): THREE.Texture {
     let texture = this.rehued.get(key);
     if (!texture) {
-      const image = source.image as CanvasImageSource & { width: number; height: number };
       const canvas = document.createElement('canvas');
-      canvas.width = image.width; canvas.height = image.height;
+      canvas.width = canvas.height = PAINT_SIZE;
       const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(image, 0, 0);
-      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      // Canvas pixels are sRGB: convert in sRGB both ways.
-      const srgb = THREE.SRGBColorSpace;
-      const target = new THREE.Color(color).getHSL({ h: 0, s: 0, l: 0 }, srgb);
-      const c = new THREE.Color();
-      const hsl = { h: 0, s: 0, l: 0 };
-      const rgb = { r: 0, g: 0, b: 0 };
-      const d = pixels.data;
-      for (let i = 0; i < d.length; i += 4) {
-        c.setRGB(d[i] / 255, d[i + 1] / 255, d[i + 2] / 255, srgb).getHSL(hsl, srgb);
-        if (hsl.h < 70 / 360 || hsl.h > 170 / 360 || hsl.s < 0.15) continue; // only greens
-        c.setHSL(target.h, Math.max(hsl.s, target.s * 0.8), hsl.l, srgb).getRGB(rgb, srgb);
-        d[i] = rgb.r * 255; d[i + 1] = rgb.g * 255; d[i + 2] = rgb.b * 255;
-      }
+      ctx.drawImage(source.image as CanvasImageSource, 0, 0, PAINT_SIZE, PAINT_SIZE);
+      const pixels = ctx.getImageData(0, 0, PAINT_SIZE, PAINT_SIZE);
+      paint(pixels.data, PAINT_SIZE);
       ctx.putImageData(pixels, 0, 0);
       texture = new THREE.CanvasTexture(canvas);
       texture.flipY = source.flipY;
