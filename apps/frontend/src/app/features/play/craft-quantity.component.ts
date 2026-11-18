@@ -3,7 +3,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 @Component({
   selector: 'app-craft-quantity', standalone: true,
   template: `
-    <span class="quantity-label">{{label}}</span>
+    <span class="quantity-label"></span>
     <button type="button" class="quantity-max" [disabled]="disabled"
       [title]="'Max: ' + maximum" [attr.aria-label]="'Set maximum quantity: ' + maximum"
       (click)="set(maximum)">Max</button>
