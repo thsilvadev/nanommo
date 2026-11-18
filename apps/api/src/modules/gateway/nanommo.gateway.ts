@@ -481,6 +481,7 @@ export class NanommoGateway
     const channels = [
       `gateway:party:updated:${characterId}`,
       `gateway:party:invite:${characterId}`,
+      `gateway:party:inviteDeclined:${characterId}`,
       `gateway:party:actionUpdated:${characterId}`,
       `gateway:battle:sharedUpdated:${characterId}`,
       `gateway:battle:resolved:${characterId}`,

@@ -170,11 +170,11 @@ Socket: servidor→cliente `town:roster`, `town:join`, `town:leave` (`{mapId, ch
 
 **Produces:** evento pro convidante `party:inviteDeclined` `{inviteId, candidateId, candidateName, reason:'declined'|'expired'}`, pelo mesmo `this.event(...)`.
 
-- [ ] **Step 1: Teste que falha:** o candidato cancela um convite `offered` → o convidante recebe `party:inviteDeclined` com `reason:'declined'`. O convidante cancelando o próprio convite **não** emite. O `UPDATE ... status='expired'` usa `RETURNING` e emite `reason:'expired'` pra cada convidante.
-- [ ] **Step 2:** rodar → FAIL.
-- [ ] **Step 3:** implementar. O status continua `'cancelled'`/`'expired'` (sem novo valor, sem migração).
-- [ ] **Step 4:** rodar → PASS. Rodar também os `party-*.test.js` existentes que tocam convites → PASS.
-- [ ] **Step 5: Commit** `feat(party): avisar o convidante sobre recusa e expiração`.
+- [x] **Step 1: Teste que falha:** o candidato cancela um convite `offered` → o convidante recebe `party:inviteDeclined` com `reason:'declined'`. O convidante cancelando o próprio convite **não** emite. O `UPDATE ... status='expired'` usa `RETURNING` e emite `reason:'expired'` pra cada convidante.
+- [x] **Step 2:** rodar → FAIL.
+- [x] **Step 3:** implementar. O status continua `'cancelled'`/`'expired'` (sem novo valor, sem migração).
+- [x] **Step 4:** rodar → PASS. Rodar também os `party-*.test.js` existentes que tocam convites → PASS.
+- [x] **Step 5: Commit** `feat(party): avisar o convidante sobre recusa e expiração`.
 
 ### Task 5: Cliente — relógio, TownStore, avisos no chat, `/sleep`
 

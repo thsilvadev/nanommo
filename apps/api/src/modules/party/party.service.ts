@@ -114,11 +114,19 @@ export class PartyService {
     await this.db.transaction(async manager=>{
       const i=(await manager.query('SELECT * FROM party_invites WHERE id=$1 AND ("candidateId"=$2 OR "inviterId"=$2) FOR UPDATE',[id,characterId]))[0];if(!i)throw new NotFoundException('Invite not found');
       if(['offered','accepted'].includes(i.status))await manager.query(`UPDATE party_invites SET status='cancelled',revision=revision+1 WHERE id=$1`,[id]);
+      // The candidate turning down a pending offer is a decline: tell the inviter (status stays 'cancelled').
+      if(i.status==='offered'&&characterId===i.candidateId){
+        const candidateName=(await manager.query('SELECT name FROM characters WHERE id=$1',[i.candidateId]))[0]?.name??null;
+        await this.event(manager,i.inviterId,'party:inviteDeclined',{inviteId:i.id,candidateId:i.candidateId,candidateName,reason:'declined'});
+      }
       for(const cid of [i.candidateId,i.inviterId])await this.event(manager,cid,'party:updated',{refresh:true});
     });return this.get(characterId);
   }
   async tryAccepted(){
-    await this.db.query(`UPDATE party_invites SET status='expired',revision=revision+1 WHERE status='offered' AND "expiresAt"<=clock_timestamp()`);
+    await this.db.transaction(async manager=>{
+      const expired=await manager.query(`WITH e AS (UPDATE party_invites SET status='expired',revision=revision+1 WHERE status='offered' AND "expiresAt"<=clock_timestamp() RETURNING id,"inviterId","candidateId") SELECT e.id,e."inviterId",e."candidateId",c.name AS "candidateName" FROM e JOIN characters c ON c.id=e."candidateId"`);
+      for(const x of expired)await this.event(manager,x.inviterId,'party:inviteDeclined',{inviteId:x.id,candidateId:x.candidateId,candidateName:x.candidateName,reason:'expired'});
+    });
     let cursor: {createdAt: string; id: string} | null = null;
     for (;;) {
       const offers=await this.db.query(`SELECT *, "createdAt"::text AS "cursorCreatedAt" FROM party_invites WHERE status='accepted' AND ($1::timestamptz IS NULL OR ("createdAt",id) > ($1::timestamptz,$2::uuid)) ORDER BY "createdAt",id LIMIT 100`,[cursor?.createdAt??null,cursor?.id??null]);
