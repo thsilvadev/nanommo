@@ -8,6 +8,7 @@ import { CharacterService } from '../character/character.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { BattleService } from '../battle/battle.service';
 import { PartyService } from './party.service';
+import { TownRosterService } from '../presence/town-roster.service';
 
 /** DB deadlines and the outbox are authority. This recoverable pulse only wakes processing. */
 @Injectable()
@@ -15,7 +16,7 @@ export class PartyWorkerService implements OnApplicationBootstrap,OnModuleDestro
   private timer:NodeJS.Timeout|null=null;
   private running=false;
   private readonly logger=new Logger(PartyWorkerService.name);
-  constructor(@InjectDataSource()private readonly db:DataSource,private readonly party:PartyService,private readonly gate:BattleQueueGateService,@Inject(REDIS_CLIENT)private readonly redis:Redis,private readonly characters:CharacterService,private readonly inventory:InventoryService,private readonly battle:BattleService){}
+  constructor(@InjectDataSource()private readonly db:DataSource,private readonly party:PartyService,private readonly gate:BattleQueueGateService,@Inject(REDIS_CLIENT)private readonly redis:Redis,private readonly characters:CharacterService,private readonly inventory:InventoryService,private readonly battle:BattleService,private readonly townRoster:TownRosterService){}
   onApplicationBootstrap(){
     if(process.env.BATTLE_QUEUE_MAINTENANCE_ONLY==='true')return;
     this.timer=setInterval(()=>{void this.pulse().catch(e=>this.logger.error('Party recovery pulse failed',e?.stack??String(e)));},500);this.timer.unref();
@@ -47,7 +48,10 @@ export class PartyWorkerService implements OnApplicationBootstrap,OnModuleDestro
       const needsQueue=await this.db.query(`SELECT c.id FROM characters c LEFT JOIN party_members p ON p."characterId"=c.id WHERE c.status='grinding' AND c."pendingMapTransition" IS NULL AND c."travelIntent" IS NULL AND p."characterId" IS NULL AND NOT EXISTS (SELECT 1 FROM battle_queue_entries b WHERE b."characterId"=c.id AND NOT b.resolved) LIMIT 100`);
       for(const c of needsQueue)try{await this.battle.queueBattles(c.id);}catch(error){this.logger.error(`Solo queue recovery failed for ${c.id}`,error instanceof Error?error.stack:String(error));}
       const events=await this.db.query('SELECT * FROM party_outbox WHERE "publishedAt" IS NULL ORDER BY "createdAt",id LIMIT 200');
-      for(const event of events){if(event.payload.hydrate){const c=await this.characters.getCharacterDtoById(event.characterId);event.payload={...event.payload,hydrate:undefined,stateRevision:c?.stateVersion,characterAfter:c,inventoryAfter:await this.inventory.getInventory(event.characterId)};}await this.redis.publish(`gateway:${event.event}:${event.characterId}`,JSON.stringify(event.payload));await this.db.query('UPDATE party_outbox SET "publishedAt"=clock_timestamp() WHERE id=$1 AND "publishedAt" IS NULL',[event.id]);}
+      for(const event of events){if(event.payload.hydrate){const c=await this.characters.getCharacterDtoById(event.characterId);event.payload={...event.payload,hydrate:undefined,stateRevision:c?.stateVersion,characterAfter:c,inventoryAfter:await this.inventory.getInventory(event.characterId)};}await this.redis.publish(`gateway:${event.event}:${event.characterId}`,JSON.stringify(event.payload));await this.db.query('UPDATE party_outbox SET "publishedAt"=clock_timestamp() WHERE id=$1 AND "publishedAt" IS NULL',[event.id]);
+        // Town scene: party trips/moves/arrivals change who stands in a town; published events are post-commit.
+        try{await this.townRoster.syncCharacter(event.characterId,event.event==='map:changed'?(event.payload?.previousMapId??null):undefined);}catch(error){this.logger.warn(`Town roster sync failed for ${event.characterId}: ${error instanceof Error?error.message:String(error)}`);}
+      }
     }finally{this.running=false;}
   }
 }

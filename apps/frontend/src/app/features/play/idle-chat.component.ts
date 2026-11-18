@@ -1,8 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { GameSocketService } from '../../core/game.socket.service';
+import { ChatNoticeService } from '../../core/chat-notice.service';
+import { CharacterStore } from '../../core/game.store';
+import { LocaleService } from '../../core/locale.service';
+import { TownStore } from '../../core/town.store';
 
 type ChatRow = {
   id: string;
@@ -38,6 +42,11 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly subscriptions: Subscription[] = [];
   private wasAtBottom = true;
   private viewReady = false;
+  private noticeSeq = 0;
+  private readonly notices = inject(ChatNoticeService);
+  private readonly town = inject(TownStore);
+  private readonly characters = inject(CharacterStore);
+  private readonly locale = inject(LocaleService);
 
   constructor(private readonly api: ApiService, private readonly socket: GameSocketService) {}
 
@@ -49,6 +58,11 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
       if (Number.isFinite(count) && count >= 0) this.connectedUsersOnline.set(Math.floor(count));
     }));
     this.subscriptions.push(this.socket.on<ChatRow>('chat:journal').subscribe(row => this.append({ ...row, channel: 'journal' })));
+    this.subscriptions.push(this.notices.notices$.subscribe(notice => this.appendLocalError(notice.message)));
+    this.subscriptions.push(this.socket.on<{ candidateName?: string | null; reason?: string }>('party:inviteDeclined').subscribe(notice => {
+      const text = notice?.reason === 'expired' ? '{name} did not answer the invite.' : '{name} declined the invite.';
+      this.notices.error(this.locale.t(text).replace('{name}', notice?.candidateName || '?'));
+    }));
     this.subscriptions.push(this.socket.onConnectionState().subscribe(state => {
       if (state === 'connected') void this.loadHistory();
     }));
@@ -116,6 +130,8 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   async send(): Promise<void> {
     const text = this.draft().trim();
     if (!text || this.sending()) return;
+    // Slash commands are local intents: they never reach the Global channel.
+    if (text.startsWith('/')) { this.draft.set(''); await this.runCommand(text); return; }
     if (text.length > 200) { this.error.set('Messages may contain at most 200 characters.'); return; }
     if (!this.socket.connected) { this.error.set('Chat is disconnected; message was not sent.'); return; }
     this.sending.set(true);
@@ -134,6 +150,22 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
     } finally {
       this.sending.set(false);
     }
+  }
+
+  private async runCommand(text: string): Promise<void> {
+    const command = text.slice(1).trim().split(/\s+/)[0].toLowerCase();
+    if (command !== 'sleep') { this.notices.error(this.locale.t('Unknown command.')); return; }
+    if (!this.town.isTown(this.characters.character()?.currentMapId)) { this.notices.error(this.locale.t('You can only sleep in town.')); return; }
+    try {
+      await this.town.sleep();
+    } catch (error: any) {
+      const code = String(error?.message ?? '');
+      this.notices.error(this.locale.t(code === 'NOT_IN_TOWN' ? 'You can only sleep in town.' : code || 'Unknown command.'));
+    }
+  }
+
+  private appendLocalError(message: string): void {
+    this.append({ id: `local-notice-${Date.now()}-${++this.noticeSeq}`, channel: 'journal', severity: 'error', message, sentAt: new Date().toISOString() });
   }
 
   rowLabel(row: ChatRow): string { return row.username || 'Unknown'; }

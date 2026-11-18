@@ -8,6 +8,7 @@ import { MapKillCounter, BattleQueueEntry, Character, User } from '../../databas
 import { DataService } from '../data/data.service';
 import { BattleService } from '../battle/battle.service';
 import { MapPresenceService } from '../presence/map-presence.service';
+import { TownRosterService } from '../presence/town-roster.service';
 import { TOWN_MAP_ID, findCardinalRoute, findSavedTownWaypointIndex, isInstantTownExitEdge, calculateWorldMoveSpeed, calculateTravelDurationSeconds, accrueTravelSegmentProgress, deterministicIntInclusive, calculateGatheringDurationSeconds, gatheringLevelForXp, calculateFleeChancePercent, Mulberry32 } from '@nanommo/shared';
 import { EquipmentService } from '../equipment/equipment.service';
 import { InventoryService } from '../inventory/inventory.service';
@@ -36,6 +37,7 @@ export class MapService {
     private readonly mapPresenceService: MapPresenceService,
     private readonly idleJournal: IdleJournalService,
     private readonly questService: QuestService,
+    private readonly townRoster: TownRosterService,
   ) {}
 
   /**
@@ -203,6 +205,10 @@ export class MapService {
       // Travel invalidates any old pre-simulated encounters; publish the authoritative queue immediately.
       await this.battleService.publishQueueUpdated(characterId);
     }
+    // Town scene: starting a trip leaves the town roster; cancelling one in town rejoins it.
+    // null = before this call the character was not a visible town entry (it was travelling or about to).
+    try { await this.townRoster.syncCharacter(characterId, null); }
+    catch (error) { this.logger.warn(`Town roster sync failed after travel for ${characterId}: ${error instanceof Error ? error.message : String(error)}`); }
     const fresh = await this.characterRepo.findOne({ where: { id: characterId } });
     this.logger.debug(`Character ${characterId} ${result.mode === 'cancel' ? 'cancelled travel at' : 'requested travel to'} ${result.destinationMapId}`);
     return {

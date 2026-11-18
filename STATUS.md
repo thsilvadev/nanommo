@@ -1,3 +1,27 @@
+### Cidade Viva — living Town scene with other players — 2026-11-18
+
+Branch `feat/cidade-viva` (spec `docs/superpowers/specs/2026-11-17-cidade-viva-design.md`, plan `docs/superpowers/plans/2026-11-17-cidade-viva.md`, OpenSpec `town-living-scene`). The four Towns with a scene (Caelum, Sierra, Kwaiouá Taba, Aramaia City) now show every character standing in them in a shared three.js scene behind a map | house toggle in the map head.
+
+- Shared: `town/` module — catalogue types, `TownNav` (walk grid, cached Dijkstra fields, smoothed paths), deterministic `positionAt` (24 s legs, weighted POIs, 25 % strolls, sleep/wake), `validateTownScenes()`.
+- Data: root `town_scenes.json` + mirror, `scripts/validate-town-scenes.js`; `DataService.getTownScene()` validates at boot. New obstacle kind `fence`.
+- API: `TownRosterService` (Redis `town:state:*` / `town:where`; Postgres presence incl. offline = asleep; snapshot ≤ 200; lazy entries; sleep/wake) with post-commit hooks in map presence, `MapService.travel` and the party outbox publisher. Gateway `town:syncRoster`, `town:sleep`, `town:wake`, `time:sync`; connect wakes, disconnect sleeps; a disconnect from a superseded socket (refresh race) is now ignored entirely. Party: `party:inviteDeclined` (declined / expired) to the inviter, forwarded by the gateway.
+- Frontend: `ServerClockService`, `TownStore`, `ChatNoticeService`, `/sleep` and unknown-command handling in the chat; `CharacterAssetCache` (raw files shared, body instances per use; `CharacterRig` moved onto it, `body-asset.ts` extracted); `features/play/town-scene/*` (world, fixed camera, light characters, runtime, component, action menu, view toggle); `PartyStore.lastErrorCode`.
+
+No migration. Nothing was executed against any database. No deploy, no push.
+
+Validation (run on 2026-11-18 in the worktree `.claude/worktrees/cidade-viva`):
+- `pnpm --filter @nanommo/shared build` and `pnpm --filter @nanommo/api build`: pass.
+- `node apps/api/test/town-wander.test.js` 9/9; `town-scenes-catalog.test.js` 14/14; `town-roster.test.js` 17/17; `party-invite-declined.test.js` 6/6; `map-presence.test.js` 13 assertions passed.
+- `node apps/api/test/map-presence-cleanup.test.js`: FAILS, pre-existing at the branch base (`TypeError: queueRepo.createQueryBuilder is not a function`, stale fixture). Also pre-existing and unchanged: `gathering-cycle-regression`, `map-leave-town-idempotency`, `map-transition-and-counter-concurrency` (stale fakes), `party-alchemy-*` (3), and `*.integration` party tests (need a disposable DB).
+- `node scripts/validate-town-scenes.js`: pass (4 scenes + mirror).
+- `pnpm --filter @nanommo/api lint`: FAILS, pre-existing — ESLint finds no configuration file in the repo (nothing was modified by it).
+- `cd apps/frontend && npx tsc -p tsconfig.spec.json --noEmit`: pass. `npx ng test --watch=false --browsers=ChromeHeadless` (CHROME_BIN=/snap/bin/chromium): 259 SUCCESS, 0 failed.
+- `pnpm --filter @nanommo/frontend build --configuration production`: pass; known CSS/initial budget warnings only (initial 543.87 kB; `map-board.css` was already over budget, +147 B); `town-runtime` is a lazy chunk (18.27 kB) and three.js stays out of the initial bundle.
+- `pnpm exec openspec validate town-living-scene --strict`: valid.
+- Performance: NOT measured on a real GPU. Headless Chromium (snap) could not create a hardware WebGL context on this Optimus laptop (Intel UHD + RTX 3060; `BindToCurrentSequence failed` with ANGLE gl-egl, Vulkan and GL, Mesa forced). With software WebGL (SwiftShader) and 100 characters + NPCs, the JS work of the worst frame was 11.8 ms (Caelum), 12.7 ms (Sierra), 15.4 ms (Kwaiouá Taba), 16.7 ms (Aramaia); the 1.2–1.4 fps measured there is software rasterization, not a GPU figure. The 60 fps / "disable `TOWN_CHARACTER_SHADOWS` below 45 fps" check from the plan still has to be done in a real browser.
+- Visual check: all four Towns rendered in headless Chrome and reviewed (layouts, lighting, sleepers, name plates, self ring).
+- Final whole-branch review (self-review by the implementer, no separate reviewer): fixed the roster SQL (`$2` was deduced as both uuid and text — Postgres would reject every snapshot; now `$2::uuid`, guarded by a source-contract test since no database may be used) and made `TownStore` close the own Town scene on the own `town:leave` (trip start) and reopen it on the own `town:join`.
+
 ### Subtle shared craft quantity selector — 2026-11-18
 
 - Cooking, Alchemy and Blacksmith share a compact quantity component. Max is now only an understated underlined text button immediately left of the input, with no border/background. The maximum number remains available in its tooltip/accessibility label.

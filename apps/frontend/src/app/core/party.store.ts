@@ -20,6 +20,8 @@ export class PartyStore {
   readonly battle = signal<SharedBattleView|null>(null);
   readonly autoPartyEnabled = signal(false);
   readonly error = signal('');
+  /** Machine-readable code of the last failed mutation (e.g. CANDIDATE_ALREADY_IN_PARTY), '' when none. */
+  readonly lastErrorCode = signal('');
   readonly busy = signal(false);
   readonly connection = signal<'connected'|'disconnected'|'reconnecting'>('disconnected');
   readonly members = computed(() => [...(this.party()?.members ?? [])].sort((a,b) => a.orderIndex-b.orderIndex));
@@ -88,9 +90,9 @@ export class PartyStore {
   private async mutate(request: () => Observable<unknown>): Promise<boolean> {
     if (this.busy()) return false;
     const lifecycle=this.lifecycleGeneration;
-    this.busy.set(true); this.error.set('');
+    this.busy.set(true); this.error.set(''); this.lastErrorCode.set('');
     try { await firstValueFrom(request()); if(lifecycle!==this.lifecycleGeneration)return false; await this.refresh(); return true; }
-    catch (error: any) { if(lifecycle===this.lifecycleGeneration)this.error.set(String(error?.error?.message ?? 'Unable to update group.')); return false; }
+    catch (error: any) { if(lifecycle===this.lifecycleGeneration){this.error.set(String(error?.error?.message ?? 'Unable to update group.'));this.lastErrorCode.set(String(error?.error?.code ?? ''));} return false; }
     finally { if(lifecycle===this.lifecycleGeneration)this.busy.set(false); }
   }
   private requestId(): string { return crypto.randomUUID(); }

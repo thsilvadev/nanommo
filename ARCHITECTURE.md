@@ -1,3 +1,14 @@
+## Living Town scene: shared scene + deterministic movement — 2026-11-18
+
+Towns with a scene (`town_scenes.json`: Caelum, Sierra, Kwaiouá Taba, Aramaia City) are rendered as one shared three.js scene showing every character standing in that Town. Decisions:
+
+- **No movement server.** A character's Town pose is the pure function `positionAt(def, nav, {seed, sleeping, wakeFrom}, serverTime)` in `@nanommo/shared` (legs of 24 s between weighted POIs over a cached flow-field walk grid). Clients only receive roster snapshots and deltas (`town:roster`, `town:join`, `town:leave`, `town:update`); nothing is sent per tick, and clients never send positions. A `time:sync` ack gives each client a server-clock offset (median of 5 RTT/2 samples).
+- **Presence from Postgres, Town state in Redis.** In the roster = `currentMapId` is a Town scene, not travelling, no pending transition, online or offline. Redis holds only `{seed, sleeping, wakeFrom}`; a missing entry is derived lazily from the character id (asleep since `lastSeenAt`), so no migration. Offline = asleep; login wakes. `TownRosterService.syncCharacter()` is idempotent and called post-commit from map presence, `MapService.travel` and the party outbox publisher.
+- **One renderer, light characters.** The Town scene owns a single `WebGLRenderer` (lazy chunk); up to 100 characters are SkeletonUtils clones of one prepared template body per sex sharing geometry, each with its own material, a 256 px skin per skin tone, hair and an `AnimationMixer`. `CharacterAssetCache` shares raw files with the portrait/creator viewers; mutable body instances are never shared.
+- **Map | house toggle.** The map head switches between the world map (unchanged, still the travel UI) and the Town scene; the inactive one is unmounted.
+
+Spec: `docs/superpowers/specs/2026-11-17-cidade-viva-design.md`; OpenSpec `town-living-scene`.
+
 ## Avatar animation as a pure function of time — 2026-11-17
 
 The character's pose is computed, never accumulated from events: `characterAnimationState({ character, activeBattle, nowMs })` (`apps/frontend/src/app/shared/character-animation/`, no three.js) derives it from the character status and the pre-computed battle log alone, looking ahead where needed (interval to the next action, a cast resolving later). Opening the screen mid-battle or mid-cast, reconnecting, or two views asking at the same instant all agree. This is option A of `docs/avatar-animacao-portrait-e-arena.md`: the portrait keeps its own model and renderer, and the future arena will call the same function (plus a position function) rather than share a scene.

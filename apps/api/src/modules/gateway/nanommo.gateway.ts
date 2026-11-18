@@ -24,6 +24,7 @@ import { MapService } from '../map/map.service';
 import { BattleService } from '../battle/battle.service';
 import { MapPresenceService } from '../presence/map-presence.service';
 import { OnlinePresenceService } from '../presence/online-presence.service';
+import { TownRosterService } from '../presence/town-roster.service';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
 import { ChatService } from '../chat/chat.service';
@@ -68,6 +69,7 @@ export class NanommoGateway
     private readonly onlinePresenceService: OnlinePresenceService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
     private readonly chatService: ChatService,
+    private readonly townRoster: TownRosterService,
   ) {}
 
   afterInit(server: Server) {
@@ -115,7 +117,13 @@ export class NanommoGateway
     this.mapPresenceSubscriber.on('message', (channel, message) => {
       try {
         const payload = JSON.parse(message);
-        if (channel === 'gateway:map:presence' && payload?.mapId) {
+        if (channel === 'gateway:map:presence' && payload?.kind === 'town' && payload?.mapId) {
+          // Town scene deltas share the presence channel; never re-emit them as map:presence.
+          const { kind: _kind, event, ...body } = payload;
+          if (event === 'town:join' || event === 'town:leave' || event === 'town:update') {
+            this.server.to(`map:${payload.mapId}`).emit(event, body);
+          }
+        } else if (channel === 'gateway:map:presence' && payload?.mapId) {
           this.server.to(`map:${payload.mapId}`).emit('map:presence', payload);
         }
         if (channel === 'gateway:chat:global' && payload?.message) {
@@ -194,6 +202,16 @@ export class NanommoGateway
       await this.onlinePresenceService.setOnline(character.id);
       await this.broadcastConnectedUsers();
 
+      // Town scene: coming online wakes the character; a town gets the full roster.
+      // Cosmetic: a roster failure must not drop the connection.
+      try {
+        await this.townRoster.setOnline(character.id, true);
+        const townMapId = this.townRoster.isTownPresent(character);
+        if (townMapId) client.emit('town:roster', await this.townRoster.snapshot(townMapId, character.id));
+      } catch (error) {
+        this.logger.warn(`Town roster connect failed for ${character.id}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
       // Setup Redis subscribers for this character's events
       this.setupRedisSubscribers(character.id, client);
 
@@ -210,6 +228,12 @@ export class NanommoGateway
   async handleDisconnect(client: AuthenticatedSocket) {
     try {
       if (client.characterId) {
+        // A refresh can connect the new socket before the old one closes. The old
+        // socket must then touch nothing, or the character would show as offline
+        // (and asleep in town) while it is connected.
+        const current = this.connectedSockets.get(client.characterId);
+        if (current !== undefined && current !== client.id) return;
+
         // Socket disconnect is not a gameplay/map exit. A character that remains
         // grinding must continue counting in playersInMap even while offline.
         this.connectedSockets.delete(client.characterId);
@@ -220,6 +244,9 @@ export class NanommoGateway
         // Remove from online set
         await this.onlinePresenceService.setOffline(client.characterId);
         await this.broadcastConnectedUsers();
+
+        // Town scene: offline characters sleep where they stand.
+        await this.townRoster.setOnline(client.characterId, false);
 
         this.logger.log(`Character disconnected: ${client.characterId}`);
       }
@@ -401,6 +428,43 @@ export class NanommoGateway
   /**
    * Ping/pong for keep-alive
    */
+  /** Full town roster of the caller's current town (empty entries when not in a town scene). */
+  @SubscribeMessage('town:syncRoster')
+  async handleTownSyncRoster(@ConnectedSocket() client: AuthenticatedSocket) {
+    if (!client.characterId) throw new WsException('Character not found');
+    const character = await this.characterRepo.findOne({ where: { id: client.characterId } });
+    const mapId = character ? this.townRoster.isTownPresent(character) : null;
+    if (!mapId) return { mapId: null, serverNow: Date.now(), entries: [] };
+    return this.townRoster.snapshot(mapId, client.characterId);
+  }
+
+  @SubscribeMessage('town:sleep')
+  async handleTownSleep(@ConnectedSocket() client: AuthenticatedSocket) {
+    if (!client.characterId) throw new WsException('Character not found');
+    try {
+      return { success: true, entry: await this.townRoster.sleep(client.characterId) };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  @SubscribeMessage('town:wake')
+  async handleTownWake(@ConnectedSocket() client: AuthenticatedSocket) {
+    if (!client.characterId) throw new WsException('Character not found');
+    try {
+      return { success: true, entry: await this.townRoster.wake(client.characterId) };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  /** Server clock sample for the client's offset estimate (ping stays a plain keep-alive). */
+  @AllowWithoutAppearance()
+  @SubscribeMessage('time:sync')
+  async handleTimeSync(): Promise<{ serverNow: number }> {
+    return { serverNow: Date.now() };
+  }
+
   @AllowWithoutAppearance()
   @SubscribeMessage('ping')
   async handlePing(@ConnectedSocket() client: Socket): Promise<string> {
@@ -417,6 +481,7 @@ export class NanommoGateway
     const channels = [
       `gateway:party:updated:${characterId}`,
       `gateway:party:invite:${characterId}`,
+      `gateway:party:inviteDeclined:${characterId}`,
       `gateway:party:actionUpdated:${characterId}`,
       `gateway:battle:sharedUpdated:${characterId}`,
       `gateway:battle:resolved:${characterId}`,

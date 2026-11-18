@@ -362,3 +362,7 @@
     background: #8fc6ff;
   }
 }
+
+/* Town scene (map | house toggle). The scene fills the viewport under the map head. */
+.town-view-toggle { margin: 0 auto 4px 12px; align-self: center; pointer-events: auto; }
+.town-scene-area { position: absolute; inset: 0; z-index: 1; cursor: default; }

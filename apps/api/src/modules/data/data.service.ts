@@ -1,8 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import { validateAppearanceCatalog } from '@nanommo/shared';
-import type { AppearanceCatalog, StatusEffectDefinition } from '@nanommo/shared';
+import { validateAppearanceCatalog, validateTownScenes } from '@nanommo/shared';
+import type { AppearanceCatalog, StatusEffectDefinition, TownSceneDef } from '@nanommo/shared';
 
 const hasLocalizedText = (value: any): boolean =>
   typeof value === 'string'
@@ -32,6 +32,7 @@ export class DataService implements OnModuleInit {
   private globalItemDrops: any = null;
   private quests: any = null;
   private appearanceCatalog: AppearanceCatalog | null = null;
+  private townScenes = new Map<string, TownSceneDef>();
 
   onModuleInit() {
     this.loadAllData();
@@ -58,6 +59,10 @@ export class DataService implements OnModuleInit {
       this.globalItemDrops = this.loadJsonFile(path.join(dataDir, 'global_item_drops.json'));
       this.quests = this.loadJsonFile(path.join(dataDir, 'quests.json'));
       this.appearanceCatalog = this.loadJsonFile(path.join(dataDir, 'appearance_catalog.json'));
+      const townScenes = this.loadJsonFile(path.join(dataDir, 'town_scenes.json'));
+      const townSceneErrors = validateTownScenes(townScenes, this.maps);
+      if (townSceneErrors.length) throw new Error('Invalid town_scenes.json: ' + townSceneErrors.join('; '));
+      this.townScenes = new Map((townScenes.towns as TownSceneDef[]).map(def => [def.mapId, def]));
 
       this.validateCatalogues();
       this.logger.log('All data files loaded successfully');
@@ -397,6 +402,8 @@ export class DataService implements OnModuleInit {
   getQuests() { return this.quests; }
 
   getAppearanceCatalog(): AppearanceCatalog | null { return this.appearanceCatalog; }
+  getTownScene(mapId: string): TownSceneDef | null { return this.townScenes.get(mapId) ?? null; }
+  getTownSceneMapIds(): string[] { return [...this.townScenes.keys()]; }
 
   // Specific getters
   getMonsterById(monsterId: string): any {

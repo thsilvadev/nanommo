@@ -42,7 +42,8 @@ const characterRepo = {
   ).length,
 };
 
-const presence = new MapPresenceService(characterRepo, redis);
+const townRosterCalls = [];
+const presence = new MapPresenceService(characterRepo, redis, { syncCharacter: async (...args) => { townRosterCalls.push(args); } });
 
 (async () => {
   await presence.syncCharacter('a', null);
@@ -92,8 +93,10 @@ const presence = new MapPresenceService(characterRepo, redis);
   disconnectInstance.onlinePresenceService = { setOffline: async () => {}, getOnlineCount: async () => 0 };
   disconnectInstance.server = { to: () => ({ emit: () => {} }) };
   disconnectInstance.logger = { log: () => {}, error: error => { throw error; } };
-  await disconnectInstance.handleDisconnect({ characterId: 'c' });
+  disconnectInstance.townRoster = { setOnline: async () => {} };
+  await disconnectInstance.handleDisconnect({ id: 'socket-1', characterId: 'c' });
   assert.equal(hashes.get('map:players:map_2').has('c'), true);
 
-  console.log('Map presence: 12 assertions passed');
+  assert.ok(townRosterCalls.some(([id, prev]) => id === 'a' && prev === 'map_1'), 'map presence sync forwards to the town roster');
+  console.log('Map presence: 13 assertions passed');
 })().catch(error => { console.error(error); process.exit(1); });

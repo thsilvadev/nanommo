@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Character } from '../../database/entities/character.entity';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
+import { TownRosterService } from './town-roster.service';
 
 export interface MapPresencePayload {
   mapId: string;
@@ -33,6 +34,7 @@ export class MapPresenceService implements OnModuleInit, OnModuleDestroy {
     private readonly characterRepo: Repository<Character>,
     @Inject(REDIS_CLIENT)
     private readonly redis: Redis,
+    private readonly townRoster: TownRosterService,
   ) {}
 
   onModuleInit(): void {
@@ -76,6 +78,9 @@ export class MapPresenceService implements OnModuleInit, OnModuleDestroy {
     if (previousMapId !== nextMapId) {
       await this.redis.publish(this.transitionChannel, JSON.stringify({ characterId, previousMapId, nextMapId }));
     }
+    // Town scene roster (join/leave deltas). Cosmetic: never fail the map change over it.
+    try { await this.townRoster.syncCharacter(characterId, previousMapId); }
+    catch (error) { this.logger.warn(`Town roster sync failed for ${characterId}: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
   async countActiveGrinders(mapId: string): Promise<number> {

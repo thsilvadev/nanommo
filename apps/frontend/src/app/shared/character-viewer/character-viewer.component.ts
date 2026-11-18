@@ -173,19 +173,23 @@ export class CharacterViewerComponent implements OnDestroy {
 
   private async createRig(): Promise<Rig> {
     if (!this.env.webglAvailable()) throw new Error('WebGL is not available');
-    const [{ CharacterRig }, { GLTFLoader }] = await Promise.all([
+    const [{ CharacterRig }, { GLTFLoader }, { CharacterAssetCache }] = await Promise.all([
       import('./character-rig'),
       import('three/examples/jsm/loaders/GLTFLoader.js'),
+      import('./character-asset-cache'),
     ]);
     const loader = new GLTFLoader();
     const defaultLoad = (url: string) => loader.loadAsync(url);
     const load = this.env.loadGltf ? (url: string) => this.env.loadGltf!(url, defaultLoad) : defaultLoad;
+    // Every viewer (and the town scene) shares the files; a custom loader gets its own cache.
+    const cache = this.env.loadGltf ? new CharacterAssetCache(load, this.env.assetBase) : CharacterAssetCache.shared(this.env.assetBase, defaultLoad);
     const catalogUrl = this.env.catalogUrl ?? DEFAULT_CATALOG_URL;
     // The render loop runs outside Angular so animation frames do not trigger change detection.
     const rig = await this.zone.runOutsideAngular(() => CharacterRig.create(this.host, {
       assetBase: this.env.assetBase,
       catalog: () => loadAppearanceCatalog(catalogUrl),
       load,
+      cache,
       onContextLost: () => this.zone.run(() => this.fail()),
     }));
     // Before the first apply, so the body's first frame already shows the right pose.
