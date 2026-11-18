@@ -142,4 +142,39 @@ reduzido vai para `apps/frontend/public/assets/npcs/`.
 
 ## Resposta do usuário
 
-_(pendente)_
+2026-11-18: **caminho B + C.** Os três packs foram baixados pelo usuário (zips em `tools/npc-assets/`)
+e extraídos por mim em `tools/npc-assets/source/{modular-character-outfits-fantasy,rpg-tools-bits,fantasy-props-megakit}/`
+(fora do git: `tools/npc-assets/.gitignore` ignora `source/` e `*.zip`). Cecília: _pendente_.
+
+### O que os arquivos mostraram
+
+- **Licenças conferidas nos arquivos:** Outfits `License_Standard.txt` → "CC0 1.0 Universal (CC0 1.0)
+  Public Domain Dedication"; RPG Tools Bits `License.txt` → "License: (Creative Commons Zero, CC0)";
+  Fantasy Props MegaKit traz `License_Standard.txt` (mesmo modelo Quaternius).
+- **Roupas no Standard (grátis):** só **Peasant** e **Ranger**, masculino e feminino (o Readme diz:
+  "only contains a portion of the models"). Peças: `Body`, `Arms`, `Legs`, `Feet`; o Ranger tem também
+  `Head_Hood`, `Acc_Pauldron(s)`, `Arms_Bracer`, `Body_Belt`. Sem mago, nobre ou cavaleiro.
+- **Esqueleto:** os 4 glTF de roupa têm **65 ossos com os mesmos nomes do nosso corpo** (nenhum a mais,
+  nenhum a menos) → religar ao nosso esqueleto por nome funciona sem Blender. Sem animações próprias
+  (usamos as nossas). O Readme pede para usar só a cabeça do corpo base com a roupa (o resto do corpo
+  "clipa"): a roupa substitui o tronco/braços/pernas do nosso `Body`.
+- **Adereços disponíveis:** Fantasy Props MegaKit tem `Anvil`, `Anvil_Log`, `Bucket_Wooden_1`,
+  `Bucket_Metal`, `Chest_Wood`, `Table_Large`, `Workbench`, `Pot_1`, `Cauldron`, `Vase_2/4`, `Bag`,
+  `Pouch_Large`, `Barrel`, `Stall_Empty`, `Candle_*`, `Book_*`; RPG Tools Bits tem `anvil`, `hammer`,
+  `tongs`, `bucket_metal`, `mallet`, `file`, `grindstone`, `lantern`. **Faltam** (vão de primitivas):
+  fornalha, caixa de correio, cuias e ervas, mochila gigante, chapéu com estrela, bola de cristal.
+
+### Mapeamento revisado (só Peasant/Ranger disponíveis)
+
+| NPC | Roupa (pack) | Peças minhas (C) | Adereços |
+|---|---|---|---|
+| William | Male_Peasant | mochila gigante com panelas e rolos | `Bag` / `Pouch_Large` pendurados |
+| Loren | Female_Ranger (braçadeiras, cintos) | avental de couro | `Anvil` + `hammer` (KayKit), `Anvil_Log` |
+| Father Marcelus | Male_Peasant recolorido escuro | batina longa, colarinho branco | `Candle_*`, `Book_*` |
+| Pajé Piatã | Male_Peasant recolorido | cocar de folhas, folhas amarradas | `Table_Large` + cuias e ervas (C) |
+| Tio Phillip | Male_Peasant | avental branco, bigode, barriga (escala nos ossos da coluna) | `Workbench`/`Table_Large` como balcão, `Pot_1`, `Cauldron` |
+| Storage | Male_Ranger (sem capuz, recolorido) | — | `Chest_Wood` grande |
+| Spitz | Male_Peasant | chapéu com estrela vermelha, nariz grande | `Anvil`, fornalha (C) com brasa animada, `Bucket_Wooden_1` + `tongs`/`hammer` |
+| Oráculo | Male_Ranger (capuz) recolorido roxo | manto longo, rosto vazio, olhos de luz | cajado com cristal (C) |
+| Cecília | Female_Peasant | lenço, xale (se aprovado) | mesinha + bola de cristal + cartas (C) |
+| Correio | — | caixa de correio (C) | — |
