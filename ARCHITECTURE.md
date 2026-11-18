@@ -1069,3 +1069,7 @@ CombatantPortraitComponent owns only the portrait trigger and floating details p
 ### Target stats and public combat snapshots — 2026-11-18
 
 CombatantDetailsComponent renders the seven combat stats and an optional drop section; null drops means a player-style tooltip. Both solo and shared portraits use the same snapshot formatting. SharedBattleService.publicBattle explicitly exposes monster definitionId and these combat stats while retaining its private-state boundary. Enemy regeneration has a separate event tone; shared logs map event actor teams before applying it.
+
+### Craft item detail presentation — 2026-11-18
+
+Craft modals share a tooltip template backed by CatalogService.craftItemTooltipLines and the explicit craft-item-tooltip formatter. Only player-facing fields are selected; internal identifiers and arbitrary catalogue objects are never serialized. General inventory tooltip behavior stays separate. Craft popups reuse the body-mounted positioning directive with a short leave grace period to support scrolling longer content without clipping under modal containers.

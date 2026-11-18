@@ -167,3 +167,5 @@
 .cooking-progress i { display:block; height:100%; background:#c49a50; transition:width .1s linear; }
 .cooking-cancel { display:block; margin-left:auto; }
 @media(max-width:900px) { .cooking-modal { width:100%; min-width:0; padding:12px; } .cooking-recipe { gap:8px; padding:8px; } .cooking-item-icon,.cooking-food-icon { width:44px; height:44px; flex-basis:44px; } .cooking-recipe-info>strong { font-size:18px; } .cooking-button { min-width:62px; padding:8px; } }
+
+.craft-item-name{position:relative;cursor:help}.craft-item-name:focus-visible,.cooking-item-icon:focus-visible,.cooking-ingredient-item:focus-visible{outline:1px solid #b28b4f;outline-offset:3px;border-radius:2px}

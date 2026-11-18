@@ -1,3 +1,4 @@
+import { craftItemTooltipLines } from './craft-item-tooltip';
 
 import { Injectable, signal } from '@angular/core';
 import { GambitCatalog, ItemDefinition, MonsterDefinition, WeaponCurve } from './game.models';
@@ -15,6 +16,11 @@ export class CatalogService {
   const item:any=this.item(idOrType);const type=String(item?.type??idOrType??'');
   const labels:Record<string,string>={equipment:'Equipment',monster_part:'Monster Part',material:'Material',consumable:'Consumable',food:'Consumable'};
   return this.locale.t(labels[type]??'Item');
+ }
+ craftItemName(id:string,instanceData?:any){return this.item(id)?this.itemName(id,instanceData):this.locale.t('Item');}
+ craftItemTooltipLines(id:string,instanceData?:any){
+  const item:any=this.item(id);
+  return craftItemTooltipLines(item,{portuguese:this.locale.locale()==='pt-BR',description:this.locale.localized(item,'description',item?.description),stats:this.equipmentStatLines(id,instanceData),statusName:status=>this.locale.localized(this.statusEffect(status),'name')});
  }
  itemTooltipLines(itemId:string,instanceData?:any,equippedSlot?:string){
   const d:any=this.item(itemId);if(!d)return [];

@@ -772,3 +772,8 @@ app-character-summary .equip-slot > img.mirrored-hand {
 
 [data-tone="foe-regen"]>span,[data-tone="foe-regen"] .event-body{color:#2d6338;font-weight:600}
 .nm-floating-tooltip.combatant-details .portrait-drops-heading{margin-top:12px}
+
+.nm-floating-tooltip.craft-item-tooltip{max-height:calc(100dvh - 20px);overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;min-width:220px;width:max-content;max-width:min(380px,calc(100vw - 20px));gap:5px;padding:12px 14px;background:linear-gradient(145deg,#21170f,#100b07);border-color:#a98750;box-shadow:0 8px 24px #000d}
+.nm-floating-tooltip.craft-item-tooltip strong{margin-bottom:3px;font:700 18px/1.2 Georgia,serif;color:#f0d9ac}
+.nm-floating-tooltip.craft-item-tooltip span{font:12px/1.45 Arial,sans-serif}
+.nm-floating-tooltip.craft-item-tooltip .tooltip-warning{color:#e5a48b}

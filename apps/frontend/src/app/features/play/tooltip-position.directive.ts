@@ -12,6 +12,7 @@ export class TooltipPositionDirective implements OnDestroy {
   private pointer = { x: 0, y: 0 };
   private liveContentTimer: ReturnType<typeof setInterval> | null = null;
   private enabled = true;
+  private hideTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly onEnter = (e: PointerEvent) => {
     if (!this.enabled) return;
@@ -23,7 +24,14 @@ export class TooltipPositionDirective implements OnDestroy {
     this.pointer = { x: e.clientX, y: e.clientY };
     this.position();
   };
-  private readonly onLeave = () => this.hide();
+  private readonly cancelHide = () => { if(this.hideTimer){clearTimeout(this.hideTimer);this.hideTimer=null;} };
+  private readonly onLeave = () => {
+    if (this.host.classList.contains('craft-item-tooltip')) {
+      this.cancelHide();this.hideTimer=setTimeout(()=>this.hide(),140);
+    } else this.hide();
+  };
+  private readonly onFloatingLeave = () => this.hide();
+  private readonly onKeyDown = (event: KeyboardEvent) => { if(event.key==='Escape')this.hide(); };
   private readonly onFocusIn = (e: FocusEvent) => {
     if (!this.enabled) return;
     const target = e.target instanceof HTMLElement ? e.target : this.anchor;
@@ -56,12 +64,14 @@ export class TooltipPositionDirective implements OnDestroy {
     this.anchor.addEventListener('pointerleave', this.onLeave);
     this.anchor.addEventListener('focusin', this.onFocusIn);
     this.anchor.addEventListener('focusout', this.onFocusOut);
+    this.anchor.addEventListener('keydown', this.onKeyDown);
     document.addEventListener('nm:drag-start', this.onDragStart);
     document.addEventListener('nm:drag-end', this.onDragEnd);
   }
 
   private show() {
     if (!this.enabled) return;
+    this.cancelHide();
     let tooltip: HTMLElement | null = null;
     if (this.host.classList.contains('diet-slot')) {
       tooltip = this.host.querySelector('.diet-tooltip') as HTMLElement;
@@ -78,6 +88,10 @@ export class TooltipPositionDirective implements OnDestroy {
       this.floating.classList.add('nm-floating-tooltip');
       if (isStatusTooltip) this.floating.classList.add('nm-status-tooltip');
       this.floating.removeAttribute('style');
+      if (tooltip.classList.contains('craft-item-tooltip')) {
+        this.floating.addEventListener('pointerenter',this.cancelHide);
+        this.floating.addEventListener('pointerleave',this.onFloatingLeave);
+      }
       document.body.appendChild(this.floating);
     }
     this.floating.innerHTML = tooltip.innerHTML;
@@ -114,6 +128,7 @@ export class TooltipPositionDirective implements OnDestroy {
   }
 
   private hide() {
+    this.cancelHide();
     if (this.liveContentTimer) {
       clearInterval(this.liveContentTimer);
       this.liveContentTimer = null;
@@ -130,6 +145,8 @@ export class TooltipPositionDirective implements OnDestroy {
     this.anchor?.removeEventListener('pointerleave', this.onLeave);
     this.anchor?.removeEventListener('focusin', this.onFocusIn);
     this.anchor?.removeEventListener('focusout', this.onFocusOut);
+    this.anchor?.removeEventListener('keydown', this.onKeyDown);
+    this.cancelHide();
     document.removeEventListener('nm:drag-start', this.onDragStart);
     document.removeEventListener('nm:drag-end', this.onDragEnd);
     if (this.raf) cancelAnimationFrame(this.raf);

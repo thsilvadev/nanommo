@@ -1,3 +1,10 @@
+### Detailed player-facing craft item tooltips — 2026-11-18
+
+- Cooking, Alchemy and Blacksmith product icons/names and ingredient names share one floating tooltip template. Refinement equipment/current selection and materials also show details. Active crafting headings use product names instead of recipe IDs.
+- Added a deliberate EN/PT presentation formatter: localized descriptions, equipment requirements/handling/stats, crafted attribute bonus ranges, usable off-hand combinations, potion/tonic effects and category cooldowns, food regeneration/digestion, material uses and stack limits. It never serializes arbitrary metadata, unlock codes or JSON. Existing general inventory tooltips remain unchanged.
+- Reused body-mounted TooltipPositionDirective and established bronze styling/high z-index. Craft popups cap their height, scroll when needed, allow mouse travel from the trigger into the popup, support keyboard focus/Escape, and clean up timers/listeners when the modal closes.
+- Validation: shared and production frontend builds passed with budget warnings. The copy regression first failed, then passed across all recipe products/materials, including no internal codes/JSON and correct 10-second food regeneration. Final browser run reported 310 successful assertions, including above-modal placement outside clipped containers, viewport bounds, long-content scrolling, focus and destruction cleanup. Karma retains its known Chromium teardown kill error after successful assertions. Focused code review returned no important findings. No push/deploy or data/migration changes.
+
 ### Compact combat logs and target stats in tooltips — 2026-11-18
 
 - Live solo logs now use 13px text, 2px row padding and no row gap. Shared/history logs also use smaller text and spacing. Movement uses `( N ) space/spaces`, including grid movement and legacy movement fields. Enemy HP/SP regen has a separate dark-green tone.

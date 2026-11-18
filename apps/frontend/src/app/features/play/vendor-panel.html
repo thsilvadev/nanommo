@@ -1,3 +1,9 @@
+<ng-template #craftItemDetails let-itemId="itemId" let-instanceData="instanceData">
+  <span class="item-tooltip craft-item-tooltip" role="tooltip">
+    <strong>{{vendor.catalog.craftItemName(itemId,instanceData)}}</strong>
+    <span *ngFor="let line of vendor.catalog.craftItemTooltipLines(itemId,instanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+  </span>
+</ng-template>
 <section class="vendor-panel" aria-label="Town NPC" (click)="revealInteractionText()">
   <div class="npc-select" (click)="$event.stopPropagation()"><label for="town-npc-select">Talk to:</label><select id="town-npc-select"
       aria-label="Choose NPC" [value]="vendor.selectedNpcId()" (change)="vendor.selectNpc($any($event.target).value)">
@@ -231,30 +237,23 @@
           </div><button type="button" aria-label="Close Cooking" (click)="vendor.closeCooking()">×</button>
         </header>
         <div class="cooking-session" *ngIf="vendor.cookingState()?.session as session">
-          <div class="cooking-session-row"><strong>Cooking {{session.recipeId.replace('_', '
-              ')}} · {{(session.completedQuantity ?? 0) + 1}} / {{session.quantity ?? 1}}</strong><span>{{vendor.cookingRemaining()}}s</span></div>
+          <div class="cooking-session-row"><strong>Cooking {{vendor.catalog.craftItemName(session.outputItemId)}} · {{(session.completedQuantity ?? 0) + 1}} / {{session.quantity ?? 1}}</strong><span>{{vendor.cookingRemaining()}}s</span></div>
           <div class="cooking-progress"><i [style.width.%]="vendor.cookingPercent()"></i></div><button type="button"
             class="cooking-cancel" (click)="vendor.cancelCooking()" [disabled]="vendor.busy()">{{vendor.locale.t('Cancel')}}</button>
         </div>
         <div class="cooking-recipes">
           <article *ngFor="let recipe of vendor.cookingState()?.recipes" class="cooking-recipe"
             [class.locked]="!recipe.unlocked" [class.unavailable]="!recipe.available">
-            <div class="cooking-item-icon">
+            <div class="cooking-item-icon" tabindex="0">
               <img [src]="vendor.catalog.itemIcon(recipe.outputItemId)" [alt]="recipe.name" class="cooking-food-icon">
-              <div class="item-tooltip"><strong>{{vendor.itemName(recipe.outputItemId)}}</strong><span
-                  *ngFor="let line of vendor.catalog.itemTooltipLines(recipe.outputItemId)"
-                  [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
-              </div>
+              <ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:recipe.outputItemId}" />
             </div>
-            <div class="cooking-recipe-info"><strong>{{recipe.name}}</strong><span class="cooking-required">Cooking Lv.
+            <div class="cooking-recipe-info"><strong class="craft-item-name" tabindex="0">{{vendor.catalog.craftItemName(recipe.outputItemId)}}<ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:recipe.outputItemId}" /></strong><span class="cooking-required">Cooking Lv.
                 {{recipe.requiredLevel}} · {{recipe.xpReward}} XP</span><span class="cooking-ingredients">
                 <ng-container *ngFor="let ingredient of recipe.ingredients;let last=last">
-                  <span class="cooking-ingredient-item">{{ingredient.quantity}} {{vendor.itemName(ingredient.itemId)}}
+                  <span class="cooking-ingredient-item" tabindex="0">{{ingredient.quantity}} {{vendor.itemName(ingredient.itemId)}}
                     ({{ingredient.available}} {{vendor.t('Available')}})
-                    <span class="item-tooltip"><strong>{{vendor.itemName(ingredient.itemId)}}</strong><span
-                        *ngFor="let line of vendor.catalog.itemTooltipLines(ingredient.itemId)"
-                        [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
-                    </span>
+                    <ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:ingredient.itemId}" />
                   </span>{{last?'':' · '}}
                 </ng-container></span><span *ngIf="!recipe.canReserveOutput" class="cooking-warning">Not enough
                 inventory space</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients"
@@ -282,7 +281,7 @@
         </header>
         <p class="cooking-warning" *ngIf="vendor.professionState()?.otherSessionActive">{{vendor.t('Another crafting session is already active. Return to the NPC who started it to cancel it.')}}</p>
         <div class="cooking-session" *ngIf="vendor.professionState()?.session as session">
-          <div class="cooking-session-row"><strong>{{session.recipeId}} · {{session.completedQuantity || 0}} / {{session.quantity || session.outputQuantity || 1}}</strong><span>{{vendor.professionRemaining()}}s</span></div>
+          <div class="cooking-session-row"><strong>{{vendor.catalog.craftItemName(session.outputItemId)}} · {{session.completedQuantity || 0}} / {{session.quantity || session.outputQuantity || 1}}</strong><span>{{vendor.professionRemaining()}}s</span></div>
           <div class="cooking-progress"><i [style.width.%]="vendor.professionPercent()"></i></div>
           <button type="button" class="cooking-cancel" (click)="vendor.cancelProfession()" [disabled]="vendor.busy()">{{vendor.t('Cancel')}}</button>
         </div>
@@ -294,11 +293,15 @@
         <div class="cooking-recipes">
           <article *ngFor="let recipe of vendor.professionRecipes()" class="cooking-recipe"
             [class.locked]="!recipe.unlocked" [class.unavailable]="!recipe.available">
-            <img [src]="vendor.catalog.itemIcon(recipe.outputItemId)" [alt]="vendor.itemName(recipe.outputItemId)" class="cooking-food-icon">
-            <div class="cooking-recipe-info"><strong>{{vendor.itemName(recipe.outputItemId)}}</strong>
+            <div class="cooking-item-icon" tabindex="0"><img [src]="vendor.catalog.itemIcon(recipe.outputItemId)" [alt]="vendor.catalog.craftItemName(recipe.outputItemId)" class="cooking-food-icon">
+              <ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:recipe.outputItemId}" />
+            </div>
+            <div class="cooking-recipe-info"><strong class="craft-item-name" tabindex="0">{{vendor.catalog.craftItemName(recipe.outputItemId)}}<ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:recipe.outputItemId}" /></strong>
               <span class="cooking-required">{{vendor.t('Level')}} {{recipe.requiredLevel}} · {{recipe.xpReward}} XP</span>
               <span class="cooking-ingredients"><ng-container *ngFor="let ingredient of recipe.ingredients;let last=last">
-                {{ingredient.quantity}} {{vendor.itemName(ingredient.itemId)}} ({{ingredient.available}} {{vendor.t('Available')}}){{last?'':' · '}}
+                <span class="cooking-ingredient-item" tabindex="0">{{ingredient.quantity}} {{vendor.catalog.craftItemName(ingredient.itemId)}} ({{ingredient.available}} {{vendor.t('Available')}})
+                  <ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:ingredient.itemId}" />
+                </span>{{last?'':' · '}}
               </ng-container></span>
               <span *ngIf="recipe.unlocked && !recipe.hasIngredients" class="cooking-warning">{{vendor.t('Missing ingredients')}}</span>
               <span *ngIf="!recipe.canReserveOutput" class="cooking-warning">{{vendor.t('Not enough inventory space')}}</span>
@@ -328,10 +331,11 @@
               <button type="button" *ngFor="let item of vendor.refinableInventoryRows()" cdkDrag [cdkDragData]="refinementDragData(item)"
                 (cdkDragStarted)="onRefinementDragStart(item)" (cdkDragEnded)="onRefinementDragEnd()"
                 class="refinement-inventory-item" [class.selected]="vendor.refinementSelectedId()===item.id"
-                (click)="vendor.selectRefinement(item.id)" [title]="vendor.itemName(item.itemId,item.instanceData)">
+                (click)="vendor.selectRefinement(item.id)">
                 <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId,item.instanceData)">
                 <span>{{vendor.itemName(item.itemId,item.instanceData)}}</span>
                 <small>+{{item.instanceData?.refinementLevel ?? 0}}</small>
+                <ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:item.itemId,instanceData:item.instanceData}" />
                 <ng-template cdkDragPreview><img class="refinement-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId,item.instanceData)"></ng-template>
               </button>
             </div>
@@ -339,7 +343,7 @@
           </section>
           <section class="refinement-details">
         <ng-container *ngIf="vendor.refinementPreview() as preview">
-          <div class="refinement-summary"><strong>{{vendor.itemName(preview.itemId,{refinementLevel:preview.refinementLevel})}}</strong>
+          <div class="refinement-summary"><strong class="craft-item-name" tabindex="0">{{vendor.catalog.craftItemName(preview.itemId,{refinementLevel:preview.refinementLevel})}}<ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:preview.itemId,instanceData:{refinementLevel:preview.refinementLevel}}" /></strong>
             <span>{{vendor.t('Current refinement')}}: +{{preview.refinementLevel}}</span>
             <span>{{vendor.t('Next refinement')}}: +{{preview.nextRefinementLevel}}</span>
             <span>{{vendor.t('Chance')}}: {{preview.chancePercent}}%</span>
@@ -349,11 +353,11 @@
             <label class="refinement-shard-toggle">
               <input type="checkbox" [checked]="vendor.refinementUseDivineShard()" (change)="vendor.setRefinementShard($any($event.target).checked)"
                 [disabled]="preview.refinementLevel<6 || preview.refinementLevel>11">
-              {{vendor.t('Use Divine Shard')}}
+              {{vendor.t('Use Divine Shard')}}<ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:'mat_divine_shard'}" />
             </label>
-            <div class="refinement-bliss-count" [attr.aria-label]="vendor.t('Bliss Stones available')">
+            <div class="refinement-bliss-count" tabindex="0" [attr.aria-label]="vendor.t('Bliss Stones available')">
               <img src="/assets/ui/items/svg-noframe/materials/bliss_stone.apng" alt="Bliss Stone">
-              <span>{{vendor.totalOwned('mat_bliss_stone')}}</span>
+              <span>{{vendor.totalOwned('mat_bliss_stone')}}</span><ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:'mat_bliss_stone'}" />
             </div>
           </div>
           <p class="cooking-warning" *ngIf="!preview.hasBlissStone">{{vendor.t('Not enough Bliss Stones')}}</p>
