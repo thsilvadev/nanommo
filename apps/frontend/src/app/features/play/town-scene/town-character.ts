@@ -15,7 +15,7 @@ import { APPEARANCE_TRAITS } from '@nanommo/shared';
 import type { BodyAsset } from '../../../shared/character-viewer/body-asset';
 import type { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { hexToRgb, tintSkinPixels } from '../../../shared/character-viewer/skin-compositor';
-import { dressCostume, npcOutfitAsset, type NpcFigure, type NpcFigureBody } from './npc-visuals';
+import { dressCostume, npcOutfitAsset, type NpcAnimator, type NpcFigure, type NpcFigureBody } from './npc-visuals';
 
 /** Characters cast shadows from the main light; first thing to switch off if the town drops frames. */
 export const TOWN_CHARACTER_SHADOWS = true;
@@ -25,6 +25,7 @@ const CLIPS = ['Idle', 'Walk', 'Dead'] as const;
 type TownClip = typeof CLIPS[number];
 const FADE_SECONDS = 0.25;
 const LOW_LOD_STEP_MS = 100; // 10 Hz
+const frac = (v: number) => v - Math.floor(v);
 const PLATE_HEIGHT = 2.15;
 
 export type TownLod = 'full' | 'low';
@@ -58,12 +59,28 @@ export class TownCharacterFactory {
     return list[Math.max(0, Math.min(list.length - 1, Number(appearance[trait]) || 0))];
   }
 
-  /** Skin tone over the template's base skin, at town resolution, once per (sex, tone). */
-  skin(sex: Sex, template: BodyAsset, skin: AppearanceOption): Promise<THREE.Texture> {
-    return this.cache.skinTexture(`town:${sex}:${skin.id}`, () => {
+  /**
+   * Skin tone over the template's base skin, at town resolution, once per (sex,
+   * tone, underwear). `underwear` repaints the grey underwear texels (the ones
+   * the tint leaves as cloth), keeping their shading.
+   */
+  skin(sex: Sex, template: BodyAsset, skin: AppearanceOption, underwear?: string): Promise<THREE.Texture> {
+    return this.cache.skinTexture(`town:${sex}:${skin.id}${underwear ? `:${underwear}` : ''}`, () => {
       const base = template.baseSkin;
       const tinted = new ImageData(base.width, base.height);
       tintSkinPixels(base.data, tinted.data, template.skinReference, hexToRgb(skin.color ?? '#d9a37a'));
+      if (underwear) {
+        const [ur, ug, ub] = hexToRgb(underwear);
+        const d = base.data, o = tinted.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const cloth = 1 - Math.max(0, Math.min(1, ((d[i] - d[i + 2]) / 255 - 0.05) / 0.12));
+          if (cloth <= 0) continue;
+          const shade = Math.min(1.25, 0.35 + ((d[i] + d[i + 1] + d[i + 2]) / (3 * 255)) * 1.6);
+          o[i] = o[i] * (1 - cloth) + ur * shade * cloth;
+          o[i + 1] = o[i + 1] * (1 - cloth) + ug * shade * cloth;
+          o[i + 2] = o[i + 2] * (1 - cloth) + ub * shade * cloth;
+        }
+      }
       const full = document.createElement('canvas');
       full.width = base.width; full.height = base.height;
       full.getContext('2d')!.putImageData(tinted, 0, 0);
@@ -112,6 +129,53 @@ export class TownCharacterFactory {
   }
 
   private readonly rehued = new Map<string, THREE.Texture>();
+
+  /**
+   * The outfit texture painted `color` where `geometry` samples it: each texel
+   * keeps its lightness relative to the part's average (folds, seams, belt stay
+   * readable). Once per (texture, part, colour).
+   */
+  paintPart(source: THREE.Texture, color: string, geometry: THREE.BufferGeometry, part: string): THREE.Texture {
+    const key = `${source.uuid}|${part}|${color}`;
+    let texture = this.rehued.get(key);
+    if (!texture) {
+      const image = source.image as CanvasImageSource & { width: number; height: number };
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width; canvas.height = image.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(image, 0, 0);
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const d = pixels.data;
+      const lum = (i: number) => (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+      // Average lightness of the part, sampled at its vertices' UVs.
+      const uv = geometry.getAttribute('uv');
+      let sum = 0, n = 0;
+      for (let v = 0; v < uv.count; v += 3) {
+        const x = Math.min(canvas.width - 1, Math.max(0, Math.floor(frac(uv.getX(v)) * canvas.width)));
+        const y = Math.min(canvas.height - 1, Math.max(0, Math.floor(frac(uv.getY(v)) * canvas.height)));
+        sum += lum((y * canvas.width + x) * 4); n++;
+      }
+      const mean = n ? sum / n : 0.5;
+      const srgb = THREE.SRGBColorSpace;
+      const target = new THREE.Color(color).getHSL({ h: 0, s: 0, l: 0 }, srgb);
+      const c = new THREE.Color();
+      const rgb = { r: 0, g: 0, b: 0 };
+      // A white target sits a little under 1 so highlights still show.
+      const base = Math.min(target.l, 0.88);
+      for (let i = 0; i < d.length; i += 4) {
+        const l = Math.max(0.02, Math.min(0.98, base + (lum(i) - mean) * 0.9));
+        c.setHSL(target.h, target.s, l, srgb).getRGB(rgb, srgb);
+        d[i] = rgb.r * 255; d[i + 1] = rgb.g * 255; d[i + 2] = rgb.b * 255;
+      }
+      ctx.putImageData(pixels, 0, 0);
+      texture = new THREE.CanvasTexture(canvas);
+      texture.flipY = source.flipY;
+      texture.colorSpace = source.colorSpace;
+      texture.wrapS = source.wrapS; texture.wrapT = source.wrapT;
+      this.rehued.set(key, texture);
+    }
+    return texture;
+  }
 
   /**
    * The outfit texture with its green cloth re-hued to `color` (lightness and
@@ -213,6 +277,7 @@ export class TownCharacter {
   elevation = 0;
 
   private isDressed = false;
+  private costumeAnimators: NpcAnimator[] = [];
 
   constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean; visual?: NpcFigure } = {}) {
     this.entry = entry;
@@ -261,6 +326,7 @@ export class TownCharacter {
     this.model.rotation.y = pose.facing;
     if (this.plate) this.plate.visible = lod === 'full';
     this.firstSeenAt ??= nowMs;
+    for (const animate of this.costumeAnimators) animate(nowMs);
     if (!this.mixer) return;
     const clip: TownClip = pose.state === 'sleep' ? 'Dead' : pose.state === 'walk' ? 'Walk' : 'Idle';
     if (clip !== this.current) {
@@ -339,7 +405,7 @@ export class TownCharacter {
     const hairColor = new THREE.Color().setStyle(f.option(sex, appearance, 'hairColor').color ?? '#3a2a20').multiplyScalar(1.6);
     const figure = this.opts.visual?.kind === 'body' ? this.opts.visual : null;
     const [skin, hair, beard, outfit] = await Promise.all([
-      f.skin(sex, template, skinOption),
+      f.skin(sex, template, skinOption, figure && !figure.outfit ? figure.underwear : undefined),
       hairOption.asset ? f.hair(hairOption.asset, hairColor) : Promise.resolve(null),
       facialOption.asset?.endsWith('.glb') ? f.hair(facialOption.asset, hairColor) : Promise.resolve(null),
       figure?.outfit ? f.cache.glb(npcOutfitAsset(figure.outfit)) : Promise.resolve(null),
@@ -365,7 +431,7 @@ export class TownCharacter {
       }
     });
     if (figure && outfit) this.wear(root, outfit, figure, skinOption.color ?? '#d9a37a');
-    if (figure?.costume.includes('chubby')) this.widenBelly(root);
+    if (figure?.costume.includes('chubby')) this.widenBelly(root, figure.belly ?? 1);
     const head = root.getObjectByName('Head');
     if (head) for (const item of [hair, beard]) if (item) head.add(item);
     const scale = (entry.heightCm ?? NATIVE_HEIGHT_CM[sex]) / NATIVE_HEIGHT_CM[sex];
@@ -388,7 +454,7 @@ export class TownCharacter {
       if (idle) { idle.reset().setEffectiveWeight(1).play(); this.mixer.update(0); }
       this.object3d.updateMatrixWorld(true);
       const body = root.getObjectByName('Body') as THREE.SkinnedMesh;
-      dressCostume(this.model, figure, skinOption.color ?? '#d9a37a', { skeleton: body.skeleton, face: this.faceCentre(root) });
+      this.costumeAnimators = dressCostume(this.model, figure, skinOption.color ?? '#d9a37a', { skeleton: body.skeleton, face: this.faceCentre(root) });
       idle?.stop();
       this.isDressed = true;
     }
@@ -400,7 +466,7 @@ export class TownCharacter {
    * the spine) and the chest bone undoes it, so the chest, arms and head keep
    * their size. Bone axes differ per bone, so "along" is found from the bind pose.
    */
-  private widenBelly(root: THREE.Object3D): void {
+  private widenBelly(root: THREE.Object3D, amount: number): void {
     const body = root.getObjectByName('Body') as THREE.SkinnedMesh | undefined;
     if (!body) return;
     const across = (name: string, factor: number) => {
@@ -416,14 +482,17 @@ export class TownCharacter {
       scale[alongIndex] = 1;
       body.skeleton.bones[index].scale.multiply(new THREE.Vector3(...scale));
     };
-    // Cumulative widths: hips 1.2, belly 1.56 → 1.72, chest and arms 1.12, head 1, legs 1.12.
-    across('pelvis', 1.2);
-    across('spine_01', 1.3);
-    across('spine_02', 1.1);
-    across('spine_03', 1.12 / 1.72);
-    across('neck_01', 1 / 1.12);
-    across('thigh_l', 1.12 / 1.2);
-    across('thigh_r', 1.12 / 1.2);
+    // Cumulative widths for amount 1: hips 1.2, belly 1.56 → 1.72, chest and arms 1.12, head 1, legs 1.12;
+    // `amount` scales how far each goes past 1 (2 = twice as fat).
+    const k = (base: number) => 1 + (base - 1) * amount;
+    const hips = k(1.2), lowerBelly = k(1.56), belly = k(1.72), chest = k(1.12), legs = k(1.12);
+    across('pelvis', hips);
+    across('spine_01', lowerBelly / hips);
+    across('spine_02', belly / lowerBelly);
+    across('spine_03', chest / belly);
+    across('neck_01', 1 / chest);
+    across('thigh_l', legs / hips);
+    across('thigh_r', legs / hips);
   }
 
   /** Centre of the eyes in the body's bind pose (armature space). */
@@ -460,6 +529,12 @@ export class TownCharacter {
         const material = (m as THREE.MeshStandardMaterial).clone();
         material.color.set(material.name === 'Skin' ? skinColor : tint);
         if (figure.recolor && material.name !== 'Skin' && material.map) material.map = this.factory.rehueGreen(material.map, figure.recolor);
+        const part = /_(Body|Arms)/.test(mesh.name) ? 'shirt' : /_Legs/.test(mesh.name) ? 'pants' : null;
+        const paint = part ? figure.paint?.[part] : undefined;
+        if (paint && material.name !== 'Skin' && material.map) {
+          material.map = this.factory.paintPart(material.map, paint, mesh.geometry, `${figure.outfit}:${mesh.name}`);
+          material.color.set('#ffffff');
+        }
         this.owned.push(material);
         return material;
       };

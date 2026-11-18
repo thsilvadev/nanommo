@@ -4,7 +4,7 @@ import type { TownSceneDef } from '@nanommo/shared';
 import { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { isWebglAvailable, loadAppearanceCatalog } from '../../../shared/character-viewer/character-viewer.component';
 import { NPC_VISUALS, buildNpcVisual, type NpcVisualDef } from './npc-visuals';
-import { TownCharacterFactory } from './town-character';
+import { TownCharacter, TownCharacterFactory } from './town-character';
 import { createTownRuntime, type TownRuntime } from './town-runtime';
 
 const propKinds = (id: string) => NPC_VISUALS[id].props.map(p => p.kind);
@@ -46,7 +46,13 @@ describe('NPC_VISUALS registry', () => {
     expect(costume('cecilia')).toContain('skirt');
     expect(costume('cecilia')).not.toContain('shawl');
     expect(body('paje_piata').outfit).toBeUndefined(); // underwear for now
-    expect(costume('paje_piata')).toEqual([]);
+    expect(costume('paje_piata')).toEqual(jasmine.arrayContaining(['leaf-crown', 'leaf-bundles', 'pipe']));
+    expect(body('paje_piata').underwear).toBeDefined(); // straw-coloured
+    expect(body('uncle_phillip').belly).toBe(2);
+    expect(body('uncle_phillip').paint?.shirt).toBeDefined();
+    expect(body('uncle_phillip').paint?.pants).toBeDefined();
+    expect(body('whitesmith_spitz').paint?.shirt).toBeDefined();
+    expect(body('william').paint?.shirt).toBeDefined();
     expect(body('paje_piata').appearance.hairColor).toBe(4); // white hair: an elder
     expect(NPC_VISUALS['storage'].props.find(p => p.kind === 'chest')!.scale).toBe(2);
     expect(body('storage').recolor).toBeDefined();
@@ -94,6 +100,29 @@ describe('NPC visuals (real WebGL)', () => {
       expect(meshes).withContext(id).toBeGreaterThan(0);
     }
   }, 60_000);
+
+  it('the shaman\'s pipe smokes with the clock, deterministically', async () => {
+    if (!isWebglAvailable()) pending('WebGL is not available in this browser');
+    const loader = new GLTFLoader();
+    const cache = CharacterAssetCache.shared('/assets/character/', (url) => loader.loadAsync(url));
+    const factory = new TownCharacterFactory(cache, await loadAppearanceCatalog('/data/appearance_catalog.json'));
+    const figure = NPC_VISUALS['paje_piata'].figure;
+    const entry = factory.npcEntry('paje_piata', 'Piatã');
+    const shaman = new TownCharacter(factory, entry, { npc: true, visual: figure });
+    await shaman.ready;
+    const T = Date.UTC(2026, 10, 18, 12);
+    const pose = { x: 0, z: 0, facing: 0, state: 'idle' as const };
+    shaman.update(pose, 0, 'full', T);
+    const puff = shaman.object3d.getObjectByName('pipe-smoke')!;
+    expect(puff).toBeTruthy();
+    const at = () => JSON.stringify([puff.position.toArray(), puff.scale.toArray()]);
+    const first = at();
+    shaman.update(pose, 0, 'full', T);
+    expect(at()).toBe(first);
+    shaman.update(pose, 0, 'full', T + 120);
+    expect(at()).not.toBe(first);
+    shaman.dispose();
+  });
 
   it('dressed NPCs keep their click box in every town', async () => {
     if (!isWebglAvailable()) pending('WebGL is not available in this browser');

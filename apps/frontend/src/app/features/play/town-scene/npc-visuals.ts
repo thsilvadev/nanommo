@@ -16,7 +16,7 @@ export type NpcOutfit = 'male-peasant' | 'female-peasant' | 'male-ranger' | 'fem
 export type NpcCostume =
   | 'mustache' | 'chef-hat' | 'chubby' | 'giant-backpack' | 'cassock' | 'collar' | 'hide-legs'
   | 'leaf-crown' | 'leaf-bundles' | 'star-hat' | 'big-nose' | 'faceless' | 'long-robe' | 'staff'
-  | 'headscarf' | 'skirt' | 'no-hood';
+  | 'headscarf' | 'skirt' | 'no-hood' | 'pipe';
 /** Pack models (props.glb nodes) and primitives built here. */
 export type NpcPropKind =
   | 'anvil' | 'hammer' | 'tongs' | 'bucket' | 'chest' | 'table' | 'counter' | 'pot' | 'cauldron'
@@ -34,6 +34,12 @@ export interface NpcFigureBody {
   tint?: string;
   /** Re-hues only the outfit's green cloth to this colour (leather and metal keep theirs). */
   recolor?: string;
+  /** Paints a part of the outfit (shirt = body + sleeves, pants = legs), keeping its folds. */
+  paint?: { shirt?: string; pants?: string };
+  /** Colour of the base body's underwear (when there is no outfit). */
+  underwear?: string;
+  /** How fat (with 'chubby'): 1 = a little belly, 2 = twice that. */
+  belly?: number;
   costume: NpcCostume[];
 }
 export type NpcFigure = NpcFigureBody | { kind: 'none' };
@@ -57,7 +63,7 @@ export const npcOutfitAsset = (outfit: NpcOutfit) => `../npcs/outfit-${outfit}.g
 export const NPC_VISUALS: Record<string, NpcVisualDef> = {
   // Traveling merchant with an enormous backpack.
   william: {
-    figure: { kind: 'body', sex: 'male', heightCm: 176, appearance: { skin: 1, hair: 0, hairColor: 2, facialHair: 1 }, outfit: 'male-peasant', costume: ['giant-backpack'] },
+    figure: { kind: 'body', sex: 'male', heightCm: 176, appearance: { skin: 1, hair: 0, hairColor: 2, facialHair: 1 }, outfit: 'male-peasant', paint: { shirt: '#c4301c' }, costume: ['giant-backpack'] },
     props: [{ kind: 'bag', x: 1.0, z: -0.7 }, { kind: 'crate', x: -1.1, z: -0.9, scale: 0.8, rot: 20 }],
   },
   // Strong smith with anvil and hammer.
@@ -70,9 +76,10 @@ export const NPC_VISUALS: Record<string, NpcVisualDef> = {
     figure: { kind: 'body', sex: 'male', heightCm: 172, appearance: { skin: 0, hair: 1, hairColor: 4 }, outfit: 'male-peasant', tint: '#4a4752', costume: ['cassock', 'collar', 'hide-legs'] },
     props: [{ kind: 'candles', x: 0.9, z: -0.7 }, { kind: 'book-stand', x: -0.9, z: -0.6, rot: 30 }],
   },
-  // Indigenous elder shaman: for now the base body (underwear) with white hair; table with gourds and herbs.
+  // Indigenous elder shaman: base body with straw-coloured underwear, leaf crown, leaves at the waist,
+  // a big smoking pipe, white hair; table with gourds and herbs.
   paje_piata: {
-    figure: { kind: 'body', sex: 'male', heightCm: 166, appearance: { skin: 3, hair: 2, hairColor: 4, facialHair: 0 }, costume: [] },
+    figure: { kind: 'body', sex: 'male', heightCm: 166, appearance: { skin: 3, hair: 2, hairColor: 4, facialHair: 0 }, underwear: '#d8c27a', costume: ['leaf-crown', 'leaf-bundles', 'pipe'] },
     props: [
       { kind: 'table', x: 0, z: -1.2, scale: [0.55, 0.75, 0.75] },
       { kind: 'gourds', x: -0.35, z: -1.2, y: 0.61 },
@@ -81,7 +88,7 @@ export const NPC_VISUALS: Record<string, NpcVisualDef> = {
   },
   // Chubby cook with a mustache, a chef's hat and a kitchen counter.
   uncle_phillip: {
-    figure: { kind: 'body', sex: 'male', heightCm: 170, appearance: { skin: 1, hair: 3, hairColor: 1 }, outfit: 'male-peasant', tint: '#f2efe6', costume: ['chubby', 'mustache', 'chef-hat'] },
+    figure: { kind: 'body', sex: 'male', heightCm: 170, appearance: { skin: 1, hair: 3, hairColor: 1 }, outfit: 'male-peasant', paint: { shirt: '#ffffff', pants: '#f4f4f0' }, belly: 2, costume: ['chubby', 'mustache', 'chef-hat'] },
     props: [{ kind: 'counter', x: 0, z: -1.2 }, { kind: 'pot', x: 0.4, z: -1.2, y: 0.89 }, { kind: 'cauldron', x: 1.6, z: -0.7 }],
   },
   // A man unlike the others, with a big treasure chest.
@@ -91,7 +98,7 @@ export const NPC_VISUALS: Record<string, NpcVisualDef> = {
   },
   // Big-nosed whitesmith: forge behind, anvil, bucket of cooling tools, hat with a red star.
   whitesmith_spitz: {
-    figure: { kind: 'body', sex: 'male', heightCm: 168, appearance: { skin: 0, hair: 0, hairColor: 2, facialHair: 3 }, outfit: 'male-peasant', costume: ['star-hat', 'big-nose'] },
+    figure: { kind: 'body', sex: 'male', heightCm: 168, appearance: { skin: 0, hair: 0, hairColor: 2, facialHair: 3 }, outfit: 'male-peasant', paint: { shirt: '#e0a50c' }, costume: ['star-hat', 'big-nose'] },
     props: [
       { kind: 'forge', x: -0.2, z: -1.5 },
       { kind: 'anvil', x: 1.2, z: -0.5, rot: 70 },
@@ -295,12 +302,17 @@ function pinBind(skeleton: THREE.Skeleton, boneName: string, piece: THREE.Object
 
 const cloth = (color: string) => npcMaterial(color, { side: THREE.DoubleSide });
 
+/** Moves part of a costume from the shared clock (same input, same pose on every client). */
+export type NpcAnimator = (nowMs: number) => void;
+const frac = (v: number) => v - Math.floor(v);
+
 /**
  * Adds the costume pieces of `figure` to a posed body (`model` holds the
  * skeleton). `face` is the eyes' centre relative to the Head bone, in the model
  * frame (measured on the body), so face and head pieces land on the face.
  */
-export function dressCostume(model: THREE.Object3D, figure: NpcFigureBody, skinColor: string, rig: { skeleton: THREE.Skeleton; face: THREE.Vector3 }): void {
+export function dressCostume(model: THREE.Object3D, figure: NpcFigureBody, skinColor: string, rig: { skeleton: THREE.Skeleton; face: THREE.Vector3 }): NpcAnimator[] {
+  const animators: NpcAnimator[] = [];
   const bone = (name: string) => model.getObjectByName(name);
   /** Head pieces: placed from the eyes' centre in the bind pose. */
   const onHead = (piece: THREE.Object3D, dx: number, dy: number, dz: number) => pinBind(rig.skeleton, 'Head', piece, rig.face.clone().add(new THREE.Vector3(dx, dy, dz)));
@@ -421,12 +433,40 @@ export function dressCostume(model: THREE.Object3D, figure: NpcFigureBody, skinC
         onHead(part(geo('scarf-knot', () => new THREE.SphereGeometry(0.04, 8, 6)), npcMaterial('#8a2a4a')), 0, 0, -0.18);
         break;
       }
+      case 'pipe': {
+        // A big pipe in the mouth, its bowl smoking: puffs rise, grow and fade on their own phase.
+        const pipe = new THREE.Group();
+        const wood = npcMaterial('#5a3a22');
+        const stem = part(geo('pipe-stem', () => new THREE.CylinderGeometry(0.012, 0.016, 0.24, 8)), wood, 0, 0, 0.12);
+        stem.rotation.x = Math.PI / 2 + 0.2;
+        pipe.add(stem);
+        pipe.add(part(geo('pipe-bowl', () => new THREE.CylinderGeometry(0.05, 0.04, 0.11, 12)), wood, 0, 0.02, 0.24));
+        pipe.add(part(geo('pipe-ember', () => new THREE.CircleGeometry(0.042, 12)), npcMaterial('#ff6a1a', { emissive: '#ff4a00', emissiveIntensity: 1.5 }), 0, 0.078, 0.24)).children.at(-1)!.rotation.x = -Math.PI / 2;
+        const puffs = Array.from({ length: 6 }, (_, i) => {
+          const puff = part(geo('pipe-puff', () => new THREE.IcosahedronGeometry(0.05, 1)), new THREE.MeshBasicMaterial({ color: '#d9d6cf', transparent: true, depthWrite: false }), 0, 0.1, 0.24);
+          puff.name = 'pipe-smoke';
+          pipe.add(puff);
+          return { puff, phase: i / 6 };
+        });
+        onHead(pipe, 0, -0.07, 0.065);
+        for (const { puff } of puffs) puff.castShadow = false;
+        animators.push((now) => {
+          for (const { puff, phase } of puffs) {
+            const t = frac(now / 2600 + phase);
+            puff.position.set(Math.sin(t * 5 + phase * 9) * 0.05 * t, 0.1 + t * 0.55, 0.24 + t * 0.06);
+            puff.scale.setScalar(0.6 + t * 2.2);
+            (puff.material as THREE.MeshBasicMaterial).opacity = 0.55 * (1 - t);
+          }
+        });
+        break;
+      }
       case 'skirt':
         // A flared skirt from the waist.
         onBone('pelvis', part(geo('skirt', () => new THREE.CylinderGeometry(0.19, 0.36, 0.42, 16, 1, true)), cloth('#5a2a6a')), 0, -0.13, 0);
         break;
     }
   }
+  return animators;
 }
 
 /** Appearance of a dressed NPC: its id-derived look with the registry's overrides. */
