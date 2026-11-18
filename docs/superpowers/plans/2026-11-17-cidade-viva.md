@@ -150,7 +150,7 @@ Redis: hash `town:state:{mapId}` → `characterId → JSON {seed, sleeping, wake
 
 Socket: servidor→cliente `town:roster`, `town:join`, `town:leave` (`{mapId, characterId}`), `town:update` (`{mapId, entry}`). Cliente→servidor `town:syncRoster` → ack com o snapshot; `town:sleep`, `town:wake` → ack `{success, entry}`; `time:sync` → ack `{serverNow: Date.now()}`. O `ping` fica inalterado.
 
-- [ ] **Step 1: Testes que falham** (no estilo de `map-presence.test.js`, com redis e repo fake):
+- [x] **Step 1: Testes que falham** (no estilo de `map-presence.test.js`, com redis e repo fake):
   - `presence criterion`: cidade + sem viagem → mapId; com `travelIntent` → null; com `pendingMapTransition` → null; mapa de combate → null.
   - `snapshot includes offline asleep`: 3 personagens na cidade, 1 online → os 2 offline vêm com `sleeping != null`, `online:false`.
   - `snapshot cap and order`: 250 personagens → 200, com o viewer primeiro, depois o grupo, depois online e depois offline por `lastSeenAt` desc.
@@ -159,10 +159,10 @@ Socket: servidor→cliente `town:roster`, `town:join`, `town:leave` (`{mapId, ch
   - `travel start → leave`: `syncCharacter` com `travelIntent` setado publica `town:leave`.
   - `sleep outside town`: lança `BadRequestException`.
   - `lazy offline entry`: personagem sem hash ganha `seed = mulberry32Seed(characterId)`, `sleeping={at: lastSeenAt}`.
-- [ ] **Step 2:** builds + `node apps/api/test/town-roster.test.js` → FAIL.
-- [ ] **Step 3: Implementar o service e os ganchos do gateway.** Em `handleConnection`, depois do `setOnline`, chamar `townRoster.setOnline(id,true)` e, se `isTownPresent`, emitir `town:roster` pro socket. Em `handleDisconnect`, chamar `townRoster.setOnline(id,false)`. A query do snapshot é uma só: `WHERE "currentMapId"=$1 AND "travelIntent" IS NULL AND "pendingMapTransition" IS NULL`, só com as colunas necessárias, `appearance` incluída.
-- [ ] **Step 4:** rodar → PASS; rodar de novo `map-presence.test.js` e `map-presence-cleanup.test.js` → PASS.
-- [ ] **Step 5: Commit** `feat(api): roster da cidade com offline dormindo e relógio do servidor`.
+- [x] **Step 2:** builds + `node apps/api/test/town-roster.test.js` → FAIL.
+- [x] **Step 3: Implementar o service e os ganchos do gateway.** Em `handleConnection`, depois do `setOnline`, chamar `townRoster.setOnline(id,true)` e, se `isTownPresent`, emitir `town:roster` pro socket. Em `handleDisconnect`, chamar `townRoster.setOnline(id,false)`. A query do snapshot é uma só: `WHERE "currentMapId"=$1 AND "travelIntent" IS NULL AND "pendingMapTransition" IS NULL`, só com as colunas necessárias, `appearance` incluída.
+- [x] **Step 4:** rodar → PASS; rodar de novo `map-presence.test.js` e `map-presence-cleanup.test.js` → PASS.
+- [x] **Step 5: Commit** `feat(api): roster da cidade com offline dormindo e relógio do servidor`.
 
 ### Task 4: Aviso de recusa e expiração de convite
 
