@@ -25,7 +25,7 @@
         }
       ],
       "outputItemId": "equip_head_phys_t2",
-      "xpReward": 5,
+      "xpReward": 6,
       "order": 2
     },
     {
@@ -39,7 +39,7 @@
         }
       ],
       "outputItemId": "equip_head_magic_t2",
-      "xpReward": 5,
+      "xpReward": 6,
       "order": 3
     },
     {
@@ -53,7 +53,7 @@
         }
       ],
       "outputItemId": "equip_cape_phys_t2",
-      "xpReward": 5,
+      "xpReward": 7,
       "order": 4
     },
     {
@@ -67,7 +67,7 @@
         }
       ],
       "outputItemId": "equip_cape_magic_t2",
-      "xpReward": 5,
+      "xpReward": 7,
       "order": 5
     },
     {
@@ -81,7 +81,7 @@
         }
       ],
       "outputItemId": "equip_body_phys_t2",
-      "xpReward": 5,
+      "xpReward": 8,
       "order": 6
     },
     {
@@ -95,7 +95,7 @@
         }
       ],
       "outputItemId": "equip_body_magic_t2",
-      "xpReward": 5,
+      "xpReward": 8,
       "order": 7
     },
     {
@@ -109,7 +109,7 @@
         }
       ],
       "outputItemId": "equip_shoes_traveler_t1",
-      "xpReward": 5,
+      "xpReward": 9,
       "order": 8
     },
     {
@@ -123,7 +123,7 @@
         }
       ],
       "outputItemId": "equip_sword_t2",
-      "xpReward": 5,
+      "xpReward": 10,
       "order": 9
     },
     {
@@ -137,7 +137,7 @@
         }
       ],
       "outputItemId": "equip_greatsword_t2",
-      "xpReward": 5,
+      "xpReward": 10,
       "order": 10
     },
     {
@@ -151,7 +151,7 @@
         }
       ],
       "outputItemId": "equip_dagger_t2",
-      "xpReward": 5,
+      "xpReward": 10,
       "order": 11
     },
     {
@@ -165,7 +165,7 @@
         }
       ],
       "outputItemId": "equip_bow_t2",
-      "xpReward": 5,
+      "xpReward": 10,
       "order": 12
     },
     {
@@ -179,7 +179,7 @@
         }
       ],
       "outputItemId": "equip_staff_t2",
-      "xpReward": 5,
+      "xpReward": 10,
       "order": 13
     },
     {
@@ -193,7 +193,7 @@
         }
       ],
       "outputItemId": "equip_rod_t2",
-      "xpReward": 5,
+      "xpReward": 10,
       "order": 14
     },
     {
@@ -207,7 +207,7 @@
         }
       ],
       "outputItemId": "equip_shield_t2",
-      "xpReward": 5,
+      "xpReward": 10,
       "order": 15
     },
     {
@@ -221,7 +221,7 @@
         }
       ],
       "outputItemId": "equip_rune_t2",
-      "xpReward": 5,
+      "xpReward": 10,
       "order": 16
     }
   ]
