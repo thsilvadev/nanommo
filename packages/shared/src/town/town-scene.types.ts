@@ -42,7 +42,13 @@ export type TownLightingPreset = 'day' | 'night' | 'dusk' | 'sunshaft';
 export interface TownSceneDef {
   mapId: string;
   size: { w: number; h: number };
-  ground: { base: string; accent: string; pattern: TownGroundPattern };
+  ground: {
+    base: string;
+    accent: string;
+    pattern: TownGroundPattern;
+    /** Patches of grass blended over the base ground (Sierra: green over clay). */
+    mix?: { color: string; accent: string; coverage: number };
+  };
   lighting: {
     preset: TownLightingPreset;
     ambient: string;
@@ -80,6 +86,10 @@ export interface TownRosterEntry {
   sleeping: TownSleep | null;
   wakeFrom: TownWakeFrom | null;
   lastSeenAt: string;
+  /** Hand gear shown on the selected-player card (item ids; the client maps them to weapon types). */
+  dominantHand?: 'right' | 'left';
+  mainHandItemId?: string | null;
+  offHandItemId?: string | null;
 }
 
 export interface TownPose {

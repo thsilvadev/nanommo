@@ -1,3 +1,26 @@
+### Cidade Viva parte 3 — offline acordados, seleção de jogador, troca instantânea, telhados, Sierra verde, Padre Marcelo — 2026-11-19
+
+OpenSpec `town-living-scene-3`. Trabalho direto em `main` (sem commit/push).
+
+- API: `TownRosterService` — ficar offline não faz mais dormir; só `/sleep` (marcado `sleptByCommand`, sobrevive a desconectar/reconectar até acordar interagindo). Estados antigos no Redis que dormiam por estar offline são lidos como acordados onde estavam deitados (determinístico). Entradas do roster trazem `dominantHand`, `mainHandItemId`, `offHandItemId`; equipar/desequipar reenvia a entrada (`town:update`, via `TownRosterService.refresh`; `EquipmentModule` importa `PresenceModule`).
+- Frontend: cursor pointer sobre outros jogadores e NPCs; clicar num jogador o seleciona (anel azul) e mostra no grind-panel, abaixo do seletor de NPC, um card com avatar 3D em Idle com as armas das mãos, nome, nível e "Convidar para o grupo" (mesmas regras). Seletor de NPC sempre visível ("Choose NPC to interact" enquanto um jogador está selecionado); escolher NPC o seleciona com o mesmo anel azul. Action menu removido (`town-action-menu` → `town-player-card`).
+- Troca mapa/cidade: a cena 3D fica montada enquanto se está na cidade; o modo mapa só a esconde e pausa o loop (antes recriava renderer, mundo, NPCs e recolorização a cada clique). Pré-carregamento ao conectar o socket (idle): chunk do three.js, `town_scenes.json`, catálogo de aparência, corpos/clipes, roupas e adereços de NPC. `vercel.json`: cache `immutable` para bundles com hash e 1 dia + 7 dias SWR para `/assets/character|npcs` (padrão testado com path-to-regexp).
+- Telhados: o cone girado 45° e escalado em X/Z virava losango em casa retangular. Agora telhado de quatro-águas ou duas-águas montado sobre o retângulo, com beiral cobrindo as paredes e início abaixo do topo delas; variações determinísticas por casa (altura de parede/telhado, beiral, cores); ocas e tendas também variam.
+- Sierra: grama misturada ao barro (`ground.mix`, textura única não repetida sobre a cidade; regra no validador).
+- Padre Marcelo no chão ao lado do centro de cada cidade (fonte, fogueira, altar no foco de luz — não em cima, a pedido —, pé da torre, poço).
+- Correções vistas pelo usuário em Prontera: a mochila do William flutuava fora do mapa (`pin()` usava posição de mundo como local; com o NPC já posicionado quando a roupa termina de carregar, a peça ia para o dobro da posição); o baú do Storage entrava na casa — Storage reposicionado em Prontera, Sierra e Taba, e nova regra: adereço a ≥ 0,5 × escala de qualquer obstáculo (William em Sierra e Padre ajustados também).
+
+Sem migração. Nada executado em banco. Sem deploy, sem push.
+
+Validação (2026-11-19):
+- `pnpm --filter @nanommo/shared build` e `pnpm --filter @nanommo/api build`: passam.
+- `node apps/api/test/town-roster.test.js` 19/19; `town-scenes-catalog.test.js` 27/27; `town-wander.test.js` 17/17; `map-presence.test.js` 13 asserções.
+- `node scripts/validate-town-scenes.js`: passa (5 cenas + espelho).
+- `cd apps/frontend && npx tsc -p tsconfig.app.json --noEmit` e `tsconfig.spec.json`: passam. `npx ng test --watch=false --browsers=ChromeHeadless` (CHROME_BIN=/snap/bin/chromium): 304 SUCCESS, 0 falhas.
+- `pnpm --filter @nanommo/frontend build --configuration production`: passa com os avisos de orçamento conhecidos (inicial 554,56 kB); `town-runtime` segue chunk lazy (47,67 kB). Espelhos antigos reescritos (`skill_trees.json`, `blacksmith_recipes.json`) revertidos.
+- `pnpm exec openspec validate town-living-scene-3 --strict`: válido (arquivar depois das partes 1 e 2).
+- Conferência visual: prints em Chromium headless (SwiftShader) das cinco cidades — telhados retangulares, Sierra com grama, Padre no centro, anel azul de seleção. Desempenho real da troca e do preload não medido em GPU real.
+
 ### Cidade Viva parte 2 — botão ilustrado, sono pela idade, varandas, Outpost e NPCs vestidos — 2026-11-18
 
 Branch `feat/cidade-viva-2` (worktree `.claude/worktrees/cidade-viva-2`; spec `docs/superpowers/specs/2026-11-18-cidade-viva-parte-2-design.md`, plano `docs/superpowers/plans/2026-11-18-cidade-viva-parte-2.md`, decisão dos NPCs `docs/superpowers/specs/2026-11-18-npc-visuals-decision.md`, OpenSpec `town-living-scene-2`).

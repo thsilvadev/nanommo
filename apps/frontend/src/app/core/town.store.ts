@@ -30,6 +30,19 @@ export class TownStore {
     return id ? this._entries().find(e => e.characterId === id) ?? null : null;
   });
 
+  /** Another player picked in the town scene (shown under the NPC selector). */
+  private readonly _selectedCharacterId = signal<string | null>(null);
+  readonly selectedCharacterId = this._selectedCharacterId.asReadonly();
+  /** The selected player while it is still in this town; null once it leaves. */
+  readonly selectedCharacter = computed(() => {
+    const id = this._selectedCharacterId();
+    return id ? this._entries().find(e => e.characterId === id) ?? null : null;
+  });
+
+  selectCharacter(characterId: string | null): void {
+    this._selectedCharacterId.set(characterId && characterId !== this.characters.character()?.id ? characterId : null);
+  }
+
   private subscriptions: Subscription[] = [];
   private syncSequence = 0;
   private mapWatch: EffectRef | null = null;
@@ -51,6 +64,7 @@ export class TownStore {
           // I left (trip started): my town scene closes now, not when currentMapId changes later.
           this._mapId.set(null);
           this._entries.set([]);
+          this._selectedCharacterId.set(null);
           void this.syncRoster();
           return;
         }
@@ -79,6 +93,7 @@ export class TownStore {
     this.syncSequence++;
     this._mapId.set(null);
     this._entries.set([]);
+    this._selectedCharacterId.set(null);
   }
 
   /** True only for the town scene the server put this character in. */
@@ -109,6 +124,7 @@ export class TownStore {
     if (!snapshot) return;
     this.syncSequence++; // a pushed snapshot supersedes any in-flight sync
     if (Number.isFinite(snapshot.serverNow)) this.clock.seed(snapshot.serverNow);
+    if ((snapshot.mapId ?? null) !== this._mapId()) this._selectedCharacterId.set(null);
     this._mapId.set(snapshot.mapId ?? null);
     this._entries.set(Array.isArray(snapshot.entries) ? snapshot.entries : []);
   }

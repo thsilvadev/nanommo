@@ -14,9 +14,9 @@
         <span *ngIf="character.character()?.currentMapId">Players in map: {{playersInMap()}}</span>
       </div>
     </div>
-    <div *ngIf="viewMode()==='town'" class="town-scene-area">
-      <app-town-scene [mapId]="character.character()!.currentMapId" (npcSelected)="onTownNpcSelected($event)" (characterSelected)="onTownCharacterSelected($event)" />
-      <app-town-action-menu *ngIf="townMenu() as menu" [entry]="menu.entry" [screen]="menu.screen" (closed)="townMenu.set(null)" />
+    <!-- Kept mounted while in a town: switching map/town only hides it (and pauses its render loop). -->
+    <div *ngIf="inTownScene()" class="town-scene-area" [class.town-scene-area--hidden]="viewMode()!=='town'" [attr.aria-hidden]="viewMode()!=='town' ? 'true' : null">
+      <app-town-scene [mapId]="character.character()!.currentMapId" [active]="viewMode()==='town'" [selection]="townSelection()" (npcSelected)="onTownNpcSelected($event)" (characterSelected)="onTownCharacterSelected($event)" />
     </div>
     <div *ngIf="viewMode()==='map'" class="world" [style.transform]="'translate3d('+(-cameraX()*zoom())+'px,'+(-cameraY()*zoom())+'px,0) scale('+zoom()+')'">
       <img class="world-art" src="/assets/maps/map-background.png" alt="" draggable="false">

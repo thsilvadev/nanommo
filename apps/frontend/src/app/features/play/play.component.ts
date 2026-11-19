@@ -19,6 +19,7 @@ import { GrindInfo } from './components';
 import { PartyPanelComponent } from './party-panel.component';
 import { PartyStore } from '../../core/party.store';
 import { TownStore } from '../../core/town.store';
+import { TOWN_SCENE_ENV } from './town-scene/town-scene.types';
 @Component({
     selector: 'app-play', standalone: true, imports: [CommonModule, RouterOutlet, PartyPanelComponent, GrindInfo, LoginMusicControlComponent, MailArrivalNoticeComponent],
     templateUrl: './play.component.html', styleUrl: './play.component.css'
@@ -31,6 +32,8 @@ export class PlayComponent implements OnInit, OnDestroy {
     readonly hideFutureMailArrivalNotices = signal(this.readMailArrivalPreference());
     private mailArrivalSubscription?: Subscription;
     private partyResourceSubscription?: Subscription;
+    private townPreloadSubscription?: Subscription;
+    private readonly townScene = inject(TOWN_SCENE_ENV);
     private readonly seenMailIds = new Set<string>();
     private readMailArrivalPreference(): boolean { try { return localStorage.getItem('nanommo:hide-mail-arrival-notice') === 'true'; } catch { return false; } }
     dismissMailArrivalNotice() { try { if (this.hideFutureMailArrivalNotices()) localStorage.setItem('nanommo:hide-mail-arrival-notice', 'true'); else localStorage.removeItem('nanommo:hide-mail-arrival-notice'); } catch { } this.mailArrivalNotice.set(null); }
@@ -51,10 +54,17 @@ export class PlayComponent implements OnInit, OnDestroy {
       ).pipe(auditTime(80)).subscribe(() => {
         void Promise.all([this.character.load(), this.inventory.load(), this.battle.load()]);
       });
+      // Once connected, warm the town scene (three.js, catalogue, models) while the browser is idle.
+      this.townPreloadSubscription = this.socket.onConnectionState().pipe(filter(state => state === 'connected')).subscribe(() => {
+        this.townPreloadSubscription?.unsubscribe();
+        const run = () => void this.townScene.preload?.();
+        const idle = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+        if (idle) idle(run, { timeout: 4000 }); else setTimeout(run, 1500);
+      });
       this.battle.bindEvents(this.character, this.inventory); this.gameAudio.start(this.character, this.battle, this.inventory);
       void Promise.all([this.character.load(), this.inventory.load(), this.battle.load(), this.catalog.load()]).then(() => this.loadActiveGambitTitle());
     }
-    ngOnDestroy() { this.partyResourceSubscription?.unsubscribe(); this.party.stop(); this.town.stop(); this.mailArrivalSubscription?.unsubscribe(); this.gameAudio.destroy(); }
+    ngOnDestroy() { this.partyResourceSubscription?.unsubscribe(); this.townPreloadSubscription?.unsubscribe(); this.party.stop(); this.town.stop(); this.mailArrivalSubscription?.unsubscribe(); this.gameAudio.destroy(); }
     async loadActiveGambitTitle() { try { const [pages, mastery] = await Promise.all([this.api.get<any[]>('/gambits').toPromise(), this.api.get<any[]>('/characters/weapon-proficiency').toPromise()]); this.gambitPages.set(pages ?? []); this.masteryRows.set(mastery ?? []) } catch { this.gambitPages.set([]); this.masteryRows.set([]) } }
     go(path: string) { void this.router.navigateByUrl(path) } goCharacter() { void this.router.navigate(['/play/character'], { queryParams: { tab: 'character' } }) } is(path: string) { return this.router.url.split('?')[0] === path }
     xpWidth() { const c = this.character.character(); return c?.xpToNext ? Math.max(0, Math.min(100, c.xp / c.xpToNext * 100)) : 0 }

@@ -55,10 +55,10 @@
         { "kind": "balcony", "x": 59, "z": 47, "w": 7, "d": 6, "height": 3.2, "stairs": "w" }
       ],
       "npcSpots": {
-        "storage": { "x": 28.62, "z": 28.62, "facing": 45 },
+        "storage": { "x": 29.89, "z": 29.89, "facing": 45 },
         "william": { "x": 43.38, "z": 28.62, "facing": -45 },
         "mailbox": { "x": 28.62, "z": 43.38, "facing": 135 },
-        "father_marcelus": { "x": 12.5, "z": 25, "facing": 65, "y": 3.2 },
+        "father_marcelus": { "x": 36, "z": 40.1, "facing": 0 },
         "whitesmith_spitz": { "x": 29.51, "z": 13, "facing": 90 },
         "oracle": { "x": 59, "z": 47, "facing": -116, "y": 3.2 }
       },
@@ -75,10 +75,10 @@
         { "id": "courtyard_1", "x": 53.5, "z": 18.5, "radius": 2.5, "weight": 2 },
         { "id": "courtyard_2", "x": 18.5, "z": 53.5, "radius": 2.5, "weight": 2 },
         { "id": "courtyard_3", "x": 53.5, "z": 53.5, "radius": 2.5, "weight": 2 },
-        { "id": "npc_storage", "x": 29.89, "z": 29.89, "radius": 1.6, "weight": 3, "lookAt": [28.62, 28.62] },
+        { "id": "npc_storage", "x": 31.16, "z": 31.16, "radius": 1.6, "weight": 3, "lookAt": [29.89, 29.89] },
         { "id": "npc_william", "x": 42.11, "z": 29.89, "radius": 1.6, "weight": 3, "lookAt": [43.38, 28.62] },
         { "id": "npc_mailbox", "x": 29.89, "z": 42.11, "radius": 1.6, "weight": 3, "lookAt": [28.62, 43.38] },
-        { "id": "npc_father_marcelus", "x": 19.5, "z": 25, "radius": 1.6, "weight": 3, "lookAt": [12.5, 25] },
+        { "id": "npc_father_marcelus", "x": 36, "z": 41.9, "radius": 1.6, "weight": 3, "lookAt": [36, 40.1] },
         { "id": "npc_whitesmith_spitz", "x": 31.31, "z": 13, "radius": 1.6, "weight": 3, "lookAt": [29.51, 13] },
         { "id": "npc_oracle", "x": 52, "z": 47, "radius": 1.6, "weight": 3, "lookAt": [59, 47] }
       ],
@@ -87,7 +87,7 @@
     {
       "mapId": "map_town",
       "size": { "w": 72, "h": 72 },
-      "ground": { "base": "#8a6a43", "accent": "#6f5434", "pattern": "dirt" },
+      "ground": { "base": "#8a6a43", "accent": "#6f5434", "pattern": "dirt", "mix": { "color": "#93b85c", "accent": "#82aa4f", "coverage": 0.5 } },
       "lighting": {
         "preset": "day",
         "ambient": "#bcd3ff",
@@ -157,22 +157,22 @@
         { "kind": "well", "x": 36, "z": 36, "r": 1.4, "height": 3 }
       ],
       "npcSpots": {
-        "storage": { "x": 25.54, "z": 25.54, "facing": 45 },
-        "william": { "x": 46.46, "z": 25.54, "facing": -45 },
+        "storage": { "x": 26.32, "z": 26.32, "facing": 45 },
+        "william": { "x": 46.39, "z": 25.61, "facing": -45 },
         "blacksmith_loren": { "x": 25.54, "z": 46.46, "facing": 135 },
         "cecilia": { "x": 46.46, "z": 46.46, "facing": -135 },
         "uncle_phillip": { "x": 36, "z": 19, "facing": 0 },
-        "father_marcelus": { "x": 36, "z": 53, "facing": 180 },
+        "father_marcelus": { "x": 33.31, "z": 38.69, "facing": -45 },
         "oracle": { "x": 19, "z": 36, "facing": 90 },
         "mailbox": { "x": 41, "z": 40, "facing": -129 }
       },
       "pointsOfInterest": [
-        { "id": "npc_storage", "x": 26.81, "z": 26.81, "radius": 1.6, "weight": 3, "lookAt": [25.54, 25.54] },
-        { "id": "npc_william", "x": 45.19, "z": 26.81, "radius": 1.6, "weight": 3, "lookAt": [46.46, 25.54] },
+        { "id": "npc_storage", "x": 27.59, "z": 27.59, "radius": 1.6, "weight": 3, "lookAt": [26.32, 26.32] },
+        { "id": "npc_william", "x": 45.12, "z": 26.88, "radius": 1.6, "weight": 3, "lookAt": [46.39, 25.61] },
         { "id": "npc_blacksmith_loren", "x": 26.81, "z": 45.19, "radius": 1.6, "weight": 3, "lookAt": [25.54, 46.46] },
         { "id": "npc_cecilia", "x": 45.19, "z": 45.19, "radius": 1.6, "weight": 3, "lookAt": [46.46, 46.46] },
         { "id": "npc_uncle_phillip", "x": 36, "z": 20.8, "radius": 1.6, "weight": 3, "lookAt": [36, 19] },
-        { "id": "npc_father_marcelus", "x": 36, "z": 51.2, "radius": 1.6, "weight": 3, "lookAt": [36, 53] },
+        { "id": "npc_father_marcelus", "x": 32.04, "z": 39.96, "radius": 1.6, "weight": 3, "lookAt": [33.31, 38.69] },
         { "id": "npc_oracle", "x": 20.8, "z": 36, "radius": 1.6, "weight": 3, "lookAt": [19, 36] },
         { "id": "npc_mailbox", "x": 39.5, "z": 38.8, "radius": 1.5, "weight": 3, "lookAt": [41, 40] },
         { "id": "well_n", "x": 36, "z": 32.8, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
@@ -251,16 +251,16 @@
         { "kind": "campfire", "x": 36, "z": 36, "r": 1.2 }
       ],
       "npcSpots": {
-        "storage": { "x": 46.62, "z": 40.4, "facing": -113 },
+        "storage": { "x": 45.52, "z": 39.93, "facing": -113 },
         "mailbox": { "x": 40.4, "z": 46.62, "facing": -157 },
-        "father_marcelus": { "x": 31.6, "z": 46.62, "facing": 157 },
+        "father_marcelus": { "x": 36, "z": 38.2, "facing": 0 },
         "paje_piata": { "x": 25.38, "z": 40.4, "facing": 113 },
         "oracle": { "x": 25.38, "z": 31.6, "facing": 67 }
       },
       "pointsOfInterest": [
-        { "id": "npc_storage", "x": 44.96, "z": 39.71, "radius": 1.6, "weight": 3, "lookAt": [46.62, 40.4] },
+        { "id": "npc_storage", "x": 43.86, "z": 39.24, "radius": 1.6, "weight": 3, "lookAt": [45.52, 39.93] },
         { "id": "npc_mailbox", "x": 39.71, "z": 44.96, "radius": 1.6, "weight": 3, "lookAt": [40.4, 46.62] },
-        { "id": "npc_father_marcelus", "x": 32.29, "z": 44.96, "radius": 1.6, "weight": 3, "lookAt": [31.6, 46.62] },
+        { "id": "npc_father_marcelus", "x": 36, "z": 40, "radius": 1.6, "weight": 3, "lookAt": [36, 38.2] },
         { "id": "npc_paje_piata", "x": 27.04, "z": 39.71, "radius": 1.6, "weight": 3, "lookAt": [25.38, 40.4] },
         { "id": "npc_oracle", "x": 27.04, "z": 32.29, "radius": 1.6, "weight": 3, "lookAt": [25.38, 31.6] },
         { "id": "hut_front_5", "x": 32.17, "z": 26.76, "radius": 1.8, "weight": 1, "lookAt": [29.88, 21.22] },
@@ -329,14 +329,14 @@
         "storage": { "x": 26.01, "z": 26.01, "facing": 45 },
         "william": { "x": 45.99, "z": 26.01, "facing": -45 },
         "mailbox": { "x": 26.01, "z": 45.99, "facing": 135 },
-        "father_marcelus": { "x": 45.99, "z": 45.99, "facing": -135 },
+        "father_marcelus": { "x": 33.96, "z": 41.32, "facing": -21 },
         "oracle": { "x": 36, "z": 26.01, "facing": 0 }
       },
       "pointsOfInterest": [
         { "id": "npc_storage", "x": 27.28, "z": 27.28, "radius": 1.6, "weight": 3, "lookAt": [26.01, 26.01] },
         { "id": "npc_william", "x": 44.72, "z": 27.28, "radius": 1.6, "weight": 3, "lookAt": [45.99, 26.01] },
         { "id": "npc_mailbox", "x": 27.28, "z": 44.72, "radius": 1.6, "weight": 3, "lookAt": [26.01, 45.99] },
-        { "id": "npc_father_marcelus", "x": 44.72, "z": 44.72, "radius": 1.6, "weight": 3, "lookAt": [45.99, 45.99] },
+        { "id": "npc_father_marcelus", "x": 33.31, "z": 43, "radius": 1.6, "weight": 3, "lookAt": [33.96, 41.32] },
         { "id": "npc_oracle", "x": 36, "z": 27.81, "radius": 1.6, "weight": 3, "lookAt": [36, 26.01] },
         { "id": "altar_n", "x": 36, "z": 29.7, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
         { "id": "altar_e", "x": 42.3, "z": 36, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
@@ -401,13 +401,13 @@
         "storage": { "x": 31.05, "z": 31.05, "facing": -135 },
         "william": { "x": 40.95, "z": 31.05, "facing": 135 },
         "mailbox": { "x": 31.05, "z": 40.95, "facing": -45 },
-        "father_marcelus": { "x": 40.95, "z": 40.95, "facing": 45 }
+        "father_marcelus": { "x": 36, "z": 41.2, "facing": 0 }
       },
       "pointsOfInterest": [
         { "id": "npc_storage", "x": 29.21, "z": 29.21, "radius": 1.4, "weight": 3, "lookAt": [31.05, 31.05] },
         { "id": "npc_william", "x": 42.79, "z": 29.21, "radius": 1.4, "weight": 3, "lookAt": [40.95, 31.05] },
         { "id": "npc_mailbox", "x": 29.21, "z": 42.79, "radius": 1.4, "weight": 3, "lookAt": [31.05, 40.95] },
-        { "id": "npc_father_marcelus", "x": 42.79, "z": 42.79, "radius": 1.4, "weight": 3, "lookAt": [40.95, 40.95] },
+        { "id": "npc_father_marcelus", "x": 36, "z": 43, "radius": 1.4, "weight": 3, "lookAt": [36, 41.2] },
         { "id": "gate_n_inside", "x": 36, "z": 14, "radius": 1.8, "weight": 1, "lookAt": [36, 9] },
         { "id": "gate_n_outside", "x": 36, "z": 4, "radius": 2, "weight": 1, "lookAt": [36, 36] },
         { "id": "gate_e_inside", "x": 58, "z": 36, "radius": 1.8, "weight": 1, "lookAt": [63, 36] },

@@ -9,7 +9,7 @@ import { PartyStore } from '../../../core/party.store';
 import { ServerClockService } from '../../../core/server-clock.service';
 import { TownStore } from '../../../core/town.store';
 import { rankForRender } from './town-render-order';
-import { TOWN_SCENE_ENV, type TownSceneRuntimeHandle } from './town-scene.types';
+import { TOWN_SCENE_ENV, type TownPick, type TownSceneRuntimeHandle } from './town-scene.types';
 
 /** A pointer that moved more than this between down and up is a drag, never a click. */
 export const TOWN_CLICK_TOLERANCE_PX = 5;
@@ -23,6 +23,10 @@ export const TOWN_CLICK_TOLERANCE_PX = 5;
 })
 export class TownSceneComponent implements OnDestroy {
   readonly mapId = input.required<string>();
+  /** False while the map view is shown: the scene stays mounted (instant switch) but stops rendering. */
+  readonly active = input(true);
+  /** Player or NPC wearing the blue selection ring. */
+  readonly selection = input<TownPick | null>(null);
   @Output() readonly npcSelected = new EventEmitter<string>();
   @Output() readonly characterSelected = new EventEmitter<{ entry: TownRosterEntry; screen: [number, number] }>();
   @ViewChild('host', { static: true }) private hostRef!: ElementRef<HTMLDivElement>;
@@ -36,6 +40,8 @@ export class TownSceneComponent implements OnDestroy {
   readonly locale = inject(LocaleService);
 
   readonly state = signal<'loading' | 'ready' | 'failed'>('loading');
+  /** The pointer is over another player or an NPC: show a pointer cursor. */
+  readonly hovering = signal(false);
   private readonly runtime = signal<TownSceneRuntimeHandle | null>(null);
   private readonly selfId = computed(() => this.characters.character()?.id ?? null);
   private readonly rendered = computed(() => {
@@ -59,6 +65,16 @@ export class TownSceneComponent implements OnDestroy {
       const selfId = this.selfId();
       runtime?.setCharacters(rendered, selfId);
     });
+    effect(() => {
+      const runtime = this.runtime();
+      const active = this.active();
+      runtime?.setActive(active);
+    });
+    effect(() => {
+      const runtime = this.runtime();
+      const selection = this.selection();
+      runtime?.setSelection(selection);
+    });
   }
 
   ngOnDestroy(): void {
@@ -79,7 +95,10 @@ export class TownSceneComponent implements OnDestroy {
 
   onPointerMove(event: PointerEvent): void {
     const previous = this.pointers.get(event.pointerId);
-    if (!previous) return;
+    if (!previous) {
+      if (this.pointers.size === 0 && event.pointerType !== 'touch') this.hover(this.local(event));
+      return;
+    }
     const point = this.local(event);
     this.pointers.set(event.pointerId, point);
     const runtime = this.runtime();
@@ -111,6 +130,13 @@ export class TownSceneComponent implements OnDestroy {
     event.preventDefault();
     const point = this.local(event);
     this.runtime()?.zoom(Math.exp(event.deltaY * 0.0015), [point.x, point.y]);
+  }
+
+  onPointerLeave(): void { this.hovering.set(false); }
+
+  private hover(point: { x: number; y: number }): void {
+    const hit = this.runtime()?.pick(point.x, point.y) ?? null;
+    this.hovering.set(!!hit && (hit.kind === 'npc' || hit.id !== this.selfId()));
   }
 
   private click(x: number, y: number): void {

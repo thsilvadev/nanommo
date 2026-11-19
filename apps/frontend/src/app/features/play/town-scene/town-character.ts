@@ -72,6 +72,9 @@ let hitGeometry: THREE.BoxGeometry | null = null;
 let hitMaterial: THREE.MeshBasicMaterial | null = null;
 let ringGeometry: THREE.RingGeometry | null = null;
 let ringMaterial: THREE.MeshBasicMaterial | null = null;
+let selectionMaterial: THREE.MeshBasicMaterial | null = null;
+/** Blue ring under the selected player / NPC (same shape as the gold "you" ring). */
+export const TOWN_SELECTION_COLOR = '#4aa8ff';
 
 /** Shared per-scene building blocks: one template body per sex, skins, hair. */
 export class TownCharacterFactory {
@@ -297,6 +300,7 @@ export class TownCharacter {
   elevation = 0;
 
   private isDressed = false;
+  private selectionRing: THREE.Mesh | null = null;
   private costumeAnimators: NpcAnimator[] = [];
 
   constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean; visual?: NpcFigure } = {}) {
@@ -322,6 +326,25 @@ export class TownCharacter {
   }
 
   get hitObject(): THREE.Object3D { return this.hitbox; }
+
+  /** Show or hide the blue selection ring. */
+  setSelected(selected: boolean): void {
+    if (selected && !this.selectionRing) {
+      ringGeometry ??= new THREE.RingGeometry(0.45, 0.62, 32);
+      selectionMaterial ??= new THREE.MeshBasicMaterial({ color: TOWN_SELECTION_COLOR, transparent: true, opacity: 0.9, depthWrite: false, fog: false });
+      const ring = new THREE.Mesh(ringGeometry, selectionMaterial);
+      ring.rotation.x = -Math.PI / 2;
+      // Slightly larger and higher than the gold ring so both read when they overlap.
+      ring.scale.setScalar(1.12);
+      ring.position.y = 0.035;
+      ring.name = 'selection-ring';
+      this.selectionRing = ring;
+    }
+    if (!this.selectionRing) return;
+    if (selected) this.object3d.add(this.selectionRing);
+    else this.selectionRing.removeFromParent();
+  }
+  isSelected(): boolean { return !!this.selectionRing?.parent; }
   /** True once an NPC wears its own visual (outfit and costume, or nothing for a prop-only NPC). */
   dressed(): boolean { return this.isDressed; }
 

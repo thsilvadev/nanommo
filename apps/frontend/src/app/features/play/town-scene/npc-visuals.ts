@@ -58,6 +58,7 @@ export interface NpcProp {
 export interface NpcVisualDef { figure: NpcFigure; props: NpcProp[] }
 
 const PROPS_ASSET = '../npcs/props.glb';
+export const NPC_PROPS_ASSET = PROPS_ASSET;
 export const npcOutfitAsset = (outfit: NpcOutfit) => `../npcs/outfit-${outfit}.glb`;
 
 export const NPC_VISUALS: Record<string, NpcVisualDef> = {
@@ -274,10 +275,13 @@ type Offset = [number, number, number];
  */
 function pin(model: THREE.Object3D, bone: THREE.Object3D | undefined, piece: THREE.Object3D, offset: Offset): void {
   if (!bone) return;
+  // The model may already stand anywhere in the town (dressing finishes after it was placed):
+  // aim in world space, then express the target in the model's own frame before attaching.
+  model.updateMatrixWorld(true);
   const facing = model.getWorldQuaternion(new THREE.Quaternion());
-  piece.position.copy(bone.getWorldPosition(new THREE.Vector3())).add(new THREE.Vector3(...offset).applyQuaternion(facing));
-  piece.quaternion.premultiply(facing);
+  const target = bone.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(...offset).applyQuaternion(facing));
   model.add(piece);
+  piece.position.copy(model.worldToLocal(target));
   model.updateMatrixWorld(true);
   bone.attach(piece);
   piece.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.frustumCulled = false; } });

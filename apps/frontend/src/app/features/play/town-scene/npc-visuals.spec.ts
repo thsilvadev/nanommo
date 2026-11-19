@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { TownSceneDef } from '@nanommo/shared';
+import { obstacleRadius, type TownObstacle, type TownSceneDef } from '@nanommo/shared';
 import { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { isWebglAvailable, loadAppearanceCatalog } from '../../../shared/character-viewer/character-viewer.component';
 import { NPC_VISUALS, buildNpcVisual, type NpcVisualDef } from './npc-visuals';
@@ -77,6 +77,36 @@ describe('NPC_VISUALS registry', () => {
   });
 });
 
+describe('NPC props keep their distance', () => {
+  /** Distance from (x, z) to an obstacle's footprint (negative inside). */
+  const surface = (o: TownObstacle, x: number, z: number) => {
+    const r = obstacleRadius(o);
+    if (r != null) return Math.hypot(x - o.x, z - o.z) - r;
+    const a = ((o.rot ?? 0) * Math.PI) / 180, dx = x - o.x, dz = z - o.z;
+    const lx = dx * Math.cos(a) - dz * Math.sin(a), lz = dx * Math.sin(a) + dz * Math.cos(a);
+    const qx = Math.abs(lx) - o.w! / 2, qz = Math.abs(lz) - o.d! / 2;
+    return Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0);
+  };
+
+  it('no prop of an NPC on the ground touches a house, tree, fountain… (min 0.5 × its scale)', async () => {
+    const towns: TownSceneDef[] = (await fetch('/data/town_scenes.json').then(r => r.json())).towns;
+    for (const town of towns) {
+      for (const [npcId, spot] of Object.entries(town.npcSpots)) {
+        if ((spot.y ?? 0) > 0) continue; // up on a balcony, its props stand on the platform
+        const facing = (spot.facing * Math.PI) / 180;
+        for (const prop of NPC_VISUALS[npcId].props) {
+          const x = spot.x + prop.x * Math.cos(facing) + prop.z * Math.sin(facing);
+          const z = spot.z - prop.x * Math.sin(facing) + prop.z * Math.cos(facing);
+          const scale = typeof prop.scale === 'number' ? prop.scale : Math.max(...(prop.scale ?? [1]));
+          for (const o of town.obstacles) {
+            expect(surface(o, x, z)).withContext(`${town.mapId} ${npcId} ${prop.kind} vs ${o.kind}@${o.x},${o.z}`).toBeGreaterThanOrEqual(0.5 * scale);
+          }
+        }
+      }
+    }
+  });
+});
+
 describe('NPC visuals (real WebGL)', () => {
   let host: HTMLElement;
   let runtime: TownRuntime | null = null;
@@ -140,6 +170,8 @@ describe('NPC visuals (real WebGL)', () => {
         const at = runtime.screenPositionOf('npc', npcId)!;
         expect(runtime.pick(at[0], at[1])).withContext(`${def.mapId} ${npcId}`).toEqual({ kind: 'npc', id: npcId });
         expect(runtime.npcDressed(npcId)).withContext(`${def.mapId} ${npcId}`).toBeTrue();
+        // Costume pieces (William's giant backpack…) stay on the body, wherever the NPC stands.
+        expect(runtime.npcSpreadOf(npcId)!).withContext(`${def.mapId} ${npcId} costume spread`).toBeLessThan(1.5);
       }
       runtime.dispose();
       runtime = null;

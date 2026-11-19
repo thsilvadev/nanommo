@@ -21,7 +21,14 @@ export type TownEvent = 'town:join' | 'town:leave' | 'town:update';
 export interface TownRosterSnapshot { mapId: string; serverNow: number; entries: TownRosterEntry[] }
 
 /** Town-only runtime state kept in Redis (no DB column, no migration). */
-interface TownState { seed: number; sleeping: TownSleep | null; wakeFrom: TownWakeFrom | null; lastSeenAt?: number }
+interface TownState {
+  seed: number;
+  sleeping: TownSleep | null;
+  wakeFrom: TownWakeFrom | null;
+  lastSeenAt?: number;
+  /** Set by `/sleep`. Older states slept just for being offline; those are read as awake. */
+  sleptByCommand?: boolean;
+}
 
 interface RosterRow {
   id: string;
@@ -32,6 +39,9 @@ interface RosterRow {
   heightCm?: number | null;
   lastSeenAt: Date | string;
   inViewerParty?: boolean;
+  dominantHand?: 'right' | 'left' | null;
+  mainHandItemId?: string | null;
+  offHandItemId?: string | null;
 }
 
 type PresenceFields = Pick<Character, 'currentMapId' | 'travelIntent' | 'pendingMapTransition'>;
@@ -41,7 +51,8 @@ type PresenceFields = Pick<Character, 'currentMapId' | 'travelIntent' | 'pending
  *
  * Presence is authoritative from PostgreSQL: every character whose currentMapId
  * is a town with a scene and who is not travelling, online or offline. Offline
- * characters sleep. Positions are never stored or sent: clients derive them from
+ * characters keep wandering like everyone else; only `/sleep` lies a character
+ * down (until it wakes by interacting). Positions are never stored or sent: clients derive them from
  * (seed, server time) with the shared `positionAt`.
  */
 @Injectable()
@@ -68,7 +79,9 @@ export class TownRosterService {
     const onlineIds = new Set(await this.redis.smembers(ONLINE_SET));
     // One narrow query; SQL pre-orders and limits, the same order is re-applied below.
     const rows: RosterRow[] = await this.characterRepo.query(
-      `SELECT c.id, c.name, c.level, c.appearance, c.sex, c."heightCm", c."lastSeenAt",
+      `SELECT c.id, c.name, c.level, c.appearance, c.sex, c."heightCm", c."lastSeenAt", c."dominantHand",
+              (SELECT e."itemId" FROM equipped_items e WHERE e."characterId" = c.id AND e.slot = 'mainHand') AS "mainHandItemId",
+              (SELECT e."itemId" FROM equipped_items e WHERE e."characterId" = c.id AND e.slot = 'offHand') AS "offHandItemId",
               (vp."characterId" IS NOT NULL) AS "inViewerParty"
          FROM characters c
          LEFT JOIN party_members pm ON pm."characterId" = c.id
@@ -83,7 +96,7 @@ export class TownRosterService {
     const rank = (row: RosterRow) =>
       row.id === viewerId ? 0 : row.inViewerParty ? 1 : onlineIds.has(row.id) ? 2 : 3;
     const entries = rows
-      .map(row => ({ row, entry: this.toEntry(row, this.parseState(states[row.id]), onlineIds.has(row.id)) }))
+      .map(row => ({ row, entry: this.toEntry(row, this.parseState(mapId, states[row.id]), onlineIds.has(row.id)) }))
       .sort((a, b) => rank(a.row) - rank(b.row) || (a.entry.lastSeenAt < b.entry.lastSeenAt ? 1 : a.entry.lastSeenAt > b.entry.lastSeenAt ? -1 : 0))
       .slice(0, TOWN_ROSTER_CAP)
       .map(({ entry }) => entry);
@@ -121,41 +134,51 @@ export class TownRosterService {
       const spawn = this.dataService.getTownScene(next)!.spawn;
       const state: TownState = {
         seed: this.newSeed(),
-        sleeping: online ? null : { at: now },
+        sleeping: null,
         wakeFrom: { x: spawn.x, z: spawn.z, at: now },
         lastSeenAt: now,
       };
       await this.saveState(next, characterId, state);
-      await this.publish('town:join', next, { entry: this.toEntry(this.rowOf(character), state, online) });
+      await this.publish('town:join', next, { entry: this.toEntry(await this.rowOf(character), state, online) });
     }
   }
 
-  /** Socket presence: going offline puts the character to sleep; coming back wakes it. */
+  /**
+   * Socket presence. Going offline or coming back no longer changes sleep: an
+   * offline character keeps wandering, and one that used `/sleep` stays asleep
+   * until it wakes by interacting. Only `online` and `lastSeenAt` change.
+   */
   async setOnline(characterId: string, online: boolean): Promise<TownRosterEntry | null> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     const mapId = character ? this.isTownPresent(character) : null;
     if (!character || !mapId) return null;
     const now = Date.now();
-    // Before this call the character had the opposite status.
-    const current = await this.loadState(mapId, character, !online);
-    let state: TownState;
-    if (online) state = current.sleeping ? this.wakeState(mapId, current, now) : current;
-    else state = current.sleeping ? current : { ...current, sleeping: { at: now } };
-    state = { ...state, lastSeenAt: now };
+    const current = await this.loadState(mapId, character);
+    const state: TownState = { ...current, lastSeenAt: now };
     await this.saveState(mapId, characterId, state);
-    const entry = this.toEntry(this.rowOf(character), state, online);
+    const entry = this.toEntry(await this.rowOf(character), state, online);
     await this.publish('town:update', mapId, { entry });
     return entry;
+  }
+
+  /** Re-broadcast a town entry after a visible change (hand gear). No-op outside a town. */
+  async refresh(characterId: string): Promise<void> {
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    const mapId = character ? this.isTownPresent(character) : null;
+    if (!character || !mapId) return;
+    const online = (await this.redis.sismember(ONLINE_SET, characterId)) === 1;
+    const state = await this.loadState(mapId, character);
+    await this.publish('town:update', mapId, { entry: this.toEntry(await this.rowOf(character), state, online) });
   }
 
   /** `/sleep`: lie down where the character is now. */
   async sleep(characterId: string): Promise<TownRosterEntry> {
     const { character, mapId } = await this.requireTown(characterId);
-    const current = await this.loadState(mapId, character, true);
-    if (current.sleeping) return this.toEntry(this.rowOf(character), current, true);
-    const state: TownState = { ...current, sleeping: { at: Date.now() } };
+    const current = await this.loadState(mapId, character);
+    if (current.sleeping) return this.toEntry(await this.rowOf(character), current, true);
+    const state: TownState = { ...current, sleeping: { at: Date.now() }, sleptByCommand: true };
     await this.saveState(mapId, characterId, state);
-    const entry = this.toEntry(this.rowOf(character), state, true);
+    const entry = this.toEntry(await this.rowOf(character), state, true);
     await this.publish('town:update', mapId, { entry });
     return entry;
   }
@@ -163,11 +186,11 @@ export class TownRosterService {
   /** Wake up (the player clicked an NPC): new seed, first leg starts where it slept. */
   async wake(characterId: string): Promise<TownRosterEntry> {
     const { character, mapId } = await this.requireTown(characterId);
-    const current = await this.loadState(mapId, character, true);
-    if (!current.sleeping) return this.toEntry(this.rowOf(character), current, true);
+    const current = await this.loadState(mapId, character);
+    if (!current.sleeping) return this.toEntry(await this.rowOf(character), current, true);
     const state = this.wakeState(mapId, current, Date.now());
     await this.saveState(mapId, characterId, state);
-    const entry = this.toEntry(this.rowOf(character), state, true);
+    const entry = this.toEntry(await this.rowOf(character), state, true);
     await this.publish('town:update', mapId, { entry });
     return entry;
   }
@@ -182,19 +205,17 @@ export class TownRosterService {
   private wakeState(mapId: string, current: TownState, now: number): TownState {
     const def = this.dataService.getTownScene(mapId)!;
     const pose = positionAt(def, this.nav(mapId, def), current, now);
-    return { seed: this.newSeed(), sleeping: null, wakeFrom: { x: pose.x, z: pose.z, at: now }, lastSeenAt: now };
+    return { seed: this.newSeed(), sleeping: null, wakeFrom: { x: pose.x, z: pose.z, at: now }, lastSeenAt: now, sleptByCommand: false };
   }
 
-  /** Stored state, or the deterministic lazy one (seed from the id; asleep since lastSeenAt when offline). */
-  private async loadState(mapId: string, character: Character, online: boolean): Promise<TownState> {
-    const stored = this.parseState(await this.redis.hget(stateKey(mapId), character.id));
-    if (stored) return stored;
-    const lazy = this.lazyState(character.id, this.ms(character.lastSeenAt));
-    return online ? { ...lazy, sleeping: null } : lazy;
+  /** Stored state, or the deterministic lazy one (seed from the id, awake). */
+  private async loadState(mapId: string, character: Character): Promise<TownState> {
+    const stored = this.parseState(mapId, await this.redis.hget(stateKey(mapId), character.id));
+    return stored ?? this.lazyState(character.id);
   }
 
-  private lazyState(characterId: string, lastSeenAt: number): TownState {
-    return { seed: mulberry32Seed(characterId), sleeping: { at: lastSeenAt }, wakeFrom: null };
+  private lazyState(characterId: string): TownState {
+    return { seed: mulberry32Seed(characterId), sleeping: null, wakeFrom: null };
   }
 
   private async saveState(mapId: string, characterId: string, state: TownState): Promise<void> {
@@ -202,22 +223,31 @@ export class TownRosterService {
     await this.redis.hset(WHERE_KEY, characterId, mapId);
   }
 
-  private parseState(raw: string | null | undefined): TownState | null {
+  private parseState(mapId: string, raw: string | null | undefined): TownState | null {
     if (!raw) return null;
+    let s: TownState;
     try {
-      const s = JSON.parse(raw);
-      return Number.isFinite(s?.seed) ? s : null;
+      s = JSON.parse(raw);
     } catch {
       return null;
     }
+    if (!Number.isFinite(s?.seed)) return null;
+    // Legacy offline sleep (not `/sleep`): stand up where it lay, deterministically.
+    if (s.sleeping && !s.sleptByCommand && this.dataService.getTownScene(mapId)) {
+      const def = this.dataService.getTownScene(mapId)!;
+      const at = s.sleeping.at;
+      const pose = positionAt(def, this.nav(mapId, def), s, at);
+      return { seed: s.seed, sleeping: null, wakeFrom: { x: pose.x, z: pose.z, at }, lastSeenAt: s.lastSeenAt };
+    }
+    return s;
   }
 
   private toEntry(row: RosterRow, state: TownState | null, online: boolean): TownRosterEntry {
     const dbSeen = this.ms(row.lastSeenAt);
-    const s = state ?? (online ? { ...this.lazyState(row.id, dbSeen), sleeping: null } : this.lazyState(row.id, dbSeen));
+    const s = state ?? this.lazyState(row.id);
     const lastSeen = Math.max(dbSeen, s.lastSeenAt ?? 0);
-    // Offline always sleeps, even if a crash skipped the disconnect hook.
-    const sleeping = s.sleeping ?? (online ? null : { at: lastSeen });
+    // Only `/sleep` sleeps; being offline does not.
+    const sleeping = s.sleeping ?? null;
     return {
       characterId: row.id,
       name: row.name,
@@ -230,11 +260,22 @@ export class TownRosterService {
       sleeping,
       wakeFrom: s.wakeFrom ?? null,
       lastSeenAt: new Date(lastSeen).toISOString(),
+      dominantHand: row.dominantHand === 'left' ? 'left' : 'right',
+      mainHandItemId: row.mainHandItemId ?? null,
+      offHandItemId: row.offHandItemId ?? null,
     };
   }
 
-  private rowOf(c: Character): RosterRow {
-    return { id: c.id, name: c.name, level: c.level, appearance: c.appearance ?? null, sex: c.sex ?? null, heightCm: c.heightCm ?? null, lastSeenAt: c.lastSeenAt };
+  private async rowOf(c: Character): Promise<RosterRow> {
+    const hands: Array<{ slot: string; itemId: string }> = await this.characterRepo.query(
+      `SELECT slot, "itemId" FROM equipped_items WHERE "characterId" = $1::uuid AND slot IN ('mainHand', 'offHand')`,
+      [c.id],
+    ).catch(() => []);
+    const itemIn = (slot: string) => (Array.isArray(hands) ? hands.find((h) => h?.slot === slot)?.itemId : undefined) ?? null;
+    return {
+      id: c.id, name: c.name, level: c.level, appearance: c.appearance ?? null, sex: c.sex ?? null, heightCm: c.heightCm ?? null,
+      lastSeenAt: c.lastSeenAt, dominantHand: c.dominantHand ?? null, mainHandItemId: itemIn('mainHand'), offHandItemId: itemIn('offHand'),
+    };
   }
 
   private nav(mapId: string, def: TownSceneDef): TownNav {

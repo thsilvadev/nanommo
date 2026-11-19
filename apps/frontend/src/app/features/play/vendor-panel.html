@@ -11,6 +11,7 @@
       <option *ngFor="let npc of vendor.npcs()" [value]="npc.id">{{vendor.localized(npc, 'name', npc.name)}}{{(vendor.npcHasNotification(npc.id)||vendor.hasUnreadMailNpcDot(npc.id)) ? ' •' : ''}}</option>
     </select></div>
   <div class="vendor-error" *ngIf="vendor.error() && !vendor.selectedNpc()">{{vendor.error()}}</div>
+  <app-town-player-card *ngIf="!vendor.selectedNpc() && town.selectedCharacter() as player" [entry]="player" />
   <ng-container *ngIf="vendor.selectedNpc() as npc">
     <div class="npc-profile"><img class="npc-portrait" [src]="npcPortrait(npc.id)"
         [alt]="vendor.localized(npc, 'name', npc.name)" width="167" height="199"></div>

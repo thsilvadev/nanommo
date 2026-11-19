@@ -12,7 +12,7 @@ import { loadAppearanceCatalog } from '../../../shared/character-viewer/characte
 import { TownCamera } from './town-camera';
 import { TownCharacter, TownCharacterFactory, type TownPickInfo } from './town-character';
 import { buildTownWorld, type TownWorld } from './town-world';
-import { NPC_VISUALS, buildNpcVisual, npcAppearance } from './npc-visuals';
+import { NPC_VISUALS, NPC_PROPS_ASSET, buildNpcVisual, npcAppearance, npcOutfitAsset } from './npc-visuals';
 import type { TownPick, TownSceneRuntimeHandle, TownSceneRuntimeInit } from './town-scene.types';
 
 const MAX_PIXEL_RATIO = 1.5;
@@ -24,6 +24,25 @@ export async function createTownRuntime(host: HTMLElement, init: TownSceneRuntim
   const cache = CharacterAssetCache.shared(init.assetBase, (url) => loader.loadAsync(url));
   const catalog = await loadAppearanceCatalog(init.catalogUrl);
   return new TownRuntime(host, init, new TownCharacterFactory(cache, catalog));
+}
+
+/**
+ * Loads (and keeps in the shared asset cache) what every town needs: both
+ * bodies with their clips, the appearance catalogue, the NPC outfits and props.
+ */
+export async function warmTownAssets(assetBase: string, catalogUrl?: string): Promise<void> {
+  const loader = new GLTFLoader();
+  const cache = CharacterAssetCache.shared(assetBase, (url) => loader.loadAsync(url));
+  const outfits = new Set<string>();
+  for (const visual of Object.values(NPC_VISUALS)) if (visual.figure.kind === 'body' && visual.figure.outfit) outfits.add(npcOutfitAsset(visual.figure.outfit));
+  await Promise.allSettled([
+    loadAppearanceCatalog(catalogUrl),
+    cache.body('male'),
+    cache.body('female'),
+    cache.animations(),
+    cache.glb(NPC_PROPS_ASSET),
+    ...[...outfits].map((asset) => cache.glb(asset)),
+  ]);
 }
 
 export class TownRuntime implements TownSceneRuntimeHandle {
@@ -40,10 +59,12 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   private readonly frustum = new THREE.Frustum();
   private readonly cleanups: Array<() => void> = [];
   private selfId: string | null;
+  private selection: TownPick | null = null;
   private centred = false;
   private frame: number | null = null;
   private lastFrameAt: number | null = null;
   private disposed = false;
+  private active = true;
 
   constructor(private readonly host: HTMLElement, private readonly init: TownSceneRuntimeInit, private readonly factory: TownCharacterFactory) {
     this.selfId = init.selfId;
@@ -96,7 +117,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     const resize = new ResizeObserver(() => this.resize());
     resize.observe(host);
     this.cleanups.push(() => resize.disconnect());
-    const visibility = () => (document.hidden ? this.stopLoop() : this.startLoop());
+    const visibility = () => (document.hidden || !this.active ? this.stopLoop() : this.startLoop());
     document.addEventListener('visibilitychange', visibility);
     this.cleanups.push(() => document.removeEventListener('visibilitychange', visibility));
     this.startLoop();
@@ -125,6 +146,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
       this.characters.set(entry.characterId, character);
       this.scene.add(character.object3d);
     }
+    this.applySelection();
     if (!this.centred && selfId && this.characters.has(selfId)) {
       const pose = this.pose(this.characters.get(selfId)!.entry);
       this.cam.centerOn(pose.x, pose.z);
@@ -136,6 +158,42 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   async settled(): Promise<void> {
     await Promise.all([...[...this.characters.values(), ...this.npcs.values()].map((c) => c.ready), ...this.npcProps]);
     this.tick(0);
+  }
+
+  setActive(active: boolean): void {
+    if (this.active === active || this.disposed) return;
+    this.active = active;
+    if (active) { this.resize(); this.startLoop(); } else this.stopLoop();
+  }
+
+  isActive(): boolean { return this.active && this.frame !== null; }
+
+  /** Blue ring under one player or NPC (null clears it). */
+  setSelection(target: TownPick | null): void {
+    this.selection = target;
+    this.applySelection();
+  }
+
+  selectedOf(kind: TownPick['kind'], id: string): boolean {
+    return (kind === 'npc' ? this.npcs : this.characters).get(id)?.isSelected() ?? false;
+  }
+
+  private applySelection(): void {
+    const sel = this.selection;
+    for (const [id, c] of this.characters) c.setSelected(sel?.kind === 'character' && sel.id === id);
+    for (const [id, c] of this.npcs) c.setSelected(sel?.kind === 'npc' && sel.id === id);
+  }
+
+  /** Farthest horizontal distance of any mesh of an NPC from where it stands (tests: costume pieces stay on the body). */
+  npcSpreadOf(id: string): number | null {
+    const npc = this.npcs.get(id);
+    if (!npc) return null;
+    npc.object3d.updateMatrixWorld(true);
+    const at = npc.object3d.getWorldPosition(new THREE.Vector3());
+    let spread = 0;
+    const p = new THREE.Vector3();
+    npc.object3d.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.visible) { o.getWorldPosition(p); spread = Math.max(spread, Math.hypot(p.x - at.x, p.z - at.z)); } });
+    return spread;
   }
 
   activeCount(): number { return this.characters.size; }
@@ -237,7 +295,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   }
 
   private startLoop(): void {
-    if (this.frame !== null || this.disposed || document.hidden) return;
+    if (this.frame !== null || this.disposed || document.hidden || !this.active) return;
     const step = (at: number) => {
       this.frame = requestAnimationFrame(step);
       const dt = this.lastFrameAt === null ? 0 : Math.min(250, at - this.lastFrameAt);

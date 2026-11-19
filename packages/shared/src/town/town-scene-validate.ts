@@ -37,6 +37,10 @@ export function validateTownScenes(catalog: unknown, mapsCatalog: MapsCatalogLik
     const badObstacle = (def.obstacles ?? []).find(o => !TOWN_OBSTACLE_KINDS.includes(o?.kind) || !isNum(o.x) || !isNum(o.z)
       || (o.kind === 'balcony' && (!isNum(o.w) || !isNum(o.d) || !isNum(o.height) || !['n', 's', 'e', 'w'].includes(o.stairs as string))));
     if (!Array.isArray(def.obstacles) || badObstacle) { errors.push(`${at}: invalid obstacle ${JSON.stringify(badObstacle)}`); continue; }
+    const mix = def.ground?.mix;
+    if (mix != null && (typeof mix.color !== 'string' || typeof mix.accent !== 'string' || !isNum(mix.coverage) || mix.coverage < 0 || mix.coverage > 1)) {
+      errors.push(`${at}: ground.mix needs color, accent and a coverage in 0..1`);
+    }
     if (!isNum(def.spawn?.x) || !isNum(def.spawn?.z)) { errors.push(`${at}: spawn must have x/z`); continue; }
 
     const nav = new TownNav(def);

@@ -11,9 +11,10 @@ import { DataModule } from '../data/data.module';
 import { CharacterModule } from '../character/character.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { BattleModule } from '../battle/battle.module';
+import { PresenceModule } from '../presence/presence.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EquippedItem, Character, WeaponProficiency, InventoryItem, BattleQueueEntry]), DataModule, forwardRef(() => CharacterModule), forwardRef(() => InventoryModule), forwardRef(() => BattleModule)],
+  imports: [TypeOrmModule.forFeature([EquippedItem, Character, WeaponProficiency, InventoryItem, BattleQueueEntry]), DataModule, forwardRef(() => CharacterModule), forwardRef(() => InventoryModule), forwardRef(() => BattleModule), PresenceModule],
   controllers: [EquipmentController],
   providers: [EquipmentService],
   exports: [EquipmentService],

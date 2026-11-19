@@ -6,6 +6,7 @@ import { TownNpc, VendorStockItem, VendorQuote, NpcDialogueState } from '@nanomm
 import { LocaleService } from './locale.service';
 import { GameAudioService } from '../shared/game-audio.service';
 import { BrowserNotificationsService } from './browser-notifications.service';
+import { TownStore } from './town.store';
 
 export interface VendorModal { mode:'buy'|'sell'; itemId:string; quantity:number; maxQuantity:number; unitPrice:number; sourceInventoryItemId?:string; instanceData?:any; itemInstanceData?:any; }
 export interface CookingState { progress:{level:number;xp:number;xpIntoLevel:number;xpToNextLevel:number;nextLevelXp:number}; recipes:any[]; session:any|null; }
@@ -29,6 +30,7 @@ export class VendorStore {
   readonly character=inject(CharacterStore);
   readonly inventory=inject(InventoryStore);
   readonly catalog=inject(CatalogService);
+  private readonly town=inject(TownStore);
   readonly npcs=signal<TownNpc[]>([]);
   readonly dialogue=signal<NpcDialogueState|null>(null);
   readonly questInteraction=signal<any|null>(null);
@@ -425,6 +427,8 @@ export class VendorStore {
   }
   selectNpc(id:string){
     if(!id){this.resetForTownEntry(false);return;}
+    // Choosing an NPC replaces a selected player (one blue ring at a time).
+    this.town.selectCharacter(null);
     this.selectedNpcId.set(id);
     void this.notifications.acknowledge(this.npcDiscoveryKey(id));
     this.stock.set([]);

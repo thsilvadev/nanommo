@@ -67,6 +67,7 @@ test('art direction per town', () => {
   const sierra = by.map_town;
   assert.equal(sierra.lighting.preset, 'day');
   assert.equal(sierra.ground.pattern, 'dirt');
+  assert.ok(sierra.ground.mix && sierra.ground.mix.coverage > 0.3, 'Sierra: green mixed over the clay');
   assert.ok(sierra.lighting.sun, 'Sierra has a sun');
   const taba = by.map_kwaioua_taba;
   assert.equal(taba.lighting.preset, 'dusk');
@@ -93,6 +94,12 @@ test('validateTownScenes accepts the catalogue and rejects broken entries', () =
   assert.ok(validateTownScenes(noSpot, maps).some(e => e.includes(npc)));
 });
 
+test('validator rejects a malformed ground mix', () => {
+  const bad = JSON.parse(JSON.stringify(root));
+  bad.towns.find(t => t.mapId === 'map_town').ground.mix = { color: '#5d8c36', coverage: 2 };
+  assert.ok(validateTownScenes(bad, maps).some(e => e.includes('ground.mix')));
+});
+
 test('Caelum at noon, with half the houses and two balconies', () => {
   const caelum = root.towns.find(t => t.mapId === 'map_emperial_capital_caelum');
   assert.equal(caelum.lighting.preset, 'day');
@@ -101,8 +108,22 @@ test('Caelum at noon, with half the houses and two balconies', () => {
   assert.equal(caelum.lighting.points.length, 0, 'no lamp lights by day');
   assert.equal(caelum.obstacles.filter(o => o.kind === 'house').length, 20, '20 houses');
   assert.ok(caelum.obstacles.filter(o => o.kind === 'balcony').length >= 2, '>= 2 balconies');
-  assert.ok(caelum.npcSpots.father_marcelus.y > 0, 'Father Marcelus up on a balcony');
   assert.ok(caelum.npcSpots.oracle.y > 0, 'Oracle up on a balcony');
+});
+
+test('Father Marcelus stands in the middle of every town, on the ground, next to its landmark', () => {
+  const landmarks = {
+    map_emperial_capital_caelum: 'fountain', map_kwaioua_taba: 'campfire', map_aramaia_city: 'altar', map_outpost: 'tower', map_town: 'well',
+  };
+  for (const [mapId, kind] of Object.entries(landmarks)) {
+    const def = root.towns.find(t => t.mapId === mapId);
+    const landmark = def.obstacles.find(o => o.kind === kind && o.x === 36 && o.z === 36);
+    assert.ok(landmark, `${mapId}: ${kind} in the middle`);
+    const spot = def.npcSpots.father_marcelus;
+    assert.ok(!(spot.y > 0), `${mapId}: Father Marcelus on the ground`);
+    const gap = Math.hypot(spot.x - landmark.x, spot.z - landmark.z) - obstacleRadius(landmark);
+    assert.ok(gap > 0 && gap <= 2.5, `${mapId}: Father Marcelus next to the ${kind} (gap ${gap.toFixed(2)})`);
+  }
 });
 
 test('Kwaioua Taba has a campfire in the middle', () => {

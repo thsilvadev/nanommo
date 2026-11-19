@@ -63,7 +63,7 @@ test('presence criterion', async () => {
   assert.equal(service.isTownPresent({ currentMapId: 'map_outpost', travelIntent: null, pendingMapTransition: null }), 'map_outpost', 'Outpost has a scene');
 });
 
-test('snapshot includes offline asleep', async () => {
+test('snapshot includes offline awake (only /sleep sleeps)', async () => {
   const w = world();
   for (const id of ['a', 'b', 'c']) w.add(id);
   w.online('a');
@@ -75,7 +75,7 @@ test('snapshot includes offline asleep', async () => {
   assert.equal(by.a.sleeping, null);
   for (const id of ['b', 'c']) {
     assert.equal(by[id].online, false);
-    assert.notEqual(by[id].sleeping, null, `${id} should sleep`);
+    assert.equal(by[id].sleeping, null, `${id} should keep wandering`);
   }
 });
 
@@ -100,36 +100,44 @@ test('snapshot cap and order', async () => {
   assert.equal(rest[0].characterId, 'p249');
 });
 
-test('disconnect -> sleep', async () => {
+test('disconnect keeps wandering', async () => {
   const w = world();
   w.add('a');
   w.online('a');
   await w.service.setOnline('a', true);
-  const before = Date.now();
+  const awake = JSON.parse(w.hashes.get(`town:state:${TOWN}`).get('a'));
   await w.service.setOnline('a', false);
-  const state = JSON.parse(w.hashes.get(`town:state:${TOWN}`).get('a'));
-  assert.ok(state.sleeping && state.sleeping.at >= before);
-  const update = w.townEvents().at(-1);
-  assert.equal(update.payload.event, 'town:update');
-  assert.equal(update.payload.mapId, TOWN);
-  assert.equal(update.payload.entry.characterId, 'a');
-  assert.notEqual(update.payload.entry.sleeping, null);
-});
-
-test('connect after disconnect -> awake', async () => {
-  const w = world();
-  w.add('a');
-  await w.service.setOnline('a', false);
-  const slept = JSON.parse(w.hashes.get(`town:state:${TOWN}`).get('a'));
-  const sleepPose = positionAt(sierra, new TownNav(sierra), slept, slept.sleeping.at);
-  w.online('a');
-  const entry = await w.service.setOnline('a', true);
   const state = JSON.parse(w.hashes.get(`town:state:${TOWN}`).get('a'));
   assert.equal(state.sleeping, null);
-  assert.notEqual(state.seed, slept.seed, 'new seed on wake');
-  assert.ok(Math.abs(state.wakeFrom.x - sleepPose.x) < 1e-9 && Math.abs(state.wakeFrom.z - sleepPose.z) < 1e-9, 'wakes where it slept');
+  assert.equal(state.seed, awake.seed, 'same walk, no teleport');
+  const update = w.townEvents().at(-1);
+  assert.equal(update.payload.event, 'town:update');
+  assert.equal(update.payload.entry.online, false);
+  assert.equal(update.payload.entry.sleeping, null);
+});
+
+test('/sleep survives disconnect and reconnect', async () => {
+  const w = world();
+  w.add('a');
+  w.online('a');
+  await w.service.sleep('a');
+  await w.service.setOnline('a', false);
+  await w.service.setOnline('a', true);
+  const state = JSON.parse(w.hashes.get(`town:state:${TOWN}`).get('a'));
+  assert.notEqual(state.sleeping, null);
+  const [entry] = (await w.service.snapshot(TOWN, 'a')).entries;
+  assert.notEqual(entry.sleeping, null);
+});
+
+test('legacy offline sleep in Redis is read as awake where it lay', async () => {
+  const w = world();
+  w.add('a');
+  const legacy = { seed: 1234, sleeping: { at: Date.now() - 60_000 }, wakeFrom: null };
+  w.hashes.set(`town:state:${TOWN}`, new Map([['a', JSON.stringify(legacy)]]));
+  const pose = positionAt(sierra, new TownNav(sierra), legacy, legacy.sleeping.at);
+  const [entry] = (await w.service.snapshot(TOWN, 'x')).entries;
   assert.equal(entry.sleeping, null);
-  assert.equal(w.townEvents().at(-1).payload.entry.sleeping, null);
+  assert.ok(Math.abs(entry.wakeFrom.x - pose.x) < 1e-9 && Math.abs(entry.wakeFrom.z - pose.z) < 1e-9);
 });
 
 test('travel start -> leave', async () => {
@@ -214,7 +222,7 @@ test('lazy offline entry', async () => {
   w.add('ghost', { lastSeenAt });
   const [entry] = (await w.service.snapshot(TOWN, 'someone-else')).entries;
   assert.equal(entry.seed, mulberry32Seed('ghost'));
-  assert.deepStrictEqual(entry.sleeping, { at: lastSeenAt.getTime() });
+  assert.equal(entry.sleeping, null);
   assert.equal(entry.lastSeenAt, lastSeenAt.toISOString());
 });
 
@@ -230,6 +238,20 @@ test('entries carry sex and height so clients can pick the body', async () => {
   assert.equal(slept.heightCm, 190);
   const service = fs.readFileSync(path.join(repo, 'apps/api/src/modules/presence/town-roster.service.ts'), 'utf8');
   assert.match(service, /c\.sex, c\."heightCm"/);
+});
+
+test('entries carry dominant hand and hand gear for the selected-player card', async () => {
+  const w = world();
+  w.add('a', { dominantHand: 'left' });
+  w.online('a');
+  const slept = await w.service.sleep('a');
+  assert.equal(slept.dominantHand, 'left');
+  assert.equal(slept.mainHandItemId, null);
+  const service = fs.readFileSync(path.join(repo, 'apps/api/src/modules/presence/town-roster.service.ts'), 'utf8');
+  assert.match(service, /AS "mainHandItemId"/);
+  assert.match(service, /AS "offHandItemId"/);
+  const controller = fs.readFileSync(path.join(repo, 'apps/api/src/modules/equipment/equipment.controller.ts'), 'utf8');
+  assert.equal((controller.match(/this\.refreshTown\(characterId\)/g) ?? []).length, 2, 'equip and unequip refresh the town entry');
 });
 
 test('gateway: stale socket disconnect does not put the character to sleep', async () => {

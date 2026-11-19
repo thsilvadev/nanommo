@@ -4,6 +4,7 @@
   cursor: grab; background: #0e1020; border-radius: inherit;
 }
 .town-scene:active { cursor: grabbing; }
+.town-scene.town-scene--pickable, .town-scene.town-scene--pickable:active { cursor: pointer; }
 .town-scene ::ng-deep canvas { width: 100% !important; height: 100% !important; display: block; }
 .town-scene__status {
   position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; text-align: center;

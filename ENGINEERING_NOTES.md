@@ -4,7 +4,7 @@ Permanent, append-only reference of hard-won technical traps and lessons from
 `STATUS.md` sessions. Re-read only when a new bug falls in the same class
 (JWT claims, ownership/IDOR, cwd, TypeORM `undefined`, idempotence, etc.).
 
-Last session that added entries: 2026-11-18.
+Last session that added entries: 2026-11-19.
 
 ---
 
@@ -189,3 +189,16 @@ A page refresh can connect the new socket before the old one's `disconnect` runs
 - Pin costume pieces in the bone's **bind** space (`boneInverses`), not from the bone's world position in the Idle pose: Idle tilts the head and torso, and offsets measured on the bind pose land wrong. Head pieces start from the eyes' centre (`Eyes` mesh bounds).
 - The catalogue's mustache and other facial overlays are painted on the face texture by the portrait compositor; the Town does not compose them.
 - Recolouring textures runs on the main thread when a Town opens: keep it byte math on a small canvas (512 px) and cached; `THREE.Color` per pixel over 1024² textures cost seconds.
+
+## 4.23 Pinning to a posed bone: aim in world space, then convert to the model's frame
+
+`bone.getWorldPosition()` is a world position. Assigning it to a child of the model only works while the model sits at the origin with no rotation. NPCs are dressed asynchronously, after they were placed in the town, so a piece set that way landed at twice the NPC's spot (William's backpack floated outside Caelum). Compute the world target, `model.add(piece)`, then `piece.position.copy(model.worldToLocal(target))`, and only then `bone.attach(piece)`. Do not premultiply the model's world rotation into a piece that is already its child.
+
+## 4.24 Non-uniform scale after rotation skews primitives
+
+`Object3D` applies scale in its own (rotated) frame: a 4-sided cone rotated 45° and scaled differently in x/z is a rhombus, not a rectangle. Build the shape on the target rectangle instead (see `hipRoofGeometry`).
+
+## 4.25 `vercel.json` header sources are path-to-regexp, not regex
+
+`(?:…)` and escaped dots inside an unnamed group throw "Invalid group". Use a named parameter with a custom pattern (`/:file(chunk-.*|main-.*)`) and check new sources with `path-to-regexp@3` (in `node_modules/.pnpm`) before pushing: an invalid source fails the Vercel deploy.
+

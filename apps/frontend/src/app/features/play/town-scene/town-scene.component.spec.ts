@@ -35,7 +35,7 @@ describe('TownSceneComponent', () => {
 
   beforeEach(() => {
     init = null;
-    runtime = jasmine.createSpyObj<TownSceneRuntimeHandle>('runtime', ['setCharacters', 'pick', 'pan', 'zoom', 'resize', 'dispose', 'screenPositionOf']);
+    runtime = jasmine.createSpyObj<TownSceneRuntimeHandle>('runtime', ['setCharacters', 'setSelection', 'setActive', 'pick', 'pan', 'zoom', 'resize', 'dispose', 'screenPositionOf']);
     entries = signal<TownRosterEntry[]>([]);
     const def = { mapId: 'map_town', size: { w: 72, h: 72 }, npcSpots: { blacksmith_loren: { x: 1, z: 1, facing: 0 } } } as unknown as TownSceneDef;
     TestBed.configureTestingModule({
@@ -135,6 +135,42 @@ describe('TownSceneComponent', () => {
     host.dispatchEvent(new PointerEvent('pointermove', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
     host.dispatchEvent(new PointerEvent('pointerup', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
     expect(picked).toEqual([]);
+  });
+
+  it('hovering another player or an NPC shows a pointer cursor; myself and empty ground do not', async () => {
+    const fixture = await create();
+    const host: HTMLElement = fixture.nativeElement.querySelector('.town-scene');
+    const hover = (hit: any) => {
+      runtime.pick.and.returnValue(hit);
+      host.dispatchEvent(new PointerEvent('pointermove', { clientX: 60, clientY: 60, pointerId: 1, pointerType: 'mouse', bubbles: true }));
+      fixture.detectChanges();
+      return host.classList.contains('town-scene--pickable');
+    };
+    expect(hover({ kind: 'character', id: 'ana' })).toBeTrue();
+    expect(hover({ kind: 'npc', id: 'blacksmith_loren' })).toBeTrue();
+    expect(hover({ kind: 'character', id: 'hero' })).toBeFalse();
+    expect(hover(null)).toBeFalse();
+  });
+
+  it('hidden behind the map view: keeps its runtime and only pauses it', async () => {
+    const fixture = await create();
+    fixture.componentRef.setInput('active', false);
+    fixture.detectChanges();
+    expect(runtime.setActive).toHaveBeenCalledWith(false);
+    expect(runtime.dispose).not.toHaveBeenCalled();
+    fixture.componentRef.setInput('active', true);
+    fixture.detectChanges();
+    expect(runtime.setActive).toHaveBeenCalledWith(true);
+  });
+
+  it('passes the selection (blue ring) to the runtime', async () => {
+    const fixture = await create();
+    fixture.componentRef.setInput('selection', { kind: 'character', id: 'ana' });
+    fixture.detectChanges();
+    expect(runtime.setSelection).toHaveBeenCalledWith({ kind: 'character', id: 'ana' });
+    fixture.componentRef.setInput('selection', { kind: 'npc', id: 'blacksmith_loren' });
+    fixture.detectChanges();
+    expect(runtime.setSelection).toHaveBeenCalledWith({ kind: 'npc', id: 'blacksmith_loren' });
   });
 
   it('disposes the runtime when destroyed', async () => {

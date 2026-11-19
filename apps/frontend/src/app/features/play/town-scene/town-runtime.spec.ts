@@ -114,6 +114,33 @@ describe('TownRuntime (real WebGL)', () => {
     expect(rt.hitBoxOf('npc', 'oracle')!.minY).toBeGreaterThanOrEqual(3.2 - 1e-6);
   });
 
+  it('setActive(false) stops the render loop; setActive(true) resumes it', async () => {
+    const rt = await start([entry('a')], null);
+    expect(rt.isActive()).toBeTrue();
+    rt.setActive(false);
+    expect(rt.isActive()).toBeFalse();
+    rt.setActive(true);
+    expect(rt.isActive()).toBeTrue();
+  });
+
+  it('warmTownAssets fills the shared cache without throwing', async () => {
+    const { warmTownAssets } = await import('./town-runtime');
+    await expectAsync(warmTownAssets('/assets/character/', '/data/appearance_catalog.json')).toBeResolved();
+  });
+
+  it('one blue selection ring at a time, for a player or an NPC', async () => {
+    const rt = await start([entry('a'), entry('b')], null);
+    const npcId = Object.keys(def.npcSpots)[0];
+    rt.setSelection({ kind: 'character', id: 'a' });
+    expect(rt.selectedOf('character', 'a')).toBeTrue();
+    expect(rt.selectedOf('character', 'b')).toBeFalse();
+    rt.setSelection({ kind: 'npc', id: npcId });
+    expect(rt.selectedOf('character', 'a')).toBeFalse();
+    expect(rt.selectedOf('npc', npcId)).toBeTrue();
+    rt.setSelection(null);
+    expect(rt.selectedOf('npc', npcId)).toBeFalse();
+  });
+
   it('removes characters that leave and drops its canvas on dispose', async () => {
     const rt = await start([entry('a'), entry('b')], null);
     rt.setCharacters([entry('a')], null);
@@ -173,4 +200,48 @@ describe('TownWorld animated pieces', () => {
       world.dispose();
     });
   }
+});
+
+describe('TownWorld houses and ground', () => {
+  const towns = () => fetch('/data/town_scenes.json').then(r => r.json()).then(c => c.towns as TownSceneDef[]);
+
+  it('every roof is a rectangle that covers its walls (never a skewed rhombus), with small variations', async () => {
+    const looks = new Set<string>();
+    for (const def of await towns()) {
+      const world = buildTownWorld(def);
+      const houses = world.group.children.filter(c => c.name === 'obstacle:house');
+      expect(houses.length).withContext(def.mapId).toBe(def.obstacles.filter(o => o.kind === 'house').length);
+      for (const house of houses) {
+        const roof = house.getObjectByName('roof') as THREE.Mesh;
+        const walls = house.children[0] as THREE.Mesh;
+        roof.geometry.computeBoundingBox();
+        walls.geometry.computeBoundingBox();
+        const r = roof.geometry.boundingBox!, w = walls.geometry.boundingBox!;
+        // The eave corners are exactly the bounding box corners: a rectangle, not a rhombus.
+        const pos = roof.geometry.getAttribute('position');
+        const corners = new Set<string>();
+        for (let i = 0; i < pos.count; i++) if (Math.abs(pos.getY(i)) < 1e-6) corners.add(`${pos.getX(i).toFixed(3)},${pos.getZ(i).toFixed(3)}`);
+        expect([...corners].sort()).withContext(def.mapId).toEqual([
+          `${r.min.x.toFixed(3)},${r.min.z.toFixed(3)}`, `${r.min.x.toFixed(3)},${r.max.z.toFixed(3)}`,
+          `${r.max.x.toFixed(3)},${r.min.z.toFixed(3)}`, `${r.max.x.toFixed(3)},${r.max.z.toFixed(3)}`,
+        ].sort());
+        expect(r.min.x).toBeLessThan(w.min.x - 0.35);
+        expect(r.max.x).toBeGreaterThan(w.max.x + 0.35);
+        expect(r.min.z).toBeLessThan(w.min.z - 0.35);
+        expect(r.max.z).toBeGreaterThan(w.max.z + 0.35);
+        expect(roof.position.y).toBeLessThanOrEqual(w.max.y + walls.position.y);
+        looks.add(`${(roof.material as THREE.MeshStandardMaterial).color.getHexString()}:${r.max.y.toFixed(2)}`);
+      }
+      world.dispose();
+    }
+    expect(looks.size).toBeGreaterThan(10);
+  });
+
+  it('Sierra mixes green over the clay ground; other towns do not', async () => {
+    for (const def of await towns()) {
+      const world = buildTownWorld(def);
+      expect(!!world.group.getObjectByName('ground-mix')).withContext(def.mapId).toBe(def.mapId === 'map_town');
+      world.dispose();
+    }
+  });
 });

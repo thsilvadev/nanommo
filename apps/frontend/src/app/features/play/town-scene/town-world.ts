@@ -65,6 +65,24 @@ export function buildTownWorld(def: TownSceneDef): TownWorld {
   ground.name = 'ground';
   group.add(ground);
 
+  // Grass blended over the ground (one texture for the whole town, drawn just above it).
+  const mixTexture = groundMixTexture(def);
+  if (mixTexture) {
+    owned.push(mixTexture);
+    const mixMaterial = new THREE.MeshStandardMaterial({
+      map: mixTexture, transparent: true, roughness: 1, metalness: 0, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+    });
+    owned.push(mixMaterial);
+    const overlay = new THREE.Mesh(geo(new THREE.PlaneGeometry(def.size.w, def.size.h)), mixMaterial);
+    overlay.rotation.x = -Math.PI / 2;
+    overlay.position.set(def.size.w / 2, 0.01, def.size.h / 2);
+    overlay.receiveShadow = true;
+    overlay.userData['noShadow'] = true;
+    overlay.name = 'ground-mix';
+    group.add(overlay);
+  }
+
   const animators: Animator[] = [];
   const own = <T extends { dispose(): void }>(item: T) => { owned.push(item); return item; };
   for (const obstacle of def.obstacles) {
@@ -265,25 +283,50 @@ function buildObstacle(o: TownObstacle, p: Palette, mat: MatFn, geo: GeoFn, own:
       break;
     }
     case 'house': {
-      const h = o.height ?? 5;
+      // Small per-house variations (wall height, roof shape/height/overhang, colours), fixed by its position.
+      const v = houseVariation(o);
+      const h = (o.height ?? 5) * v.height;
       const wallH = h * 0.6;
-      g.add(mesh(geo(new THREE.BoxGeometry(w, wallH, d)), mat(p.wall), wallH / 2));
-      const roof = mesh(geo(new THREE.ConeGeometry(Math.hypot(w, d) / 2 * 1.05, h - wallH, 4, 1)), mat(p.roof), wallH + (h - wallH) / 2);
-      roof.rotation.y = Math.PI / 4;
-      roof.scale.set(w / Math.hypot(w, d) * Math.SQRT2, 1, d / Math.hypot(w, d) * Math.SQRT2);
+      g.add(mesh(geo(new THREE.BoxGeometry(w, wallH, d)), mat(v.wall(p.wall)), wallH / 2));
+      // The roof overhangs every wall and starts a little below their top, so no wall corner pokes out.
+      const roofH = (h - wallH) * v.roofHeight;
+      const roofW = w + 2 * v.overhang * v.stretchX;
+      const roofD = d + 2 * v.overhang * v.stretchZ;
+      const roofGeo = geo(v.gable ? gableRoofGeometry(roofW, roofD, roofH) : hipRoofGeometry(roofW, roofD, roofH));
+      // Drop the roof below the wall top only as far as the slope still covers the wall line.
+      const overhangMin = v.overhang * Math.min(v.stretchX, v.stretchZ);
+      const eaveDrop = Math.min(ROOF_EAVE_DROP, (0.5 * roofH * overhangMin) / (Math.min(roofW, roofD) / 2));
+      const roofBase = wallH - eaveDrop;
+      const roof = mesh(roofGeo, mat(v.roof(p.roof), { side: THREE.DoubleSide }), roofBase);
+      roof.name = 'roof';
       g.add(roof);
+      if (v.gable) {
+        // Close the gable ends with wall under the roof slopes.
+        const end = geo(gableEndGeometry(w, d, roofW, roofD, roofH, eaveDrop));
+        for (const side of [-1, 1]) {
+          const gableEnd = mesh(end, mat(v.wall(p.wall), { side: THREE.DoubleSide }), roofBase);
+          if (w >= d) { gableEnd.rotation.y = Math.PI / 2; gableEnd.position.x = side * w / 2; }
+          else gableEnd.position.z = side * d / 2;
+          g.add(gableEnd);
+        }
+      }
       g.add(mesh(geo(new THREE.BoxGeometry(Math.min(1.1, w * 0.25), wallH * 0.55, 0.12)), mat(p.wood), wallH * 0.275)).position.z = d / 2 + 0.03;
       break;
     }
     case 'hut': {
-      const h = o.height ?? 4.5;
-      g.add(mesh(geo(new THREE.CylinderGeometry(r * 0.92, r, h * 0.42, 10)), mat(p.wood), h * 0.21));
-      g.add(mesh(geo(new THREE.ConeGeometry(r * 1.25, h * 0.62, 10)), mat(p.thatch), h * 0.42 + h * 0.31));
+      const v = houseVariation(o);
+      const h = (o.height ?? 4.5) * v.height;
+      const roofH = h * 0.62 * v.roofHeight;
+      g.add(mesh(geo(new THREE.CylinderGeometry(r * 0.92, r, h * 0.42, 10)), mat(v.wall(p.wood)), h * 0.21));
+      const roof = mesh(geo(new THREE.ConeGeometry(r * (1.18 + v.overhang * 0.15), roofH, 10)), mat(v.roof(p.thatch)), h * 0.42 - 0.08 + roofH / 2);
+      roof.name = 'roof';
+      g.add(roof);
       break;
     }
     case 'tent': {
-      const h = o.height ?? 3;
-      g.add(mesh(geo(new THREE.ConeGeometry(r * 1.1, h, 4)), mat(p.cloth), h / 2));
+      const v = houseVariation(o);
+      const h = (o.height ?? 3) * v.height;
+      g.add(mesh(geo(new THREE.ConeGeometry(r * 1.1, h, 4)), mat(v.roof(p.cloth)), h / 2));
       break;
     }
     case 'pillar': {
@@ -510,6 +553,162 @@ function buildObstacle(o: TownObstacle, p: Palette, mat: MatFn, geo: GeoFn, own:
     }
   }
   return g;
+}
+
+/** The roof starts this far below the top of the walls. */
+export const ROOF_EAVE_DROP = 0.12;
+
+export interface HouseVariation {
+  height: number;
+  roofHeight: number;
+  overhang: number;
+  stretchX: number;
+  stretchZ: number;
+  gable: boolean;
+  wall: (base: string) => string;
+  roof: (base: string) => string;
+}
+
+/** Deterministic small variations of one house (same house, same look, on every client). */
+export function houseVariation(o: Pick<TownObstacle, 'x' | 'z'>): HouseVariation {
+  const rng = new Mulberry32(`house:${o.x}:${o.z}`);
+  const between = (a: number, b: number) => a + (b - a) * rng.next();
+  const height = between(0.92, 1.1);
+  const roofHeight = between(0.85, 1.25);
+  const overhang = between(0.45, 0.7);
+  const stretchX = between(0.9, 1.15);
+  const stretchZ = between(0.9, 1.15);
+  const gable = rng.next() < 0.45;
+  const wallShift = [between(-0.015, 0.015), between(-0.06, 0.06), between(-0.05, 0.05)] as const;
+  const roofShift = [between(-0.04, 0.04), between(-0.12, 0.12), between(-0.08, 0.08)] as const;
+  const shift = (base: string, [hh, ss, ll]: readonly [number, number, number]) => `#${new THREE.Color(base).offsetHSL(hh, ss, ll).getHexString()}`;
+  return { height, roofHeight, overhang, stretchX, stretchZ, gable, wall: (b) => shift(b, wallShift), roof: (b) => shift(b, roofShift) };
+}
+
+function triangles(positions: number[]): THREE.BufferGeometry {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
+ * Hip roof over a w×d rectangle (base at y=0, centred): a ridge along the longer
+ * side, trapezoids on the long sides and triangles on the short ones (a square
+ * gives a pyramid). Built straight on the rectangle, so it never skews.
+ */
+export function hipRoofGeometry(w: number, d: number, h: number): THREE.BufferGeometry {
+  const alongX = w >= d;
+  const a = (alongX ? w : d) / 2;
+  const b = (alongX ? d : w) / 2;
+  const r = Math.max(0, a - b);
+  // Local frame: long axis = u, short = v; map (u, y, v) to (x, y, z).
+  const P = (u: number, y: number, v: number) => (alongX ? [u, y, v] : [v, y, u]);
+  const c1 = P(-a, 0, -b), c2 = P(a, 0, -b), c3 = P(a, 0, b), c4 = P(-a, 0, b);
+  const r1 = P(-r, h, 0), r2 = P(r, h, 0);
+  const tris = [
+    // long sides
+    c1, r1, r2, c1, r2, c2,
+    c3, r2, r1, c3, r1, c4,
+    // ends
+    c2, r2, c3,
+    c4, r1, c1,
+  ];
+  return triangles(tris.flat());
+}
+
+/** Gable roof over a w×d rectangle: two slopes meeting at a ridge along the longer side, open ends. */
+export function gableRoofGeometry(w: number, d: number, h: number): THREE.BufferGeometry {
+  const alongX = w >= d;
+  const a = (alongX ? w : d) / 2;
+  const b = (alongX ? d : w) / 2;
+  const P = (u: number, y: number, v: number) => (alongX ? [u, y, v] : [v, y, u]);
+  const c1 = P(-a, 0, -b), c2 = P(a, 0, -b), c3 = P(a, 0, b), c4 = P(-a, 0, b);
+  const r1 = P(-a, h, 0), r2 = P(a, h, 0);
+  return triangles([c1, r1, r2, c1, r2, c2, c3, r2, r1, c3, r1, c4].flat());
+}
+
+/**
+ * Wall piece closing one gable end, in the XY plane (x across the house's short
+ * side), from the roof base up to just under the slopes.
+ */
+export function gableEndGeometry(w: number, d: number, roofW: number, roofD: number, roofH: number, drop: number): THREE.BufferGeometry {
+  const half = Math.min(w, d) / 2;
+  const roofHalf = Math.min(roofW, roofD) / 2;
+  const slopeAt = (t: number) => roofH * (1 - Math.abs(t) / roofHalf) - 0.03;
+  const shape = new THREE.Shape();
+  shape.moveTo(-half, -drop);
+  shape.lineTo(half, -drop);
+  shape.lineTo(half, slopeAt(half));
+  shape.lineTo(0, slopeAt(0));
+  shape.lineTo(-half, slopeAt(-half));
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape);
+}
+
+/**
+ * Grass patches over the whole town (not tiled, so no repeating pattern): an
+ * alpha mask from smooth value noise, with grass strokes inside the patches.
+ */
+function groundMixTexture(def: TownSceneDef): THREE.CanvasTexture | null {
+  const mix = def.ground.mix;
+  if (!mix) return null;
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  const rng = new Mulberry32(`${def.mapId}:ground-mix`);
+  // Value noise on a few octaves, from a seeded lattice.
+  const octaves = [8, 16, 32].map((cells) => ({ cells, grid: Array.from({ length: (cells + 1) * (cells + 1) }, () => rng.next()) }));
+  const smooth = (t: number) => t * t * (3 - 2 * t);
+  const noise = (u: number, v: number) => {
+    let sum = 0, weight = 0, amp = 1;
+    for (const { cells, grid } of octaves) {
+      const x = u * cells, y = v * cells;
+      const x0 = Math.floor(x), y0 = Math.floor(y);
+      const fx = smooth(x - x0), fy = smooth(y - y0);
+      const at = (i: number, j: number) => grid[Math.min(cells, j) * (cells + 1) + Math.min(cells, i)];
+      const top = at(x0, y0) * (1 - fx) + at(x0 + 1, y0) * fx;
+      const bottom = at(x0, y0 + 1) * (1 - fx) + at(x0 + 1, y0 + 1) * fx;
+      sum += (top * (1 - fy) + bottom * fy) * amp;
+      weight += amp;
+      amp *= 0.5;
+    }
+    return sum / weight;
+  };
+  const coverage = Math.max(0, Math.min(1, mix.coverage));
+  const threshold = 1 - coverage; // noise is ~uniform around 0.5; centre the cut on the coverage
+  const cut = 0.5 + (threshold - 0.5) * 0.5;
+  const image = ctx.createImageData(size, size);
+  const base = new THREE.Color(mix.color);
+  const accent = new THREE.Color(mix.accent);
+  const alphaAt = new Float32Array(size * size);
+  for (let j = 0; j < size; j++) for (let i = 0; i < size; i++) {
+    const n = noise(i / size, j / size);
+    const alpha = Math.max(0, Math.min(1, (n - cut) / 0.12));
+    alphaAt[j * size + i] = alpha;
+    const k = (j * size + i) * 4;
+    const tint = Math.max(0, Math.min(1, (n - cut) * 4));
+    image.data[k] = (base.r * (1 - tint) + accent.r * tint) * 255;
+    image.data[k + 1] = (base.g * (1 - tint) + accent.g * tint) * 255;
+    image.data[k + 2] = (base.b * (1 - tint) + accent.b * tint) * 255;
+    image.data[k + 3] = alpha * 255;
+  }
+  ctx.putImageData(image, 0, 0);
+  // Blades: short strokes inside the patches, a few spilling onto the clay at their edges.
+  for (let i = 0; i < 9000; i++) {
+    const x = rng.next() * size, y = rng.next() * size;
+    const alpha = alphaAt[Math.floor(y) * size + Math.floor(x)];
+    if (alpha <= 0.05 && rng.next() > 0.04) continue;
+    ctx.globalAlpha = (0.2 + rng.next() * 0.35) * Math.max(0.3, alpha);
+    ctx.fillStyle = rng.next() < 0.5 ? mix.accent : mix.color;
+    ctx.fillRect(x, y, 1, 1 + rng.next() * 1.5);
+  }
+  ctx.globalAlpha = 1;
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
 }
 
 /** Tiled ground pattern drawn once on a canvas (deterministic per town). */

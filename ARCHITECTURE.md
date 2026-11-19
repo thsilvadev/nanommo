@@ -1,3 +1,9 @@
+## Living Town scene, part 3: sleep only by command, selection, mounted scene — 2026-11-19
+
+- **Offline is not asleep.** Only `/sleep` sleeps (`sleptByCommand` in the Redis `TownState`); presence changes only `online`/`lastSeenAt`. Old offline-sleep states are normalised on read into a deterministic wake where they lay — no Redis migration.
+- **Selection is client state, one at a time.** `TownStore.selectedCharacterId` or `VendorStore.selectedNpcId` → one `TownPick` for the blue ring; the selected player is shown as a card in the grind panel instead of a floating menu. Hand gear travels in the roster entry (item ids) so other players' avatars can be drawn without a new endpoint.
+- **The Town scene is kept mounted** while in a Town (hidden + paused in map view) and warmed on the first socket connect; this replaces part 1's "the inactive view is unmounted". Cross-visit caching is the HTTP cache (`vercel.json` headers), not a service worker.
+
 ## Living Town scene, part 2: elevated obstacles on a 2D grid, sleep by age, NPC visual registry — 2026-11-18
 
 - **The walk grid stays 2D.** Balconies, towers, campfires, altars and wells are footprints on the same grid; nobody climbs. A balcony blocks its platform and its stairs strip; an NPC up on it (`npcSpots.*.y`) is only drawn there, and its POI sits by the stairs foot (validator rule). A tower's top is never visible because the camera never rises above `70·sin 55° ≈ 57.3`.

@@ -3,6 +3,7 @@ import { EquipmentService } from './equipment.service';
 import { CharacterService } from '../character/character.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { InventoryService } from '../inventory/inventory.service';
+import { TownRosterService } from '../presence/town-roster.service';
 
 @Controller('equipment')
 @UseGuards(JwtAuthGuard)
@@ -11,7 +12,13 @@ export class EquipmentController {
     private readonly equipmentService: EquipmentService,
     private readonly characterService: CharacterService,
     private readonly inventoryService: InventoryService,
+    private readonly townRoster: TownRosterService,
   ) {}
+
+  /** Other players in town see the new hand gear on the selected-player card. Best effort. */
+  private refreshTown(characterId: string): void {
+    void this.townRoster.refresh(characterId).catch(() => undefined);
+  }
 
   private async getCharacterId(userId: string): Promise<string> {
     const character = await this.characterService.getCharacterByUserId(userId);
@@ -62,6 +69,7 @@ export class EquipmentController {
   async equipItem(@Request() req: any, @Body() body: { slot: string; itemId: string; inventoryItemId?: string }) {
     const characterId = await this.getCharacterId(req.user.userId);
     await this.equipmentService.equipItem(characterId, body.slot, body.itemId, body.inventoryItemId);
+    this.refreshTown(characterId);
     return this.getMutationSnapshot(characterId);
   }
 
@@ -72,6 +80,7 @@ export class EquipmentController {
   async unequipItem(@Request() req: any, @Param('slot') slot: string) {
     const characterId = await this.getCharacterId(req.user.userId);
     await this.equipmentService.unequipItem(characterId, slot);
+    this.refreshTown(characterId);
     return this.getMutationSnapshot(characterId);
   }
 
