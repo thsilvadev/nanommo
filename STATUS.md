@@ -10,13 +10,15 @@ OpenSpec `town-living-scene-3`. Trabalho direto em `main` (sem commit/push).
 - Padre Marcelo no chão ao lado do centro de cada cidade (fonte, fogueira, altar no foco de luz — não em cima, a pedido —, pé da torre, poço).
 - Correções vistas pelo usuário em Prontera: a mochila do William flutuava fora do mapa (`pin()` usava posição de mundo como local; com o NPC já posicionado quando a roupa termina de carregar, a peça ia para o dobro da posição); o baú do Storage entrava na casa — Storage reposicionado em Prontera, Sierra e Taba, e nova regra: adereço a ≥ 0,5 × escala de qualquer obstáculo (William em Sierra e Padre ajustados também).
 
+- Nenhum NPC escondido pela cidade: regra nova `npc-occlusion.ts` — raios do corpo do NPC (4 alturas × 5 larguras) até posições reais da câmera fixa (centrada nele ou deslocada até 4 u, zoom padrão 40 e máximo 18) não podem bater em obstáculo (postes e cercas ignorados). Reposicionados: Storage no Outpost (atrás da torre), Storage, William, Mailbox e Oracle em Aramaia (pilares), Cecilia em Sierra (casa). Um primeiro teste só com raios paralelos deixava o Storage de Aramaia atrás do pilar com zoom de perto — por isso a perspectiva entra no cálculo.
+
 Sem migração. Nada executado em banco. Sem deploy, sem push.
 
 Validação (2026-11-19):
 - `pnpm --filter @nanommo/shared build` e `pnpm --filter @nanommo/api build`: passam.
 - `node apps/api/test/town-roster.test.js` 19/19; `town-scenes-catalog.test.js` 27/27; `town-wander.test.js` 17/17; `map-presence.test.js` 13 asserções.
 - `node scripts/validate-town-scenes.js`: passa (5 cenas + espelho).
-- `cd apps/frontend && npx tsc -p tsconfig.app.json --noEmit` e `tsconfig.spec.json`: passam. `npx ng test --watch=false --browsers=ChromeHeadless` (CHROME_BIN=/snap/bin/chromium): 304 SUCCESS, 0 falhas.
+- `cd apps/frontend && npx tsc -p tsconfig.app.json --noEmit` e `tsconfig.spec.json`: passam. `npx ng test --watch=false --browsers=ChromeHeadless` (CHROME_BIN=/snap/bin/chromium): 304 SUCCESS, 0 falhas; depois da regra de visibilidade, specs de `town-scene/**` 68 SUCCESS.
 - `pnpm --filter @nanommo/frontend build --configuration production`: passa com os avisos de orçamento conhecidos (inicial 554,56 kB); `town-runtime` segue chunk lazy (47,67 kB). Espelhos antigos reescritos (`skill_trees.json`, `blacksmith_recipes.json`) revertidos.
 - `pnpm exec openspec validate town-living-scene-3 --strict`: válido (arquivar depois das partes 1 e 2).
 - Conferência visual: prints em Chromium headless (SwiftShader) das cinco cidades — telhados retangulares, Sierra com grama, Padre no centro, anel azul de seleção. Desempenho real da troca e do preload não medido em GPU real.

@@ -202,3 +202,7 @@ A page refresh can connect the new socket before the old one's `disconnect` runs
 
 `(?:…)` and escaped dots inside an unnamed group throw "Invalid group". Use a named parameter with a custom pattern (`/:file(chunk-.*|main-.*)`) and check new sources with `path-to-regexp@3` (in `node_modules/.pnpm`) before pushing: an invalid source fails the Vercel deploy.
 
+## 4.26 Town occlusion must be checked in perspective
+
+The town camera has a low FOV but is close (18–70 u): a parallel-ray check (from the NPC along the view direction) passed an Aramaia NPC that a 7 u pillar hid at the closest zoom with the camera panned 1.5 u away. `npc-occlusion.ts` casts rays to real camera positions over a grid of panned targets at both zoom limits; use it (via `npc-occlusion.spec.ts`) whenever an NPC spot or a tall obstacle moves.
+

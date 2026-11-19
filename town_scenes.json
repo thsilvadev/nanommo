@@ -160,7 +160,7 @@
         "storage": { "x": 26.32, "z": 26.32, "facing": 45 },
         "william": { "x": 46.39, "z": 25.61, "facing": -45 },
         "blacksmith_loren": { "x": 25.54, "z": 46.46, "facing": 135 },
-        "cecilia": { "x": 46.46, "z": 46.46, "facing": -135 },
+        "cecilia": { "x": 44.46, "z": 44.21, "facing": -135 },
         "uncle_phillip": { "x": 36, "z": 19, "facing": 0 },
         "father_marcelus": { "x": 33.31, "z": 38.69, "facing": -45 },
         "oracle": { "x": 19, "z": 36, "facing": 90 },
@@ -170,7 +170,7 @@
         { "id": "npc_storage", "x": 27.59, "z": 27.59, "radius": 1.6, "weight": 3, "lookAt": [26.32, 26.32] },
         { "id": "npc_william", "x": 45.12, "z": 26.88, "radius": 1.6, "weight": 3, "lookAt": [46.39, 25.61] },
         { "id": "npc_blacksmith_loren", "x": 26.81, "z": 45.19, "radius": 1.6, "weight": 3, "lookAt": [25.54, 46.46] },
-        { "id": "npc_cecilia", "x": 45.19, "z": 45.19, "radius": 1.6, "weight": 3, "lookAt": [46.46, 46.46] },
+        { "id": "npc_cecilia", "x": 43.19, "z": 42.94, "radius": 1.6, "weight": 3, "lookAt": [44.46, 44.21] },
         { "id": "npc_uncle_phillip", "x": 36, "z": 20.8, "radius": 1.6, "weight": 3, "lookAt": [36, 19] },
         { "id": "npc_father_marcelus", "x": 32.04, "z": 39.96, "radius": 1.6, "weight": 3, "lookAt": [33.31, 38.69] },
         { "id": "npc_oracle", "x": 20.8, "z": 36, "radius": 1.6, "weight": 3, "lookAt": [19, 36] },
@@ -326,18 +326,18 @@
         { "kind": "altar", "x": 36, "z": 36, "r": 4.5, "height": 5 }
       ],
       "npcSpots": {
-        "storage": { "x": 26.01, "z": 26.01, "facing": 45 },
-        "william": { "x": 45.99, "z": 26.01, "facing": -45 },
-        "mailbox": { "x": 26.01, "z": 45.99, "facing": 135 },
+        "storage": { "x": 23.01, "z": 25.51, "facing": 45 },
+        "william": { "x": 43.49, "z": 25.51, "facing": -45 },
+        "mailbox": { "x": 25.51, "z": 43.49, "facing": 135 },
         "father_marcelus": { "x": 33.96, "z": 41.32, "facing": -21 },
-        "oracle": { "x": 36, "z": 26.01, "facing": 0 }
+        "oracle": { "x": 35.5, "z": 26.01, "facing": 0 }
       },
       "pointsOfInterest": [
-        { "id": "npc_storage", "x": 27.28, "z": 27.28, "radius": 1.6, "weight": 3, "lookAt": [26.01, 26.01] },
-        { "id": "npc_william", "x": 44.72, "z": 27.28, "radius": 1.6, "weight": 3, "lookAt": [45.99, 26.01] },
-        { "id": "npc_mailbox", "x": 27.28, "z": 44.72, "radius": 1.6, "weight": 3, "lookAt": [26.01, 45.99] },
+        { "id": "npc_storage", "x": 24.28, "z": 26.78, "radius": 1.6, "weight": 3, "lookAt": [23.01, 25.51] },
+        { "id": "npc_william", "x": 42.22, "z": 26.78, "radius": 1.6, "weight": 3, "lookAt": [43.49, 25.51] },
+        { "id": "npc_mailbox", "x": 26.78, "z": 42.22, "radius": 1.6, "weight": 3, "lookAt": [25.51, 43.49] },
         { "id": "npc_father_marcelus", "x": 33.31, "z": 43, "radius": 1.6, "weight": 3, "lookAt": [33.96, 41.32] },
-        { "id": "npc_oracle", "x": 36, "z": 27.81, "radius": 1.6, "weight": 3, "lookAt": [36, 26.01] },
+        { "id": "npc_oracle", "x": 35.5, "z": 27.81, "radius": 1.6, "weight": 3, "lookAt": [35.5, 26.01] },
         { "id": "altar_n", "x": 36, "z": 29.7, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
         { "id": "altar_e", "x": 42.3, "z": 36, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
         { "id": "altar_s", "x": 36, "z": 42.3, "radius": 1.2, "weight": 2, "lookAt": [36, 36] },
@@ -398,13 +398,13 @@
         { "kind": "rock", "x": 67, "z": 27, "r": 1.2 }
       ],
       "npcSpots": {
-        "storage": { "x": 31.05, "z": 31.05, "facing": -135 },
+        "storage": { "x": 26.8, "z": 36.8, "facing": -135 },
         "william": { "x": 40.95, "z": 31.05, "facing": 135 },
         "mailbox": { "x": 31.05, "z": 40.95, "facing": -45 },
         "father_marcelus": { "x": 36, "z": 41.2, "facing": 0 }
       },
       "pointsOfInterest": [
-        { "id": "npc_storage", "x": 29.21, "z": 29.21, "radius": 1.4, "weight": 3, "lookAt": [31.05, 31.05] },
+        { "id": "npc_storage", "x": 24.96, "z": 34.96, "radius": 1.4, "weight": 3, "lookAt": [26.8, 36.8] },
         { "id": "npc_william", "x": 42.79, "z": 29.21, "radius": 1.4, "weight": 3, "lookAt": [40.95, 31.05] },
         { "id": "npc_mailbox", "x": 29.21, "z": 42.79, "radius": 1.4, "weight": 3, "lookAt": [31.05, 40.95] },
         { "id": "npc_father_marcelus", "x": 36, "z": 43, "radius": 1.4, "weight": 3, "lookAt": [36, 41.2] },

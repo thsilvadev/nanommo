@@ -42,7 +42,11 @@ While the character is in a Town, the Town scene MUST stay mounted; the map view
 
 ### Requirement: Town set dressing stays tidy
 
-House roofs MUST be rectangular over their walls, overhang them and hide their top corners. NPC props MUST stay at least 0.5 × their scale from every obstacle, and costume pieces MUST stay on the NPC's body wherever it stands.
+House roofs MUST be rectangular over their walls, overhang them and hide their top corners. No NPC MAY be hidden by an obstacle from the fixed town camera (lamp posts and fences excepted). NPC props MUST stay at least 0.5 × their scale from every obstacle, and costume pieces MUST stay on the NPC's body wherever it stands.
+
+#### Scenario: An NPC behind a pillar
+- **WHEN** an NPC spot is behind an obstacle as seen from the town camera (centred on the NPC or panned up to 4 units, default or closest zoom)
+- **THEN** the catalogue check fails until the NPC is moved
 
 #### Scenario: A long house
 - **WHEN** a house is longer than it is wide

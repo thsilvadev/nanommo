@@ -14,6 +14,7 @@ Third pass on the living Town scene after play-testing: offline characters lying
 - **Roofs** are built directly on the house rectangle (hip or gable), overhang every wall and start just below its top; each house gets small deterministic variations (wall/roof height, overhang, colours). Huts and tents vary too.
 - **Sierra ground** mixes grass patches over the clay (`ground.mix`, one non-tiling texture over the whole town).
 - **Father Marcelus** stands on the ground next to each town's centrepiece: fountain (Caelum), campfire (Taba), the altar in the sunshaft (Aramaia), below the tower (Outpost), the well (Sierra).
+- **No NPC hidden by the town** from the fixed camera; the Outpost Storage (tower), Aramaia's Storage/William/Mailbox/Oracle (pillars) and Sierra's Cecilia (house) moved.
 - **NPC props keep their distance** from every obstacle (≥ 0.5 × scale); Storage spots moved off the houses. Costume pieces pinned to bones are placed in the model frame, so they stay on the body wherever the NPC stands.
 
 ## Impact

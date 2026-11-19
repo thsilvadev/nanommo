@@ -22,3 +22,4 @@
 - [x] 4.2 Sierra grass over clay (`town-runtime.spec.ts`, `town-scenes-catalog.test.js`).
 - [x] 4.3 Father Marcelus next to each centrepiece, on the ground (`town-scenes-catalog.test.js`).
 - [x] 4.4 Props ≥ 0.5 × scale from obstacles; Storage moved; costume pieces stay on the body (`npc-visuals.spec.ts`).
+- [x] 4.5 No NPC hidden from the camera (perspective, panned targets, both zooms); Outpost/Aramaia/Sierra NPCs moved (`npc-occlusion.spec.ts`).
