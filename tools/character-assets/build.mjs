@@ -171,6 +171,8 @@ const CLIPS = {
   Idle_Loop: 'Idle', Walk_Loop: 'Walk', Sword_Attack: 'Attack', Hit_Chest: 'Damage', Death01: 'Dead',
   // Combat guard between actions; hands joined while a cast is charging (enter, then hold).
   Sword_Idle: 'CombatIdle', Spell_Simple_Enter: 'CastStart', Spell_Simple_Idle_Loop: 'CastLoop', Hit_Head: 'Damage2',
+  // Town emotes (/dance, /sit: sit down, then hold seated).
+  Dance_Loop: 'Dance', Sitting_Enter: 'SitDown', Sitting_Idle_Loop: 'Sit',
 };
 
 /**

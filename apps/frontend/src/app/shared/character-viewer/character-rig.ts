@@ -136,7 +136,7 @@ export class CharacterRig implements CharacterRigHandle {
     if (!bone) throw new Error(`No bone ${name}`);
     return bone;
   }
-  clipNames(): string[] { return this.current?.clips.map((clip) => clip.name) ?? []; }
+  clipNames(): string[] { return this.current ? [...this.current.actions.keys()] : []; }
   playingClip(): string | null {
     let best: string | null = null, bestWeight = 0;
     for (const [name, action] of this.current?.actions ?? []) {

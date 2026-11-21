@@ -22,6 +22,10 @@ export interface TownSceneRuntimeHandle {
   setCharacters(entries: TownRosterEntry[], selfId: string | null): void;
   /** Pixel coordinates relative to the scene element. */
   pick(x: number, y: number): TownPick | null;
+  /** World (x, z) of the ground under a pixel, or null off the town. */
+  groundPoint(x: number, y: number): [number, number] | null;
+  /** Local ground marker for a click-to-move. */
+  markDestination(x: number, z: number): void;
   setSelection(target: TownPick | null): void;
   /** Hidden scene (map view): stop the render loop; showing it again resumes it. */
   setActive(active: boolean): void;

@@ -18,6 +18,34 @@ import type { TownPick, TownSceneRuntimeHandle, TownSceneRuntimeInit } from './t
 const MAX_PIXEL_RATIO = 1.5;
 /** Farther than this from the camera target, a character animates at 10 Hz and hides its name. */
 const LOD_DISTANCE = 45;
+/** Spawn / vanish aura around a character entering or leaving the town. */
+export const TOWN_AURA_MS = 500;
+/** A roster entry that joined less than this long ago still gets the spawn aura when first drawn. */
+const JOIN_AURA_WINDOW_MS = 1500;
+/** Ground marker where a click-to-move was sent. */
+const MARKER_MS = 700;
+
+interface TownEffect { object: THREE.Object3D; startedAt: number; durationMs: number; step: (t: number) => void; done?: () => void }
+
+let auraGeometry: THREE.CylinderGeometry | null = null;
+let auraTexture: THREE.CanvasTexture | null = null;
+let markerGeometry: THREE.RingGeometry | null = null;
+
+/** Vertical gradient (bright at the feet, gone at the top) for the aura column. */
+function auraGradient(): THREE.CanvasTexture {
+  if (auraTexture) return auraTexture;
+  const canvas = document.createElement('canvas');
+  canvas.width = 4; canvas.height = 64;
+  const ctx = canvas.getContext('2d')!;
+  const g = ctx.createLinearGradient(0, 0, 0, 64);
+  g.addColorStop(0, 'rgba(255,255,255,0)');
+  g.addColorStop(0.55, 'rgba(255,255,255,0.45)');
+  g.addColorStop(1, 'rgba(255,255,255,1)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 4, 64);
+  auraTexture = new THREE.CanvasTexture(canvas);
+  return auraTexture;
+}
 
 export async function createTownRuntime(host: HTMLElement, init: TownSceneRuntimeInit): Promise<TownRuntime> {
   const loader = new GLTFLoader();
@@ -58,6 +86,10 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   private readonly raycaster = new THREE.Raycaster();
   private readonly frustum = new THREE.Frustum();
   private readonly cleanups: Array<() => void> = [];
+  private readonly effects: TownEffect[] = [];
+  private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  /** False until the first roster is drawn: who is already there when the scene opens gets no aura. */
+  private populated = false;
   private selfId: string | null;
   private selection: TownPick | null = null;
   private centred = false;
@@ -129,9 +161,12 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     if (this.disposed) return;
     this.selfId = selfId;
     const wanted = new Set(entries.map((e) => e.characterId));
+    // Everyone gone at once is the scene closing (left town), not people leaving: no auras then.
+    const leaving = entries.length > 0;
     for (const [id, character] of this.characters) {
       if (!wanted.has(id) || character.opts.self !== (id === selfId)) {
-        character.dispose();
+        if (!wanted.has(id) && leaving && this.active) this.vanish(character);
+        else character.dispose();
         this.characters.delete(id);
       }
     }
@@ -145,7 +180,14 @@ export class TownRuntime implements TownSceneRuntimeHandle {
       const character = new TownCharacter(this.factory, entry, { self: entry.characterId === selfId });
       this.characters.set(entry.characterId, character);
       this.scene.add(character.object3d);
+      const now = this.init.now();
+      const justJoined = entry.joinedAt != null && now - entry.joinedAt < JOIN_AURA_WINDOW_MS;
+      if (!existing && (this.populated || justJoined)) {
+        const pose = this.pose(entry);
+        this.aura(pose.x, pose.z, character.opts.self ? '#ffd36a' : '#9fd8ff');
+      }
     }
+    if (entries.length > 0) this.populated = true;
     this.applySelection();
     if (!this.centred && selfId && this.characters.has(selfId)) {
       const pose = this.pose(this.characters.get(selfId)!.entry);
@@ -201,6 +243,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   npcDressed(id: string): boolean { return this.npcs.get(id)?.dressed() ?? false; }
   animationOf(id: string): string | null { return this.characters.get(id)?.animation() ?? null; }
   deadProgressOf(id: string): number | null { return this.characters.get(id)?.deadProgress() ?? null; }
+  stoolShownFor(id: string): boolean { return this.characters.get(id)?.stoolShown() ?? false; }
 
   // ---- input ----------------------------------------------------------------
 
@@ -216,6 +259,33 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     const hits = this.raycaster.intersectObjects(targets, false).map((hit) => hit.object.userData['pick'] as TownPickInfo);
     return hits.find((p) => p.kind === 'npc') ?? hits[0] ?? null;
   }
+
+  /** Ground point (world x, z) under a pixel of the scene element, or null off the town. */
+  groundPoint(x: number, y: number): [number, number] | null {
+    const { w, h } = this.size();
+    this.raycaster.setFromCamera(new THREE.Vector2((x / w) * 2 - 1, -(y / h) * 2 + 1), this.cam.camera);
+    const hit = this.raycaster.ray.intersectPlane(this.groundPlane, new THREE.Vector3());
+    if (!hit || hit.x < 0 || hit.z < 0 || hit.x > this.init.def.size.w || hit.z > this.init.def.size.h) return null;
+    return [hit.x, hit.z];
+  }
+
+  /** Short ring on the ground where a click-to-move was sent (local feedback; the server decides the walk). */
+  markDestination(x: number, z: number): void {
+    if (this.disposed) return;
+    markerGeometry ??= new THREE.RingGeometry(0.28, 0.4, 28);
+    const material = new THREE.MeshBasicMaterial({ color: '#ffe7a0', transparent: true, opacity: 0.9, depthWrite: false, fog: false });
+    const ring = new THREE.Mesh(markerGeometry, material);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(x, 0.04, z);
+    ring.name = 'move-marker';
+    this.addEffect(ring, MARKER_MS, (t) => {
+      ring.scale.setScalar(1.4 - 0.6 * t);
+      material.opacity = 0.9 * (1 - t);
+    }, () => material.dispose());
+  }
+
+  /** Effects still playing (tests). */
+  effectCount(): number { return this.effects.length; }
 
   screenPositionOf(kind: TownPick['kind'], id: string): [number, number] | null {
     const character = (kind === 'npc' ? this.npcs : this.characters).get(id);
@@ -257,6 +327,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     this.disposed = true;
     this.stopLoop();
     for (const cleanup of this.cleanups.splice(0)) cleanup();
+    for (const effect of this.effects.splice(0)) { effect.object.removeFromParent(); effect.done?.(); }
     for (const character of [...this.characters.values(), ...this.npcs.values()]) character.dispose();
     this.characters.clear();
     this.npcs.clear();
@@ -271,6 +342,64 @@ export class TownRuntime implements TownSceneRuntimeHandle {
 
   private pose(entry: TownRosterEntry): TownPose {
     return positionAt(this.init.def, this.nav, entry, this.init.now());
+  }
+
+  /**
+   * Aura: a glowing column and a ring that widens from the feet, TOWN_AURA_MS
+   * long. Purely visual and local: every client plays it when the roster says
+   * someone arrived or left.
+   */
+  private aura(x: number, z: number, color: string): void {
+    auraGeometry ??= new THREE.CylinderGeometry(0.75, 0.75, 2.6, 24, 1, true);
+    markerGeometry ??= new THREE.RingGeometry(0.28, 0.4, 28);
+    const column = new THREE.MeshBasicMaterial({
+      color, map: auraGradient(), transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false,
+    });
+    const ringMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+    const group = new THREE.Group();
+    group.name = 'aura';
+    const cylinder = new THREE.Mesh(auraGeometry, column);
+    cylinder.position.y = 1.3;
+    const ring = new THREE.Mesh(markerGeometry, ringMaterial);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.05;
+    group.add(cylinder, ring);
+    group.position.set(x, 0, z);
+    this.addEffect(group, TOWN_AURA_MS, (t) => {
+      const fade = Math.sin(Math.PI * t); // in and out
+      column.opacity = 0.85 * fade;
+      cylinder.scale.set(1 - 0.35 * t, 0.6 + 0.6 * t, 1 - 0.35 * t);
+      cylinder.rotation.y = t * 2;
+      ringMaterial.opacity = 0.9 * (1 - t);
+      ring.scale.setScalar(1 + 3 * t);
+    }, () => { column.dispose(); ringMaterial.dispose(); });
+  }
+
+  /** A character that left: aura where it stood, and it disappears halfway through it. */
+  private vanish(character: TownCharacter): void {
+    const at = character.object3d.position;
+    this.aura(at.x, at.z, '#9fd8ff');
+    this.addEffect(new THREE.Group(), TOWN_AURA_MS / 2, () => undefined, () => character.dispose());
+  }
+
+  private addEffect(object: THREE.Object3D, durationMs: number, step: (t: number) => void, done?: () => void): void {
+    this.scene.add(object);
+    step(0);
+    this.effects.push({ object, startedAt: performance.now(), durationMs, step, done });
+  }
+
+  private updateEffects(): void {
+    const now = performance.now();
+    for (let i = this.effects.length - 1; i >= 0; i--) {
+      const effect = this.effects[i];
+      const t = Math.min(1, (now - effect.startedAt) / effect.durationMs);
+      effect.step(t);
+      if (t >= 1) {
+        effect.object.removeFromParent();
+        effect.done?.();
+        this.effects.splice(i, 1);
+      }
+    }
   }
 
   private tick(dtMs: number): void {
@@ -291,6 +420,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
       npc.update(pose, dtMs, lodOf(pose.x, pose.z), now);
     }
     this.world.update(now);
+    this.updateEffects();
     this.renderNow();
   }
 

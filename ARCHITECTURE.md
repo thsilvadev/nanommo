@@ -1,3 +1,13 @@
+## Town click-to-move and emotes without a movement server — 2026-11-21
+
+- **Input becomes data in `positionAt`, not a simulation.** A click stores one `move {from, to, at, lookAt}` in the Redis `TownState` (one write, one `town:update`). Every client derives the walk (grid path, 3 u/s), the 10 s stand and the return to wandering from it. The return starts walking immediately and then rejoins the plain seed legs. Nothing is scheduled or cleared server-side, so offline and AFK characters still cost nothing. The server validates the destination (`TownNav.nearestReachable`) and throttles to one click per 200 ms.
+- **Emotes are frozen poses like `/sleep`.** `emote {kind, at}` holds the pose at `at` with no time limit. Starting, switching or stopping an emote writes an anchor `move` (from here to here) so the held point never jumps.
+- **`rev` orders deltas per entry.** The ack and the broadcast of the same change race. The client keeps the highest `rev` it saw.
+- **Arrival and departure auras are local visuals** driven by roster joins and leaves, plus `joinedAt` for the player's own arrival. Nothing new is sent for them.
+- **Town-only clips** (`Dance`, `SitDown`, `Sit`) ship in the shared `animations.glb`. The battle rig creates actions only for its own `CLIP_NAMES`.
+
+OpenSpec `town-click-move-emotes`.
+
 ## Living Town scene, part 3: sleep only by command, selection, mounted scene — 2026-11-19
 
 - **Offline is not asleep.** Only `/sleep` sleeps (`sleptByCommand` in the Redis `TownState`); presence changes only `online`/`lastSeenAt`. Old offline-sleep states are normalised on read into a deterministic wake where they lay — no Redis migration.

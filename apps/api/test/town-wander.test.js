@@ -1,7 +1,7 @@
 // Direct-execution Node test: `node apps/api/test/town-wander.test.js`
 // (after `pnpm --filter @nanommo/shared build`).
 const assert = require('node:assert/strict');
-const { TownNav, positionAt, TOWN_LEG_MS, TOWN_WALK_SPEED, TOWN_STAIRS_LENGTH, balconyStairsFoot, obstacleRadius } = require('../../../packages/shared/dist');
+const { TownNav, positionAt, TOWN_LEG_MS, TOWN_WALK_SPEED, TOWN_STAIRS_LENGTH, balconyStairsFoot, obstacleRadius, TOWN_MOVE_SPEED, TOWN_MOVE_RESUME_MS, townMoveArrival } = require('../../../packages/shared/dist');
 
 assert.equal(typeof positionAt, 'function', 'positionAt is not a function');
 assert.equal(typeof TownNav, 'function', 'TownNav is not a function');
@@ -193,6 +193,87 @@ for (const mapId of ['map_emperial_capital_caelum', 'map_kwaioua_taba', 'map_out
     }
   });
 }
+
+// ---- click-to-move, emotes ----------------------------------------------------
+
+const moving = (seed, move, extra = {}) => ({ ...awake(seed), move, ...extra });
+
+test('click-to-move walks the path at TOWN_MOVE_SPEED, stands 10 s, then wanders from there', () => {
+  const nav = new TownNav(fixture);
+  const move = { fromX: 4, fromZ: 26, toX: 26, toZ: 26, at: T0, lookAt: null };
+  const arrive = townMoveArrival(nav, move);
+  // Straight open ground: 22 units.
+  assert.ok(Math.abs((arrive - T0) / 1000 - 22 / TOWN_MOVE_SPEED) < 1e-6);
+  const mid = positionAt(fixture, nav, moving(7, move), T0 + 2000);
+  assert.equal(mid.state, 'walk');
+  assert.ok(Math.abs(mid.x - (4 + 2 * TOWN_MOVE_SPEED)) < 1e-6 && Math.abs(mid.z - 26) < 1e-6);
+  const there = positionAt(fixture, nav, moving(7, move), arrive + 100);
+  assert.deepStrictEqual([there.x, there.z, there.state], [26, 26, 'idle']);
+  const still = positionAt(fixture, nav, moving(7, move), arrive + TOWN_MOVE_RESUME_MS - 1);
+  assert.deepStrictEqual([still.x, still.z, still.state], [26, 26, 'idle']);
+  const resumed = positionAt(fixture, nav, moving(7, move), arrive + TOWN_MOVE_RESUME_MS + 1500);
+  assert.equal(resumed.state, 'walk', 'starts walking right after the pause');
+  assert.ok(dist(resumed, { x: 26, z: 26 }) < 1.5 * TOWN_WALK_SPEED * 3, 'leaves from the click destination');
+});
+
+test('click-to-move: resumed wander is continuous and later joins the plain legs', () => {
+  const nav = new TownNav(fixture);
+  for (const seed of [1, 2, 3, 99, 4242]) {
+    const move = { fromX: 4, fromZ: 26, toX: 6, toZ: 6, at: T0 + seed * 777, lookAt: [15, 15] };
+    const entry = moving(seed, move);
+    const arrive = townMoveArrival(nav, move);
+    let prev = positionAt(fixture, nav, entry, move.at);
+    for (let t = move.at + 100; t < arrive + TOWN_MOVE_RESUME_MS + 3 * TOWN_LEG_MS; t += 100) {
+      const p = positionAt(fixture, nav, entry, t);
+      assert.ok(dist(p, prev) < 1.5, `seed ${seed}: jump of ${dist(p, prev).toFixed(2)} at +${t - move.at} ms`);
+      assert.equal(nav.blocked(Math.floor(p.x), Math.floor(p.z)), false);
+      prev = p;
+    }
+    const late = arrive + TOWN_MOVE_RESUME_MS + 3 * TOWN_LEG_MS;
+    assert.deepStrictEqual(positionAt(fixture, nav, entry, late), positionAt(fixture, nav, awake(seed), late), 'back on the plain legs');
+  }
+});
+
+test('click-to-move: facing the clicked NPC on arrival; a client clock behind holds the start', () => {
+  const nav = new TownNav(fixture);
+  const move = { fromX: 4, fromZ: 26, toX: 10, toZ: 26, at: T0, lookAt: [10, 30] };
+  const there = positionAt(fixture, nav, moving(1, move), townMoveArrival(nav, move) + 10);
+  assert.ok(Math.abs(there.facing - 0) < 1e-9, 'faces +Z towards (10, 30)');
+  const early = positionAt(fixture, nav, moving(1, move), T0 - 50);
+  assert.deepStrictEqual([early.x, early.z, early.state], [4, 26, 'idle']);
+});
+
+test('emotes hold the pose at their start, with no time limit', () => {
+  const nav = new TownNav(fixture);
+  const move = { fromX: 4, fromZ: 26, toX: 26, toZ: 26, at: T0, lookAt: null };
+  const at = T0 + 3000;
+  const base = positionAt(fixture, nav, moving(5, move), at);
+  for (const kind of ['dance', 'sit']) {
+    for (const later of [at, at + 60_000, at + 7 * 24 * 3600_000]) {
+      const p = positionAt(fixture, nav, moving(5, move, { emote: { kind, at } }), later);
+      assert.deepStrictEqual([p.x, p.z, p.facing, p.state], [base.x, base.z, base.facing, kind]);
+    }
+  }
+});
+
+test('sleep keeps the click-to-move base pose', () => {
+  const nav = new TownNav(fixture);
+  const move = { fromX: 4, fromZ: 26, toX: 26, toZ: 26, at: T0, lookAt: null };
+  const at = T0 + 4000;
+  const base = positionAt(fixture, nav, moving(5, move), at);
+  const p = positionAt(fixture, nav, moving(5, move, { sleeping: { at } }), at + 600_000);
+  assert.deepStrictEqual([p.x, p.z, p.state], [base.x, base.z, 'sleep']);
+});
+
+test('nearestReachable keeps reachable points and snaps blocked ones next to the obstacle', () => {
+  const nav = new TownNav(fixture);
+  assert.deepStrictEqual(nav.nearestReachable(5.3, 7.1, fixture.spawn.x, fixture.spawn.z), [5.3, 7.1]);
+  const snapped = nav.nearestReachable(15, 15, fixture.spawn.x, fixture.spawn.z);
+  assert.equal(nav.blocked(Math.floor(snapped[0]), Math.floor(snapped[1])), false);
+  assert.ok(Math.hypot(snapped[0] - 15, snapped[1] - 15) < 4.5, 'right at the fountain edge');
+  const outside = nav.nearestReachable(-10, 5, fixture.spawn.x, fixture.spawn.z);
+  assert.equal(outside[0], 0.5);
+});
 
 let failed = 0;
 for (const [name, fn] of tests) {

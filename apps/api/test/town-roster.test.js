@@ -8,7 +8,7 @@ const path = require('node:path');
 const repo = path.join(__dirname, '../../..');
 const { TownRosterService } = require('../dist/apps/api/src/modules/presence/town-roster.service');
 const { NanommoGateway } = require('../dist/apps/api/src/modules/gateway/nanommo.gateway');
-const { TownNav, positionAt, mulberry32Seed } = require(path.join(repo, 'packages/shared/dist'));
+const { TownNav, positionAt, mulberry32Seed, townMoveArrival } = require(path.join(repo, 'packages/shared/dist'));
 
 const TOWN = 'map_town';
 const towns = JSON.parse(fs.readFileSync(path.join(repo, 'town_scenes.json'), 'utf8')).towns;
@@ -284,6 +284,122 @@ test('gateway source: town events are re-emitted and query stays narrow', () => 
   assert.match(service, /"currentMapId" = \$1 AND c\."travelIntent" IS NULL AND c\."pendingMapTransition" IS NULL/);
   assert.match(service, /LIMIT \$\d/);
   assert.doesNotMatch(service, /Math\.random/);
+});
+
+const settle = () => new Promise(r => setTimeout(r, 210)); // TOWN_MOVE_MIN_INTERVAL_MS
+
+test('town:move walks from the current pose to the clicked point, one write and one broadcast', async () => {
+  const w = world();
+  w.add('a');
+  w.online('a');
+  const before = Date.now();
+  const nav = new TownNav(sierra);
+  const target = { x: sierra.spawn.x + 3, z: sierra.spawn.z };
+  const entry = await w.service.move('a', target);
+  assert.ok(entry.move);
+  assert.ok(entry.move.at >= before);
+  assert.equal(nav.blocked(Math.floor(entry.move.toX), Math.floor(entry.move.toZ)), false);
+  const lazy = { seed: mulberry32Seed('a'), sleeping: null, wakeFrom: null };
+  const from = positionAt(sierra, nav, lazy, entry.move.at);
+  assert.ok(Math.hypot(entry.move.fromX - from.x, entry.move.fromZ - from.z) < 0.01, 'starts where it was');
+  const events = w.townEvents();
+  assert.equal(events.length, 1);
+  assert.equal(events[0].payload.event, 'town:update');
+  assert.ok(entry.rev >= 1);
+  const arrive = townMoveArrival(nav, entry.move);
+  const pose = positionAt(sierra, nav, entry, arrive + 500);
+  assert.ok(Math.hypot(pose.x - entry.move.toX, pose.z - entry.move.toZ) < 1e-6);
+});
+
+test('town:move snaps an unreachable point and rejects garbage; NPC clicks face the NPC', async () => {
+  const w = world();
+  w.add('a');
+  const blocked = sierra.obstacles.find(o => o.kind === 'fountain' || o.kind === 'house');
+  const snapped = await w.service.move('a', { x: blocked.x, z: blocked.z });
+  const nav = new TownNav(sierra);
+  assert.equal(nav.blocked(Math.floor(snapped.move.toX), Math.floor(snapped.move.toZ)), false);
+  await settle();
+  await assert.rejects(() => w.service.move('a', { x: Number.NaN, z: 3 }), err => err.message === 'INVALID_TARGET');
+  await assert.rejects(() => w.service.move('a', { npcId: 'nobody' }), err => err.message === 'UNKNOWN_NPC');
+  const [npcId, spot] = Object.entries(sierra.npcSpots)[0];
+  const toNpc = await w.service.move('a', { npcId });
+  assert.deepStrictEqual(toNpc.move.lookAt, [spot.x, spot.z]);
+  assert.ok(Math.hypot(toNpc.move.toX - spot.x, toNpc.move.toZ - spot.z) < 4);
+});
+
+test('town:move spam within 200 ms is ignored (no extra write or broadcast)', async () => {
+  const w = world();
+  w.add('a');
+  const first = await w.service.move('a', { x: sierra.spawn.x + 2, z: sierra.spawn.z });
+  const second = await w.service.move('a', { x: sierra.spawn.x - 2, z: sierra.spawn.z });
+  assert.deepStrictEqual(second.move, first.move);
+  assert.equal(w.townEvents().length, 1);
+});
+
+test('town:move wakes a /sleep and ends an emote', async () => {
+  const w = world();
+  w.add('a');
+  await w.service.sleep('a');
+  const moved = await w.service.move('a', { x: sierra.spawn.x + 2, z: sierra.spawn.z });
+  assert.equal(moved.sleeping, null);
+  await settle();
+  await w.service.emote('a', 'dance');
+  await settle();
+  const again = await w.service.move('a', { x: sierra.spawn.x, z: sierra.spawn.z + 2 });
+  assert.equal(again.emote, null);
+});
+
+test('/dance and /sit hold where the character is; the same command stops; unknown emotes are refused', async () => {
+  const w = world();
+  w.add('a');
+  const nav = new TownNav(sierra);
+  const lazy = { seed: mulberry32Seed('a'), sleeping: null, wakeFrom: null };
+  const dancing = await w.service.emote('a', 'dance');
+  assert.equal(dancing.emote.kind, 'dance');
+  const was = positionAt(sierra, nav, lazy, dancing.emote.at);
+  const later = positionAt(sierra, nav, dancing, dancing.emote.at + 3_600_000);
+  assert.equal(later.state, 'dance');
+  assert.ok(Math.hypot(later.x - was.x, later.z - was.z) < 0.01, 'dances where it was, an hour later too');
+  const sitting = await w.service.emote('a', 'sit');
+  assert.equal(sitting.emote.kind, 'sit');
+  assert.ok(Math.hypot(sitting.move.toX - was.x, sitting.move.toZ - was.z) < 0.01, 'switching emote does not move');
+  const stopped = await w.service.emote('a', 'sit');
+  assert.equal(stopped.emote, null);
+  const standing = positionAt(sierra, nav, stopped, Date.now() + 100);
+  assert.equal(standing.state, 'idle');
+  assert.ok(Math.hypot(standing.x - was.x, standing.z - was.z) < 0.01, 'stands up on the spot');
+  assert.ok(stopped.rev > sitting.rev && sitting.rev > dancing.rev, 'rev grows on every change');
+  await assert.rejects(() => w.service.emote('a', 'backflip'), err => err.message === 'UNKNOWN_EMOTE');
+});
+
+test('/sleep during an emote lies down where the emote was', async () => {
+  const w = world();
+  w.add('a');
+  const nav = new TownNav(sierra);
+  const sat = await w.service.emote('a', 'sit');
+  const held = positionAt(sierra, nav, sat, Date.now());
+  const slept = await w.service.sleep('a');
+  assert.equal(slept.emote, null);
+  const lying = positionAt(sierra, nav, slept, Date.now() + 60_000);
+  assert.equal(lying.state, 'sleep');
+  assert.ok(Math.hypot(lying.x - held.x, lying.z - held.z) < 0.01);
+});
+
+test('arrival carries joinedAt (spawn aura on every client)', async () => {
+  const w = world();
+  w.add('a', { currentMapId: 'map_green_grounds_0' });
+  await w.service.syncCharacter('a', null);
+  w.characters.get('a').currentMapId = TOWN;
+  const before = Date.now();
+  await w.service.syncCharacter('a', 'map_green_grounds_0');
+  const join = w.townEvents().find(e => e.payload.event === 'town:join');
+  assert.ok(join.payload.entry.joinedAt >= before);
+});
+
+test('gateway source: town:move and town:emote are wired', () => {
+  const gateway = fs.readFileSync(path.join(repo, 'apps/api/src/modules/gateway/nanommo.gateway.ts'), 'utf8');
+  assert.match(gateway, /@SubscribeMessage\('town:move'\)[\s\S]*?townRoster\.move\(/);
+  assert.match(gateway, /@SubscribeMessage\('town:emote'\)[\s\S]*?townRoster\.emote\(/);
 });
 
 (async () => {

@@ -72,6 +72,16 @@ export interface TownSceneDef {
 
 export interface TownSleep { at: number /* epoch ms */ }
 export interface TownWakeFrom { x: number; z: number; at: number /* epoch ms */ }
+/**
+ * Click-to-move: walk from (fromX, fromZ) to (toX, toZ) starting at `at`,
+ * stand there TOWN_MOVE_RESUME_MS, then wander again from that point.
+ * `lookAt`: what to face on arrival (the NPC that was clicked).
+ */
+export interface TownMove { fromX: number; fromZ: number; toX: number; toZ: number; at: number /* epoch ms */; lookAt?: [number, number] | null }
+export const TOWN_EMOTES = ['dance', 'sit'] as const;
+export type TownEmoteKind = typeof TOWN_EMOTES[number];
+/** `/dance`, `/sit`: held where the character was at `at`, with no time limit. */
+export interface TownEmote { kind: TownEmoteKind; at: number /* epoch ms */ }
 
 export interface TownRosterEntry {
   characterId: string;
@@ -85,6 +95,13 @@ export interface TownRosterEntry {
   online: boolean;
   sleeping: TownSleep | null;
   wakeFrom: TownWakeFrom | null;
+  /** Last click-to-move (absent on older servers / lazy entries). */
+  move?: TownMove | null;
+  emote?: TownEmote | null;
+  /** Server time the character entered this town (spawn effect); absent when unknown. */
+  joinedAt?: number | null;
+  /** Grows on every change of this entry's town state: a client keeps the highest one it saw. */
+  rev?: number;
   lastSeenAt: string;
   /** Hand gear shown on the selected-player card (item ids; the client maps them to weapon types). */
   dominantHand?: 'right' | 'left';
@@ -97,5 +114,5 @@ export interface TownPose {
   z: number;
   /** Radians around Y; 0 faces +Z (atan2(dx, dz)). */
   facing: number;
-  state: 'walk' | 'idle' | 'sleep';
+  state: 'walk' | 'idle' | 'sleep' | TownEmoteKind;
 }

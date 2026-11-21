@@ -206,3 +206,11 @@ A page refresh can connect the new socket before the old one's `disconnect` runs
 
 The town camera has a low FOV but is close (18–70 u): a parallel-ray check (from the NPC along the view direction) passed an Aramaia NPC that a 7 u pillar hid at the closest zoom with the camera panned 1.5 u away. `npc-occlusion.ts` casts rays to real camera positions over a grid of panned targets at both zoom limits; use it (via `npc-occlusion.spec.ts`) whenever an NPC spot or a tall obstacle moves.
 
+## 4.27 Anything that freezes a Town pose must anchor it
+
+`/sleep` and emotes hold `positionAt(stateWithoutIt, at)`. If the write that ends or changes them also replaces the state underneath (a new seed, a cleared `move`), the "held" point is recomputed from a different history and the character teleports. Write an anchor `move` from the current pose to itself (see `TownRosterService.emote`), or carry the pose into `wakeFrom` (see `wakeState`).
+
+## 4.28 The UAL sitting clip is a chair pose
+
+`Sitting_*` in the Universal Animation Library keeps the thighs level at ~0.56 m with the pelvis 0.34 m behind the feet. Played on open ground, the character sits in the air. `/sit` adds a stool (top 0.46 m, 0.25 m behind; measured by forward kinematics on `body-*.glb` + `animations.glb`). Re-measure if the clip or the bodies change.
+

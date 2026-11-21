@@ -140,9 +140,21 @@ export class TownSceneComponent implements OnDestroy {
   }
 
   private click(x: number, y: number): void {
-    const hit = this.runtime()?.pick(x, y);
-    if (!hit) return;
-    if (hit.kind === 'npc') { this.npcSelected.emit(hit.id); return; }
+    const runtime = this.runtime();
+    const hit = runtime?.pick(x, y);
+    if (!hit) {
+      // Empty ground: walk there (the server snaps the point to somewhere reachable).
+      const ground = runtime?.groundPoint(x, y);
+      if (!ground) return;
+      runtime!.markDestination(ground[0], ground[1]);
+      void this.town.moveTo({ x: ground[0], z: ground[1] }).catch(() => undefined);
+      return;
+    }
+    if (hit.kind === 'npc') {
+      this.npcSelected.emit(hit.id);
+      void this.town.moveTo({ npcId: hit.id }).catch(() => undefined);
+      return;
+    }
     const entry = this.town.entries().find((e) => e.characterId === hit.id);
     if (entry) this.characterSelected.emit({ entry, screen: [x, y] });
   }

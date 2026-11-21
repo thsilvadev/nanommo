@@ -25,6 +25,7 @@ import { BattleService } from '../battle/battle.service';
 import { MapPresenceService } from '../presence/map-presence.service';
 import { OnlinePresenceService } from '../presence/online-presence.service';
 import { TownRosterService } from '../presence/town-roster.service';
+import type { TownEmoteKind } from '@nanommo/shared';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
 import { randomUUID } from 'crypto';
@@ -448,6 +449,31 @@ export class NanommoGateway
     if (!client.characterId) throw new WsException('Character not found');
     try {
       return { success: true, entry: await this.townRoster.wake(client.characterId) };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  /** Click-to-move in the town scene: `{ x, z }` (ground point) or `{ npcId }`. */
+  @SubscribeMessage('town:move')
+  async handleTownMove(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() body: { x?: unknown; z?: unknown; npcId?: unknown }) {
+    if (!client.characterId) throw new WsException('Character not found');
+    try {
+      const target = typeof body?.npcId === 'string'
+        ? { npcId: body.npcId }
+        : { x: Number(body?.x), z: Number(body?.z) };
+      return { success: true, entry: await this.townRoster.move(client.characterId, target) };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  /** `/dance`, `/sit` (the same one again stops it). */
+  @SubscribeMessage('town:emote')
+  async handleTownEmote(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() body: { kind?: unknown }) {
+    if (!client.characterId) throw new WsException('Character not found');
+    try {
+      return { success: true, entry: await this.townRoster.emote(client.characterId, body?.kind as TownEmoteKind) };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
     }

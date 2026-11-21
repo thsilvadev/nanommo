@@ -5,7 +5,7 @@
  * SkeletonUtils clone of one prepared template body per sex, sharing its
  * geometry (no per-face deformation, invisible from the town camera), with its
  * own material, a small skin texture shared per skin tone, hair, and an
- * AnimationMixer playing Idle / Walk / Dead.
+ * AnimationMixer playing Idle / Walk / Dead and the emotes (Dance, SitDown → Sit).
  */
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -21,7 +21,7 @@ import { dressCostume, npcOutfitAsset, type NpcAnimator, type NpcFigure, type Np
 export const TOWN_CHARACTER_SHADOWS = true;
 export const TOWN_SKIN_SIZE = 256;
 const NATIVE_HEIGHT_CM: Record<Sex, number> = { male: 181, female: 177 };
-const CLIPS = ['Idle', 'Walk', 'Dead'] as const;
+const CLIPS = ['Idle', 'Walk', 'Dead', 'Dance', 'SitDown', 'Sit'] as const;
 type TownClip = typeof CLIPS[number];
 const FADE_SECONDS = 0.25;
 const LOW_LOD_STEP_MS = 100; // 10 Hz
@@ -73,6 +73,35 @@ let hitMaterial: THREE.MeshBasicMaterial | null = null;
 let ringGeometry: THREE.RingGeometry | null = null;
 let ringMaterial: THREE.MeshBasicMaterial | null = null;
 let selectionMaterial: THREE.MeshBasicMaterial | null = null;
+let stoolParts: { seat: THREE.BufferGeometry; leg: THREE.BufferGeometry; material: THREE.MeshStandardMaterial } | null = null;
+/**
+ * The library's sitting clip sits on a chair (thighs level at ~0.56 m, pelvis
+ * 0.34 m behind the feet), so `/sit` brings a small stool. Body-space metres:
+ * it scales and turns with the model.
+ */
+const STOOL_TOP = 0.46;
+const STOOL_Z = -0.25;
+function buildStool(): THREE.Group {
+  stoolParts ??= {
+    seat: new THREE.CylinderGeometry(0.22, 0.22, 0.06, 14),
+    leg: new THREE.CylinderGeometry(0.025, 0.03, STOOL_TOP - 0.06, 6),
+    material: new THREE.MeshStandardMaterial({ color: '#7a5532', roughness: 0.9 }),
+  };
+  const stool = new THREE.Group();
+  stool.name = 'stool';
+  const seat = new THREE.Mesh(stoolParts.seat, stoolParts.material);
+  seat.position.y = STOOL_TOP - 0.03;
+  seat.castShadow = TOWN_CHARACTER_SHADOWS;
+  stool.add(seat);
+  for (const [x, z] of [[0.13, 0.13], [-0.13, 0.13], [0.13, -0.13], [-0.13, -0.13]]) {
+    const leg = new THREE.Mesh(stoolParts.leg, stoolParts.material);
+    leg.position.set(x, (STOOL_TOP - 0.06) / 2, z);
+    leg.castShadow = TOWN_CHARACTER_SHADOWS;
+    stool.add(leg);
+  }
+  stool.position.z = STOOL_Z;
+  return stool;
+}
 /** Blue ring under the selected player / NPC (same shape as the gold "you" ring). */
 export const TOWN_SELECTION_COLOR = '#4aa8ff';
 
@@ -301,6 +330,7 @@ export class TownCharacter {
 
   private isDressed = false;
   private selectionRing: THREE.Mesh | null = null;
+  private stool: THREE.Group | null = null;
   private costumeAnimators: NpcAnimator[] = [];
 
   constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean; visual?: NpcFigure } = {}) {
@@ -351,6 +381,9 @@ export class TownCharacter {
   /** Name of the clip currently playing (null until loaded). */
   animation(): TownClip | null { return this.current; }
 
+  /** The `/sit` stool is under the character. */
+  stoolShown(): boolean { return !!this.stool?.visible; }
+
   /** How far the fall into sleep has played (0..1); null when not asleep. */
   deadProgress(): number | null {
     const dead = this.actions.get('Dead');
@@ -371,11 +404,18 @@ export class TownCharacter {
     this.firstSeenAt ??= nowMs;
     for (const animate of this.costumeAnimators) animate(nowMs);
     if (!this.mixer) return;
-    const clip: TownClip = pose.state === 'sleep' ? 'Dead' : pose.state === 'walk' ? 'Walk' : 'Idle';
-    if (clip !== this.current) {
+    this.setStool(pose.state === 'sit');
+    const clip: TownClip = pose.state === 'sleep' ? 'Dead' : pose.state === 'walk' ? 'Walk'
+      : pose.state === 'dance' ? 'Dance' : pose.state === 'sit' ? 'Sit' : 'Idle';
+    // Sitting down plays SitDown first; it counts as already sitting.
+    const playing = this.current === 'SitDown' ? 'Sit' : this.current;
+    if (clip !== playing) {
       if (clip === 'Dead') this.fallAsleep(nowMs);
+      else if (clip === 'Sit') this.sitDown(nowMs);
       else this.play(clip);
     }
+    const sitDown = this.actions.get('SitDown');
+    if (this.current === 'SitDown' && sitDown && sitDown.time >= sitDown.getClip().duration - 1e-3) this.play('Sit');
     if (this.frozen) return;
     let step = dtMs;
     if (lod === 'low') {
@@ -423,6 +463,27 @@ export class TownCharacter {
     this.current = 'Dead';
     this.mixer.update(0); // pose the skeleton now, even on a 10 Hz (low LOD) frame
     if (time >= duration - 1e-3) this.frozen = true;
+  }
+
+  /**
+   * Like falling asleep, sitting down follows the age of the emote: a character
+   * seated long ago is already seated, one that just sat is caught mid-motion.
+   */
+  private sitDown(nowMs: number): void {
+    const down = this.actions.get('SitDown');
+    if (!down) { this.play('Sit'); return; }
+    const age = (nowMs - (this.entry.emote?.at ?? nowMs)) / 1000;
+    if (age >= down.getClip().duration || this.firstSeenAt === null || (this.entry.emote?.at ?? nowMs) < this.firstSeenAt) {
+      this.play('Sit');
+      return;
+    }
+    this.play('SitDown');
+    down.time = Math.max(0, age);
+  }
+
+  private setStool(visible: boolean): void {
+    if (visible && !this.stool) { this.stool = buildStool(); this.model.add(this.stool); }
+    if (this.stool) this.stool.visible = visible;
   }
 
   private play(clip: TownClip): void {
@@ -486,7 +547,7 @@ export class TownCharacter {
       const clip = template.clips.find(c => c.name === name);
       if (!clip) continue;
       const action = this.mixer.clipAction(clip);
-      if (name === 'Dead') { action.setLoop(THREE.LoopOnce, 1); action.clampWhenFinished = true; }
+      if (name === 'Dead' || name === 'SitDown') { action.setLoop(THREE.LoopOnce, 1); action.clampWhenFinished = true; }
       action.setEffectiveWeight(0);
       this.actions.set(name, action);
     }

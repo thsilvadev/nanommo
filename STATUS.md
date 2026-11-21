@@ -1,3 +1,24 @@
+### Cidade: clicar para andar, /dance, /sit, aura de entrada/saída, tooltip do mapa — 2026-11-21
+
+OpenSpec `town-click-move-emotes`. Trabalho direto em `main` (sem commit/push).
+
+- Shared: `positionAt` ganhou o segmento `move {from, to, at, lookAt}`. O personagem anda pelo grid a 3 u/s, fica 10 s parado (olhando para o NPC, se foi clique em NPC) e volta a passear na hora a partir dali, depois retomando as pernas normais da seed. `emote {kind, at}` congela a pose sem limite de tempo, como o sono. Também: `townMoveArrival`, `TownNav.nearestReachable`, os tipos `TownMove`/`TownEmote`/`TOWN_EMOTES` e os estados de pose `dance`/`sit`.
+- API: `TownRosterService.move` (clique no chão → célula alcançável mais próxima; clique em NPC → 1,6 u à frente dele; cliques com menos de 200 ms de intervalo ignorados; acorda do `/sleep` e encerra emote) e `emote` (o mesmo comando de novo para; grava uma âncora `move` para o ponto não pular). `/sleep` durante um emote deita onde o personagem estava. `rev` em toda escrita e `joinedAt` ao chegar. Gateway: `town:move` e `town:emote`. Continua sem nada por tick: cada clique é uma escrita no Redis e um `town:update`. Personagem offline/AFK custa zero.
+- Frontend: clique no chão anda (com marcador no chão); clique em NPC abre o NPC e anda até ele (o `wake` separado saiu do `MapBoard`). `/dance` e `/sit` no chat. Clipes `Dance`, `SitDown` → `Sit` no `town-character`, com um banquinho no `/sit`: o clipe do pacote é de sentar em cadeira, então foi medido por cinemática direta. Aura de 0,5 s ao entrar e sair da cidade, mas não para quem já estava lá quando a cena abriu (exceto quem chegou há menos de 1,5 s). `TownStore` descarta delta com `rev` mais antigo.
+- Assets: `animations.glb` regerado por `tools/character-assets` com `Dance_Loop`, `Sitting_Enter` e `Sitting_Idle_Loop`; só ele mudou. O rig de batalha continua criando ações só para os 9 clipes dele.
+- Bug: o tooltip do tile do mapa (anexado ao `<body>`) ficava no meio da cidade quando a view trocava sozinha ao chegar. Agora é removido sempre que a view sai do modo mapa.
+
+Sem migração (campos novos opcionais no estado Redis). Nada executado em banco. Sem deploy, sem push.
+
+Validação (2026-11-21):
+- `pnpm --filter @nanommo/shared build` e `pnpm --filter @nanommo/api build`: passam.
+- `node apps/api/test/town-wander.test.js` 23/23; `town-roster.test.js` 27/27; `town-scenes-catalog.test.js` 27/27; `map-presence.test.js` 13 asserções. `map-leave-town-idempotency.test.js` falha igual antes da mudança (`characterRepo.findOne is not a function` no mock).
+- `cd apps/frontend && npx tsc -p tsconfig.app.json --noEmit` e `tsconfig.spec.json`: passam. `npx ng test --watch=false` (Chromium headless, `browserNoActivityTimeout` maior): 321 SUCCESS, 0 falhas. Com o timeout padrão de 30 s o Karma desconecta durante os testes WebGL pesados, sem falha de teste.
+- `pnpm --filter @nanommo/frontend build --configuration production`: passa (inicial 554,70 kB; `town-runtime` lazy 51,39 kB). O espelho `public/data/items.json`, reescrito pelo build a partir de uma edição não relacionada no `items.json` raiz, foi revertido.
+- `pnpm exec openspec validate town-click-move-emotes --strict`: válido.
+- `pnpm --filter @nanommo/api lint` não roda: não há configuração de ESLint no repositório.
+- Conferência visual: captura em Chromium headless (spec temporária, removida) de dois personagens sentados (corpo masculino e feminino) e uma dançarina em Sierra: sentados no banquinho, sem flutuar nem atravessar. A aura e o clique no chão com backend real não foram vistos em navegador.
+
 ### Cidade Viva parte 3 — offline acordados, seleção de jogador, troca instantânea, telhados, Sierra verde, Padre Marcelo — 2026-11-19
 
 OpenSpec `town-living-scene-3`. Trabalho direto em `main` (sem commit/push).

@@ -32,7 +32,7 @@ variações no nome das pastas (procura pelo prefixo).
   renomeia as malhas para `Body` / `Eyes` / `Brows` e reduz as texturas à cor base. A textura
   de pele é recomposta em tempo de execução (tom, boca, pelos pintados, tattoo).
 - **Animações:** só os clipes usados (`CLIPS` em `build.mjs`: Idle, Walk, Attack, Damage, Dead,
-  CombatIdle, CastStart, CastLoop, Damage2), só rotações (mais a translação da pélvis), sem a
+  CombatIdle, CastStart, CastLoop, Damage2 e, para as cidades, Dance, SitDown, Sit), só rotações (mais a translação da pélvis), sem a
   malha do manequim. Servem aos dois corpos.
 - **Cabelos e barba:** gravados no espaço local do osso `Head` do corpo para o qual foram
   modelados, para encaixarem em qualquer um dos dois corpos.

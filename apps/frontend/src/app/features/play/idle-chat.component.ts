@@ -154,13 +154,15 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private async runCommand(text: string): Promise<void> {
     const command = text.slice(1).trim().split(/\s+/)[0].toLowerCase();
-    if (command !== 'sleep') { this.notices.error(this.locale.t('Unknown command.')); return; }
-    if (!this.town.isTown(this.characters.character()?.currentMapId)) { this.notices.error(this.locale.t('You can only sleep in town.')); return; }
+    if (command !== 'sleep' && command !== 'dance' && command !== 'sit') { this.notices.error(this.locale.t('Unknown command.')); return; }
+    const notInTown = command === 'sleep' ? 'You can only sleep in town.' : 'You can only do that in town.';
+    if (!this.town.isTown(this.characters.character()?.currentMapId)) { this.notices.error(this.locale.t(notInTown)); return; }
     try {
-      await this.town.sleep();
+      if (command === 'sleep') await this.town.sleep();
+      else await this.town.emote(command);
     } catch (error: any) {
       const code = String(error?.message ?? '');
-      this.notices.error(this.locale.t(code === 'NOT_IN_TOWN' ? 'You can only sleep in town.' : code || 'Unknown command.'));
+      this.notices.error(this.locale.t(code === 'NOT_IN_TOWN' ? notInTown : code || 'Unknown command.'));
     }
   }
 

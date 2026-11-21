@@ -7,7 +7,7 @@ import { CharacterViewerComponent } from '../../shared/character-viewer/characte
 import { portraitAnimationSource, portraitHandTypes, portraitModel } from './character-portrait';
 import { battleTickAt, battleTickDurationMs, battleTickExpiryRemainingSeconds } from '../../shared/battle-timing';
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, computed, effect, inject, signal, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, computed, effect, inject, signal, untracked, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
@@ -162,9 +162,9 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   forgetViewChoiceOnMapChange(previousMapId: string | null | undefined, nextMapId: string | null | undefined) { if (previousMapId !== nextMapId) this.viewChoice.set(null); }
   private viewChoiceMapId: string | null | undefined = undefined;
   setViewMode(mode: MapViewMode) { const mapId = this.character.character()?.currentMapId; if (mapId) this.viewChoice.set({ mapId, mode }); }
+  /** Clicked in the scene: the scene also walks the character up to the NPC (which wakes it from /sleep). */
   onTownNpcSelected(npcId: string) {
     this.vendor.selectNpc(npcId);
-    if (this.town.self()?.sleeping) void this.town.wake().catch(() => undefined);
   }
   /** Clicking another player selects it (shown under the NPC selector, which goes back to "Choose NPC"). */
   onTownCharacterSelected(selection: { entry: TownRosterEntry; screen: [number, number] }) {
@@ -224,6 +224,9 @@ export class MapBoard implements OnDestroy, AfterViewInit {
       if(this.viewChoiceMapId!==undefined)this.forgetViewChoiceOnMapChange(this.viewChoiceMapId,mapId);
       this.viewChoiceMapId=mapId;
     }, { allowSignalWrites: true });
+    // The tile tooltip lives on <body>; leaving the map view (e.g. arriving in a town) removes the
+    // tiles without a pointerleave, so drop it here or it stays floating over the town scene.
+    effect(()=>{if(this.viewMode()!=='map')untracked(()=>this.hideTileTooltip());}, { allowSignalWrites: true });
     effect(()=>{
       const resolved=this.battle.lastResolved();
       if(!resolved||resolved.entryId===this.lastFleeNoticeEntryId)return;

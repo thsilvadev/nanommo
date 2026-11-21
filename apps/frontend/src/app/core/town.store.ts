@@ -1,6 +1,6 @@
 import { EffectRef, Injectable, Injector, computed, effect, inject, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
-import type { TownRosterEntry } from '@nanommo/shared';
+import type { TownEmoteKind, TownRosterEntry } from '@nanommo/shared';
 import { GameSocketService } from './game.socket.service';
 import { CharacterStore } from './game.store';
 import { ServerClockService } from './server-clock.service';
@@ -113,9 +113,13 @@ export class TownStore {
 
   async sleep(): Promise<void> { await this.intent('town:sleep'); }
   async wake(): Promise<void> { await this.intent('town:wake'); }
+  /** Click-to-move to a ground point or up to an NPC (also wakes and ends emotes). */
+  async moveTo(target: { x: number; z: number } | { npcId: string }): Promise<void> { await this.intent('town:move', target); }
+  /** `/dance`, `/sit`; the same one again stops it. */
+  async emote(kind: TownEmoteKind): Promise<void> { await this.intent('town:emote', { kind }); }
 
-  private async intent(event: 'town:sleep' | 'town:wake'): Promise<void> {
-    const ack = await this.socket.emit<TownAck>(event, undefined);
+  private async intent(event: 'town:sleep' | 'town:wake' | 'town:move' | 'town:emote', payload?: unknown): Promise<void> {
+    const ack = await this.socket.emit<TownAck>(event, payload);
     if (!ack?.success || !ack.entry) throw new Error(ack?.error || 'TOWN_ACTION_FAILED');
     this.upsert({ mapId: this._mapId(), entry: ack.entry });
   }
@@ -135,6 +139,8 @@ export class TownStore {
     this._entries.update(list => {
       const i = list.findIndex(e => e.characterId === entry.characterId);
       if (i < 0) return [...list, entry];
+      // The ack and the broadcast of the same change race; never let an older one win.
+      if ((list[i].rev ?? 0) > (entry.rev ?? 0)) return list;
       const next = list.slice();
       next[i] = entry;
       return next;

@@ -15,6 +15,9 @@ export const OVERLAY_CLIPS = ['Attack', 'Dead', 'CastStart', 'CastLoop'] as cons
 /** Flinches, blended over whatever plays. */
 export const HIT_CLIPS = ['Damage', 'Damage2'] as const;
 export const CLIP_NAMES: string[] = [...BASE_CLIPS, ...OVERLAY_CLIPS, ...HIT_CLIPS];
+/** Town-only emotes (/dance, /sit): loaded with the library, played by the town scene, never by the rig. */
+export const TOWN_CLIPS = ['Dance', 'SitDown', 'Sit'] as const;
+export const LIBRARY_CLIPS: string[] = [...CLIP_NAMES, ...TOWN_CLIPS];
 /** Clips authored right-handed (sword arm, casting arm), mirrored for left-handed characters. */
 export const MIRRORED_CLIPS = ['Attack', 'CombatIdle', 'CastStart', 'CastLoop'];
 export const MIRROR_SAMPLES_PER_SECOND = 30;
@@ -182,7 +185,7 @@ export function prepareBody(sex: Sex, root: THREE.Object3D, sourceClips: THREE.A
     action.play();
     return action;
   };
-  const actions = new Map<string, THREE.AnimationAction>(clips.map((clip) => [clip.name, makeAction(clip)]));
+  const actions = new Map<string, THREE.AnimationAction>(clips.filter((clip) => CLIP_NAMES.includes(clip.name)).map((clip) => [clip.name, makeAction(clip)]));
   const mirrorActions = new Map<string, THREE.AnimationAction>(mirrorSources.map((clip) => [clip.name, makeAction(clip)]));
   for (const action of mirrorActions.values()) action.setEffectiveWeight(0);
 

@@ -214,6 +214,28 @@ export class TownNav {
   }
 
   /**
+   * The point itself when its cell is free and reachable from (fromX, fromZ),
+   * else the centre of the reachable cell closest to it (null when nothing is
+   * reachable). Click-to-move destinations go through this.
+   */
+  nearestReachable(x: number, z: number, fromX: number, fromZ: number): [number, number] | null {
+    const reach = this.reachableFrom(fromX, fromZ);
+    const own = this.cellIndex(x, z);
+    if (own >= 0 && reach.has(own)) return [x, z];
+    let best: number | null = null;
+    let bestD = Infinity;
+    for (const cell of reach) {
+      const cx = cell % this.w;
+      const cz = (cell - cx) / this.w;
+      const d = (cx + 0.5 - x) ** 2 + (cz + 0.5 - z) ** 2;
+      if (d < bestD || (d === bestD && best !== null && cell < best)) { bestD = d; best = cell; }
+    }
+    if (best === null) return null;
+    const bx = best % this.w;
+    return [bx + 0.5, (best - bx) / this.w + 0.5];
+  }
+
+  /**
    * Smoothed walkable polyline from (fromX, fromZ) to (toX, toZ), including both
    * endpoints. Falls back to the straight segment when no grid path exists.
    */

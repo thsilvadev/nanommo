@@ -4,7 +4,8 @@ import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { Redis } from 'ioredis';
 import { mulberry32Seed, positionAt, TownNav } from '@nanommo/shared';
-import type { CharacterAppearance, Sex, TownRosterEntry, TownSceneDef, TownSleep, TownWakeFrom } from '@nanommo/shared';
+import { TOWN_EMOTES } from '@nanommo/shared';
+import type { CharacterAppearance, Sex, TownEmote, TownEmoteKind, TownMove, TownRosterEntry, TownSceneDef, TownSleep, TownWakeFrom } from '@nanommo/shared';
 import { Character } from '../../database/entities/character.entity';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { DataService } from '../data/data.service';
@@ -16,6 +17,11 @@ export const TOWN_EVENTS_CHANNEL = 'gateway:map:presence';
 const ONLINE_SET = 'players:online';
 const WHERE_KEY = 'town:where';
 const stateKey = (mapId: string) => `town:state:${mapId}`;
+/** Clicks closer together than this (per character) are ignored: input spam never becomes broadcast spam. */
+export const TOWN_MOVE_MIN_INTERVAL_MS = 200;
+/** Clicking an NPC walks to this far in front of it. */
+const NPC_APPROACH_DISTANCE = 1.6;
+const round = (v: number) => Math.round(v * 1000) / 1000;
 
 export type TownEvent = 'town:join' | 'town:leave' | 'town:update';
 export interface TownRosterSnapshot { mapId: string; serverNow: number; entries: TownRosterEntry[] }
@@ -28,7 +34,15 @@ interface TownState {
   lastSeenAt?: number;
   /** Set by `/sleep`. Older states slept just for being offline; those are read as awake. */
   sleptByCommand?: boolean;
+  /** Last click-to-move; wandering resumes from its destination by itself. */
+  move?: TownMove | null;
+  emote?: TownEmote | null;
+  joinedAt?: number | null;
+  /** Bumped on every write, so clients can drop an older delta that arrives late. */
+  rev?: number;
 }
+
+export type TownMoveTarget = { x: number; z: number } | { npcId: string };
 
 interface RosterRow {
   id: string;
@@ -58,6 +72,7 @@ type PresenceFields = Pick<Character, 'currentMapId' | 'travelIntent' | 'pending
 @Injectable()
 export class TownRosterService {
   private readonly navs = new Map<string, TownNav>();
+  private readonly lastMoveAt = new Map<string, number>();
 
   constructor(
     @InjectRepository(Character)
@@ -137,6 +152,7 @@ export class TownRosterService {
         sleeping: null,
         wakeFrom: { x: spawn.x, z: spawn.z, at: now },
         lastSeenAt: now,
+        joinedAt: now,
       };
       await this.saveState(next, characterId, state);
       await this.publish('town:join', next, { entry: this.toEntry(await this.rowOf(character), state, online) });
@@ -176,7 +192,14 @@ export class TownRosterService {
     const { character, mapId } = await this.requireTown(characterId);
     const current = await this.loadState(mapId, character);
     if (current.sleeping) return this.toEntry(await this.rowOf(character), current, true);
-    const state: TownState = { ...current, sleeping: { at: Date.now() }, sleptByCommand: true };
+    const now = Date.now();
+    // An emote ends where it was held: anchor there, then lie down.
+    const def = this.dataService.getTownScene(mapId)!;
+    const held = current.emote ? positionAt(def, this.nav(mapId, def), current, now) : null;
+    const move: TownMove | null | undefined = held
+      ? { fromX: round(held.x), fromZ: round(held.z), toX: round(held.x), toZ: round(held.z), at: now, lookAt: null }
+      : current.move;
+    const state: TownState = { ...current, move, emote: null, sleeping: { at: now }, sleptByCommand: true };
     await this.saveState(mapId, characterId, state);
     const entry = this.toEntry(await this.rowOf(character), state, true);
     await this.publish('town:update', mapId, { entry });
@@ -195,6 +218,82 @@ export class TownRosterService {
     return entry;
   }
 
+  /**
+   * Click-to-move: walk from where the character is now to the clicked ground
+   * point (snapped to the nearest reachable cell) or to the front of a clicked
+   * NPC. Ends `/sleep` and emotes. One Redis write and one broadcast per click.
+   */
+  async move(characterId: string, target: TownMoveTarget): Promise<TownRosterEntry> {
+    const { character, mapId } = await this.requireTown(characterId);
+    const def = this.dataService.getTownScene(mapId)!;
+    const nav = this.nav(mapId, def);
+    const current = await this.loadState(mapId, character);
+    const now = Date.now();
+    const last = this.lastMoveAt.get(characterId) ?? 0;
+    if (now - last < TOWN_MOVE_MIN_INTERVAL_MS) return this.toEntry(await this.rowOf(character), current, true);
+
+    let point: [number, number];
+    let lookAt: [number, number] | null = null;
+    if ('npcId' in target) {
+      const spot = typeof target.npcId === 'string' ? def.npcSpots[target.npcId] : undefined;
+      if (!spot) throw new BadRequestException('UNKNOWN_NPC');
+      const facing = (spot.facing * Math.PI) / 180;
+      point = [spot.x + Math.sin(facing) * NPC_APPROACH_DISTANCE, spot.z + Math.cos(facing) * NPC_APPROACH_DISTANCE];
+      lookAt = [spot.x, spot.z];
+    } else {
+      if (!Number.isFinite(target.x) || !Number.isFinite(target.z)) throw new BadRequestException('INVALID_TARGET');
+      point = [Math.max(0, Math.min(def.size.w, target.x)), Math.max(0, Math.min(def.size.h, target.z))];
+    }
+    const pose = positionAt(def, nav, current, now);
+    const to = nav.nearestReachable(point[0], point[1], def.spawn.x, def.spawn.z);
+    if (!to) throw new BadRequestException('INVALID_TARGET');
+    this.lastMoveAt.set(characterId, now);
+    if (this.lastMoveAt.size > 10000) this.lastMoveAt.clear();
+    const state: TownState = {
+      ...current,
+      sleeping: null,
+      sleptByCommand: false,
+      emote: null,
+      move: { fromX: round(pose.x), fromZ: round(pose.z), toX: round(to[0]), toZ: round(to[1]), at: now, lookAt },
+      lastSeenAt: now,
+    };
+    return this.write(mapId, character, state);
+  }
+
+  /**
+   * `/dance`, `/sit`: hold the emote where the character is now, with no time
+   * limit; the same command again (or a click-to-move) ends it. Ending it
+   * stands the character there and lets it wander again after the usual pause.
+   */
+  async emote(characterId: string, kind: TownEmoteKind): Promise<TownRosterEntry> {
+    if (!(TOWN_EMOTES as readonly string[]).includes(kind)) throw new BadRequestException('UNKNOWN_EMOTE');
+    const { character, mapId } = await this.requireTown(characterId);
+    const def = this.dataService.getTownScene(mapId)!;
+    const current = await this.loadState(mapId, character);
+    const now = Date.now();
+    const pose = positionAt(def, this.nav(mapId, def), { ...current, emote: null }, now);
+    // Anchor the base pose to "standing here since now": the frozen emote and whatever
+    // follows it start from this point, not from wherever the old wander would be.
+    const anchor: TownMove = { fromX: round(pose.x), fromZ: round(pose.z), toX: round(pose.x), toZ: round(pose.z), at: now, lookAt: null };
+    const stop = current.emote?.kind === kind;
+    const state: TownState = {
+      ...current,
+      sleeping: null,
+      sleptByCommand: false,
+      move: anchor,
+      emote: stop ? null : { kind, at: now },
+      lastSeenAt: now,
+    };
+    return this.write(mapId, character, state);
+  }
+
+  private async write(mapId: string, character: Character, state: TownState): Promise<TownRosterEntry> {
+    await this.saveState(mapId, character.id, state);
+    const entry = this.toEntry(await this.rowOf(character), state, true);
+    await this.publish('town:update', mapId, { entry });
+    return entry;
+  }
+
   private async requireTown(characterId: string): Promise<{ character: Character; mapId: string }> {
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     const mapId = character ? this.isTownPresent(character) : null;
@@ -205,7 +304,7 @@ export class TownRosterService {
   private wakeState(mapId: string, current: TownState, now: number): TownState {
     const def = this.dataService.getTownScene(mapId)!;
     const pose = positionAt(def, this.nav(mapId, def), current, now);
-    return { seed: this.newSeed(), sleeping: null, wakeFrom: { x: pose.x, z: pose.z, at: now }, lastSeenAt: now, sleptByCommand: false };
+    return { seed: this.newSeed(), sleeping: null, wakeFrom: { x: pose.x, z: pose.z, at: now }, lastSeenAt: now, sleptByCommand: false, move: null, emote: null, joinedAt: current.joinedAt ?? null, rev: current.rev };
   }
 
   /** Stored state, or the deterministic lazy one (seed from the id, awake). */
@@ -219,6 +318,7 @@ export class TownRosterService {
   }
 
   private async saveState(mapId: string, characterId: string, state: TownState): Promise<void> {
+    state.rev = (state.rev ?? 0) + 1;
     await this.redis.hset(stateKey(mapId), characterId, JSON.stringify(state));
     await this.redis.hset(WHERE_KEY, characterId, mapId);
   }
@@ -259,6 +359,10 @@ export class TownRosterService {
       online,
       sleeping,
       wakeFrom: s.wakeFrom ?? null,
+      move: s.move ?? null,
+      emote: s.emote ?? null,
+      joinedAt: s.joinedAt ?? null,
+      rev: s.rev ?? 0,
       lastSeenAt: new Date(lastSeen).toISOString(),
       dominantHand: row.dominantHand === 'left' ? 'left' : 'right',
       mainHandItemId: row.mainHandItemId ?? null,

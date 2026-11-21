@@ -84,6 +84,43 @@ describe('TownRuntime (real WebGL)', () => {
     expect(progress).toBeLessThan(1);
   });
 
+  it('/dance dances and an old /sit is already seated on a stool', async () => {
+    const rt = await start([
+      entry('dancer', { emote: { kind: 'dance', at: NOW - 5000 } }),
+      entry('sitter', { emote: { kind: 'sit', at: NOW - 60_000 } }),
+      entry('fresh', { emote: { kind: 'sit', at: NOW - 100 } }),
+    ], null);
+    rt.renderNow();
+    expect(rt.animationOf('dancer')).toBe('Dance');
+    expect(rt.animationOf('sitter')).toBe('Sit');
+    expect(rt.stoolShownFor('sitter')).toBeTrue();
+    expect(rt.stoolShownFor('dancer')).toBeFalse();
+  });
+
+  it('the ground point under the screen centre is the camera target', async () => {
+    const rt = await start([], null);
+    rt.centerOn(30, 25);
+    const [x, z] = rt.groundPoint(320, 240)!;
+    expect(Math.hypot(x - 30, z - 25)).toBeLessThan(0.5);
+    rt.markDestination(x, z);
+    expect(rt.effectCount()).toBe(1);
+  });
+
+  it('no aura for who is already there; an aura for who arrives and who leaves', async () => {
+    const rt = await start([entry('hero'), entry('ana')], 'hero');
+    expect(rt.effectCount()).toBe(0);
+    rt.setCharacters([entry('hero'), entry('ana'), entry('bob')], 'hero');
+    expect(rt.effectCount()).toBe(1);
+    rt.setCharacters([entry('hero'), entry('bob')], 'hero');
+    expect(rt.effectCount()).toBe(3); // bob's aura still playing, ana's aura and her delayed removal
+    expect(rt.activeCount()).toBe(2);
+  });
+
+  it('someone who just joined gets the aura even on the first roster', async () => {
+    const rt = await start([entry('hero', { joinedAt: NOW - 200 })], 'hero');
+    expect(rt.effectCount()).toBe(1);
+  });
+
   it('awake character has no dead progress', async () => {
     const rt = await start([entry('hero')], 'hero');
     expect(rt.deadProgressOf('hero')).toBeNull();

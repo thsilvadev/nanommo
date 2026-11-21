@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { Sex } from '@nanommo/shared';
-import { CLIP_NAMES, deinterleave, prepareBody, type BodyAsset } from './body-asset';
+import { LIBRARY_CLIPS, deinterleave, prepareBody, type BodyAsset } from './body-asset';
 
 export type { BodyAsset } from './body-asset';
 export type GltfLoad = (url: string) => Promise<unknown>;
@@ -99,8 +99,8 @@ export class CharacterAssetCache {
     if (!this.library) {
       const pending = this.gltf('animations.glb').then((gltf) => {
         const pelvis = gltf.scene.getObjectByName('pelvis');
-        const clips = gltf.animations.filter((clip) => CLIP_NAMES.includes(clip.name));
-        if (clips.length !== CLIP_NAMES.length) throw new Error('animations.glb is missing clips');
+        const clips = gltf.animations.filter((clip) => LIBRARY_CLIPS.includes(clip.name));
+        if (clips.length !== LIBRARY_CLIPS.length) throw new Error('animations.glb is missing clips');
         return { clips, pelvisRest: pelvis?.position.length() || 1 };
       });
       this.library = pending;

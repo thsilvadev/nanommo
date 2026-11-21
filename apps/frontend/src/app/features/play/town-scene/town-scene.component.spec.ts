@@ -32,10 +32,12 @@ describe('TownSceneComponent', () => {
   let runtime: jasmine.SpyObj<TownSceneRuntimeHandle>;
   let init: TownSceneRuntimeInit | null;
   let entries: ReturnType<typeof signal<TownRosterEntry[]>>;
+  let moveTo: jasmine.Spy;
 
   beforeEach(() => {
     init = null;
-    runtime = jasmine.createSpyObj<TownSceneRuntimeHandle>('runtime', ['setCharacters', 'setSelection', 'setActive', 'pick', 'pan', 'zoom', 'resize', 'dispose', 'screenPositionOf']);
+    runtime = jasmine.createSpyObj<TownSceneRuntimeHandle>('runtime', ['setCharacters', 'setSelection', 'setActive', 'pick', 'groundPoint', 'markDestination', 'pan', 'zoom', 'resize', 'dispose', 'screenPositionOf']);
+    moveTo = jasmine.createSpy('moveTo').and.resolveTo();
     entries = signal<TownRosterEntry[]>([]);
     const def = { mapId: 'map_town', size: { w: 72, h: 72 }, npcSpots: { blacksmith_loren: { x: 1, z: 1, facing: 0 } } } as unknown as TownSceneDef;
     TestBed.configureTestingModule({
@@ -46,7 +48,7 @@ describe('TownSceneComponent', () => {
           loadScene: async () => def,
           createRuntime: async (_host: HTMLElement, i: TownSceneRuntimeInit) => { init = i; return runtime; },
         } },
-        { provide: TownStore, useValue: { entries, mapId: signal('map_town') } },
+        { provide: TownStore, useValue: { entries, mapId: signal('map_town'), moveTo } },
         { provide: CharacterStore, useValue: { character: signal({ id: 'hero' }) } },
         { provide: PartyStore, useValue: { members: signal([]) } },
         { provide: ServerClockService, useValue: { now: () => 123 } },
@@ -91,6 +93,28 @@ describe('TownSceneComponent', () => {
     host.dispatchEvent(new PointerEvent('pointerdown', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
     host.dispatchEvent(new PointerEvent('pointerup', { clientX: 102, clientY: 101, pointerId: 1, bubbles: true }));
     expect(picked).toEqual(['blacksmith_loren']);
+    expect(moveTo).toHaveBeenCalledOnceWith({ npcId: 'blacksmith_loren' });
+  });
+
+  it('a click on empty ground marks the point and asks the server to walk there', async () => {
+    const fixture = await create();
+    runtime.pick.and.returnValue(null);
+    runtime.groundPoint.and.returnValue([12.5, 30]);
+    const host: HTMLElement = fixture.nativeElement.querySelector('.town-scene');
+    host.dispatchEvent(new PointerEvent('pointerdown', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
+    host.dispatchEvent(new PointerEvent('pointerup', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
+    expect(runtime.markDestination).toHaveBeenCalledOnceWith(12.5, 30);
+    expect(moveTo).toHaveBeenCalledOnceWith({ x: 12.5, z: 30 });
+  });
+
+  it('a click off the town ground (sky, outside the map) does nothing', async () => {
+    const fixture = await create();
+    runtime.pick.and.returnValue(null);
+    runtime.groundPoint.and.returnValue(null);
+    const host: HTMLElement = fixture.nativeElement.querySelector('.town-scene');
+    host.dispatchEvent(new PointerEvent('pointerdown', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
+    host.dispatchEvent(new PointerEvent('pointerup', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
+    expect(moveTo).not.toHaveBeenCalled();
   });
 
   it('a click on a character emits characterSelected with the entry and the screen point', async () => {

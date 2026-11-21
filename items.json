@@ -4873,7 +4873,7 @@
       "tier": 2,
       "fixedStats": {
         "elementalImmunity": "earth",
-        "def": 2,
+        "def": 3,
         "moveSpeed": 15
       },
       "randomRollOnDrop": {
@@ -4918,7 +4918,7 @@
       "tier": 2,
       "fixedStats": {
         "elementalImmunity": "water",
-        "def": 2,
+        "def": 3,
         "moveSpeed": 15
       },
       "randomRollOnDrop": {
@@ -4963,7 +4963,7 @@
       "tier": 3,
       "fixedStats": {
         "elementalImmunity": "fire",
-        "def": 4,
+        "def": 5,
         "moveSpeed": 30
       },
       "randomRollOnDrop": {
@@ -5008,7 +5008,7 @@
       "tier": 3,
       "fixedStats": {
         "elementalImmunity": "shadow",
-        "def": 4,
+        "def": 5,
         "moveSpeed": 30
       },
       "randomRollOnDrop": {
@@ -5053,7 +5053,7 @@
       "tier": 4,
       "fixedStats": {
         "elementalImmunity": "wind",
-        "def": 6,
+        "def": 7,
         "moveSpeed": 45
       },
       "randomRollOnDrop": {
@@ -5098,7 +5098,7 @@
       "tier": 4,
       "fixedStats": {
         "elementalImmunity": "holy",
-        "def": 6,
+        "def": 7,
         "moveSpeed": 45
       },
       "randomRollOnDrop": {

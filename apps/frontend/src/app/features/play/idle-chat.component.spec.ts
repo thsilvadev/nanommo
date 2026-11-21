@@ -31,8 +31,9 @@ describe('IdleChatComponent slash commands', () => {
       onConnectionState: () => new Subject(),
       emit: jasmine.createSpy('emit').and.resolveTo({}),
     };
-    town = jasmine.createSpyObj('TownStore', ['isTown', 'sleep']);
+    town = jasmine.createSpyObj('TownStore', ['isTown', 'sleep', 'emote']);
     town.sleep.and.resolveTo();
+    town.emote.and.resolveTo();
     character = signal<any>({ id: 'hero', currentMapId: 'map_town' });
     TestBed.configureTestingModule({
       imports: [IdleChatComponent],
@@ -75,6 +76,27 @@ describe('IdleChatComponent slash commands', () => {
     expect(socket.emit).not.toHaveBeenCalled();
     expect(errorRows(chat).map(r => r.message)).toEqual(['You can only sleep in town.']);
     expect(chat.journalEnabled()).toBeTrue();
+  });
+
+  it('/dance and /sit in town ask TownStore for the emote, never global chat', async () => {
+    town.isTown.and.returnValue(true);
+    const chat = create();
+    chat.draft.set('/dance');
+    await chat.send();
+    chat.draft.set('/SIT');
+    await chat.send();
+    expect(town.emote.calls.allArgs()).toEqual([['dance'], ['sit']]);
+    expect(socket.emit).not.toHaveBeenCalledWith('chat:send', jasmine.anything());
+    expect(errorRows(chat).length).toBe(0);
+  });
+
+  it('/dance outside town is refused with a red System line', async () => {
+    town.isTown.and.returnValue(false);
+    const chat = create();
+    chat.draft.set('/dance');
+    await chat.send();
+    expect(town.emote).not.toHaveBeenCalled();
+    expect(errorRows(chat).map(r => r.message)).toEqual(['You can only do that in town.']);
   });
 
   it('an unknown command shows "Unknown command."', async () => {
