@@ -1,3 +1,18 @@
+### Hotfix: modelos invisíveis depois dos emotes + verde de Sierra — 2026-11-21
+
+Trabalho direto em `main` (sem commit/push).
+
+- Causa: `/assets/character/*` fica em cache no navegador por 1 dia, com mais 7 dias de `stale-while-revalidate` (`vercel.json`). Com o deploy de `9e64e36`, quem tinha o `animations.glb` antigo em cache recebeu o código novo, que exigia os clipes `Dance`/`SitDown`/`Sit`. `CharacterAssetCache` rejeitava a biblioteca, e todos os corpos (jogadores, NPCs, portrait, criador) deixavam de carregar; só as placas de nome apareciam. Os testes não pegaram isso porque o Karma sempre baixa o arquivo novo.
+- Correção: só os 9 clipes do rig são obrigatórios. Clipe de emote ausente apenas não toca (o banquinho só aparece se houver `Sit`). O arquivo passa a ser pedido como `animations.glb?v=2` (`ANIMATIONS_ASSET`): mudar a URL fura o cache. Subir o `v` a cada regeração.
+- Sierra: `ground.mix` `#91b531` / `#82a32c` (+ espelho). O sync também alinhou o espelho `public/data/items.json` com o `items.json` raiz já commitado.
+
+Sem migração. Nada executado em banco. Sem deploy, sem push.
+
+Validação (2026-11-21):
+- `character-asset-cache.spec.ts`: novos testes de biblioteca antiga sem emotes (carrega o corpo), de biblioteca sem clipe do rig (recusada) e de URL versionada.
+- `npx tsc -p tsconfig.app.json` e `tsconfig.spec.json`: passam. `npx ng test --watch=false` (Chromium headless): 324 SUCCESS, 0 falhas.
+- `node scripts/validate-town-scenes.js`: passa. `pnpm --filter @nanommo/frontend build --configuration production`: passa (inicial 554,70 kB).
+
 ### Cidade: clicar para andar, /dance, /sit, aura de entrada/saída, tooltip do mapa — 2026-11-21
 
 OpenSpec `town-click-move-emotes`. Trabalho direto em `main` (sem commit/push).

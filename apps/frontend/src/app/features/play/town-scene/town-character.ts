@@ -404,7 +404,7 @@ export class TownCharacter {
     this.firstSeenAt ??= nowMs;
     for (const animate of this.costumeAnimators) animate(nowMs);
     if (!this.mixer) return;
-    this.setStool(pose.state === 'sit');
+    this.setStool(pose.state === 'sit' && this.actions.has('Sit'));
     const clip: TownClip = pose.state === 'sleep' ? 'Dead' : pose.state === 'walk' ? 'Walk'
       : pose.state === 'dance' ? 'Dance' : pose.state === 'sit' ? 'Sit' : 'Idle';
     // Sitting down plays SitDown first; it counts as already sitting.

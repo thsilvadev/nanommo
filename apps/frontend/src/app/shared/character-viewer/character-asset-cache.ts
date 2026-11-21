@@ -10,9 +10,15 @@ import * as THREE from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { Sex } from '@nanommo/shared';
-import { LIBRARY_CLIPS, deinterleave, prepareBody, type BodyAsset } from './body-asset';
+import { CLIP_NAMES, LIBRARY_CLIPS, deinterleave, prepareBody, type BodyAsset } from './body-asset';
 
 export type { BodyAsset } from './body-asset';
+/**
+ * `/assets/character/*` is cached by browsers for a day plus a week of
+ * stale-while-revalidate (vercel.json): bump `v` whenever animations.glb is
+ * rebuilt, or players keep the old file next to new code.
+ */
+export const ANIMATIONS_ASSET = 'animations.glb?v=2';
 export type GltfLoad = (url: string) => Promise<unknown>;
 
 interface AnimationLibrary { clips: THREE.AnimationClip[]; pelvisRest: number }
@@ -97,10 +103,13 @@ export class CharacterAssetCache {
 
   private animationLibrary(): Promise<AnimationLibrary> {
     if (!this.library) {
-      const pending = this.gltf('animations.glb').then((gltf) => {
+      const pending = this.gltf(ANIMATIONS_ASSET).then((gltf) => {
         const pelvis = gltf.scene.getObjectByName('pelvis');
         const clips = gltf.animations.filter((clip) => LIBRARY_CLIPS.includes(clip.name));
-        if (clips.length !== LIBRARY_CLIPS.length) throw new Error('animations.glb is missing clips');
+        // Only the rig's clips are required: a missing town emote (Dance, Sit…) just does not play,
+        // it must never take every body down with it.
+        const required = CLIP_NAMES.filter((name) => !clips.some((clip) => clip.name === name));
+        if (required.length) throw new Error(`animations.glb is missing clips: ${required.join(', ')}`);
         return { clips, pelvisRest: pelvis?.position.length() || 1 };
       });
       this.library = pending;

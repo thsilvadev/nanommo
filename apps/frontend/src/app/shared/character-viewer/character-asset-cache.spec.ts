@@ -1,22 +1,26 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { CharacterAssetCache } from './character-asset-cache';
+import { ANIMATIONS_ASSET, CharacterAssetCache } from './character-asset-cache';
 
 const BASE = '/assets/character/';
 
 describe('CharacterAssetCache', () => {
   let calls: string[];
   let failNext: Set<string>;
+  let dropClips: string[];
   let cache: CharacterAssetCache;
 
   beforeEach(() => {
     calls = [];
     failNext = new Set();
+    dropClips = [];
     const loader = new GLTFLoader();
-    const load = (url: string) => {
+    const load = async (url: string) => {
       calls.push(url);
-      if (failNext.delete(url)) return Promise.reject(new Error('404'));
-      return loader.loadAsync(url);
+      if (failNext.delete(url)) throw new Error('404');
+      const gltf = await loader.loadAsync(url);
+      gltf.animations = gltf.animations.filter((clip) => !dropClips.includes(clip.name));
+      return gltf;
     };
     cache = new CharacterAssetCache(load, BASE);
   });
@@ -34,7 +38,7 @@ describe('CharacterAssetCache', () => {
   it('body() fetches each file once but returns independent instances', async () => {
     const [first, second] = await Promise.all([cache.body('male'), cache.body('male')]);
     expect(count('body-male.glb')).toBe(1);
-    expect(count('animations.glb')).toBe(1);
+    expect(count(ANIMATIONS_ASSET)).toBe(1);
     expect(first).not.toBe(second);
     expect(first.root).not.toBe(second.root);
     // Appearance deforms vertices and repaints skin per instance: nothing mutable is shared.
@@ -58,11 +62,27 @@ describe('CharacterAssetCache', () => {
     expect(body.actions.has('Dead')).toBeTrue();
   });
 
+  it('an older animations.glb without the town emotes still loads every body (stale browser cache)', async () => {
+    dropClips = ['Dance', 'SitDown', 'Sit'];
+    const body = await cache.body('male');
+    expect(body.actions.has('Idle')).toBeTrue();
+    expect((await cache.animations()).some(c => c.name === 'Dance')).toBeFalse();
+  });
+
+  it('a library missing a rig clip is still refused', async () => {
+    dropClips = ['Attack'];
+    await expectAsync(cache.animations()).toBeRejectedWithError(/Attack/);
+  });
+
+  it('animations.glb is fetched with a version (bump it on every rebuild: assets are cached for days)', () => {
+    expect(ANIMATIONS_ASSET).toMatch(/^animations\.glb\?v=\d+$/);
+  });
+
   it('forgets a failed load so the next call retries', async () => {
-    failNext.add(BASE + 'animations.glb');
+    failNext.add(BASE + ANIMATIONS_ASSET);
     await expectAsync(cache.animations()).toBeRejected();
     await expectAsync(cache.animations()).toBeResolved();
-    expect(count('animations.glb')).toBe(2);
+    expect(count(ANIMATIONS_ASSET)).toBe(2);
   });
 
   it('glb() returns the shared raw scene of a model', async () => {

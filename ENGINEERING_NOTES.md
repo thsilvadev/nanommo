@@ -214,3 +214,7 @@ The town camera has a low FOV but is close (18–70 u): a parallel-ray check (fr
 
 `Sitting_*` in the Universal Animation Library keeps the thighs level at ~0.56 m with the pelvis 0.34 m behind the feet. Played on open ground, the character sits in the air. `/sit` adds a stool (top 0.46 m, 0.25 m behind; measured by forward kinematics on `body-*.glb` + `animations.glb`). Re-measure if the clip or the bodies change.
 
+## 4.29 Character assets outlive deploys in the browser
+
+`/assets/character/*` and `/assets/npcs/*` are cached for a day plus a week of stale-while-revalidate (`vercel.json`), so after a deploy players run new code against old asset files. Code must tolerate the previous version of an asset (a new clip is optional, never required), and a rebuilt file must be requested under a new URL (`ANIMATIONS_ASSET = 'animations.glb?v=N'`: bump N). Requiring the new `Dance`/`Sit` clips made every body fail to load for anyone with the old `animations.glb` cached.
+
