@@ -42,6 +42,7 @@
                         Regen</b><em>{{character.character()?.hpRegenPerTenTicks}} / 10 seconds</em></span><span><b>SP
                         Regen</b><em>{{character.character()?.spRegenPerTenTicks}} / 10
                         seconds</em></span><span><b>Critical</b><em>{{character.character()?.criticalChance}}%</em></span>
+                <span *ngFor="let resistance of elementalResistanceRows()" class="elemental-resistance" [attr.data-element]="resistance.element"><b>{{resistance.label}}</b><em>{{resistance.value}}%</em></span>
             </div>
         </section>
     </div>

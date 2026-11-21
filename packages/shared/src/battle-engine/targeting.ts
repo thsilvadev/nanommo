@@ -14,7 +14,7 @@ export function actorDistance(self:BattleActorState,target:BattleActorState,stat
 function snapshot(s:BattleActorState):CombatantSnapshot {return {...s,position:s.position.column,characterId:s.id};}
 export interface TargetedGambitChoice { action:GroupGambitAction; line:GroupGambitLine; target:BattleActorState }
 /** All conditions constrain one candidate; selector conditions order the surviving set. */
-export function selectGroupGambit(actor:BattleActor,self:BattleActorState,states:BattleActorState[],gauge:GambitGaugeType,definitions:BattleDefinitionsV2,random:()=>number):TargetedGambitChoice|null {
+export function selectGroupGambit(actor:BattleActor,self:BattleActorState,states:BattleActorState[],gauge:GambitGaugeType,definitions:BattleDefinitionsV2,random:()=>number,elementalRulesVersion:0|1=1):TargetedGambitChoice|null {
   const lines=GambitEvaluator.normalizeGambitPage(activeGambitLines(actor.gambits)).lines;
   let rangedForChoice=false;let field:Map<string,number>|undefined;const distanceCache=new Map<string,number>();
   const candidateDistance=(target:BattleActorState):number=>{
@@ -51,7 +51,7 @@ export function selectGroupGambit(actor:BattleActor,self:BattleActorState,states
       if(id==='foe_targeting_leader')return subject.targetId===(self.partyLeaderId??self.id);
       if(id==='foe_party_leader_target'){const leader=states.find(s=>s.id===(self.partyLeaderId??self.id));return subject.id===leader?.targetId;}
       if(id==='foe_not_targeted_by_ally')return !states.some(s=>s.team===self.team&&s.id!==self.id&&s.targetId===subject.id);
-      return GambitEvaluator.evaluateCondition(condition,id.startsWith('ally_')?snapshot(subject):snapshot(self),snapshot(subject),self.inventory);
+      return GambitEvaluator.evaluateCondition(condition,id.startsWith('ally_')?snapshot(subject):snapshot(self),{...snapshot(subject),elementalRulesVersion},self.inventory);
     };
     const allyPool=states.filter(s=>s.team===self.team);
     const foePool=states.filter(s=>s.team!==self.team&&s.hp>0);

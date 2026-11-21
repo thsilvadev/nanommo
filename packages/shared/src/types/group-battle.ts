@@ -36,7 +36,7 @@ export interface BattleActor {
   attackIntervalTicks?: number; damageTakenMultiplier?: Record<string, number>;
   weaponCategoryDamageTakenMultiplier?: Record<string, number>;
 }
-export interface BattleInputV2 { version: 2; seed: string; tickDurationMs: 500; actors: BattleActor[]; definitions: BattleDefinitionsV2; maxTicks?: number; regenTickOffset?: number }
+export interface BattleInputV2 { elementalRulesVersion?: 0 | 1; version: 2; seed: string; tickDurationMs: 500; actors: BattleActor[]; definitions: BattleDefinitionsV2; maxTicks?: number; regenTickOffset?: number }
 export interface PendingCastV2 { action: GroupGambitAction; targetId: ActorId; resolvesAtTick: number; startedAtTick: number }
 export interface BattleActorState extends Omit<CombatantSnapshot, 'position'> {
   id: ActorId; name: string; kind: BattleActorKind; team: TeamId; position: GridPosition;
@@ -48,7 +48,7 @@ export type ActorEventPayload =
   | { type:'target'; previousTargetId?: ActorId }
   | { type:'move'; from:GridPosition; to:GridPosition; reason:'approach'|'blinkstrike'|'push'|'revive' }
   | { type:'action'; skillId?:string; itemId?:string; damage?:number; damageType?:string; damageComponents?:number[]; hit?:boolean; crit?:boolean; healAmount?:number; spGain?:number; spSpent?:number; statusApplied?:string }
-  | { type:'status'; statusId:string; damage?:number }
+  | { type:'status'; statusId:string; damage?:number; sourceSkillId?:string; sourceActor?:'character'|'monster'; damageType?:string; element?:string; passiveProc?:boolean }
   | { type:'cast'; skillId:string; resolvesAtTick:number }
   | { type:'regen'; hpGain:number; spGain:number }
   | { type:'lifecycle'; reason:'damage'|'status'|'revive'|'stalemate' };

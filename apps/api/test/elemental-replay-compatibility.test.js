@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+const {replayBattleV2}=require('../../../packages/shared/dist');
+const snap=element=>({level:1,hp:10000,maxHp:10000,sp:0,maxSp:0,atk:100,matk:100,def:0,mdefPercent:0,accuracy:1000,evasion:0,critChance:0,hpRegenPerTenTicks:0,spRegenPerTenTicks:0,agi:5,dex:5,element,attackSpeed:800,basicAttackRange:10,canMove:false});
+const input={version:2,seed:'old-encounter',tickDurationMs:500,definitions:{},actors:[{id:'hero',kind:'character',team:'a',position:{row:5,column:4},snapshot:snap('fire'),gambits:[],inventory:{}},{id:'foe',kind:'monster',team:'b',position:{row:5,column:5},snapshot:snap('fire'),gambits:[{conditions:[{id:'always'}],action:{id:'attack'}}],inventory:{},attackIntervalTicks:1}]};
+const hit=result=>result.events.find(e=>e.action==='attack'&&e.payload.hit).payload.damage;
+const oldDamage=hit(replayBattleV2(input,4));
+const updated=structuredClone(input);updated.elementalRulesVersion=1;
+const newDamage=hit(replayBattleV2(updated,4));
+assert.ok(Math.abs(oldDamage*.5-newDamage)<=1,'new encounters apply affinity while stored encounters retain their historical rules');
+assert.deepEqual(replayBattleV2(input,4),replayBattleV2(input,4),'old encounter replay stays deterministic');
+console.log('elemental replay: versioned rules preserve existing immutable encounters');
+const {simulateBattleV2,simulateBattleV2Solo}=require('../../../packages/shared/dist');
+assert.deepEqual(simulateBattleV2({...input,maxTicks:5}).actorsAfter,replayBattleV2({...input,maxTicks:5},4).actorsAfter,'unversioned simulation and replay use identical historical rules');
+const fromSaved=simulateBattleV2Solo({...snap('earth'),elementalRulesVersion:1},{id:'changed-monster',hp:1,atk:99999,element:'earth',gambit:[]},[],'changed-seed',{persistedInput:input,stopAfterTick:4});
+assert.equal(fromSaved.hpAfter,replayBattleV2(input,4).actorsAfter.hero.hp,'FLEE uses the persisted V2 input despite changed live catalogues');
+assert.equal(fromSaved.log.header.monsterSnapshot.element,'fire','FLEE presentation retains the immutable monster snapshot');

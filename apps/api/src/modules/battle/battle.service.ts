@@ -1,3 +1,4 @@
+import { equipmentElementSnapshot } from '@nanommo/shared';
 import { forwardRef, Inject, Injectable, Logger, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
 import { AsyncLocalStorage } from 'async_hooks';
 import { ModuleRef } from '@nestjs/core';
@@ -458,7 +459,7 @@ export class BattleService {
     const rows = await this.equipmentService.getEquipment(characterId);
     const movementEquipment = rows.map((row: any) => {
       const item = this.dataService.getItemById(row.itemId);
-      return item ? { definition: effectiveItemDefinition(item, row.instanceData) } : null;
+      return item ? { ...row, definition: effectiveItemDefinition(item, row.instanceData) } : null;
     }).filter(Boolean);
     const masteryEquipment = rows.flatMap((row) => {
       if (row.slot !== 'mainHand' && row.slot !== 'offHand') return [];
@@ -558,6 +559,7 @@ export class BattleService {
     }));
     const foodTicks = Math.max(0, ...foodBuffStates.map((food) => food.remainingTicks));
     return {
+      elementalRulesVersion: 1,
       characterName: character.name,
       level: character.level,
       hp: Math.max(1, Math.min(hp, derived.maxHp)),
@@ -591,6 +593,7 @@ export class BattleService {
       skills,
       skillDefs,
       masteryEquipment,
+      ...equipmentElementSnapshot(movementEquipment),
       // Combat-lane movement uses the same effective speed as world travel.
       // Status penalties remain battle-local and are applied by BattleEngine.
       moveSpeedBase: calculateWorldMoveSpeed(character, movementEquipment, character.activeTempBuffs ?? [], [] , atTime),
@@ -1599,9 +1602,10 @@ export class BattleService {
       const battleTickDurationMs = Number(battle.tickDurationMs ?? BATTLE_TICK_DURATION_MS);
       if (!Number.isSafeInteger(battleTickDurationMs) || battleTickDurationMs <= 0) throw new Error(`Invalid persisted battle tickDurationMs for ${battle.id}`);
       const targetTick = Math.max(0, Math.floor((timestamp - battle.startAt.getTime()) / battleTickDurationMs));
+      const replayMonster = { ...this.dataService.getMonsterById(battle.monsterId), ...(battle.log?.header?.monsterSnapshot ?? {}) };
       const replay = (battle.log?.header?.engineVersion === 2 ? simulateBattleV2Solo : BattleEngine.simulateBattle)(
-        start.snapshot,
-        this.dataService.getMonsterById(battle.monsterId),
+        { ...start.snapshot, elementalRulesVersion: start.snapshot.elementalRulesVersion ?? 0 },
+        replayMonster,
         // The original log already contains the resolved Gambit choices; replay needs the same page as the original snapshot.
         start.gambitPage ?? null,
         battle.seedUsed,
@@ -1612,6 +1616,7 @@ export class BattleService {
           statusEffectDefs: Object.fromEntries(this.dataService.getStatusEffects().map((status: any) => [status.id, status])),
           regenTickOffset: Number(start.regenTickOffset ?? 0),
           stopAfterTick: targetTick,
+          ...(battle.log?.header?.engineVersion === 2 ? { persistedInput: battle.log?.header?.v2Input } : {}),
         },
       );
       const checkpoint: any = (replay as any).checkpoint;
@@ -1631,7 +1636,7 @@ export class BattleService {
         const expiry = typeof expiryRaw === 'number' ? expiryRaw : Date.parse(String(expiryRaw ?? ''));
         return !Number.isFinite(expiry) || expiry > timestamp;
       });
-      const checkpointStatuses = persistStatusEffectsAtCheckpoint(checkpoint.statusEffects, Number(checkpoint.tick), timestamp, battleTickDurationMs);
+      const checkpointStatuses = persistStatusEffectsAtCheckpoint(checkpoint.statusEffects, Number(checkpoint.tick), timestamp, battleTickDurationMs, battle.startAt.getTime());
       const characterMoveSpd = Array.isArray(start.worldEquipment)
         ? calculateWorldMoveSpeed(start.snapshot, start.worldEquipment, timestampBuffs, checkpointStatuses, timestamp)
         : Math.max(0, Number(start.worldMoveSpd) - movePenalty(checkpointStatuses));

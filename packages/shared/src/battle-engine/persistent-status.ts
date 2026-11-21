@@ -59,6 +59,13 @@ export function statusEffectsForBattle(source: unknown, battleStartsAtMs: number
     const copy = { ...status };
     const expiry = copy.expiresAt == null ? Number.NaN : readExpiryMs(copy.expiresAt);
     delete copy.expiresAt;
+    if (Number(copy.damagePerTick ?? 0) > 0) {
+      const nextDamageAt = readExpiryMs(copy.nextDamageAt);
+      copy.nextDamageAtTick = Number.isFinite(nextDamageAt)
+        ? Math.max(0, Math.ceil((nextDamageAt - battleStartsAtMs) / tickDurationMs))
+        : Math.max(1, Number(copy.damageIntervalTicks ?? 10));
+    }
+    delete copy.nextDamageAt;
     copy.appliedAtTick = 0;
     if (Number.isFinite(expiry)) {
       copy.expiresAtTick = Math.max(1, Math.ceil((expiry - battleStartsAtMs) / tickDurationMs));
@@ -74,6 +81,7 @@ export function persistStatusEffectsAtCheckpoint(
   checkpointTick: number,
   atMs: number,
   tickDurationMs: number = DEFAULT_BATTLE_TICK_DURATION_MS,
+  battleStartsAtMs?: number,
 ): any[] {
   const statuses = Array.isArray(source) ? source as any[] : [];
   const persisted: any[] = [];
@@ -86,11 +94,17 @@ export function persistStatusEffectsAtCheckpoint(
       : Number(status.expiresAtTick);
     delete status.expiresAtTick;
     delete status.appliedAtTick;
+    const nextDamageTick = Number(status.nextDamageAtTick);
+    if (Number(status.damagePerTick ?? 0) > 0 && Number.isFinite(nextDamageTick)) {
+      const remainingTicks = Math.max(0, nextDamageTick - (Math.max(0, Math.floor(Number(checkpointTick) || 0)) + 1));
+      status.nextDamageAt = new Date(battleStartsAtMs === undefined ? atMs + remainingTicks * tickDurationMs : battleStartsAtMs + nextDamageTick * tickDurationMs).toISOString();
+    }
+    delete status.nextDamageAtTick;
 
     if (Number.isFinite(expiryTick)) {
       const remainingTicks = expiryTick - (Math.max(0, Math.floor(Number(checkpointTick) || 0)) + 1);
       if (remainingTicks <= 0) continue;
-      status.expiresAt = new Date(atMs + remainingTicks * tickDurationMs).toISOString();
+      status.expiresAt = new Date(battleStartsAtMs === undefined ? atMs + remainingTicks * tickDurationMs : battleStartsAtMs + expiryTick * tickDurationMs).toISOString();
     } else {
       delete status.expiresAt;
     }

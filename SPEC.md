@@ -256,7 +256,7 @@ Unique index on `(characterId, weaponType)`. Character creation and the migratio
 | characterId | uuid, FK, unique with `slot` | |
 | slot | enum(head, body, mainHand, offHand, shoes, cape, acceslukyLeft, acceslukyRight) | |
 | itemId | varchar | |
-| instanceData | jsonb, nullable | `{ rolledAttribute, rolledValue }` or elemental immunity for shoes (static, no roll) |
+| instanceData | jsonb, nullable | `{ rolledAttribute, rolledValue }` or catalogue-defined elemental affinity for shoes |
 
 Catalog equipment with `slot: accesluky` is compatible with either persisted `acceslukyLeft` or `acceslukyRight`; the persisted EquippedItem always stores the explicit left/right slot.
 
@@ -750,7 +750,7 @@ The same InventoryGrid component is used on /play/grind and /play/character?tab=
 Every equipment item **template** in `items.json` defines:
 - `fixedStats` — permanent, identical on every drop of that template (e.g. all "Reinforced Chestplate" always give `def: 18, statBonus: {VIT: 2, STR: 1}`). This is what makes a template a Tank piece vs. a Mage piece.
 - `randomRollOnDrop` — for all slots **except shoes**: at the moment of drop, roll **one** random attribute from `[STR, AGI, DEX, VIT, INT, LUK]` and a random integer **1–6** bonus to it. This roll is generated once, server-side, using the deterministic per-character PRNG stream (§11.2, same mechanism as monster/drop selection — not a separate `Math.random()`), and stored permanently in `InventoryItem.instanceData` / `EquippedItem.instanceData` as `{ rolledAttribute, rolledValue }`. It never changes again — "eternal" as specified.
-- Shoes (`equip_shoes_*`) never roll — their single fixed effect is `elementalImmunity: <element>` (full immunity to that element's status/bonus-damage interactions, per confirmed design; no move-speed effect in MVP).
+- Elemental shoes grant the corresponding defensive affinity via `fixedStats.elementalAffinity`; see the Elemental affinity contract below. Preserve their current catalogue DEF, Move Speed and roll rules.
 
 Equipment tooltips show the actual stats granted by the item instance (fixed stats plus its rolled Attribute, when present). Roll-generation metadata, vendor/economic fields and stack metadata are not presented as granted stats.
 
@@ -1563,7 +1563,7 @@ During Gathering, each aggressive candidate uses the deterministic pre-combat FL
 
 ## Grind monster expansion and regional Gathering — 2026-10-21
 
-`maps.json` owns all encounter rosters and weighted material pools; its public frontend copy mirrors the root file. `mon_mutantbee` (level 5, aggressive melee), `mon_giantmantis` (level 36, non-aggressive melee, Evasion 150), and `mon_flamingtreant` (level 38, aggressive melee, fire immune) are explicit catalogue records. Their combat attributes, final world Move Speed, XP rewards and drops remain data-driven. The Giant Mantis is now an additional non-aggressive species; the current passive set is Slime, Thornsprout, Saltfang Crab, Moonleaf Arcanist and Giant Mantis.
+`maps.json` owns all encounter rosters and weighted material pools; its public frontend copy mirrors the root file. `mon_mutantbee` (level 5, aggressive melee), `mon_giantmantis` (level 36, non-aggressive melee, Evasion 150), and `mon_flamingtreant` (level 38, aggressive melee, Earth affinity with the Flaming Pound passive) are explicit catalogue records. Their combat attributes, final world Move Speed, XP rewards and drops remain data-driven. The Giant Mantis is now an additional non-aggressive species; the current passive set is Slime, Thornsprout, Saltfang Crab, Moonleaf Arcanist and Giant Mantis.
 
 Mutant Bee's `monster_skill_sting` costs 30 SP, has a 4-tick (two-second) cast and 30-tick (15-second) cooldown, and applies Tip of Pain to itself. The next physical basic-attack attempt doubles raw ATK before normal hit resolution and mitigation, consumes the buff even on a miss, and applies 20-tick (10-second) Disarm only on a successful hit. The shared simulator records the status application, empowerment and consumption in the event timeline.
 
@@ -1744,3 +1744,40 @@ Final validation — 2026-11-10: API production build and frontend production bu
 For attempts from +6→+7, +7→+8 and +8→+9, a failed attempt without a Divine Shard decreases refinement by exactly one level: +6 returns to +5, +7 to +6, and +8 to +7. It must never reset these attempts to +0. When a Divine Shard is used in this band, failure preserves the current refinement level; both materials are consumed. The shared `resolveRefinementFailure()` function is authoritative for this rule, and the preview's failure text must describe the same outcome. Attempts from +9 onward retain their existing rules: without a Divine Shard the equipment is destroyed; with one it survives and loses one level.
 
 The Whitesmith refinement modal displays the current Bliss Stone inventory quantity beside the Divine Shard toggle, using the animated `bliss_stone.apng` item artwork. The count is derived from the current Inventory snapshot; attempt eligibility and material consumption remain server-authoritative.
+
+
+## Elemental affinity contract (2026-11-21)
+
+Canonical elements are `neutral`, `earth`, `water`, `fire`, `wind`, `holy`, and `shadow`. Legacy `light` normalizes to `holy`; retired Gambit values `ice` and `lightning` normalize to `water` and `wind`. Every skill owns an explicit element; healing/support keep their existing formulas. Damage type (physical, magical, pure) is independent of element. Pure damage bypasses elemental affinity.
+
+Rows are incoming damage elements; columns are the target's defensive affinity:
+
+| Damage / target | Neutral | Earth | Water | Fire | Wind | Holy | Shadow |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Neutral | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| Earth | 1 | 0.5 | 1 | 0.75 | 1.5 | 1 | 1 |
+| Water | 1 | 1 | 0.5 | 1.5 | 0.75 | 1 | 1 |
+| Fire | 1 | 1.5 | 0.75 | 0.5 | 1 | 1 | 1 |
+| Wind | 1 | 0.75 | 1.5 | 1 | 0.5 | 1 | 1 |
+| Holy | 1 | 1 | 1 | 1 | 1 | 0.5 | 1.5 |
+| Shadow | 1 | 1 | 1 | 1 | 1 | 1.5 | 0.5 |
+
+A monster's inherent element defines its basic-attack element and defensive affinity. Player defense defaults to neutral. The six elemental boots grant `fixedStats.elementalAffinity`, replacing `elementalImmunity`; they do not add a second resistance modifier and do not prevent status application. Their other stats, item IDs and rolls retain their current catalogue values. Existing owned boots obtain their affinity from the catalogue, disregarding stale immunity metadata in instances. Legacy catalogue immunity fields are interpreted as the equivalent affinity.
+
+Display resistance per incoming element as `(1 - affinityMultiplier) * 100`. Earth boots therefore show Earth +50%, Fire -50%, Wind +25%, and Water/Holy/Shadow 0%. Character > Character > Stats shows all six values, including zero and negative values. Item tooltips show affinity and its nonzero resistance profile. Replacement comparisons use signed percentage-point deltas for the entire profile, including removing a vulnerability when switching to neutral boots. The displayed values describe the matrix and MUST NOT be applied again as independent mitigation.
+
+Weapon enchantment affects only basic attacks, not defense or skill elements. Resolve instance `enchantedElement` (or legacy instance `element`) before catalogue `element`, defaulting to neutral. Preserve the existing combined dual-hand strike and its one hit/crit roll: the effective secondary-hand ATK fraction uses that hand's element; base ATK and the remaining fraction use the primary element. DEF/MDEF is evaluated once for the combined strike, then the weighted affinity multiplier, then existing direct-damage variance/rounding. Skills use their own element regardless of the caster's or weapon's element. `foe_element_weak` consults the same matrix.
+
+Approved monster affinities:
+- Neutral: Slime, Field Bat, Mutant Bee, Dire Wolf, Mudflat Crocodile, Needleback Stalker, Giant Spider, Dune Raider, Venom Viper, Bandit, Giant Mosquito, Kwaiouá Ranger, Giant Mantis, Moonleaf Arcanist, Broken Sentinel.
+- Earth: Thornsprout, Mudcrawler, Gravelhorn, Sand Scorpion, Ridgebreaker, Rootbound Brute, Flaming Treant, Sacred Forest Guardian, Aramaian Warden.
+- Water: Saltfang Crab. Fire: Cinder Golem. Wind: Mirage Stalker.
+- Holy: Unicorn, Arcane Wisp. Shadow: Ruins Guardian, Bone Knight, Wailing Wraith.
+
+This replaces the old per-species elemental resistance/multiplier lists, including Thornsprout's former 2x fire weakness, Giant Spider's former fire weakness and Flaming Treant's fire immunity. Weapon-category and melee/ranged/magic damage-taken modifiers remain separate.
+
+Burn is defined in `status_effects.json`: `element: fire`, `damageType: magical`, `burnDamage: source_matk_div_5`, `statusDurationTicks: 50`, `damageIntervalTicks: 10`, one stack and refresh on reapplication. At 500 ms per tick this means 25-second duration and five-second tick intervals. Expiration retains the existing before-actions ordering. Capture effective source MATK / 5 when applying Burn; each damage tick uses current target MDEF, affinity and any applicable magic barrier. Fire Ball/Fire Blast retain their own 5%/50% proc chances but no longer own Burn duration, cadence or formula. Legacy carried Burn instances with missing damage type/element resolve as magical/fire. Persist periodic damage deadlines as absolute `nextDamageAt`, converting them into battle-relative ticks on the next encounter, while retaining source and captured potency.
+
+Flaming Treant is Earth. Its `monster_skill_flaming_pound` passive, Flaming Pound, has a 20% seeded chance after each landed basic attack against a surviving target to apply canonical Burn. It cannot proc on a miss, active skill or periodic tick; it does not consume an action, cast or Gambit. The physical/Earth basic strike and magical/Fire Burn remain distinct. Register the passive through `passiveSkills`, with its established skill icon/tooltip presentation and source attribution in status events.
+
+New immutable encounter inputs carry `elementalRulesVersion: 1`. Replays of stored V2 inputs without this marker retain pre-change elemental rules. Solo FLEE uses the stored `v2Input` where available instead of rebuilding an encounter from current catalogues.

@@ -1,3 +1,10 @@
+## Frontend change detection budget — 2026-11-21
+
+- **High-frequency work runs outside the Angular zone.** Render loops (`TownRuntime`, `CharacterRig`), pointer and wheel handlers that only drive 3D or plain DOM, DOM-only polls (`battle-hit-feedback`, `tooltip-position`) and the audio poll never enter the zone. What the UI must show reaches Angular through signals (Angular 18 refreshes the views that read a signal even when it changes outside the zone).
+- **One wall clock.** Countdowns and progress bars read `UiClockService.now` (4 Hz, outside the zone) instead of each component running its own `setInterval`.
+- **Templates must return stable values.** Anything iterated by `*ngFor`/`@for` must keep its identity between passes (memoized or a `computed`), or be tracked (`trackBy`/`track`). Tooltip lines are memoized in `CatalogService`.
+- Next steps (not done): `OnPush` everywhere and then zoneless change detection; 3D in an `OffscreenCanvas` worker before large battles.
+
 ## Town click-to-move and emotes without a movement server — 2026-11-21
 
 - **Input becomes data in `positionAt`, not a simulation.** A click stores one `move {from, to, at, lookAt}` in the Redis `TownState` (one write, one `town:update`). Every client derives the walk (grid path, 3 u/s), the 10 s stand and the return to wandering from it. The return starts walking immediately and then rejoins the plain seed legs. Nothing is scheduled or cleared server-side, so offline and AFK characters still cost nothing. The server validates the destination (`TownNav.nearestReachable`) and throttles to one click per 200 ms.

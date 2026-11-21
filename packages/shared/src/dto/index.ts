@@ -82,6 +82,8 @@ export class CharacterDto {
   attack!: number;
   magicAttack!: number;
   defense!: number;
+  elementalAffinity!: string;
+  elementalResistances!: Record<string, number>;
   attackSpeed!: number;
   castTimeReduction!: number;
   evasion!: number;

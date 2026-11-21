@@ -4872,9 +4872,9 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "elementalImmunity": "earth",
         "def": 3,
-        "moveSpeed": 15
+        "moveSpeed": 15,
+        "elementalAffinity": "earth"
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -4907,7 +4907,7 @@
           "name": "Grounded Boots"
         }
       },
-      "description": "A reinforced pair of boots for adventurers requiring level 8. Base attributes: +2 Defense, +15 Move Speed. It may gain bonus attributes when dropped or crafted."
+      "description": "Boots granting earth affinity. Elemental resistances and vulnerabilities follow this affinity."
     },
     {
       "id": "equip_shoes_water_t2",
@@ -4917,9 +4917,9 @@
       "levelReq": 8,
       "tier": 2,
       "fixedStats": {
-        "elementalImmunity": "water",
         "def": 3,
-        "moveSpeed": 15
+        "moveSpeed": 15,
+        "elementalAffinity": "water"
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -4952,7 +4952,7 @@
           "name": "Tidal Boots"
         }
       },
-      "description": "A reinforced pair of boots for adventurers requiring level 8. Base attributes: +2 Defense, +15 Move Speed. It may gain bonus attributes when dropped or crafted."
+      "description": "Boots granting water affinity. Elemental resistances and vulnerabilities follow this affinity."
     },
     {
       "id": "equip_shoes_fire_t3",
@@ -4962,9 +4962,9 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "elementalImmunity": "fire",
         "def": 5,
-        "moveSpeed": 30
+        "moveSpeed": 30,
+        "elementalAffinity": "fire"
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -4997,7 +4997,7 @@
           "name": "Flame Boots"
         }
       },
-      "description": "An ancient pair of boots for adventurers requiring level 15. Base attributes: +4 Defense, +30 Move Speed. It may gain bonus attributes when dropped or crafted."
+      "description": "Boots granting fire affinity. Elemental resistances and vulnerabilities follow this affinity."
     },
     {
       "id": "equip_shoes_shadow_t3",
@@ -5007,9 +5007,9 @@
       "levelReq": 15,
       "tier": 3,
       "fixedStats": {
-        "elementalImmunity": "shadow",
         "def": 5,
-        "moveSpeed": 30
+        "moveSpeed": 30,
+        "elementalAffinity": "shadow"
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -5042,7 +5042,7 @@
           "name": "Shadow Boots"
         }
       },
-      "description": "An ancient pair of boots for adventurers requiring level 15. Base attributes: +4 Defense, +30 Move Speed. It may gain bonus attributes when dropped or crafted."
+      "description": "Boots granting shadow affinity. Elemental resistances and vulnerabilities follow this affinity."
     },
     {
       "id": "equip_shoes_wind_t4",
@@ -5052,9 +5052,9 @@
       "levelReq": 22,
       "tier": 4,
       "fixedStats": {
-        "elementalImmunity": "wind",
         "def": 7,
-        "moveSpeed": 45
+        "moveSpeed": 45,
+        "elementalAffinity": "wind"
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -5087,7 +5087,7 @@
           "name": "Wind Boots"
         }
       },
-      "description": "A masterwork pair of boots for adventurers requiring level 22. Base attributes: +6 Defense, +45 Move Speed. It may gain bonus attributes when dropped or crafted."
+      "description": "Boots granting wind affinity. Elemental resistances and vulnerabilities follow this affinity."
     },
     {
       "id": "equip_shoes_holy_t4",
@@ -5097,9 +5097,9 @@
       "levelReq": 22,
       "tier": 4,
       "fixedStats": {
-        "elementalImmunity": "holy",
         "def": 7,
-        "moveSpeed": 45
+        "moveSpeed": 45,
+        "elementalAffinity": "holy"
       },
       "randomRollOnDrop": {
         "enabled": false,
@@ -5132,7 +5132,7 @@
           "name": "Holy Boots"
         }
       },
-      "description": "A masterwork pair of boots for adventurers requiring level 22. Base attributes: +6 Defense, +45 Move Speed. It may gain bonus attributes when dropped or crafted."
+      "description": "Boots granting holy affinity. Elemental resistances and vulnerabilities follow this affinity."
     },
     {
       "id": "equip_shoes_traveler_t1",

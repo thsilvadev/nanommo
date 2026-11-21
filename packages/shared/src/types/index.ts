@@ -149,7 +149,9 @@ export interface StatusEffectDefinition {
   damagePerStack?: number;
   damageIntervalTicks?: number;
   procChancePerRank?: number;
-  damageType?: 'pure' | 'status';
+  damageType?: 'pure' | 'status' | 'physical' | 'magic' | 'magical';
+  element?: string;
+  burnDamage?: 'source_matk_div_5';
   reapplication?: 'refresh';
 }
 

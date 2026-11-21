@@ -1,22 +1,23 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CharacterStore } from '../../core/game.store';
 import { LocaleService } from '../../core/locale.service';
 import { PartyMember, PartyStore } from '../../core/party.store';
 import { sharedActorResources, sharedActorStatuses, isSharedBattleCurrent } from '../../core/party-projection';
 import { CharacterSummary } from './components';
+import { UiClockService } from '../../core/ui-clock.service';
 
 @Component({
   selector: 'app-party-panel', standalone: true, imports: [CommonModule, CharacterSummary],
   templateUrl: './party-panel.component.html', styleUrl: './party-panel.component.css',
 })
-export class PartyPanelComponent implements OnDestroy {
+export class PartyPanelComponent {
   readonly party = inject(PartyStore);
   readonly character = inject(CharacterStore);
   readonly locale = inject(LocaleService);
   readonly tab = signal<'character'|'group'>('group');
-  readonly now = signal(Date.now());
-  private readonly timer = setInterval(() => this.now.set(Date.now()), 250);
+  readonly now = inject(UiClockService).now;
+  trackIndex(index: number) { return index; }
   readonly isLeader = computed(() => this.party.party()?.leaderCharacterId === this.character.character()?.id);
   readonly ownMember = computed(() => this.party.members().find(member => member.characterId === this.character.character()?.id));
   readonly activeInvites = computed(() => this.party.invites().filter(invite => ['offered','accepted'].includes(invite.status)));
@@ -33,5 +34,4 @@ export class PartyPanelComponent implements OnDestroy {
     [members[index],members[next]]=[members[next],members[index]];
     void this.party.reorder(members.map(value => value.characterId));
   }
-  ngOnDestroy(): void { clearInterval(this.timer); }
 }

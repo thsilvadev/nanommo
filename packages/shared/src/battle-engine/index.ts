@@ -1,3 +1,5 @@
+import { elementalMultiplier, normalizeElement, basicAttackElementMultiplier, type BasicAttackElement } from '../elements';
+import { burnStatusPayload, periodicDamageAmount, periodicDamageProfile } from './elemental-status';
 import { Mulberry32 } from './prng';
 import type { StatusEffectDefinition } from '../types';
 import { secondsToBattleTicks } from './time';
@@ -82,7 +84,11 @@ export interface CombatantSnapshot {
    */
   attackLockTicks?: number;
   castLockTicks?: number;
+  elementalRulesVersion?: 0 | 1;
   element?: string | null;
+  basicAttackElement?: string;
+  basicAttackElements?: BasicAttackElement[];
+  passiveSkills?: string[];
   characterName?: string;
   /** Distinguishes player-only rules such as Disarm from monster behavior. */
   isPlayerCharacter?: boolean;
@@ -154,9 +160,8 @@ export class GambitEvaluator {
       case 'always': return true;
       case 'upon_death': return self.hp <= 0; // legacy saved Gambit migration
       case 'foe_element_weak': {
-        const configured = Number(foe.elementalDamageTakenMultiplier?.[String(params.element)]);
-        if (Number.isFinite(configured)) return configured > 1;
-        return false;
+        if(foe.elementalRulesVersion===0)return Number(foe.elementalDamageTakenMultiplier?.[String(params.element)])>1;
+        return elementalMultiplier(params.element, foe.element) > 1;
       }
       case 'foe_in_range': {
         const selfPosition = Number(self.position);
@@ -418,7 +423,8 @@ export class BattleEngine {
       agi: Number(monsterDefinition?.agi ?? 0),
       dex: Number(monsterDefinition?.dex ?? 0),
       statusEffects: [...(monsterDefinition?.statusEffects ?? [])],
-      element: monsterDefinition?.element ?? null,
+      element: normalizeElement(monsterDefinition?.element),
+      passiveSkills: [...(monsterDefinition?.passiveSkills ?? [])],
       elementalDamageTakenMultiplier: monsterDefinition?.elementalDamageTakenMultiplier ?? {},
       elementalResistances: monsterDefinition?.elementalResistances ?? [],
       combatStyle: monsterDefinition?.combatStyle === 'ranged' ? 'ranged' : 'melee',
@@ -547,6 +553,7 @@ export class BattleEngine {
     cooldownsAfter: Record<string, number>;
     checkpoint?: { tick: number; hp: number; sp: number; monsterHp: number; monsterSp: number; statusEffects: any[]; monsterStatusEffects: any[]; cooldowns: Record<string, number>; foodBuffs: any[]; foodDigestRemainingTicksByItem: Record<string, number>; inventoryAfter: Record<string, number>; battleEnded: boolean };
   } {
+    const elementalRules = characterSnapshot.elementalRulesVersion !== 0;
     const rng = new Mulberry32(seed);
     const inventory: Record<string, number> = { ...(options.inventory ?? {}) };
     const itemDefinitions: Record<string, any> = options.itemDefinitions ?? {};
@@ -562,6 +569,7 @@ export class BattleEngine {
 
     const self: CombatantSnapshot = {
       ...characterSnapshot,
+      elementalRulesVersion: elementalRules ? 1 : 0,
       isPlayerCharacter: true,
       hp: Math.min(
         characterSnapshot.hp,
@@ -586,6 +594,7 @@ export class BattleEngine {
 
     const foe: CombatantSnapshot = {
       ...BattleEngine.buildMonsterSnapshot(monsterDefinition),
+      elementalRulesVersion: elementalRules ? 1 : 0,
       isPlayerCharacter: false,
       cooldowns: foeCooldowns,
       statusEffects: [...(monsterDefinition?.statusEffects ?? [])],
@@ -685,11 +694,9 @@ export class BattleEngine {
     const rangedMult = Number(damageTakenMultiplier.ranged ?? 1);
     const magicMult = Number(damageTakenMultiplier.magic ?? 1);
     const elementalDamageMultiplier = (element: any): number => {
-      if (!element) return 1;
-      const configured = Number(monsterDefinition?.elementalDamageTakenMultiplier?.[String(element)]);
-      if (Number.isFinite(configured) && configured >= 0) return configured;
-      const weaponless = monsterDefinition?.elementalResistances ?? [];
-      return Array.isArray(weaponless) && weaponless.includes(String(element)) ? 0.5 : 1;
+      if(elementalRules)return elementalMultiplier(element, foe.element);
+      if(!element)return 1;
+      return Number(monsterDefinition?.elementalDamageTakenMultiplier?.[element]??(monsterDefinition?.elementalResistances?.includes(element)?0.5:1));
     };
     const weaponCategoryMultiplier = (category: any): number => {
       const key = String(category ?? '');
@@ -728,6 +735,10 @@ export class BattleEngine {
       appliedBy: 'character' | 'monster' = 'character',
     ): boolean => {
       const definition = statusEffectDefs[statusId] ?? {};
+      if (elementalRules && statusId === 'burn') {
+        extra = { ...extra, ...burnStatusPayload(appliedBy === 'monster' ? effectiveMatk(foe) : effectiveMatk(self), definition, tick) };
+        durationTicks = Number(definition.statusDurationTicks ?? 50);
+      }
       const current = target.statusEffects ?? [];
       const existing = current.filter((status: any) => statusIdOf(status) === statusId);
       const stackable = definition.stackable === true;
@@ -861,7 +872,10 @@ export class BattleEngine {
         const dueAt = Number(status.nextDamageAtTick ?? Number.POSITIVE_INFINITY);
         if (interval <= 0 || tick < dueAt || Number(status.damagePerTick ?? 0) <= 0) continue;
         const rawDamage = Math.max(0, Math.floor(Number(status.damagePerTick)));
-        const damage = status.damageType === 'magic' ? Math.floor(BattleEngine.calculateMagicDamage(rawDamage, effectiveMagicDefensePercent(unit))) : rawDamage;
+        const definition = statusEffectDefs[statusIdOf(status)] ?? {};
+        const profile = periodicDamageProfile(status, definition);
+        const amount = elementalRules ? periodicDamageAmount(rawDamage, status, definition, unit, effectiveMagicDefensePercent(unit)) : status.damageType === 'magic' ? Math.floor(BattleEngine.calculateMagicDamage(rawDamage, effectiveMagicDefensePercent(unit))) : rawDamage;
+        const damage = elementalRules && statusIdOf(status) === 'burn' && ['magic', 'magical'].includes(profile.damageType) ? absorbMagicDamage(unit, profile.damageType, amount).damage : amount;
         unit.hp = Math.max(0, unit.hp - damage);
         status.nextDamageAtTick = dueAt + interval;
         record({
@@ -872,7 +886,7 @@ export class BattleEngine {
           sourceSkillId: status.sourceSkillId,
           target: unit === self ? 'character' : 'monster',
           damage,
-          damageType: String(status.damageType ?? (statusIdOf(status) === 'bleed' ? 'pure' : 'status')),
+          damageType: profile.damageType,
           ignoresDefense: status.damageType === 'pure' || statusIdOf(status) === 'bleed',
           hit: true,
         });
@@ -1032,7 +1046,7 @@ export class BattleEngine {
                   ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(foe))
                   : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(foe));
                 const archetypeMultiplier = isMagic ? magicMult : def.ranged === true ? rangedMult : meleeMult;
-                const elementMultiplier = elementalDamageMultiplier(def.element);
+                const elementMultiplier = elementalRules && damageType === 'pure' ? 1 : elementalDamageMultiplier(def.element);
                 const weaponCategory = (self.equippedWeaponTypes ?? []).find((type: string) => !['shield', 'rune'].includes(type));
                 const finalDamage = mitigation * archetypeMultiplier * elementMultiplier * weaponCategoryMultiplier(weaponCategory);
                 const rolledDamage = Math.max(0, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)));
@@ -1084,12 +1098,8 @@ export class BattleEngine {
 
                 const burnChance = Math.max(0, Math.min(1, Number(effect.burnChance ?? 0)));
                 if (burnChance > 0 && foe.hp > 0 && rng.chance(burnChance)) {
-                  const interval = Number(effect.burnIntervalTicks ?? 10);
-                  applyStatus(foe, 'burn', skillId, Number(effect.burnDurationTicks ?? 50), {
-                    damagePerTick: Math.floor(Number(self.matk ?? 0) / 5),
-                    damageIntervalTicks: interval,
-                    nextDamageAtTick: tick + interval,
-                  }, 'character');
+                  const interval=Number(effect.burnIntervalTicks??10);
+                  applyStatus(foe, 'burn', skillId, elementalRules?undefined:Number(effect.burnDurationTicks??50), elementalRules?burnStatusPayload(effectiveMatk(self), statusEffectDefs.burn, tick):{damagePerTick:Math.floor(self.matk/5),damageIntervalTicks:interval,nextDamageAtTick:tick+interval}, 'character');
                 }
 
                 if (effectType === 'physical_push' && foe.hp > 0) {
@@ -1304,7 +1314,7 @@ export class BattleEngine {
               ? BattleEngine.calculateMagicDamage(baseDamage, effectiveMagicDefensePercent(foe))
               : BattleEngine.calculatePhysicalDamage(baseDamage, effectiveDefense(foe));
             const weaponCategory = (self.equippedWeaponTypes ?? []).find((type: string) => !['shield', 'rune'].includes(type));
-            const finalDamage = mitigation * (attackType === 'ranged' ? rangedMult : attackType === 'magic' ? magicMult : meleeMult) * weaponCategoryMultiplier(weaponCategory);
+            const finalDamage = mitigation * (attackType === 'ranged' ? rangedMult : attackType === 'magic' ? magicMult : meleeMult) * weaponCategoryMultiplier(weaponCategory) * (elementalRules ? basicAttackElementMultiplier({...self,atk:self.atk+fearlessAtkBonus}, foe) : 1);
             for (let component = 0; component < componentCount; component += 1) {
               damageComponents.push(landed
                 ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
@@ -1609,6 +1619,7 @@ export class BattleEngine {
           let finalDamage = monsterAttackType === 'magic'
             ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(self))
             : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
+          if(elementalRules)finalDamage *= basicAttackElementMultiplier(foe, self);
           const rolledDamage = landed
             ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
             : 0;
@@ -1623,6 +1634,13 @@ export class BattleEngine {
             ...(tipOfPain ? { empoweredBy: 'tip_of_pain' } : {}),
           });
           tryReviveOnDeath();
+
+          if (elementalRules && landed && self.hp > 0 && foe.passiveSkills?.includes('monster_skill_flaming_pound')) {
+            const effect = monsterSkillDefs.monster_skill_flaming_pound?.effects?.[0] ?? {};
+            if (rng.chance(Math.max(0, Math.min(1, Number(effect.statusChance ?? 0.2))))) {
+              applyStatus(self, 'burn', 'monster_skill_flaming_pound', undefined, burnStatusPayload(effectiveMatk(foe), statusEffectDefs.burn, tick), 'monster');
+            }
+          }
 
           // Silk Prey rolls on every successful Giant Spider basic attack. Each
           // stack is a separate timed instance, capped by the status catalogue.
@@ -1713,9 +1731,10 @@ export class BattleEngine {
               (String(def.damageType ?? 'physical') === 'magical' ? effectiveMatk(foe) : effectiveAttack(foe)) *
               Number(effect.dmgMult ?? 1);
             const monsterSkillDamageType = String(def.damageType ?? 'physical');
-            const finalDamage = monsterSkillDamageType === 'pure' ? raw : monsterSkillDamageType === 'magical'
+            const mitigation = monsterSkillDamageType === 'pure' ? raw : monsterSkillDamageType === 'magical'
               ? BattleEngine.calculateMagicDamage(raw, effectiveMagicDefensePercent(self))
               : BattleEngine.calculatePhysicalDamage(raw, effectiveDefense(self));
+            const finalDamage = mitigation * (!elementalRules || monsterSkillDamageType === 'pure' ? 1 : elementalMultiplier(def.element, self.element));
             const rolledDamage = landed
               ? Math.max(1, Math.floor(BattleEngine.applyDirectDamageVariance(finalDamage, rng)))
               : 0;
@@ -1783,6 +1802,7 @@ export class BattleEngine {
                     moveSpeedPenalty,
                     attackSpeedPenalty,
                     ...(statusId === 'poison' ? { damagePerTick: Math.floor(Number(foe.matk ?? 0) * 0.5), damageIntervalTicks: Number(effect.damageIntervalTicks ?? 10), nextDamageAtTick: tick + Number(effect.damageIntervalTicks ?? 10), damageType: 'magic' } : {}),
+                    ...(elementalRules && statusId === 'burn' ? burnStatusPayload(effectiveMatk(foe), statusDef, tick) : {}),
                     ...(statusId === 'bleed' ? { damagePerTick: Number(statusDef.damagePerStack ?? 5), damageIntervalTicks: Number(statusDef.damageIntervalTicks ?? 10), nextDamageAtTick: tick + Number(statusDef.damageIntervalTicks ?? 10), damageType: 'pure' } : {}),
                   }];
                   const stackCount = (self.statusEffects ?? []).filter(

@@ -1,5 +1,5 @@
 import { battleTickAt } from './battle-timing';
-import { Injectable, signal } from '@angular/core';
+import { Injectable, NgZone, inject, signal } from '@angular/core';
 
 type SoundName =
   | 'arrow_hit_1' | 'bash' | 'dagger_hit_1' | 'enemy_hit_1' | 'enemy_hit_2'
@@ -13,6 +13,8 @@ type SoundName =
 
 @Injectable({ providedIn: 'root' })
 export class GameAudioService {
+  /** Null when constructed outside dependency injection (unit tests). */
+  private readonly zone: NgZone | null = (() => { try { return inject(NgZone); } catch { return null; } })();
   private readonly base = '/assets/sounds/';
   private readonly volumeStorageKey = 'nanommo:game-audio-volume';
   private readonly mutedStorageKey = 'nanommo:game-audio-muted';
@@ -171,7 +173,9 @@ export class GameAudioService {
     // start() is called before the first map poll. Do not launch a competing
     // asynchronous stop/fade here: updateMusic owns the initial region transition.
     this.previousLevel = characterStore.character()?.level ?? null;
-    this.timer = setInterval(() => {
+    // 10 Hz audio poll: no view depends on it, so it must not trigger change detection.
+    const outside = <T>(fn: () => T): T => (this.zone ? this.zone.runOutsideAngular(fn) : fn());
+    this.timer = outside(() => setInterval(() => {
       const character = characterStore.character();
       if (!character) return;
       this.updateMusic(String(character.currentMapId ?? ''));
@@ -180,7 +184,7 @@ export class GameAudioService {
       this.previousLevel = level;
       this.updateBattleAudio(battleStore);
       this.updateResolvedAudio(battleStore);
-    }, 100);
+    }, 100));
   }
 
   destroy(): void {

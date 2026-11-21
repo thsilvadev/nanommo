@@ -34,3 +34,7 @@ tools/character-assets/source/
 
 # Screenshots from tools/character-assets/preview/shoot.mjs (local review only)
 tools/character-assets/preview/screenshots/
+
+# Browser performance recordings (tens of MB): keep local
+*.json.gz
+*profile*.json

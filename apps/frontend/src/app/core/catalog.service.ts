@@ -1,3 +1,6 @@
+import { ELEMENTS, elementalResistances, itemAffinity, normalizeElement, weaponElement } from '@nanommo/shared';
+
+export const ELEMENT_NAMES:Record<string,string>={neutral:'Neutral',earth:'Earth',water:'Water',fire:'Fire',wind:'Wind',holy:'Holy',shadow:'Shadow'};
 import { craftItemTooltipLines } from './craft-item-tooltip';
 
 import { Injectable, signal } from '@angular/core';
@@ -18,11 +21,36 @@ export class CatalogService {
   return this.locale.t(labels[type]??'Item');
  }
  craftItemName(id:string,instanceData?:any){return this.item(id)?this.itemName(id,instanceData):this.locale.t('Item');}
- craftItemTooltipLines(id:string,instanceData?:any){
+ /**
+  * Tooltip lines are read from templates on every change detection. Building them
+  * fresh each time returned new arrays of new objects, so every *ngFor over them
+  * destroyed and recreated its DOM (hundreds of nodes per pass in the inventory).
+  * They are memoized per (item, instance, slot) and dropped whenever a catalogue,
+  * the equipped gear or the locale changes. The arrays are frozen: callers only read.
+  */
+ private tooltipMemo=new Map<string,readonly any[]>();
+ private tooltipMemoDeps:unknown[]=[];
+ private memoTooltip(kind:string,itemId:string,instanceData:any,equippedSlot:string|undefined,build:()=>any[]):any[]{
+  const deps=[this.items(),this.equippedEquipment(),this.monsters(),this.maps(),this.skills(),this.statusEffects(),this.weaponCurve(),this.npcVendor(),this.locale.locale()];
+  if(deps.length!==this.tooltipMemoDeps.length||deps.some((d,i)=>d!==this.tooltipMemoDeps[i])){this.tooltipMemo.clear();this.tooltipMemoDeps=deps;}
+  let instanceKey='';
+  if(instanceData!=null){try{instanceKey=JSON.stringify(instanceData);}catch{return build();}}
+  const key=kind+'|'+itemId+'|'+(equippedSlot??'')+'|'+instanceKey;
+  let lines=this.tooltipMemo.get(key);
+  if(!lines){
+   if(this.tooltipMemo.size>=2000)this.tooltipMemo.clear();
+   lines=Object.freeze(build());
+   this.tooltipMemo.set(key,lines);
+  }
+  return lines as any[];
+ }
+ itemTooltipLines(itemId:string,instanceData?:any,equippedSlot?:string):any[]{return this.memoTooltip('item',itemId,instanceData,equippedSlot,()=>this.computeItemTooltipLines(itemId,instanceData,equippedSlot));}
+ craftItemTooltipLines(id:string,instanceData?:any):any[]{return this.memoTooltip('craft',id,instanceData,undefined,()=>this.computeCraftItemTooltipLines(id,instanceData));}
+ private computeCraftItemTooltipLines(id:string,instanceData?:any){
   const item:any=this.item(id);
   return craftItemTooltipLines(item,{portuguese:this.locale.locale()==='pt-BR',description:this.locale.localized(item,'description',item?.description),stats:this.equipmentStatLines(id,instanceData),statusName:status=>this.locale.localized(this.statusEffect(status),'name')});
  }
- itemTooltipLines(itemId:string,instanceData?:any,equippedSlot?:string){
+ private computeItemTooltipLines(itemId:string,instanceData?:any,equippedSlot?:string){
   const d:any=this.item(itemId);if(!d)return [];
   const category={label:this.locale.t('Type'),value:this.itemTypeLabel(d.type)};
   const description=this.locale.localized(d,'description',d.description);
@@ -51,6 +79,8 @@ export class CatalogService {
   const s=Math.max(0,Math.round(seconds));const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);const sec=s%60;
   return h>0?`${h}h ${String(m).padStart(2,'0')}m`:m>0?`${m}m`:`${sec}s`;
  }
+ elementName(element:unknown){return this.locale.t(ELEMENT_NAMES[normalizeElement(element)])}
+ elementResistanceLabel(element:string){return this.locale.t(`${ELEMENT_NAMES[element]} Resistance`)}
  private equipmentComparisonLines(itemId:string,instanceData?:any){
   const item:any=this.item(itemId);if(item?.type!=='equipment')return [];
   const rows=this.equippedEquipment();
@@ -77,6 +107,7 @@ export class CatalogService {
     refinedFixed[key]=Number(base)+refinementGain*refine;
    }
    for(const key of ['def','mdefPercent','maxHp','maxSp','moveSpeed'])add(key,Number(refinedFixed[key]??fixed[key]??0));
+   if(definition.slot==='shoes')for(const [element,value] of Object.entries(elementalResistances(itemAffinity(definition))))add('resistance:'+element,value);
    if(slot==='mainHand'||slot==='offHand'){
     let attack=Number(refinedFixed['atk']??0);
     if(slot==='offHand')attack=Math.floor(attack/2);
@@ -106,7 +137,7 @@ export class CatalogService {
   const keys=[...new Set([...Object.keys(candidate),...Object.keys(previous)])];
   const changes=keys.map(key=>({key,delta:(candidate[key]??0)-(previous[key]??0)})).filter(row=>row.delta!==0);
   if(!changes.length)return [];
-  return [{label:'',value:'Compared with equipped '+(comparisonSlot==='accessoryLeft'||comparisonSlot==='accessoryRight'?'Accessory':comparisonSlot),comparisonHeader:true},...changes.map(({key,delta})=>({label:labels[key]??key,value:`${delta>0?'+':''}${delta}${key==='mdefPercent'||key==='criticalChance'?'%':''}`,comparison:true,comparisonPositive:delta>0,comparisonNegative:delta<0}))];
+  return [{label:'',value:'Compared with equipped '+(comparisonSlot==='accessoryLeft'||comparisonSlot==='accessoryRight'?'Accessory':comparisonSlot),comparisonHeader:true},...changes.map(({key,delta})=>({label:key.startsWith('resistance:')?this.elementResistanceLabel(key.slice(11)):labels[key]??key,value:`${delta>0?'+':''}${delta}${key.startsWith('resistance:')?' pp':key==='mdefPercent'||key==='criticalChance'?'%':''}`,comparison:true,comparisonPositive:delta>0,comparisonNegative:delta<0}))];
  }
 
  equipmentStatLines(itemId:string,instanceData?:any,equippedSlot?:string){
@@ -125,6 +156,13 @@ export class CatalogService {
   const rolledStat=String(instanceData?.rolledStat??'');const rolledStatValue=Number(instanceData?.rolledStatValue??0);
   const statLabels:Record<string,string>={atk:'Attack',matk:'Magic ATK',castTimeReduction:'Cast Time Reduction',accuracy:'Accuracy',criticalPercent:'Critical Chance',atkSpeed:'Attack Speed',hp:'Max HP',sp:'Max SP',evasion:'Evasion',defense:'Defense'};
   if(rolledStat&&rolledStatValue)lines.push({label:`${this.locale.t(statLabels[rolledStat]??rolledStat)} (rolled)`,value:`+${rolledStatValue}`});
+  if(item.slot==='shoes'){
+   const affinity=itemAffinity(item);
+   lines.push({label:this.locale.t('Elemental Affinity'),value:this.elementName(affinity)});
+   const resistances=elementalResistances(affinity);
+   for(const element of ELEMENTS){const value=resistances[element];if(value)lines.push({label:this.elementResistanceLabel(element),value:`${value>0?'+':''}${value}%`});}
+  }
+  if(item.weaponType&&weaponElement(item,instanceData)!=='neutral')lines.push({label:this.locale.t('Attack Element'),value:this.elementName(weaponElement(item,instanceData))});
   if(refine)lines.push({label:this.locale.t('Refinement'),value:'+'+refine});
   return lines;
  }

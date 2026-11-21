@@ -1,10 +1,11 @@
+import { elementalResistances } from '@nanommo/shared';
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnInit, inject, signal, effect } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CdkDrag, CdkDropList, CdkDragDrop, CdkDragStart } from '@angular/cdk/drag-drop';
 import { Router } from '@angular/router';
 import { BattleStore, CharacterStore, InventoryStore } from '../../core/game.store';
-import { CatalogService } from '../../core/catalog.service';
+import { CatalogService, ELEMENT_NAMES } from '../../core/catalog.service';
 import { ApiService } from '../../core/api.service';
 import { BrowserNotificationsService } from '../../core/browser-notifications.service';
 import { LocaleService } from '../../core/locale.service';
@@ -67,6 +68,7 @@ export class CharacterPageComponent implements OnInit {
     setTab(t: string) { this.tab = t; if (t === 'professions') void this.loadCookingProgress(); if (t === 'quests') void this.loadQuests(); if (t === 'gambits') this.router.navigate(['/play/character'], { queryParams: { tab: 'gambits' } }); else this.router.navigate(['/play/character'], { queryParams: { tab: t } }) }
     value(k: string) { const c = this.character.character() as any; return (c?.[k] ?? 0) + (this.pending()[k] ?? 0) }
     moveSpeed() { const character:any=this.character.character(); const level=Number(character?.level??0); return level>0 ? Number(character?.moveSpeed ?? (50+level)) : '—' }
+    elementalResistanceRows(){const c=this.character.character();const values:Record<string,number>=c?.elementalResistances??elementalResistances(c?.elementalAffinity);return ['water','earth','fire','wind','holy','shadow'].map(element=>({element,label:this.locale.t(`${ELEMENT_NAMES[element]} Resistance`),value:Number(values[element]??0)}))}
     attributeBonus(k: string) { const c = this.character.character() as any; const key = k.toUpperCase(); return Number(c?.attributeBonuses?.[key] ?? 0) }
     attributeTooltip(k: string) { const tips: Record<string, string> = { str: 'STR increases Physical ATK.', agi: 'AGI increases Attack Speed and Evasion.', dex: 'DEX increases Accuracy and Cast Time Reduction.', vit: 'VIT increases Max HP and HP Regen.', int: 'INT increases Max SP, SP Regen and Magic ATK.', luk: 'LUK increases Critical Chance.' }; return tips[k] ?? '' }
     delta(k: string) { return this.pending()[k] ?? 0 }

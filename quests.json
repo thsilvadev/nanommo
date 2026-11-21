@@ -226,14 +226,14 @@
       "completionDialogue": {
         "npcText": {
           "locales": {
-            "pt-BR": "Você honrou a floresta. Fique com estas botas; que elas guiem seus passos em segurança.",
-            "en-US": "You honored the forest. Take these boots; may they guide you safely."
+            "pt-BR": "Jovem. Imagina o peso de uma lágrima de um ser muito antigo, mais antigo que o avô do seu avô. Dói muito! É muita dor! O choro dos meus mestres… Nós vai proteger a floresta com essa dor.",
+            "en-US": "Young one. Imagine the weight of a tear from a being so ancient, older than your grandfather's grandfather. It hurts so much! It's such pain! The crying of my masters… We will protect the forest with that pain."
           }
         },
         "buttonText": {
           "locales": {
-            "pt-BR": "Obrigado, Pajé.",
-            "en-US": "Thank you, Pajé."
+            "pt-BR": "Nós vai, Pajé!",
+            "en-US": "We will, Pajé!"
           }
         }
       },
