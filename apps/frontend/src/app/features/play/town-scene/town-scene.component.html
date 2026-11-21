@@ -1,10 +1,8 @@
 <div #host class="town-scene" [class.town-scene--pickable]="hovering()"
      (pointerdown)="onPointerDown($event)"
-     (pointermove)="onPointerMove($event)"
      (pointerup)="onPointerUp($event)"
      (pointercancel)="onPointerUp($event)"
-     (pointerleave)="onPointerLeave()"
-     (wheel)="onWheel($event)">
+     (pointerleave)="onPointerLeave()">
   @if (state() === 'loading') {
     <div class="town-scene__status" aria-live="polite">…</div>
   }

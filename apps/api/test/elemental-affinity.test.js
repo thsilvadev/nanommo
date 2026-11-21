@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict');
+const {normalizeElement,elementalMultiplier,elementalResistances,equipmentAffinity,weaponElement,basicAttackElementMultiplier}=require('../../../packages/shared/dist');
+const elements=['neutral','earth','water','fire','wind','holy','shadow'];
+const matrix=[[1,1,1,1,1,1,1],[1,.5,1,.75,1.5,1,1],[1,1,.5,1.5,.75,1,1],[1,1.5,.75,.5,1,1,1],[1,.75,1.5,1,.5,1,1],[1,1,1,1,1,.5,1.5],[1,1,1,1,1,1.5,.5]];
+assert.equal(typeof elementalMultiplier,'function','shared affinity contract must exist');
+for(let i=0;i<7;i++)for(let j=0;j<7;j++)assert.equal(elementalMultiplier(elements[i],elements[j]),matrix[i][j],`${elements[i]} -> ${elements[j]}`);
+assert.equal(normalizeElement('light'),'holy');assert.equal(normalizeElement(null),'neutral');
+assert.deepEqual(elementalResistances('earth'),{earth:50,water:0,fire:-50,wind:25,holy:0,shadow:0});
+assert.equal(equipmentAffinity([{slot:'shoes',definition:{fixedStats:{elementalAffinity:'earth'}},instanceData:{elementalImmunity:'fire'}}]),'earth');
+assert.equal(equipmentAffinity([{slot:'shoes',definition:{fixedStats:{elementalImmunity:'water'}}}]),'water');
+assert.equal(equipmentAffinity([]),'neutral');
+assert.equal(weaponElement({element:'fire'},{element:'water'}),'water');assert.equal(weaponElement({},{}),'neutral');
+assert.equal(basicAttackElementMultiplier({atk:100,element:'water',basicAttackElements:[{slot:'mainHand',element:'fire',attack:20},{slot:'offHand',element:'wind',attack:20}]},{element:'earth'}),1.35);
+console.log('elemental affinity: 49 matrix entries, derived resistance, legacy boots, weapon enchantment and dual wield passed');
+const {equipmentElementSnapshot}=require('../../../packages/shared/dist');
+assert.equal(equipmentElementSnapshot([{slot:'offHand',definition:{weaponType:'dagger',fixedStats:{atk:3}},instanceData:{rolledStat:'atk',rolledStatValue:1}}]).basicAttackElements[0].attack,1,'secondary fixed and rolled ATK must each be halved and rounded exactly like EquipmentService');
+assert.equal(normalizeElement('ice'),'water');assert.equal(normalizeElement('lightning'),'wind');

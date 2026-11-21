@@ -1,4 +1,4 @@
-import { Directive, ElementRef, Input, OnDestroy, OnInit, inject } from '@angular/core';
+import { Directive, ElementRef, Input, NgZone, OnDestroy, OnInit, inject } from '@angular/core';
 import { BattleStore } from '../core/game.store';
 import { battleTickAt } from './battle-timing';
 
@@ -35,6 +35,7 @@ export class BattleHitFeedbackDirective implements OnInit, OnDestroy {
   @Input('battleHitFeedback') target: BattleDamageTarget = 'character';
   private readonly host = inject(ElementRef<HTMLElement>).nativeElement;
   private readonly battle = inject(BattleStore);
+  private readonly zone = inject(NgZone);
   private timer: ReturnType<typeof setInterval> | null = null;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
   private battleId = '';
@@ -45,8 +46,12 @@ export class BattleHitFeedbackDirective implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.host.classList.add('battle-feedback-anchor');
-    this.timer = setInterval(() => this.update(), 80);
-    this.update();
+    // Pure DOM work (floating numbers, flashes): polled outside the Angular zone so the
+    // 12.5 Hz poll and its cleanup timeouts never re-check the whole app.
+    this.zone.runOutsideAngular(() => {
+      this.timer = setInterval(() => this.update(), 80);
+      this.update();
+    });
   }
 
   private update(): void {

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { NgZone, signal } from '@angular/core';
 import type { TownRosterEntry, TownSceneDef } from '@nanommo/shared';
 import { CharacterStore } from '../../../core/game.store';
 import { PartyStore } from '../../../core/party.store';
@@ -65,6 +65,26 @@ describe('TownSceneComponent', () => {
     fixture.detectChanges();
     return fixture;
   }
+
+  it('creates the runtime (render loop, model loads) outside the Angular zone', async () => {
+    let createdInZone: boolean | null = null;
+    TestBed.overrideProvider(TOWN_SCENE_ENV, { useValue: {
+      webglAvailable: () => true,
+      loadScene: async () => ({ mapId: 'map_town', size: { w: 72, h: 72 }, npcSpots: {} }),
+      createRuntime: async (_host: HTMLElement, i: TownSceneRuntimeInit) => { createdInZone = NgZone.isInAngularZone(); init = i; return runtime; },
+    } });
+    await TestBed.inject(NgZone).run(() => create());
+    expect(createdInZone).toBeFalse();
+  });
+
+  it('pointermove over the scene is handled outside the Angular zone (hover alone never re-checks the app)', async () => {
+    const fixture = await create();
+    let movedInZone: boolean | null = null;
+    runtime.pick.and.callFake(() => { movedInZone = NgZone.isInAngularZone(); return null; });
+    const host: HTMLElement = fixture.nativeElement.querySelector('.town-scene');
+    TestBed.inject(NgZone).run(() => host.dispatchEvent(new PointerEvent('pointermove', { clientX: 10, clientY: 10, pointerId: 7, pointerType: 'mouse', bubbles: true })));
+    expect(movedInZone).toBeFalse();
+  });
 
   it('hands the runtime the scene, the server clock and the NPC names', async () => {
     await create();

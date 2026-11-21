@@ -1,0 +1,59 @@
+Elemental combat — final validation (2026-11-21)
+Branch: codex/elemental-combat-resistances
+
+PASS
+- Shared CommonJS and ESM TypeScript builds.
+- API Nest build.
+- Frontend production build (size-budget warnings only).
+- Complete Angular suite: 337/337 tests.
+- Eight Node regression scripts: elemental-affinity, elemental-catalog, elemental-character-projection, elemental-gambit, elemental-combat, elemental-replay-compatibility, elemental-carried-status, persistent-status-effects.
+- Existing regressions: group-battle-engine, group-battle-parity, violent-shot-slow, readable-battle-events.
+- Jest direct-damage-variance.spec.js: 4/4 tests.
+- Scoped git diff --check for elemental work.
+- Flaming Pound SVG rendered and visually inspected at 240px; original 36x36 frame/palette follows existing monster passives.
+
+INDEPENDENT REVIEW
+One fresh read-only review identified compatibility issues. Fixed with regressions: simulation/replay version parity, legacy monster snapshot preservation, anchored FLEE DOT deadlines, absent original Burn source attribution, retired Gambit elements and preservation of Poison barrier behavior. Odd secondary-hand rounding was also verified with a regression. A generic monster skill applying Burn now receives the same canonical payload as player spells and Flaming Pound.
+
+DECISIONS
+- Boot resistance percentages describe defensive affinity, and are not applied twice.
+- Keep the existing combined dual-hand strike and one hit/crit roll; the secondary ATK fraction uses its own element.
+- Existing immutable encounters keep old elemental rules; new encounters use elementalRulesVersion=1.
+- Legacy Gambit names light/ice/lightning map to holy/water/wind. The UI offers only the six canonical elements.
+
+DEFERRED MINOR
+The compact Burn status tooltip still shows its existing status summary. Its canonical damage type, element, duration, interval and potency formula are in status_effects.json, and the new Flaming Pound passive tooltip describes these completely. Expanding the status tooltip itself is deferred polish, not a missing combat rule.
+
+GENERAL API SUITE
+The broad Jest command exited unsuccessfully. It includes Node scripts that do not declare Jest tests, tests that depend on external HTTP/database services, ESM loading incompatibilities, and baseline assertions. The following standalone failures were reproduced in a temporary clean HEAD archive with the original shared sources compiled separately:
+- mastery-skill-simulator.test.js: Power Strike cooldown is 20 while the test expects 10.
+- defense-monster-casting-passive-logs.test.js: Dire Wolf must resolve Enraged Strike.
+- alchemy-tonics-battle.test.js: expected restored HP 350, actual 50.
+- battle-distance-movement.test.js: stale assertion that Ice Bolt maxRange is 7 (current catalogue is 9).
+- scripts/validate-monster-catalog.js stops at map_green_grounds_0 mapLength 20 versus expected 25; unrelated map data was left intact.
+The historical elemental assertions in the catalogue validator and distance test were updated for the approved matrix; unrelated assertions were retained.
+
+Broad Jest failures observed by name:
+test/quest-standardization.test.js — SyntaxError: Unexpected token 'export'
+test/battle-distance-movement.test.js — AssertionError [ERR_ASSERTION]: false == true
+test/mastery-skill-simulator.test.js — Your test suite must contain at least one test.
+test/party-concurrency.integration.test.js — SyntaxError: Unexpected token 'export'
+test/grind-monster-expansion-chat-journal.test.js — SyntaxError: Unexpected token 'export'
+test/town-roster.test.js — SyntaxError: Unexpected token 'export'
+test/world-travel-gathering-flee.test.js — Your test suite must contain at least one test.
+test/group-battle-parity.test.js — Your test suite must contain at least one test.
+test/battle-tickrate-500ms.test.js — See full log
+test/character-appearance-service.test.js — SyntaxError: Unexpected token 'export'
+test/grind-food-expiry-exit-regression.test.js — SyntaxError: Unexpected token 'export'
+test/town-wander.test.js — Your test suite must contain at least one test.
+test/off-battle-resources-cooldowns.test.js — SyntaxError: Unexpected token 'export'
+test/map-presence-cleanup.test.js — SyntaxError: Unexpected token 'export'
+test/character-3d-cutover.test.js — Your test suite must contain at least one test.
+test/town-scenes-catalog.test.js — Your test suite must contain at least one test.
+test/inventory-warehouse-transfer.test.js — Your test suite must contain at least one test.
+test/character-appearance-rules.test.js — Your test suite must contain at least one test.
+Additionally split-registration-character-creation.test.js reports fetch failed / process.exit(1).
+Full command output: /tmp/nanommo-elemental-api-final.log
+
+OTHER WORKSPACE CHANGES
+Concurrent UI-clock/performance, quests and documentation changes were preserved and excluded from this task's review. The unscoped diff check reports an unrelated trailing space in features/play/components.ts; scoped elemental changes are clean. No merge or publication was performed.

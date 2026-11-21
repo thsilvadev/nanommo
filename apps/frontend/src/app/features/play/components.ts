@@ -11,6 +11,7 @@ import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, comput
 import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
+import { UiClockService } from '../../core/ui-clock.service';
 import { VendorStore } from '../../core/vendor.store';
 import { BrowserNotificationsService } from '../../core/browser-notifications.service';
 import { VendorStockItem, effectiveFoodStatValue, TOWN_MAP_ID, projectStatusTimeline } from '@nanommo/shared';
@@ -34,7 +35,7 @@ import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkD
 @Component({ selector: 'app-character-summary', standalone: true, imports: [CommonModule, CdkDrag, CdkDropList, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective, BattleHitFeedbackDirective, CharacterViewerComponent], templateUrl: './character-summary.html', styleUrl: './character-summary.css' })
 export class CharacterSummary implements OnDestroy {
   readonly party = inject(PartyStore);
-  readonly character = inject(CharacterStore); readonly inventory = inject(InventoryStore); readonly battle = inject(BattleStore); readonly catalog = inject(CatalogService); readonly router = inject(Router); readonly battleDisplayNow = signal(Date.now()); private readonly battleDisplayTimer = setInterval(() => this.battleDisplayNow.set(Date.now()), 250);
+  readonly character = inject(CharacterStore); readonly inventory = inject(InventoryStore); readonly battle = inject(BattleStore); readonly catalog = inject(CatalogService); readonly router = inject(Router); readonly battleDisplayNow = inject(UiClockService).now; 
   private lastDietBoundary = 0;
   private lastTownRefreshAt = 0;
   private readonly townTimer = setInterval(() => {
@@ -137,10 +138,11 @@ export class CharacterSummary implements OnDestroy {
   dietRemainingSeconds(index: number) { const e = this.dietEntry(index); if (!e) return 0; return Math.max(0, Math.ceil((Date.parse(e.digestUntil) - this.battleDisplayNow()) / 1000)) }
   dietTimerLabel(index: number) { return Math.ceil(this.dietRemainingSeconds(index) / 60) + 'm' }
   formatDuration(seconds: number) { if (!Number.isFinite(seconds)) return 'Until removed'; const s = Math.max(0, seconds); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const sec = s % 60; return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m ${String(sec).padStart(2, '0')}s` }
+  trackIndex(index: number) { return index }
   dietTooltipLines(index: number) { const e = this.dietEntry(index); if (!e) return []; const d: any = this.catalog.item(e.itemId); const effect = d?.effect; if (!effect) return []; const lines: any[] = []; if (effect.type === 'food_buff') { const level = this.dietLevel(index); lines.push({ label: 'HP Regen', value: `+${effectiveFoodStatValue(effect.hpRegenPerTenTicks, level)} / 10 seconds` }); lines.push({ label: 'SP Regen', value: `+${effectiveFoodStatValue(effect.spRegenPerTenTicks, level)} / 10 seconds` }); } lines.push({ label: 'Diet', value: e.dietLevel > 0 ? '★'.repeat(Math.min(3, e.dietLevel)) : '—' }); lines.push({ label: 'Remaining', value: this.formatDuration(this.dietRemainingSeconds(index)) }); return lines }
   async toggleAutoFeed() { const c = this.character.character(); if (!c) return; try { await this.character.setAutoFeed(!c.autoFeed) } catch { } }
   foodLabel() { const now = this.battleDisplayNow(); const count = (this.character.character()?.diet ?? []).filter(e => { const digestUntil = Date.parse(e.digestUntil); return Number.isFinite(digestUntil) && digestUntil > now }).length; return count <= 0 ? 'HUNGRY' : count === 1 ? 'FED' : count === 2 ? 'SATISFIED' : 'FULL' }
-  go(p: string) { void this.router.navigateByUrl(p) } equipped(slot: string) { return this.inventory.equipment().find(x => x.slot === slot) } canEnterEquipmentSlot(slot: string, drag: CdkDrag) { const data: any = drag?.data; if (data?.source !== 'inventory') return false; const item: any = this.catalog.item(data.itemId); return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } itemIcon(slot: string, fallback: string) { const e = this.equipped(slot); return e ? this.catalog.itemIcon(e.itemId) : fallback } slotDropId(slot: string) { return `character-slot-${slot}` } isSlotFocused(slot: string) { const id = this.inventory.draggedItemId(); const item: any = id ? this.catalog.item(id) : null; return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } onEquipmentDragStart(itemId: string) { this.inventory.beginDrag(itemId); document.dispatchEvent(new Event('nm:drag-start')) } onEquipmentDragEnd() { this.inventory.endDrag(); document.dispatchEvent(new Event('nm:drag-end')) } equipDragData(slot: string, it: any) { return { source: 'equipment', slot, ...it } } async dropEquipment(slot: string, ev: CdkDragDrop<any>) { const data = ev.item.data; try { if (data?.source === 'inventory') { await this.inventory.equip(slot, data.itemId, data.id) } } catch { } finally { this.inventory.endDrag() } } async unequip(slot: string) { try { await this.inventory.unequip(slot) } catch { } } ngOnDestroy() { clearInterval(this.townTimer); clearInterval(this.battleDisplayTimer) }
+  go(p: string) { void this.router.navigateByUrl(p) } equipped(slot: string) { return this.inventory.equipment().find(x => x.slot === slot) } canEnterEquipmentSlot(slot: string, drag: CdkDrag) { const data: any = drag?.data; if (data?.source !== 'inventory') return false; const item: any = this.catalog.item(data.itemId); return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } itemIcon(slot: string, fallback: string) { const e = this.equipped(slot); return e ? this.catalog.itemIcon(e.itemId) : fallback } slotDropId(slot: string) { return `character-slot-${slot}` } isSlotFocused(slot: string) { const id = this.inventory.draggedItemId(); const item: any = id ? this.catalog.item(id) : null; return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } onEquipmentDragStart(itemId: string) { this.inventory.beginDrag(itemId); document.dispatchEvent(new Event('nm:drag-start')) } onEquipmentDragEnd() { this.inventory.endDrag(); document.dispatchEvent(new Event('nm:drag-end')) } equipDragData(slot: string, it: any) { return { source: 'equipment', slot, ...it } } async dropEquipment(slot: string, ev: CdkDragDrop<any>) { const data = ev.item.data; try { if (data?.source === 'inventory') { await this.inventory.equip(slot, data.itemId, data.id) } } catch { } finally { this.inventory.endDrag() } } async unequip(slot: string) { try { await this.inventory.unequip(slot) } catch { } } ngOnDestroy() { clearInterval(this.townTimer) }
 }
 
 @Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule, TownSceneComponent, TownViewToggleComponent], templateUrl: './map-board.html', styleUrl: './map-board.css' })
@@ -191,7 +193,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); readonly locale = inject(LocaleService); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService); private readonly catalog = inject(CatalogService); private readonly notifications = inject(BrowserNotificationsService); private readonly vendor = inject(VendorStore);
   maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
   readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly mapTransitionPending = signal(false); readonly destinationMapId = signal<string|null>(null); readonly routeOriginMapId = signal<string|null>(null);
-  readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); readonly activityNow = signal(Date.now()); readonly fleeNotice = signal<string|null>(null); readonly pinArrivalFromMapId = signal<string|null>(null); private discovered = new Set<string>(); private readonly activityTimer = setInterval(() => this.activityNow.set(Date.now()), 250);
+  readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); readonly activityNow = inject(UiClockService).now; readonly fleeNotice = signal<string|null>(null); readonly pinArrivalFromMapId = signal<string|null>(null); private discovered = new Set<string>();
   private pinArrivalCharacterId: string|null = null; private pinArrivalMapId: string|null = null; private pinArrivalPreviousIntent: any = null;
   private tooltipEl: HTMLElement|null = null; private tooltipPointer = {x:0,y:0};
   private mapRequestSequence=0; private latestMapRequestSequence=0; private lastRequestedAt=0; private transitionOriginMapId:string|null=null;
@@ -715,24 +717,25 @@ export class MapBoard implements OnDestroy, AfterViewInit {
       this.viewportResizeObserver.observe(this.viewportElement.nativeElement);
     }
   }
-  ngOnDestroy(){clearInterval(this.activityTimer);this.viewportResizeObserver?.disconnect();this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
+  ngOnDestroy(){this.viewportResizeObserver?.disconnect();this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
 }
 
 @Component({ selector: 'app-inventory-grid', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './inventory-grid.html', styleUrl: './inventory-grid.css', styles: [':host(.market-inventory-grid) .panel{height:auto;min-height:0;padding:0;background:transparent}:host(.market-inventory-grid) .panel-title{font-size:15px;letter-spacing:1px;margin-bottom:5px}:host(.market-inventory-grid) .inventory-sort-button{width:25px;height:23px}:host(.market-inventory-grid) .inv-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:none;grid-auto-flow:row;grid-auto-rows:min-content;align-content:start;gap:3px;height:123px;max-height:123px;min-height:123px;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;flex:0 0 240px}:host(.market-inventory-grid) .inv-slot{width:100%;height:auto;min-height:0;aspect-ratio:1/1;align-self:start;box-sizing:border-box}:host(.market-inventory-grid) .item b{font-size:12px;right:2px;bottom:1px}'] })
-export class InventoryGrid implements OnDestroy {
+export class InventoryGrid {
   readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly battle = inject(BattleStore); readonly vendor = inject(VendorStore);
   slots = Array.from({ length: 50 }, (_, i) => i);
   readonly characterSlotIds = ['character-slot-head', 'character-slot-body', 'character-slot-mainHand', 'character-slot-offHand', 'character-slot-shoes', 'character-slot-cape', 'character-slot-accessoryLeft', 'character-slot-accessoryRight'];
   readonly vendorDropListIds = ['vendor-drop-list', 'storage-drop-list', 'market-sell-drop', 'mail-attachment-drop'];
   readonly storageDropListIds = ['storage-drop-list'];
-  readonly now = signal(Date.now());
+  readonly now = inject(UiClockService).now;
   readonly highlightedSlot = signal<number | null>(null);
   readonly sorting = signal(false);
   readonly sortError = signal<string | null>(null);
   readonly splitItem = signal<any | null>(null);
   readonly splitQuantity = signal(1);
-  private readonly timer = setInterval(() => this.now.set(Date.now()), 250);
-  item(i: number) { return this.inventory.items().find(x => x.slotIndex === i) }
+  /** Slot → item, rebuilt only when the inventory changes (the grid asks for each of its 50 slots on every pass). */
+  private readonly itemsBySlot = computed(() => new Map(this.inventory.items().map(x => [x.slotIndex, x] as const)));
+  item(i: number) { return this.itemsBySlot().get(i) }
   itemTitle(i: any) { return this.catalog.item(i.itemId)?.name ?? i.itemId }
   itemDefinition(i: any) { return this.catalog.item(i.itemId) }
   itemTooltipLines(i: any) { return this.catalog.itemTooltipLines(i.itemId, i.instanceData) }
@@ -850,7 +853,6 @@ export class InventoryGrid implements OnDestroy {
     }
   }
   dragData(it: any) { return { source: 'inventory', ...it } }
-  ngOnDestroy() { clearInterval(this.timer) }
 }
 
 @Component({ selector: 'app-vendor-panel', standalone: true, imports: [CraftQuantityComponent, TownPlayerCardComponent, CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './vendor-panel.html', styleUrl: './vendor-panel.css' , styles: [
@@ -1039,10 +1041,10 @@ export class VendorPanel implements OnDestroy {
 }
 
 @Component({ selector: 'app-battle-progress', standalone: true, imports: [CommonModule], templateUrl: './battle-progress.html', styleUrl: './battle-progress.css' })
-export class BattleProgress implements OnDestroy { @Input() entry!: any; readonly now = signal(Date.now()); private readonly timer = setInterval(() => this.now.set(Date.now()), 250); progress() { const s = Date.parse(this.entry.startAt), e = Date.parse(this.entry.endAt); return Math.max(0, Math.min(100, (this.now() - s) / Math.max(1, e - s) * 100)) } remaining() { const sec = Math.max(0, Math.ceil((Date.parse(this.entry.endAt) - this.now()) / 1000)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') } ngOnDestroy() { clearInterval(this.timer) } }
+export class BattleProgress { @Input() entry!: any; readonly now = inject(UiClockService).now; progress() { const s = Date.parse(this.entry.startAt), e = Date.parse(this.entry.endAt); return Math.max(0, Math.min(100, (this.now() - s) / Math.max(1, e - s) * 100)) } remaining() { const sec = Math.max(0, Math.ceil((Date.parse(this.entry.endAt) - this.now()) / 1000)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') } }
 
 @Component({ selector: 'app-grind-info', standalone: true, imports: [CommonModule, BattleProgress, VendorPanel, TooltipPositionDirective, BattleHitFeedbackDirective, SharedBattlePanelComponent, FollowLogDirective, CombatantPortraitComponent, CombatantDetailsComponent], templateUrl: './grind-info.html', styleUrl: './grind-info.css', styles:[`.foe-mana{height:8px;background:#10131c;border:1px solid #294c70;margin-top:3px}.foe-mana i{display:block;height:100%;background:#3e91df}.mana-label{margin-top:5px}.status-icons,.skill-icons{display:flex;gap:5px;flex-wrap:wrap}.status-icon,.monster-skill-icon{position:relative;width:34px;height:34px;display:grid;place-items:center}.status-icon img,.monster-skill-icon img{width:30px;height:30px;object-fit:contain}.status-icon .status-tooltip,.monster-skill-icon .skill-tooltip{display:none;position:absolute;z-index:100;bottom:calc(100% + 7px);left:0;min-width:180px;max-width:260px;padding:8px;background:#120d09;border:1px solid #80613a;box-shadow:0 4px 14px #000;color:#c9b79a;white-space:normal;pointer-events:none;text-align:left}.monster-skill-icon:hover .skill-tooltip,.monster-skill-icon:focus .skill-tooltip,.monster-skill-icon:focus-within .skill-tooltip{display:flex;flex-direction:column;gap:4px}.status-tooltip strong,.skill-tooltip b{color:#e1cfad;font:15px Georgia}.status-tooltip small,.skill-tooltip small{font:12px Arial;line-height:1.3}.status-icon b{position:absolute;right:-3px;bottom:-3px;font-size:10px}`] })
-export class GrindInfo implements OnDestroy {
+export class GrindInfo {
   readonly party = inject(PartyStore);
   sharedBattleActive(){return isSharedBattleCurrent(this.party.battle(),this.now());}
   isGathering(){return this.character.character()?.lastGrindStance==='gathering' && !this.character.character()?.travelIntent;}
@@ -1055,10 +1057,9 @@ export class GrindInfo implements OnDestroy {
   private readonly api = inject(ApiService);
   private readonly gameAudio = inject(GameAudioService);
   readonly locale = inject(LocaleService);
-  readonly now = signal(Date.now());
+  readonly now = inject(UiClockService).now;
   readonly savingTown = signal(false);
   readonly townSaveError = signal<string|null>(null);
-  private readonly timer = setInterval(() => this.now.set(Date.now()), 250);
 
   isCurrentTownSaved(){const c=this.character.character();return !!c&&c.status==='town'&&c.currentMapId===c.savedTownMapId;}
   async saveTown(){
@@ -1125,5 +1126,4 @@ export class GrindInfo implements OnDestroy {
   // latest digestUntil. That makes the pruned diet length and the authoritative hungry flag
   // the same fact, and the label stays identical to what the slots render.
   foodLabel() { const count = this.character.character()?.diet?.length ?? 0; return count <= 0 ? 'HUNGRY' : count === 1 ? 'FED' : count === 2 ? 'SATISFIED' : 'FULL' }
-  ngOnDestroy() { clearInterval(this.timer) }
 }

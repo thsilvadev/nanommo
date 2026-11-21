@@ -61,7 +61,8 @@ function run() {
   const thorn = monstersData.monsters.find(monster => monster.id === 'mon_thornsprout');
   assert.equal(thorn.level, 6);
   assert.equal(thorn.canMove, false);
-  assert.equal(thorn.elementalDamageTakenMultiplier.fire, 2);
+  assert.equal(thorn.element, 'earth');
+  assert.equal(thorn.elementalDamageTakenMultiplier, undefined);
 
 
   const meleeMonster = {

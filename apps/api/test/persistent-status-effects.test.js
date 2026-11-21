@@ -59,3 +59,20 @@ const now = Date.parse('2026-10-20T22:00:00.000Z');
 }
 
 console.log('persistent-status-effects: passed');
+
+{
+  const carried = persistStatusEffectsAtCheckpoint([
+    {type:'burn',appliedAtTick:0,expiresAtTick:50,damagePerTick:200,damageIntervalTicks:10,nextDamageAtTick:10,sourceSkillId:'fire_ball'},
+  ], 5, now);
+  assert.equal(carried[0].nextDamageAt,new Date(now+2000).toISOString(),'DOT cadence must persist as a wall-clock deadline');
+  assert.equal(carried[0].nextDamageAtTick,undefined,'battle-local DOT ticks cannot leak into another encounter');
+  const next = statusEffectsForBattle(carried,now+1000);
+  assert.equal(next[0].nextDamageAtTick,2,'Burn resumes its remaining interval after flee');
+  assert.equal(next[0].sourceSkillId,'fire_ball');
+  assert.equal(next[0].damagePerTick,200,'carried Burn keeps its captured source potency');
+}
+{
+  const carried=persistStatusEffectsAtCheckpoint([{type:'burn',damagePerTick:200,damageIntervalTicks:10,nextDamageAtTick:10,expiresAtTick:50}],5,now+2500,500,now);
+  assert.equal(carried[0].nextDamageAt,new Date(now+5000).toISOString(),'FLEE inside a tick must anchor the next DOT to the original battle start');
+  assert.equal(carried[0].expiresAt,new Date(now+25000).toISOString(),'FLEE must not shorten the remaining status duration by one tick');
+}

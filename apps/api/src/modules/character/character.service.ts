@@ -1,3 +1,4 @@
+import { equipmentAffinity, elementalResistances } from '@nanommo/shared';
 import { Injectable, BadRequestException, NotFoundException, Logger, ConflictException, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -626,6 +627,8 @@ export class CharacterService {
       attack: derived.atk,
       magicAttack: derived.matk,
       defense: derived.def,
+      elementalAffinity: equipmentAffinity(equipped.map(row => ({ ...row, definition: this.dataService.getItemById(row.itemId) }))),
+      elementalResistances: elementalResistances(equipmentAffinity(equipped.map(row => ({ ...row, definition: this.dataService.getItemById(row.itemId) })))),
       attackSpeed: derived.attackSpeed,
       castTimeReduction: derived.castTimeReduction,
       evasion: derived.evasion,

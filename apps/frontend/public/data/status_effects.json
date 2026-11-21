@@ -39,7 +39,11 @@
       "statusDurationTicks": 50,
       "maxStacks": 1,
       "reapplication": "refresh",
-      "polarity": "debuff"
+      "polarity": "debuff",
+      "element": "fire",
+      "damageType": "magical",
+      "burnDamage": "source_matk_div_5",
+      "damageIntervalTicks": 10
     },
     {
       "id": "stun",

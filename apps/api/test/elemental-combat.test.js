@@ -1,0 +1,30 @@
+const assert=require('node:assert/strict');
+const shared=require('../../../packages/shared/dist');
+const {BattleEngine,simulateBattleV2Solo}=shared;
+const statuses=Object.fromEntries(require('../../../status_effects.json').statusEffects.map(s=>[s.id,s]));
+const monsterSkills=Object.fromEntries(require('../../../skill_trees.json').monsterSkills.map(s=>[s.id,s]));
+const snapshot=(extra={})=>({level:1,hp:100000,maxHp:100000,sp:10000,maxSp:10000,atk:100,matk:1000,def:0,mdefPercent:0,accuracy:1000,evasion:0,critChance:0,hpRegenPerTenTicks:0,spRegenPerTenTicks:0,agi:5,dex:5,attackSpeed:800,moveSpeed:0,canMove:false,basicAttackRange:10,...extra});
+const attack=[{conditions:[{id:'always'}],action:{id:'attack'}}];
+const monster=(extra={})=>({id:'test',name:'Target',level:1,hp:100000,sp:10000,atk:100,matk:1000,def:0,mdefPercent:0,accuracy:1000,evasion:0,critChance:0,atkSpeedTicks:1,moveSpeed:0,basicAttackRange:10,gambit:attack,...extra});
+for(const [name,simulate] of [['group',simulateBattleV2Solo],['legacy',BattleEngine.simulateBattle.bind(BattleEngine)]]){
+ const run=(self,foe,page=attack,options={})=>simulate(snapshot(self),monster(foe),page,'elemental-regression',{statusEffectDefs:statuses,monsterSkillDefs:monsterSkills,stopAfterTick:25,...options});
+ const neutral=run({element:'neutral'},{element:'fire'}),resisted=run({element:'fire'},{element:'fire'});
+ const damage=result=>result.log.events.find(e=>e.actor==='monster'&&e.action==='attack'&&e.hit)?.damage;
+ assert.ok(Math.abs(damage(resisted)-damage(neutral)*.5)<=1,`${name}: inherent monster attacks must use element and player affinity`);
+ const skill={id:'bolt',element:'fire',damageType:'magical',target:'foe',ranged:true,maxRange:10,baseCastTicks:0,spCost:0,cooldownTicks:100,effect:{type:'magic_damage',burnChance:1}};
+ const page=[{conditions:[{id:'always'}],action:{id:'use_skill',skillId:'bolt'}}];
+ const burned=run({skills:{bolt:true},skillDefs:{bolt:skill}},{element:'water',mdefPercent:20},page);
+ const status=(burned.checkpoint?.monsterStatusEffects??burned.v2Result?.actorsAfter?.['monster:test:0']?.statusEffects??[]).find(s=>s.type==='burn');
+ assert.ok(status,`${name}: canonical Burn must apply`);assert.equal(status.damageType,'magical');assert.equal(status.element,'fire');assert.equal(status.damageIntervalTicks,10);
+ const tick=burned.log.events.find(e=>['status_damage','status_tick'].includes(e.action)&&e.damage>0);
+ assert.ok(tick,`${name}: Burn must tick`);assert.equal(tick.damage,120,`${name}: 200 fire burn reduced by 20% MDEF and water affinity .75`);
+ const burner={id:'burner',element:'neutral',damageType:'magical',target:'foe',ranged:true,maxRange:10,baseCastTicks:0,spCost:0,cooldownTicks:100,effect:{type:'magic_damage',applyStatus:'burn',statusChance:1}};
+ const enemyBurn=run({element:'water',mdefPercent:20},{element:'earth',gambit:[{conditions:[{id:'always'}],action:{id:'use_skill',skillId:'burner'}}]},attack,{monsterSkillDefs:{...monsterSkills,burner}});
+ const enemyTick=enemyBurn.log.events.find(e=>['status_damage','status_tick'].includes(e.action)&&e.status==='burn');
+ assert.equal(enemyTick?.damage,120,`${name}: generic monster Burn application uses the same canonical definition`);
+ const treant=run({element:'fire'},{id:'mon_flamingtreant',element:'earth',passiveSkills:['monster_skill_flaming_pound']},attack,{stopAfterTick:200});
+ assert.ok(treant.log.events.some(e=>(e.status==='burn'||e.statusId==='burn')&&e.actor==='monster'&&e.sourceSkillId==='monster_skill_flaming_pound'),`${name}: Flaming Pound must identify its passive source`);
+ assert.ok(!treant.log.events.some(e=>e.action==='use_skill'&&e.skillId==='monster_skill_flaming_pound'),`${name}: passive must not consume an action`);
+ assert.deepEqual(treant,run({element:'fire'},{id:'mon_flamingtreant',element:'earth',passiveSkills:['monster_skill_flaming_pound']},attack,{stopAfterTick:200}),`${name}: passive is deterministic`);
+}
+console.log('elemental combat: monster attacks, boot affinity, canonical Burn mitigation and Flaming Pound in both executors passed');

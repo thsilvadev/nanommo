@@ -218,3 +218,11 @@ The town camera has a low FOV but is close (18–70 u): a parallel-ray check (fr
 
 `/assets/character/*` and `/assets/npcs/*` are cached for a day plus a week of stale-while-revalidate (`vercel.json`), so after a deploy players run new code against old asset files. Code must tolerate the previous version of an asset (a new clip is optional, never required), and a rebuilt file must be requested under a new URL (`ANIMATIONS_ASSET = 'animations.glb?v=N'`: bump N). Requiring the new `Dance`/`Sit` clips made every body fail to load for anyone with the old `animations.glb` cached.
 
+## 4.30 Anything that ticks inside the Angular zone re-checks the whole app
+
+zone.js turns every `setInterval`, `setTimeout`, `requestAnimationFrame` and DOM listener callback run inside the zone into an app-wide change detection, and most components are not `OnPush`. A render loop created in the zone cost 60 full checks per second. Start loops, polls and high-rate listeners with `NgZone.runOutsideAngular` and expose what the UI needs as signals. For wall-clock UI, read `UiClockService.now` instead of adding a timer. Regression tests: `town-scene.component.spec.ts`, `ui-clock*.spec.ts`.
+
+## 4.31 Methods in `*ngFor` must not build new objects on every call
+
+`*ngFor` without `trackBy` tracks by identity. A template method that returns fresh objects (`itemTooltipLines` used to) makes Angular destroy and recreate those DOM nodes on every change detection pass, even for hidden tooltips: 332 nodes per pass for a 40-item inventory. Memoize (see `CatalogService.memoTooltip`), use a `computed`, or track by index/id. `inventory-grid-performance.spec.ts` asserts zero DOM mutations for an unchanged pass.
+

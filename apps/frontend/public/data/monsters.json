@@ -14,8 +14,7 @@
       "evasion": 89,
       "critChance": 3.4,
       "atkSpeedTicks": 14,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "warrior",
       "favoredAgainstArchetypeLabel": "Warrior (melee)",
       "damageTakenMultiplier": {
@@ -106,8 +105,7 @@
       "evasion": 110,
       "critChance": 3.6,
       "atkSpeedTicks": 8,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "archer",
       "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
       "damageTakenMultiplier": {
@@ -191,8 +189,7 @@
       "evasion": 118,
       "critChance": 4.2,
       "atkSpeedTicks": 10,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "archer",
       "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
       "damageTakenMultiplier": {
@@ -288,9 +285,6 @@
       "critChance": 3.9,
       "atkSpeedTicks": 12,
       "element": "earth",
-      "elementalResistances": [
-        "earth"
-      ],
       "favoredAgainstArchetype": "mage",
       "favoredAgainstArchetypeLabel": "Mage (ranged magic)",
       "damageTakenMultiplier": {
@@ -359,9 +353,6 @@
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "canMove": false,
-      "elementalDamageTakenMultiplier": {
-        "fire": 2
-      },
       "isAggressive": false
     },
     {
@@ -378,10 +369,7 @@
       "evasion": 100,
       "critChance": 4,
       "atkSpeedTicks": 14,
-      "element": "water",
-      "elementalResistances": [
-        "water"
-      ],
+      "element": "earth",
       "favoredAgainstArchetype": "priest",
       "favoredAgainstArchetypeLabel": "Priest (healer/sustain)",
       "damageTakenMultiplier": {
@@ -465,8 +453,7 @@
       "evasion": 100,
       "critChance": 4.2,
       "atkSpeedTicks": 6,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "None (all-rounder)",
       "damageTakenMultiplier": {
@@ -566,7 +553,6 @@
       "critChance": 4.3,
       "atkSpeedTicks": 14,
       "element": "earth",
-      "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -650,8 +636,7 @@
       "evasion": 103,
       "critChance": 4.3,
       "atkSpeedTicks": 14,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -736,9 +721,6 @@
       "critChance": 4.4,
       "atkSpeedTicks": 14,
       "element": "earth",
-      "elementalResistances": [
-        "earth"
-      ],
       "favoredAgainstArchetype": "warrior",
       "favoredAgainstArchetypeLabel": "Warrior (melee)",
       "damageTakenMultiplier": {
@@ -831,7 +813,6 @@
       "critChance": 4.5,
       "atkSpeedTicks": 14,
       "element": "earth",
-      "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -959,8 +940,7 @@
       "evasion": 112,
       "critChance": 4.5,
       "atkSpeedTicks": 14,
-      "element": "earth",
-      "elementalResistances": [],
+      "element": "water",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -1088,8 +1068,7 @@
       "evasion": 125,
       "critChance": 4.6,
       "atkSpeedTicks": 10,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -1221,11 +1200,7 @@
       "evasion": 124,
       "critChance": 4.6,
       "atkSpeedTicks": 6,
-      "element": null,
-      "elementalResistances": [],
-      "elementalDamageTakenMultiplier": {
-        "fire": 1.5
-      },
+      "element": "neutral",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -1356,8 +1331,7 @@
       "evasion": 120,
       "critChance": 4.6,
       "atkSpeedTicks": 10,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "archer",
       "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
       "damageTakenMultiplier": {
@@ -1485,10 +1459,7 @@
       "evasion": 115,
       "critChance": 4.6,
       "atkSpeedTicks": 12,
-      "element": "shadow",
-      "elementalResistances": [
-        "shadow"
-      ],
+      "element": "neutral",
       "favoredAgainstArchetype": "priest",
       "favoredAgainstArchetypeLabel": "Priest (healer/sustain)",
       "damageTakenMultiplier": {
@@ -1626,8 +1597,7 @@
       "evasion": 115,
       "critChance": 4.6,
       "atkSpeedTicks": 10,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -1766,8 +1736,7 @@
       "evasion": 128,
       "critChance": 4.7,
       "atkSpeedTicks": 8,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -1896,7 +1865,6 @@
       "critChance": 4.7,
       "atkSpeedTicks": 14,
       "element": "earth",
-      "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -2035,7 +2003,6 @@
       "critChance": 4.7,
       "atkSpeedTicks": 12,
       "element": "holy",
-      "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -2134,11 +2101,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -2185,8 +2152,7 @@
       "evasion": 130,
       "critChance": 4.8,
       "atkSpeedTicks": 8,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -2282,11 +2248,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -2334,8 +2300,7 @@
       "evasion": 150,
       "critChance": 4.8,
       "atkSpeedTicks": 14,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -2431,11 +2396,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -2471,13 +2436,7 @@
       "evasion": 108,
       "critChance": 4.8,
       "atkSpeedTicks": 16,
-      "element": "fire",
-      "elementalResistances": [
-        "fire"
-      ],
-      "elementalDamageTakenMultiplier": {
-        "fire": 0
-      },
+      "element": "earth",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -2573,11 +2532,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -2597,7 +2556,10 @@
       "basicAttackRange": 0,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
-      "isAggressive": true
+      "isAggressive": true,
+      "passiveSkills": [
+        "monster_skill_flaming_pound"
+      ]
     },
     {
       "id": "mon_moonleafarcanist",
@@ -2613,8 +2575,7 @@
       "evasion": 120,
       "critChance": 4.9,
       "atkSpeedTicks": 8,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -2710,11 +2671,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -2751,9 +2712,6 @@
       "critChance": 4.3,
       "atkSpeedTicks": 10,
       "element": "wind",
-      "elementalResistances": [
-        "wind"
-      ],
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "None (all-rounder)",
       "damageTakenMultiplier": {
@@ -2849,11 +2807,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -2890,9 +2848,6 @@
       "critChance": 4.9,
       "atkSpeedTicks": 12,
       "element": "holy",
-      "elementalResistances": [
-        "holy"
-      ],
       "favoredAgainstArchetype": "mage",
       "favoredAgainstArchetypeLabel": "Mage (ranged magic)",
       "damageTakenMultiplier": {
@@ -2988,11 +2943,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -3047,7 +3002,6 @@
       "critChance": 5,
       "atkSpeedTicks": 14,
       "element": "earth",
-      "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -3143,11 +3097,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -3194,7 +3148,6 @@
       "critChance": 5,
       "atkSpeedTicks": 14,
       "element": "earth",
-      "elementalResistances": [],
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "All-rounder",
       "damageTakenMultiplier": {
@@ -3290,11 +3243,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -3330,8 +3283,7 @@
       "evasion": 115,
       "critChance": 5.1,
       "atkSpeedTicks": 10,
-      "element": null,
-      "elementalResistances": [],
+      "element": "shadow",
       "favoredAgainstArchetype": "balanced",
       "favoredAgainstArchetypeLabel": "None (all-rounder)",
       "damageTakenMultiplier": {
@@ -3427,11 +3379,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -3477,8 +3429,7 @@
       "evasion": 105,
       "critChance": 5.1,
       "atkSpeedTicks": 14,
-      "element": null,
-      "elementalResistances": [],
+      "element": "shadow",
       "favoredAgainstArchetype": "priest",
       "favoredAgainstArchetypeLabel": "Priest (healer/sustain)",
       "damageTakenMultiplier": {
@@ -3574,11 +3525,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -3625,8 +3576,7 @@
       "evasion": 110,
       "critChance": 5.1,
       "atkSpeedTicks": 16,
-      "element": null,
-      "elementalResistances": [],
+      "element": "neutral",
       "favoredAgainstArchetype": "warrior",
       "favoredAgainstArchetypeLabel": "Warrior (melee)",
       "damageTakenMultiplier": {
@@ -3722,11 +3672,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -3771,9 +3721,6 @@
       "critChance": 4.2,
       "atkSpeedTicks": 18,
       "element": "fire",
-      "elementalResistances": [
-        "fire"
-      ],
       "favoredAgainstArchetype": "mage",
       "favoredAgainstArchetypeLabel": "Mage (ranged magic)",
       "damageTakenMultiplier": {
@@ -3869,11 +3816,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [
@@ -3910,9 +3857,6 @@
       "critChance": 5.2,
       "atkSpeedTicks": 8,
       "element": "shadow",
-      "elementalResistances": [
-        "shadow"
-      ],
       "favoredAgainstArchetype": "archer",
       "favoredAgainstArchetypeLabel": "Archer (ranged physical)",
       "damageTakenMultiplier": {
@@ -4008,11 +3952,11 @@
         },
         {
           "itemId": "equip_shoes_wind_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         },
         {
           "itemId": "equip_shoes_holy_t4",
-          "chance": 0.00005
+          "chance": 5e-05
         }
       ],
       "gambit": [

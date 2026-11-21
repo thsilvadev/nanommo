@@ -11,7 +11,7 @@
     <div class="resource-bar hp"><i [style.width.%]="percent(resources(member).hp,member.maxHp)"></i></div>
     <div class="resource-label">SP <span>{{resources(member).sp}} / {{member.maxSp ?? '—'}}</span></div>
     <div class="resource-bar sp"><i [style.width.%]="percent(resources(member).sp,member.maxSp)"></i></div>
-    <div class="member-status"><span *ngFor="let effect of statuses(member)">{{locale.t(effect.id || effect.type || '')}}{{effect.stacks ? ' ×'+effect.stacks : ''}}</span></div>
+    <div class="member-status"><span *ngFor="let effect of statuses(member); trackBy: trackIndex">{{locale.t(effect.id || effect.type || '')}}{{effect.stacks ? ' ×'+effect.stacks : ''}}</span></div>
     <small class="pending" *ngIf="member.pendingLeave"><i class="spinner" aria-hidden="true"></i>{{locale.t('Leaving after battle')}}</small>
     <div class="member-controls" *ngIf="isLeader()">
       <button type="button" [disabled]="party.busy() || index===0" (click)="move(member,-1)" [attr.aria-label]="locale.t('Move up')+' '+member.name">↑</button>

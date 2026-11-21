@@ -91,9 +91,9 @@ for (const item of items.monsterParts) {
     assert.ok(item.rarity && item.droppedBy?.length && item.stackable === true && item.maxStack && item.sellPriceToVendor, `Invalid monster part schema ${item.id}`);
   }
 }
-const thorn = byId.get('mon_thornsprout'); assert.equal(thorn.canMove, false); assert.equal(thorn.elementalDamageTakenMultiplier.fire, 2);
+const thorn = byId.get('mon_thornsprout'); assert.equal(thorn.canMove, false); assert.equal(thorn.element, 'earth'); assert.equal(thorn.elementalDamageTakenMultiplier, undefined);
 for (const id of ['fire_ball','fire_blast']) assert.equal(skills.trees.staff.find(skill=>skill.id===id).element, 'fire');
-for (const id of ['wisp_flow','light_of_heaven']) assert.equal(skills.trees.rod.find(skill=>skill.id===id).element, 'light');
+for (const id of ['wisp_flow','light_of_heaven']) assert.equal(skills.trees.rod.find(skill=>skill.id===id).element, 'holy');
 assert.ok(monsters.some(monster=>monster.id==='mon_bandit' && monster.level===25));
 assert.ok(monsters.some(monster=>monster.id==='mon_mudflatcrocodile' && monster.level===12));
 assert.ok(monsters.some(monster=>monster.id==='mon_kwaiouaranger' && monster.level===33));

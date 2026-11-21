@@ -57,7 +57,7 @@ export class SharedBattleService {
       if(!fight){await this.advanceCounters(ctx,roster);await ctx.manager.query(`UPDATE encounter_clocks SET status='consumed',roster=$2 WHERE "ownerKind"='party' AND "ownerId"=$1`,[p.id,JSON.stringify(roster)]);return false;}
     }
     const definitions={items:Object.fromEntries(Object.values(this.data.getItems()??{}).flat().filter((x:any)=>x&&typeof x==='object'&&x.id).map((x:any)=>[x.id,x])),skills:Object.fromEntries(this.data.getMonsterSkills().map((x:any)=>[x.id,x])),statuses:Object.fromEntries(this.data.getStatusEffects().map((x:any)=>[x.id,x]))};
-    const input:any={version:2,seed:clock.seed,tickDurationMs:500,actors:Shared.placeBattleActors(actors),definitions};
+    const input:any={version:2,elementalRulesVersion:1,seed:clock.seed,tickDurationMs:500,actors:Shared.placeBattleActors(actors),definitions};
     // Formation is resolved by the pure engine, not by database order.
     const result=Shared.simulateBattleV2(input);
     if(!result.ended)throw new Error('Battle simulation exceeded execution limit; refusing terminal result');
@@ -104,7 +104,7 @@ export class SharedBattleService {
         if(consumed){const have=await this.inventory.getItemCount(c.id,itemId,ctx.manager);if(have<consumed)throw new Error('Reserved combat inventory was mutated');await this.inventory.removeItem(c.id,itemId,consumed,ctx.manager);}
       }
       c.hpCurrent=Math.max(0,Number(after.hp));c.spCurrent=Math.max(0,Number(after.sp));
-      c.statusEffects=persistStatusEffectsAtCheckpoint(after.statusEffects??[],Math.max(0,result.durationTicks-1),at,500);
+      c.statusEffects=persistStatusEffectsAtCheckpoint(after.statusEffects??[],Math.max(0,result.durationTicks-1),at,500,fled?new Date(locked.startAt).getTime():undefined);
       c.consumableCooldowns=Object.fromEntries(Object.entries(after.cooldowns??{}).flatMap(([key,ticks])=>Number(ticks)>0?[[key,new Date(at+Number(ticks)*500).toISOString()]]:[]));
       c.diet=(after.foodBuffs??[]).filter(food=>food.remainingTicks>0).map(food=>({itemId:food.itemId,consumedAt:new Date(at).toISOString(),digestUntil:new Date(at+food.remainingTicks*500).toISOString(),dietLevel:Number(after.dietLevelByFood?.[food.itemId]??0)}));
       c.dietLevels={...c.dietLevels,...Object.fromEntries(Object.entries(after.dietLevelByFood??{}).map(([id,level])=>[id,{level:Number(level),lastDigestUntil:new Date(at+Number(after.foodDigestRemainingTicksByItem?.[id]??0)*500).toISOString()}]))};

@@ -1,3 +1,4 @@
+import { normalizeElement } from '@nanommo/shared';
 import { Injectable, BadRequestException, NotFoundException, forwardRef, Inject } from '@nestjs/common';
 import { BattleService } from '../battle/battle.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -46,7 +47,9 @@ export class GambitService {
   private static readParams(node: any): Record<string, any> {
     if (!node || typeof node !== 'object') return {};
     const { id: _id, params, ...rest } = node;
-    return { ...rest, ...(params ?? {}) };
+    const values = { ...rest, ...(params ?? {}) };
+    if (['light', 'ice', 'lightning'].includes(values.element)) values.element = normalizeElement(values.element);
+    return values;
   }
 
   private catalogConditions(): any[] {
@@ -307,7 +310,14 @@ export class GambitService {
   canonicalizeLines(lines: any[]): any[] {
     return lines.map((line: any) => {
       const { combinator: _legacyCombinator, ...rest } = line;
-      return { ...rest, conditions: [line.conditions[0]] };
+      const normalizeNode = (node: any) => {
+        if (!node) return node;
+        const copy = { ...node, ...(node.params ? { params: { ...node.params } } : {}) };
+        if (['light', 'ice', 'lightning'].includes(copy.element)) copy.element = normalizeElement(copy.element);
+        if (copy.params && ['light', 'ice', 'lightning'].includes(copy.params.element)) copy.params.element = normalizeElement(copy.params.element);
+        return copy;
+      };
+      return { ...rest, conditions: [normalizeNode(line.conditions[0])], action: normalizeNode(line.action) };
     });
   }
 

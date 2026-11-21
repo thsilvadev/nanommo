@@ -1,4 +1,4 @@
-import { Directive, ElementRef, OnDestroy } from '@angular/core';
+import { Directive, ElementRef, NgZone, OnDestroy, inject } from '@angular/core';
 
 @Directive({
   selector: '.item-tooltip:not(.diet-tooltip):not(.status-tooltip), .diet-slot, .status-icon, .status-effect-icon',
@@ -59,14 +59,18 @@ export class TooltipPositionDirective implements OnDestroy {
       ? this.host
       : this.host.parentElement as HTMLElement;
     if (!this.anchor) return;
-    this.anchor.addEventListener('pointerenter', this.onEnter);
-    this.anchor.addEventListener('pointermove', this.onMove);
-    this.anchor.addEventListener('pointerleave', this.onLeave);
-    this.anchor.addEventListener('focusin', this.onFocusIn);
-    this.anchor.addEventListener('focusout', this.onFocusOut);
-    this.anchor.addEventListener('keydown', this.onKeyDown);
-    document.addEventListener('nm:drag-start', this.onDragStart);
-    document.addEventListener('nm:drag-end', this.onDragEnd);
+    // Plain DOM work (clone, position, refresh): listeners and timers stay outside the
+    // Angular zone, otherwise every pointermove over an item re-checks the whole app.
+    inject(NgZone).runOutsideAngular(() => {
+      this.anchor.addEventListener('pointerenter', this.onEnter);
+      this.anchor.addEventListener('pointermove', this.onMove);
+      this.anchor.addEventListener('pointerleave', this.onLeave);
+      this.anchor.addEventListener('focusin', this.onFocusIn);
+      this.anchor.addEventListener('focusout', this.onFocusOut);
+      this.anchor.addEventListener('keydown', this.onKeyDown);
+      document.addEventListener('nm:drag-start', this.onDragStart);
+      document.addEventListener('nm:drag-end', this.onDragEnd);
+    });
   }
 
   private show() {

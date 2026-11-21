@@ -1,5 +1,5 @@
 import {
-  ChangeDetectionStrategy, Component, ElementRef, EventEmitter, OnDestroy, Output, ViewChild, computed, effect, inject, input, signal, untracked,
+  ChangeDetectionStrategy, Component, ElementRef, EventEmitter, NgZone, OnDestroy, OnInit, Output, ViewChild, computed, effect, inject, input, signal, untracked,
 } from '@angular/core';
 import type { TownRosterEntry } from '@nanommo/shared';
 import { CatalogService } from '../../../core/catalog.service';
@@ -21,7 +21,7 @@ export const TOWN_CLICK_TOLERANCE_PX = 5;
   templateUrl: './town-scene.component.html',
   styleUrl: './town-scene.component.css',
 })
-export class TownSceneComponent implements OnDestroy {
+export class TownSceneComponent implements OnInit, OnDestroy {
   readonly mapId = input.required<string>();
   /** False while the map view is shown: the scene stays mounted (instant switch) but stops rendering. */
   readonly active = input(true);
@@ -37,6 +37,8 @@ export class TownSceneComponent implements OnDestroy {
   private readonly party = inject(PartyStore);
   private readonly clock = inject(ServerClockService);
   private readonly catalog = inject(CatalogService);
+  private readonly zone = inject(NgZone);
+  private readonly listeners: Array<() => void> = [];
   readonly locale = inject(LocaleService);
 
   readonly state = signal<'loading' | 'ready' | 'failed'>('loading');
@@ -63,12 +65,14 @@ export class TownSceneComponent implements OnDestroy {
       const runtime = this.runtime();
       const rendered = this.rendered();
       const selfId = this.selfId();
-      runtime?.setCharacters(rendered, selfId);
+      // Character models load asynchronously: keep their promise chains out of the Angular zone.
+      if (runtime) this.zone.runOutsideAngular(() => runtime.setCharacters(rendered, selfId));
     });
     effect(() => {
       const runtime = this.runtime();
       const active = this.active();
-      runtime?.setActive(active);
+      // Restarts the render loop: it must start outside the zone too.
+      if (runtime) this.zone.runOutsideAngular(() => runtime.setActive(active));
     });
     effect(() => {
       const runtime = this.runtime();
@@ -77,7 +81,25 @@ export class TownSceneComponent implements OnDestroy {
     });
   }
 
+  /**
+   * pointermove and wheel fire dozens of times a second while the pointer is
+   * over the scene. Inside the Angular zone each event re-checked the whole app;
+   * outside it, only `hovering` (a signal, changed when the hover target
+   * changes) reaches Angular.
+   */
+  ngOnInit(): void {
+    const host = this.hostRef.nativeElement;
+    this.zone.runOutsideAngular(() => {
+      const move = (event: PointerEvent) => this.onPointerMove(event);
+      const wheel = (event: WheelEvent) => this.onWheel(event);
+      host.addEventListener('pointermove', move);
+      host.addEventListener('wheel', wheel, { passive: false });
+      this.listeners.push(() => host.removeEventListener('pointermove', move), () => host.removeEventListener('wheel', wheel));
+    });
+  }
+
   ngOnDestroy(): void {
+    for (const remove of this.listeners.splice(0)) remove();
     this.destroyed = true;
     this.generation++;
     this.runtime()?.dispose();
@@ -175,9 +197,11 @@ export class TownSceneComponent implements OnDestroy {
       for (const npc of this.catalog.npcCatalog?.() ?? []) {
         if (npc?.id) npcNames[npc.id] = this.locale.localized(npc, 'name', npc.name) || npc.id;
       }
-      const runtime = await this.env.createRuntime(this.hostRef.nativeElement, {
+      // The render loop (requestAnimationFrame), its ResizeObserver and model loads run outside
+      // the Angular zone: inside it, every frame triggered change detection of the whole app.
+      const runtime = await this.zone.runOutsideAngular(() => this.env.createRuntime(this.hostRef.nativeElement, {
         def, now: () => this.clock.now(), assetBase: this.env.assetBase ?? '/assets/character/', npcNames, selfId: this.selfId(),
-      });
+      }));
       if (generation !== this.generation || this.destroyed) { runtime.dispose(); return; }
       this.runtime.set(runtime);
       this.state.set('ready');

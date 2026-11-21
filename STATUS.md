@@ -1,3 +1,28 @@
+### Performance do frontend, Fase 0: menos detecção de mudanças, nada de DOM recriado à toa — 2026-11-21
+
+Trabalho direto em `main` (sem commit/push). Diagnóstico feito antes, com medições (ver "Antes" abaixo); proposta completa em três fases (0: gatilhos e churn; 1: `OnPush` e zoneless; 2: 3D em escala) combinada com o usuário.
+
+Antes (medido em Chromium headless):
+- O loop `requestAnimationFrame` da cidade era criado dentro da zone do Angular: 60 detecções de mudanças por segundo no app inteiro. Somavam-se timers de 250 ms em cada componente (`MapBoard`, `InventoryGrid`, `CharacterSummary`, `GrindInfo`, `PartyPanel`, `SharedBattlePanel`, cada `BattleProgress`), o `battle-hit-feedback` a cada 80 ms, o poll de áudio a cada 100 ms e o `pointermove` de hover e de tooltip. Na tela de grind na cidade, ~85 a 90 revisões do app por segundo.
+- 29 de 33 componentes sem `OnPush`, com templates chamando métodos. `itemTooltipLines` montava arrays novos a cada chamada: com 40 itens, cada revisão do inventário criava e destruía 332 nós do DOM (1,6 ms só nesse componente).
+
+Mudanças:
+- `UiClockService` (novo): um único relógio a 4 Hz, fora da zone. Substitui os timers de 250 ms de todos os componentes acima, e só as views que leem `now()` são atualizadas.
+- Cena da cidade: runtime (loop, `ResizeObserver`, carga de modelos), `setCharacters` e `setActive` rodam fora da zone. `pointermove` e `wheel` passaram para listeners fora da zone; só o signal `hovering` chega ao Angular.
+- Fora da zone também: poll do `battle-hit-feedback` (só DOM), listeners e timer do `tooltip-position` (só DOM) e poll de áudio de 100 ms.
+- `CatalogService.itemTooltipLines`/`craftItemTooltipLines` memorizados por (item, instância, slot), invalidados quando mudam os catálogos, o equipamento vestido ou o idioma; arrays congelados. `InventoryGrid.item(i)` passou a usar um mapa `computed`. `trackBy` por índice em `dietTooltipLines` e `statuses(member)`.
+
+Depois:
+- Inventário: 0 nós do DOM recriados por revisão sem mudança (era 332); revisão de 1,6 ms → 0,30 ms (p50).
+- Gatilhos de revisão na cidade: de ~85 a 90/s para ~5/s (relógio a 4 Hz e timer de 1 s da cidade), mais eventos reais. Isso é a soma dos timers restantes, não uma medição do app inteiro; a verificação com app real cobre o relógio.
+- Num teste artificial (3 inventários revisados a 60 Hz por 20 s) ainda aparece um frame isolado de ~50 ms, antes e depois. Esse pico não vinha só do churn.
+
+Validação (2026-11-21):
+- Testes novos: `ui-clock.service.spec.ts` (um timer, nunca dentro da zone); `ui-clock-app.spec.ts` (app real com `provideZoneChangeDetection`: a view atualiza ~4×/s com o relógio fora da zone, sem revisões extras); `inventory-grid-performance.spec.ts` (0 mutações de DOM em 20 revisões); `catalog.service.spec.ts` (memo e troca de idioma); `town-scene.component.spec.ts` (runtime criado e `pointermove` tratado fora da zone). `party-rendering.spec.ts` passou a usar um relógio de teste.
+- `npx tsc -p tsconfig.app.json` e `tsconfig.spec.json`: passam. `npx ng test --watch=false` (Chromium headless): 335 SUCCESS, 0 falhas (com o trabalho de elemental combat em andamento no mesmo working tree).
+- `pnpm --filter @nanommo/frontend build --configuration production`: passa (inicial 569,86 kB, o aumento vem do trabalho elemental em andamento). O build regerou os espelhos `public/data/*` a partir das edições de catálogo desse trabalho; eles foram mantidos.
+- Não medido em navegador real com o jogo rodando: pedi ao usuário um perfil do DevTools para comparar.
+
 ### Hotfix: modelos invisíveis depois dos emotes + verde de Sierra — 2026-11-21
 
 Trabalho direto em `main` (sem commit/push).
