@@ -2,10 +2,10 @@
   <div class="grind-inventory-column">
     <div class="active-gambit">
       <div class="active-gambit-title">Active Gambit</div>
-      <select
-        [value]="activeGambitId()"
+      <select #gambitSelect
+        [ngModel]="activeGambitId()"
         [disabled]="loading() || !gambits().length"
-        (change)="selectGambit($any($event.target).value)"
+        (ngModelChange)="selectGambit($event, gambitSelect)"
         aria-label="Active Gambit">
         <option value="" disabled>Select Gambit</option>
         <option *ngFor="let gambit of gambits()" [value]="gambit.id">{{gambit.title || ('Gambit ' + (gambit.slotIndex + 1))}}</option>

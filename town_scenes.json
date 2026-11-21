@@ -87,7 +87,7 @@
     {
       "mapId": "map_town",
       "size": { "w": 72, "h": 72 },
-      "ground": { "base": "#8a6a43", "accent": "#6f5434", "pattern": "dirt", "mix": { "color": "#93b85c", "accent": "#82aa4f", "coverage": 0.5 } },
+      "ground": { "base": "#8a6a43", "accent": "#6f5434", "pattern": "dirt", "mix": { "color": "#7a913c", "accent": "#6c8234", "coverage": 0.5 } },
       "lighting": {
         "preset": "day",
         "ambient": "#bcd3ff",

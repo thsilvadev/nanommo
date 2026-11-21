@@ -282,6 +282,7 @@ export class GambitService {
   async getGambitPages(characterId: string): Promise<GambitPage[]> {
     const pages = await this.gambitPageRepo.find({
       where: { character: { id: characterId } },
+      order: { slotIndex: 'ASC' },
     });
 
     // Keep the starter page name consistent for characters created before
@@ -289,7 +290,7 @@ export class GambitService {
     const defaultPage = pages.find((page) => page.slotIndex === 0);
     if (defaultPage && (!defaultPage.title || defaultPage.title.trim() === 'Page 1')) {
       defaultPage.title = 'Default Gambit';
-      await this.gambitPageRepo.save(defaultPage);
+      // Read-time compatibility only: saving this snapshot can overwrite concurrent edits.
     }
 
     return pages;
@@ -506,8 +507,7 @@ export class GambitService {
     if (character.activeGambitPageId === pageId) return page;
 
     return this.battleService.runFutureCombatMutation(characterId, async () => {
-      character.activeGambitPageId = pageId;
-      await this.characterRepo.save(character);
+      await this.characterRepo.update({ id: characterId }, { activeGambitPageId: pageId });
       return page;
     });
   }

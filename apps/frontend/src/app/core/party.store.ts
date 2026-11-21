@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, Subscription, firstValueFrom } from 'rxjs';
+import { CharacterStore } from './game.store';
 import { ApiService } from './api.service';
 import { GameSocketService } from './game.socket.service';
 import { SharedBattleView } from './party-projection';
@@ -14,6 +15,7 @@ export interface PartyState { party:PartyView|null; invites:PartyInvite[]; actio
 export class PartyStore {
   private readonly api = inject(ApiService);
   private readonly socket = inject(GameSocketService);
+  private readonly character = inject(CharacterStore);
   readonly party = signal<PartyView|null>(null);
   readonly invites = signal<PartyInvite[]>([]);
   readonly actions = signal<PartyAction[]>([]);
@@ -41,6 +43,7 @@ export class PartyStore {
           this.applySnapshot(payload as PartyState);
         }
         void this.refresh();
+        if(event === 'party:actionUpdated')void this.character.load();
       }, error: () => this.connection.set('disconnected') }));
     }
     this.subscriptions.push(this.socket.onConnectionState().subscribe(state => {

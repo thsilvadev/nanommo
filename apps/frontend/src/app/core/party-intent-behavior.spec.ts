@@ -61,6 +61,22 @@ describe('combat intent responses',()=>{
     api.put.and.returnValue(of({intent:{id:'queued',status:'pending'}}));
     await editor.save();TestBed.flushEffects();expect(editor.pageDirty('page')).toBeFalse();
   });
+  it('does not enqueue a second save for a page while its first save is pending',async()=>{
+    const editor=TestBed.runInInjectionContext(()=>new GambitEditorComponent());await Promise.resolve();
+    editor.pages.set([{id:'page',title:'Initial',lines:[]} as any]);(editor as any).savedStates.set({page:'old'});
+    api.put.and.returnValue(of({intent:{id:'queued',status:'pending'}}));
+    await editor.save();editor.updateTitle(editor.page()!,'Later draft');await editor.save();
+    expect(api.put).toHaveBeenCalledTimes(1);expect(editor.pagePending('page')).toBeTrue();
+    actions.set([{id:'queued',status:'applied'}]);TestBed.flushEffects();
+    expect(editor.pagePending('page')).toBeFalse();expect(editor.pageDirty('page')).toBeTrue();
+  });
+  it('keeps cancelled saves dirty and permits retrying them',async()=>{
+    const editor=TestBed.runInInjectionContext(()=>new GambitEditorComponent());await Promise.resolve();
+    editor.pages.set([{id:'page',title:'Initial',lines:[]} as any]);(editor as any).savedStates.set({page:'old'});
+    api.put.and.returnValue(of({intent:{id:'queued',status:'pending'}}));await editor.save();
+    actions.set([{id:'queued',status:'cancelled'}]);TestBed.flushEffects();
+    expect(editor.pagePending('page')).toBeFalse();expect(editor.pageDirty('page')).toBeTrue();expect(editor.error()).toBeTruthy();
+  });
   it('plays the item sound exactly once after the queued consume is applied',async()=>{
     api.post.and.returnValue(of({intent:{id:'consume-1',status:'pending'},stateVersion:1,inventory:[],character:{}}));
     await inventory.useConsumable('elixir_greater');expect(audio.play).not.toHaveBeenCalled();

@@ -27,6 +27,8 @@ import { OnlinePresenceService } from '../presence/online-presence.service';
 import { TownRosterService } from '../presence/town-roster.service';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
+import { randomUUID } from 'crypto';
+import { PartyService } from '../party/party.service';
 import { ChatService } from '../chat/chat.service';
 
 interface AuthenticatedSocket extends Socket {
@@ -70,6 +72,7 @@ export class NanommoGateway
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
     private readonly chatService: ChatService,
     private readonly townRoster: TownRosterService,
+    private readonly partyService: PartyService,
   ) {}
 
   afterInit(server: Server) {
@@ -368,17 +371,9 @@ export class NanommoGateway
         throw new WsException('Character not found');
       }
 
-      // TODO: Check if battle in flight, reject if so
-      // TODO: Validate pageId exists and belongs to character
-
-      character.activeGambitPageId = data.pageId;
-      await this.characterRepo.save(character);
-
-      this.logger.debug(
-        `Character ${character.name} set active gambit page to ${data.pageId}`,
-      );
-
-      client.emit('gambit:pageSet', { success: true });
+      // Use the same ownership checks, durable ordering and battle boundary as HTTP.
+      const state = await this.partyService.enqueue(character.id, randomUUID(), 'gambit_activate', { pageId: data.pageId });
+      client.emit('gambit:pageSet', { success: state.intent?.status === 'applied', intent: state.intent });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error(`Set active page error: ${errorMessage}`);

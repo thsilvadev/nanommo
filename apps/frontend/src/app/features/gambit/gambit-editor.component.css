@@ -386,3 +386,6 @@
   border-color: #74403e;
   color: #e5c3b9;
 }
+
+.page-actions button.activate-page:not(:disabled){background:#285c35;border-color:#60a46c;color:#d4f3d9}
+.page-actions button:disabled{cursor:default;opacity:.55}

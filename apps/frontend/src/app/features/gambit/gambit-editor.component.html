@@ -12,8 +12,8 @@
     <div *ngIf="page() as p;else empty" class="page-meta"><input class="page-title-input" [ngModel]="p.title" (ngModelChange)="updateTitle(p,$event)"
             aria-label="Gambit page title" placeholder="Gambit name"><span>{{lines().length}} / 20 lines</span>
         <div class="page-actions"><button (click)="addLine()" [disabled]="!page()||lines().length>=20">+ Add
-                line</button><button class="save-page" [class.dirty]="pageDirty(p.id)" (click)="save()" [disabled]="saving()||!pageDirty(p.id)" [attr.aria-label]="pageDirty(p.id)?'Save page — unsaved changes':'Page saved'">{{saving()?'Saving...':'Save
-                Page'}}</button><button (click)="activate()"
+                line</button><button class="save-page" [class.dirty]="pageDirty(p.id)" (click)="save()" [disabled]="saving()||pagePending(p.id)||!pageDirty(p.id)" [attr.aria-label]="pageDirty(p.id)?'Save page — unsaved changes':'Page saved'">{{pagePending(p.id)?'Pending...':saving()?'Saving...':'Save
+                Page'}}</button><button class="activate-page" (click)="activate()"
                 [disabled]="!page()||character.character()?.activeGambitPageId===page().id">Activate</button></div>
     </div>
     <div *ngIf="page() as p" cdkDropList class="line-list" (cdkDropListDropped)="reorder($event)">
