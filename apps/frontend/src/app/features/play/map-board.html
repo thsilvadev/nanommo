@@ -18,8 +18,9 @@
     <div *ngIf="inTownScene()" class="town-scene-area" [class.town-scene-area--hidden]="viewMode()!=='town'" [attr.aria-hidden]="viewMode()!=='town' ? 'true' : null">
       <app-town-scene [mapId]="character.character()!.currentMapId" [active]="viewMode()==='town'" [selection]="townSelection()" (npcSelected)="onTownNpcSelected($event)" (characterSelected)="onTownCharacterSelected($event)" />
     </div>
-    <div *ngIf="viewMode()==='map'" class="world" [style.transform]="'translate3d('+(-cameraX()*zoom())+'px,'+(-cameraY()*zoom())+'px,0) scale('+zoom()+')'">
-      <img class="world-art" src="/assets/maps/map-background.png" alt="" draggable="false">
+    <!-- Kept mounted in the town view (only hidden): recreating it re-requested and re-decoded the map art on every switch. -->
+    <div #world class="world" [class.world--hidden]="viewMode()!=='map'" [attr.aria-hidden]="viewMode()!=='map' ? 'true' : null" [style.transform]="'translate3d('+(-cameraX()*zoom())+'px,'+(-cameraY()*zoom())+'px,0) scale('+zoom()+')'">
+      <img class="world-art" [src]="mapArtUrl" alt="" draggable="false" decoding="async">
       <ng-container *ngFor="let cell of cells; trackBy: trackCell">
         <div class="fog-cell" *ngIf="!isRevealed(cell.x,cell.y)" [style.left.px]="cell.col*153" [style.top.px]="cell.row*153" aria-hidden="true"></div>
       </ng-container>

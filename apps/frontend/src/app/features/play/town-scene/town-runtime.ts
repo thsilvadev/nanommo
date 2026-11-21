@@ -51,7 +51,15 @@ export async function createTownRuntime(host: HTMLElement, init: TownSceneRuntim
   const loader = new GLTFLoader();
   const cache = CharacterAssetCache.shared(init.assetBase, (url) => loader.loadAsync(url));
   const catalog = await loadAppearanceCatalog(init.catalogUrl);
-  return new TownRuntime(host, init, new TownCharacterFactory(cache, catalog));
+  const runtime = new TownRuntime(host, init, new TownCharacterFactory(cache, catalog));
+  await runtime.warmUp();
+  return runtime;
+}
+
+/** Resolves when the browser is idle (or after `timeout` ms), to spread warm-up work. */
+function whenIdle(timeout = 1500): Promise<void> {
+  const idle = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+  return new Promise((resolve) => (idle ? idle(() => resolve(), { timeout }) : setTimeout(resolve, 0)));
 }
 
 /**
@@ -63,7 +71,7 @@ export async function warmTownAssets(assetBase: string, catalogUrl?: string): Pr
   const cache = CharacterAssetCache.shared(assetBase, (url) => loader.loadAsync(url));
   const outfits = new Set<string>();
   for (const visual of Object.values(NPC_VISUALS)) if (visual.figure.kind === 'body' && visual.figure.outfit) outfits.add(npcOutfitAsset(visual.figure.outfit));
-  await Promise.allSettled([
+  const [catalog] = await Promise.allSettled([
     loadAppearanceCatalog(catalogUrl),
     cache.body('male'),
     cache.body('female'),
@@ -71,6 +79,15 @@ export async function warmTownAssets(assetBase: string, catalogUrl?: string): Pr
     cache.glb(NPC_PROPS_ASSET),
     ...[...outfits].map((asset) => cache.glb(asset)),
   ]);
+  // Recolouring the NPC outfits took ~160 ms on the main thread the moment a town opened:
+  // do it now, one NPC per idle slot, into the page-wide cache the town scene reads.
+  if (catalog.status !== 'fulfilled') return;
+  const factory = new TownCharacterFactory(cache, catalog.value);
+  for (const visual of Object.values(NPC_VISUALS)) {
+    if (visual.figure.kind !== 'body' || !visual.figure.outfit) continue;
+    await whenIdle();
+    await factory.warmOutfit(visual.figure).catch(() => undefined);
+  }
 }
 
 export class TownRuntime implements TownSceneRuntimeHandle {
@@ -97,6 +114,8 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   private lastFrameAt: number | null = null;
   private disposed = false;
   private active = true;
+  /** The render loop waits for the world's shaders (warmUp). */
+  private started = false;
 
   constructor(private readonly host: HTMLElement, private readonly init: TownSceneRuntimeInit, private readonly factory: TownCharacterFactory) {
     this.selfId = init.selfId;
@@ -119,6 +138,9 @@ export class TownRuntime implements TownSceneRuntimeHandle {
 
     const { w, h } = this.size();
     this.cam = new TownCamera(w, h, init.def);
+    // Shaders link off the frame: objects are compiled (KHR_parallel_shader_compile when
+    // available) before they are first drawn, instead of stalling the frame they appear in.
+    factory.prepare = (object) => this.renderer.compileAsync(object, this.cam.camera, this.scene).catch(() => undefined);
     this.cam.centerOn(init.def.spawn.x, init.def.spawn.z);
     this.renderer.setSize(w, h, false);
 
@@ -133,7 +155,8 @@ export class TownRuntime implements TownSceneRuntimeHandle {
       const npc = new TownCharacter(factory, entry, { npc: true, visual: visual?.figure });
       npc.elevation = spot.y ?? 0;
       if (visual) {
-        this.npcProps.push(buildNpcVisual(visual, { factory }).then((props) => {
+        this.npcProps.push(buildNpcVisual(visual, { factory }).then(async (props) => {
+          await factory.prepare?.(props);
           if (this.disposed) return;
           props.position.set(spot.x, spot.y ?? 0, spot.z);
           props.rotation.y = (spot.facing * Math.PI) / 180;
@@ -152,6 +175,12 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     const visibility = () => (document.hidden || !this.active ? this.stopLoop() : this.startLoop());
     document.addEventListener('visibilitychange', visibility);
     this.cleanups.push(() => document.removeEventListener('visibilitychange', visibility));
+  }
+
+  /** Compiles the town's own shaders, then starts the render loop (first frame without a stall). */
+  async warmUp(): Promise<void> {
+    await this.factory.prepare?.(this.scene);
+    this.started = true;
     this.startLoop();
   }
 
@@ -425,7 +454,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   }
 
   private startLoop(): void {
-    if (this.frame !== null || this.disposed || document.hidden || !this.active) return;
+    if (!this.started || this.frame !== null || this.disposed || document.hidden || !this.active) return;
     const step = (at: number) => {
       this.frame = requestAnimationFrame(step);
       const dt = this.lastFrameAt === null ? 0 : Math.min(250, at - this.lastFrameAt);

@@ -12,6 +12,8 @@ import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
 import { UiClockService } from '../../core/ui-clock.service';
+import { MAP_ART_URL } from './map-art';
+import { bakeFogSprites } from './fog-sprites';
 import { VendorStore } from '../../core/vendor.store';
 import { BrowserNotificationsService } from '../../core/browser-notifications.service';
 import { VendorStockItem, effectiveFoodStatValue, TOWN_MAP_ID, projectStatusTimeline } from '@nanommo/shared';
@@ -43,7 +45,7 @@ export class CharacterSummary implements OnDestroy {
     const c = this.character.character();
     // lastSeenAt is a server snapshot and does not change locally. Without a local
     // throttle, once it is 10s old this 1s timer would GET /characters every second.
-    if (c?.status === 'town' && Date.parse(c.lastSeenAt) + 10000 <= now
+    if (!document.hidden && c?.status === 'town' && Date.parse(c.lastSeenAt) + 10000 <= now
       && now - this.lastTownRefreshAt >= 10000 && this.character.state() !== 'loading') {
       this.lastTownRefreshAt = now;
       void this.character.load();
@@ -191,6 +193,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
     return activity ? teleportProgress(activity, this.activityNow()) : 0;
   }
   readonly character = inject(CharacterStore); readonly battle = inject(BattleStore); readonly locale = inject(LocaleService); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService); private readonly catalog = inject(CatalogService); private readonly notifications = inject(BrowserNotificationsService); private readonly vendor = inject(VendorStore);
+  readonly mapArtUrl = MAP_ART_URL;
   maps: any[] = []; readonly cells = Array.from({length:195},(_,i)=>({col:i%15,row:Math.floor(i/15),x:i%15-7,y:6-Math.floor(i/15)}));
   readonly selected = signal<string|null>(null); readonly error = signal<string|null>(null); readonly mapTransitionPending = signal(false); readonly destinationMapId = signal<string|null>(null); readonly routeOriginMapId = signal<string|null>(null);
   readonly cameraX = signal(0); readonly cameraY = signal(0); readonly zoom = signal(1); readonly hoveredMap = signal<any|null>(null); readonly activityNow = inject(UiClockService).now; readonly fleeNotice = signal<string|null>(null); readonly pinArrivalFromMapId = signal<string|null>(null); private discovered = new Set<string>();
@@ -201,6 +204,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   private transitionPoll:ReturnType<typeof setInterval>|null=null; private transitionPollBusy=false; private fleeNoticeTimeout:ReturnType<typeof setTimeout>|null=null; private lastFleeNoticeEntryId:string|null=null;
   private drag: {id:number; startX:number; startY:number; cameraX:number; cameraY:number; moved:boolean}|null = null; private suppressClickUntil = 0; private lastCenteredMapId: string|null = null;
   @ViewChild('viewport') viewportElement?: ElementRef<HTMLElement>;
+  @ViewChild('world') worldElement?: ElementRef<HTMLElement>;
   private readonly worldWidth=2295; private readonly worldHeight=1989; private viewportWidth=0; private viewportHeight=0; private viewportResizeObserver:ResizeObserver|null=null; private readonly zoomMin=.5; private readonly zoomMax=1;
   constructor() {
     // lastResolved is a retained store snapshot; don't replay an old FLEE toast
@@ -516,7 +520,15 @@ export class MapBoard implements OnDestroy, AfterViewInit {
     return{x:center.x,y:top+153};
   }
   playersInMap(){const id=this.character.character()?.currentMapId;return id&&this.battle.mapPresence()?.mapId===id?this.battle.mapPresence()?.playersOnMap??0:0}
-  isRevealed(x:number,y:number){if(!this.discovered.size)return x===0&&y===0;for(const id of this.discovered){const m=this.maps.find(v=>v.id===id);if(!m)continue;const dx=Math.abs(Number(m.coordinates.x)-x),dy=Math.abs(Number(m.coordinates.y)-y);if(dx+dy<=1)return true;}return false}
+  /**
+   * Fog of war. The template asks this for each of the 195 cells on every change
+   * detection; the answer only changes with the maps or the discovered set, so it is
+   * computed once per (maps, discovered) pair instead of scanning every map per cell.
+   */
+  isRevealed(x:number,y:number){if(!this.discovered.size)return x===0&&y===0;const grid=this.revealedGrid();const key=x+','+y;return grid.cells.has(key)?grid.revealed.has(key):this.revealedSlow(x,y)}
+  private revealedCache:{maps:any[];discovered:Set<string>;cells:Set<string>;revealed:Set<string>}|null=null;
+  private revealedGrid(){const c=this.revealedCache;if(c&&c.maps===this.maps&&c.discovered===this.discovered)return c;const cells=new Set<string>(),revealed=new Set<string>();for(const cell of this.cells){const key=cell.x+','+cell.y;cells.add(key);if(this.revealedSlow(cell.x,cell.y))revealed.add(key)}return this.revealedCache={maps:this.maps,discovered:this.discovered,cells,revealed}}
+  private revealedSlow(x:number,y:number){for(const id of this.discovered){const m=this.maps.find(v=>v.id===id);if(!m)continue;const dx=Math.abs(Number(m.coordinates.x)-x),dy=Math.abs(Number(m.coordinates.y)-y);if(dx+dy<=1)return true;}return false}
   private clampCamera(x:number,y:number,zoom=this.zoom()){const visibleWidth=this.viewportWidth/zoom,visibleHeight=this.viewportHeight/zoom;const maxX=this.worldWidth-visibleWidth,maxY=this.worldHeight-visibleHeight;return {x:Math.max(Math.min(0,maxX),Math.min(Math.max(0,maxX),x)),y:Math.max(Math.min(0,maxY),Math.min(Math.max(0,maxY),y))}}
   private centerOnCurrentMap(){const m=this.currentMap();if(!m||this.viewportWidth<=0||this.viewportHeight<=0||this.lastCenteredMapId===m.id)return;this.lastCenteredMapId=m.id;const z=this.zoom();const p=this.clampCamera(this.gridColumn(m)*153+76.5-this.viewportWidth/(2*z),this.gridRow(m)*153+76.5-this.viewportHeight/(2*z),z);this.cameraX.set(p.x);this.cameraY.set(p.y)}
   onPointerDown(e:PointerEvent){if(this.viewMode()==='town')return;if(e.button!==0&&e.pointerType==='mouse')return;this.hideTileTooltip();this.drag={id:e.pointerId,startX:e.clientX,startY:e.clientY,cameraX:this.cameraX(),cameraY:this.cameraY(),moved:false}}
@@ -614,7 +626,8 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   private startTransitionPoll(){
     if(this.transitionPoll!==null)return;
     this.transitionPoll=setInterval(()=>{
-      if(this.transitionPollBusy)return;
+      // Hidden tab: nothing to show; the server keeps travelling, the next visible tick catches up.
+      if(this.transitionPollBusy||document.hidden)return;
       this.transitionPollBusy=true;
       const previousTarget=this.destinationMapId();
       const previousOrigin=this.routeOriginMapId();
@@ -712,11 +725,14 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   @HostListener('window:resize')onWindowResize(){this.updateViewportSize()}
   ngAfterViewInit(){
     this.updateViewportSize();
+    this.applyBakedFog();
     if(typeof ResizeObserver!=='undefined'&&this.viewportElement?.nativeElement){
       this.viewportResizeObserver=new ResizeObserver(()=>this.updateViewportSize());
       this.viewportResizeObserver.observe(this.viewportElement.nativeElement);
     }
   }
+  /** Fog cells draw pre-rendered cloud images instead of re-blurring CSS gradients every frame (see fog-sprites.ts). */
+  private applyBakedFog(){const world=this.worldElement?.nativeElement;const fog=world?bakeFogSprites():null;if(!world||!fog)return;world.style.setProperty('--fog-front',`url("${fog.front.url}")`);world.style.setProperty('--fog-front-inset',`${fog.front.insetPx}px`);world.style.setProperty('--fog-back',`url("${fog.back.url}")`);world.style.setProperty('--fog-back-inset',`${fog.back.insetPx}px`);world.classList.add('fog-baked')}
   ngOnDestroy(){this.viewportResizeObserver?.disconnect();this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
 }
 

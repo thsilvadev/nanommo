@@ -21,7 +21,7 @@
       ]
     },
     {
-      "source": "/assets/(character|npcs)/(.*)",
+      "source": "/assets/(character|npcs|maps)/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

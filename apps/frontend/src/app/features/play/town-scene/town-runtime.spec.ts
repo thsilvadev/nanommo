@@ -3,7 +3,7 @@ import { TownNav, positionAt } from '@nanommo/shared';
 import { isWebglAvailable } from '../../../shared/character-viewer/character-viewer.component';
 import * as THREE from 'three';
 import { createTownRuntime, type TownRuntime } from './town-runtime';
-import { buildTownWorld } from './town-world';
+import { WELL_BELL_AMPLITUDE, WELL_BELL_PERIOD_MS, buildTownWorld } from './town-world';
 
 const appearance = { v: 1, hair: 1, hairColor: 2, skin: 3, face: 0, nose: 0, mouth: 0, mouthDetails: 0, chest: 0, facialHair: 0, piercing: 0, tattoo: 0 } as const;
 const entry = (characterId: string, extra: Partial<TownRosterEntry> = {}): TownRosterEntry => ({
@@ -117,7 +117,9 @@ describe('TownRuntime (real WebGL)', () => {
   });
 
   it('someone who just joined gets the aura even on the first roster', async () => {
-    const rt = await start([entry('hero', { joinedAt: NOW - 200 })], 'hero');
+    // Checked right when the roster arrives: model loads (and shader warm-up) can outlast the 0.5 s aura.
+    const rt = await start([], 'hero');
+    rt.setCharacters([entry('hero', { joinedAt: NOW - 200 }), entry('ana', { joinedAt: NOW - 60_000 })], 'hero');
     expect(rt.effectCount()).toBe(1);
   });
 
@@ -203,6 +205,29 @@ describe('TownWorld campfire', () => {
     expect(fire.intensity).toBe(first);
     world.update(T + 120);
     expect(fire.intensity).not.toBe(first);
+    world.dispose();
+  });
+});
+
+describe('Sierra well bell', () => {
+  it('swings like a pendulum: same amplitude every swing, only ever still at the ends', async () => {
+    const all = await fetch('/data/town_scenes.json').then(r => r.json());
+    const world = buildTownWorld(all.towns.find((t: TownSceneDef) => t.mapId === 'map_town'));
+    const bell = world.group.getObjectByName('well-bell')!;
+    const T0 = Date.UTC(2026, 10, 21, 3);
+    const angles: number[] = [];
+    for (let t = 0; t <= 30_000; t += 10) { world.update(T0 + t); angles.push(bell.rotation.x); }
+    expect(Math.max(...angles)).toBeCloseTo(WELL_BELL_AMPLITUDE, 2);
+    expect(Math.min(...angles)).toBeCloseTo(-WELL_BELL_AMPLITUDE, 2);
+    for (let i = 1; i < angles.length - 1; i++) {
+      const speed = Math.abs(angles[i + 1] - angles[i - 1]) / 20; // rad/ms
+      // Slow only near the turning points (as a pendulum), never in the middle of a swing.
+      if (Math.abs(angles[i]) < 0.8 * WELL_BELL_AMPLITUDE) expect(speed).toBeGreaterThan(0.0005);
+    }
+    let turns = 0;
+    for (let i = 1; i < angles.length - 1; i++) if ((angles[i] - angles[i - 1]) * (angles[i + 1] - angles[i]) < 0) turns++;
+    // Two turning points per period and no extra ones (an extra pair would be a stall/reversal mid-swing).
+    expect(Math.abs(turns - (2 * 30_000) / WELL_BELL_PERIOD_MS)).toBeLessThanOrEqual(1);
     world.dispose();
   });
 });

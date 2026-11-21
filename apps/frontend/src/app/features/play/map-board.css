@@ -336,7 +336,7 @@
 }
 
 .activity-gauge.teleporting {
-  background: #fff;
+  background: #d2c0f0;
   border-color: #6fa9e3;
 }
 .activity-gauge.teleporting strong {
@@ -344,22 +344,22 @@
   text-shadow: none;
 }
 .teleporting .activity-gauge-fill {
-  background: #8fc6ff;
-  animation: teleport-pulse 200ms steps(1, end) infinite;
+  background: linear-gradient(110deg, #7bbaff, #b194f0, #7bbaff);
+  background-size: 200% 100%;
+  animation: teleport-flow 3s ease-in-out infinite alternate;
 }
-@keyframes teleport-pulse {
-  0%,
-  100% {
-    background: #fff;
+@keyframes teleport-flow {
+  from {
+    background-position: 0% 50%;
   }
-  50% {
-    background: #7bbaff;
+  to {
+    background-position: 100% 50%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .teleporting .activity-gauge-fill {
     animation: none;
-    background: #8fc6ff;
+    background: linear-gradient(110deg, #7bbaff, #b194f0);
   }
 }
 

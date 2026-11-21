@@ -1,3 +1,27 @@
+### Performance, Fase 0.5 (achados do perfil do Firefox) + sino de Sierra + Storage do Outpost — 2026-11-21
+
+Commit e push na `main` autorizados pelo usuário.
+
+Perfil do Firefox depois da Fase 0 (100 s, i7-11800H, comparado com o de antes): CPU do thread do jogo 90,8% → 58,4% de um núcleo; detecção de mudanças 331 → 38 ms/s; frames > 50 ms 38,7 → 1,8 por minuto; pausas do cycle collector até 107 ms → até 7 ms. O que sobrou: com o mapa aberto, a pintura do nevoeiro consumia ~40% de um núcleo; ao entrar na cidade, dois picos únicos (220 ms de compilação de shaders no primeiro render, 160 ms recolorindo roupas de NPC); a imagem do mapa "recarregava"; `isRevealed` ainda caro; polling durante viagem.
+
+- Nevoeiro: `fog-sprites.ts` desenha uma vez, em canvas, os mesmos 4 gradientes, recorte elíptico e blur (15/22 px) das duas camadas de `.fog-cell` e as usa como imagem (regras em `styles.css`, porque o CSS do `map-board` está no limite de 6 kB). As animações continuam; o compositor só move imagens. Diferença para a versão CSS: máx. 7/255 por canal, média 0,5 (captura comparada no Chromium). Medido no Chromium headless com 150 células: CSS atual ~8 fps (p50 119 ms) → 60 fps. Sem `ctx.filter` (Safari < 18), fica o CSS antigo.
+- Imagem do mapa: `map-background.png` (9 MB, 2295×1989, opaca) → `map-background.webp` (1,07 MB, qualidade 90) gerada por `tools/character-assets/build-map-art.mjs` a partir do PNG do frontend (o de `project/` é uma versão antiga da arte). URL versionada (`map-art.ts`, `?v=1`), `/assets/maps` com cache de 1 dia + SWR de 7 dias (`vercel.json`, padrão conferido com `path-to-regexp@3`), e o mapa fica montado (escondido) na cidade em vez de ser recriado a cada troca. Antes: `max-age=0, must-revalidate` e um `<img>` novo a cada volta da cidade.
+- `isRevealed`: resultado calculado uma vez por (mapas, descobertas) em vez de varrer todos os mapas por célula a cada revisão.
+- Cidade: shaders compilados com `renderer.compileAsync` antes do primeiro frame (mundo), antes de cada modelo entrar na cena e antes dos adereços dos NPCs; o loop só começa depois do mundo. Recolorações das roupas num cache da página (antes por cena, descartado no `dispose`) e aquecidas no preload ocioso, um NPC por callback (`warmOutfit`, mesma lógica do `wear()` via `outfitMap`).
+- Polling: com a aba escondida não há poll de viagem (`/characters` a 1 s), refresh da cidade (10 s) nem recuperação da fila; a recuperação da fila faz backoff de 3 s a 15 s enquanto vier vazia e volta a 3 s com qualquer evento do socket. O poll de viagem com a aba visível segue em 1 s: é ele que conclui a chegada (sessão de grind, presença, fila, descobertas) e o servidor não envia o snapshot a cada passo da viagem. Proposta pendente: publicar o snapshot nos passos da viagem e tirar esse poll.
+- Sino do poço em Sierra: pêndulo de amplitude e período constantes (0,3 rad, 1,6 s) com badalo atrasado em um quarto de ciclo. A fórmula antiga somava duas senoides de frequências sem relação e parava no meio do balanço quando elas se anulavam.
+- Storage do Outpost girado 180° (`facing` −135 → 45, de frente para a câmera/sul); o POI `npc_storage` foi para a nova frente (o baú, atrás do NPC, caía sobre ele).
+- Inclui o ajuste visual da barra de teleporte em `map-board.css` que estava no working tree (trabalho do usuário).
+
+Sem migração. Nada executado em banco. Deploy pelo push na `main`.
+
+Validação (2026-11-21):
+- Testes novos: `fog-sprites.spec.ts` (imagens, tamanho com a borda do blur, CSS aplicado e mapa escondido), pêndulo do sino em `town-runtime.spec.ts` (amplitude constante, sem parada no meio, 2 inversões por período), backoff/aba escondida em `game.store.spec.ts`. Teste da aura de quem acabou de chegar ajustado para olhar logo após o roster (o aquecimento de shaders pode durar mais que os 0,5 s da aura).
+- `npx tsc -p tsconfig.app.json` e `tsconfig.spec.json`: passam. `npx ng test --watch=false` (Chromium headless): 341 SUCCESS, 0 falhas.
+- `node apps/api/test/town-wander.test.js` 23/23, `town-roster.test.js` 27/27, `town-scenes-catalog.test.js` 27/27, `map-presence.test.js` 13 asserções; `scripts/validate-town-scenes.js` passa. `scripts/validate-world-map.js` falha antes, numa regra antiga de `maps.json` ("only explicitly assigned Grind maps have pools"), não relacionada; a regra nova da arte do mapa passa isolada.
+- `pnpm --filter @nanommo/frontend build --configuration production`: passa (inicial 570,86 kB; `town-runtime` 52,59 kB). A primeira tentativa estourou o orçamento de 6 kB do CSS do `map-board`; as regras novas foram para `styles.css`.
+- Conferência visual: Storage do Outpost virado para a câmera (captura headless). Nevoeiro comparado pixel a pixel. Não medido de novo no Firefox real: pedir um perfil novo para comparar.
+
 ### Performance do frontend, Fase 0: menos detecção de mudanças, nada de DOM recriado à toa — 2026-11-21
 
 Trabalho direto em `main` (sem commit/push). Diagnóstico feito antes, com medições (ver "Antes" abaixo); proposta completa em três fases (0: gatilhos e churn; 1: `OnPush` e zoneless; 2: 3D em escala) combinada com o usuário.

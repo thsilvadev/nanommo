@@ -105,6 +105,13 @@ function buildStool(): THREE.Group {
 /** Blue ring under the selected player / NPC (same shape as the gold "you" ring). */
 export const TOWN_SELECTION_COLOR = '#4aa8ff';
 
+/**
+ * Recoloured outfit textures, kept for the whole page (not per scene): their sources
+ * come from the shared CharacterAssetCache, so the keys stay valid across scenes, and
+ * building them is the costliest part of opening a town (it is warmed while idle).
+ */
+const RECOLOURED = new Map<string, THREE.Texture>();
+
 /** Shared per-scene building blocks: one template body per sex, skins, hair. */
 export class TownCharacterFactory {
   private readonly templates = new Map<Sex, Promise<BodyAsset>>();
@@ -197,7 +204,11 @@ export class TownCharacterFactory {
     };
   }
 
-  private readonly rehued = new Map<string, THREE.Texture>();
+  /**
+   * Set by the runtime: compiles an object's shaders off the frame (`compileAsync`),
+   * so a model appearing does not stall rendering while its programs link.
+   */
+  prepare: ((object: THREE.Object3D) => Promise<unknown>) | null = null;
 
   /**
    * The outfit texture painted `color` where `geometry` samples it: each texel
@@ -248,7 +259,7 @@ export class TownCharacterFactory {
   }
 
   private recoloured(key: string, source: THREE.Texture, paint: (pixels: Uint8ClampedArray, size: number) => void): THREE.Texture {
-    let texture = this.rehued.get(key);
+    let texture = RECOLOURED.get(key);
     if (!texture) {
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = PAINT_SIZE;
@@ -261,9 +272,41 @@ export class TownCharacterFactory {
       texture.flipY = source.flipY;
       texture.colorSpace = source.colorSpace;
       texture.wrapS = source.wrapS; texture.wrapT = source.wrapT;
-      this.rehued.set(key, texture);
+      RECOLOURED.set(key, texture);
     }
     return texture;
+  }
+
+  /**
+   * The texture an outfit material wears for this NPC: green cloth re-hued to
+   * `recolor`, then shirt/pants painted. Null when the material keeps its own map.
+   * `painted` tells the caller to drop the material tint (the paint carries the colour).
+   */
+  outfitMap(figure: NpcFigureBody, meshName: string, geometry: THREE.BufferGeometry, materialName: string, map: THREE.Texture | null): { map: THREE.Texture | null; painted: boolean } {
+    if (!map || materialName === 'Skin') return { map, painted: false };
+    let out = figure.recolor ? this.rehueGreen(map, figure.recolor) : map;
+    const part = /_(Body|Arms)/.test(meshName) ? 'shirt' : /_Legs/.test(meshName) ? 'pants' : null;
+    const paint = part ? figure.paint?.[part] : undefined;
+    if (paint) out = this.paintPart(out, paint, geometry, `${figure.outfit}:${meshName}`);
+    return { map: out, painted: !!paint };
+  }
+
+  /** Outfit meshes a figure wears (costume flags hide some). */
+  static wornMeshes(figure: NpcFigureBody, outfit: THREE.Object3D): THREE.SkinnedMesh[] {
+    const meshes: THREE.SkinnedMesh[] = [];
+    outfit.traverse((o) => { if ((o as THREE.SkinnedMesh).isSkinnedMesh) meshes.push(o as THREE.SkinnedMesh); });
+    return meshes.filter((mesh) => !(figure.costume.includes('no-hood') && /Head_Hood/.test(mesh.name))
+      && !(figure.costume.includes('hide-legs') && /_(Legs|Feet)/.test(mesh.name)));
+  }
+
+  /** Builds (and caches page-wide) every recoloured texture an NPC's outfit needs, ahead of the town opening. */
+  async warmOutfit(figure: NpcFigureBody): Promise<void> {
+    if (!figure.outfit) return;
+    const outfit = await this.cache.glb(npcOutfitAsset(figure.outfit));
+    for (const mesh of TownCharacterFactory.wornMeshes(figure, outfit)) {
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const material of materials as THREE.MeshStandardMaterial[]) this.outfitMap(figure, mesh.name, mesh.geometry, material.name, material.map);
+    }
   }
 
   /**
@@ -303,8 +346,7 @@ export class TownCharacterFactory {
     this.hairMaterials.clear();
     for (const g of this.heads.values()) g.dispose();
     this.heads.clear();
-    for (const t of this.rehued.values()) t.dispose();
-    this.rehued.clear();
+    // Recoloured textures are page-wide (RECOLOURED): not disposed with the scene.
   }
 }
 
@@ -540,6 +582,9 @@ export class TownCharacter {
     if (head) for (const item of [hair, beard]) if (item) head.add(item);
     const scale = (entry.heightCm ?? NATIVE_HEIGHT_CM[sex]) / NATIVE_HEIGHT_CM[sex];
     this.model.scale.setScalar(scale);
+    // Link its shaders before it is drawn (no stall on the frame it appears).
+    if (f.prepare) await f.prepare(root);
+    if (this.disposed) return;
     this.model.add(root);
 
     this.mixer = new THREE.AnimationMixer(root);
@@ -619,12 +664,8 @@ export class TownCharacter {
     if (!body) return;
     body.geometry = this.factory.headOnly(this.entry.sex ?? 'male', body);
     const outfit = cloneSkinned(outfitSource);
-    const meshes: THREE.SkinnedMesh[] = [];
-    outfit.traverse((o) => { if ((o as THREE.SkinnedMesh).isSkinnedMesh) meshes.push(o as THREE.SkinnedMesh); });
     const tint = new THREE.Color(figure.tint ?? '#ffffff');
-    for (const mesh of meshes) {
-      if (figure.costume.includes('no-hood') && /Head_Hood/.test(mesh.name)) continue;
-      if (figure.costume.includes('hide-legs') && /_(Legs|Feet)/.test(mesh.name)) continue;
+    for (const mesh of TownCharacterFactory.wornMeshes(figure, outfit)) {
       const skeleton = new THREE.Skeleton(mesh.skeleton.bones.map((b) => bones.get(b.name) ?? b), mesh.skeleton.boneInverses);
       const bindMatrix = mesh.bindMatrix.clone();
       body.parent!.add(mesh);
@@ -632,13 +673,9 @@ export class TownCharacter {
       const recolor = (m: THREE.Material) => {
         const material = (m as THREE.MeshStandardMaterial).clone();
         material.color.set(material.name === 'Skin' ? skinColor : tint);
-        if (figure.recolor && material.name !== 'Skin' && material.map) material.map = this.factory.rehueGreen(material.map, figure.recolor);
-        const part = /_(Body|Arms)/.test(mesh.name) ? 'shirt' : /_Legs/.test(mesh.name) ? 'pants' : null;
-        const paint = part ? figure.paint?.[part] : undefined;
-        if (paint && material.name !== 'Skin' && material.map) {
-          material.map = this.factory.paintPart(material.map, paint, mesh.geometry, `${figure.outfit}:${mesh.name}`);
-          material.color.set('#ffffff');
-        }
+        const dressed = this.factory.outfitMap(figure, mesh.name, mesh.geometry, material.name, material.map);
+        material.map = dressed.map;
+        if (dressed.painted) material.color.set('#ffffff');
         this.owned.push(material);
         return material;
       };

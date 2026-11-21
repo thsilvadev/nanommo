@@ -777,3 +777,26 @@ app-character-summary .equip-slot > img.mirrored-hand {
 .nm-floating-tooltip.craft-item-tooltip strong{margin-bottom:3px;font:700 18px/1.2 Georgia,serif;color:#f0d9ac}
 .nm-floating-tooltip.craft-item-tooltip span{font:12px/1.45 Arial,sans-serif}
 .nm-floating-tooltip.craft-item-tooltip .tooltip-warning{color:#e5a48b}
+
+/* Map board (kept here: its component stylesheet is at the 6 kB budget). */
+/* Town view: the map stays mounted (art decoded, no fog painting) but is not shown. */
+app-map-board .world.world--hidden {
+  display: none;
+}
+/* Pre-rendered fog (fog-sprites.ts): same gradients, clip and blur as map-board.css, painted
+   once into two images; the cells only move them. Set by MapBoard when the browser can blur
+   a canvas; otherwise the CSS layers in map-board.css are used as they are. */
+app-map-board .world.fog-baked .fog-cell::before,
+app-map-board .world.fog-baked .fog-cell::after {
+  filter: none;
+  border-radius: 0;
+  background: center / 100% 100% no-repeat;
+}
+app-map-board .world.fog-baked .fog-cell::before {
+  inset: var(--fog-front-inset);
+  background-image: var(--fog-front);
+}
+app-map-board .world.fog-baked .fog-cell::after {
+  inset: var(--fog-back-inset);
+  background-image: var(--fog-back);
+}

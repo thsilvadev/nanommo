@@ -226,3 +226,11 @@ zone.js turns every `setInterval`, `setTimeout`, `requestAnimationFrame` and DOM
 
 `*ngFor` without `trackBy` tracks by identity. A template method that returns fresh objects (`itemTooltipLines` used to) makes Angular destroy and recreate those DOM nodes on every change detection pass, even for hidden tooltips: 332 nodes per pass for a 40-item inventory. Memoize (see `CatalogService.memoTooltip`), use a `computed`, or track by index/id. `inventory-grid-performance.spec.ts` asserts zero DOM mutations for an unchanged pass.
 
+## 4.32 Never animate elements that carry a CSS `filter`
+
+A `filter` (blur especially) on an element whose transform animates is re-rendered every frame, and in Firefox it also keeps the animation off the compositor. The fog of war (~300 blurred, animated layers) cost ~40% of a core with the map open and ran at ~8 fps in software compositing. Bake the filtered result into an image once (`fog-sprites.ts`) and animate the image.
+
+## 4.33 Component stylesheets have a hard 6 kB budget
+
+`angular.json` fails the production build (and so the Vercel deploy) when any component stylesheet passes 6 kB. `map-board.css` is at the limit: put new map-board rules in `styles.css`, scoped under `app-map-board`.
+

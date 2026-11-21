@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { ApiService } from './api.service';
 import { Character, InventoryItem } from './game.models';
 import { BattleStore, CharacterStore, InventoryStore } from './game.store';
@@ -349,6 +349,27 @@ describe('realtime resource synchronization', () => {
     expect(characterStore.character()?.hpCurrent).toBe(70);
     expect(characterStore.character()?.spCurrent).toBe(35);
     expect(inventoryStore.items()[0].quantity).toBe(18);
+  });
+
+  it('queue recovery: nothing while the tab is hidden, then backs off while the queue stays empty', () => {
+    api.get.and.callFake(() => of([]) as any);
+    const characterStore = TestBed.inject(CharacterStore);
+    const inventoryStore = TestBed.inject(InventoryStore);
+    const battleStore = TestBed.inject(BattleStore);
+    characterStore.applyRealtimeSnapshot(character(40, 20), 10);
+    battleStore.bindEvents(characterStore, inventoryStore);
+    const queueCalls = () => api.get.calls.allArgs().filter(([url]) => url === '/battles/queue').length;
+    const hidden = spyOnProperty(document, 'hidden', 'get').and.returnValue(true);
+    (battleStore as any).queueRecoveryTick();
+    expect(queueCalls()).toBe(0);
+    hidden.and.returnValue(false);
+    (battleStore as any).queueRecoveryTick();
+    expect(queueCalls()).toBe(1);
+    // Empty: the next attempt waits 6 s instead of 3 s.
+    expect((battleStore as any).queueRecoveryDelay).toBe(6000);
+    (battleStore as any).queueRecoveryTick();
+    expect(queueCalls()).toBe(1);
+    battleStore.ngOnDestroy();
   });
 
   it('recovers a missing realtime battle queue while the character is grinding', () => {

@@ -398,13 +398,13 @@
         { "kind": "rock", "x": 67, "z": 27, "r": 1.2 }
       ],
       "npcSpots": {
-        "storage": { "x": 26.8, "z": 36.8, "facing": -135 },
+        "storage": { "x": 26.8, "z": 36.8, "facing": 45 },
         "william": { "x": 40.95, "z": 31.05, "facing": 135 },
         "mailbox": { "x": 31.05, "z": 40.95, "facing": -45 },
         "father_marcelus": { "x": 36, "z": 41.2, "facing": 0 }
       },
       "pointsOfInterest": [
-        { "id": "npc_storage", "x": 24.96, "z": 34.96, "radius": 1.4, "weight": 3, "lookAt": [26.8, 36.8] },
+        { "id": "npc_storage", "x": 28.64, "z": 38.64, "radius": 1.4, "weight": 3, "lookAt": [26.8, 36.8] },
         { "id": "npc_william", "x": 42.79, "z": 29.21, "radius": 1.4, "weight": 3, "lookAt": [40.95, 31.05] },
         { "id": "npc_mailbox", "x": 29.21, "z": 42.79, "radius": 1.4, "weight": 3, "lookAt": [31.05, 40.95] },
         { "id": "npc_father_marcelus", "x": 36, "z": 43, "radius": 1.4, "weight": 3, "lookAt": [36, 41.2] },

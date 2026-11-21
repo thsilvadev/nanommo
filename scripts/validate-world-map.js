@@ -38,5 +38,10 @@ for (const m of root) {
   }
   for (const entry of m.monsters) assert.ok(monsters.has(entry.monsterId), `${m.id} references ${entry.monsterId}`);
 }
-for (const f of ['map-background.png', 'pinpoint.png']) assert.deepEqual(fs.readFileSync(path.join(__dirname, '../project', f)), fs.readFileSync(path.join(__dirname, `../apps/frontend/assets/maps/${f}`)), `${f} asset mirror`);
+assert.deepEqual(fs.readFileSync(path.join(__dirname, '../project/pinpoint.png')), fs.readFileSync(path.join(__dirname, '../apps/frontend/assets/maps/pinpoint.png')), 'pinpoint.png asset mirror');
+// The map view loads the WebP built from assets/maps/map-background.png by
+// tools/character-assets/build-map-art.mjs (the PNG is ~9 MB; project/ holds an older version).
+const mapArt = fs.readFileSync(path.join(__dirname, '../apps/frontend/assets/maps/map-background.webp'));
+assert.ok(mapArt.subarray(0, 4).toString() === 'RIFF' && mapArt.subarray(8, 12).toString() === 'WEBP', 'map-background.webp is a WebP');
+assert.ok(mapArt.length < 2_000_000, 'map-background.webp stays under 2 MB');
 console.log(`Validated ${root.length} world locations, zero level gates, 5 Towns, 36 grind rosters, ${gatherableByMap.size} assigned gathering pools (empty pools allowed), coordinate bounds, catalogue parity and art asset integrity.`);

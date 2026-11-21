@@ -6,6 +6,10 @@
 import * as THREE from 'three';
 import { Mulberry32, TOWN_STAIRS_LENGTH, obstacleRadius, type TownObstacle, type TownSceneDef } from '@nanommo/shared';
 
+/** Sierra's well bell: a pendulum of constant amplitude (radians) and period. */
+export const WELL_BELL_AMPLITUDE = 0.3;
+export const WELL_BELL_PERIOD_MS = 1600;
+
 export interface TownWorld {
   group: THREE.Group;
   lights: THREE.Light[];
@@ -535,10 +539,22 @@ function buildObstacle(o: TownObstacle, p: Palette, mat: MatFn, geo: GeoFn, own:
       pivot.add(mesh(geo(new THREE.CylinderGeometry(0.03, 0.03, 0.18, 6)), mat(p.wood), -0.09));
       pivot.add(mesh(geo(new THREE.CylinderGeometry(0.12, 0.26, 0.36, 14, 1, true)), bellMat, -0.36));
       pivot.add(mesh(geo(new THREE.SphereGeometry(0.12, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2)), bellMat, -0.18));
-      pivot.add(mesh(geo(new THREE.SphereGeometry(0.06, 8, 6)), mat('#6b5530', { metalness: 0.4 }), -0.52));
+      // Clapper: its own little pendulum hung inside the bell's crown.
+      const clapper = new THREE.Group();
+      clapper.name = 'well-bell-clapper';
+      clapper.position.y = -0.2;
+      clapper.add(mesh(geo(new THREE.CylinderGeometry(0.012, 0.012, 0.26, 5)), mat('#6b5530', { metalness: 0.4 }), -0.13));
+      clapper.add(mesh(geo(new THREE.SphereGeometry(0.06, 8, 6)), mat('#6b5530', { metalness: 0.4 }), -0.3));
+      pivot.add(clapper);
       g.add(pivot);
+      // A steady pendulum: one sine of constant amplitude, so it never stalls mid-swing (the old
+      // sum of two unrelated sines cancelled itself every few seconds). Period from the hanging
+      // length (~0.6 m incl. the strap: 2π√(L/g) ≈ 1.6 s). The clapper lags the bell by a
+      // quarter of a swing and moves a little further, as a free clapper does.
       animators.push((now) => {
-        pivot.rotation.x = 0.32 * Math.sin(now * 0.0021) + 0.1 * Math.sin(now * 0.0057 + 0.7);
+        const phase = (2 * Math.PI * now) / WELL_BELL_PERIOD_MS;
+        pivot.rotation.x = WELL_BELL_AMPLITUDE * Math.sin(phase);
+        clapper.rotation.x = 0.55 * WELL_BELL_AMPLITUDE * Math.sin(phase - Math.PI / 2);
       });
       break;
     }
