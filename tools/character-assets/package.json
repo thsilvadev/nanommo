@@ -12,6 +12,7 @@
     "@gltf-transform/extensions": "4.1.1",
     "@gltf-transform/functions": "4.1.1",
     "gl-matrix": "3.4.3",
+    "meshoptimizer": "0.22.0",
     "sharp": "0.33.5"
   }
 }

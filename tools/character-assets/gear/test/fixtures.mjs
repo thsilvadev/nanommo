@@ -71,3 +71,34 @@ export function trianglesDoc(positions, indices) {
   doc.createMesh().addPrimitive(prim);
   return { doc, prim };
 }
+
+/** An axis-aligned box (12 triangles) centred at `c` with half-size `h`, in a node named `name`. */
+export function boxDoc(c, h, name = 'Box', doc = new Document()) {
+  const buffer = doc.getRoot().listBuffers()[0] ?? doc.createBuffer();
+  const scene = doc.getRoot().listScenes()[0] ?? doc.createScene();
+  const p = [];
+  for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) p.push(c[0] + x * h[0], c[1] + y * h[1], c[2] + z * h[2]);
+  const idx = [0, 1, 3, 0, 3, 2, 4, 6, 7, 4, 7, 5, 0, 4, 5, 0, 5, 1, 2, 3, 7, 2, 7, 6, 0, 2, 6, 0, 6, 4, 1, 5, 7, 1, 7, 3];
+  const prim = doc.createPrimitive()
+    .setAttribute('POSITION', doc.createAccessor().setType('VEC3').setArray(new Float32Array(p)).setBuffer(buffer))
+    .setAttribute('TEXCOORD_0', doc.createAccessor().setType('VEC2').setArray(new Float32Array(16).fill(0.5)).setBuffer(buffer))
+    .setIndices(doc.createAccessor().setType('SCALAR').setArray(new Uint16Array(idx)).setBuffer(buffer));
+  const node = doc.createNode(name).setMesh(doc.createMesh(name).addPrimitive(prim));
+  scene.addChild(node);
+  return { doc, prim, node };
+}
+
+/** A flat grid of n x n quads (2n² triangles) in the XZ plane. */
+export function gridDoc(n) {
+  const doc = new Document();
+  const buffer = doc.createBuffer();
+  const p = [], uv = [], idx = [];
+  for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) { p.push(i / n, Math.sin(i * 0.3) * 0.01, j / n); uv.push(i / n, j / n); }
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const a = i * (n + 1) + j; idx.push(a, a + 1, a + n + 1, a + 1, a + n + 2, a + n + 1); }
+  const prim = doc.createPrimitive()
+    .setAttribute('POSITION', doc.createAccessor().setType('VEC3').setArray(new Float32Array(p)).setBuffer(buffer))
+    .setAttribute('TEXCOORD_0', doc.createAccessor().setType('VEC2').setArray(new Float32Array(uv)).setBuffer(buffer))
+    .setIndices(doc.createAccessor().setType('SCALAR').setArray(new Uint32Array(idx)).setBuffer(buffer));
+  doc.createScene().addChild(doc.createNode('Grid').setMesh(doc.createMesh('Grid').addPrimitive(prim)));
+  return { doc, prim };
+}

@@ -61,3 +61,20 @@ export function writeSkeleton(doc, target) {
   for (const j of target.joints) skin.addJoint(made.get(j.name));
   return { skin, root, nodes: made };
 }
+
+const bodies = new Map();
+/** Our body mesh in bind space with its skin data: { positions: Float32Array, joints: Uint16Array(4n), weights: Float32Array(4n) }. */
+export function readTargetBody(sex) {
+  if (!bodies.has(sex)) {
+    bodies.set(sex, new NodeIO().read(path.join(CHARACTER_ASSETS, `body-${sex}.glb`)).then((doc) => {
+      const node = doc.getRoot().listNodes().find((n) => n.getName() === 'Body');
+      const prim = node.getMesh().listPrimitives()[0];
+      const P = prim.getAttribute('POSITION'), J = prim.getAttribute('JOINTS_0'), W = prim.getAttribute('WEIGHTS_0');
+      const n = P.getCount();
+      const positions = new Float32Array(n * 3), joints = new Uint16Array(n * 4), weights = new Float32Array(n * 4);
+      for (let i = 0; i < n; i++) { positions.set(P.getElement(i, []), i * 3); joints.set(J.getElement(i, []), i * 4); weights.set(W.getElement(i, []), i * 4); }
+      return { positions, joints, weights, count: n };
+    }));
+  }
+  return bodies.get(sex);
+}
