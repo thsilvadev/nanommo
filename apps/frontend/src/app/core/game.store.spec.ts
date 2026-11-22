@@ -146,6 +146,18 @@ describe('realtime resource synchronization', () => {
     expect(store.character()?.lastGrindStance).toBe('gathering');
   });
 
+  it('starts a fresh confirmation GET instead of joining a pre-action snapshot', async () => {
+    const stale=new Subject<Character>(),fresh=new Subject<Character>();
+    api.get.and.returnValues(stale.asObservable() as any,fresh.asObservable() as any);
+    const store=TestBed.inject(CharacterStore);
+    const oldLoad=store.load();
+    const confirmation=store.loadForConfirmation();
+    expect(api.get).toHaveBeenCalledTimes(2);
+    fresh.next({...character(70,35),str:7,stateVersion:3});fresh.complete();
+    stale.next({...character(70,35),str:5,stateVersion:2});stale.complete();await Promise.all([confirmation,oldLoad]);
+    expect(store.character()?.str).toBe(7);
+  });
+
   it('ignores a stale full-Character patch after a newer realtime snapshot', () => {
     const store = TestBed.inject(CharacterStore);
     store.applyRealtimeSnapshot({
@@ -159,6 +171,16 @@ describe('realtime resource synchronization', () => {
     expect(store.character()?.lastGrindStance).toBe('gathering');
     expect(store.character()?.stateVersion).toBe(202);
     expect(store.character()?.hpCurrent).toBe(70);
+  });
+
+  it('accepts newer applied attributes after an older resource event races the request', async () => {
+    const response=new Subject<Character>();api.post.and.returnValue(response.asObservable() as any);
+    const store=TestBed.inject(CharacterStore);
+    store.applyRealtimeSnapshot({...character(70,35),str:5,stateVersion:1},1);
+    const applying=store.spend({str:1});
+    store.applyRealtimeSnapshot({...character(65,30),str:5,stateVersion:2},2);
+    response.next({...character(65,30),str:6,stateVersion:3});response.complete();await applying;
+    expect(store.character()?.str).toBe(6);expect(store.character()?.stateVersion).toBe(3);
   });
 
   it('advances the revision watermark for an accepted attribute mutation response', async () => {

@@ -4,6 +4,10 @@ export type GameLocale = 'pt-BR' | 'en-US';
 
 const TRANSLATIONS: Record<GameLocale, Record<string, string>> = {
   'pt-BR': {
+    'Change cancelled':'Alteração cancelada', 'Sending':'Enviando', 'Queued':'Na fila', 'Not applied':'Não aplicado', 'Confirming':'Confirmando', 'Sending change':'Enviando alteração', 'Change rejected':'Alteração rejeitada',
+    'Waiting for a window outside combat. The current battle is unchanged.':'Aguardando uma janela fora de combate. A batalha atual não muda.',
+    'Confirming the change with the server.':'Confirmando a alteração com o servidor.',
+
     'Status and cooldowns':'Status e recargas', 'Duration':'Duração', 'Cooldown':'Recarga', 'Until removed':'Até ser removido', 'Stacks':'Acúmulos',
     'Elemental Affinity':'Afinidade Elemental', 'Attack Element':'Elemento do Ataque', 'Neutral':'Neutro', 'Earth':'Terra', 'Water':'Água', 'Fire':'Fogo', 'Wind':'Vento', 'Holy':'Sagrado', 'Shadow':'Sombras', 'Earth Resistance':'Resistência à Terra', 'Water Resistance':'Resistência à Água', 'Fire Resistance':'Resistência ao Fogo', 'Wind Resistance':'Resistência ao Vento', 'Holy Resistance':'Resistência Sagrada', 'Shadow Resistance':'Resistência Sombria',
     "PARTY_LEADER_REQUIRED":"Somente o líder pode fazer isso.", "PARTY_SAME_MAP_REQUIRED":"Os personagens precisam estar no mesmo mapa.", "CANDIDATE_ALREADY_IN_PARTY":"Este personagem já está em um grupo.", "CANNOT_INVITE_SELF":"Escolha outro personagem para convidar.", "PARTY_BUSY":"Aguarde o fim da batalha atual.", "INVITE_EXPIRED":"Este convite expirou.", "INVALID_PARTY_ORDER":"O grupo mudou. Tente ordenar novamente.", "AUTO_PARTY_UNAVAILABLE":"AutoParty indisponível.", "APPEARANCE_REQUIRED":"Termine de criar a aparência do personagem.", "INVALID_SAVEPOINT":"Salve uma cidade antes de teleportar.", "USE_PARTY_TELEPORT":"O líder deve iniciar o teleporte do grupo.", "equip":"Equipar item", "unequip":"Desequipar item", "use_item":"Usar item", "gambit_update":"Atualizar gambit", "gambit_activate":"Ativar gambit", "attributes":"Atualizar atributos",

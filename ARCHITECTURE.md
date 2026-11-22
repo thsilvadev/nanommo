@@ -1,3 +1,11 @@
+## Durable action feedback — 2026-11-22
+
+`CombatActionsStore` tracks client request identities independently of mounted editors. Mutations publish safe target metadata through the existing durable queue; `/party/actions` retains every pending command and a bounded terminal history. The tracker receives socket/reconnect/visibility signals and polls only while work remains. It injects neither CharacterStore nor PartyStore; Play supplies the socket and authoritative synchronization callback to avoid dependency cycles.
+
+Sending, queued, confirming and failed are distinct UI states. An uncertain HTTP response retains its original request identity for idempotent recovery. Missing history and elapsed local time never imply success. Terminal actions retire only after fresh character/inventory snapshots satisfy their returned revision floors. Applied HTTP responses are cached as terminal so older list responses cannot resurrect the command. Equipment conflicts include both affected hands; active-page changes conflict globally. Consumables are prevalidated before enqueue and validated again at execution.
+
+The shared 12px `ActionStateComponent` uses a static clock for queued work, motion only during sending and reduced-motion support. Existing equipment, Diet, quantities and active pages remain authoritative. Gambit drafts restore from safe queued metadata; each editor distinguishes its own requests from requests inherited after navigation and preserves later edits.
+
 ## Regional music transition ownership — 2026-11-22
 
 `GameAudioService` owns every regional music element until it is stopped. Pending startup and resume attempts are tied to the media element, so late promises cannot unlock another track or create competing transitions. Crossfade, resume and stop share one cancellable animation owner. General/Music controls supersede the fade, stop outgoing elements and apply the current settings; teardown cancels retries and stops all owned media immediately. A retained previous track restores the current target volume if a new region interrupts its initial fade before the first frame.

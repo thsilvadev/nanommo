@@ -1,3 +1,5 @@
+import { ActionStateComponent } from '../../shared/action-state.component';
+import { CombatActionsStore } from '../../core/combat-actions.store';
 import { CombatTimersComponent } from './combat-timers.component';
 import { CombatTimersService } from './combat-timers.service';
 import { CombatantDetailsComponent, combatantStatRows } from './combatant-details.component';
@@ -36,8 +38,9 @@ import { TownViewToggleComponent, mapViewMode, type MapViewMode } from './town-s
 import type { TownRosterEntry } from '@nanommo/shared';
 import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkDragPreview, CdkDragPlaceholder } from '@angular/cdk/drag-drop';
 
-@Component({ selector: 'app-character-summary', standalone: true, imports: [CommonModule, CombatTimersComponent, CdkDrag, CdkDropList, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective, BattleHitFeedbackDirective, CharacterViewerComponent], templateUrl: './character-summary.html', styleUrl: './character-summary.css' })
+@Component({ selector: 'app-character-summary', standalone: true, imports: [CommonModule, ActionStateComponent, CombatTimersComponent, CdkDrag, CdkDropList, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective, BattleHitFeedbackDirective, CharacterViewerComponent], templateUrl: './character-summary.html', styleUrl: './character-summary.css' })
 export class CharacterSummary implements OnDestroy {
+  readonly actions=inject(CombatActionsStore);
   readonly timers = inject(CombatTimersService);
   readonly party = inject(PartyStore);
   readonly character = inject(CharacterStore); readonly inventory = inject(InventoryStore); readonly battle = inject(BattleStore); readonly catalog = inject(CatalogService); readonly router = inject(Router); readonly battleDisplayNow = inject(UiClockService).now; 
@@ -129,6 +132,7 @@ export class CharacterSummary implements OnDestroy {
   trackStatusEffect(_index: number, status: { id: string }) { return status.id; }
   freezeStatus() { return this.activeStatusEffects('character').find(status => status.id === 'freeze') ?? null; }
 
+  queuedEquipmentName(slot:string) { const target=this.actions.slot(slot)?.target;if(!target?.itemId)return '';const row=this.inventory.items().find(row=>row.id===target.inventoryItemId);return this.catalog.itemName(target.itemId,row?.instanceData); }
   itemName(slot: string) { const e = this.equipped(slot); return e ? this.catalog.itemName(e.itemId, e.instanceData) : '' }
   itemDefinition(slot: string) { const e = this.equipped(slot); return e ? this.catalog.item(e.itemId) : null }
   itemTooltipLines(slot: string) { const e = this.equipped(slot); return e ? this.catalog.itemTooltipLines(e.itemId, e.instanceData, slot) : [] }
@@ -147,7 +151,7 @@ export class CharacterSummary implements OnDestroy {
   dietTooltipLines(index: number) { const e = this.dietEntry(index); if (!e) return []; const d: any = this.catalog.item(e.itemId); const effect = d?.effect; if (!effect) return []; const lines: any[] = []; if (effect.type === 'food_buff') { const level = this.dietLevel(index); lines.push({ label: 'HP Regen', value: `+${effectiveFoodStatValue(effect.hpRegenPerTenTicks, level)} / 10 seconds` }); lines.push({ label: 'SP Regen', value: `+${effectiveFoodStatValue(effect.spRegenPerTenTicks, level)} / 10 seconds` }); } lines.push({ label: 'Diet', value: e.dietLevel > 0 ? '★'.repeat(Math.min(3, e.dietLevel)) : '—' }); lines.push({ label: 'Remaining', value: this.formatDuration(this.dietRemainingSeconds(index)) }); return lines }
   async toggleAutoFeed() { const c = this.character.character(); if (!c) return; try { await this.character.setAutoFeed(!c.autoFeed) } catch { } }
   foodLabel() { const now = this.battleDisplayNow(); const count = (this.character.character()?.diet ?? []).filter(e => { const digestUntil = Date.parse(e.digestUntil); return Number.isFinite(digestUntil) && digestUntil > now }).length; return count <= 0 ? 'HUNGRY' : count === 1 ? 'FED' : count === 2 ? 'SATISFIED' : 'FULL' }
-  go(p: string) { void this.router.navigateByUrl(p) } equipped(slot: string) { return this.inventory.equipment().find(x => x.slot === slot) } canEnterEquipmentSlot(slot: string, drag: CdkDrag) { const data: any = drag?.data; if (data?.source !== 'inventory') return false; const item: any = this.catalog.item(data.itemId); return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } itemIcon(slot: string, fallback: string) { const e = this.equipped(slot); return e ? this.catalog.itemIcon(e.itemId) : fallback } slotDropId(slot: string) { return `character-slot-${slot}` } isSlotFocused(slot: string) { const id = this.inventory.draggedItemId(); const item: any = id ? this.catalog.item(id) : null; return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } onEquipmentDragStart(itemId: string) { this.inventory.beginDrag(itemId); document.dispatchEvent(new Event('nm:drag-start')) } onEquipmentDragEnd() { this.inventory.endDrag(); document.dispatchEvent(new Event('nm:drag-end')) } equipDragData(slot: string, it: any) { return { source: 'equipment', slot, ...it } } async dropEquipment(slot: string, ev: CdkDragDrop<any>) { const data = ev.item.data; try { if (data?.source === 'inventory') { await this.inventory.equip(slot, data.itemId, data.id) } } catch { } finally { this.inventory.endDrag() } } async unequip(slot: string) { try { await this.inventory.unequip(slot) } catch { } } ngOnDestroy() { clearInterval(this.townTimer) }
+  go(p: string) { void this.router.navigateByUrl(p) } equipped(slot: string) { return this.inventory.equipment().find(x => x.slot === slot) } canEnterEquipmentSlot(slot: string, drag: CdkDrag) { if(this.actions.isSlotBusy(slot))return false; const data: any = drag?.data; if (data?.source !== 'inventory') return false; const item: any = this.catalog.item(data.itemId); return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } itemIcon(slot: string, fallback: string) { const e = this.equipped(slot); return e ? this.catalog.itemIcon(e.itemId) : fallback } slotDropId(slot: string) { return `character-slot-${slot}` } isSlotFocused(slot: string) { const id = this.inventory.draggedItemId(); const item: any = id ? this.catalog.item(id) : null; return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } onEquipmentDragStart(itemId: string) { this.inventory.beginDrag(itemId); document.dispatchEvent(new Event('nm:drag-start')) } onEquipmentDragEnd() { this.inventory.endDrag(); document.dispatchEvent(new Event('nm:drag-end')) } equipDragData(slot: string, it: any) { return { source: 'equipment', slot, ...it } } async dropEquipment(slot: string, ev: CdkDragDrop<any>) { const data = ev.item.data; try { if (data?.source === 'inventory') { await this.inventory.equip(slot, data.itemId, data.id) } } catch { } finally { this.inventory.endDrag() } } async unequip(slot: string) { if(this.actions.isSlotBusy(slot))return; try { await this.inventory.unequip(slot) } catch { } } ngOnDestroy() { clearInterval(this.townTimer) }
 }
 
 @Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule, TownSceneComponent, TownViewToggleComponent], templateUrl: './map-board.html', styleUrl: './map-board.css' })
@@ -739,8 +743,9 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   ngOnDestroy(){this.viewportResizeObserver?.disconnect();this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
 }
 
-@Component({ selector: 'app-inventory-grid', standalone: true, imports: [CommonModule, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './inventory-grid.html', styleUrl: './inventory-grid.css', styles: [':host(.market-inventory-grid) .panel{height:auto;min-height:0;padding:0;background:transparent}:host(.market-inventory-grid) .panel-title{font-size:15px;letter-spacing:1px;margin-bottom:5px}:host(.market-inventory-grid) .inventory-sort-button{width:25px;height:23px}:host(.market-inventory-grid) .inv-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:none;grid-auto-flow:row;grid-auto-rows:min-content;align-content:start;gap:3px;height:123px;max-height:123px;min-height:123px;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;flex:0 0 240px}:host(.market-inventory-grid) .inv-slot{width:100%;height:auto;min-height:0;aspect-ratio:1/1;align-self:start;box-sizing:border-box}:host(.market-inventory-grid) .item b{font-size:12px;right:2px;bottom:1px}'] })
+@Component({ selector: 'app-inventory-grid', standalone: true, imports: [CommonModule, ActionStateComponent, CdkDropList, CdkDrag, CdkDragPreview, CdkDragPlaceholder, TooltipPositionDirective], templateUrl: './inventory-grid.html', styleUrl: './inventory-grid.css', styles: [':host(.market-inventory-grid) .panel{height:auto;min-height:0;padding:0;background:transparent}:host(.market-inventory-grid) .panel-title{font-size:15px;letter-spacing:1px;margin-bottom:5px}:host(.market-inventory-grid) .inventory-sort-button{width:25px;height:23px}:host(.market-inventory-grid) .inv-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:none;grid-auto-flow:row;grid-auto-rows:min-content;align-content:start;gap:3px;height:123px;max-height:123px;min-height:123px;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;flex:0 0 240px}:host(.market-inventory-grid) .inv-slot{width:100%;height:auto;min-height:0;aspect-ratio:1/1;align-self:start;box-sizing:border-box}:host(.market-inventory-grid) .item b{font-size:12px;right:2px;bottom:1px}'] })
 export class InventoryGrid {
+  readonly actions=inject(CombatActionsStore);
   readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly battle = inject(BattleStore); readonly vendor = inject(VendorStore);
   slots = Array.from({ length: 50 }, (_, i) => i);
   readonly characterSlotIds = ['character-slot-head', 'character-slot-body', 'character-slot-mainHand', 'character-slot-offHand', 'character-slot-shoes', 'character-slot-cape', 'character-slot-accessoryLeft', 'character-slot-accessoryRight'];
@@ -855,6 +860,7 @@ export class InventoryGrid {
   }
   accessorySlot() { const equipped = this.inventory.equipment(); return equipped.some(x => x.slot === 'accessoryLeft') ? 'accessoryRight' : 'accessoryLeft' }
   async doubleClick(it: any) {
+    if(this.actions.isItemBusy(it.itemId,it.id))return;
     this.sortError.set(null);
     if (this.vendor.selectedNpc()?.types.includes('storage')) {
       try { await this.vendor.transferWarehouseRow(it.id, 'deposit'); }
@@ -864,11 +870,11 @@ export class InventoryGrid {
     const definition: any = this.catalog.item(it.itemId);
     if (definition?.type === 'consumable' || definition?.type === 'food') {
       try { await this.inventory.useConsumable(it.itemId); }
-      catch (error: any) { this.sortError.set(error?.error?.message ?? 'Unable to use item'); }
+      catch (error: any) { if(!error?.combatActionUncertain)this.sortError.set(error?.error?.message ?? error?.message ?? 'Unable to use item'); }
     } else if (definition?.type === 'equipment' && definition.slot) {
       const slot = definition.slot === 'accessory' ? this.accessorySlot() : definition.slot;
       try { await this.inventory.equip(slot, it.itemId, it.id); }
-      catch (error: any) { this.sortError.set(error?.error?.message ?? 'Unable to equip item'); }
+      catch (error: any) { if(!error?.combatActionUncertain)this.sortError.set(error?.error?.message ?? error?.message ?? 'Unable to equip item'); }
     }
   }
   dragData(it: any) { return { source: 'inventory', ...it } }

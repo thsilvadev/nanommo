@@ -6,8 +6,9 @@
         cdkDropList cdkDropListSortingDisabled [id]="slotDropId(slot.key)"
         [cdkDropListConnectedTo]="['inventory-drop-list']" [cdkDropListEnterPredicate]="equipmentPredicates[slot.key]"
         (cdkDropListDropped)="dropEquipment(slot.key,$event)">
+        <app-action-state class="corner" [state]="actions.slot(slot.key)" [detail]="queuedEquipmentName(slot.key)" />
         <ng-container *ngIf="equipped(slot.key) as eq">
-          <div cdkDrag [cdkDragData]="equipDragData(slot.key,eq)" (cdkDragStarted)="onEquipmentDragStart(eq.itemId)"
+          <div cdkDrag [cdkDragDisabled]="actions.isSlotBusy(slot.key)" [cdkDragData]="equipDragData(slot.key,eq)" (cdkDragStarted)="onEquipmentDragStart(eq.itemId)"
             (cdkDragEnded)="onEquipmentDragEnd()" (dblclick)="unequip(slot.key)" class="equip-drag"><img
               [src]="catalog.itemIcon(eq.itemId)" [alt]="catalog.item(eq.itemId)?.name||eq.itemId">
             <div class="item-tooltip"><strong [class]="itemTierClass(slot.key)">{{itemName(slot.key)}}</strong><span
@@ -40,8 +41,9 @@
         cdkDropListSortingDisabled [id]="slotDropId(slot.key)" [cdkDropListConnectedTo]="['inventory-drop-list']"
         [cdkDropListEnterPredicate]="equipmentPredicates[slot.key]"
         (cdkDropListDropped)="dropEquipment(slot.key,$event)">
+        <app-action-state class="corner" [state]="actions.slot(slot.key)" [detail]="queuedEquipmentName(slot.key)" />
         <ng-container *ngIf="equipped(slot.key) as eq">
-          <div cdkDrag [cdkDragData]="equipDragData(slot.key,eq)" (cdkDragStarted)="onEquipmentDragStart(eq.itemId)"
+          <div cdkDrag [cdkDragDisabled]="actions.isSlotBusy(slot.key)" [cdkDragData]="equipDragData(slot.key,eq)" (cdkDragStarted)="onEquipmentDragStart(eq.itemId)"
             (cdkDragEnded)="onEquipmentDragEnd()" (dblclick)="unequip(slot.key)" class="equip-drag"><img
               [src]="catalog.itemIcon(eq.itemId)" [alt]="catalog.item(eq.itemId)?.name||eq.itemId">
             <div class="item-tooltip"><strong [class]="itemTierClass(slot.key)">{{itemName(slot.key)}}</strong><span

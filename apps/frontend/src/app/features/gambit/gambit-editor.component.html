@@ -8,13 +8,12 @@
         </div>
     </header>
     <div class="page-tabs"><button *ngFor="let p of pages();let i=index" [class.active]="i===active()"
-            (click)="active.set(i)">{{p.title || ('Page ' + (i+1))}}<span *ngIf="pageDirty(p.id)" class="page-dirty-indicator" aria-label="Unsaved changes"> ●</span></button></div>
+            (click)="active.set(i)">{{p.title || ('Page ' + (i+1))}}<app-action-state *ngIf="i!==active()" [state]="actions.page(p.id)" /><span *ngIf="pageUnsubmitted(p.id)" class="page-dirty-indicator" aria-label="Unsaved changes"> ●</span></button></div>
     <div *ngIf="page() as p;else empty" class="page-meta"><input class="page-title-input" [ngModel]="p.title" (ngModelChange)="updateTitle(p,$event)"
             aria-label="Gambit page title" placeholder="Gambit name"><span>{{lines().length}} / 20 lines</span>
         <div class="page-actions"><button (click)="addLine()" [disabled]="!page()||lines().length>=20">+ Add
-                line</button><button class="save-page" [class.dirty]="pageDirty(p.id)" (click)="save()" [disabled]="saving()||pagePending(p.id)||!pageDirty(p.id)" [attr.aria-label]="pageDirty(p.id)?'Save page — unsaved changes':'Page saved'">{{pagePending(p.id)?'Pending...':saving()?'Saving...':'Save
-                Page'}}</button><button class="activate-page" (click)="activate()"
-                [disabled]="!page()||character.character()?.activeGambitPageId===page().id">Activate</button></div>
+                line</button><button class="save-page" [class.dirty]="pageDirty(p.id)" (click)="save()" [disabled]="saving()||pagePending(p.id)||!pageDirty(p.id)" [attr.aria-label]="pageDirty(p.id)?'Save page — unsaved changes':'Page saved'">Save Page <app-action-state [state]="actions.page(p.id,'gambit_update')" /></button><button class="activate-page" (click)="activate()"
+                [disabled]="!page()||character.character()?.activeGambitPageId===page().id||actions.busy('gambit_activate',{pageId:p.id})">Activate <app-action-state [state]="actions.page(p.id,'gambit_activate')" /></button></div>
     </div>
     <div *ngIf="page() as p" cdkDropList class="line-list" (cdkDropListDropped)="reorder($event)">
         <article *ngFor="let line of p.lines;let i=index" cdkDrag class="gambit-line"

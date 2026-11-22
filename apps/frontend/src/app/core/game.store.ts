@@ -1,3 +1,4 @@
+import { CombatActionsStore } from './combat-actions.store';
 
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { ApiService } from './api.service';
@@ -12,18 +13,35 @@ import type { AppearanceInput } from '@nanommo/shared';
 type LoadState='idle'|'loading'|'loaded'|'error'|'reconnecting';
 @Injectable({providedIn:'root'})
 export class CharacterStore {
+ readonly actions=inject(CombatActionsStore);
  private readonly api=inject(ApiService); private readonly _character=signal<Character|null>(null); private readonly _state=signal<LoadState>('idle'); private loadSeq=0; private realtimeGeneration=0; private realtimeRevision=0; private confirmedStanceUpdatedAt=0; private readonly _error=signal<string|null>(null);
  readonly character=this._character.asReadonly();readonly state=this._state.asReadonly();readonly error=this._error.asReadonly();readonly isGrinding=computed(()=>this._character()?.status==='grinding');
  private characterReadInFlight: Promise<Character|null>|null = null;
- private async readCharacter(): Promise<Character|null> {
-  if (this.characterReadInFlight) return this.characterReadInFlight;
+ private async readCharacter(fresh=false): Promise<Character|null> {
+  if (this.characterReadInFlight && !fresh) return this.characterReadInFlight;
   const request = this.api.get<Character|null>('/characters').toPromise().then(value => value ?? null);
   this.characterReadInFlight = request;
   try { return await request; }
   finally { if (this.characterReadInFlight === request) this.characterReadInFlight = null; }
  }
  private preserveConfirmedStance(value:Character,current=this._character()):Character{if(!current||this.confirmedStanceUpdatedAt<=0)return value;const snapshotAt=Date.parse(String(value.updatedAt??''));if(!Number.isFinite(snapshotAt)||snapshotAt<=this.confirmedStanceUpdatedAt){const stance=current.lastGrindStance;return stance==='hunting'||stance==='gathering'?{...value,lastGrindStance:stance}:value;}this.confirmedStanceUpdatedAt=0;return value;}
- async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const value=await this.readCharacter();if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if(value&&value.stateVersion<this.realtimeRevision){const current=this._character();if(current){const reconciled=this.preserveConfirmedStance(value,current);const stance=reconciled.lastGrindStance;if((stance==='hunting'||stance==='gathering')&&current.lastGrindStance!==stance)this._character.set({...current,lastGrindStance:stance});}this._state.set('loaded');return;}if(value)this.realtimeRevision=value.stateVersion;this._character.set(value?this.preserveConfirmedStance(value):null);this._state.set('loaded')}catch(e:any){if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;this._state.set('error');this._error.set(e?.error?.message??'Unable to load character')}}
+ async load():Promise<void>{await this.loadSnapshot(false);}
+ loadForConfirmation():Promise<Character|null|undefined>{return this.loadSnapshot(true);}
+ private async loadSnapshot(fresh=false):Promise<Character|null|undefined>{
+  const seq=++this.loadSeq,generation=this.realtimeGeneration;this._state.set('loading');
+  try{
+   const value=await this.readCharacter(fresh);
+   if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return fresh?value:undefined;
+   if(value&&value.stateVersion<this.realtimeRevision){
+    const current=this._character();
+    if(current){const reconciled=this.preserveConfirmedStance(value,current),stance=reconciled.lastGrindStance;if((stance==='hunting'||stance==='gathering')&&current.lastGrindStance!==stance)this._character.set({...current,lastGrindStance:stance});}
+    this._state.set('loaded');return fresh?value:undefined;
+   }
+   if(value)this.realtimeRevision=value.stateVersion;
+   this._character.set(value?this.preserveConfirmedStance(value):null);this._state.set('loaded');return fresh?value:undefined;
+  }catch(e:any){if(seq===this.loadSeq&&generation===this.realtimeGeneration){this._state.set('error');this._error.set(e?.error?.message??'Unable to load character');}return undefined;}
+ }
+
  applyPatch(p:Partial<Character>){const c=this._character();if(!c)return;const patchRevision=typeof p.stateVersion==='number'&&Number.isFinite(p.stateVersion)?p.stateVersion:null;if(patchRevision!==null&&patchRevision<this.realtimeRevision)return;if(patchRevision!==null)this.realtimeRevision=Math.max(this.realtimeRevision,patchRevision);this.realtimeGeneration++;this._character.set(this.preserveConfirmedStance({...c,...p},c));}
  applyConfirmedStance(stance:'hunting'|'gathering',response?:Partial<Character>){const c=this._character();if(!c)return;const responseRevision=typeof response?.stateVersion==='number'&&Number.isFinite(response.stateVersion)?response.stateVersion:null;const canMergeResponse=!!response&&(responseRevision===null||responseRevision>=this.realtimeRevision);const base=canMergeResponse?{...c,...response}:c;if(responseRevision!==null)this.realtimeRevision=Math.max(this.realtimeRevision,responseRevision);const responseAt=Date.parse(String(response?.updatedAt??''));const currentAt=Date.parse(String(c.updatedAt??''));this.confirmedStanceUpdatedAt=Math.max(Number.isFinite(responseAt)?responseAt:0,Number.isFinite(currentAt)?currentAt:0);this.realtimeGeneration++;this._character.set({...base,lastGrindStance:stance});}
  // Digestion expiry and some presentation fields can change without a newer
@@ -36,10 +54,18 @@ export class CharacterStore {
  /** One-time 3D appearance for a character created before the creator existed. */
  async setAppearance(input:AppearanceInput):Promise<Character>{const value=await this.api.post<Character>('/characters/appearance',{sex:input.sex,heightCm:input.heightCm,appearance:input.appearance}).toPromise();if(value&&value.stateVersion>this.realtimeRevision)this.applyRealtimeSnapshot(value,value.stateVersion);return value as Character;}
  async setAutoFeed(enabled:boolean):Promise<Character>{const value=await this.api.post<Character>('/characters/auto-feed',{enabled}).toPromise();if(value&&value.stateVersion>this.realtimeRevision)this.applyRealtimeSnapshot(value,value.stateVersion);return value as Character;}
- spend(attributes:Record<string,number>):Promise<Character>{const generation=this.realtimeGeneration;return new Promise((resolve,reject)=>this.api.post<Character>('/characters/attributes/spend',{attributes}).subscribe({next:c=>{try{combatIntentStatus(c as any);}catch(error){reject(error);return;}if(generation!==this.realtimeGeneration||c.stateVersion<this.realtimeRevision){reject(new Error('Character changed while attribute update was in flight'));return;}this.realtimeRevision=Math.max(this.realtimeRevision,c.stateVersion);this.realtimeGeneration++;this._character.set(this.preserveConfirmedStance(c));resolve(this._character()??c)},error:e=>reject(e)}));}
+ async spend(attributes:Record<string,number>):Promise<Character>{
+  const response=await this.actions.run('attributes',{attributes},id=>this.api.post<Character>('/characters/attributes/spend',{attributes,clientRequestId:id}).toPromise());
+  if(!response)throw new Error('Missing attribute confirmation');
+  combatIntentStatus(response as any);
+  const value=(response as any).character??response;
+  if(Number(value.stateVersion)>=this.realtimeRevision){this.realtimeRevision=Number(value.stateVersion);this.realtimeGeneration++;this._character.set(this.preserveConfirmedStance(value));}
+  return this._character()??value;
+ }
 }
 @Injectable({providedIn:'root'})
 export class InventoryStore {
+ readonly actions=inject(CombatActionsStore);
  private readonly api=inject(ApiService); private readonly character=inject(CharacterStore); private readonly catalog=inject(CatalogService); private readonly audio=inject(GameAudioService);private readonly _items=signal<InventoryItem[]>([]);private readonly _equipment=signal<EquippedItem[]>([]);private readonly _state=signal<LoadState>('idle');private readonly _draggedItemId=signal<string|null>(null);
  readonly items=this._items.asReadonly();readonly equipment=this._equipment.asReadonly();readonly state=this._state.asReadonly();readonly draggedItemId=this._draggedItemId.asReadonly();private loadSeq=0;private realtimeGeneration=0;private realtimeRevision=0;
  private readonly party=inject(PartyStore);private readonly pendingConsumables=new Map<string,string>();private readonly pendingConsumableGeneration=signal(0);
@@ -50,7 +76,20 @@ export class InventoryStore {
   else if(itemType==='consumable'&&(itemId.startsWith('pot_')||itemId.includes('potion')||itemId.startsWith('elixir_')))this.audio.play('potion_drink');
  }
 
- async load(){const seq=++this.loadSeq;const generation=this.realtimeGeneration;this._state.set('loading');try{const [inventory,equipment]=await Promise.all([this.api.get<{items:InventoryItem[];stateVersion:number}>('/inventory').toPromise(),this.api.get<EquippedItem[]>('/equipment').toPromise()]);if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return;if((inventory?.stateVersion??0)<this.realtimeRevision)return;this.realtimeRevision=Math.max(this.realtimeRevision,inventory?.stateVersion??0);this._items.set(inventory?.items??[]);this._equipment.set(equipment??[]);this.catalog.setEquippedEquipment(equipment??[]);this._state.set('loaded')}catch{if(seq===this.loadSeq&&generation===this.realtimeGeneration)this._state.set('error')}}
+ get confirmedRevision():number{return this.realtimeRevision;}
+ async load():Promise<void>{await this.loadSnapshot();}
+ loadForConfirmation():Promise<number|undefined>{return this.loadSnapshot();}
+ private async loadSnapshot():Promise<number|undefined>{
+  const seq=++this.loadSeq,generation=this.realtimeGeneration;this._state.set('loading');
+  try{
+   const [inventory,equipment]=await Promise.all([this.api.get<{items:InventoryItem[];stateVersion:number}>('/inventory').toPromise(),this.api.get<EquippedItem[]>('/equipment').toPromise()]);
+   if(seq!==this.loadSeq||generation!==this.realtimeGeneration)return inventory?.stateVersion;
+   if((inventory?.stateVersion??0)<this.realtimeRevision)return inventory?.stateVersion;
+   this.realtimeRevision=Math.max(this.realtimeRevision,inventory?.stateVersion??0);
+   this._items.set(inventory?.items??[]);this._equipment.set(equipment??[]);this.catalog.setEquippedEquipment(equipment??[]);this._state.set('loaded');return inventory?.stateVersion;
+  }catch{if(seq===this.loadSeq&&generation===this.realtimeGeneration)this._state.set('error');return undefined;}
+ }
+
  applyRealtimeSnapshot(items:InventoryItem[],revision:number){if(revision<=this.realtimeRevision)return;this.realtimeRevision=revision;this.realtimeGeneration++;this._items.set(items);this._state.set('loaded');}
  applyMutationSnapshot(snapshot:EquipmentMutationResponse){
   if(snapshot.stateVersion<=this.realtimeRevision)return;
@@ -82,12 +121,12 @@ export class InventoryStore {
   const snapshot=await this.api.put<{items:InventoryItem[];character:Character;stateVersion:number}>('/inventory/split',{itemId,quantity}).toPromise();
   if(snapshot)this.applyInventoryLayoutSnapshot(snapshot);
  }
- async equip(slot:string,itemId:string,inventoryItemId?:string){const snapshot=await this.api.put<EquipmentMutationResponse>('/equipment/equip',{slot,itemId,...(inventoryItemId?{inventoryItemId}:{})}).toPromise();if(snapshot){combatIntentStatus(snapshot as any);this.applyMutationSnapshot(snapshot);}}
- async unequip(slot:string){const snapshot=await this.api.delete<EquipmentMutationResponse>('/equipment/slot/'+slot).toPromise();if(snapshot){combatIntentStatus(snapshot as any);this.applyMutationSnapshot(snapshot);}}
+ async equip(slot:string,itemId:string,inventoryItemId?:string){const target={slot,slots:slot==='mainHand'&&(this.catalog.item(itemId) as any)?.twoHanded?['mainHand','offHand']:[slot],itemId,...(inventoryItemId?{inventoryItemId}:{})};const snapshot=await this.actions.run('equip',target,id=>this.api.put<EquipmentMutationResponse>('/equipment/equip',{slot,itemId,...(inventoryItemId?{inventoryItemId}:{}),clientRequestId:id}).toPromise());if(snapshot){combatIntentStatus(snapshot as any);this.applyMutationSnapshot(snapshot);}}
+ async unequip(slot:string){const snapshot=await this.actions.run('unequip',{slot,slots:[slot]},id=>this.api.delete<EquipmentMutationResponse>('/equipment/slot/'+slot,{body:{clientRequestId:id}}).toPromise());if(snapshot){combatIntentStatus(snapshot as any);this.applyMutationSnapshot(snapshot);}}
  beginDrag(itemId:string){this._draggedItemId.set(itemId)}
  endDrag(){this._draggedItemId.set(null)}
  async useConsumable(itemId:string){
-  const snapshot=await this.api.post<{character:Character;inventory:InventoryItem[];stateVersion:number}>('/inventory/use',{itemId}).toPromise();
+  const snapshot=await this.actions.run('use_item',{itemId},id=>this.api.post<{character:Character;inventory:InventoryItem[];stateVersion:number}>('/inventory/use',{itemId,clientRequestId:id}).toPromise());
   if(!snapshot)return;
   const status=combatIntentStatus(snapshot as any);
   if(status==='applied')this.playConsumableSound(itemId);

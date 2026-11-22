@@ -1,3 +1,11 @@
+### Feedback sutil de alterações pendentes — 2026-11-22
+
+Implementado acompanhamento único de equipamentos, consumíveis/comida, atributos e salvamento/ativação de Gambits. Indicador acessível de 12px: relógio estático enquanto aguarda, spinner somente no envio e estados discretos de confirmação/falha. Tooltips contextualizam o destino; apenas ações conflitantes ficam bloqueadas. Equipamento, Diet, quantidades, atributos e página ativa mantêm os valores confirmados até a resposta autoritativa.
+
+Recuperação por reload, socket/reconexão e consulta enquanto houver trabalho pendente, com identidade idempotente preservada após resposta incerta. Gambits recuperam o rascunho enfileirado e preservam edições posteriores. Pré-validação de comida rejeita pedidos inválidos antes da fila; a validação da execução permanece. Sem estimativa artificial de batalha ou timeout local que declare sucesso.
+
+Revisão independente concluída; corrigidos com regressões RED→GREEN a recuperação de rascunho ao remontar o editor e a confirmação que reutilizava snapshot anterior. Cobertos também resposta terminal antes de listagem atrasada, atributos concorrentes e ativações conflitantes. Validação final: 108 testes Karma/Chromium; sete scripts Node do backend registrados abaixo; builds API/frontend e typecheck de specs passaram. Build mantém avisos CSS existentes. Smoke visual do build completo com API sintética em desktop/mobile passou sem erros do browser, incluindo rejeição de comida, restauração, conclusão autoritativa e rascunho posterior preservado. OpenSpec estrito e diff-check passaram. Sem integração com banco real, migração, deploy, push ou merge na main.
+
 ### Contrato de acompanhamento de ações pendentes — 2026-11-22
 
 Backend preparado para feedback contextual sem alterar o cutoff das batalhas. A consulta das ações do próprio personagem inclui todos os comandos pendentes e limita somente o histórico terminal; metadados seguros identificam slot/slots de mão afetados, instância do inventário, tipo de consumível, página/rascunho de Gambit e alocação de atributos. O payload bruto não é retornado. Respostas de enqueue incluem o mesmo contrato de alvo.
