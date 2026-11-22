@@ -33,13 +33,26 @@ function world() {
   const characterRepo = {
     findOne: async ({ where: { id } }) => characters.get(id) ?? null,
     // The SQL does the heavy filtering/limit; the service must not rely on its order.
-    query: async (_sql, [mapId, viewerId]) => [...characters.values()]
-      .filter(c => c.currentMapId === mapId && !c.travelIntent && !c.pendingMapTransition)
-      .reverse()
-      .map(c => ({
-        id: c.id, name: c.name, level: c.level, appearance: c.appearance, sex: c.sex, heightCm: c.heightCm, lastSeenAt: c.lastSeenAt,
-        inViewerParty: !!partyOf.get(c.id) && partyOf.get(c.id) === partyOf.get(viewerId),
-      })),
+    query: async (sql, [mapId, viewerId]) => {
+      // rowOf(): one character's equipped rows
+      if (/^\s*SELECT slot, "itemId" FROM equipped_items/.test(sql)) {
+        const slots = (sql.match(/slot IN \(([^)]*)\)/)?.[1] ?? '').split(',').map(s => s.trim().replace(/'/g, ''));
+        return (characters.get(mapId)?.equipped ?? []).filter(e => slots.includes(e.slot));
+      }
+      // snapshot(): the roster rows, `equipment` as json_object_agg would build it (null when nothing is equipped)
+      const visible = (sql.match(/e\.slot IN \(([^)]*)\)\) AS "equipment"/)?.[1] ?? '').split(',').map(s => s.trim().replace(/'/g, ''));
+      return [...characters.values()]
+        .filter(c => c.currentMapId === mapId && !c.travelIntent && !c.pendingMapTransition)
+        .reverse()
+        .map(c => {
+          const eq = (c.equipped ?? []).filter(e => visible.includes(e.slot));
+          return {
+            id: c.id, name: c.name, level: c.level, appearance: c.appearance, sex: c.sex, heightCm: c.heightCm, lastSeenAt: c.lastSeenAt,
+            inViewerParty: !!partyOf.get(c.id) && partyOf.get(c.id) === partyOf.get(viewerId),
+            equipment: eq.length ? Object.fromEntries(eq.map(e => [e.slot, e.itemId])) : null,
+          };
+        });
+    },
   };
   const add = (id, extra = {}) => characters.set(id, {
     id, name: `Char ${id}`, level: 10, appearance: null, sex: 'female', heightCm: 170, currentMapId: TOWN, travelIntent: null,
@@ -248,10 +261,32 @@ test('entries carry dominant hand and hand gear for the selected-player card', a
   assert.equal(slept.dominantHand, 'left');
   assert.equal(slept.mainHandItemId, null);
   const service = fs.readFileSync(path.join(repo, 'apps/api/src/modules/presence/town-roster.service.ts'), 'utf8');
-  assert.match(service, /AS "mainHandItemId"/);
-  assert.match(service, /AS "offHandItemId"/);
+  assert.match(service, /json_object_agg\(e\.slot, e\."itemId"\)[\s\S]*?AS "equipment"/);
   const controller = fs.readFileSync(path.join(repo, 'apps/api/src/modules/equipment/equipment.controller.ts'), 'utf8');
   assert.equal((controller.match(/this\.refreshTown\(characterId\)/g) ?? []).length, 2, 'equip and unequip refresh the town entry');
+});
+
+test('entries carry the six visible equipment slots (not accessories), in snapshots and single-entry updates', async () => {
+  const equipped = [
+    { slot: 'head', itemId: 'equip_head_phys_t1' }, { slot: 'body', itemId: 'equip_body_phys_t3' },
+    { slot: 'cape', itemId: 'equip_cape_magic_t2' }, { slot: 'shoes', itemId: 'equip_shoes_fire_t3' },
+    { slot: 'mainHand', itemId: 'equip_sword_t2' }, { slot: 'offHand', itemId: 'equip_shield_t1' },
+    { slot: 'accessoryLeft', itemId: 'equip_ring_t1' },
+  ];
+  const expected = { head: 'equip_head_phys_t1', body: 'equip_body_phys_t3', cape: 'equip_cape_magic_t2', shoes: 'equip_shoes_fire_t3', mainHand: 'equip_sword_t2', offHand: 'equip_shield_t1' };
+  const w = world();
+  w.add('a', { equipped });
+  w.add('b');
+  w.online('a');
+  const entries = (await w.service.snapshot(TOWN, 'a')).entries;
+  const a = entries.find(e => e.characterId === 'a');
+  assert.deepEqual(a.equipment, expected);
+  assert.equal(a.mainHandItemId, 'equip_sword_t2');
+  assert.equal(a.offHandItemId, 'equip_shield_t1');
+  assert.deepEqual(entries.find(e => e.characterId === 'b').equipment, {});
+  const slept = await w.service.sleep('a');
+  assert.deepEqual(slept.equipment, expected);
+  assert.equal(slept.offHandItemId, 'equip_shield_t1');
 });
 
 test('gateway: stale socket disconnect does not put the character to sleep', async () => {

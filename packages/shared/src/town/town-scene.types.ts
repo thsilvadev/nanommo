@@ -83,6 +83,12 @@ export type TownEmoteKind = typeof TOWN_EMOTES[number];
 /** `/dance`, `/sit`: held where the character was at `at`, with no time limit. */
 export interface TownEmote { kind: TownEmoteKind; at: number /* epoch ms */ }
 
+/** Equipment slots shown on the 3D character (accessories are not). */
+export const VISIBLE_EQUIPMENT_SLOTS = ['head', 'body', 'cape', 'shoes', 'mainHand', 'offHand'] as const;
+export type VisibleEquipmentSlot = typeof VISIBLE_EQUIPMENT_SLOTS[number];
+/** Item id per visible slot (absent = empty slot). */
+export type VisibleEquipment = Partial<Record<VisibleEquipmentSlot, string>>;
+
 export interface TownRosterEntry {
   characterId: string;
   name: string;
@@ -107,6 +113,8 @@ export interface TownRosterEntry {
   dominantHand?: 'right' | 'left';
   mainHandItemId?: string | null;
   offHandItemId?: string | null;
+  /** Every visible slot's item (the 3D model wears them); absent on older servers. */
+  equipment?: VisibleEquipment;
 }
 
 export interface TownPose {

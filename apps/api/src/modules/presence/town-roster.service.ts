@@ -4,8 +4,8 @@ import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { Redis } from 'ioredis';
 import { mulberry32Seed, positionAt, TownNav } from '@nanommo/shared';
-import { TOWN_EMOTES } from '@nanommo/shared';
-import type { CharacterAppearance, Sex, TownEmote, TownEmoteKind, TownMove, TownRosterEntry, TownSceneDef, TownSleep, TownWakeFrom } from '@nanommo/shared';
+import { TOWN_EMOTES, VISIBLE_EQUIPMENT_SLOTS } from '@nanommo/shared';
+import type { CharacterAppearance, Sex, TownEmote, TownEmoteKind, TownMove, TownRosterEntry, TownSceneDef, TownSleep, TownWakeFrom, VisibleEquipment } from '@nanommo/shared';
 import { Character } from '../../database/entities/character.entity';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { DataService } from '../data/data.service';
@@ -54,9 +54,11 @@ interface RosterRow {
   lastSeenAt: Date | string;
   inViewerParty?: boolean;
   dominantHand?: 'right' | 'left' | null;
-  mainHandItemId?: string | null;
-  offHandItemId?: string | null;
+  /** Visible slot -> item id (json_object_agg; null when nothing is equipped). */
+  equipment?: Record<string, string> | null;
 }
+
+const VISIBLE_SLOTS_SQL = VISIBLE_EQUIPMENT_SLOTS.map((slot) => `'${slot}'`).join(', ');
 
 type PresenceFields = Pick<Character, 'currentMapId' | 'travelIntent' | 'pendingMapTransition'>;
 
@@ -95,8 +97,7 @@ export class TownRosterService {
     // One narrow query; SQL pre-orders and limits, the same order is re-applied below.
     const rows: RosterRow[] = await this.characterRepo.query(
       `SELECT c.id, c.name, c.level, c.appearance, c.sex, c."heightCm", c."lastSeenAt", c."dominantHand",
-              (SELECT e."itemId" FROM equipped_items e WHERE e."characterId" = c.id AND e.slot = 'mainHand') AS "mainHandItemId",
-              (SELECT e."itemId" FROM equipped_items e WHERE e."characterId" = c.id AND e.slot = 'offHand') AS "offHandItemId",
+              (SELECT json_object_agg(e.slot, e."itemId") FROM equipped_items e WHERE e."characterId" = c.id AND e.slot IN (${VISIBLE_SLOTS_SQL})) AS "equipment",
               (vp."characterId" IS NOT NULL) AS "inViewerParty"
          FROM characters c
          LEFT JOIN party_members pm ON pm."characterId" = c.id
@@ -348,6 +349,8 @@ export class TownRosterService {
     const lastSeen = Math.max(dbSeen, s.lastSeenAt ?? 0);
     // Only `/sleep` sleeps; being offline does not.
     const sleeping = s.sleeping ?? null;
+    const equipment: VisibleEquipment = {};
+    for (const slot of VISIBLE_EQUIPMENT_SLOTS) { const id = row.equipment?.[slot]; if (id) equipment[slot] = id; }
     return {
       characterId: row.id,
       name: row.name,
@@ -365,20 +368,21 @@ export class TownRosterService {
       rev: s.rev ?? 0,
       lastSeenAt: new Date(lastSeen).toISOString(),
       dominantHand: row.dominantHand === 'left' ? 'left' : 'right',
-      mainHandItemId: row.mainHandItemId ?? null,
-      offHandItemId: row.offHandItemId ?? null,
+      mainHandItemId: equipment.mainHand ?? null,
+      offHandItemId: equipment.offHand ?? null,
+      equipment,
     };
   }
 
   private async rowOf(c: Character): Promise<RosterRow> {
-    const hands: Array<{ slot: string; itemId: string }> = await this.characterRepo.query(
-      `SELECT slot, "itemId" FROM equipped_items WHERE "characterId" = $1::uuid AND slot IN ('mainHand', 'offHand')`,
+    const rows: Array<{ slot: string; itemId: string }> = await this.characterRepo.query(
+      `SELECT slot, "itemId" FROM equipped_items WHERE "characterId" = $1::uuid AND slot IN (${VISIBLE_SLOTS_SQL})`,
       [c.id],
     ).catch(() => []);
-    const itemIn = (slot: string) => (Array.isArray(hands) ? hands.find((h) => h?.slot === slot)?.itemId : undefined) ?? null;
+    const equipment = Object.fromEntries((Array.isArray(rows) ? rows : []).filter((r) => r?.slot && r.itemId).map((r) => [r.slot, r.itemId]));
     return {
       id: c.id, name: c.name, level: c.level, appearance: c.appearance ?? null, sex: c.sex ?? null, heightCm: c.heightCm ?? null,
-      lastSeenAt: c.lastSeenAt, dominantHand: c.dominantHand ?? null, mainHandItemId: itemIn('mainHand'), offHandItemId: itemIn('offHand'),
+      lastSeenAt: c.lastSeenAt, dominantHand: c.dominantHand ?? null, equipment,
     };
   }
 
