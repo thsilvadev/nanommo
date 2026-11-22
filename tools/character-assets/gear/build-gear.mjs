@@ -20,13 +20,14 @@ import { fileURLToPath } from 'node:url';
 import { Document, NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import sharp from 'sharp';
-import { mat4 } from 'gl-matrix';
+import { mat4, quat, vec3 } from 'gl-matrix';
 import { ITEMS, VISUALS, SOURCES } from './gear.config.mjs';
 import { CHARACTER_ASSETS, readTargetSkeleton, writeSkeleton } from './lib/skeleton.mjs';
 import { retargetSkinned } from './lib/retarget.mjs';
 import { autoskinStatic } from './lib/autoskin.mjs';
 import { REGION_OF_BONE, strayFilter } from './lib/regions.mjs';
 import { encodeAtlas, packAtlas } from './lib/atlas.mjs';
+import { readObj } from './lib/obj.mjs';
 import { simplifyTo } from './lib/simplify.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -84,6 +85,18 @@ async function loadSources(v, sex) {
     const file = path.join(SOURCE, 'sketchfab', id, 'model.glb');
     if (!fs.existsSync(file)) throw new Error(`missing ${file}: run node gear/fetch-sources.mjs`);
     return [await io.read(file)];
+  }
+  if (kind === 'weapons') {
+    const dir = path.join(SOURCE, 'medieval-weapons');
+    const pack = fs.readdirSync(dir, { withFileTypes: true }).find((e) => e.isDirectory()).name;
+    return [readObj(path.join(dir, pack, 'OBJ', `${id}.obj`), id)];
+  }
+  if (kind === 'kaykit-asset') {
+    const [, pack, file] = v.source.split(':');
+    const base = path.join(SOURCE, pack === 'adventurers' ? 'kaykit-adventurers/repo' : 'kaykit-Skeletons', 'addons');
+    const hit = findFile(base, file);
+    if (!hit) throw new Error(`missing KayKit ${file}`);
+    return [await io.read(hit)];
   }
   if (kind === 'kaykit') {
     const [, pack, file] = v.source.split(':');
@@ -418,6 +431,66 @@ async function buildRigid(id, v) {
   return { pieces: withNormals, transform };
 }
 
+// ---------------------------------------------------------------- weapons
+
+const AXIS = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1], '-x': [-1, 0, 0], '-y': [0, -1, 0], '-z': [0, 0, -1] };
+/**
+ * A hand item in the viewer's convention: grip at the origin, long axis +Y, longest extent = length (m).
+ * v.up: source axis that becomes +Y ('auto': the longest axis, pointing at its wider end).
+ * v.grip: 'blade' (middle of the handle: half-way from the guard at 0 to the pommel), 'origin',
+ * 'shield' (back face, centred), or a fraction along the up axis from the bottom.
+ * v.nodes: only these mesh nodes. v.stringMaterial: primitives that become the 'BowString' child.
+ */
+async function buildWeapon(id, v) {
+  const [doc] = await loadSources(v, 'male');
+  const nodes = doc.getRoot().listNodes().filter((n) => n.getMesh() && (!v.nodes || v.nodes.includes(n.getName())));
+  const raw = []; // [prim, worldPositions]
+  for (const n of nodes) {
+    const m = n.getWorldMatrix();
+    for (const prim of n.getMesh().listPrimitives()) {
+      const P = prim.getAttribute('POSITION');
+      raw.push([prim, Array.from({ length: P.getCount() }, (_, i) => matMul(m, P.getElement(i, [])))]);
+    }
+  }
+  const all = raw.flatMap(([, ps]) => ps);
+  const ext = (k) => [Math.min(...all.map((p) => p[k])), Math.max(...all.map((p) => p[k]))];
+  let axis = AXIS[v.up ?? 'y'];
+  if (v.up === 'auto') {
+    // principal axis of the vertices (power iteration on the covariance), pointing at the wider end
+    const c = [0, 1, 2].map((k) => all.reduce((acc, p) => acc + p[k], 0) / all.length);
+    const cov = [0, 1, 2].map((i) => [0, 1, 2].map((j) => all.reduce((acc, p) => acc + (p[i] - c[i]) * (p[j] - c[j]), 0)));
+    let e = [1, 1, 1];
+    for (let it = 0; it < 64; it++) { const n = [0, 1, 2].map((i) => cov[i][0] * e[0] + cov[i][1] * e[1] + cov[i][2] * e[2]); const l = Math.hypot(...n); e = n.map((x) => x / l); }
+    const along = all.map((p) => (p[0] - c[0]) * e[0] + (p[1] - c[1]) * e[1] + (p[2] - c[2]) * e[2]);
+    const lo = Math.min(...along), hi = Math.max(...along), band = (hi - lo) * 0.2;
+    const radius = (sel) => { const pts = all.filter((_, i) => sel(along[i])); return pts.length ? Math.max(...pts.map((p, i) => { const d = [0, 1, 2].map((k) => p[k] - c[k]); const t = d[0] * e[0] + d[1] * e[1] + d[2] * e[2]; return Math.hypot(d[0] - t * e[0], d[1] - t * e[1], d[2] - t * e[2]); })) : 0; };
+    axis = radius((t) => t > hi - band) >= radius((t) => t < lo + band) ? e : e.map((x) => -x);
+  }
+  const q = quat.rotationTo(quat.create(), axis, [0, 1, 0]);
+  const rot = (p) => [...vec3.transformQuat(vec3.create(), p, q)];
+  const rotated = raw.map(([prim, ps]) => [prim, ps.map(rot)]);
+  const allR = rotated.flatMap(([, ps]) => ps);
+  const min = [0, 1, 2].map((k) => Math.min(...allR.map((p) => p[k]))), max = [0, 1, 2].map((k) => Math.max(...allR.map((p) => p[k])));
+  const grip = v.grip ?? 'origin';
+  const pivot = grip === 'blade' ? [0, min[1] / 2, 0]
+    : grip === 'shield' ? [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, min[2]]
+    : typeof grip === 'number' ? [(min[0] + max[0]) / 2, min[1] + (max[1] - min[1]) * grip, (min[2] + max[2]) / 2]
+    : [0, 0, 0];
+  const scale = v.length / Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2]);
+  const pieces = [];
+  for (const [prim, ps] of rotated) {
+    const piece = toPiece(prim, new Int32Array(ps.length), null);
+    piece.position = Float32Array.from(ps.flatMap((p) => [0, 1, 2].map((k) => (p[k] - pivot[k]) * scale)));
+    piece.normal = null;
+    piece.isString = !!v.stringMaterial && prim.getMaterial()?.getName() === v.stringMaterial;
+    if (piece.index.length) pieces.push(piece);
+  }
+  const strings = pieces.filter((p) => p.isString).map(compact);
+  const body = await reduce(pieces.filter((p) => !p.isString), v.maxTris ?? 1500);
+  const identity = [...mat4.create()];
+  return { pieces: [...body.map((p) => compact({ ...p, normal: null })), ...strings.map((p) => ({ ...p, isString: true }))], transform: { male: identity, female: identity } };
+}
+
 // ---------------------------------------------------------------- main
 
 const targets = Object.fromEntries(await Promise.all(SEXES.map(async (s) => [s, await readTargetSkeleton(s)])));
@@ -430,7 +503,7 @@ for (const id of visualIds) {
 }
 
 const rigid = {}; // id -> { pieces, transform }
-for (const id of visualIds) if (VISUALS[id].kind === 'rigid') rigid[id] = await buildRigid(id, VISUALS[id]);
+for (const id of visualIds) if (VISUALS[id].kind === 'rigid') rigid[id] = VISUALS[id].method === 'weapon' ? await buildWeapon(id, VISUALS[id]) : await buildRigid(id, VISUALS[id]);
 
 const atlasEntries = new Map();
 const allPieces = [
@@ -495,8 +568,7 @@ for (const sex of SEXES) {
   const buffer = doc.createBuffer();
   const scene = doc.createScene();
   const material = doc.createMaterial('Gear').setMetallicFactor(0).setRoughnessFactor(0.9);
-  for (const id of Object.keys(rigid)) {
-    const pieces = rigid[id].pieces;
+  const meshOf = (name, pieces) => {
     const total = pieces.reduce((a, p) => a + p.position.length / 3, 0);
     const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3), uv = new Float32Array(total * 2), idx = [];
     let base = 0;
@@ -509,8 +581,15 @@ for (const sex of SEXES) {
     const prim = doc.createPrimitive().setMaterial(material)
       .setAttribute('POSITION', acc('VEC3', pos)).setAttribute('NORMAL', acc('VEC3', nor)).setAttribute('TEXCOORD_0', acc('VEC2', uv))
       .setIndices(acc('SCALAR', total > 65535 ? new Uint32Array(idx) : new Uint16Array(idx)));
-    scene.addChild(doc.createNode(id).setMesh(doc.createMesh(id).addPrimitive(prim)));
-    (report.visuals[id] ??= {}).triangles = idx.length / 3;
+    return { mesh: doc.createMesh(name).addPrimitive(prim), triangles: idx.length / 3 };
+  };
+  for (const id of Object.keys(rigid)) {
+    const main = meshOf(id, rigid[id].pieces.filter((p) => !p.isString));
+    const node = doc.createNode(id).setMesh(main.mesh);
+    const strings = rigid[id].pieces.filter((p) => p.isString);
+    if (strings.length) node.addChild(doc.createNode('BowString').setMesh(meshOf('BowString', strings).mesh));
+    scene.addChild(node);
+    (report.visuals[id] ??= {}).triangles = main.triangles;
   }
   fs.writeFileSync(path.join(OUT, 'gear-rigid.glb'), await io.writeBinary(doc));
 }
@@ -540,7 +619,7 @@ console.log(`gear ${version}: ${Object.keys(built).length} skinned visuals, atla
 // ---------------------------------------------------------------- credits
 const FREE = /^(CC0|CC Attribution$|CC-BY|Public Domain)/i;
 const credits = [];
-const sourceKey = (src) => (src.startsWith('kaykit:') ? src.split(':').slice(0, 2).join(':') : src);
+const sourceKey = (src) => (src.startsWith('kaykit') ? `kaykit:${src.split(':')[1]}` : src.startsWith('weapons:') ? 'weapons' : src);
 for (const src of [...new Set(visualIds.map((id) => sourceKey(VISUALS[id].source)))].sort()) {
   const [kind, uid] = src.split(':');
   const meta = kind === 'sketchfab'

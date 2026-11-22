@@ -56,6 +56,15 @@
       "maleTriangles": 3212,
       "femaleTriangles": 3250
     },
+    "bow-evil": {
+      "triangles": 748
+    },
+    "bow-golden": {
+      "triangles": 752
+    },
+    "bow-wooden": {
+      "triangles": 704
+    },
     "cape-barbarian": {
       "triangles": 78
     },
@@ -74,6 +83,24 @@
     "cape-skeleton-rogue": {
       "triangles": 84
     },
+    "dagger-kaykit": {
+      "triangles": 172
+    },
+    "dagger-medieval": {
+      "triangles": 726
+    },
+    "dagger-medieval-2": {
+      "triangles": 736
+    },
+    "greatsword-big": {
+      "triangles": 830
+    },
+    "greatsword-claymore": {
+      "triangles": 1033
+    },
+    "greatsword-kaykit": {
+      "triangles": 412
+    },
     "head-knight-helmet": {
       "triangles": 480
     },
@@ -88,15 +115,63 @@
     },
     "head-warrior-helmet": {
       "triangles": 830
+    },
+    "knife-medieval": {
+      "triangles": 726
+    },
+    "rod-crystal": {
+      "triangles": 1182
+    },
+    "rod-kaykit": {
+      "triangles": 150
+    },
+    "rod-orb": {
+      "triangles": 1424
+    },
+    "rune-book": {
+      "triangles": 292
+    },
+    "rune-book-open": {
+      "triangles": 292
+    },
+    "rune-orb": {
+      "triangles": 760
+    },
+    "shield-celtic-golden": {
+      "triangles": 832
+    },
+    "shield-heater": {
+      "triangles": 1419
+    },
+    "shield-round": {
+      "triangles": 1056
+    },
+    "staff-ancient-gold": {
+      "triangles": 906
+    },
+    "staff-kaykit": {
+      "triangles": 440
+    },
+    "staff-skeleton": {
+      "triangles": 1425
+    },
+    "sword-golden": {
+      "triangles": 1006
+    },
+    "sword-medieval": {
+      "triangles": 872
+    },
+    "sword-medieval-2": {
+      "triangles": 942
     }
   },
   "files": {
     "gear-male.glb": 2448220,
     "gear-female.glb": 2567508,
-    "gear-rigid.glb": 124908,
-    "gear-atlas.webp": 1055086,
-    "manifest.json": 13664
+    "gear-rigid.glb": 1645680,
+    "gear-atlas.webp": 1213124,
+    "manifest.json": 30497
   },
   "atlas": 2048,
-  "totalBytes": 6209386
+  "totalBytes": 7905029
 }

@@ -34,6 +34,21 @@ window.applyConfig = async (c) => {
   scene.background = new THREE.Color('#3a332d');
   scene.add(new THREE.HemisphereLight('#ffffff', '#554433', 2.2));
   const sun = new THREE.DirectionalLight('#ffffff', 2.2); sun.position.set(2, 4, 3); scene.add(sun);
+  if (c.weapon) {
+    const rigid = (await load('/gear/gear-rigid.glb')).scene;
+    const piece = rigid.getObjectByName(c.weapon);
+    const group = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ map: atlas, roughness: 0.6, metalness: 0.1 });
+    piece.traverse((o) => { if (o.isMesh) { const m = new THREE.Mesh(o.geometry, mat); o.updateWorldMatrix(true, false); m.applyMatrix4(o.matrixWorld); group.add(m); } });
+    group.rotation.y = ((c.yaw ?? 35) * Math.PI) / 180;
+    scene.add(group);
+    const box = new THREE.Box3().setFromObject(group), size = box.getSize(new THREE.Vector3()), centre = box.getCenter(new THREE.Vector3());
+    const cam = new THREE.PerspectiveCamera(30, W / H, 0.01, 50);
+    const d = Math.max(size.y, size.x * 1.5, 0.35) * 2.1;
+    cam.position.set(centre.x, centre.y + d * 0.1, centre.z + d); cam.lookAt(centre);
+    renderer.render(scene, cam);
+    return;
+  }
   const root = cloneSkinned((await load(`/assets/character/body-${c.sex}.glb`)).scene);
   scene.add(root);
   const bones = new Map(); root.traverse((o) => { if (o.isBone) bones.set(o.name, o); });

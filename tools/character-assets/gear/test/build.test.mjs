@@ -211,3 +211,29 @@ test('a shell hides the skin under it: the manifest carries per-sex hide bands f
   const legging = m.visuals['body-dark-knight'].hide.male[0];
   assert.ok(legging.maxY <= knee + 0.05 && legging.minY >= 0.2, JSON.stringify(legging));
 });
+
+const LENGTH = { dagger: [0.26, 0.42], sword: [0.9, 1.1], greatsword: [1.4, 1.6], bow: [1.2, 1.35], staff: [1.5, 1.75], rod: [0.5, 0.65], shield: [0.6, 0.8], rune: [0.15, 0.32] };
+test('every hand item has a weapon visual of its type, sized for its type, bows with a BowString', async () => {
+  const hands = repoItems.filter((i) => i.slot === 'mainHand' || i.slot === 'offHand');
+  assert.equal(hands.length, 25);
+  const ids = [...new Set(hands.map((i) => ITEMS[i.id]))];
+  for (const item of hands) {
+    const v = VISUALS[ITEMS[item.id]];
+    assert.ok(v, item.id);
+    assert.equal(v.weaponType, item.weaponType, item.id);
+    assert.equal(v.slot, item.slot, item.id);
+  }
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'gear-'));
+  build(out, ids.join(','));
+  const doc = await new NodeIO().read(path.join(out, 'gear-rigid.glb'));
+  for (const id of ids) {
+    const node = doc.getRoot().listNodes().find((n) => n.getName() === id);
+    assert.ok(node?.getMesh(), id);
+    const { getBounds } = await import('@gltf-transform/core');
+    const b = getBounds(node);
+    const size = Math.max(...[0, 1, 2].map((k) => b.max[k] - b.min[k]));
+    const [lo, hi] = LENGTH[VISUALS[id].weaponType];
+    assert.ok(size >= lo && size <= hi, `${id}: ${size.toFixed(2)} m not in [${lo}, ${hi}]`);
+    if (VISUALS[id].weaponType === 'bow') assert.ok(node.listChildren().some((c) => c.getName() === 'BowString' && c.getMesh()), `${id}: BowString`);
+  }
+});

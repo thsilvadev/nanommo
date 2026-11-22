@@ -85,6 +85,40 @@ Object.assign(VISUALS, {
     refBone: undefined, refPoint: [0, 1.75, 0], scale: [0.47, 0.57, 0.47], offset: [0, 0.03, -0.04], size: 256, hue: 250 },
 });
 
+// ---- Weapons (grip at the origin, long axis +Y; the rig keeps the per-type hand pose) ----
+const W = (slot, weaponType, source, length, extra = {}) => ({ slot, kind: 'rigid', method: 'weapon', bone: 'hand_r', weaponType, source, length, size: 256, maxTris: 1500, ...extra });
+const BLADE = { grip: 'blade' };
+const BOW = { grip: 'origin', stringMaterial: 'White' };
+const SHIELD = { grip: 'shield' };
+const KKA = 'kaykit-asset:adventurers:', KSA = 'kaykit-asset:skeletons:';
+Object.assign(VISUALS, {
+  'sword-medieval': W('mainHand', 'sword', 'weapons:Sword', 0.95, BLADE),
+  'sword-medieval-2': W('mainHand', 'sword', 'weapons:Sword_2', 0.98, BLADE),
+  'sword-golden': W('mainHand', 'sword', 'weapons:Sword_Golden', 1.05, BLADE),
+  'greatsword-big': W('mainHand', 'greatsword', 'weapons:Sword_Big', 1.45, BLADE),
+  'greatsword-claymore': W('mainHand', 'greatsword', 'weapons:Claymore', 1.5, BLADE),
+  'greatsword-kaykit': W('mainHand', 'greatsword', `${KKA}sword_2handed_color.gltf`, 1.55),
+  'knife-medieval': W('mainHand', 'dagger', 'weapons:Dagger', 0.28, BLADE),
+  'dagger-medieval': W('mainHand', 'dagger', 'weapons:Dagger', 0.36, BLADE),
+  'dagger-medieval-2': W('mainHand', 'dagger', 'weapons:Dagger_2', 0.38, BLADE),
+  'dagger-kaykit': W('mainHand', 'dagger', `${KKA}dagger.gltf`, 0.4),
+  'bow-wooden': W('mainHand', 'bow', 'weapons:Bow_Wooden', 1.25, BOW),
+  'bow-golden': W('mainHand', 'bow', 'weapons:Bow_Golden', 1.25, BOW),
+  'bow-evil': W('mainHand', 'bow', 'weapons:Bow_Evil', 1.3, BOW),
+  'staff-kaykit': W('mainHand', 'staff', `${KKA}staff.gltf`, 1.6),
+  'staff-skeleton': W('mainHand', 'staff', `${KSA}Skeleton_Staff.gltf`, 1.65),
+  'staff-ancient-gold': W('mainHand', 'staff', 'sketchfab:7c90780035d845e3896914b12e88e9af', 1.7, { up: 'auto', grip: 0.38, nodes: ['ARTIFACT_low_ARTIFACT_0'] }),
+  'rod-kaykit': W('mainHand', 'rod', `${KKA}wand.gltf`, 0.55),
+  'rod-crystal': W('mainHand', 'rod', 'sketchfab:8605d39c12e14e7c969ab828a351e677', 0.58, { up: 'y', grip: 0.3 }),
+  'rod-orb': W('mainHand', 'rod', 'sketchfab:e2c5a4676ef9408a8cb2ed9aa7454ffa', 0.62, { up: 'auto', grip: 0.3 }),
+  'shield-round': W('offHand', 'shield', 'weapons:Shield_Round', 0.62, SHIELD),
+  'shield-heater': W('offHand', 'shield', 'weapons:Shield_Heater', 0.68, SHIELD),
+  'shield-celtic-golden': W('offHand', 'shield', 'weapons:Shield_Celtic_Golden', 0.78, SHIELD),
+  'rune-book': W('offHand', 'rune', `${KKA}spellbook_closed.gltf`, 0.24),
+  'rune-book-open': W('offHand', 'rune', `${KKA}spellbook_open.gltf`, 0.3),
+  'rune-orb': W('offHand', 'rune', 'sketchfab:fc381c9a41694f5eac97e6df68d41cf5', 0.18, { nodes: ['Glass_Ball_lambert1_0'], grip: 0, colorize: '#9b6bff', brightness: 1.5 }),
+});
+
 export const ITEMS = {
   equip_body_phys_t1: 'body-ranger',
   equip_body_phys_t2: 'body-dark-knight',
@@ -111,6 +145,14 @@ export const ITEMS = {
   equip_cape_magic_t1: 'cape-skeleton-rogue',
   equip_cape_magic_t2: 'cape-mage',
   equip_cape_magic_t3: 'cape-king',
+  equip_sword_t1: 'sword-medieval', equip_sword_t2: 'sword-medieval-2', equip_sword_t3: 'sword-golden',
+  equip_greatsword_t1: 'greatsword-big', equip_greatsword_t2: 'greatsword-claymore', equip_greatsword_t3: 'greatsword-kaykit',
+  equip_knife: 'knife-medieval', equip_dagger_t1: 'dagger-medieval', equip_dagger_t2: 'dagger-medieval-2', equip_dagger_t3: 'dagger-kaykit',
+  equip_bow_t1: 'bow-wooden', equip_bow_t2: 'bow-golden', equip_bow_t3: 'bow-evil',
+  equip_staff_t1: 'staff-kaykit', equip_staff_t2: 'staff-skeleton', equip_staff_t3: 'staff-ancient-gold',
+  equip_rod_t1: 'rod-kaykit', equip_rod_t2: 'rod-crystal', equip_rod_t3: 'rod-orb',
+  equip_shield_t1: 'shield-round', equip_shield_t2: 'shield-heater', equip_shield_t3: 'shield-celtic-golden',
+  equip_rune_t1: 'rune-book', equip_rune_t2: 'rune-book-open', equip_rune_t3: 'rune-orb',
 };
 
 /** Non-Sketchfab sources (Sketchfab credits come from source/sketchfab/<uid>/meta.json, written by fetch-sources). */
@@ -119,6 +161,7 @@ export const SOURCES = {
     url: 'https://quaternius.itch.io/modular-character-outfits-fantasy' },
   'kaykit:adventurers': { title: 'KayKit Character Pack: Adventurers 1.0', author: 'Kay Lousberg', license: 'CC0 1.0',
     url: 'https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0' },
+  'weapons': { title: 'Medieval Weapons Pack', author: 'Quaternius', license: 'CC0 1.0', url: 'https://quaternius.com/packs/medievalweapons.html' },
   'kaykit:skeletons': { title: 'KayKit Character Pack: Skeletons 1.0', author: 'Kay Lousberg', license: 'CC0 1.0',
     url: 'https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0' },
 };
