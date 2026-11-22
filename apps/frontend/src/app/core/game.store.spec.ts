@@ -132,6 +132,20 @@ describe('realtime resource synchronization', () => {
     expect(store.character()?.hpCurrent).toBe(20);
   });
 
+  it('keeps confirmed Hunting when an older Gathering resource update arrives later', () => {
+    const store = TestBed.inject(CharacterStore);
+    store.applyRealtimeSnapshot({...character(70,35),lastGrindStance:'gathering',updatedAt:'2026-11-22T12:00:00Z',stateVersion:40},40);
+    // /maps/stance returns partial authoritative state, including its commit metadata.
+    store.applyConfirmedStance('hunting',{id:'char-1',lastGrindStance:'hunting',updatedAt:'2026-11-22T12:01:00Z',stateVersion:42});
+    store.applyRealtimeSnapshot({...character(65,30),lastGrindStance:'gathering',updatedAt:'2026-11-22T12:00:30Z',stateVersion:43},43);
+    expect(store.character()?.lastGrindStance).toBe('hunting');
+    expect(store.character()?.hpCurrent).toBe(65);
+    expect(store.character()?.stateVersion).toBe(43);
+    // A genuine subsequent stance change from the server is still accepted.
+    store.applyRealtimeSnapshot({...character(60,25),lastGrindStance:'gathering',updatedAt:'2026-11-22T12:02:00Z',stateVersion:44},44);
+    expect(store.character()?.lastGrindStance).toBe('gathering');
+  });
+
   it('ignores a stale full-Character patch after a newer realtime snapshot', () => {
     const store = TestBed.inject(CharacterStore);
     store.applyRealtimeSnapshot({

@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const {MapService}=require('../dist/apps/api/src/modules/map/map.service');
+const service=Object.create(MapService.prototype);
+const updatedAt=new Date('2026-11-22T12:01:00Z');
+const character={id:'hero',status:'grinding',currentMapId:'field',lastGrindStance:'hunting',updatedAt,stateVersion:42};
+const state=service.mapCharacterState(character);
+assert.equal(state.updatedAt,updatedAt,'stance acknowledgement must carry its committed timestamp so older resource snapshots cannot revert it');
+assert.equal(state.stateVersion,42,'partial map acknowledgement must participate in revision reconciliation');
+assert.equal(state.lastGrindStance,'hunting');
+console.log('stance-confirmation-state: authoritative timestamp and revision preserved');

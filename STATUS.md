@@ -1,3 +1,11 @@
+### Confirmação de postura Gathering/Hunting — 2026-11-22
+
+`mapCharacterState`, usado na resposta de `/maps/stance` tanto solo quanto em grupo, agora retorna `updatedAt` e `stateVersion`. Antes, o frontend protegia a postura confirmada usando o timestamp do snapshot anterior; uma atualização atrasada de recursos, construída antes do comando, podia então restaurar Gathering depois de confirmar Hunting. O frontend já reconciliava os dois campos corretamente quando presentes.
+
+Validação: build da API; 18 testes de `game.store.spec.ts` no Chromium, incluindo Hunting confirmado seguido por snapshot atrasado de Gathering; scripts `stance-confirmation-state.test.js` (RED→GREEN), `stance-switch-queue.test.js`, `stationary-scheduling-stance.test.js` e `encounter-search.test.js`. A fila é reiniciada sem trocar de área quando não há combate ativo; encontros iniciados continuam imutáveis. O antigo `gathering-cycle-regression.test.js` não executa com seu manager falso atual (`manager.query is not a function` na consulta de batalhas compartilhadas), sem relação com a inclusão dos metadados na resposta.
+
+Sem migração, deploy ou merge; commit separado da HUD e da correção de música.
+
 ### HUD de duração e cooldown de combate — 2026-11-22
 
 Implementada no worktree `combat-cooldowns-hud`, branch `codex/combat-cooldowns-hud` criada da `main`. Checkout da feature 3D preservado. Merge na `main` depende de comando posterior do usuário; sem push, deploy ou migrações.
