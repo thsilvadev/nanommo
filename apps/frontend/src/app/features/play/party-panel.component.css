@@ -43,3 +43,5 @@
   opacity: .55;
   cursor: default;
 }
+
+.party-member > app-combat-timers { margin-top: 6px; }

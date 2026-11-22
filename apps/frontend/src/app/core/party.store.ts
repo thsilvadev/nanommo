@@ -4,7 +4,7 @@ import { CharacterStore } from './game.store';
 import { ApiService } from './api.service';
 import { GameSocketService } from './game.socket.service';
 import { SharedBattleView } from './party-projection';
-export interface PartyMember { characterId: string; name: string; orderIndex: number; pendingLeave: boolean; hp?: number; sp?: number; maxHp?: number; maxSp?: number; statusEffects?: Array<{id?:string;type?:string;stacks?:number}> }
+export interface PartyMember { characterId: string; name: string; orderIndex: number; pendingLeave: boolean; hp?: number; sp?: number; maxHp?: number; maxSp?: number; consumableCooldowns?:Record<string,string>; cooldownDurations?:Record<string,number>; statusEffects?: Array<{id?:string;type?:string;stacks?:number;expiresAt?:string;expiresAtTick?:number}> }
 export interface PartyTeleport { destinationMapId: string; startedAt: string; elapsedMs: number; lastAccruedAt: string|number; paused: boolean; generation: number|string; participantIds: string[] }
 export interface PartyRouteActivity { kind:'route'; segmentStartedAt:number; segmentDueAt:number; remainingMs:number; paused:boolean }
 export interface PartyView { id: string; kind: 'manual'|'auto'; leaderCharacterId: string; mapId: string; revision: number; members: PartyMember[]; teleport?: PartyTeleport|null; routeActivity?:PartyRouteActivity|null }

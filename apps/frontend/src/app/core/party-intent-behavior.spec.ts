@@ -1,3 +1,4 @@
+import { CombatActionsStore } from './combat-actions.store';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
@@ -83,4 +84,28 @@ describe('combat intent responses',()=>{
     actions.set([{id:'consume-1',status:'applied'}]);TestBed.flushEffects();expect(audio.play).toHaveBeenCalledOnceWith('potion_drink');
     actions.set([{id:'consume-1',status:'applied'}]);TestBed.flushEffects();expect(audio.play).toHaveBeenCalledTimes(1);
   });
+  it('restores a queued Gambit save after remount without overwriting later edits',async()=>{
+    const editor=TestBed.runInInjectionContext(()=>new GambitEditorComponent());await Promise.resolve();
+    const original={id:'page',title:'Original',lines:[]};editor.pages.set([original as any]);
+    (editor as any).savedStates.set({page:JSON.stringify({title:'Original',lines:[]})});
+    const tracker=TestBed.inject(CombatActionsStore);
+    const queued={id:'restored',kind:'gambit_update',status:'pending',target:{pageId:'page',draft:{title:'Queued draft',lines:[]}}};
+    api.get.and.returnValue(of([queued]));await tracker.refresh();TestBed.flushEffects();
+    expect(editor.page()?.title).toBe('Queued draft');expect(editor.pagePending('page')).toBeTrue();expect(editor.pageUnsubmitted('page')).toBeFalse();
+    editor.updateTitle(editor.page()!,'Later edit');
+    api.get.and.returnValue(of([{...queued,status:'applied'}]));await tracker.refresh();TestBed.flushEffects();
+    expect(editor.page()?.title).toBe('Later edit');expect(editor.pagePending('page')).toBeFalse();expect(editor.pageDirty('page')).toBeTrue();
+  });
+
+  it('restores a locally queued draft when another editor instance mounts',async()=>{
+    const page={id:'page',title:'Original',lines:[]};
+    api.get.and.callFake((path:string)=>of(path==='/gambits'?[structuredClone(page)]:[]));
+    const first=TestBed.runInInjectionContext(()=>new GambitEditorComponent());await Promise.resolve();await Promise.resolve();
+    first.updateTitle(first.page()!,'Queued locally');api.put.and.returnValue(of({intent:{id:'local-save',status:'pending'}}));await first.save();
+    const second=TestBed.runInInjectionContext(()=>new GambitEditorComponent());await Promise.resolve();await Promise.resolve();TestBed.flushEffects();
+    expect(second.page()?.title).toBe('Queued locally');expect(second.pagePending('page')).toBeTrue();
+    actions.set([{id:'local-save',status:'applied'}]);TestBed.flushEffects();
+    expect(second.pageDirty('page')).toBeFalse();expect(second.page()?.title).toBe('Queued locally');
+  });
+
 });

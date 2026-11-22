@@ -140,17 +140,38 @@ export class SharedBattleService {
   async publicBattle(characterId:string){
     const row=(await this.db.query(`SELECT b.* FROM shared_battles b JOIN shared_battle_participants a ON a."battleId"=b.id WHERE a."characterId"=$1 ORDER BY b."startAt" DESC LIMIT 1`,[characterId]))[0];
     if(!row)return null;
-    const actors=row.snapshot.actors.map(a=>({
-      id:a.id,name:a.name,kind:a.kind,team:a.team,position:a.position,
-      ...(a.kind==='monster'?{definitionId:a.definitionId}:{}),
-      snapshot:{hp:a.snapshot.hp,sp:a.snapshot.sp,maxHp:a.snapshot.maxHp,maxSp:a.snapshot.maxSp,
-        atk:a.snapshot.atk,matk:a.snapshot.matk,def:a.snapshot.def,mdefPercent:a.snapshot.mdefPercent,
-        accuracy:a.snapshot.accuracy,evasion:a.snapshot.evasion,critChance:a.snapshot.critChance,
-        statusEffects:a.snapshot.statusEffects},
-    }));
+    const actorDurations = new Map<string, Record<string, number>>(row.snapshot.actors.map((actor: any) => [actor.id,
+      Shared.combatCooldownDurations({...actor.snapshot, skillDefs:{...row.snapshot.definitions?.skills,...actor.snapshot.skillDefs}}, row.snapshot.definitions?.items),
+    ]));
+    const actors = row.snapshot.actors.map((actor: any) => {
+      const durations = actorDurations.get(actor.id)!;
+      const cooldowns = Object.fromEntries(Object.entries(actor.snapshot.cooldowns ?? {}).filter(([key, ticks]) => Number(ticks)>0 && Number(durations[key])>0));
+      return {
+        id:actor.id,name:actor.name,kind:actor.kind,team:actor.team,position:actor.position,
+        ...(actor.kind==='monster'?{definitionId:actor.definitionId}:{}),
+        snapshot:{hp:actor.snapshot.hp,sp:actor.snapshot.sp,maxHp:actor.snapshot.maxHp,maxSp:actor.snapshot.maxSp,
+          atk:actor.snapshot.atk,matk:actor.snapshot.matk,def:actor.snapshot.def,mdefPercent:actor.snapshot.mdefPercent,
+          accuracy:actor.snapshot.accuracy,evasion:actor.snapshot.evasion,critChance:actor.snapshot.critChance,
+          statusEffects:actor.snapshot.statusEffects,cooldowns,
+          cooldownDurations:Object.fromEntries(Object.entries(durations).filter(([key])=>key in cooldowns))},
+      };
+    });
+    // Older immutable logs predate action timer metadata. Derive it from that
+    // encounter's effective definitions, never from today's rank-one catalogue.
+    const events = row.log.events.map((event: any) => {
+      if (!['use_skill', 'use_item'].includes(event.action) || event.payload?.cooldown) return event;
+      const actor = row.snapshot.actors.find((value: any) => value.id === event.actorId);
+      if (!actor) return event;
+      const payload = event.payload ?? {};
+      const key = event.action === 'use_skill' ? `skill:${payload.skillId}`
+        : Shared.consumableCooldownKey(row.snapshot.definitions?.items?.[payload.itemId], payload.itemId);
+      const durations = actorDurations.get(actor.id)!;
+      const durationTicks = durations[key] ?? 0;
+      return durationTicks > 0 ? {...event, payload:{...payload, cooldown:{key,durationTicks}}} : event;
+    });
     const actorsAfter=Object.fromEntries(Object.entries(row.log.actorsAfter).map(([id,a]:[string,any])=>[id,{hp:a.hp,sp:a.sp,position:a.position,statusEffects:a.statusEffects,targetId:a.targetId}]));
-    // No party member's private inventory, Gambits, cooldowns or Diet cross this boundary.
-    return {id:row.id,revision:Number(row.revision),partyId:row.partyId,mapId:row.mapId,startAt:row.startAt,endAt:row.endAt,state:row.state,snapshot:{version:2,tickDurationMs:500,actors},log:{version:2,outcome:row.log.outcome,events:row.log.events,durationTicks:row.log.durationTicks,actorsAfter}};
+    // Only public combat timers cross this boundary; inventory, Gambits and Diet stay private.
+    return {id:row.id,revision:Number(row.revision),partyId:row.partyId,mapId:row.mapId,startAt:row.startAt,endAt:row.endAt,state:row.state,snapshot:{version:2,tickDurationMs:500,actors},log:{version:2,outcome:row.log.outcome,events,durationTicks:row.log.durationTicks,actorsAfter}};
   }
   async flee(ctx:PartyContext,leaderId:string,remove:(id:string,reason:string)=>Promise<void>){
     const row=(await ctx.manager.query(`SELECT b.* FROM shared_battles b JOIN active_battle_participants a ON a."battleId"=b.id WHERE a."characterId"=$1 FOR UPDATE OF b`,[leaderId]))[0];if(!row)throw new BadRequestException('No active shared battle');
@@ -177,6 +198,7 @@ export class SharedBattleService {
     if(!['equip','unequip','use_item','gambit_update','gambit_activate','attributes'].includes(kind))throw new BadRequestException('Unsupported action');
     if(!requestId||requestId.length>100||!payload||typeof payload!=='object'||Array.isArray(payload))throw new BadRequestException('Invalid action');
     const exists=await ctx.manager.query('SELECT id FROM character_action_intents WHERE "characterId"=$1 AND "clientRequestId"=$2',[id,requestId]);if(exists.length)return;
+    if(kind==='use_item')await this.inventory.validateQueuedConsumable(id,String(payload.itemId??''),ctx.manager,ctx.now);
     const count=Number((await ctx.manager.query(`SELECT count(*) AS n FROM character_action_intents WHERE "characterId"=$1 AND status='pending'`,[id]))[0].n);if(count>=32)throw new BadRequestException({code:'ACTION_QUEUE_FULL',message:'Too many pending actions'});
     const sequence=Number((await ctx.manager.query('SELECT coalesce(max(sequence),0)+1 AS n FROM character_action_intents WHERE "characterId"=$1',[id]))[0].n);
     await ctx.manager.query(`INSERT INTO character_action_intents(id,"characterId","clientRequestId",sequence,kind,payload,status) VALUES($1,$2,$3,$4,$5,$6,'pending')`,[randomUUID(),id,requestId,sequence,kind,JSON.stringify(payload)]);

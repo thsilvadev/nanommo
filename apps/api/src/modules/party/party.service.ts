@@ -1,3 +1,5 @@
+import { publicCombatAction } from './combat-action-view';
+import { combatCooldownDurations } from '@nanommo/shared';
 import { guardEncounterDeadline, PARTY_DEADLINE_REACHED } from './party-deadline';
 import { Inject, forwardRef, BadRequestException, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
@@ -73,8 +75,17 @@ export class PartyService {
       if(p){
         const rows=await this.db.query('SELECT m.*,c.name,c."hpCurrent",c."spCurrent",c."statusEffects",c.level,c.vit,c.int FROM party_members m JOIN characters c ON c.id=m."characterId" WHERE m."partyId"=$1 ORDER BY m."orderIndex"',[p.id]);
         const members=[];
-        for(const row of rows){ const c=await this.db.getRepository(Character).findOneBy({id:row.characterId}); const s=c?await this.battle.buildCharacterSnapshot(c,c.hpCurrent,c.spCurrent):null;
-          members.push({characterId:row.characterId,name:row.name,orderIndex:row.orderIndex,pendingLeave:row.pendingLeave,hp:row.hpCurrent,sp:row.spCurrent,maxHp:s?.maxHp??row.hpCurrent,maxSp:s?.maxSp??row.spCurrent,statusEffects:row.statusEffects}); }
+        for (const row of rows) {
+          const c = await this.db.getRepository(Character).findOneBy({id:row.characterId});
+          const snapshot = c ? await this.battle.buildCharacterSnapshot(c,c.hpCurrent,c.spCurrent) : null;
+          const durations = combatCooldownDurations(snapshot ?? {});
+          const cooldowns = Object.fromEntries(Object.entries(c?.consumableCooldowns ?? {}).filter(([key, until]) =>
+            Number(durations[key])>0 && Date.parse(String(until))>Date.now()));
+          members.push({characterId:row.characterId,name:row.name,orderIndex:row.orderIndex,pendingLeave:row.pendingLeave,
+            hp:row.hpCurrent,sp:row.spCurrent,maxHp:snapshot?.maxHp??row.hpCurrent,maxSp:snapshot?.maxSp??row.spCurrent,
+            statusEffects:row.statusEffects,consumableCooldowns:cooldowns,
+            cooldownDurations:Object.fromEntries(Object.entries(durations).filter(([key])=>key in cooldowns))});
+        }
         party={id:p.id,kind:p.kind,leaderCharacterId:p.leaderCharacterId,mapId:p.mapId,revision:Number(p.revision),members,routeActivity:p.activity?.kind==='route'?p.activity:null,teleport:p.activity?.kind==='route'?null:p.activity};
       }
     }
@@ -239,7 +250,14 @@ export class PartyService {
       for(const id of ids.slice(0,4)){const prior=await this.db.query(`SELECT id FROM party_invites WHERE mode='auto' AND status IN ('offered','accepted') AND ("candidateId"=$1 OR "inviterId"=$1)`,[id]);if(prior.length)continue;try{await this.invite(leader,id,undefined,`auto:${randomUUID()}`,'auto');}catch(e){if(!(e instanceof BadRequestException))throw e;}}
     }
   }
-  async actions(characterId:string){return this.db.query('SELECT id,kind,status,result,sequence,"clientRequestId","createdAt" FROM character_action_intents WHERE "characterId"=$1 ORDER BY sequence DESC LIMIT 64',[characterId]);}
+  async actions(characterId: string) {
+    // Pending work must remain recoverable even after many later cancellations.
+    const rows = await this.db.query(`SELECT id,kind,status,result,sequence,payload,"clientRequestId","createdAt","completedAt"
+      FROM character_action_intents WHERE "characterId"=$1 AND (status='pending' OR id IN (
+        SELECT id FROM character_action_intents WHERE "characterId"=$1 AND status<>'pending' ORDER BY sequence DESC LIMIT 64
+      )) ORDER BY sequence DESC`, [characterId]);
+    return rows.map(row => publicCombatAction(row, this.data.getItemById?.(row.payload?.itemId)));
+  }
   async cancelAction(characterId:string,id:string){await this.db.query(`UPDATE character_action_intents SET status='cancelled',"completedAt"=clock_timestamp() WHERE id=$1 AND "characterId"=$2 AND status='pending'`,[id,characterId]);return this.get(characterId);}
   async queueIfMember(characterId:string):Promise<boolean>{const m=await this.member(characterId);if(!m)return false;await this.tickParty(m.partyId);return true;}
   async tickParty(partyId:string){
@@ -367,7 +385,8 @@ export class PartyService {
   async enqueueDrain(characterId:string){await this.serialized([characterId],ctx=>this.shared.drain(ctx));}
   async enqueue(characterId:string,requestId:string,kind:string,payload:any){
     await this.serialized([characterId],async ctx=>{await this.shared.enqueue(ctx,characterId,requestId,kind,payload);ctx.now=Number((await ctx.manager.query('SELECT extract(epoch FROM clock_timestamp())*1000 AS now'))[0].now);await this.shared.drain(ctx);await this.event(ctx.manager,characterId,'party:actionUpdated',{refresh:true});});
-    const intent=(await this.db.query('SELECT id,kind,status,result,sequence,"clientRequestId","createdAt" FROM character_action_intents WHERE "characterId"=$1 AND "clientRequestId"=$2',[characterId,requestId]))[0];
+    const row=(await this.db.query('SELECT id,kind,status,result,sequence,payload,"clientRequestId","createdAt","completedAt" FROM character_action_intents WHERE "characterId"=$1 AND "clientRequestId"=$2',[characterId,requestId]))[0];
+    const intent=row?publicCombatAction(row,this.data.getItemById?.(row.payload?.itemId)):undefined;
     return {...await this.get(characterId),intent};
   }
   async setStance(characterId:string,stance:'hunting'|'gathering'){

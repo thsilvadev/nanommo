@@ -1,6 +1,10 @@
+### Integração da branch codex/combat-cooldowns-hud na main — 2026-11-22
+
+Merge solicitado pelo usuário. Os dois lados foram preservados nos registros e nas notas de engenharia; `PlayComponent` também interrompe o tracker de ações ao desmontar, mantendo o pré-carregamento 3D atual da `main`. Validação: builds de shared/API e frontend de produção, typecheck das specs frontend e dez scripts Node da API passaram; o build frontend exibiu avisos de orçamento. Sem migração, deploy ou push.
+
 ### Equipamentos vestíveis em 3D (50 itens, retrato + cidade), tela de carregamento, ícones novos — 2026-11-22
 
-Branch `feat/wearable-equipment-3d` (sem push, sem merge). Design `docs/superpowers/specs/2026-11-22-wearable-equipment-3d-design.md`, plano `docs/superpowers/plans/2026-11-22-wearable-equipment-3d.md`; cada slot revisado e aprovado pelo usuário por folhas de contato.
+Implementação da branch local `feat/wearable-equipment-3d` (sem push). Design `docs/superpowers/specs/2026-11-22-wearable-equipment-3d-design.md`, plano `docs/superpowers/plans/2026-11-22-wearable-equipment-3d.md`; cada slot revisado e aprovado pelo usuário por folhas de contato.
 
 - **Pipeline** `tools/character-assets/gear/` (retarget de modelos riggados, auto-skin de estáticos, peças rígidas, atlas único, redução de malha, cascas para botas/calça interna): `gear-male.glb`, `gear-female.glb`, `gear-rigid.glb`, `gear-atlas.webp`, `manifest.json`, `CREDITS.md` em `apps/frontend/public/assets/character/gear/` (7,9 MB). Fontes: Quaternius (Modular Outfits, Medieval Weapons), KayKit Adventurers/Skeletons (CC0) e 11 modelos CC-BY do Sketchfab (`gear/fetch-sources.mjs`, token em `~/.sketchfab_token`). `UNLICENSED_ASSETS_README.txt` (raiz): vazio — tudo CC0/CC-BY.
 - **Visuais** (aprovados): Body físico Ranger → cavaleiro cinza → Hand Painted Knight (T2/T3 até o joelho + calça interna); mágico Peasant → robe vermelho → mago roxo; elmos/capuzes/chapéus KayKit + capuz Ranger; capas KayKit + capa do Rei em azul; botas Ranger (traveler) e Peasant (terra e elementais recoloridas); 25 armas por item (katana, adagas, cajados, runas em esfera, escudo com losango vermelho).
@@ -19,6 +23,60 @@ Validação (2026-11-22):
 - `node apps/frontend/scripts/validate-ui-assets.mjs`: nenhum ícone de equipamento faltando (os 7 ícones de status ausentes já faltavam antes).
 - Já falhava antes (não relacionado): `apps/api/test/npc-town-additions.test.js` (mesma falha sem estas mudanças).
 
+### Feedback sutil de alterações pendentes — 2026-11-22
+
+Implementado acompanhamento único de equipamentos, consumíveis/comida, atributos e salvamento/ativação de Gambits. Indicador acessível de 12px: relógio estático enquanto aguarda, spinner somente no envio e estados discretos de confirmação/falha. Tooltips contextualizam o destino; apenas ações conflitantes ficam bloqueadas. Equipamento, Diet, quantidades, atributos e página ativa mantêm os valores confirmados até a resposta autoritativa.
+
+Recuperação por reload, socket/reconexão e consulta enquanto houver trabalho pendente, com identidade idempotente preservada após resposta incerta. Gambits recuperam o rascunho enfileirado e preservam edições posteriores. Pré-validação de comida rejeita pedidos inválidos antes da fila; a validação da execução permanece. Sem estimativa artificial de batalha ou timeout local que declare sucesso.
+
+Revisão independente concluída; corrigidos com regressões RED→GREEN a recuperação de rascunho ao remontar o editor e a confirmação que reutilizava snapshot anterior. Cobertos também resposta terminal antes de listagem atrasada, atributos concorrentes e ativações conflitantes. Validação final: 108 testes Karma/Chromium; sete scripts Node do backend registrados abaixo; builds API/frontend e typecheck de specs passaram. Build mantém avisos CSS existentes. Smoke visual do build completo com API sintética em desktop/mobile passou sem erros do browser, incluindo rejeição de comida, restauração, conclusão autoritativa e rascunho posterior preservado. OpenSpec estrito e diff-check passaram. Sem integração com banco real, migração, deploy ou push.
+
+### Contrato de acompanhamento de ações pendentes — 2026-11-22
+
+Backend preparado para feedback contextual sem alterar o cutoff das batalhas. A consulta das ações do próprio personagem inclui todos os comandos pendentes e limita somente o histórico terminal; metadados seguros identificam slot/slots de mão afetados, instância do inventário, tipo de consumível, página/rascunho de Gambit e alocação de atributos. O payload bruto não é retornado. Respostas de enqueue incluem o mesmo contrato de alvo.
+
+`use_item` passa por pré-validação somente de leitura antes da inserção, depois da verificação idempotente: existência/tipo, quantidade, digestão, comida igual já enfileirada, cooldown atual e restrições de itens de reviver. A validação canônica da execução continua existindo. Nenhuma comida, quantidade ou Diet muda durante a pré-validação.
+
+Validação: build da API; `queued-action-feedback.test.js`, `party-intent-clock.test.js`, `party-inventory-reservation.test.js`, `party-alchemy-manual-consumables.test.js`, `party-timers-public.test.js`, `combat-timers-public.test.js`, `off-battle-resources-cooldowns.test.js` passaram. Revisão independente do contrato sem novos achados no backend. Sem migração executada, deploy, push ou merge na main.
+
+### Música regional: transições, silêncio e faixas órfãs — 2026-11-22
+
+Correção separada da postura e da HUD, na branch `codex/combat-cooldowns-hud`.
+
+- O início pendente pertence ao elemento de áudio específico; uma promessa antiga de `play()` não libera o início de outra faixa. Pedidos concorrentes para retomar a mesma faixa são agrupados.
+- Controles General/Music cancelam o fade e encerram sua faixa de saída antes de aplicar volume/mute à faixa atual. Frames antigos não podem restaurar o volume anterior nem deixar a música antiga fora dos controles.
+- Fade de parada usa o mesmo proprietário cancelável dos demais fades. `destroy()` invalida promessas, cancela animação, zera/pausa todas as faixas e remove listeners de retry por gesto.
+- Ao trocar de região antes do primeiro frame do fade inicial, a faixa anterior retida recebe o volume vigente enquanto o destino carrega ou aguarda ativação. Antes, ela podia ficar presa em zero até mexer no slider. O comportamento de manter a faixa anterior até a nova tocar foi preservado.
+
+Validação: seis regressões de áudio reproduzidas com testes RED e corrigidas (volume durante crossfade, volume durante parada, promessa antiga liberando nova faixa, resumes concorrentes, cleanup de listeners e cancelamento do fade inicial). Recuperação por teclado sem abrir Settings também coberta. Suíte combinada no Chromium: 56/56 passaram (`game-audio.service.spec.ts`, `game.store.spec.ts`, `combat-timers*.spec.ts`); build de produção e `tsc -p tsconfig.spec.json --noEmit` passaram, com avisos CSS existentes. Quatro scripts da postura/timing também passaram. Revisão independente das correções sem novos achados substantivos; os testes reproduzem mecanismos concretos, sem afirmar que esgotam todos os problemas possíveis de autoplay/rede em produção.
+
+Sem migração, deploy ou push.
+
+### Confirmação de postura Gathering/Hunting — 2026-11-22
+
+`mapCharacterState`, usado na resposta de `/maps/stance` tanto solo quanto em grupo, agora retorna `updatedAt` e `stateVersion`. Antes, o frontend protegia a postura confirmada usando o timestamp do snapshot anterior; uma atualização atrasada de recursos, construída antes do comando, podia então restaurar Gathering depois de confirmar Hunting. O frontend já reconciliava os dois campos corretamente quando presentes.
+
+Validação: build da API; 18 testes de `game.store.spec.ts` no Chromium, incluindo Hunting confirmado seguido por snapshot atrasado de Gathering; scripts `stance-confirmation-state.test.js` (RED→GREEN), `stance-switch-queue.test.js`, `stationary-scheduling-stance.test.js` e `encounter-search.test.js`. A fila é reiniciada sem trocar de área quando não há combate ativo; encontros iniciados continuam imutáveis. O antigo `gathering-cycle-regression.test.js` não executa com seu manager falso atual (`manager.query is not a function` na consulta de batalhas compartilhadas), sem relação com a inclusão dos metadados na resposta.
+
+Sem migração, deploy ou push.
+
+### HUD de duração e cooldown de combate — 2026-11-22
+
+Implementada no worktree `combat-cooldowns-hud`, branch `codex/combat-cooldowns-hud` criada da `main`; integrada à `main` a pedido do usuário. Checkout da feature 3D preservado; sem push, deploy ou migrações.
+
+- HUD compartilhada em Character/Status, alvo solo e compartilhado no Grind, e abaixo de HP/SP dos aliados em Group. Ícones 28 × 28 px: buffs verdes, debuffs vermelhos, habilidades brancas, itens cinza. Buffs/debuffs mostram segundos arredondados para cima, com stacks no tooltip; efeitos permanentes não ganham duração artificial.
+- Habilidades e consumíveis aparecem apenas durante o cooldown, com máscara escura que libera o ícone em sentido horário, conforme `project/cooldown_effect.gif`. Três ícones SVG próprios para as categorias poção/tônico/supertônico; ícones faltantes dos efeitos de tônicos e violent_shot_slow preenchidos com arte já existente.
+- Confirmado por testes: cooldown compartilhado dentro das categorias, independência entre poções (10s), tônicos (30s) e supertônicos (60s). Sem alteração de balanceamento ou regras de consumo.
+- Eventos de ações bem-sucedidas incluem metadados compactos do cooldown efetivo. Cast start/fizzle não iniciam relógio. Abertura do encontro respeita o decremento do tick zero; prazos absolutos continuam fora de combate. Logs compartilhados já existentes recebem metadados a partir das próprias definições efetivas, sem mutação do log.
+- DTOs públicos expõem apenas timers ativos reconhecidos e suas durações. Inventário, Gambits e Diet continuam privados. Character passa a fornecer status persistentes e duração efetiva das habilidades ainda em cooldown.
+- Revisão independente encontrou dois P2 (decremento inicial e filtragem pública do Group), ambos reproduzidos com testes RED e corrigidos antes da suíte final.
+
+Validação:
+- Builds de `@nanommo/shared`, `@nanommo/api` e frontend de produção; `tsc -p tsconfig.spec.json --noEmit`. Avisos de orçamento CSS já existentes; removido o CSS antigo de status do personagem, mantendo o build dentro do limite de erro.
+- Chromium headless: 24 testes passaram (`combat-timers*.spec.ts`, `status-projection.component.spec.ts`, `shared-character-projection.spec.ts`, `party-projection.spec.ts`).
+- Scripts Node passaram: `combat-timers.test.js`, `combat-timers-public.test.js`, `party-timers-public.test.js`, `group-battle-engine.test.js`, `group-battle-parity.test.js`, `party-alchemy-manual-consumables.test.js`, `shared-public-target-stats.test.js`, `party-rewards-capacity.test.js`, `off-battle-resources-cooldowns.test.js`.
+- Smoke visual do build completo com backend fictício interceptado no navegador: Character, Group, alvo compartilhado e solo, viewport estreito; sem erros de JavaScript. Screenshots de revisão em `/tmp/nanommo-hud-{group,character,solo,mobile}.png`. Não acessa o backend real.
+- `openspec validate combat-timers-hud --strict` e `git diff --check`.
 ### Performance, Fase 0.5 (achados do perfil do Firefox) + sino de Sierra + Storage do Outpost — 2026-11-21
 
 Commit e push na `main` autorizados pelo usuário.

@@ -262,3 +262,14 @@ Three bows in `gear-rigid.glb` all have a `BowString` child; after loading they 
 ## 4.40 Gear sources need a Sketchfab token
 
 `node tools/character-assets/gear/fetch-sources.mjs` downloads the Sketchfab models with the API token in `~/.sketchfab_token` (never in the repo). Every non-CC0/CC-BY source must be listed in `UNLICENSED_ASSETS_README.txt` (the build regenerates it).
+
+## Music promise/fade ownership — 2026-11-22
+
+Do not use a shared boolean cleared by every asynchronous `audio.play()` completion: an old map's promise can release a newer track's pending guard. Compare the audio element identity before clearing it. All music fades, including stop fades, must share the same cancellable frame owner. Volume changes must stop the outgoing crossfade element too; changing only the current element allows old music or captured fade values to escape Settings. The music transition tests use manually advanced RAF frames and deferred play promises to cover these races deterministically.
+
+## Durable action feedback and stale confirmations — 2026-11-22
+
+- A root tracker outlives editors. A local request flag is not proof that the currently mounted editor knows its saved draft; maintain per-instance request identities when restoring queued Gambits.
+- Confirmation must bypass GET coalescing: a resource request started before terminal acknowledgement can return the pre-action snapshot. Compare returned character/inventory revisions with installed revisions before dismissing indicators.
+- Do not discard an applied attribute response merely because an older resource event advanced a local request generation. Server stateVersion determines ordering.
+- Cache terminal HTTP results against delayed pending-list responses. Unknown network outcomes keep the same idempotency key; absence from a bounded history is not success. All active-page changes share one conflict domain.

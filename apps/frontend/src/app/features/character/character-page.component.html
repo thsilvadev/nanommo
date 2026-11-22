@@ -26,8 +26,8 @@
             <p *ngIf="!(character.character()?.unspentAttributePoints)" class="disabled-note">No attribute points
                 available.</p>
             <div class="alloc-actions"><button (click)="reset()">Reset Allocation</button><button class="gold-btn"
-                    (click)="apply()" [disabled]="saving()||!hasPending()">{{saving()?'Applying...':'Apply
-                    Changes'}}</button></div>
+                    (click)="apply()" [disabled]="saving()||!hasPending()||actions.busy('attributes',{})">{{saving()?'Applying...':'Apply
+                    Changes'}}</button><app-action-state [state]="actions.attributes()" [detail]="queuedAllocation()" [text]="true" /></div>
             <p *ngIf="error()" class="error">{{error()}}</p>
         </section>
         <section class="sheet-panel derived">

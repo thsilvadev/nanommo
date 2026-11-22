@@ -1,3 +1,5 @@
+import { CombatTimersComponent } from './combat-timers.component';
+import { CombatTimersService } from './combat-timers.service';
 import { CombatantDetailsComponent, combatantStatRows } from './combatant-details.component';
 import { CombatantPortraitComponent } from './combatant-portrait.component';
 import { FollowLogDirective } from './follow-log.directive';
@@ -12,11 +14,12 @@ import { SharedEvent, sharedActorResources, sharedCurrentTarget, visibleSharedEv
 import { UiClockService } from '../../core/ui-clock.service';
 
 @Component({
-  selector:'app-shared-battle-panel', standalone:true, imports:[CommonModule, FollowLogDirective, CombatantPortraitComponent, CombatantDetailsComponent],
+  selector:'app-shared-battle-panel', standalone:true, imports:[CommonModule, CombatTimersComponent, FollowLogDirective, CombatantPortraitComponent, CombatantDetailsComponent],
   template: `
     <section *ngIf="party.battle() as battle" class="shared-combat">
       <header><strong>{{locale.t('Shared battle')}}</strong><small>{{locale.t(battle.state)}} · {{tick()}}</small><button type="button" *ngIf="canFlee()" [disabled]="party.busy()" (click)="party.flee()">{{locale.t('Flee')}}</button></header>
       <p *ngIf="target() as id" class="current-target">{{locale.t('Current target')}}: <strong>{{actorName(id)}}</strong><small *ngIf="targetResources() as resources">HP {{resources.hp}} · SP {{resources.sp}}</small></p>
+      <app-combat-timers [timers]="timers.sharedTarget()" />
       <p *ngIf="!events().length">{{locale.t('Waiting for battle events.')}}</p>
       <div class="enemy-portraits" *ngIf="dropTables().length">
         <app-combatant-portrait *ngFor="let monster of dropTables(); trackBy: trackPortrait" [src]="monster.src" [name]="monster.name" [width]="38" [height]="44">
@@ -30,6 +33,7 @@ import { UiClockService } from '../../core/ui-clock.service';
   styles:[`:host{display:flex;flex:1;min-height:0;overflow:hidden}.shared-combat{display:flex;flex-direction:column;flex:1;min-height:0;gap:8px;padding:10px;color:#d7c4a4}.shared-combat header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:5px}.shared-combat button{font:11px Arial;padding:3px 8px;color:#e3cfaa;background:#241a11;border:1px solid #78603f;cursor:pointer}.shared-combat button:disabled{opacity:.5}.enemy-portraits{display:flex;flex-wrap:wrap;gap:8px;flex:0 0 auto}.shared-combat p{margin:0;font:12px/1.4 Arial}.shared-combat small{font:11px Arial}.current-target small{display:block}.shared-feed{flex:1;min-height:90px;max-height:340px;overflow:auto;overscroll-behavior:contain;font:11px/1.3 Arial;border-top:1px solid #4e3e2b}.shared-event{display:flex;gap:5px;padding:2px 0;border-bottom:1px solid #30261c}.shared-event time{color:#a38c68;min-width:32px}.shared-event span{overflow-wrap:anywhere}@media(max-height:700px){.shared-feed{max-height:190px}}`],
 })
 export class SharedBattlePanelComponent {
+  readonly timers = inject(CombatTimersService);
   readonly party=inject(PartyStore); readonly character=inject(CharacterStore); readonly locale=inject(LocaleService); private readonly catalog=inject(CatalogService);
   readonly now=inject(UiClockService).now;
   tick(): number {const b=this.party.battle();return b?Math.max(0,Math.floor((this.now()-Date.parse(b.startAt))/500)):0;}

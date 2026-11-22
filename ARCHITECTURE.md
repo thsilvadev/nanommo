@@ -9,6 +9,25 @@ Every non-accessory item (50) has its own 3D visual, worn on the Character Summa
 - **Measured** (200 T3 characters, swiftshader): +0.25 draw calls per character, frame time ×1.13 vs bare.
 - Item icons are generated from the same models (`preview/make-icons.mjs`).
 
+## Durable action feedback — 2026-11-22
+
+`CombatActionsStore` tracks client request identities independently of mounted editors. Mutations publish safe target metadata through the existing durable queue; `/party/actions` retains every pending command and a bounded terminal history. The tracker receives socket/reconnect/visibility signals and polls only while work remains. It injects neither CharacterStore nor PartyStore; Play supplies the socket and authoritative synchronization callback to avoid dependency cycles.
+
+Sending, queued, confirming and failed are distinct UI states. An uncertain HTTP response retains its original request identity for idempotent recovery. Missing history and elapsed local time never imply success. Terminal actions retire only after fresh character/inventory snapshots satisfy their returned revision floors. Applied HTTP responses are cached as terminal so older list responses cannot resurrect the command. Equipment conflicts include both affected hands; active-page changes conflict globally. Consumables are prevalidated before enqueue and validated again at execution.
+
+The shared 12px `ActionStateComponent` uses a static clock for queued work, motion only during sending and reduced-motion support. Existing equipment, Diet, quantities and active pages remain authoritative. Gambit drafts restore from safe queued metadata; each editor distinguishes its own requests from requests inherited after navigation and preserves later edits.
+
+## Regional music transition ownership — 2026-11-22
+
+`GameAudioService` owns every regional music element until it is stopped. Pending startup and resume attempts are tied to the media element, so late promises cannot unlock another track or create competing transitions. Crossfade, resume and stop share one cancellable animation owner. General/Music controls supersede the fade, stop outgoing elements and apply the current settings; teardown cancels retries and stops all owned media immediately. A retained previous track restores the current target volume if a new region interrupts its initial fade before the first frame.
+
+## Public combat timers and shared HUD — 2026-11-22
+
+- `CombatTimersComponent` renders uniform status/cooldown icons for Character, Grind targets and Group allies. `CombatTimersService` selects actor-specific server state; pure projections in `shared/combat-timers.ts` use the shared `UiClockService` without additional per-icon timers.
+- Successful V2 `use_skill`/`use_item` events carry optional `{key,durationTicks}` cooldown metadata. This is presentation-only and does not change action legality or cooldown semantics. Opening cooldown snapshots account for tick-zero decrement separately from timers initiated by events.
+- Public party encounter snapshots expose only recognized active opening cooldowns and corresponding effective durations. Legacy persisted V2 events are enriched from their own immutable definitions. Between encounters, character/member DTOs expose active absolute deadlines and the effective timer lengths needed for radial fractions; no private inventory, Gambits or Diet is added.
+- Persistent character statuses are included in CharacterDto so effects remain visible outside combat. Status rows group living stacks and show seconds, while cooldown rows hide at their deadline.
+
 ## Frontend change detection budget — 2026-11-21
 
 - **High-frequency work runs outside the Angular zone.** Render loops (`TownRuntime`, `CharacterRig`), pointer and wheel handlers that only drive 3D or plain DOM, DOM-only polls (`battle-hit-feedback`, `tooltip-position`) and the audio poll never enter the zone. What the UI must show reaches Angular through signals (Angular 18 refreshes the views that read a signal even when it changes outside the zone).

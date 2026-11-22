@@ -1,3 +1,4 @@
+import { CombatActionsStore } from '../../core/combat-actions.store';
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
@@ -27,6 +28,7 @@ import { GameLoadingScreenComponent } from './game-loading-screen.component';
     templateUrl: './play.component.html', styleUrl: './play.component.css'
 })
 export class PlayComponent implements OnInit, OnDestroy {
+    private readonly actions=inject(CombatActionsStore);
     readonly party = inject(PartyStore); readonly town = inject(TownStore); readonly auth = inject(AuthStore); readonly vendor = inject(VendorStore); readonly character = inject(CharacterStore); private readonly battle = inject(BattleStore);
     private readonly inventory = inject(InventoryStore); private readonly catalog = inject(CatalogService); private readonly api = inject(ApiService); private readonly socket = inject(GameSocketService); readonly localeService = inject(LocaleService);
     private readonly router = inject(Router); readonly browserNotifications = inject(BrowserNotificationsService); private readonly gameAudio = inject(GameAudioService); private readonly loginMusic = inject(LoginMusicService); readonly gambitPages = signal<any[]>([]); readonly masteryRows = signal<any[]>([]); readonly gambitTitle = computed(() => { const id = this.character.character()?.activeGambitPageId; const page = this.gambitPages().find(p => p.id === id); return page?.title?.trim() || 'No Gambit Active' }); readonly hasMasteryPoints = computed(() => this.masteryRows().some((row: any) => availableMasterySkillPoints(masteryLevelForXp(Number(row?.xp ?? 0)), Number(row?.spentSkillPoints ?? 0)) > 0)); readonly hasAttributePoints = computed(() => Number(this.character.character()?.unspentAttributePoints ?? 0) > 0); readonly hasGambitDiscoveries = computed(() => { const known=new Set((this.character.character() as any)?.knownItemIds??[]); const newItems=this.catalog.items().some((item:any)=>known.has(item.id)&&item.type==='consumable'&&!String(item.id).startsWith('food_')&&!this.browserNotifications.hasAcknowledged('gambit:item:'+item.id)); const newSkills=this.catalog.skills().some((skill:any)=>skill.kind==='active'&&Number(this.masteryRows().find((row:any)=>row.weaponType===skill.category)?.skillRanks?.[skill.id]??0)>0&&!this.browserNotifications.hasAcknowledged('gambit:skill:'+skill.id)); return newItems||newSkills; }); readonly activeGambitEquipmentWarning = computed(() => { const id=this.character.character()?.activeGambitPageId; const page=this.gambitPages().find(p=>p.id===id); if(!page)return false; const ranks=new Map(this.masteryRows().map(row=>[row.weaponType,row.skillRanks??{}])); const equipped=new Set(this.inventory.equipment().map(row=>this.catalog.item(row.itemId)?.weaponType).filter(Boolean)); return (page.lines??[]).some((line:any)=>{ if(line?.action?.id!=='use_skill')return false; const skillId=line.action.params?.skillId??line.action.skillId; const skill=this.catalog.skills().find((row:any)=>row.id===skillId); if(!skill||skill.kind!=='active'||Number((ranks.get(skill.category) as any)?.[skill.id]??0)<1)return false; return !equipped.has(String(skill.requiresWeaponEquipped??skill.category)); }); }); readonly settingsOpen = signal(false); readonly deleteAccountOpen = signal(false); readonly deleteConfirm = signal(''); readonly deleteAccountError = signal<string | null>(null);
@@ -41,6 +43,10 @@ export class PlayComponent implements OnInit, OnDestroy {
     dismissMailArrivalNotice() { try { if (this.hideFutureMailArrivalNotices()) localStorage.setItem('nanommo:hide-mail-arrival-notice', 'true'); else localStorage.removeItem('nanommo:hide-mail-arrival-notice'); } catch { } this.mailArrivalNotice.set(null); }
     ngOnInit() {
       void this.loginMusic.fadeOut(500); void this.browserNotifications.syncExistingSubscription(); this.socket.connect(); this.party.start(); this.town.start();
+      this.actions.start(this.socket,async()=>{
+        const [confirmed,inventoryVersion]=await Promise.all([this.character.loadForConfirmation(),this.inventory.loadForConfirmation()]);
+        if(!confirmed||inventoryVersion===undefined||this.character.state()!=='loaded'||this.inventory.state()!=='loaded'||Number(this.character.character()?.stateVersion??-1)<confirmed.stateVersion||this.inventory.confirmedRevision<inventoryVersion)throw new Error('Confirmation unavailable');
+      });
       this.mailArrivalSubscription = this.socket.on<any>('mail:newItem').subscribe(payload => {
         const mailId = String(payload?.mailId ?? '');
         if (!mailId || this.seenMailIds.has(mailId)) return;
@@ -62,7 +68,7 @@ export class PlayComponent implements OnInit, OnDestroy {
       this.battle.bindEvents(this.character, this.inventory); this.gameAudio.start(this.character, this.battle, this.inventory);
       void Promise.all([this.character.load(), this.inventory.load(), this.battle.load(), this.catalog.load()]).then(() => this.loadActiveGambitTitle());
     }
-    ngOnDestroy() { this.partyResourceSubscription?.unsubscribe(); this.party.stop(); this.town.stop(); this.mailArrivalSubscription?.unsubscribe(); this.gameAudio.destroy(); }
+    ngOnDestroy() { this.actions.stop(); this.partyResourceSubscription?.unsubscribe(); this.party.stop(); this.town.stop(); this.mailArrivalSubscription?.unsubscribe(); this.gameAudio.destroy(); }
     async loadActiveGambitTitle() { try { const [pages, mastery] = await Promise.all([this.api.get<any[]>('/gambits').toPromise(), this.api.get<any[]>('/characters/weapon-proficiency').toPromise()]); this.gambitPages.set(pages ?? []); this.masteryRows.set(mastery ?? []) } catch { this.gambitPages.set([]); this.masteryRows.set([]) } }
     go(path: string) { void this.router.navigateByUrl(path) } goCharacter() { void this.router.navigate(['/play/character'], { queryParams: { tab: 'character' } }) } is(path: string) { return this.router.url.split('?')[0] === path }
     xpWidth() { const c = this.character.character(); return c?.xpToNext ? Math.max(0, Math.min(100, c.xp / c.xpToNext * 100)) : 0 }

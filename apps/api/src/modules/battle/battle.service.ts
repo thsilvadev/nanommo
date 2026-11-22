@@ -11,6 +11,7 @@ import { EntityManager, In, Repository } from 'typeorm';
 import { BattleQueueEntry, Character, MapKillCounter, GambitPage, InventoryItem, WeaponProficiency } from '@/database/entities';
 import {
   BattleEngine,
+  combatCooldownDurations,
   simulateBattleV2Solo,
   effectiveItemDefinition,
   GambitEvaluator,
@@ -387,6 +388,11 @@ export class BattleService {
       map[row.itemId] = (map[row.itemId] ?? 0) + row.quantity;
     }
     return map;
+  }
+
+  /** Effective rank-scaled lengths, without exposing skill loadouts to other players. */
+  async getCombatCooldownDurations(characterId: string): Promise<Record<string, number>> {
+    return combatCooldownDurations(await this.buildSkillAvailability(characterId));
   }
 
   /**

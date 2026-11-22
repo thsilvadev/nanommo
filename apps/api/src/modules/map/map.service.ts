@@ -223,6 +223,7 @@ export class MapService {
   private mapCharacterState(character: Character): any {
     return {
       id: character.id, status: character.status, currentMapId: character.currentMapId,
+      updatedAt: character.updatedAt, stateVersion: character.stateVersion,
       pendingMapTransition: character.pendingMapTransition ?? null, savedTownMapId: character.savedTownMapId ?? null,
       discoveredMapIds: character.discoveredMapIds ?? [TOWN_MAP_ID], lastGrindStance: character.lastGrindStance ?? 'hunting',
       travelIntent: character.travelIntent ?? null, gatheringLevel: Number(character.gatheringLevel ?? 1), gatheringXp: Math.max(0, Number(character.gatheringXp ?? 0)),

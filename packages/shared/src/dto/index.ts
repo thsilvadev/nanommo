@@ -120,7 +120,10 @@ export class CharacterDto {
   status!: string;
   activeGambitPageId?: string;
   lastSeenAt!: Date;
-  /** Absolute cooldown deadlines keyed by item:potion or item:<itemId>. */
+  /** Public persistent status durations and effective cooldown lengths for the HUD. */
+  statusEffects?: Array<{type?:string;id?:string;expiresAt?:string;stacks?:number}>;
+  cooldownDurations?: Record<string, number>;
+  /** Absolute cooldown deadlines keyed by item category or skill ID. */
   consumableCooldowns!: Record<string, string>;
   createdAt!: Date;
   updatedAt!: Date;

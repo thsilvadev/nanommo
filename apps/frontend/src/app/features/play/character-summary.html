@@ -6,8 +6,9 @@
         cdkDropList cdkDropListSortingDisabled [id]="slotDropId(slot.key)"
         [cdkDropListConnectedTo]="['inventory-drop-list']" [cdkDropListEnterPredicate]="equipmentPredicates[slot.key]"
         (cdkDropListDropped)="dropEquipment(slot.key,$event)">
+        <app-action-state class="corner" [state]="actions.slot(slot.key)" [detail]="queuedEquipmentName(slot.key)" />
         <ng-container *ngIf="equipped(slot.key) as eq">
-          <div cdkDrag [cdkDragData]="equipDragData(slot.key,eq)" (cdkDragStarted)="onEquipmentDragStart(eq.itemId)"
+          <div cdkDrag [cdkDragDisabled]="actions.isSlotBusy(slot.key)" [cdkDragData]="equipDragData(slot.key,eq)" (cdkDragStarted)="onEquipmentDragStart(eq.itemId)"
             (cdkDragEnded)="onEquipmentDragEnd()" (dblclick)="unequip(slot.key)" class="equip-drag"><img
               [src]="catalog.itemIcon(eq.itemId)" [alt]="catalog.item(eq.itemId)?.name||eq.itemId">
             <div class="item-tooltip"><strong [class]="itemTierClass(slot.key)">{{itemName(slot.key)}}</strong><span
@@ -40,8 +41,9 @@
         cdkDropListSortingDisabled [id]="slotDropId(slot.key)" [cdkDropListConnectedTo]="['inventory-drop-list']"
         [cdkDropListEnterPredicate]="equipmentPredicates[slot.key]"
         (cdkDropListDropped)="dropEquipment(slot.key,$event)">
+        <app-action-state class="corner" [state]="actions.slot(slot.key)" [detail]="queuedEquipmentName(slot.key)" />
         <ng-container *ngIf="equipped(slot.key) as eq">
-          <div cdkDrag [cdkDragData]="equipDragData(slot.key,eq)" (cdkDragStarted)="onEquipmentDragStart(eq.itemId)"
+          <div cdkDrag [cdkDragDisabled]="actions.isSlotBusy(slot.key)" [cdkDragData]="equipDragData(slot.key,eq)" (cdkDragStarted)="onEquipmentDragStart(eq.itemId)"
             (cdkDragEnded)="onEquipmentDragEnd()" (dblclick)="unequip(slot.key)" class="equip-drag"><img
               [src]="catalog.itemIcon(eq.itemId)" [alt]="catalog.item(eq.itemId)?.name||eq.itemId">
             <div class="item-tooltip"><strong [class]="itemTierClass(slot.key)">{{itemName(slot.key)}}</strong><span
@@ -68,13 +70,7 @@
   </div>
   <div class="status-reserve" aria-label="Status effects">
     <span>STATUS</span>
-    <div class="status-effects">
-      <div *ngFor="let status of activeStatusEffects('character'); trackBy: trackStatusEffect" class="status-effect-icon" tabindex="0" [attr.aria-label]="status.name + ' status'">
-        <img [src]="'/assets/ui/status/' + status.id + '.svg'" [alt]="status.name">
-        <span class="freeze-count">{{status.stacks}}</span>
-        <div class="status-tooltip"><strong>{{status.name}}</strong><span>Stacks: {{status.stacks}} / {{status.maxStacks}}</span><span>Remaining: {{formatDuration(status.remaining)}}</span><span *ngIf="status.movePenalty">Move Speed penalty: -{{status.movePenalty * status.stacks}}</span><span *ngIf="status.attackPenalty">Attack Speed penalty: -{{status.attackPenalty * status.stacks}}</span></div>
-      </div>
-    </div>
+    <app-combat-timers [timers]="timers.own()" />
   </div>
   <div class="diet-block">
     <div class="diet-title"><span>DIET</span><label class="auto-feed"><span>Auto Feed</span><input type="checkbox"

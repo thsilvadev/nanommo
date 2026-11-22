@@ -1781,3 +1781,8 @@ Burn is defined in `status_effects.json`: `element: fire`, `damageType: magical`
 Flaming Treant is Earth. Its `monster_skill_flaming_pound` passive, Flaming Pound, has a 20% seeded chance after each landed basic attack against a surviving target to apply canonical Burn. It cannot proc on a miss, active skill or periodic tick; it does not consume an action, cast or Gambit. The physical/Earth basic strike and magical/Fire Burn remain distinct. Register the passive through `passiveSkills`, with its established skill icon/tooltip presentation and source attribution in status events.
 
 New immutable encounter inputs carry `elementalRulesVersion: 1`. Replays of stored V2 inputs without this marker retain pre-change elemental rules. Solo FLEE uses the stored `v2Input` where available instead of rebuilding an encounter from current catalogues.
+
+
+## Combat timer HUD — 2026-11-22
+
+Character Status, the Grind target and each ally below HP/SP in Group share 28 × 28 px icons. Buffs have green borders and debuffs red; each shows remaining seconds rounded up, with stacks in the tooltip. Effects without an expiry remain until removed and show no invented duration. Skills use white borders; items gray. Their icons appear only while the authoritative cooldown is active, using a dark clockwise radial sweep, and disappear at zero. Potions, tonics and super tonics each use one category icon for their existing independent shared cooldowns (10, 30 and 60 seconds). Cast start/fizzle never initiates a cooldown. Visible events, effective encounter definitions and persistent absolute deadlines govern display, including Group actor identity and target changes. No combat decisions are simulated by the client.

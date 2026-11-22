@@ -47,7 +47,7 @@ export interface BattleActorState extends Omit<CombatantSnapshot, 'position'> {
 export type ActorEventPayload =
   | { type:'target'; previousTargetId?: ActorId }
   | { type:'move'; from:GridPosition; to:GridPosition; reason:'approach'|'blinkstrike'|'push'|'revive' }
-  | { type:'action'; skillId?:string; itemId?:string; damage?:number; damageType?:string; damageComponents?:number[]; hit?:boolean; crit?:boolean; healAmount?:number; spGain?:number; spSpent?:number; statusApplied?:string }
+  | { type:'action'; cooldown?:{key:string;durationTicks:number}; skillId?:string; itemId?:string; damage?:number; damageType?:string; damageComponents?:number[]; hit?:boolean; crit?:boolean; healAmount?:number; spGain?:number; spSpent?:number; statusApplied?:string }
   | { type:'status'; statusId:string; damage?:number; sourceSkillId?:string; sourceActor?:'character'|'monster'; damageType?:string; element?:string; passiveProc?:boolean }
   | { type:'cast'; skillId:string; resolvesAtTick:number }
   | { type:'regen'; hpGain:number; spGain:number }

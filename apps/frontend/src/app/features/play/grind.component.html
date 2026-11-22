@@ -1,10 +1,10 @@
 <div class="grind-page">
   <div class="grind-inventory-column">
     <div class="active-gambit">
-      <div class="active-gambit-title">Active Gambit</div>
+      <div class="active-gambit-title">Active Gambit <app-action-state [state]="activating()" [detail]="activatingName()" /></div>
       <select #gambitSelect
         [ngModel]="activeGambitId()"
-        [disabled]="loading() || !gambits().length"
+        [disabled]="loading() || !gambits().length || actions.busy('gambit_activate',{})"
         (ngModelChange)="selectGambit($event, gambitSelect)"
         aria-label="Active Gambit">
         <option value="" disabled>Select Gambit</option>

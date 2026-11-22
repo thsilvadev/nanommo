@@ -698,6 +698,28 @@ export class InventoryService {
     }
   }
 
+  /** Read-only request-time checks. Eligibility is checked again when the intent executes. */
+  async validateQueuedConsumable(characterId: string, itemId: string, manager: EntityManager, now: number): Promise<void> {
+    const item = this.dataService.getItemById(itemId);
+    if (!item || !['consumable','food'].includes(item.type)) throw new BadRequestException('Item is not a usable item');
+    const character = await manager.getRepository(Character).findOne({where:{id:characterId}});
+    if (!character) throw new NotFoundException('Character not found');
+    if (await this.getItemCount(characterId,itemId,manager)<=0) throw new BadRequestException('Insufficient item quantity');
+    const effect = item.effect ?? {};
+    if (item.type==='food' && effect.type==='food_buff') {
+      const levels = normalizeDietState(character.diet,character.dietLevels).dietLevels;
+      if (Date.parse(levels[itemId]?.lastDigestUntil ?? '')>now) throw new BadRequestException('Food is still digesting');
+      const pending = await manager.query(`SELECT 1 FROM character_action_intents WHERE "characterId"=$1 AND status='pending' AND kind='use_item' AND payload->>'itemId'=$2 LIMIT 1`,[characterId,itemId]);
+      if (pending.length) throw new BadRequestException('This food is already queued');
+      return;
+    }
+    if (effect.type==='revive_ally') throw new BadRequestException('This item requires a KO ally selected by a Gambit');
+    if (effect.type==='revive_full_cleanse') throw new BadRequestException('This item can only be triggered by the Upon Death Gambit condition');
+    const type=String(effect.type ?? '');
+    const key=item.alchemyCategory==='super_tonics'?'item:super_tonic':item.alchemyCategory==='potions'||['heal_hp','heal_sp','heal_hp_sp'].includes(type)?'item:potion':item.alchemyCategory==='tonics'||type==='apply_status'?'item:tonic':`item:${itemId}`;
+    if (Date.parse(String(character.consumableCooldowns?.[key]??''))>now) throw new BadRequestException('Item is on cooldown');
+  }
+
   async useConsumable(characterId: string, itemId: string, manager?: EntityManager, nowMs?: number): Promise<{ character: Character; itemId: string }> {
     const item = this.dataService.getItemById(itemId);
     if (!item || !['consumable', 'food'].includes(item.type)) {
