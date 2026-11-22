@@ -93,15 +93,16 @@ const SHIELD = { grip: 'shield' };
 const KKA = 'kaykit-asset:adventurers:', KSA = 'kaykit-asset:skeletons:';
 Object.assign(VISUALS, {
   'sword-medieval': W('mainHand', 'sword', 'weapons:Sword', 0.95, BLADE),
-  'sword-medieval-2': W('mainHand', 'sword', 'weapons:Sword_2', 0.98, BLADE),
+  'sword-claymore': W('mainHand', 'sword', 'weapons:Claymore', 1.0, BLADE),
   'sword-golden': W('mainHand', 'sword', 'weapons:Sword_Golden', 1.05, BLADE),
   'greatsword-big': W('mainHand', 'greatsword', 'weapons:Sword_Big', 1.45, BLADE),
-  'greatsword-claymore': W('mainHand', 'greatsword', 'weapons:Claymore', 1.5, BLADE),
+  'greatsword-katana': W('mainHand', 'greatsword', 'sketchfab:09ef2c4a3a62405886c674888bbf244f', 1.45, { up: 'z', grip: 0.14, size: 512 }),
   'greatsword-kaykit': W('mainHand', 'greatsword', `${KKA}sword_2handed_color.gltf`, 1.55),
-  'knife-medieval': W('mainHand', 'dagger', 'weapons:Dagger', 0.28, BLADE),
-  'dagger-medieval': W('mainHand', 'dagger', 'weapons:Dagger', 0.36, BLADE),
-  'dagger-medieval-2': W('mainHand', 'dagger', 'weapons:Dagger_2', 0.38, BLADE),
-  'dagger-kaykit': W('mainHand', 'dagger', `${KKA}dagger.gltf`, 0.4),
+  // knife: the T1 dagger's old model, 20% smaller, darker blade
+  'knife-medieval': W('mainHand', 'dagger', 'weapons:Dagger', 0.224, { ...BLADE, materialColors: { Steel: '#55585e', LightSteel: '#686b71', DarkSteel: '#3c3e43' } }),
+  'dagger-serrated': W('mainHand', 'dagger', 'weapons:Sword_2', 0.38, BLADE),
+  'dagger-golden': W('mainHand', 'dagger', 'weapons:Dagger_2', 0.4, { ...BLADE, smoothBlade: /Steel/ }),
+  'dagger-kaykit': W('mainHand', 'dagger', `${KKA}dagger.gltf`, 0.38),
   'bow-wooden': W('mainHand', 'bow', 'weapons:Bow_Wooden', 1.25, BOW),
   'bow-golden': W('mainHand', 'bow', 'weapons:Bow_Golden', 1.25, BOW),
   'bow-evil': W('mainHand', 'bow', 'weapons:Bow_Evil', 1.3, BOW),
@@ -112,10 +113,11 @@ Object.assign(VISUALS, {
   'rod-crystal': W('mainHand', 'rod', 'sketchfab:8605d39c12e14e7c969ab828a351e677', 0.58, { up: 'y', grip: 0.3 }),
   'rod-orb': W('mainHand', 'rod', 'sketchfab:e2c5a4676ef9408a8cb2ed9aa7454ffa', 0.62, { up: 'auto', grip: 0.3 }),
   'shield-round': W('offHand', 'shield', 'weapons:Shield_Round', 0.62, SHIELD),
-  'shield-heater': W('offHand', 'shield', 'weapons:Shield_Heater', 0.68, SHIELD),
+  'shield-heater': W('offHand', 'shield', 'weapons:Shield_Heater', 0.68, { ...SHIELD, paint: [{ material: 'LightSteel', color: '#b3261e', within: 0.09 }, { material: 'Steel', color: '#d2372c', within: 0.045 }] }),
   'shield-celtic-golden': W('offHand', 'shield', 'weapons:Shield_Celtic_Golden', 0.78, SHIELD),
-  'rune-book': W('offHand', 'rune', `${KKA}spellbook_closed.gltf`, 0.24),
-  'rune-book-open': W('offHand', 'rune', `${KKA}spellbook_open.gltf`, 0.3),
+  // runes: orbs (user, 2026-11-22) — blue, red, purple
+  'rune-orb-blue': W('offHand', 'rune', 'sketchfab:fc381c9a41694f5eac97e6df68d41cf5', 0.16, { nodes: ['Glass_Ball_lambert1_0'], grip: 0, colorize: '#3f86ff', brightness: 1.5 }),
+  'rune-orb-red': W('offHand', 'rune', 'sketchfab:fc381c9a41694f5eac97e6df68d41cf5', 0.17, { nodes: ['Glass_Ball_lambert1_0'], grip: 0, colorize: '#ff4a3a', brightness: 1.4 }),
   'rune-orb': W('offHand', 'rune', 'sketchfab:fc381c9a41694f5eac97e6df68d41cf5', 0.18, { nodes: ['Glass_Ball_lambert1_0'], grip: 0, colorize: '#9b6bff', brightness: 1.5 }),
 });
 
@@ -145,14 +147,14 @@ export const ITEMS = {
   equip_cape_magic_t1: 'cape-skeleton-rogue',
   equip_cape_magic_t2: 'cape-mage',
   equip_cape_magic_t3: 'cape-king',
-  equip_sword_t1: 'sword-medieval', equip_sword_t2: 'sword-medieval-2', equip_sword_t3: 'sword-golden',
-  equip_greatsword_t1: 'greatsword-big', equip_greatsword_t2: 'greatsword-claymore', equip_greatsword_t3: 'greatsword-kaykit',
-  equip_knife: 'knife-medieval', equip_dagger_t1: 'dagger-medieval', equip_dagger_t2: 'dagger-medieval-2', equip_dagger_t3: 'dagger-kaykit',
+  equip_sword_t1: 'sword-medieval', equip_sword_t2: 'sword-claymore', equip_sword_t3: 'sword-golden',
+  equip_greatsword_t1: 'greatsword-big', equip_greatsword_t2: 'greatsword-katana', equip_greatsword_t3: 'greatsword-kaykit',
+  equip_knife: 'knife-medieval', equip_dagger_t1: 'dagger-serrated', equip_dagger_t2: 'dagger-kaykit', equip_dagger_t3: 'dagger-golden',
   equip_bow_t1: 'bow-wooden', equip_bow_t2: 'bow-golden', equip_bow_t3: 'bow-evil',
-  equip_staff_t1: 'staff-kaykit', equip_staff_t2: 'staff-skeleton', equip_staff_t3: 'staff-ancient-gold',
+  equip_staff_t1: 'staff-kaykit', equip_staff_t2: 'staff-ancient-gold', equip_staff_t3: 'staff-skeleton',
   equip_rod_t1: 'rod-kaykit', equip_rod_t2: 'rod-crystal', equip_rod_t3: 'rod-orb',
   equip_shield_t1: 'shield-round', equip_shield_t2: 'shield-heater', equip_shield_t3: 'shield-celtic-golden',
-  equip_rune_t1: 'rune-book', equip_rune_t2: 'rune-book-open', equip_rune_t3: 'rune-orb',
+  equip_rune_t1: 'rune-orb-blue', equip_rune_t2: 'rune-orb-red', equip_rune_t3: 'rune-orb',
 };
 
 /** Non-Sketchfab sources (Sketchfab credits come from source/sketchfab/<uid>/meta.json, written by fetch-sources). */

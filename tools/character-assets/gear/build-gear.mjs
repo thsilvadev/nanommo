@@ -28,6 +28,7 @@ import { autoskinStatic } from './lib/autoskin.mjs';
 import { REGION_OF_BONE, strayFilter } from './lib/regions.mjs';
 import { encodeAtlas, packAtlas } from './lib/atlas.mjs';
 import { readObj } from './lib/obj.mjs';
+import { smoothBladeEdge } from './lib/blade.mjs';
 import { simplifyTo } from './lib/simplify.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -483,7 +484,33 @@ async function buildWeapon(id, v) {
     piece.position = Float32Array.from(ps.flatMap((p) => [0, 1, 2].map((k) => (p[k] - pivot[k]) * scale)));
     piece.normal = null;
     piece.isString = !!v.stringMaterial && prim.getMaterial()?.getName() === v.stringMaterial;
+    const override = v.materialColors?.[piece.material.name];
+    if (override) piece.material = { ...piece.material, image: null, color: [1, 3, 5].map((k) => parseInt(override.slice(k, k + 2), 16) / 255) };
     if (piece.index.length) pieces.push(piece);
+  }
+  // paint: [{ material, color, within }] recolours only that material's triangles within `within` m of the face centre (x, y)
+  for (const paint of v.paint ?? []) {
+    const cy = (min[1] + max[1]) / 2 - pivot[1], cx = (min[0] + max[0]) / 2 - pivot[0];
+    for (const p of [...pieces]) {
+      if (p.material.name !== paint.material) continue;
+      const inside = [], outside = [];
+      for (let t = 0; t < p.index.length; t += 3) {
+        const tri = p.index.slice(t, t + 3);
+        const c = [0, 1].map((k) => tri.reduce((a, i) => a + p.position[i * 3 + k], 0) / 3);
+        (Math.hypot((c[0] - cx * scale), (c[1] - cy * scale)) < paint.within ? inside : outside).push(...tri);
+      }
+      if (!inside.length) continue;
+      p.index = outside;
+      pieces.push({ ...p, index: inside, material: { ...p.material, name: `${paint.material}:paint`, image: null, color: [1, 3, 5].map((k) => parseInt(paint.color.slice(k, k + 2), 16) / 255) } });
+    }
+  }
+  if (v.smoothBlade) {
+    // one profile over every blade piece
+    const blade = pieces.filter((p) => v.smoothBlade.test(p.material.name));
+    const all = new Float32Array(blade.reduce((a, p) => a + p.position.length, 0));
+    let o = 0; for (const p of blade) { all.set(p.position, o); o += p.position.length; }
+    smoothBladeEdge(all, () => true);
+    o = 0; for (const p of blade) { p.position = all.slice(o, o + p.position.length); o += p.position.length; }
   }
   const strings = pieces.filter((p) => p.isString).map(compact);
   const body = await reduce(pieces.filter((p) => !p.isString), v.maxTris ?? 1500);

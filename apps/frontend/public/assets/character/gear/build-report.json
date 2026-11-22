@@ -83,20 +83,20 @@
     "cape-skeleton-rogue": {
       "triangles": 84
     },
+    "dagger-golden": {
+      "triangles": 736
+    },
     "dagger-kaykit": {
       "triangles": 172
     },
-    "dagger-medieval": {
-      "triangles": 726
-    },
-    "dagger-medieval-2": {
-      "triangles": 736
+    "dagger-serrated": {
+      "triangles": 942
     },
     "greatsword-big": {
       "triangles": 830
     },
-    "greatsword-claymore": {
-      "triangles": 1033
+    "greatsword-katana": {
+      "triangles": 1398
     },
     "greatsword-kaykit": {
       "triangles": 412
@@ -128,20 +128,20 @@
     "rod-orb": {
       "triangles": 1424
     },
-    "rune-book": {
-      "triangles": 292
-    },
-    "rune-book-open": {
-      "triangles": 292
-    },
     "rune-orb": {
+      "triangles": 760
+    },
+    "rune-orb-blue": {
+      "triangles": 760
+    },
+    "rune-orb-red": {
       "triangles": 760
     },
     "shield-celtic-golden": {
       "triangles": 832
     },
     "shield-heater": {
-      "triangles": 1419
+      "triangles": 1411
     },
     "shield-round": {
       "triangles": 1056
@@ -155,23 +155,23 @@
     "staff-skeleton": {
       "triangles": 1425
     },
+    "sword-claymore": {
+      "triangles": 1033
+    },
     "sword-golden": {
       "triangles": 1006
     },
     "sword-medieval": {
       "triangles": 872
-    },
-    "sword-medieval-2": {
-      "triangles": 942
     }
   },
   "files": {
     "gear-male.glb": 2448220,
     "gear-female.glb": 2567508,
-    "gear-rigid.glb": 1645680,
-    "gear-atlas.webp": 1213124,
-    "manifest.json": 30497
+    "gear-rigid.glb": 1643076,
+    "gear-atlas.webp": 1442578,
+    "manifest.json": 30485
   },
   "atlas": 2048,
-  "totalBytes": 7905029
+  "totalBytes": 8131867
 }

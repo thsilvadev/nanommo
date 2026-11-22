@@ -212,7 +212,20 @@ test('a shell hides the skin under it: the manifest carries per-sex hide bands f
   assert.ok(legging.maxY <= knee + 0.05 && legging.minY >= 0.2, JSON.stringify(legging));
 });
 
-const LENGTH = { dagger: [0.26, 0.42], sword: [0.9, 1.1], greatsword: [1.4, 1.6], bow: [1.2, 1.35], staff: [1.5, 1.75], rod: [0.5, 0.65], shield: [0.6, 0.8], rune: [0.15, 0.32] };
+const LENGTH = { dagger: [0.2, 0.42], sword: [0.9, 1.1], greatsword: [1.4, 1.6], bow: [1.2, 1.35], staff: [1.5, 1.75], rod: [0.5, 0.65], shield: [0.6, 0.8], rune: [0.15, 0.32] };
+test('weapon mapping requested by the user (2026-11-22)', () => {
+  assert.equal(ITEMS.equip_dagger_t1, 'dagger-serrated');
+  assert.equal(VISUALS['dagger-serrated'].source, 'weapons:Sword_2');
+  assert.equal(ITEMS.equip_dagger_t2, 'dagger-kaykit');
+  assert.ok(VISUALS[ITEMS.equip_dagger_t3].smoothBlade);
+  assert.equal(VISUALS[ITEMS.equip_sword_t2].source, 'weapons:Claymore');
+  assert.match(VISUALS[ITEMS.equip_greatsword_t2].source, /09ef2c4a/);
+  assert.equal(ITEMS.equip_staff_t2, 'staff-ancient-gold');
+  assert.equal(ITEMS.equip_staff_t3, 'staff-skeleton');
+  for (const t of [1, 2, 3]) assert.match(ITEMS[`equip_rune_t${t}`], /^rune-orb/);
+  assert.ok(Math.abs(VISUALS[ITEMS.equip_knife].length - 0.8 * 0.28) < 1e-9);
+});
+
 test('every hand item has a weapon visual of its type, sized for its type, bows with a BowString', async () => {
   const hands = repoItems.filter((i) => i.slot === 'mainHand' || i.slot === 'offHand');
   assert.equal(hands.length, 25);
