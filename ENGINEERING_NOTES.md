@@ -234,3 +234,31 @@ A `filter` (blur especially) on an element whose transform animates is re-render
 
 `angular.json` fails the production build (and so the Vercel deploy) when any component stylesheet passes 6 kB. `map-board.css` is at the limit: put new map-board rules in `styles.css`, scoped under `app-map-board`.
 
+
+## 4.34 Gear skinned meshes must keep the body's joint order
+
+`gear-merge.ts` copies `skinIndex` from `gear-<sex>.glb` straight onto the body's skeleton. The gear build (`tools/character-assets/gear/lib/skeleton.mjs → writeSkeleton`) writes our 65 joints in the order of `body-<sex>.glb`'s skin; if the body files are ever rebuilt with another joint order, rebuild the gear too or every piece binds to the wrong bones.
+
+## 4.35 Never dispose gear geometry or materials from a character
+
+`mergedGearGeometry`, `visibleBodyGeometry` and `gearMaterial` return objects cached page-wide and shared by every character wearing the same set (that is what keeps a 200-player town at +0.25 draw calls per character). Removing a character only removes its `Gear` mesh; disposing its geometry or material blanks every other character.
+
+## 4.36 Bump `GEAR_ASSET_VERSION` and rebuild the gear together
+
+`/assets/character/*` is cached for a day plus a week of stale-while-revalidate. The GLBs and the atlas are cache-busted by `manifest.version` (a content hash, including transforms), but the manifest itself is fetched with `?v=GEAR_ASSET_VERSION` (`gear-manifest.ts`): bump it whenever `node tools/character-assets/gear/build-gear.mjs` changes `manifest.json`, or clients keep the old manifest pointing at hashes that no longer exist.
+
+## 4.37 Shells hide the skin under them by band, not by region
+
+Boot liners and the knee-to-mid-shin legging sit 2 mm off the skin; without hiding the skin under them they z-fight. The manifest carries per-sex `hide` bands (`{ region: 'calves', minY, maxY }`, bind-pose heights) and the runtime rule is: a vertex hides if its region is covered or it lies inside a band (a calves band also takes the knee's thigh vertices); a triangle hides when all three vertices do. Never simplify a shell: any simplification error lets the skin poke through.
+
+## 4.38 The gear atlas must stay near-lossless
+
+Lossy WebP subsamples chroma (4:2:0) and smears small flat-colour swatches into their neighbours: the Dark Knight's black armour turned teal. `encodeAtlas` uses `nearLossless`; `gear/test/build.test.mjs` checks those colours on the real build.
+
+## 4.39 GLTFLoader renames duplicate node names
+
+Three bows in `gear-rigid.glb` all have a `BowString` child; after loading they are `BowString`, `BowString_1`, `BowString_2`. Find the string with `bowString()` (prefix match), never `getObjectByName('BowString')`.
+
+## 4.40 Gear sources need a Sketchfab token
+
+`node tools/character-assets/gear/fetch-sources.mjs` downloads the Sketchfab models with the API token in `~/.sketchfab_token` (never in the repo). Every non-CC0/CC-BY source must be listed in `UNLICENSED_ASSETS_README.txt` (the build regenerates it).

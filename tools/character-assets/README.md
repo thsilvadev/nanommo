@@ -80,3 +80,18 @@ node preview/shoot-gear.mjs body 'body-ranger+shoes-ranger'   # folha de contato
 - Gear nunca leva pele: material de pele ou região de pele da textura é removido, e a região do corpo
   que fica de fora aparece com a pele do próprio jogador.
 - Licenças fora de CC0/CC-BY vão para `UNLICENSED_ASSETS_README.txt` na raiz (gerado pelo build).
+
+Ferramentas do gear (`preview/`):
+
+```bash
+node preview/shoot-gear.mjs <slot|weapons|ankle|combos> [visual,a+b,...]   # folhas de contato (preview/screenshots/)
+node preview/make-icons.mjs [itemId,...] [--out <dir>]                      # ícones dos itens a partir dos modelos 3D
+node preview/icon-sheet.mjs <dir dos ícones novos> <saída.png>              # antes/depois dos ícones
+node preview/gear-stress.mjs 200 240                                        # gate de desempenho (200 personagens da cidade)
+```
+
+- **Ícones:** cada item é renderizado numa pose de ícone (fundo transparente, câmera ortográfica) e
+  vetorizado (`imagetracerjs`) em cores chapadas sobre o contorno escuro da silhueta; a versão com
+  moldura mantém a moldura do item (runas e a bota traveler usam a moldura quadrada do tier).
+- **Gate de desempenho:** usa o `TownCharacter` real; passa com ≤ +1 chamada de desenho por personagem
+  e tempo de frame ≤ 1,25× em relação a 200 personagens sem equipamento.

@@ -1,3 +1,14 @@
+## Wearable 3D equipment: offline gear pipeline, one atlas, one fused mesh per character — 2026-11-22
+
+Every non-accessory item (50) has its own 3D visual, worn on the Character Summary portrait, the town player card and every character in the town scene. Design: `docs/superpowers/specs/2026-11-22-wearable-equipment-3d-design.md`; plan: `docs/superpowers/plans/2026-11-22-wearable-equipment-3d.md`.
+
+- **Offline pipeline** (`tools/character-assets/gear/`): free source models are moved onto our 65-bone skeleton — Quaternius outfit parts and rigged Sketchfab characters by retarget (bone mapping, head-to-head + direction per bone), static models by auto-skin (weights from our posed body), helmets/capes/weapons as rigid pieces on a bone. Skin is never part of gear (removed by material or texture region); shells (boot liners, leggings) close gaps and declare the skin bands they hide. Output: `gear-male.glb`, `gear-female.glb`, `gear-rigid.glb`, one `gear-atlas.webp`, `manifest.json` (item → visual, regions covered, bone transforms).
+- **Runtime** (`shared/character-viewer/gear-*.ts`): the body keeps only its uncovered triangles (index subset over the shared attributes); head, body, cape, shoes (and in town both weapons) become **one SkinnedMesh with one material**, cached per (sex, set). The portrait keeps weapons separate (bow draw, hand switching); the creator shows no gear.
+- **Data**: `TownRosterEntry.equipment` carries the six visible slots (one `json_object_agg`); no schema change, existing characters show their gear immediately.
+- **Loading screen** before the game preloads bodies, animations and gear; gives up after 20 s.
+- **Measured** (200 T3 characters, swiftshader): +0.25 draw calls per character, frame time ×1.13 vs bare.
+- Item icons are generated from the same models (`preview/make-icons.mjs`).
+
 ## Frontend change detection budget — 2026-11-21
 
 - **High-frequency work runs outside the Angular zone.** Render loops (`TownRuntime`, `CharacterRig`), pointer and wheel handlers that only drive 3D or plain DOM, DOM-only polls (`battle-hit-feedback`, `tooltip-position`) and the audio poll never enter the zone. What the UI must show reaches Angular through signals (Angular 18 refreshes the views that read a signal even when it changes outside the zone).

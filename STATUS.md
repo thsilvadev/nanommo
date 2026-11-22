@@ -1,3 +1,24 @@
+### Equipamentos vestíveis em 3D (50 itens, retrato + cidade), tela de carregamento, ícones novos — 2026-11-22
+
+Branch `feat/wearable-equipment-3d` (sem push, sem merge). Design `docs/superpowers/specs/2026-11-22-wearable-equipment-3d-design.md`, plano `docs/superpowers/plans/2026-11-22-wearable-equipment-3d.md`; cada slot revisado e aprovado pelo usuário por folhas de contato.
+
+- **Pipeline** `tools/character-assets/gear/` (retarget de modelos riggados, auto-skin de estáticos, peças rígidas, atlas único, redução de malha, cascas para botas/calça interna): `gear-male.glb`, `gear-female.glb`, `gear-rigid.glb`, `gear-atlas.webp`, `manifest.json`, `CREDITS.md` em `apps/frontend/public/assets/character/gear/` (7,9 MB). Fontes: Quaternius (Modular Outfits, Medieval Weapons), KayKit Adventurers/Skeletons (CC0) e 11 modelos CC-BY do Sketchfab (`gear/fetch-sources.mjs`, token em `~/.sketchfab_token`). `UNLICENSED_ASSETS_README.txt` (raiz): vazio — tudo CC0/CC-BY.
+- **Visuais** (aprovados): Body físico Ranger → cavaleiro cinza → Hand Painted Knight (T2/T3 até o joelho + calça interna); mágico Peasant → robe vermelho → mago roxo; elmos/capuzes/chapéus KayKit + capuz Ranger; capas KayKit + capa do Rei em azul; botas Ranger (traveler) e Peasant (terra e elementais recoloridas); 25 armas por item (katana, adagas, cajados, runas em esfera, escudo com losango vermelho).
+- **API**: `TownRosterEntry.equipment` com os 6 slots visíveis (`json_object_agg`); `mainHandItemId/offHandItemId` mantidos.
+- **Frontend**: `gear-manifest.ts`, `gear-regions.ts` (corpo só com o que fica à mostra, faixas sob as cascas), `gear-merge.ts` (tudo numa malha/material, cache por conjunto), `grip.ts`; `CharacterRig` e `TownCharacter` vestem o equipamento (armas por item; cabelo/barba somem sob elmos); criador sem equipamento; tela de "Carregando" (`GamePreloadService`, desiste em 20 s).
+- **Ícones**: os 50 refeitos a partir dos modelos (`preview/make-icons.mjs`).
+
+Sem migração, sem mudança de schema, nada executado em banco, nenhum deploy.
+
+Validação (2026-11-22):
+- `npm run gear:test` (tools/character-assets): 32 pass, 0 fail.
+- `pnpm --filter @nanommo/shared build && pnpm --filter @nanommo/api build`; `node apps/api/test/town-roster.test.js` 28/28; `node apps/api/test/gear-manifest-coverage.test.js`: 50/50 itens com visual.
+- `npx tsc -p tsconfig.app.json --noEmit` e `tsconfig.spec.json`: passam. `npx ng test --watch=false` (Chromium headless): 362 SUCCESS, 0 falhas.
+- `pnpm --filter @nanommo/frontend build --configuration production`: passa (inicial 570,96 kB; avisos de orçamento de CSS já conhecidos).
+- Gate de desempenho `node tools/character-assets/preview/gear-stress.mjs 200 240` (swiftshader): 200 personagens sem equipamento 950 chamadas / 23 ms; T3 completo 1.000 chamadas / 26 ms → +0,25 chamada por personagem (≤ 1) e ×1,13 (≤ 1,25): PASSA.
+- `node apps/frontend/scripts/validate-ui-assets.mjs`: nenhum ícone de equipamento faltando (os 7 ícones de status ausentes já faltavam antes).
+- Já falhava antes (não relacionado): `apps/api/test/npc-town-additions.test.js` (mesma falha sem estas mudanças).
+
 ### Performance, Fase 0.5 (achados do perfil do Firefox) + sino de Sierra + Storage do Outpost — 2026-11-21
 
 Commit e push na `main` autorizados pelo usuário.
