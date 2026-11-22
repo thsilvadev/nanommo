@@ -64,7 +64,7 @@ function whenIdle(timeout = 1500): Promise<void> {
 
 /**
  * Loads (and keeps in the shared asset cache) what every town needs: both
- * bodies with their clips, the appearance catalogue, the NPC outfits and props.
+ * bodies with their clips, the appearance catalogue, the NPC outfits and props, the players' gear.
  */
 export async function warmTownAssets(assetBase: string, catalogUrl?: string): Promise<void> {
   const loader = new GLTFLoader();
@@ -78,6 +78,7 @@ export async function warmTownAssets(assetBase: string, catalogUrl?: string): Pr
     cache.animations(),
     cache.glb(NPC_PROPS_ASSET),
     ...[...outfits].map((asset) => cache.glb(asset)),
+    cache.gear(),
   ]);
   // Recolouring the NPC outfits took ~160 ms on the main thread the moment a town opened:
   // do it now, one NPC per idle slot, into the page-wide cache the town scene reads.

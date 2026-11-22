@@ -16,6 +16,8 @@ import type { BodyAsset } from '../../../shared/character-viewer/body-asset';
 import type { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { hexToRgb, tintSkinPixels } from '../../../shared/character-viewer/skin-compositor';
 import { dressCostume, npcOutfitAsset, type NpcAnimator, type NpcFigure, type NpcFigureBody } from './npc-visuals';
+import { visibleBodyGeometry } from '../../../shared/character-viewer/gear-regions';
+import { gearMesh, mergedGearGeometry, planBands, planGear } from '../../../shared/character-viewer/gear-merge';
 
 /** Characters cast shadows from the main light; first thing to switch off if the town drops frames. */
 export const TOWN_CHARACTER_SHADOWS = true;
@@ -374,6 +376,11 @@ export class TownCharacter {
   private selectionRing: THREE.Mesh | null = null;
   private stool: THREE.Group | null = null;
   private costumeAnimators: NpcAnimator[] = [];
+  /** Player gear: the body root it is worn on, the key of what is worn, the latest dressing. */
+  private gearBody: { root: THREE.Object3D; template: BodyAsset; sex: Sex } | null = null;
+  private dressedKey: string | null = null;
+  private dressSeq = 0;
+  private gearPending: Promise<void> = Promise.resolve();
 
   constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean; visual?: NpcFigure } = {}) {
     this.entry = entry;
@@ -437,6 +444,50 @@ export class TownCharacter {
   setEntry(entry: TownRosterEntry): void {
     this.entry = entry;
     this.updatePlate();
+    if (this.gearBody) this.gearPending = this.dress();
+  }
+
+  /** Settles once the latest equipment is worn (tests and the town warm-up). */
+  async gearReady(): Promise<void> {
+    let pending: Promise<void>;
+    do { pending = this.gearPending; await pending; } while (pending !== this.gearPending);
+  }
+
+  /**
+   * Wears the entry's equipment: covered body hidden, everything worn (weapons included) as one
+   * Gear mesh with the shared atlas material, hair/beard hidden under helmets and hoods. The
+   * fused geometry and the material are shared page-wide: never disposed here. Only the latest
+   * call applies (equipment can change while the gear is still loading).
+   */
+  private async dress(): Promise<void> {
+    const target = this.gearBody;
+    if (!target || this.opts.npc) return;
+    const equipment = this.entry.equipment ?? {};
+    const hand = this.entry.dominantHand === 'left' ? 'left' : 'right';
+    const key = `${hand}|${JSON.stringify(Object.entries(equipment).sort())}`;
+    const seq = ++this.dressSeq;
+    if (key === this.dressedKey) return;
+    const gear = Object.keys(equipment).length ? await this.factory.cache.gear().catch(() => null) : null;
+    if (this.disposed || seq !== this.dressSeq) return;
+    const { root, template, sex } = target;
+    const body = root.getObjectByName('Body') as THREE.SkinnedMesh;
+    const plan = gear ? planGear(gear, equipment, () => undefined, hand) : null;
+    body.geometry = plan && gear
+      ? visibleBodyGeometry(sex, body, plan.covered, planBands(gear, plan, sex))
+      : visibleBodyGeometry(sex, body, new Set(), []);
+    const old = root.getObjectByName('Gear');
+    if (old) old.removeFromParent();
+    const geometry = plan && gear ? mergedGearGeometry(gear, sex, template, plan, { includeWeapons: true }) : null;
+    if (geometry && gear) {
+      const mesh = gearMesh(geometry, gear, body.skeleton, body.bindMatrix);
+      mesh.castShadow = TOWN_CHARACTER_SHADOWS;
+      body.parent!.add(mesh);
+    }
+    root.traverse((o) => {
+      if (o.name === 'town:hair') o.visible = !plan?.hidesHair;
+      if (o.name === 'town:beard') o.visible = !plan?.hidesBeard;
+    });
+    this.dressedKey = key;
   }
 
   update(pose: TownPose, dtMs: number, lod: TownLod, nowMs: number): void {
@@ -579,7 +630,13 @@ export class TownCharacter {
     if (figure && outfit) this.wear(root, outfit, figure, skinOption.color ?? '#d9a37a');
     if (figure?.costume.includes('chubby')) this.widenBelly(root, figure.belly ?? 1);
     const head = root.getObjectByName('Head');
+    if (hair) hair.name = 'town:hair';
+    if (beard) beard.name = 'town:beard';
     if (head) for (const item of [hair, beard]) if (item) head.add(item);
+    if (!this.opts.npc) {
+      this.gearBody = { root, template, sex };
+      this.gearPending = this.dress();
+    }
     const scale = (entry.heightCm ?? NATIVE_HEIGHT_CM[sex]) / NATIVE_HEIGHT_CM[sex];
     this.model.scale.setScalar(scale);
     // Link its shaders before it is drawn (no stall on the frame it appears).
