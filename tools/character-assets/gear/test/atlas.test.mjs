@@ -40,3 +40,12 @@ test('simplifyTo brings a 2048-triangle grid under 500 triangles', async () => {
   const tris = await simplifyTo(doc, 500);
   assert.ok(tris <= 500 && tris > 0, String(tris));
 });
+
+test('a hue shift turns a red image blue in the atlas', async () => {
+  const { png, rects } = await packAtlas([{ id: 'r', image: await png0('#cc2020'), size: 256, hue: 240 }]);
+  const r = rects.get('r');
+  const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+  const px = (Math.round((r.y + r.h / 2) * info.height) * info.width + Math.round((r.x + r.w / 2) * info.width)) * info.channels;
+  assert.ok(data[px + 2] > data[px], `rgb ${data[px]},${data[px + 1]},${data[px + 2]}`);
+});
+const png0 = (color) => sharp({ create: { width: 64, height: 64, channels: 3, background: color } }).png().toBuffer();

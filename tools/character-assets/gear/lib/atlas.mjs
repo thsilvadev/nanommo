@@ -5,7 +5,7 @@ const SWATCH = 8;
 const MAX = 4096;
 
 /**
- * entries: { id, image: Buffer|null, color?: [r,g,b] (0..1), tint?: '#rrggbb', size: 256|512|1024 }
+ * entries: { id, image: Buffer|null, color?: [r,g,b] (0..1), tint?: '#rrggbb', hue?: degrees, size: 256|512|1024 }
  * Returns the atlas PNG, its size and per-id rects in UV units (x, y, w, h; y from the top, as glTF UVs).
  */
 export async function packAtlas(entries) {
@@ -22,11 +22,15 @@ export async function packAtlas(entries) {
     let input;
     if (it.image) {
       let img = sharp(it.image).resize(it.px, it.px, { fit: 'fill' }).removeAlpha();
+      if (it.hue) img = img.modulate({ hue: it.hue });
       if (it.tint) img = img.tint(it.tint);
       input = await img.png().toBuffer();
     } else {
       const [r, g, b] = (it.color ?? [1, 1, 1]).map((c) => Math.round(Math.min(1, Math.max(0, c)) * 255));
-      input = await sharp({ create: { width: SWATCH, height: SWATCH, channels: 3, background: { r, g, b } } }).png().toBuffer();
+      let sw = sharp(await sharp({ create: { width: SWATCH, height: SWATCH, channels: 3, background: { r, g, b } } }).png().toBuffer());
+      if (it.hue) sw = sw.modulate({ hue: it.hue });
+      if (it.tint) sw = sw.tint(it.tint);
+      input = await sw.png().toBuffer();
     }
     composites.push({ input, left: x, top: y });
     // inset by one texel so bilinear filtering never reads the neighbour

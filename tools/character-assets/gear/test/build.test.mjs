@@ -47,3 +47,30 @@ test('two builds over the same sources are byte-identical', () => {
     assert.ok(fs.readFileSync(path.join(out1, f)).equals(fs.readFileSync(path.join(out2, f))), f);
   }
 });
+
+import { ITEMS, VISUALS } from '../gear.config.mjs';
+const repoItems = JSON.parse(fs.readFileSync(path.join(here, '../../../../items.json'), 'utf8')).equipment;
+
+test('every head and cape item has a visual in the config', () => {
+  for (const item of repoItems.filter((i) => i.slot === 'head' || i.slot === 'cape')) {
+    assert.ok(VISUALS[ITEMS[item.id]], `${item.id} -> ${ITEMS[item.id]}`);
+  }
+});
+
+test('rigid visuals land in gear-rigid.glb with a finite 16-number transform per sex', async () => {
+  const rigid = Object.keys(VISUALS).filter((v) => VISUALS[v].kind === 'rigid' && ['head', 'cape'].includes(VISUALS[v].slot));
+  assert.ok(rigid.length >= 10, String(rigid.length));
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'gear-'));
+  build(out, rigid.join(','));
+  const m = JSON.parse(fs.readFileSync(path.join(out, 'manifest.json'), 'utf8'));
+  const doc = await new NodeIO().read(path.join(out, 'gear-rigid.glb'));
+  for (const v of rigid) {
+    for (const sex of ['male', 'female']) {
+      const t = m.visuals[v].transform?.[sex];
+      assert.ok(Array.isArray(t) && t.length === 16 && t.every(Number.isFinite), `${v} ${sex}`);
+    }
+    assert.ok(m.visuals[v].bone, v);
+    const node = doc.getRoot().listNodes().find((n) => n.getName() === v);
+    assert.ok(node?.getMesh(), v);
+  }
+});

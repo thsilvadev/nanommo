@@ -25,7 +25,11 @@ const { chromium } = createRequire(path.join(repo, 'package.json'))('playwright'
 const [slot, list] = process.argv.slice(2);
 const manifest = JSON.parse(fs.readFileSync(path.join(gearDir, 'manifest.json'), 'utf8'));
 const visuals = list ? list.split(',') : Object.keys(manifest.visuals).filter((v) => manifest.visuals[v].slot === slot);
-const POSES = [['Idle', 0.3, 20], ['Attack', 0.35, 60], ['Walk', 0.4, 90], ['CastLoop', 0.3, 0], ['Sit', 0.5, 40]];
+const POSES = {
+  cape: [['Idle', 0.3, 200], ['Idle', 0.3, 135], ['Attack', 0.35, 200], ['Walk', 0.4, 120], ['Sit', 0.5, 150]],
+  head: [['Idle', 0.3, 0], ['Idle', 0.3, 50], ['Idle', 0.3, 110], ['Idle', 0.3, 180], ['Attack', 0.35, 40]],
+}[slot] ?? [['Idle', 0.3, 20], ['Attack', 0.35, 60], ['Walk', 0.4, 90], ['CastLoop', 0.3, 0], ['Sit', 0.5, 40]];
+const CAMERA = slot === 'head' ? { y: 1.62, dist: 1.25 } : null;
 const rows = visuals.flatMap((v) => ['male', 'female'].map((sex) => ({ v, sex })));
 
 const js = (await esbuild.build({ entryPoints: [path.join(here, 'gear-entry.js')], bundle: true, write: false, format: 'esm', nodePaths: [path.join(frontend, 'node_modules')], logLevel: 'error' })).outputFiles[0].text;
@@ -46,7 +50,7 @@ await page.goto(`http://127.0.0.1:${server.address().port}/`);
 await page.waitForFunction(() => typeof window.applyConfig === 'function');
 const tiles = [];
 for (const [r, { v, sex }] of rows.entries()) for (const [c, [clip, t, yaw]] of POSES.entries()) {
-  await page.evaluate((cfg) => window.applyConfig(cfg), { sex, visuals: v.split('+'), clip, t, yaw });
+  await page.evaluate((cfg) => window.applyConfig(cfg), { sex, visuals: v.split('+'), clip, t, yaw, camera: CAMERA });
   tiles.push({ input: await page.locator('canvas').screenshot(), left: 160 + c * 240, top: r * 360 });
 }
 await browser.close();

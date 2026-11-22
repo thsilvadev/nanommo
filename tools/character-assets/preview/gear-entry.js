@@ -50,7 +50,18 @@ window.applyConfig = async (c) => {
   const ng = g.clone(); ng.setIndex(kept); body.geometry = ng;
   const gear = (await load(`/gear/gear-${c.sex}.glb`)).scene;
   const material = new THREE.MeshStandardMaterial({ map: atlas, roughness: 0.9, metalness: 0 });
+  const rigid = (await load('/gear/gear-rigid.glb')).scene;
   for (const v of c.visuals) {
+    const info = manifest.visuals[v];
+    if (info?.kind === 'rigid') {
+      const piece = rigid.getObjectByName(v);
+      if (!piece) continue;
+      const mesh = new THREE.Mesh((piece.isMesh ? piece : piece.children[0]).geometry, material);
+      mesh.matrixAutoUpdate = false;
+      mesh.matrix.fromArray(info.transform[c.sex]);
+      bones.get(info.bone).add(mesh);
+      continue;
+    }
     const src = gear.getObjectByName(v);
     if (!src) continue;
     const mesh = src.isSkinnedMesh ? src : src.children.find((x) => x.isSkinnedMesh);
@@ -66,6 +77,6 @@ window.applyConfig = async (c) => {
   root.rotation.y = ((c.yaw ?? 20) * Math.PI) / 180;
   root.updateMatrixWorld(true);
   const cam = new THREE.PerspectiveCamera(30, W / H, 0.1, 50);
-  cam.position.set(0, 1.0, 4.4); cam.lookAt(0, 0.85, 0);
+  const cy = c.camera?.y ?? 0.85; cam.position.set(0, cy + 0.15, c.camera?.dist ?? 4.4); cam.lookAt(0, cy, 0);
   renderer.render(scene, cam);
 };

@@ -24,6 +24,10 @@
       "maleTriangles": 1274,
       "femaleTriangles": 1274
     },
+    "head-ranger-hood": {
+      "maleTriangles": 1900,
+      "femaleTriangles": 1900
+    },
     "shoes-peasant": {
       "maleTriangles": 2374,
       "femaleTriangles": 2374
@@ -31,15 +35,48 @@
     "shoes-ranger": {
       "maleTriangles": 2460,
       "femaleTriangles": 2442
+    },
+    "cape-barbarian": {
+      "triangles": 78
+    },
+    "cape-king": {
+      "triangles": 112
+    },
+    "cape-knight": {
+      "triangles": 84
+    },
+    "cape-mage": {
+      "triangles": 84
+    },
+    "cape-rogue": {
+      "triangles": 84
+    },
+    "cape-skeleton-rogue": {
+      "triangles": 84
+    },
+    "head-knight-helmet": {
+      "triangles": 480
+    },
+    "head-mage-hat": {
+      "triangles": 396
+    },
+    "head-rogue-hood": {
+      "triangles": 490
+    },
+    "head-skeleton-mage-hat": {
+      "triangles": 308
+    },
+    "head-warrior-helmet": {
+      "triangles": 830
     }
   },
   "files": {
-    "gear-male.glb": 1569780,
-    "gear-female.glb": 1672160,
-    "gear-rigid.glb": 124,
-    "gear-atlas.webp": 149456,
-    "manifest.json": 1848
+    "gear-male.glb": 1644436,
+    "gear-female.glb": 1746424,
+    "gear-rigid.glb": 124908,
+    "gear-atlas.webp": 173268,
+    "manifest.json": 10192
   },
   "atlas": 2048,
-  "totalBytes": 3393368
+  "totalBytes": 3699228
 }

@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { Document, NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import sharp from 'sharp';
+import { mat4 } from 'gl-matrix';
 import { ITEMS, VISUALS, SOURCES } from './gear.config.mjs';
 import { CHARACTER_ASSETS, readTargetSkeleton, writeSkeleton } from './lib/skeleton.mjs';
 import { retargetSkinned } from './lib/retarget.mjs';
@@ -84,6 +85,13 @@ async function loadSources(v, sex) {
     if (!fs.existsSync(file)) throw new Error(`missing ${file}: run node gear/fetch-sources.mjs`);
     return [await io.read(file)];
   }
+  if (kind === 'kaykit') {
+    const [, pack, file] = v.source.split(':');
+    const base = path.join(SOURCE, pack === 'adventurers' ? 'kaykit-adventurers/repo' : 'kaykit-Skeletons', 'addons');
+    const hit = findFile(base, file);
+    if (!hit) throw new Error(`missing KayKit ${file}: run node gear/fetch-sources.mjs`);
+    return [await io.read(hit)];
+  }
   throw new Error(`unknown source ${v.source}`);
 }
 
@@ -103,8 +111,8 @@ function toPiece(prim, dominant, sourceDominant) {
     position: arr(P, 3, Float32Array),
     normal: N ? arr(N, 3, Float32Array) : null,
     uv: T ? arr(T, 2, Float32Array) : new Float32Array(n * 2).fill(0.5),
-    joints: arr(J, 4, Uint16Array),
-    weights: arr(W, 4, Float32Array),
+    joints: J ? arr(J, 4, Uint16Array) : new Uint16Array(n * 4),
+    weights: W ? arr(W, 4, Float32Array) : new Float32Array(n * 4),
     index: prim.getIndices() ? Array.from(prim.getIndices().getArray()) : [...Array(n).keys()],
     dominant, sourceDominant,
     material: {
@@ -222,7 +230,131 @@ const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 function atlasKey(v, piece) {
   const m = piece.material;
   const size = v.sizes?.[m.name] ?? v.size ?? 256;
-  return m.image ? `img:${sha(m.image).slice(0, 16)}:${size}:${v.tint ?? ''}` : `col:${m.color.map((c) => c.toFixed(3)).join(',')}:${v.tint ?? ''}`;
+  return m.image ? `img:${sha(m.image).slice(0, 16)}:${size}:${v.tint ?? ''}:${v.hue ?? ''}` : `col:${m.color.map((c) => c.toFixed(3)).join(',')}:${v.tint ?? ''}:${v.hue ?? ''}`;
+}
+
+// ---------------------------------------------------------------- rigid pieces
+
+const headSizes = {};
+/** Size [w, h, d] of our head (body triangles driven by the Head bone). */
+async function headSize(target) {
+  if (!headSizes[target.sex]) {
+    const { readTargetBody } = await import('./lib/skeleton.mjs');
+    const b = await readTargetBody(target.sex);
+    const head = target.index.get('Head');
+    const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+    for (let v = 0; v < b.count; v++) {
+      let bi = 0; for (let k = 1; k < 4; k++) if (b.weights[v * 4 + k] > b.weights[v * 4 + bi]) bi = k;
+      if (b.joints[v * 4 + bi] === head) for (let k = 0; k < 3; k++) { min[k] = Math.min(min[k], b.positions[v * 3 + k]); max[k] = Math.max(max[k], b.positions[v * 3 + k]); }
+    }
+    headSizes[target.sex] = [0, 1, 2].map((k) => max[k] - min[k]);
+  }
+  return headSizes[target.sex];
+}
+const worldBounds = (node) => {
+  const m = node.getWorldMatrix(), min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+  for (const p of node.getMesh().listPrimitives()) {
+    const P = p.getAttribute('POSITION');
+    for (let i = 0; i < P.getCount(); i++) {
+      const [x, y, z] = P.getElement(i, []);
+      const w = [0, 1, 2].map((k) => m[k] * x + m[4 + k] * y + m[8 + k] * z + m[12 + k]);
+      for (let k = 0; k < 3; k++) { min[k] = Math.min(min[k], w[k]); max[k] = Math.max(max[k], w[k]); }
+    }
+  }
+  return { min, max };
+};
+const matMul = (m, v, w = 1) => [0, 1, 2].map((k) => m[k] * v[0] + m[4 + k] * v[1] + m[8 + k] * v[2] + m[12 + k] * w);
+
+/**
+ * A rigid visual: geometry in a neutral frame (Y up, facing +Z, origin at the anchor, sized for the
+ * male body) + per sex the matrix that puts it in the anchor bone's space.
+ */
+async function buildRigid(id, v) {
+  const [doc] = await loadSources(v, 'male');
+  const male = targets.male;
+  const root = doc.getRoot();
+  let nodes, ref, S;
+  if (v.fit === 'body') {
+    // static full figure: fit its height/centre onto our male body, keep a box (our body space), anchor at our bone
+    const meshNodes = root.listNodes().filter((n) => n.getMesh());
+    const b = { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };
+    for (const n of meshNodes) { const nb = worldBounds(n); for (let k = 0; k < 3; k++) { b.min[k] = Math.min(b.min[k], nb.min[k]); b.max[k] = Math.max(b.max[k], nb.max[k]); } }
+    const body = await (await import('./lib/skeleton.mjs')).readTargetBody('male');
+    let by = [Infinity, -Infinity]; for (let i = 1; i < body.positions.length; i += 3) { by = [Math.min(by[0], body.positions[i]), Math.max(by[1], body.positions[i])]; }
+    const s = (by[1] - by[0]) / (b.max[1] - b.min[1]);
+    const shift = [-(b.min[0] + b.max[0]) / 2 * s, by[0] - b.min[1] * s, -(b.min[2] + b.max[2]) / 2 * s];
+    nodes = meshNodes;
+    const anchor = male.pos(v.bone);
+    S = (p) => [p[0] * s + shift[0] - anchor[0], p[1] * s + shift[1] - anchor[1], p[2] * s + shift[2] - anchor[2]];
+    ref = { keep: (p) => [0, 1, 2].every((k) => p[k] + anchor[k] >= v.keepBox.min[k] && p[k] + anchor[k] <= v.keepBox.max[k]) };
+  } else {
+    nodes = (v.nodes ?? [v.node]).map((name) => {
+      const node = root.listNodes().find((n) => n.getName() === name);
+      if (!node) throw new Error(`${id}: node ${name} not found`);
+      return node;
+    });
+    const refPos = v.refPoint ?? matMul(root.listNodes().find((n) => n.getName() === v.refBone).getWorldMatrix(), [0, 0, 0]);
+    let scale = v.scale ?? 1;
+    if (v.fit === 'head') {
+      // per axis: chibi heads are as tall as wide, ours is ~1.3x taller than wide
+      const rb = worldBounds(root.listNodes().find((n) => n.getName() === v.refMesh));
+      const ours = await headSize(male);
+      const mul = Array.isArray(v.scale) ? v.scale : [v.scale ?? 1, v.scale ?? 1, v.scale ?? 1];
+      scale = [0, 1, 2].map((k) => (ours[k] / (rb.max[k] - rb.min[k])) * mul[k]);
+    }
+    const sv = Array.isArray(scale) ? scale : [scale, scale, scale];
+    S = (p) => [(p[0] - refPos[0]) * sv[0], (p[1] - refPos[1]) * sv[1], (p[2] - refPos[2]) * sv[2]];
+  }
+  const [rx, ry, rz] = (v.rotDeg ?? [0, 0, 0]).map((d) => (d * Math.PI) / 180);
+  const R = (p) => { // X then Y then Z
+    let [x, y, z] = p;
+    [y, z] = [y * Math.cos(rx) - z * Math.sin(rx), y * Math.sin(rx) + z * Math.cos(rx)];
+    [x, z] = [x * Math.cos(ry) + z * Math.sin(ry), -x * Math.sin(ry) + z * Math.cos(ry)];
+    [x, y] = [x * Math.cos(rz) - y * Math.sin(rz), x * Math.sin(rz) + y * Math.cos(rz)];
+    return [x, y, z];
+  };
+  const pieces = [];
+  for (const n of nodes) {
+    const m = n.getWorldMatrix();
+    for (const prim of n.getMesh().listPrimitives()) {
+      const P = prim.getAttribute('POSITION');
+      const count = P.getCount();
+      const position = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) position.set(R(S(matMul(m, P.getElement(i, [])))), i * 3);
+      const piece = toPiece(prim, new Int32Array(count), null);
+      piece.position = position;
+      piece.normal = null; // recomputed (non-uniform scale)
+      piece.joints = new Uint16Array(count * 4);
+      piece.weights = new Float32Array(count * 4);
+      if (ref?.keep) {
+        const keep = [];
+        for (let t = 0; t < piece.index.length; t += 3) {
+          const tri = piece.index.slice(t, t + 3);
+          const c = [0, 1, 2].map((k) => tri.reduce((a, i) => a + position[i * 3 + k], 0) / 3);
+          if (ref.keep(c)) keep.push(...tri);
+        }
+        piece.index = keep;
+      }
+      if (piece.index.length) pieces.push(piece);
+    }
+  }
+  const reduced = await reduce(pieces, v.maxTris);
+  for (const p of reduced) p.normal = null;
+  const withNormals = reduced.map(compact);
+  // per sex: anchor bone space <- neutral frame
+  const transform = {};
+  for (const sex of SEXES) {
+    const t = targets[sex];
+    const ratio = v.fit === 'head' ? (await headSize(t))[0] / (await headSize(male))[0] : (t.pos('Head')[1] / male.pos('Head')[1]);
+    const anchor = t.pos(v.bone);
+    const off = v.offset ?? [0, 0, 0];
+    const world = mat4.create();
+    mat4.translate(world, world, [anchor[0] + off[0] * ratio, anchor[1] + off[1] * ratio, anchor[2] + off[2] * ratio]);
+    mat4.scale(world, world, [ratio, ratio, ratio]);
+    const boneWorld = t.joints[t.index.get(v.bone)].world;
+    transform[sex] = [...mat4.multiply(mat4.create(), mat4.invert(mat4.create(), boneWorld), world)].map((x) => Math.round(x * 1e6) / 1e6);
+  }
+  return { pieces: withNormals, transform };
 }
 
 // ---------------------------------------------------------------- main
@@ -236,14 +368,21 @@ for (const id of visualIds) {
   for (const sex of SEXES) built[id][sex] = await buildPieces(id, v, targets[sex]);
 }
 
+const rigid = {}; // id -> { pieces, transform }
+for (const id of visualIds) if (VISUALS[id].kind === 'rigid') rigid[id] = await buildRigid(id, VISUALS[id]);
+
 const atlasEntries = new Map();
-for (const id of Object.keys(built)) for (const sex of SEXES) for (const piece of built[id][sex]) {
+const allPieces = [
+  ...Object.keys(built).flatMap((id) => SEXES.flatMap((sex) => built[id][sex].map((piece) => [id, piece]))),
+  ...Object.keys(rigid).flatMap((id) => rigid[id].pieces.map((piece) => [id, piece])),
+];
+for (const [id, piece] of allPieces) {
   const v = VISUALS[id];
   const key = atlasKey(v, piece);
   piece.atlasKey = key;
   if (!atlasEntries.has(key)) {
     const m = piece.material;
-    atlasEntries.set(key, { id: key, image: m.image, color: m.color, tint: v.tint, size: v.sizes?.[m.name] ?? v.size ?? 256 });
+    atlasEntries.set(key, { id: key, image: m.image, color: m.color, tint: v.tint, hue: v.hue, size: v.sizes?.[m.name] ?? v.size ?? 256 });
   }
 }
 const atlas = await packAtlas([...atlasEntries.values()]);
@@ -292,19 +431,38 @@ for (const sex of SEXES) {
 }
 {
   const doc = new Document();
-  doc.createBuffer();
-  doc.createScene();
+  const buffer = doc.createBuffer();
+  const scene = doc.createScene();
+  const material = doc.createMaterial('Gear').setMetallicFactor(0).setRoughnessFactor(0.9);
+  for (const id of Object.keys(rigid)) {
+    const pieces = rigid[id].pieces;
+    const total = pieces.reduce((a, p) => a + p.position.length / 3, 0);
+    const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3), uv = new Float32Array(total * 2), idx = [];
+    let base = 0;
+    for (const p of pieces) {
+      pos.set(p.position, base * 3); nor.set(p.normal, base * 3); uv.set(remapped(p), base * 2);
+      for (const i of p.index) idx.push(i + base);
+      base += p.position.length / 3;
+    }
+    const acc = (type, array) => doc.createAccessor().setType(type).setArray(array).setBuffer(buffer);
+    const prim = doc.createPrimitive().setMaterial(material)
+      .setAttribute('POSITION', acc('VEC3', pos)).setAttribute('NORMAL', acc('VEC3', nor)).setAttribute('TEXCOORD_0', acc('VEC2', uv))
+      .setIndices(acc('SCALAR', total > 65535 ? new Uint32Array(idx) : new Uint16Array(idx)));
+    scene.addChild(doc.createNode(id).setMesh(doc.createMesh(id).addPrimitive(prim)));
+    (report.visuals[id] ??= {}).triangles = idx.length / 3;
+  }
   fs.writeFileSync(path.join(OUT, 'gear-rigid.glb'), await io.writeBinary(doc));
 }
 fs.writeFileSync(path.join(OUT, 'gear-atlas.webp'), await sharp(atlas.png).webp({ quality: 90, effort: 6 }).toBuffer());
 
 const files = ['gear-male.glb', 'gear-female.glb', 'gear-rigid.glb', 'gear-atlas.webp'];
-const version = sha(Buffer.concat(files.map((f) => fs.readFileSync(path.join(OUT, f))))).slice(0, 12);
 const manifestVisuals = {};
 for (const id of visualIds) {
-  const { slot, kind, covers, hidesHair, hidesBeard, bone, transform, weaponType } = VISUALS[id];
+  const { slot, kind, covers, hidesHair, hidesBeard, bone, weaponType } = VISUALS[id];
+  const transform = rigid[id]?.transform;
   manifestVisuals[id] = Object.fromEntries(Object.entries({ slot, kind, covers, hidesHair, hidesBeard, bone, transform, weaponType }).filter(([, x]) => x !== undefined));
 }
+const version = sha(Buffer.concat([...files.map((f) => fs.readFileSync(path.join(OUT, f))), Buffer.from(JSON.stringify(manifestVisuals))])).slice(0, 12);
 const items = Object.fromEntries(Object.entries(ITEMS).filter(([, vis]) => visualIds.includes(vis)).sort(([a], [b]) => (a < b ? -1 : 1)));
 fs.writeFileSync(path.join(OUT, 'manifest.json'), `${JSON.stringify({ version, atlas: 'gear-atlas.webp', items, visuals: manifestVisuals }, null, 2)}\n`);
 
@@ -319,12 +477,13 @@ console.log(`gear ${version}: ${Object.keys(built).length} skinned visuals, atla
 // ---------------------------------------------------------------- credits
 const FREE = /^(CC0|CC Attribution$|CC-BY|Public Domain)/i;
 const credits = [];
-for (const src of [...new Set(visualIds.map((id) => VISUALS[id].source))].sort()) {
+const sourceKey = (src) => (src.startsWith('kaykit:') ? src.split(':').slice(0, 2).join(':') : src);
+for (const src of [...new Set(visualIds.map((id) => sourceKey(VISUALS[id].source)))].sort()) {
   const [kind, uid] = src.split(':');
   const meta = kind === 'sketchfab'
     ? JSON.parse(fs.readFileSync(path.join(SOURCE, 'sketchfab', uid, 'meta.json'), 'utf8'))
     : SOURCES[src];
-  const usedBy = visualIds.filter((id) => VISUALS[id].source === src);
+  const usedBy = visualIds.filter((id) => sourceKey(VISUALS[id].source) === src);
   credits.push({ ...meta, usedBy });
 }
 const line = (c) => `- **${c.title}** — ${c.author ?? 'unknown'} — ${c.license} — ${c.url}\n  Used (modified: retargeted to our skeleton, recoloured into the atlas, reduced) by: ${c.usedBy.join(', ')}`;
