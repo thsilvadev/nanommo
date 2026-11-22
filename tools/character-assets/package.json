@@ -4,7 +4,8 @@
   "description": "Offline pipeline: CC0 source packs -> GLBs used by the character viewer. Not part of the pnpm workspace.",
   "type": "module",
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "gear:test": "node --test gear/test/*.test.mjs"
   },
   "devDependencies": {
     "@gltf-transform/core": "4.1.1",
