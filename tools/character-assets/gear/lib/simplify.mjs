@@ -8,7 +8,8 @@ export function triangleCount(doc) {
   return n;
 }
 
-export async function simplifyTo(doc, maxTriangles) {
+/** maxError caps meshoptimizer's error (relative to mesh size); without it the error grows until the budget is met. */
+export async function simplifyTo(doc, maxTriangles, maxError = Infinity) {
   let tris = triangleCount(doc);
   if (tris <= maxTriangles) return tris;
   await MeshoptSimplifier.ready;
@@ -18,7 +19,7 @@ export async function simplifyTo(doc, maxTriangles) {
     await doc.transform(simplify({ simplifier: MeshoptSimplifier, ratio, error }));
     tris = triangleCount(doc);
     if (process.env.GEAR_DEBUG) console.error('simplify', attempt, ratio.toFixed(3), error.toFixed(3), tris);
-    ratio *= 0.8; error *= 1.6;
+    ratio *= 0.8; error = Math.min(error * 1.6, maxError);
   }
   return tris;
 }

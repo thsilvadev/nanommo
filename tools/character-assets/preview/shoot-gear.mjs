@@ -27,9 +27,10 @@ const manifest = JSON.parse(fs.readFileSync(path.join(gearDir, 'manifest.json'),
 const visuals = list ? list.split(',') : Object.keys(manifest.visuals).filter((v) => manifest.visuals[v].slot === slot);
 const POSES = {
   cape: [['Idle', 0.3, 200], ['Idle', 0.3, 135], ['Attack', 0.35, 200], ['Walk', 0.4, 120], ['Sit', 0.5, 150]],
+  boots: [['Idle', 0.3, 0], ['Idle', 0.3, 60], ['Idle', 0.3, 120], ['Idle', 0.3, 180], ['Walk', 0.4, 150]],
   head: [['Idle', 0.3, 0], ['Idle', 0.3, 50], ['Idle', 0.3, 110], ['Idle', 0.3, 180], ['Attack', 0.35, 40]],
 }[slot] ?? [['Idle', 0.3, 20], ['Attack', 0.35, 60], ['Walk', 0.4, 90], ['CastLoop', 0.3, 0], ['Sit', 0.5, 40]];
-const CAMERA = slot === 'head' ? { y: 1.62, dist: 1.25 } : null;
+const CAMERA = { head: { y: 1.62, dist: 1.25 }, boots: { y: 0.35, dist: 1.6 } }[slot] ?? null;
 const rows = visuals.flatMap((v) => ['male', 'female'].map((sex) => ({ v, sex })));
 
 const js = (await esbuild.build({ entryPoints: [path.join(here, 'gear-entry.js')], bundle: true, write: false, format: 'esm', nodePaths: [path.join(frontend, 'node_modules')], logLevel: 'error' })).outputFiles[0].text;

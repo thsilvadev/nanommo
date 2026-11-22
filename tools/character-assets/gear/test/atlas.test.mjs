@@ -48,4 +48,13 @@ test('a hue shift turns a red image blue in the atlas', async () => {
   const px = (Math.round((r.y + r.h / 2) * info.height) * info.width + Math.round((r.x + r.w / 2) * info.width)) * info.channels;
   assert.ok(data[px + 2] > data[px], `rgb ${data[px]},${data[px + 1]},${data[px + 2]}`);
 });
+
+test('colorize turns any image into shades of the given colour', async () => {
+  const { png, rects } = await packAtlas([{ id: 'g', image: await png0('#30a030'), size: 256, colorize: '#d03020' }]);
+  const r = rects.get('g');
+  const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+  const px = (Math.round((r.y + r.h / 2) * info.height) * info.width + Math.round((r.x + r.w / 2) * info.width)) * info.channels;
+  assert.ok(data[px] > data[px + 1] && data[px] > data[px + 2], `rgb ${data[px]},${data[px + 1]},${data[px + 2]}`);
+});
+
 const png0 = (color) => sharp({ create: { width: 64, height: 64, channels: 3, background: color } }).png().toBuffer();

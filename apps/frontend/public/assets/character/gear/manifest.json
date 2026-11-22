@@ -1,5 +1,5 @@
 {
-  "version": "dbed101f83a3",
+  "version": "3f7cb92b7977",
   "atlas": "gear-atlas.webp",
   "items": {
     "equip_body_magic_t1": "body-peasant",
@@ -14,14 +14,19 @@
     "equip_cape_phys_t1": "cape-rogue",
     "equip_cape_phys_t2": "cape-barbarian",
     "equip_cape_phys_t3": "cape-knight",
-    "equip_head_magic_t1": "head-rogue-hood",
+    "equip_head_magic_t1": "head-ranger-hood",
     "equip_head_magic_t2": "head-mage-hat",
     "equip_head_magic_t3": "head-skeleton-mage-hat",
-    "equip_head_phys_t1": "head-ranger-hood",
+    "equip_head_phys_t1": "head-rogue-hood",
     "equip_head_phys_t2": "head-knight-helmet",
     "equip_head_phys_t3": "head-warrior-helmet",
     "equip_shoes_earth_t2": "shoes-peasant",
-    "equip_shoes_traveler_t1": "shoes-ranger"
+    "equip_shoes_fire_t3": "shoes-fire",
+    "equip_shoes_holy_t4": "shoes-holy",
+    "equip_shoes_shadow_t3": "shoes-shadow",
+    "equip_shoes_traveler_t1": "shoes-ranger",
+    "equip_shoes_water_t2": "shoes-water",
+    "equip_shoes_wind_t4": "shoes-wind"
   },
   "visuals": {
     "body-dark-knight": {
@@ -32,8 +37,7 @@
         "upperarms",
         "forearms",
         "hands",
-        "thighs",
-        "calves"
+        "thighs"
       ]
     },
     "body-handpainted-knight": {
@@ -44,8 +48,7 @@
         "upperarms",
         "forearms",
         "hands",
-        "thighs",
-        "calves"
+        "thighs"
       ]
     },
     "body-peasant": {
@@ -574,6 +577,20 @@
         ]
       }
     },
+    "shoes-fire": {
+      "slot": "shoes",
+      "kind": "skinned",
+      "covers": [
+        "feet"
+      ]
+    },
+    "shoes-holy": {
+      "slot": "shoes",
+      "kind": "skinned",
+      "covers": [
+        "feet"
+      ]
+    },
     "shoes-peasant": {
       "slot": "shoes",
       "kind": "skinned",
@@ -582,6 +599,27 @@
       ]
     },
     "shoes-ranger": {
+      "slot": "shoes",
+      "kind": "skinned",
+      "covers": [
+        "feet"
+      ]
+    },
+    "shoes-shadow": {
+      "slot": "shoes",
+      "kind": "skinned",
+      "covers": [
+        "feet"
+      ]
+    },
+    "shoes-water": {
+      "slot": "shoes",
+      "kind": "skinned",
+      "covers": [
+        "feet"
+      ]
+    },
+    "shoes-wind": {
       "slot": "shoes",
       "kind": "skinned",
       "covers": [

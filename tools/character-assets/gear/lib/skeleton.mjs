@@ -71,9 +71,10 @@ export function readTargetBody(sex) {
       const prim = node.getMesh().listPrimitives()[0];
       const P = prim.getAttribute('POSITION'), J = prim.getAttribute('JOINTS_0'), W = prim.getAttribute('WEIGHTS_0');
       const n = P.getCount();
+      const index = Array.from(prim.getIndices().getArray());
       const positions = new Float32Array(n * 3), joints = new Uint16Array(n * 4), weights = new Float32Array(n * 4);
       for (let i = 0; i < n; i++) { positions.set(P.getElement(i, []), i * 3); joints.set(J.getElement(i, []), i * 4); weights.set(W.getElement(i, []), i * 4); }
-      return { positions, joints, weights, count: n };
+      return { positions, joints, weights, count: n, index };
     }));
   }
   return bodies.get(sex);

@@ -26,7 +26,7 @@ import { CHARACTER_ASSETS, readTargetSkeleton, writeSkeleton } from './lib/skele
 import { retargetSkinned } from './lib/retarget.mjs';
 import { autoskinStatic } from './lib/autoskin.mjs';
 import { REGION_OF_BONE, strayFilter } from './lib/regions.mjs';
-import { packAtlas } from './lib/atlas.mjs';
+import { encodeAtlas, packAtlas } from './lib/atlas.mjs';
 import { simplifyTo } from './lib/simplify.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -136,6 +136,7 @@ function filterPiece(piece, v, target) {
     const count = (pred) => doms.filter(pred).length;
     if (!v.keepHead && count((d) => d === head) >= 2) continue;
     if (!v.keepFeet && count((d) => region[d] === 'feet') >= 2) continue;
+    if (v.dropRegions && count((d) => v.dropRegions.includes(region[d])) >= 2) continue;
     if (v.keepRegions && !(count((d) => v.keepRegions.includes(region[d])) >= 2 || (v.maxY && tri.every((i) => y(i) < v.maxY)))) continue;
     if (v.minY && tri.every((i) => y(i) < v.minY)) continue;
     if (v.drop && piece.sourceDominant && tri.filter((i) => v.drop.test(piece.sourceDominant[i])).length >= 2) continue;
@@ -168,11 +169,62 @@ async function buildPieces(id, v, target) {
       if (piece.index.length) pieces.push(piece);
     }
   }
-  return reduce(pieces, v.maxTris);
+  if (!v.liner) return reduce(pieces, v.maxTris);
+  // the liner is reduced on its own (a smooth shell collapses well at low error), the boot with the rest
+  const [shell] = await reduce([await liner(v, target, pieces)], v.liner.maxTris ?? 300, 0.02);
+  return [...(await reduce(pieces, v.maxTris - shell.index.length / 3)), shell];
+}
+
+/**
+ * A thin shell over our own calves/feet up to just under the boot's top, in one colour: closes
+ * boots that are open at the back without touching the skin texture. Skinned like the body.
+ */
+async function liner(v, target, pieces) {
+  const { readTargetBody } = await import('./lib/skeleton.mjs');
+  const body = await readTargetBody(target.sex);
+  const region = target.joints.map((j) => REGION_OF_BONE(j.name));
+  const top = Math.max(...pieces.flatMap((p) => [...p.position].filter((_, i) => i % 3 === 1))) - (v.liner.below ?? 0.03);
+  const dom = (vtx) => { let bi = 0; for (let k = 1; k < 4; k++) if (body.weights[vtx * 4 + k] > body.weights[vtx * 4 + bi]) bi = k; return body.joints[vtx * 4 + bi]; };
+  const nrm = new Float32Array(body.count * 3);
+  for (let t = 0; t < body.index.length; t += 3) {
+    const [a, b, c] = [body.index[t], body.index[t + 1], body.index[t + 2]];
+    const pa = body.positions.subarray(a * 3, a * 3 + 3), pb = body.positions.subarray(b * 3, b * 3 + 3), pc = body.positions.subarray(c * 3, c * 3 + 3);
+    const e1 = [pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]], e2 = [pc[0] - pa[0], pc[1] - pa[1], pc[2] - pa[2]];
+    const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+    for (const i of [a, b, c]) for (let k = 0; k < 3; k++) nrm[i * 3 + k] += n[k];
+  }
+  for (let i = 0; i < nrm.length; i += 3) { const l = Math.hypot(nrm[i], nrm[i + 1], nrm[i + 2]) || 1; for (let k = 0; k < 3; k++) nrm[i + k] /= l; }
+  const index = [];
+  for (let t = 0; t < body.index.length; t += 3) {
+    const tri = [body.index[t], body.index[t + 1], body.index[t + 2]];
+    // the back half of the calf only: the boot itself covers the front and the foot
+    const calfZ = target.pos(body.positions[tri[0] * 3] > 0 ? 'calf_l' : 'calf_r')[2];
+    if (tri.every((i) => region[dom(i)] === 'calves' && body.positions[i * 3 + 1] < top && body.positions[i * 3 + 2] < calfZ + 0.01)) index.push(...tri);
+  }
+  // push outwards from the calf bone axis (winding-independent)
+  const off = v.liner.offset ?? 0.004;
+  const position = Float32Array.from(body.positions);
+  for (let i = 0; i < body.count; i++) {
+    const side = body.positions[i * 3] > 0 ? 'l' : 'r';
+    const a = target.pos(`calf_${side}`), b = target.pos(`foot_${side}`);
+    const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], ap = [0, 1, 2].map((k) => body.positions[i * 3 + k] - a[k]);
+    const t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / (ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2)));
+    const r = [0, 1, 2].map((k) => ap[k] - ab[k] * t);
+    const l = Math.hypot(...r) || 1;
+    for (let k = 0; k < 3; k++) { position[i * 3 + k] += (r[k] / l) * off; nrm[i * 3 + k] = r[k] / l; }
+  }
+  const hex = v.liner.color.replace('#', '');
+  const color = [0, 2, 4].map((k) => parseInt(hex.slice(k, k + 2), 16) / 255);
+  return compact({
+    position, normal: nrm, uv: new Float32Array(body.count * 2).fill(0.5),
+    joints: Uint16Array.from(body.joints), weights: Float32Array.from(body.weights), index,
+    dominant: Int32Array.from({ length: body.count }, (_, i) => dom(i)), sourceDominant: null,
+    material: { name: 'liner', image: null, color, srgb: true },
+  });
 }
 
 /** Simplifies a visual's pieces together under its triangle budget (one temp document). */
-async function reduce(pieces, maxTris) {
+async function reduce(pieces, maxTris, maxError) {
   const tris = pieces.reduce((a, p) => a + p.index.length / 3, 0);
   if (!maxTris || tris <= maxTris) return pieces.map(compact);
   const doc = new Document();
@@ -190,7 +242,7 @@ async function reduce(pieces, maxTris) {
     return prim;
   });
   doc.createScene().addChild(doc.createNode().setMesh(mesh));
-  await simplifyTo(doc, maxTris);
+  await simplifyTo(doc, maxTris, maxError);
   return mesh.listPrimitives().map((prim) => {
     const p = pieces[prims.indexOf(prim)] ?? pieces[0];
     const piece = toPiece(prim, null, null);
@@ -230,7 +282,8 @@ const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 function atlasKey(v, piece) {
   const m = piece.material;
   const size = v.sizes?.[m.name] ?? v.size ?? 256;
-  return m.image ? `img:${sha(m.image).slice(0, 16)}:${size}:${v.tint ?? ''}:${v.hue ?? ''}` : `col:${m.color.map((c) => c.toFixed(3)).join(',')}:${v.tint ?? ''}:${v.hue ?? ''}`;
+  const fx = `${v.tint ?? ''}:${v.hue ?? ''}:${v.colorize ?? ''}:${v.brightness ?? ''}`;
+  return m.image ? `img:${sha(m.image).slice(0, 16)}:${size}:${fx}` : `col:${m.color.map((c) => c.toFixed(3)).join(',')}:${m.name === 'liner' ? '' : fx}`;
 }
 
 // ---------------------------------------------------------------- rigid pieces
@@ -382,7 +435,7 @@ for (const [id, piece] of allPieces) {
   piece.atlasKey = key;
   if (!atlasEntries.has(key)) {
     const m = piece.material;
-    atlasEntries.set(key, { id: key, image: m.image, color: m.color, tint: v.tint, hue: v.hue, size: v.sizes?.[m.name] ?? v.size ?? 256 });
+    atlasEntries.set(key, { id: key, image: m.image, color: m.color, ...(m.name === 'liner' ? {} : { tint: v.tint, hue: v.hue, colorize: v.colorize, brightness: v.brightness }), size: v.sizes?.[m.name] ?? v.size ?? 256 });
   }
 }
 const atlas = await packAtlas([...atlasEntries.values()]);
@@ -453,7 +506,8 @@ for (const sex of SEXES) {
   }
   fs.writeFileSync(path.join(OUT, 'gear-rigid.glb'), await io.writeBinary(doc));
 }
-fs.writeFileSync(path.join(OUT, 'gear-atlas.webp'), await sharp(atlas.png).webp({ quality: 90, effort: 6 }).toBuffer());
+fs.writeFileSync(path.join(OUT, 'gear-atlas.webp'), await encodeAtlas(atlas.png));
+if (process.env.GEAR_DEBUG) fs.writeFileSync(path.join(OUT, 'atlas-debug.png'), atlas.png);
 
 const files = ['gear-male.glb', 'gear-female.glb', 'gear-rigid.glb', 'gear-atlas.webp'];
 const manifestVisuals = {};

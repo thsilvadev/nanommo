@@ -5,7 +5,7 @@ const SWATCH = 8;
 const MAX = 4096;
 
 /**
- * entries: { id, image: Buffer|null, color?: [r,g,b] (0..1), tint?: '#rrggbb', hue?: degrees, size: 256|512|1024 }
+ * entries: { id, image: Buffer|null, color?: [r,g,b] (0..1), tint?: '#rrggbb', hue?: degrees, colorize?: '#rrggbb' (greyscale then tint), brightness?: factor, size: 256|512|1024 }
  * Returns the atlas PNG, its size and per-id rects in UV units (x, y, w, h; y from the top, as glTF UVs).
  */
 export async function packAtlas(entries) {
@@ -22,6 +22,8 @@ export async function packAtlas(entries) {
     let input;
     if (it.image) {
       let img = sharp(it.image).resize(it.px, it.px, { fit: 'fill' }).removeAlpha();
+      if (it.colorize) img = sharp(await img.greyscale().normalise().png().toBuffer()).tint(it.colorize);
+      if (it.brightness) img = img.modulate({ brightness: it.brightness });
       if (it.hue) img = img.modulate({ hue: it.hue });
       if (it.tint) img = img.tint(it.tint);
       input = await img.png().toBuffer();
@@ -70,4 +72,12 @@ export function remapUVs(prim, rect) {
     prim.setAttribute('TEXCOORD_0', uv);
   }
   uv.setArray(out);
+}
+
+/**
+ * The atlas as shipped (WebP). Lossy WebP subsamples chroma (4:2:0), which smeared small flat-colour
+ * swatches into their neighbours (black armour turned teal): near-lossless keeps full chroma.
+ */
+export function encodeAtlas(png) {
+  return sharp(png).webp({ nearLossless: true, quality: 80, effort: 6 }).toBuffer();
 }
