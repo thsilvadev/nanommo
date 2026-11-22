@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
-import type { TownRosterEntry } from '@nanommo/shared';
+import type { TownRosterEntry, VisibleEquipment } from '@nanommo/shared';
 import { CatalogService } from '../../../core/catalog.service';
 import { ChatNoticeService } from '../../../core/chat-notice.service';
 import { CharacterStore } from '../../../core/game.store';
@@ -28,7 +28,7 @@ const IDLE: AnimationState = { base: 'Idle' };
         @if (model(); as m) {
           @if (!viewerFailed()) {
             <app-character-viewer [sex]="m.sex" [heightCm]="m.heightCm" [appearance]="m.appearance" [dominantHand]="m.dominantHand"
-              [mainHandType]="hands().main" [offHandType]="hands().off" framing="full" [animation]="idle"
+              [mainHandType]="hands().main" [offHandType]="hands().off" [equipment]="equipment()" framing="full" [animation]="idle"
               [attr.aria-label]="entry().name" (failed)="viewerFailed.set(true)" />
           } @else { <span class="town-player-initial">{{ initial() }}</span> }
         } @else { <span class="town-player-initial">{{ initial() }}</span> }
@@ -75,6 +75,11 @@ export class TownPlayerCardComponent {
   readonly model = computed(() => {
     const e = this.entry();
     return portraitModel({ sex: e.sex, heightCm: e.heightCm, appearance: e.appearance, dominantHand: e.dominantHand ?? 'right' });
+  });
+  /** What the selected player wears (older servers only send the two hand items). */
+  readonly equipment = computed<VisibleEquipment>(() => {
+    const e = this.entry();
+    return e.equipment ?? { ...(e.mainHandItemId ? { mainHand: e.mainHandItemId } : {}), ...(e.offHandItemId ? { offHand: e.offHandItemId } : {}) };
   });
   readonly hands = computed(() => {
     const e = this.entry();

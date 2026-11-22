@@ -14,6 +14,9 @@ import { bakeDecal, hexToRgb, sampleColor, tintSkinPixels, type Decal, type Vec3
 import { BASE_CLIPS, HIT_CLIPS, MIRRORED_CLIPS, OVERLAY_CLIPS, SKIN_TEXTURE_SIZE, type BodyAsset } from './body-asset';
 import { CharacterAssetCache } from './character-asset-cache';
 import { gripMatrix } from './grip';
+import { visibleBodyGeometry } from './gear-regions';
+import { bowString, gearMaterial, gearMesh, mergedGearGeometry, planBands, planGear, type GearPlan } from './gear-merge';
+import type { LoadedGear } from './gear-manifest';
 
 /** Height of each body as modelled, in cm (assets report, Task 0). */
 export const NATIVE_HEIGHT_CM: Record<Sex, number> = { male: 181, female: 177 };
@@ -85,7 +88,10 @@ export class CharacterRig implements CharacterRigHandle {
   private readonly bodies = new Map<Sex, Promise<BodyAsset>>();
   /** Raw files are shared with every other rig and the town scene; this rig owns only its instances. */
   private readonly assets: CharacterAssetCache;
-  private readonly weapons = new Map<HandWeaponType, THREE.Object3D>();
+  /** Hand items by type (creator) or by gear visual id. */
+  private readonly weapons = new Map<string, THREE.Object3D>();
+  /** The body that wears the current Gear mesh (it may be the other sex's body). */
+  private gearHolder: BodyAsset | null = null;
   private readonly hairs = new Map<string, THREE.Object3D>();
   private current: BodyAsset | null = null;
   private handHolder: BodyAsset | null = null;
@@ -161,6 +167,15 @@ export class CharacterRig implements CharacterRigHandle {
     return body.root.worldToLocal(world).toArray() as [number, number, number];
   }
   bowDrawn(): number { return this.lastBowDrawn; }
+  gearVertexCount(): number {
+    const gear = this.current?.body.parent?.getObjectByName('Gear') as THREE.SkinnedMesh | undefined;
+    return gear ? gear.geometry.getAttribute('position').count : 0;
+  }
+  bodyTriangles(): number { return this.current ? (this.current.body.geometry.getIndex()?.count ?? 0) / 3 : 0; }
+  hairVisible(): boolean {
+    const head = this.current?.bones.get('Head');
+    return !!head?.children.some((c) => c.name.startsWith('hair:') && c.visible);
+  }
   modelScale(): number { return this.model.scale.y; }
   isDisposed(): boolean { return this.disposed; }
   isRendering(): boolean { return this.frame !== null; }
@@ -177,11 +192,15 @@ export class CharacterRig implements CharacterRigHandle {
     // failure leaves the previous character intact.
     const hair = pick('hair');
     const facial = pick('facialHair');
+    // Gear failing to load leaves the character bare (with type models in hand), never broken.
+    const gear: LoadedGear | null = config.equipment ? await this.assets.gear().catch(() => null) : null;
+    const plan = gear && config.equipment ? planGear(gear, config.equipment, () => undefined, config.dominantHand) : null;
+    const visualIn = (side: 'right' | 'left') => plan?.weapons.find((w) => w.side === side)?.visual ?? null;
     const [hairObject, beardObject, skinImages, weaponObjects] = await Promise.all([
       hair.asset ? this.loadGlb(hair.asset) : Promise.resolve(null),
       facial.asset?.endsWith('.glb') ? this.loadGlb(facial.asset) : Promise.resolve(null),
       this.loadSkinImages([pick('mouthDetails'), facial, pick('tattoo')]),
-      Promise.all((['right', 'left'] as const).map((side) => (config.hands[side] ? this.loadWeapon(config.hands[side]!) : null))),
+      Promise.all((['right', 'left'] as const).map((side) => (config.hands[side] ? this.loadWeapon(config.hands[side]!, gear, visualIn(side)) : null))),
     ]);
     if (this.disposed) return;
 
@@ -201,6 +220,7 @@ export class CharacterRig implements CharacterRigHandle {
     this.attachHead(body, 'beard', beardObject, hairColor);
     this.attachPiercing(body, pick('piercing'));
     this.attachHands(body, config.hands, weaponObjects);
+    this.wearGear(body, config.sex, gear, plan);
 
     this.useHandedness(body, config.dominantHand === 'left');
     this.model.scale.setScalar(config.heightCm / NATIVE_HEIGHT_CM[config.sex]);
@@ -516,18 +536,48 @@ export class CharacterRig implements CharacterRigHandle {
 
   // ---- Hand items ------------------------------------------------------------
 
-  private async loadWeapon(type: HandWeaponType): Promise<THREE.Object3D> {
-    let weapon = this.weapons.get(type);
+  private async loadWeapon(type: HandWeaponType, gear: LoadedGear | null = null, visual: string | null = null): Promise<THREE.Object3D> {
+    const source = visual ? gear?.rigid.get(visual) : undefined;
+    const key = source ? visual! : type;
+    let weapon = this.weapons.get(key);
     if (weapon) return weapon;
-    if (type === 'staff' || type === 'rod' || type === 'rune') {
+    if (source && gear) {
+      // the item's own model, textured by the gear atlas (shared material; geometry shared with the cache)
+      weapon = source.clone(true);
+      weapon.position.set(0, 0, 0); weapon.quaternion.identity(); weapon.scale.set(1, 1, 1);
+      weapon.traverse((child) => { if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).material = gearMaterial(gear); });
+    } else if (type === 'staff' || type === 'rod' || type === 'rune') {
       weapon = buildProceduralWeapon(type);
     } else {
       weapon = (await this.loadGlb(`weapons/${type}.glb`)).clone(true);
     }
     weapon.traverse((child) => { child.frustumCulled = false; });
-    weapon.name = `weapon:${type}`;
-    this.weapons.set(type, weapon);
+    weapon.name = `weapon:${key}`;
+    this.weapons.set(key, weapon);
     return weapon;
+  }
+
+  /**
+   * Puts the gear on: the covered body is left out of the body's index, the worn pieces are one
+   * Gear mesh on this body's skeleton (shared geometry/material: never disposed here), hair and
+   * beard hide under helmets and hoods. No plan: the bare body.
+   */
+  private wearGear(body: BodyAsset, sex: Sex, gear: LoadedGear | null, plan: GearPlan | null): void {
+    for (const holder of new Set([this.gearHolder, body])) {
+      const old = holder?.body.parent?.getObjectByName('Gear');
+      if (old) old.parent!.remove(old);
+    }
+    this.gearHolder = body;
+    body.body.geometry = plan && gear
+      ? visibleBodyGeometry(sex, body.body, plan.covered, planBands(gear, plan, sex))
+      : visibleBodyGeometry(sex, body.body, new Set(), []);
+    const geometry = plan && gear ? mergedGearGeometry(gear, sex, body, plan, { includeWeapons: false }) : null;
+    if (geometry && gear) body.body.parent!.add(gearMesh(geometry, gear, body.body.skeleton, body.body.bindMatrix));
+    const head = body.bones.get('Head')!;
+    for (const child of head.children) {
+      if (child.name.startsWith('hair:')) child.visible = !plan?.hidesHair;
+      if (child.name.startsWith('beard:')) child.visible = !plan?.hidesBeard;
+    }
   }
 
   private attachHands(body: BodyAsset, hands: ViewerConfig['hands'], loaded: Array<THREE.Object3D | null>): void {
@@ -725,8 +775,9 @@ export class CharacterRig implements CharacterRigHandle {
   /** String vertices and an arrow for a bow item, created once per bow object. */
   private bowParts(item: THREE.Object3D): BowDrawParts | null {
     if (this.bowDraw?.item === item) return this.bowDraw;
-    let string: THREE.Mesh | null = null;
-    item.traverse((child) => {
+    // gear bows: a 'BowString' child; the old type model: the 'White' material
+    let string: THREE.Mesh | null = bowString(item);
+    if (!string) item.traverse((child) => {
       const mesh = child as THREE.Mesh;
       if (mesh.isMesh && (mesh.material as THREE.Material).name === 'White') string = mesh;
     });
@@ -851,7 +902,7 @@ export class CharacterRig implements CharacterRigHandle {
     for (const pending of this.bodies.values()) {
       pending.then((body) => { body.mixer.stopAllAction(); disposeBodyInstance(body); }, () => undefined);
     }
-    for (const [type, weapon] of this.weapons) if (PROCEDURAL_WEAPONS.has(type)) disposeObject(weapon);
+    for (const [key, weapon] of this.weapons) if (PROCEDURAL_WEAPONS.has(key as HandWeaponType)) disposeObject(weapon);
     for (const hair of this.hairs.values()) disposeMaterials(hair);
     this.renderer.dispose();
     this.renderer.forceContextLoss();

@@ -291,6 +291,53 @@ describe('CharacterViewerComponent', () => {
     expect(created.events.failed).toBe(0);
   });
 
+  describe('wearing equipment', () => {
+    it('wears body, shoes and helmet as one Gear mesh, hides the covered body and the hair', async () => {
+      const bare = await create();
+      fixture = bare.fixture;
+      await settle(fixture, bare.events);
+      const fullBody = fixture.componentInstance.rig()!.bodyTriangles();
+      fixture.destroy();
+      const created = await create({}, { equipment: { body: 'equip_body_phys_t3', shoes: 'equip_shoes_fire_t3', head: 'equip_head_phys_t2' } });
+      fixture = created.fixture;
+      await settle(fixture, created.events);
+      const rig = fixture.componentInstance.rig()!;
+      expect(rig.gearVertexCount()).toBeGreaterThan(1000);
+      expect(rig.bodyTriangles()).toBeLessThan(fullBody * 0.6);
+      expect(rig.hairVisible()).toBeFalse();
+      expect(created.events.failed).toBe(0);
+
+      fixture.componentRef.setInput('equipment', null);
+      await settle(fixture, created.events, { loaded: 2 });
+      expect(rig.gearVertexCount()).toBe(0);
+      expect(rig.bodyTriangles()).toBe(fullBody);
+    });
+
+    it('holds each item\'s own weapon model, in the dominant hand', async () => {
+      const created = await create({}, { dominantHand: 'left', mainHandType: 'sword', offHandType: 'shield', equipment: { mainHand: 'equip_sword_t3', offHand: 'equip_shield_t2' } });
+      fixture = created.fixture;
+      await settle(fixture, created.events);
+      expect(weaponNames(fixture, 'hand_l')).toEqual(['weapon:sword-golden']);
+      expect(weaponNames(fixture, 'hand_r')).toEqual(['weapon:shield-heater']);
+      // an item without a visual falls back to the type's model
+      fixture.componentRef.setInput('equipment', { mainHand: 'equip_unknown' });
+      await settle(fixture, created.events, { loaded: 2 });
+      expect(weaponNames(fixture, 'hand_l')).toEqual(['weapon:sword']);
+    });
+
+    it('draws the string of an item bow', async () => {
+      const created = await create({}, { mainHandType: 'bow', equipment: { mainHand: 'equip_bow_t3' } });
+      fixture = created.fixture;
+      await settle(fixture, created.events);
+      expect(weaponNames(fixture, 'hand_r')).toEqual(['weapon:bow-evil']);
+      const rig = fixture.componentInstance.rig()!;
+      const now = 2_000_000;
+      rig.setAnimation(() => ({ base: 'CombatIdle', oneShot: { clip: 'Attack', startedAtMs: now - 0.55 * 1533, speed: 1 } }), () => now);
+      rig.renderNow();
+      expect(rig.bowDrawn()).toBeGreaterThan(0.9);
+    });
+  });
+
   it('switches body with sex, scales with height and reuses the renderer', async () => {
     const created = await create({}, { heightCm: 181 });
     fixture = created.fixture;

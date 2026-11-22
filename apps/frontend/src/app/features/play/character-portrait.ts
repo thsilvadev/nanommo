@@ -1,4 +1,4 @@
-import type { CharacterAppearance, HandWeaponType, Sex } from '@nanommo/shared';
+import { VISIBLE_EQUIPMENT_SLOTS, type CharacterAppearance, type HandWeaponType, type Sex, type VisibleEquipment } from '@nanommo/shared';
 import { characterAnimationState, type AnimationBattleEntry, type AnimationInput, type AnimationState, type AttackStyle } from '../../shared/character-animation/animation-state';
 
 const HAND_TYPES: ReadonlySet<string> = new Set<HandWeaponType>(['dagger', 'sword', 'greatsword', 'bow', 'staff', 'rod', 'shield', 'rune']);
@@ -21,6 +21,13 @@ export function portraitHandTypes(
     return type && HAND_TYPES.has(type) ? (type as HandWeaponType) : null;
   };
   return { main: typeIn('mainHand'), off: typeIn('offHand') };
+}
+
+/** The equipped items the 3D model wears (the six visible slots; accessories are not shown). */
+export function portraitEquipment(equipment: ReadonlyArray<{ slot: string; itemId: string }>): VisibleEquipment {
+  const out: VisibleEquipment = {};
+  for (const row of equipment) if ((VISIBLE_EQUIPMENT_SLOTS as readonly string[]).includes(row.slot) && row.itemId) out[row.slot as keyof VisibleEquipment] = row.itemId;
+  return out;
 }
 
 /** Viewer inputs for a character, or null while it has no 3D appearance. */

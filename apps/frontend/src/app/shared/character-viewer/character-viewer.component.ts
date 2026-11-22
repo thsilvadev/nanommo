@@ -1,7 +1,7 @@
 import {
   ChangeDetectionStrategy, Component, ElementRef, InjectionToken, NgZone, OnDestroy, computed, effect, inject, input, output, signal, untracked,
 } from '@angular/core';
-import { resolveHandAttachments, type AppearanceCatalog, type CharacterAppearance, type HandWeaponType, type Sex } from '@nanommo/shared';
+import { resolveHandAttachments, type AppearanceCatalog, type CharacterAppearance, type HandWeaponType, type Sex, type VisibleEquipment } from '@nanommo/shared';
 import type { AnimationSource, CharacterRigHandle, ViewerConfig, ViewerFraming } from './character-viewer.types';
 
 export interface CharacterViewerEnv {
@@ -78,6 +78,8 @@ export class CharacterViewerComponent implements OnDestroy {
   readonly dominantHand = input<'right' | 'left'>('right');
   readonly mainHandType = input<HandWeaponType | null>(null);
   readonly offHandType = input<HandWeaponType | null>(null);
+  /** Equipped items worn as 3D gear; the creator leaves it null (bare body). */
+  readonly equipment = input<VisibleEquipment | null>(null);
   /** Drag to rotate (creator). */
   readonly interactive = input(false);
   readonly framing = input<ViewerFraming>('full');
@@ -105,6 +107,7 @@ export class CharacterViewerComponent implements OnDestroy {
     dominantHand: this.dominantHand(),
     interactive: this.interactive(),
     framing: this.framing(),
+    equipment: this.equipment(),
   }));
 
   private instance: Rig | null = null;

@@ -131,11 +131,16 @@ export function mergedGearGeometry(gear: LoadedGear, sex: Sex, body: BodyAsset, 
 }
 
 const materials = new WeakMap<LoadedGear, THREE.MeshStandardMaterial>();
-/** The gear mesh of one character: shared geometry and material, bound to that character's skeleton. */
-export function gearMesh(geometry: THREE.BufferGeometry, gear: LoadedGear, skeleton: THREE.Skeleton, bindMatrix: THREE.Matrix4): THREE.SkinnedMesh {
+/** The one material of all gear (the atlas), page-wide per loaded gear. */
+export function gearMaterial(gear: LoadedGear): THREE.MeshStandardMaterial {
   let material = materials.get(gear);
   if (!material) materials.set(gear, (material = new THREE.MeshStandardMaterial({ map: gear.atlas, roughness: 0.9, metalness: 0 })));
-  const mesh = new THREE.SkinnedMesh(geometry, material);
+  return material;
+}
+
+/** The gear mesh of one character: shared geometry and material, bound to that character's skeleton. */
+export function gearMesh(geometry: THREE.BufferGeometry, gear: LoadedGear, skeleton: THREE.Skeleton, bindMatrix: THREE.Matrix4): THREE.SkinnedMesh {
+  const mesh = new THREE.SkinnedMesh(geometry, gearMaterial(gear));
   mesh.name = 'Gear';
   mesh.frustumCulled = false;
   mesh.bind(skeleton, bindMatrix);

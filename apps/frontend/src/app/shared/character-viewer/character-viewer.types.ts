@@ -1,4 +1,4 @@
-import type { AppearanceCatalog, CharacterAppearance, HandWeaponType, Sex } from '@nanommo/shared';
+import type { AppearanceCatalog, CharacterAppearance, HandWeaponType, Sex, VisibleEquipment } from '@nanommo/shared';
 import type { AnimationState } from '../character-animation/animation-state';
 
 /** A fixed pose, or a function evaluated by the rig on every frame with the current time. */
@@ -23,6 +23,8 @@ export interface ViewerConfig {
   dominantHand: 'right' | 'left';
   interactive: boolean;
   framing: ViewerFraming;
+  /** Equipped item per visible slot: worn as 3D gear (absent/null: bare body, type models in hand — the creator). */
+  equipment?: VisibleEquipment | null;
 }
 
 /** Read-only view of the rig, used by the component's consumers and tests. */
@@ -46,6 +48,12 @@ export interface CharacterRigHandle {
   bonePosition(name: string): [number, number, number];
   /** How far the bow string is drawn on the last frame (0 = at rest, 1 = full draw). */
   bowDrawn(): number;
+  /** Vertices of the worn gear mesh (0 when none). */
+  gearVertexCount(): number;
+  /** Triangles of the body left visible under the gear. */
+  bodyTriangles(): number;
+  /** Whether the hair (if any) is shown (helmets and hoods hide it). */
+  hairVisible(): boolean;
   modelScale(): number;
   isDisposed(): boolean;
   isRendering(): boolean;

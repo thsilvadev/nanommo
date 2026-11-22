@@ -1,4 +1,4 @@
-import { portraitAnimationSource, portraitHandTypes, portraitModel } from './character-portrait';
+import { portraitAnimationSource, portraitEquipment, portraitHandTypes, portraitModel } from './character-portrait';
 
 describe('character portrait', () => {
   const items: Record<string, { weaponType?: string }> = {
@@ -19,6 +19,14 @@ describe('character portrait', () => {
 
   it('ignores unknown items and weapon types the viewer has no model for', () => {
     expect(portraitHandTypes([{ slot: 'mainHand', itemId: 'missing' }, { slot: 'offHand', itemId: 'equip_odd' }], lookup)).toEqual({ main: null, off: null });
+  });
+
+  it('keeps the six visible slots of the equipped items (no accessories)', () => {
+    expect(portraitEquipment([
+      { slot: 'body', itemId: 'equip_body_phys_t1' }, { slot: 'accessoryLeft', itemId: 'ring' },
+      { slot: 'mainHand', itemId: 'equip_sword_t1' }, { slot: 'shoes', itemId: 'equip_shoes_holy_t4' },
+    ])).toEqual({ body: 'equip_body_phys_t1', mainHand: 'equip_sword_t1', shoes: 'equip_shoes_holy_t4' });
+    expect(portraitEquipment([])).toEqual({});
   });
 
   it('only builds a model for a character that has an appearance', () => {
