@@ -141,7 +141,7 @@
       "triangles": 832
     },
     "shield-heater": {
-      "triangles": 1411
+      "triangles": 1408
     },
     "shield-round": {
       "triangles": 1056
@@ -168,10 +168,10 @@
   "files": {
     "gear-male.glb": 2448220,
     "gear-female.glb": 2567508,
-    "gear-rigid.glb": 1643076,
-    "gear-atlas.webp": 1442578,
+    "gear-rigid.glb": 1642448,
+    "gear-atlas.webp": 1442270,
     "manifest.json": 30485
   },
   "atlas": 2048,
-  "totalBytes": 8131867
+  "totalBytes": 8130931
 }

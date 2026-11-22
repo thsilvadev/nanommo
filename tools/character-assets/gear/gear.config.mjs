@@ -113,7 +113,7 @@ Object.assign(VISUALS, {
   'rod-crystal': W('mainHand', 'rod', 'sketchfab:8605d39c12e14e7c969ab828a351e677', 0.58, { up: 'y', grip: 0.3 }),
   'rod-orb': W('mainHand', 'rod', 'sketchfab:e2c5a4676ef9408a8cb2ed9aa7454ffa', 0.62, { up: 'auto', grip: 0.3 }),
   'shield-round': W('offHand', 'shield', 'weapons:Shield_Round', 0.62, SHIELD),
-  'shield-heater': W('offHand', 'shield', 'weapons:Shield_Heater', 0.68, { ...SHIELD, paint: [{ material: 'LightSteel', color: '#b3261e', within: 0.09 }, { material: 'Steel', color: '#d2372c', within: 0.045 }] }),
+  'shield-heater': W('offHand', 'shield', 'weapons:Shield_Heater', 0.68, { ...SHIELD, paint: [{ material: 'Steel', color: '#d2372c', within: 0.065 }] }),
   'shield-celtic-golden': W('offHand', 'shield', 'weapons:Shield_Celtic_Golden', 0.78, SHIELD),
   // runes: orbs (user, 2026-11-22) — blue, red, purple
   'rune-orb-blue': W('offHand', 'rune', 'sketchfab:fc381c9a41694f5eac97e6df68d41cf5', 0.16, { nodes: ['Glass_Ball_lambert1_0'], grip: 0, colorize: '#3f86ff', brightness: 1.5 }),
