@@ -29,8 +29,7 @@ aparecem com o equipamento** em todos os lugares onde o modelo 3D aparece.
 - Mudar stats, itens, drops ou o catálogo de jogo.
 - Tecido com física (capas e robes seguem o esqueleto; capas rígidas balançam com o tronco).
 - Tingimento pelo jogador.
-- Trocar os ícones do inventário: o usuário faz isso depois; este trabalho entrega a lista dos
-  itens cujo modelo 3D ficou diferente do ícone atual (ex.: "Worn Arcane Helm" virando chapéu de mago).
+(Os ícones SVG **entram** neste trabalho: ver "Revisão e validação".)
 
 ## Anti-objetivos (falharia mesmo "funcionando")
 
@@ -229,13 +228,23 @@ material `White`, ver `CharacterRig.bowParts`); o build gera/renomeia isso.
   arma guardada/escondida na cidade, é uma flag.)*
 - Custo: assets compartilhados por cache; cada personagem instancia só as peças que usa.
   O aquecimento da cidade (`warm…`) pré-carrega os visuais dos jogadores presentes.
-- *(Chamada minha — orçamento de desempenho)* As peças skinned de um personagem (Body + botas +
-  capuz) são **fundidas numa única malha skinned por personagem** quando compartilham material
-  atlas, senão ficam separadas; no nível de detalhe `low` da cidade, personagens distantes ou
-  dormindo mostram só Body e arma (sem elmo, capa, botas). **Gate de aprovação:** medição com 30
-  personagens equipados na cidade (swiftshader, mesmo harness) — o tempo de frame não pode piorar
-  mais que 25% em relação a 30 personagens sem equipamento hoje, e o download total dos GLBs de
-  gear de um personagem T3 completo fica ≤ 1,5 MB.
+- **Meta do usuário: 200 personagens full-gear na mesma cidade.** São dois custos diferentes:
+  - *Download* — resolvido com **pré-carregamento numa tela de "Carregando" antes de entrar no
+    jogo**: todos os GLBs de gear (e o manifesto) são baixados e decodificados uma vez; depois
+    disso nenhum personagem que aparece na cidade espera rede. Orçamento: o conjunto inteiro de
+    gear (49 itens × 2 sexos quando skinned) ≤ 12 MB, com cache do navegador/CDN
+    (`vercel.json`, versão no nome como `animations.glb?v=`). A tela mostra progresso e entra no
+    jogo mesmo se um asset falhar (o slot fica vazio).
+  - *Desenho por frame* — pré-carregar não resolve: 200 personagens × (corpo, cabelo, olhos +
+    até 6 peças) seriam ~2.000 chamadas de desenho. Por isso: (a) **as peças de cada personagem
+    (corpo visível + Body + botas + elmo + capa) são fundidas numa única malha skinned com um
+    atlas de textura por personagem**, montada uma vez ao vestir/trocar equipamento, e as armas
+    rígidas seguem separadas; (b) personagens no LOD `low` (já existe: distantes ou fora da tela,
+    animação a 10 Hz) usam a mesma malha fundida e, além de N mais próximos (proposta N = 60),
+    viram uma versão reduzida (menos triângulos) da malha fundida.
+  - **Gate de aprovação:** cena da cidade com 200 personagens T3 completos — medir tempo de frame
+    e chamadas de desenho contra a cidade de hoje com 200 personagens sem equipamento; meta:
+    chamadas de desenho por personagem ≤ hoje + 2, e tempo de frame no máximo 25% pior.
 
 ### 6. Criador
 
@@ -268,7 +277,10 @@ material `White`, ver `CharacterRig.bowParts`); o build gera/renomeia isso.
 - Build de produção do frontend; contagem de triângulos/peso dos GLBs no relatório do build.
 - `STATUS.md` (entrada datada), `ARCHITECTURE.md` (decisão), `ENGINEERING_NOTES.md` (armadilhas do
   pipeline), `tools/character-assets/README.md` (novo build e fontes do Sketchfab).
-- Ícones: lista dos itens cujo ícone deve mudar, no relatório final.
+- **Ícones (parte deste trabalho, decisão do usuário):** depois que cada slot for aprovado, os
+  SVGs do item (`apps/frontend/assets/ui/items/svg/equipment/<id>.svg` e
+  `svg-noframe/equipment/<id>.svg`) são redesenhados para parecer com o modelo 3D aprovado
+  (silhueta e cores), no mesmo estilo dos SVGs atuais.
 
 ## Fica a critério de quem constrói
 
