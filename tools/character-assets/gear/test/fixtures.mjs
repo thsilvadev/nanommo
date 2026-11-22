@@ -16,7 +16,7 @@ export const MIXAMO = {
  * and turned 180° about Y (facing -Z), with one quad skinned 100% to `quadBone` placed at
  * the middle of that bone's segment. `omit` leaves bones out (e.g. 'Head').
  */
-export function mixamoDoc(target, { scale = 2, omit = [], quadBone = 'lowerarm_l', quadTail = 'hand_l' } = {}) {
+export function mixamoDoc(target, { scale = 2, omit = [], quadBone = 'lowerarm_l', quadTail = 'hand_l', naming = 'mixamo' } = {}) {
   const doc = new Document();
   const buffer = doc.createBuffer();
   const scene = doc.createScene();
@@ -32,7 +32,7 @@ export function mixamoDoc(target, { scale = 2, omit = [], quadBone = 'lowerarm_l
     while (p && !ours.includes(p)) p = target.joints[target.index.get(p)].parent;
     const w = flip(target.pos(t));
     const pw = p ? world.get(p) : [0, 0, 0];
-    const node = doc.createNode(`mixamorig:${MIXAMO[t]}_${String(n++).padStart(2, '0')}`).setTranslation([w[0] - pw[0], w[1] - pw[1], w[2] - pw[2]]);
+    const node = doc.createNode(naming === 'ours' ? t : `mixamorig:${MIXAMO[t]}_${String(n++).padStart(2, '0')}`).setTranslation([w[0] - pw[0], w[1] - pw[1], w[2] - pw[2]]);
     (p ? nodes.get(p) : scene).addChild(node);
     nodes.set(t, node);
     world.set(t, w);

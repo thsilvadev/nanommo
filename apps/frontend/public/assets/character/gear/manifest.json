@@ -1,0 +1,94 @@
+{
+  "version": "236bfcdf1876",
+  "atlas": "gear-atlas.webp",
+  "items": {
+    "equip_body_magic_t1": "body-peasant",
+    "equip_body_magic_t2": "body-red-robe",
+    "equip_body_magic_t3": "body-purple-mage",
+    "equip_body_phys_t1": "body-ranger",
+    "equip_body_phys_t2": "body-dark-knight",
+    "equip_body_phys_t3": "body-handpainted-knight",
+    "equip_shoes_earth_t2": "shoes-peasant",
+    "equip_shoes_traveler_t1": "shoes-ranger"
+  },
+  "visuals": {
+    "body-dark-knight": {
+      "slot": "body",
+      "kind": "skinned",
+      "covers": [
+        "torso",
+        "upperarms",
+        "forearms",
+        "hands",
+        "thighs",
+        "calves"
+      ]
+    },
+    "body-handpainted-knight": {
+      "slot": "body",
+      "kind": "skinned",
+      "covers": [
+        "torso",
+        "upperarms",
+        "forearms",
+        "hands",
+        "thighs",
+        "calves"
+      ]
+    },
+    "body-peasant": {
+      "slot": "body",
+      "kind": "skinned",
+      "covers": [
+        "torso",
+        "upperarms",
+        "thighs"
+      ]
+    },
+    "body-purple-mage": {
+      "slot": "body",
+      "kind": "skinned",
+      "covers": [
+        "torso",
+        "upperarms",
+        "forearms",
+        "thighs",
+        "calves"
+      ]
+    },
+    "body-ranger": {
+      "slot": "body",
+      "kind": "skinned",
+      "covers": [
+        "torso",
+        "upperarms",
+        "forearms",
+        "thighs"
+      ]
+    },
+    "body-red-robe": {
+      "slot": "body",
+      "kind": "skinned",
+      "covers": [
+        "torso",
+        "upperarms",
+        "thighs",
+        "calves"
+      ]
+    },
+    "shoes-peasant": {
+      "slot": "shoes",
+      "kind": "skinned",
+      "covers": [
+        "feet"
+      ]
+    },
+    "shoes-ranger": {
+      "slot": "shoes",
+      "kind": "skinned",
+      "covers": [
+        "feet"
+      ]
+    }
+  }
+}

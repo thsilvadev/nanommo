@@ -55,3 +55,28 @@ variações no nome das pastas (procura pelo prefixo).
   onde estariam na tela. Exemplo: `node preview/shoot.mjs preview/screenshots/animation preview/animation-configs.json`.
 - `node preview/make-example-battle.mjs` regera `preview/example-battle.json` com o motor real
   (`packages/shared` compilado): cast de Fire Ball, ataques, dano recebido e morte num só log.
+
+## Equipamentos (gear)
+
+Gera os equipamentos vestíveis em `apps/frontend/public/assets/character/gear/` (design:
+`docs/superpowers/specs/2026-11-22-wearable-equipment-3d-design.md`).
+
+```bash
+node gear/fetch-sources.mjs     # KayKit (git) + modelos do Sketchfab (precisa de ~/.sketchfab_token)
+node gear/build-gear.mjs        # tudo; --only a,b para alguns visuais; --review <slot> gera a folha de contato
+npm run gear:test               # testes do pipeline (o build.test usa as fontes reais)
+node preview/shoot-gear.mjs body 'body-ranger+shoes-ranger'   # folha de contato de combinações
+```
+
+- **Fontes:** além dos packs acima, o pack Modular Character Outfits (em `tools/npc-assets/source/`),
+  os repositórios KayKit Adventurers/Skeletons (CC0) e modelos do Sketchfab (IDs em `gear/gear.config.mjs`;
+  o token da API vai em `~/.sketchfab_token`, fora do repositório: Settings → Password & API).
+- **Um visual por entrada** em `gear/gear.config.mjs` (método `parts`, `retarget`, `autoskin`, `rigid`
+  e filtros); `ITEMS` diz qual item mostra qual visual.
+- **Saídas:** `gear-male.glb`/`gear-female.glb` (malhas skinned no nosso esqueleto, ordem de juntas igual
+  à do corpo), `gear-rigid.glb`, `gear-atlas.webp` (todas as texturas; as UVs já apontam para ele),
+  `manifest.json`, `CREDITS.md` e `build-report.json`. O build falha se um visual passar do teto de
+  triângulos ou a pasta passar de 12 MB.
+- Gear nunca leva pele: material de pele ou região de pele da textura é removido, e a região do corpo
+  que fica de fora aparece com a pele do próprio jogador.
+- Licenças fora de CC0/CC-BY vão para `UNLICENSED_ASSETS_README.txt` na raiz (gerado pelo build).

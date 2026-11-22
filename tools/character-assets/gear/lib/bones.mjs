@@ -40,12 +40,15 @@ export function normalizeBoneName(name) {
 /** Our bone for a source bone name, or undefined. */
 export function targetBoneFor(name) { return ALIAS_TO_TARGET.get(normalizeBoneName(name)); }
 
-/** First source joint per target bone wins (helper duplicates such as Shin.L.001 are left unmapped). */
-export function mapSourceBones(joints) {
+/**
+ * First source joint per target bone wins (helper duplicates such as Shin.L.001 are left unmapped).
+ * `exact`: our own bone names — a rig that already uses them (Quaternius) maps each bone to itself.
+ */
+export function mapSourceBones(joints, exact = new Set()) {
   const map = new Map();
   const taken = new Set();
   for (const j of joints) {
-    const t = targetBoneFor(j.getName());
+    const t = exact.has(j.getName()) ? j.getName() : targetBoneFor(j.getName());
     if (t && !taken.has(t)) { map.set(j, t); taken.add(t); }
   }
   return map;

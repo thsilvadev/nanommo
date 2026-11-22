@@ -35,7 +35,7 @@ export function retargetSkinned(doc, target, opts = {}) {
   const sJoints = [...new Set(skinned.flatMap((n) => n.getSkin().listJoints()))];
   const sWorld = new Map(sJoints.map((j) => [j, j.getWorldMatrix()]));
   const sPosOf = (j) => mat4.getTranslation(vec3.create(), sWorld.get(j));
-  const map = mapSourceBones(sJoints);
+  const map = mapSourceBones(sJoints, new Set(target.index.keys()));
   const byTarget = new Map([...map].map(([j, t]) => [t, j]));
   const missing = KEY_BONES.filter((t) => !byTarget.has(t));
   if (missing.length) throw new Error(`missing key bones: ${missing.join(', ')}`);

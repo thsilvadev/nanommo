@@ -1,0 +1,63 @@
+#!/usr/bin/env node
+/**
+ * Contact sheet of one gear slot: every visual of the slot (rows: visual × sex) in
+ * Idle, Attack, Walk, CastLoop and Sit (columns).
+ *   node preview/shoot-gear.mjs <slot> [visual,visual+other...]  -> preview/screenshots/gear-<slot>.png
+ * ('a+b' wears both visuals in one row.)
+ * Reads the built gear from $GEAR_OUT (default: the frontend's assets). Needs a Chromium
+ * (CHROMIUM=/path, default /snap/bin/chromium).
+ */
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const repo = path.resolve(here, '../../..');
+const frontend = path.join(repo, 'apps/frontend');
+const gearDir = process.env.GEAR_OUT ?? path.join(frontend, 'public/assets/character/gear');
+const require = createRequire(path.join(frontend, 'package.json'));
+const esbuild = require(require.resolve('esbuild', { paths: [path.join(repo, 'node_modules/.pnpm/esbuild@0.23.0/node_modules')] }));
+const { chromium } = createRequire(path.join(repo, 'package.json'))('playwright');
+
+const [slot, list] = process.argv.slice(2);
+const manifest = JSON.parse(fs.readFileSync(path.join(gearDir, 'manifest.json'), 'utf8'));
+const visuals = list ? list.split(',') : Object.keys(manifest.visuals).filter((v) => manifest.visuals[v].slot === slot);
+const POSES = [['Idle', 0.3, 20], ['Attack', 0.35, 60], ['Walk', 0.4, 90], ['CastLoop', 0.3, 0], ['Sit', 0.5, 40]];
+const rows = visuals.flatMap((v) => ['male', 'female'].map((sex) => ({ v, sex })));
+
+const js = (await esbuild.build({ entryPoints: [path.join(here, 'gear-entry.js')], bundle: true, write: false, format: 'esm', nodePaths: [path.join(frontend, 'node_modules')], logLevel: 'error' })).outputFiles[0].text;
+const server = http.createServer((req, res) => {
+  const url = decodeURIComponent(req.url.split('?')[0]);
+  if (url === '/') return res.end('<!doctype html><body style="margin:0"><div id="host"></div><script type="module" src="/e.js"></script>');
+  if (url === '/e.js') { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(js); }
+  const file = url.startsWith('/gear/') ? path.join(gearDir, url.slice(6)) : path.join(frontend, 'public', url);
+  if (!fs.existsSync(file)) { res.writeHead(404); return res.end(); }
+  fs.createReadStream(file).pipe(res);
+}).listen(0, '127.0.0.1');
+await new Promise((r) => server.once('listening', r));
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/snap/bin/chromium', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const page = await browser.newPage({ viewport: { width: 240, height: 360 } });
+const errors = [];
+page.on('pageerror', (e) => errors.push(String(e)));
+await page.goto(`http://127.0.0.1:${server.address().port}/`);
+await page.waitForFunction(() => typeof window.applyConfig === 'function');
+const tiles = [];
+for (const [r, { v, sex }] of rows.entries()) for (const [c, [clip, t, yaw]] of POSES.entries()) {
+  await page.evaluate((cfg) => window.applyConfig(cfg), { sex, visuals: v.split('+'), clip, t, yaw });
+  tiles.push({ input: await page.locator('canvas').screenshot(), left: 160 + c * 240, top: r * 360 });
+}
+await browser.close();
+server.close();
+const labels = rows.map(({ v, sex }, r) => ({
+  input: Buffer.from(`<svg width="160" height="360" xmlns="http://www.w3.org/2000/svg"><rect width="160" height="360" fill="#1e1a17"/><text x="8" y="170" fill="#eee" font-family="sans-serif" font-size="14">${v}</text><text x="8" y="192" fill="#aaa" font-family="sans-serif" font-size="13">${sex}</text></svg>`),
+  left: 0, top: r * 360,
+}));
+const out = path.join(here, 'screenshots', `gear-${slot}.png`);
+fs.mkdirSync(path.dirname(out), { recursive: true });
+await sharp({ create: { width: 160 + POSES.length * 240, height: rows.length * 360, channels: 3, background: '#000' } })
+  .composite([...labels, ...tiles]).png().toFile(out);
+if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
+console.log(out);

@@ -17,6 +17,7 @@ export async function simplifyTo(doc, maxTriangles) {
   for (let attempt = 0; attempt < 12 && tris > maxTriangles; attempt++) {
     await doc.transform(simplify({ simplifier: MeshoptSimplifier, ratio, error }));
     tris = triangleCount(doc);
+    if (process.env.GEAR_DEBUG) console.error('simplify', attempt, ratio.toFixed(3), error.toFixed(3), tris);
     ratio *= 0.8; error *= 1.6;
   }
   return tris;

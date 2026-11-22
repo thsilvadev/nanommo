@@ -37,3 +37,9 @@ test('a rig without a head is refused', () => {
   const { doc } = mixamoDoc(target, { omit: ['Head'] });
   assert.throws(() => retargetSkinned(doc, target, {}), /missing key bones: Head/);
 });
+
+test('a rig already using our bone names maps each bone to itself (spine_02 stays spine_02)', () => {
+  const { doc, prim } = mixamoDoc(target, { naming: 'ours', scale: 1, quadBone: 'spine_02', quadTail: 'spine_03' });
+  retargetSkinned(doc, target, {});
+  assert.deepEqual(uniqueJoints(prim), [target.index.get('spine_02')]);
+});

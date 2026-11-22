@@ -1,0 +1,45 @@
+{
+  "visuals": {
+    "body-dark-knight": {
+      "maleTriangles": 2004,
+      "femaleTriangles": 2004
+    },
+    "body-handpainted-knight": {
+      "maleTriangles": 3496,
+      "femaleTriangles": 3496
+    },
+    "body-peasant": {
+      "maleTriangles": 5697,
+      "femaleTriangles": 5698
+    },
+    "body-purple-mage": {
+      "maleTriangles": 976,
+      "femaleTriangles": 974
+    },
+    "body-ranger": {
+      "maleTriangles": 5693,
+      "femaleTriangles": 5694
+    },
+    "body-red-robe": {
+      "maleTriangles": 1274,
+      "femaleTriangles": 1274
+    },
+    "shoes-peasant": {
+      "maleTriangles": 2374,
+      "femaleTriangles": 2374
+    },
+    "shoes-ranger": {
+      "maleTriangles": 2460,
+      "femaleTriangles": 2442
+    }
+  },
+  "files": {
+    "gear-male.glb": 1569780,
+    "gear-female.glb": 1672160,
+    "gear-rigid.glb": 124,
+    "gear-atlas.webp": 149456,
+    "manifest.json": 1848
+  },
+  "atlas": 2048,
+  "totalBytes": 3393368
+}
