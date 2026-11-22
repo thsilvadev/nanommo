@@ -90,36 +90,56 @@ test('every shoes item has a visual; elemental boots are the earth boots recolou
 });
 
 const out3 = fs.mkdtempSync(path.join(os.tmpdir(), 'gear-'));
-build(out3, 'body-dark-knight,body-handpainted-knight,shoes-ranger');
+build(out3, 'body-dark-knight,body-handpainted-knight,shoes-ranger,shoes-holy');
 const doc3 = await new NodeIO().read(path.join(out3, 'gear-male.glb'));
 const male = await readTargetSkeleton('male');
 const verts = (name) => { const P = doc3.getRoot().listNodes().find((n) => n.getName() === name).getMesh().listPrimitives()[0].getAttribute('POSITION'); return [...Array(P.getCount()).keys()].map((i) => P.getElement(i, [])); };
 
-test('physical T2/T3 bodies stop at the knee (no shin guards)', () => {
+test('physical T2/T3: no shin guards — below the knee only a body-hugging legging, down to mid-shin', async () => {
+  const { readTargetBody } = await import('../lib/skeleton.mjs');
+  const body = await readTargetBody('male');
   const knee = male.pos('calf_l')[1];
+  const skin = [];
+  for (let v = 0; v < body.count; v++) if (body.positions[v * 3 + 1] < knee + 0.05) skin.push(body.positions.subarray(v * 3, v * 3 + 3));
   for (const v of ['body-dark-knight', 'body-handpainted-knight']) {
-    const low = verts(v).filter((p) => p[1] < knee - 0.08).length;
-    assert.equal(low, 0, `${v}: ${low} vertices below the knee`);
+    const low = verts(v).filter((p) => p[1] < knee - 0.08);
+    assert.ok(low.length > 20, `${v}: no legging`);
+    assert.ok(Math.min(...low.map((p) => p[1])) < 0.33, `${v}: legging stops above mid-shin`);
+    const far = low.filter((p) => !skin.some((q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) < 0.012));
+    assert.equal(far.length, 0, `${v}: ${far.length} vertices below the knee stand off the leg (shin guard)`);
+    const node = doc3.getRoot().listNodes().find((n) => n.getName() === v);
+    const all = verts(v), idx = node.getMesh().listPrimitives()[0].getIndices().getArray();
+    const tris = [];
+    for (let t = 0; t < idx.length; t += 3) if ([idx[t], idx[t + 1], idx[t + 2]].some((i) => all[i][1] < knee)) tris.push([all[idx[t]], all[idx[t + 1]], all[idx[t + 2]]]);
+    const band = skin.filter((p) => p[1] > 0.3 && p[1] < knee - 0.02);
+    const covered = band.filter((p) => tris.some((tri) => pointTriangleDistance(p, tri) < 0.004)).length;
+    assert.ok(covered / band.length >= 0.98, `${v}: legging covers ${covered}/${band.length}`);
   }
 });
 
-test('traveler boots close the back of the calf (leather liner): >=90% of back-calf skin under 1.2 cm of boot', async () => {
+test('traveler boots are a real boot: every bit of calf skin up to the shaft lies under the liner (<4 mm)', async () => {
   const { readTargetBody } = await import('../lib/skeleton.mjs');
   const body = await readTargetBody('male');
   const shoe = verts('shoes-ranger');
   const top = Math.max(...shoe.map((p) => p[1])) - 0.05;
-  const calfZ = male.pos('calf_l')[2];
+  const calfIdx = [male.index.get('calf_l'), male.index.get('calf_r')];
+  const dominant = (v) => { let bi = 0; for (let k = 1; k < 4; k++) if (body.weights[v * 4 + k] > body.weights[v * 4 + bi]) bi = k; return body.joints[v * 4 + bi]; };
   const skin = [];
   for (let v = 0; v < body.count; v++) {
     const p = body.positions.subarray(v * 3, v * 3 + 3);
-    if (p[1] > 0.15 && p[1] < top && p[2] < calfZ - 0.02 && Math.abs(p[0]) > 0.04) skin.push(p);
+    if (p[1] > 0.15 && p[1] < top - 0.02 && calfIdx.includes(dominant(v))) skin.push(p);
   }
   const prim = doc3.getRoot().listNodes().find((n) => n.getName() === 'shoes-ranger').getMesh().listPrimitives()[0];
   const idx = prim.getIndices().getArray();
   const tris = [];
   for (let t = 0; t < idx.length; t += 3) tris.push([shoe[idx[t]], shoe[idx[t + 1]], shoe[idx[t + 2]]]);
-  const covered = skin.filter((p) => tris.some((tri) => pointTriangleDistance(p, tri) < 0.012)).length;
-  assert.ok(covered / skin.length >= 0.9, `${covered}/${skin.length}`);
+  const covered = skin.filter((p) => tris.some((tri) => pointTriangleDistance(p, tri) < 0.004)).length;
+  assert.ok(covered / skin.length >= 0.98, `${covered}/${skin.length}`);
+  // the ankle too: no visible skin between the shaft and the foot (the feet region is hidden under any boot)
+  const ankle = [];
+  for (let v = 0; v < body.count; v++) { const p = body.positions.subarray(v * 3, v * 3 + 3); if (p[1] < 0.2 && calfIdx.includes(dominant(v))) ankle.push(p); }
+  const ankleCovered = ankle.filter((p) => tris.some((tri) => pointTriangleDistance(p, tri) < 0.004)).length;
+  assert.ok(ankleCovered / ankle.length >= 0.95, `ankle ${ankleCovered}/${ankle.length}`);
 });
 
 /** Distance from p to triangle [a, b, c] (Ericson, Real-Time Collision Detection 5.1.5). */
@@ -165,4 +185,29 @@ test('shipped atlas keeps the Dark Knight flat colours (regression: lossy WebP t
     found.add(match);
   }
   assert.equal(found.size, 3);
+});
+
+test('holy boots are cream (#cfcaa9 family), not silver-blue', async () => {
+  const sharp = (await import('sharp')).default;
+  const prim = doc3.getRoot().listNodes().find((n) => n.getName() === 'shoes-holy').getMesh().listPrimitives()[0];
+  const uv = prim.getAttribute('TEXCOORD_0');
+  const { data, info } = await sharp(path.join(out3, 'gear-atlas.webp')).raw().toBuffer({ resolveWithObject: true });
+  let r = 0, g = 0, b = 0;
+  for (let i = 0; i < uv.getCount(); i++) { const [u, v] = uv.getElement(i, []); const p = (Math.floor(v * info.height) * info.width + Math.floor(u * info.width)) * info.channels; r += data[p]; g += data[p + 1]; b += data[p + 2]; }
+  const n = uv.getCount();
+  assert.ok(r / n > b / n + 10 && g / n > b / n, `mean rgb ${(r / n) | 0},${(g / n) | 0},${(b / n) | 0}`);
+});
+
+test('a shell hides the skin under it: the manifest carries per-sex hide bands for shells', () => {
+  const m = JSON.parse(fs.readFileSync(path.join(out3, 'manifest.json'), 'utf8'));
+  for (const v of ['shoes-ranger', 'body-dark-knight']) {
+    for (const sex of ['male', 'female']) {
+      const bands = m.visuals[v].hide?.[sex];
+      assert.ok(Array.isArray(bands) && bands.length, `${v} ${sex}`);
+      for (const b of bands) assert.ok(b.region === 'calves' && b.maxY > b.minY, JSON.stringify(b));
+    }
+  }
+  const knee = male.pos('calf_l')[1];
+  const legging = m.visuals['body-dark-knight'].hide.male[0];
+  assert.ok(legging.maxY <= knee + 0.05 && legging.minY >= 0.2, JSON.stringify(legging));
 });

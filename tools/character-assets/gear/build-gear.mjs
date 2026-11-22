@@ -97,6 +97,9 @@ async function loadSources(v, sex) {
 
 // ---------------------------------------------------------------- pieces
 
+const hideBands = {}; // visual id -> sex -> [{ region, minY, maxY }] (bind-pose heights)
+const round3 = (x) => Math.round(x * 1000) / 1000;
+
 export function linearToSrgb(c) { return c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055; }
 
 /** A primitive as plain arrays in our bind space + its material. */
@@ -170,40 +173,43 @@ async function buildPieces(id, v, target) {
     }
   }
   if (!v.liner) return reduce(pieces, v.maxTris);
-  // the liner is reduced on its own (a smooth shell collapses well at low error), the boot with the rest
-  const [shell] = await reduce([await liner(v, target, pieces)], v.liner.maxTris ?? 300, 0.02);
+  // the shell is never simplified: any error lets the skin poke through it
+  const shell = await liner(v, target, pieces);
+  // the skin under the shell is hidden at runtime (no z-fighting); the band sits 1 cm inside the shell's
+  ((hideBands[v.id] ??= {})[target.sex] ??= []).push({ region: 'calves', minY: round3(shell.band.minY + 0.01), maxY: round3(shell.band.maxY - 0.01) });
   return [...(await reduce(pieces, v.maxTris - shell.index.length / 3)), shell];
 }
 
 /**
- * A thin shell over our own calves/feet up to just under the boot's top, in one colour: closes
- * boots that are open at the back without touching the skin texture. Skinned like the body.
+ * A thin one-colour shell over our own legs, skinned like the body (closes open-backed boots, or
+ * continues trousers below the knee) without touching the skin texture. v.liner:
+ *   color, offset (m, default 0.002), maxY ('top' = the piece's top - below, or metres), minY,
+ *   backAbove (above this height only the back half of the calf), knee (true: maxY = knee + 0.04).
  */
 async function liner(v, target, pieces) {
+  const L = v.liner;
   const { readTargetBody } = await import('./lib/skeleton.mjs');
   const body = await readTargetBody(target.sex);
   const region = target.joints.map((j) => REGION_OF_BONE(j.name));
-  const top = Math.max(...pieces.flatMap((p) => [...p.position].filter((_, i) => i % 3 === 1))) - (v.liner.below ?? 0.03);
+  const top = L.knee ? target.pos('calf_l')[1] + 0.04
+    : (typeof L.maxY === 'number' ? L.maxY : Math.max(...pieces.flatMap((p) => [...p.position].filter((_, i) => i % 3 === 1))) - (L.below ?? 0.03));
+  const minY = L.minY ?? -Infinity;
+  const backAbove = L.backAbove ?? Infinity;
   const dom = (vtx) => { let bi = 0; for (let k = 1; k < 4; k++) if (body.weights[vtx * 4 + k] > body.weights[vtx * 4 + bi]) bi = k; return body.joints[vtx * 4 + bi]; };
-  const nrm = new Float32Array(body.count * 3);
-  for (let t = 0; t < body.index.length; t += 3) {
-    const [a, b, c] = [body.index[t], body.index[t + 1], body.index[t + 2]];
-    const pa = body.positions.subarray(a * 3, a * 3 + 3), pb = body.positions.subarray(b * 3, b * 3 + 3), pc = body.positions.subarray(c * 3, c * 3 + 3);
-    const e1 = [pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]], e2 = [pc[0] - pa[0], pc[1] - pa[1], pc[2] - pa[2]];
-    const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
-    for (const i of [a, b, c]) for (let k = 0; k < 3; k++) nrm[i * 3 + k] += n[k];
-  }
-  for (let i = 0; i < nrm.length; i += 3) { const l = Math.hypot(nrm[i], nrm[i + 1], nrm[i + 2]) || 1; for (let k = 0; k < 3; k++) nrm[i + k] /= l; }
+  const y = (i) => body.positions[i * 3 + 1];
   const index = [];
   for (let t = 0; t < body.index.length; t += 3) {
     const tri = [body.index[t], body.index[t + 1], body.index[t + 2]];
-    // the back half of the calf only: the boot itself covers the front and the foot
     const calfZ = target.pos(body.positions[tri[0] * 3] > 0 ? 'calf_l' : 'calf_r')[2];
-    if (tri.every((i) => region[dom(i)] === 'calves' && body.positions[i * 3 + 1] < top && body.positions[i * 3 + 2] < calfZ + 0.01)) index.push(...tri);
+    // knee triangles mix thigh and calf vertices: both count, or the knee keeps a strip of skin
+    const ok = tri.every((i) => (region[dom(i)] === 'calves' || (L.knee && region[dom(i)] === 'thighs')) && y(i) < top && y(i) > minY
+      && (y(i) < backAbove || body.positions[i * 3 + 2] < calfZ + 0.01));
+    if (ok) index.push(...tri);
   }
   // push outwards from the calf bone axis (winding-independent)
-  const off = v.liner.offset ?? 0.004;
+  const off = L.offset ?? 0.002;
   const position = Float32Array.from(body.positions);
+  const nrm = new Float32Array(body.count * 3);
   for (let i = 0; i < body.count; i++) {
     const side = body.positions[i * 3] > 0 ? 'l' : 'r';
     const a = target.pos(`calf_${side}`), b = target.pos(`foot_${side}`);
@@ -213,14 +219,16 @@ async function liner(v, target, pieces) {
     const l = Math.hypot(...r) || 1;
     for (let k = 0; k < 3; k++) { position[i * 3 + k] += (r[k] / l) * off; nrm[i * 3 + k] = r[k] / l; }
   }
-  const hex = v.liner.color.replace('#', '');
+  const hex = L.color.replace('#', '');
   const color = [0, 2, 4].map((k) => parseInt(hex.slice(k, k + 2), 16) / 255);
-  return compact({
+  const shell = compact({
     position, normal: nrm, uv: new Float32Array(body.count * 2).fill(0.5),
     joints: Uint16Array.from(body.joints), weights: Float32Array.from(body.weights), index,
     dominant: Int32Array.from({ length: body.count }, (_, i) => dom(i)), sourceDominant: null,
-    material: { name: 'liner', image: null, color, srgb: true },
+    material: { name: 'liner', image: null, color },
   });
+  shell.band = { minY: Number.isFinite(minY) ? minY : -1, maxY: top };
+  return shell;
 }
 
 /** Simplifies a visual's pieces together under its triangle budget (one temp document). */
@@ -418,7 +426,7 @@ for (const id of visualIds) {
   const v = VISUALS[id];
   if (v.kind !== 'skinned') continue;
   built[id] = {};
-  for (const sex of SEXES) built[id][sex] = await buildPieces(id, v, targets[sex]);
+  for (const sex of SEXES) built[id][sex] = await buildPieces(id, { ...v, id }, targets[sex]);
 }
 
 const rigid = {}; // id -> { pieces, transform }
@@ -514,7 +522,8 @@ const manifestVisuals = {};
 for (const id of visualIds) {
   const { slot, kind, covers, hidesHair, hidesBeard, bone, weaponType } = VISUALS[id];
   const transform = rigid[id]?.transform;
-  manifestVisuals[id] = Object.fromEntries(Object.entries({ slot, kind, covers, hidesHair, hidesBeard, bone, transform, weaponType }).filter(([, x]) => x !== undefined));
+  const hide = hideBands[id];
+  manifestVisuals[id] = Object.fromEntries(Object.entries({ slot, kind, covers, hide, hidesHair, hidesBeard, bone, transform, weaponType }).filter(([, x]) => x !== undefined));
 }
 const version = sha(Buffer.concat([...files.map((f) => fs.readFileSync(path.join(OUT, f))), Buffer.from(JSON.stringify(manifestVisuals))])).slice(0, 12);
 const items = Object.fromEntries(Object.entries(ITEMS).filter(([, vis]) => visualIds.includes(vis)).sort(([a], [b]) => (a < b ? -1 : 1)));

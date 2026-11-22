@@ -1,12 +1,12 @@
 {
   "visuals": {
     "body-dark-knight": {
-      "maleTriangles": 1868,
-      "femaleTriangles": 1868
+      "maleTriangles": 2646,
+      "femaleTriangles": 2572
     },
     "body-handpainted-knight": {
-      "maleTriangles": 2556,
-      "femaleTriangles": 2556
+      "maleTriangles": 3334,
+      "femaleTriangles": 3260
     },
     "body-peasant": {
       "maleTriangles": 5697,
@@ -29,32 +29,32 @@
       "femaleTriangles": 1900
     },
     "shoes-fire": {
-      "maleTriangles": 2579,
-      "femaleTriangles": 2579
+      "maleTriangles": 3212,
+      "femaleTriangles": 3250
     },
     "shoes-holy": {
-      "maleTriangles": 2579,
-      "femaleTriangles": 2579
+      "maleTriangles": 3212,
+      "femaleTriangles": 3250
     },
     "shoes-peasant": {
-      "maleTriangles": 2579,
-      "femaleTriangles": 2579
+      "maleTriangles": 3212,
+      "femaleTriangles": 3250
     },
     "shoes-ranger": {
-      "maleTriangles": 2664,
-      "femaleTriangles": 2647
+      "maleTriangles": 3400,
+      "femaleTriangles": 3378
     },
     "shoes-shadow": {
-      "maleTriangles": 2579,
-      "femaleTriangles": 2579
+      "maleTriangles": 3212,
+      "femaleTriangles": 3250
     },
     "shoes-water": {
-      "maleTriangles": 2579,
-      "femaleTriangles": 2579
+      "maleTriangles": 3212,
+      "femaleTriangles": 3250
     },
     "shoes-wind": {
-      "maleTriangles": 2579,
-      "femaleTriangles": 2579
+      "maleTriangles": 3212,
+      "femaleTriangles": 3250
     },
     "cape-barbarian": {
       "triangles": 78
@@ -91,12 +91,12 @@
     }
   },
   "files": {
-    "gear-male.glb": 2215740,
-    "gear-female.glb": 2316500,
+    "gear-male.glb": 2448220,
+    "gear-female.glb": 2567508,
     "gear-rigid.glb": 124908,
-    "gear-atlas.webp": 1048978,
-    "manifest.json": 10950
+    "gear-atlas.webp": 1055086,
+    "manifest.json": 13664
   },
   "atlas": 2048,
-  "totalBytes": 5717076
+  "totalBytes": 6209386
 }

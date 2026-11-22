@@ -28,10 +28,12 @@ export const VISUALS = {
     removeMaterials: QUATERNIUS_SKIN, size: 512, covers: ['torso', 'upperarms', 'forearms', 'thighs'] },
   // T2/T3 physical: shin guards removed (user, 2026-11-22) — legs end at the knee, boots take the shin
   'body-dark-knight': { ...BODY, method: 'retarget', source: 'sketchfab:7f59a7b0e952457c9102cd65fe485f09',
-    scale: { thigh: '1.08p' }, dropRegions: ['calves'], size: 256,
+    scale: { thigh: '1.08p' }, dropRegions: ['calves'], size: 256, maxTris: 6600,
+    liner: { color: '#2b2b2d', knee: true, minY: 0.22, offset: 0.002 },
     covers: ['torso', 'upperarms', 'forearms', 'hands', 'thighs'] },
   'body-handpainted-knight': { ...BODY, method: 'retarget', source: 'sketchfab:42b1d37bce974d48bca12a3f9a7d1136',
-    drop: /Handle|Bone\./, scale: { hand: '0.55', clavicle: '0.5', upperarm: '0.75p' }, dropRegions: ['calves'], size: 256, sizes: { 'Material.015': 1024 },
+    drop: /Handle|Bone\./, scale: { hand: '0.55', clavicle: '0.5', upperarm: '0.75p' }, dropRegions: ['calves'], size: 256, sizes: { 'Material.015': 1024 }, maxTris: 6600,
+    liner: { color: '#3a2a22', knee: true, minY: 0.22, offset: 0.002 },
     covers: ['torso', 'upperarms', 'forearms', 'hands', 'thighs'] },
   'body-peasant': { ...BODY, method: 'parts', source: 'quaternius', files: qParts('Peasant', ['Body', 'Legs', 'Arms']),
     removeMaterials: QUATERNIUS_SKIN, size: 512, covers: ['torso', 'upperarms', 'thighs'] },
@@ -44,17 +46,17 @@ export const VISUALS = {
 
   // ---- Shoes ----
   'shoes-ranger': { ...SHOES, method: 'parts', source: 'quaternius', files: qParts('Ranger', [{ male: 'Feet_Boots', female: 'Feet' }]),
-    removeMaterials: QUATERNIUS_SKIN, size: 512, keepFeet: true, liner: { color: '#7a4e2c' }, maxTris: 2700 },
+    removeMaterials: QUATERNIUS_SKIN, size: 512, keepFeet: true, liner: { color: '#5e3b22', offset: 0.002 }, maxTris: 3400 },
   'shoes-peasant': { ...SHOES, method: 'parts', source: 'quaternius', files: qParts('Peasant', ['Feet']),
-    removeMaterials: QUATERNIUS_SKIN, size: 512, keepFeet: true, liner: { color: '#4f4526' }, maxTris: 2700 },
+    removeMaterials: QUATERNIUS_SKIN, size: 512, keepFeet: true, liner: { color: '#4f4526', offset: 0.002 }, maxTris: 3400 },
 };
 // Elemental boots: the earth (Peasant) boots recoloured per element (user, 2026-11-22).
-// The liner (back of the calf) takes a darker shade of the boot colour.
+// The liner (inside of the shaft) takes a darker shade of the boot colour.
 for (const [el, colorize, brightness, liner] of [
   ['fire', '#d8442a', 1, '#7a2416'], ['wind', '#ffd83a', 1.45, '#8a7420'], ['water', '#3f7fd6', 1, '#1f3f72'],
-  ['holy', '#f4f9ff', 2.3, '#b8c4d0'], ['shadow', '#3a3740', 0.55, '#1c1b20'],
+  ['holy', '#e2dcb8', 2.5, '#b3ad8e'], ['shadow', '#3a3740', 0.55, '#1c1b20'],
 ]) {
-  VISUALS[`shoes-${el}`] = { ...VISUALS['shoes-peasant'], colorize, size: 256, brightness, liner: { color: liner } };
+  VISUALS[`shoes-${el}`] = { ...VISUALS['shoes-peasant'], colorize, size: 256, brightness, liner: { ...VISUALS['shoes-peasant'].liner, color: liner } };
 }
 
 // ---- Head (rigid pieces sit on our Head bone; KayKit heads are chibi: fit 'head' scales by head width) ----

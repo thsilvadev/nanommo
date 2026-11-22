@@ -1,5 +1,5 @@
 {
-  "version": "3f7cb92b7977",
+  "version": "f3ff79189810",
   "atlas": "gear-atlas.webp",
   "items": {
     "equip_body_magic_t1": "body-peasant",
@@ -38,7 +38,23 @@
         "forearms",
         "hands",
         "thighs"
-      ]
+      ],
+      "hide": {
+        "male": [
+          {
+            "region": "calves",
+            "minY": 0.23,
+            "maxY": 0.572
+          }
+        ],
+        "female": [
+          {
+            "region": "calves",
+            "minY": 0.23,
+            "maxY": 0.565
+          }
+        ]
+      }
     },
     "body-handpainted-knight": {
       "slot": "body",
@@ -49,7 +65,23 @@
         "forearms",
         "hands",
         "thighs"
-      ]
+      ],
+      "hide": {
+        "male": [
+          {
+            "region": "calves",
+            "minY": 0.23,
+            "maxY": 0.572
+          }
+        ],
+        "female": [
+          {
+            "region": "calves",
+            "minY": 0.23,
+            "maxY": 0.565
+          }
+        ]
+      }
     },
     "body-peasant": {
       "slot": "body",
@@ -582,49 +614,161 @@
       "kind": "skinned",
       "covers": [
         "feet"
-      ]
+      ],
+      "hide": {
+        "male": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.408
+          }
+        ],
+        "female": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.419
+          }
+        ]
+      }
     },
     "shoes-holy": {
       "slot": "shoes",
       "kind": "skinned",
       "covers": [
         "feet"
-      ]
+      ],
+      "hide": {
+        "male": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.408
+          }
+        ],
+        "female": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.419
+          }
+        ]
+      }
     },
     "shoes-peasant": {
       "slot": "shoes",
       "kind": "skinned",
       "covers": [
         "feet"
-      ]
+      ],
+      "hide": {
+        "male": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.408
+          }
+        ],
+        "female": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.419
+          }
+        ]
+      }
     },
     "shoes-ranger": {
       "slot": "shoes",
       "kind": "skinned",
       "covers": [
         "feet"
-      ]
+      ],
+      "hide": {
+        "male": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.516
+          }
+        ],
+        "female": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.516
+          }
+        ]
+      }
     },
     "shoes-shadow": {
       "slot": "shoes",
       "kind": "skinned",
       "covers": [
         "feet"
-      ]
+      ],
+      "hide": {
+        "male": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.408
+          }
+        ],
+        "female": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.419
+          }
+        ]
+      }
     },
     "shoes-water": {
       "slot": "shoes",
       "kind": "skinned",
       "covers": [
         "feet"
-      ]
+      ],
+      "hide": {
+        "male": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.408
+          }
+        ],
+        "female": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.419
+          }
+        ]
+      }
     },
     "shoes-wind": {
       "slot": "shoes",
       "kind": "skinned",
       "covers": [
         "feet"
-      ]
+      ],
+      "hide": {
+        "male": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.408
+          }
+        ],
+        "female": [
+          {
+            "region": "calves",
+            "minY": -0.99,
+            "maxY": 0.419
+          }
+        ]
+      }
     }
   }
 }

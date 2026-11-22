@@ -40,12 +40,16 @@ window.applyConfig = async (c) => {
   const body = root.getObjectByName('Body');
   body.material = new THREE.MeshStandardMaterial({ color: '#d9a37a' });
   const covered = new Set(c.visuals.flatMap((v) => manifest.visuals[v]?.covers ?? []));
+  const bands = c.visuals.flatMap((v) => manifest.visuals[v]?.hide?.[c.sex] ?? []);
+  const P = body.geometry.getAttribute('position');
   const g = body.geometry, J = g.getAttribute('skinIndex'), Wt = g.getAttribute('skinWeight'), idx = g.getIndex();
   const dom = (v) => { let b = 0; for (let k = 1; k < 4; k++) if (Wt.getComponent(v, k) > Wt.getComponent(v, b)) b = k; return J.getComponent(v, b); };
   const kept = [];
   for (let i = 0; i < idx.count; i += 3) {
     const t = [idx.getX(i), idx.getX(i + 1), idx.getX(i + 2)];
-    if (!t.every((v) => covered.has(region(body.skeleton.bones[dom(v)].name)))) kept.push(...t);
+    // a vertex is hidden by a covered region or by a shell's band; a triangle goes when all three are
+    const hidden = (v) => { const r = region(body.skeleton.bones[dom(v)].name); return covered.has(r) || bands.some((b) => (r === b.region || (b.region === 'calves' && r === 'thighs')) && P.getY(v) > b.minY && P.getY(v) < b.maxY); };
+    if (!t.every(hidden)) kept.push(...t);
   }
   const ng = g.clone(); ng.setIndex(kept); body.geometry = ng;
   const gear = (await load(`/gear/gear-${c.sex}.glb`)).scene;
