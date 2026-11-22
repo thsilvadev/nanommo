@@ -1,3 +1,7 @@
+## Regional music transition ownership — 2026-11-22
+
+`GameAudioService` owns every regional music element until it is stopped. Pending startup and resume attempts are tied to the media element, so late promises cannot unlock another track or create competing transitions. Crossfade, resume and stop share one cancellable animation owner. General/Music controls supersede the fade, stop outgoing elements and apply the current settings; teardown cancels retries and stops all owned media immediately. A retained previous track restores the current target volume if a new region interrupts its initial fade before the first frame.
+
 ## Public combat timers and shared HUD — 2026-11-22
 
 - `CombatTimersComponent` renders uniform status/cooldown icons for Character, Grind targets and Group allies. `CombatTimersService` selects actor-specific server state; pure projections in `shared/combat-timers.ts` use the shared `UiClockService` without additional per-icon timers.

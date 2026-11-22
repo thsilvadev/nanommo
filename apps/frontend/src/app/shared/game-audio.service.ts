@@ -31,7 +31,8 @@ export class GameAudioService {
   private readonly effects = new Map<SoundName, string>();
   private music: HTMLAudioElement | null = null;
   private pendingMusic: HTMLAudioElement | null = null;
-  private pendingMusicStarting = false;
+  private pendingMusicStarting: HTMLAudioElement | null = null;
+  private resumingMusic: HTMLAudioElement | null = null;
   private pendingMusicBlocked = false;
   private readonly musicInstances = new Set<HTMLAudioElement>();
   private musicRegion = '';
@@ -41,6 +42,7 @@ export class GameAudioService {
   private musicFadeFrame = 0;
   private musicFadeResolve: (() => void) | null = null;
   private musicRetryBound = false;
+  private musicRetry: (() => void) | null = null;
   private lastEnemyHit: SoundName = 'enemy_hit_2';
   private started = false;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -162,6 +164,10 @@ export class GameAudioService {
   }
 
   private applyMusicVolume(): void {
+    // A settings change supersedes the fade. Stop its outgoing side as well,
+    // otherwise a cancelled crossfade leaves it playing outside the controls.
+    this.cancelMusicFade();
+    this.stopOtherMusicInstances(this.music, this.pendingMusic);
     const value = this.muted() || this.musicMuted() ? 0 : this.volume() * this.musicVolume();
     if (this.music) this.music.volume = value;
     if (this.pendingMusic && this.pendingMusic !== this.music) this.pendingMusic.volume = 0;
@@ -194,7 +200,13 @@ export class GameAudioService {
     this.musicRegion = '';
     this.musicTracks = [];
     this.musicTrackIndex = -1;
-    void this.stopMusic(300);
+    ++this.musicGeneration;
+    this.cancelMusicFade();
+    this.clearMusicRetry();
+    this.stopOtherMusicInstances();
+    this.pendingMusicStarting = null;
+    this.resumingMusic = null;
+    this.pendingMusicBlocked = false;
   }
 
   private regionFor(mapId: string): { id: string; tracks: string[] } | null {
@@ -230,7 +242,7 @@ export class GameAudioService {
     const generation = ++this.musicGeneration;
     this.cancelMusicFade();
     if (this.pendingMusic) this.stopMusicElement(this.pendingMusic);
-    this.pendingMusicStarting = false;
+    this.pendingMusicStarting = null;
     this.pendingMusicBlocked = false;
     // A cancelled crossfade may leave its outgoing track in the instance set.
     // Keep the currently audible track alive until the destination can play,
@@ -240,6 +252,10 @@ export class GameAudioService {
       void this.stopMusic(850);
       return;
     }
+    // A region switch can cancel the first fade before its first frame. The
+    // retained track must not remain at zero while the destination buffers or
+    // waits for user activation.
+    if (this.music) this.music.volume = this.muted() || this.musicMuted() ? 0 : this.volume() * this.musicVolume();
     this.startNextTrack(generation);
   }
 
@@ -264,19 +280,20 @@ export class GameAudioService {
 
   private tryStartPendingMusic(audio: HTMLAudioElement, generation: number): void {
     if (generation !== this.musicGeneration || this.pendingMusic !== audio || !this.musicRegion || this.pendingMusicStarting || this.pendingMusicBlocked) return;
-    this.pendingMusicStarting = true;
+    this.pendingMusicStarting = audio;
     void audio.play().then(() => {
-      this.pendingMusicStarting = false;
+      if (this.pendingMusicStarting === audio) this.pendingMusicStarting = null;
       if (generation !== this.musicGeneration || this.pendingMusic !== audio || !this.musicRegion) {
         this.stopMusicElement(audio);
         return;
       }
+      this.clearMusicRetry();
       const previous = this.music;
       this.pendingMusic = null;
       this.music = audio;
       this.crossfadeMusic(previous, audio, generation);
     }).catch(() => {
-      this.pendingMusicStarting = false;
+      if (this.pendingMusicStarting === audio) this.pendingMusicStarting = null;
       if (generation !== this.musicGeneration || this.pendingMusic !== audio || !this.musicRegion) {
         this.stopMusicElement(audio);
         return;
@@ -289,13 +306,13 @@ export class GameAudioService {
   }
 
   private crossfadeMusic(previous: HTMLAudioElement | null, next: HTMLAudioElement, generation: number): void {
-    const target = this.muted() || this.musicMuted() ? 0 : this.volume() * this.musicVolume();
     const previousStart = previous?.volume ?? 0;
     const startedAt = performance.now();
     const duration = previous ? 850 : 900;
     const tick = (now: number) => {
       if (generation !== this.musicGeneration || this.music !== next) return;
       const progress = Math.min(1, (now - startedAt) / duration);
+      const target = this.muted() || this.musicMuted() ? 0 : this.volume() * this.musicVolume();
       next.volume = target * progress;
       if (previous) previous.volume = previousStart * (1 - progress);
       if (progress < 1) {
@@ -321,6 +338,7 @@ export class GameAudioService {
   }
 
   private stopMusicElement(audio: HTMLAudioElement): void {
+    audio.volume = 0;
     audio.pause();
     try { audio.currentTime = 0; } catch { /* Some media elements cannot seek before metadata loads. */ }
     this.musicInstances.delete(audio);
@@ -328,17 +346,25 @@ export class GameAudioService {
     if (this.pendingMusic === audio) this.pendingMusic = null;
   }
 
+  private clearMusicRetry(): void {
+    if (this.musicRetry) {
+      document.removeEventListener('pointerdown', this.musicRetry, true);
+      document.removeEventListener('keydown', this.musicRetry, true);
+    }
+    this.musicRetry = null;
+    this.musicRetryBound = false;
+  }
+
   private bindMusicRetry(): void {
     if (this.musicRetryBound) return;
     this.musicRetryBound = true;
     const retry = () => {
-      this.musicRetryBound = false;
-      document.removeEventListener('pointerdown', retry, true);
-      document.removeEventListener('keydown', retry, true);
+      this.clearMusicRetry();
       this.pendingMusicBlocked = false;
       if (this.pendingMusic) this.tryStartPendingMusic(this.pendingMusic, this.musicGeneration);
       else this.tryResumeMusic();
     };
+    this.musicRetry = retry;
     document.addEventListener('pointerdown', retry, { once: true, capture: true });
     document.addEventListener('keydown', retry, { once: true, capture: true });
   }
@@ -346,16 +372,23 @@ export class GameAudioService {
   private tryResumeMusic(): void {
     const audio = this.music;
     const generation = this.musicGeneration;
-    if (!this.musicRegion || !audio || !audio.paused) return;
+    if (!this.musicRegion || !audio || !audio.paused || this.resumingMusic === audio) return;
+    this.resumingMusic = audio;
     void audio.play().then(() => {
+      if (this.resumingMusic === audio) this.resumingMusic = null;
       if (generation !== this.musicGeneration || this.music !== audio || !this.musicRegion) {
-        this.stopMusicElement(audio);
+        // A new region may still be retaining this outgoing track until ready.
+        if (this.music !== audio) this.stopMusicElement(audio);
         return;
       }
+      this.clearMusicRetry();
+      this.stopOtherMusicInstances(audio, this.pendingMusic);
       void this.fadeVolume(audio, audio.volume, this.muted() || this.musicMuted() ? 0 : this.volume() * this.musicVolume(), 900, generation);
     }).catch(() => {
-      if (generation !== this.musicGeneration || this.music !== audio || !this.musicRegion) this.stopMusicElement(audio);
-      else this.bindMusicRetry();
+      if (this.resumingMusic === audio) this.resumingMusic = null;
+      if (generation !== this.musicGeneration || this.music !== audio || !this.musicRegion) {
+        if (this.music !== audio) this.stopMusicElement(audio);
+      } else this.bindMusicRetry();
     });
   }
 
@@ -402,26 +435,16 @@ export class GameAudioService {
   }
 
   private async stopMusic(duration: number): Promise<void> {
-    ++this.musicGeneration;
+    const generation = ++this.musicGeneration;
     this.cancelMusicFade();
+    this.clearMusicRetry();
     const audio = this.music;
-    if (!audio) {
-      this.stopOtherMusicInstances();
-      return;
-    }
     this.stopOtherMusicInstances(audio);
-    const initial = audio.volume;
-    const start = performance.now();
-    await new Promise<void>(resolve => {
-      const tick = (now: number) => {
-        const p = Math.min(1, (now - start) / Math.max(1, duration));
-        audio.volume = initial * (1 - p);
-        if (p < 1) requestAnimationFrame(tick);
-        else resolve();
-      };
-      requestAnimationFrame(tick);
-    });
-    this.stopMusicElement(audio);
+    if (!audio) return;
+    // Share the cancellable fade owner with crossfades/resumes. An untracked
+    // animation here could restore volume after mute or a later map change.
+    await this.fadeVolume(audio, audio.volume, 0, duration, generation);
+    if (generation === this.musicGeneration && this.music === audio) this.stopMusicElement(audio);
   }
 
   private updateBattleAudio(battleStore: any): void {

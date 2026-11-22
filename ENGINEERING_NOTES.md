@@ -234,3 +234,8 @@ A `filter` (blur especially) on an element whose transform animates is re-render
 
 `angular.json` fails the production build (and so the Vercel deploy) when any component stylesheet passes 6 kB. `map-board.css` is at the limit: put new map-board rules in `styles.css`, scoped under `app-map-board`.
 
+
+
+## Music promise/fade ownership — 2026-11-22
+
+Do not use a shared boolean cleared by every asynchronous `audio.play()` completion: an old map's promise can release a newer track's pending guard. Compare the audio element identity before clearing it. All music fades, including stop fades, must share the same cancellable frame owner. Volume changes must stop the outgoing crossfade element too; changing only the current element allows old music or captured fade values to escape Settings. The music transition tests use manually advanced RAF frames and deferred play promises to cover these races deterministically.

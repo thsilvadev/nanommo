@@ -8,6 +8,13 @@ describe('GameAudioService battle event routing', () => {
     spyOn(audio, 'play');
   });
 
+  afterEach(() => {
+    // Some routing tests use minimal, unregistered media stubs.
+    (audio as any).music = null;
+    (audio as any).pendingMusic = null;
+    audio.destroy();
+  });
+
   it('varies the monster incoming-hit effect only for monster-to-character damage', () => {
     const event = { actor: 'monster', action: 'attack', target: 'character', hit: true, damage: 12 };
     (audio as any).playBattleEvent(event, { log: { header: {} } });
@@ -235,5 +242,112 @@ describe('GameAudioService battle event routing', () => {
     expect((audio as any).fileName('putInStorage')).toBe('new_packs/2/putInStorage.ogg');
     expect((audio as any).fileName('takeFromStorage')).toBe('new_packs/2/takeFromStorage.ogg');
     expect((audio as any).fileName('postItemOnMarket')).toBe('new_packs/2/postItemOnMarket.ogg');
+  });
+});
+
+describe('GameAudioService music transition ownership', () => {
+  let service: any;
+  let tracks: any[];
+  let frames: Map<number,FrameRequestCallback>;
+  let now: number;
+  let nextFrame: number;
+  const flush = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); };
+  const advance = (milliseconds:number) => {
+    now += milliseconds;
+    const callbacks=[...frames.values()];frames.clear();callbacks.forEach(callback=>callback(now));
+  };
+  beforeEach(() => {
+    localStorage.clear();service=new GameAudioService();tracks=[];frames=new Map();now=0;nextFrame=0;
+    spyOn(performance,'now').and.callFake(()=>now);
+    spyOn(window,'requestAnimationFrame').and.callFake(callback=>{frames.set(++nextFrame,callback);return nextFrame;});
+    spyOn(window,'cancelAnimationFrame').and.callFake(id=>{frames.delete(id);});
+    spyOn(window,'Audio').and.callFake(function(src?:string){
+      const track:any={src,volume:0,currentTime:0,paused:true,loop:false,preload:'',addEventListener:()=>{}};
+      track.play=jasmine.createSpy('play').and.callFake(()=>{track.paused=false;return Promise.resolve();});
+      track.pause=jasmine.createSpy('pause').and.callFake(()=>{track.paused=true;});
+      tracks.push(track);return track;
+    });
+  });
+  afterEach(()=>{service.destroy();service.cancelMusicFade();service.stopOtherMusicInstances();frames.clear();});
+  it('mutes both sides of a crossfade and cannot be unmuted by a later frame', async () => {
+    service.updateMusic('map_town');await flush();advance(1000);
+    service.updateMusic('map_caete_1');await flush();advance(200);
+    service.setVolume(0);
+    expect(tracks.every(track=>track.volume===0)).toBeTrue();
+    advance(200);
+    expect(tracks.every(track=>track.volume===0)).toBeTrue();
+    expect(tracks[0].paused).toBeTrue();
+  });
+  it('keeps the retained track audible if a region change interrupts its initial fade-in', async () => {
+    service.updateMusic('map_town');await flush();
+    // The first fade has not rendered yet; the user immediately changes areas.
+    expect(tracks[0].volume).toBe(0);
+    (window.Audio as unknown as jasmine.Spy).and.callFake(function(src?:string){
+      const track:any={src,volume:0,currentTime:0,paused:true,addEventListener:()=>{}};
+      track.play=()=>Promise.reject(new DOMException('User gesture required','NotAllowedError'));
+      track.pause=()=>{};tracks.push(track);return track;
+    });
+    service.updateMusic('map_caete_1');await flush();
+    expect(service.music).toBe(tracks[0]);
+    expect(tracks[0].volume).toBe(.7);
+  });
+  it('honors the Music channel while a stop fade is running', async () => {
+    service.updateMusic('map_town');await flush();advance(1000);
+    service.updateMusic('unknown');
+    service.setVolume(0,'music');advance(100);
+    expect(tracks.every(track=>track.volume===0)).toBeTrue();
+  });
+  it('does not let a stale play completion unlock the next pending track', async () => {
+    let resolveOld!:()=>void,resolveNext!:()=>void;
+    service.updateMusic('map_town');await flush();advance(1000);
+    // Leave the next region waiting for media startup.
+    (window.Audio as unknown as jasmine.Spy).and.callFake(function(src?:string){
+      const track:any={src,volume:0,currentTime:0,paused:false,addEventListener:()=>{}};
+      track.pause=jasmine.createSpy('pause').and.callFake(()=>track.paused=true);
+      const promise=new Promise<void>(resolve=>{if(src?.includes('caete'))resolveOld=resolve;else resolveNext=resolve;});
+      track.play=jasmine.createSpy('play').and.returnValue(promise);tracks.push(track);return track;
+    });
+    service.updateMusic('map_caete_1');
+    service.updateMusic('map_wastelands_1');
+    resolveOld();await flush();
+    service.setVolume(.6);
+    expect(tracks[2].play).toHaveBeenCalledTimes(1);
+    resolveNext();await flush();advance(1000);
+    expect(service.music).toBe(tracks[2]);
+    expect(tracks[2].paused).toBeFalse();
+    expect(tracks.slice(0,2).every(track=>track.paused)).toBeTrue();
+  });
+  it('coalesces concurrent resume requests instead of creating competing fades', async () => {
+    let resolvePlay!:()=>void;
+    service.updateMusic('map_town');await flush();advance(1000);
+    const track=tracks[0];track.paused=true;
+    track.play.and.returnValue(new Promise<void>(resolve=>{resolvePlay=resolve;}));track.play.calls.reset();
+    service.tryResumeMusic();service.tryResumeMusic();
+    expect(track.play).toHaveBeenCalledTimes(1);
+    resolvePlay();await flush();advance(1000);
+    expect(service.music).toBe(track);
+  });
+  it('recovers paused regional music from a normal keyboard gesture without settings', async () => {
+    service.updateMusic('map_town');await flush();advance(1000);
+    const track=tracks[0];track.paused=true;let blocked=true;
+    track.play.and.callFake(()=>{
+      if(blocked){blocked=false;return Promise.reject(new DOMException('User gesture required','NotAllowedError'));}
+      track.paused=false;return Promise.resolve();
+    });
+    service.tryResumeMusic();await flush();
+    document.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}));
+    await flush();advance(1000);
+    expect(track.paused).toBeFalse();expect(track.volume).toBe(.7);
+    expect(service.musicRetryBound).toBeFalse();
+  });
+  it('removes autoplay retry listeners on destroy', async () => {
+    service.updateMusic('map_town');await flush();advance(1000);
+    const track=tracks[0];track.paused=true;
+    track.play.and.returnValue(Promise.reject(new DOMException('User gesture required','NotAllowedError')));
+    service.tryResumeMusic();await flush();
+    const remove=spyOn(document,'removeEventListener').and.callThrough();
+    service.destroy();
+    expect(remove.calls.allArgs().some(args=>args[0]==='pointerdown')).toBeTrue();
+    expect(remove.calls.allArgs().some(args=>args[0]==='keydown')).toBeTrue();
   });
 });

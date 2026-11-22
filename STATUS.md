@@ -1,3 +1,16 @@
+### Música regional: transições, silêncio e faixas órfãs — 2026-11-22
+
+Correção separada da postura e da HUD, na branch `codex/combat-cooldowns-hud`.
+
+- O início pendente pertence ao elemento de áudio específico; uma promessa antiga de `play()` não libera o início de outra faixa. Pedidos concorrentes para retomar a mesma faixa são agrupados.
+- Controles General/Music cancelam o fade e encerram sua faixa de saída antes de aplicar volume/mute à faixa atual. Frames antigos não podem restaurar o volume anterior nem deixar a música antiga fora dos controles.
+- Fade de parada usa o mesmo proprietário cancelável dos demais fades. `destroy()` invalida promessas, cancela animação, zera/pausa todas as faixas e remove listeners de retry por gesto.
+- Ao trocar de região antes do primeiro frame do fade inicial, a faixa anterior retida recebe o volume vigente enquanto o destino carrega ou aguarda ativação. Antes, ela podia ficar presa em zero até mexer no slider. O comportamento de manter a faixa anterior até a nova tocar foi preservado.
+
+Validação: seis regressões de áudio reproduzidas com testes RED e corrigidas (volume durante crossfade, volume durante parada, promessa antiga liberando nova faixa, resumes concorrentes, cleanup de listeners e cancelamento do fade inicial). Recuperação por teclado sem abrir Settings também coberta. Suíte combinada no Chromium: 56/56 passaram (`game-audio.service.spec.ts`, `game.store.spec.ts`, `combat-timers*.spec.ts`); build de produção e `tsc -p tsconfig.spec.json --noEmit` passaram, com avisos CSS existentes. Quatro scripts da postura/timing também passaram. Revisão independente das correções sem novos achados substantivos; os testes reproduzem mecanismos concretos, sem afirmar que esgotam todos os problemas possíveis de autoplay/rede em produção.
+
+Sem migração, deploy, push ou merge na main.
+
 ### Confirmação de postura Gathering/Hunting — 2026-11-22
 
 `mapCharacterState`, usado na resposta de `/maps/stance` tanto solo quanto em grupo, agora retorna `updatedAt` e `stateVersion`. Antes, o frontend protegia a postura confirmada usando o timestamp do snapshot anterior; uma atualização atrasada de recursos, construída antes do comando, podia então restaurar Gathering depois de confirmar Hunting. O frontend já reconciliava os dois campos corretamente quando presentes.
