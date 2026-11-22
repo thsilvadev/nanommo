@@ -1,3 +1,11 @@
+### Contrato de acompanhamento de ações pendentes — 2026-11-22
+
+Backend preparado para feedback contextual sem alterar o cutoff das batalhas. A consulta das ações do próprio personagem inclui todos os comandos pendentes e limita somente o histórico terminal; metadados seguros identificam slot/slots de mão afetados, instância do inventário, tipo de consumível, página/rascunho de Gambit e alocação de atributos. O payload bruto não é retornado. Respostas de enqueue incluem o mesmo contrato de alvo.
+
+`use_item` passa por pré-validação somente de leitura antes da inserção, depois da verificação idempotente: existência/tipo, quantidade, digestão, comida igual já enfileirada, cooldown atual e restrições de itens de reviver. A validação canônica da execução continua existindo. Nenhuma comida, quantidade ou Diet muda durante a pré-validação.
+
+Validação: build da API; `queued-action-feedback.test.js`, `party-intent-clock.test.js`, `party-inventory-reservation.test.js`, `party-alchemy-manual-consumables.test.js`, `party-timers-public.test.js`, `combat-timers-public.test.js`, `off-battle-resources-cooldowns.test.js` passaram. Revisão independente do contrato sem novos achados no backend. Sem migração executada, deploy, push ou merge na main.
+
 ### Música regional: transições, silêncio e faixas órfãs — 2026-11-22
 
 Correção separada da postura e da HUD, na branch `codex/combat-cooldowns-hud`.

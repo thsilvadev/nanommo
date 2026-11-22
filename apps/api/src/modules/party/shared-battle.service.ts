@@ -198,6 +198,7 @@ export class SharedBattleService {
     if(!['equip','unequip','use_item','gambit_update','gambit_activate','attributes'].includes(kind))throw new BadRequestException('Unsupported action');
     if(!requestId||requestId.length>100||!payload||typeof payload!=='object'||Array.isArray(payload))throw new BadRequestException('Invalid action');
     const exists=await ctx.manager.query('SELECT id FROM character_action_intents WHERE "characterId"=$1 AND "clientRequestId"=$2',[id,requestId]);if(exists.length)return;
+    if(kind==='use_item')await this.inventory.validateQueuedConsumable(id,String(payload.itemId??''),ctx.manager,ctx.now);
     const count=Number((await ctx.manager.query(`SELECT count(*) AS n FROM character_action_intents WHERE "characterId"=$1 AND status='pending'`,[id]))[0].n);if(count>=32)throw new BadRequestException({code:'ACTION_QUEUE_FULL',message:'Too many pending actions'});
     const sequence=Number((await ctx.manager.query('SELECT coalesce(max(sequence),0)+1 AS n FROM character_action_intents WHERE "characterId"=$1',[id]))[0].n);
     await ctx.manager.query(`INSERT INTO character_action_intents(id,"characterId","clientRequestId",sequence,kind,payload,status) VALUES($1,$2,$3,$4,$5,$6,'pending')`,[randomUUID(),id,requestId,sequence,kind,JSON.stringify(payload)]);
