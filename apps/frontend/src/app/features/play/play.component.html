@@ -1,3 +1,4 @@
+<app-game-loading-screen *ngIf="!gamePreload.ready()" [progress]="gamePreload.progress()" />
 <div class="game-app">
   <header class="game-topbar">
     <div class="brand-logo"><img src="/assets/lords-transparent.png" alt="Lords"></div>

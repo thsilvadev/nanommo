@@ -42,7 +42,8 @@ export interface TownSceneEnv {
   createRuntime: (host: HTMLElement, init: TownSceneRuntimeInit) => Promise<TownSceneRuntimeHandle>;
   assetBase?: string;
   /** Warms three.js, the town catalogue and the character/NPC models in the background. */
-  preload?: () => Promise<void>;
+  /** Downloads/prepares what towns need (loading screen); reports progress as settled tasks. */
+  preload?: (onProgress?: (done: number, total: number) => void) => Promise<void>;
 }
 
 let scenes: Promise<TownSceneDef[]> | null = null;
@@ -67,12 +68,12 @@ let preloading: Promise<void> | null = null;
  * scene loads them again when it opens). Across reloads, the browser's HTTP
  * cache keeps them (see vercel.json headers).
  */
-export function preloadTownScene(assetBase: string): Promise<void> {
+export function preloadTownScene(assetBase: string, onProgress?: (done: number, total: number) => void): Promise<void> {
   if (!preloading) {
     preloading = (async () => {
       if (!isWebglAvailable()) return;
       const [runtime] = await Promise.all([import('./town-runtime'), loadTownScenes()]);
-      await runtime.warmTownAssets(assetBase);
+      await runtime.warmTownAssets(assetBase, undefined, onProgress);
     })().catch(() => { preloading = null; });
   }
   return preloading;
@@ -86,6 +87,6 @@ export const TOWN_SCENE_ENV = new InjectionToken<TownSceneEnv>('TOWN_SCENE_ENV',
     // three.js (and the runtime) load only when a town scene is shown.
     createRuntime: async (host, init) => (await import('./town-runtime')).createTownRuntime(host, init),
     assetBase: '/assets/character/',
-    preload: () => preloadTownScene('/assets/character/'),
+    preload: (onProgress?: (done: number, total: number) => void) => preloadTownScene('/assets/character/', onProgress),
   }),
 });

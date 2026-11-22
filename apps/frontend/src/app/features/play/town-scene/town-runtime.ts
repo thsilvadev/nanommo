@@ -66,12 +66,12 @@ function whenIdle(timeout = 1500): Promise<void> {
  * Loads (and keeps in the shared asset cache) what every town needs: both
  * bodies with their clips, the appearance catalogue, the NPC outfits and props, the players' gear.
  */
-export async function warmTownAssets(assetBase: string, catalogUrl?: string): Promise<void> {
+export async function warmTownAssets(assetBase: string, catalogUrl?: string, onProgress?: (done: number, total: number) => void): Promise<void> {
   const loader = new GLTFLoader();
   const cache = CharacterAssetCache.shared(assetBase, (url) => loader.loadAsync(url));
   const outfits = new Set<string>();
   for (const visual of Object.values(NPC_VISUALS)) if (visual.figure.kind === 'body' && visual.figure.outfit) outfits.add(npcOutfitAsset(visual.figure.outfit));
-  const [catalog] = await Promise.allSettled([
+  const tasks: Promise<unknown>[] = [
     loadAppearanceCatalog(catalogUrl),
     cache.body('male'),
     cache.body('female'),
@@ -79,7 +79,11 @@ export async function warmTownAssets(assetBase: string, catalogUrl?: string): Pr
     cache.glb(NPC_PROPS_ASSET),
     ...[...outfits].map((asset) => cache.glb(asset)),
     cache.gear(),
-  ]);
+  ];
+  let done = 0;
+  onProgress?.(0, tasks.length);
+  for (const task of tasks) void task.then(() => undefined, () => undefined).then(() => onProgress?.(++done, tasks.length));
+  const [catalog] = await Promise.allSettled(tasks) as [PromiseSettledResult<Awaited<ReturnType<typeof loadAppearanceCatalog>>>, ...PromiseSettledResult<unknown>[]];
   // Recolouring the NPC outfits took ~160 ms on the main thread the moment a town opened:
   // do it now, one NPC per idle slot, into the page-wide cache the town scene reads.
   if (catalog.status !== 'fulfilled') return;
