@@ -1,3 +1,10 @@
+## Public combat timers and shared HUD — 2026-11-22
+
+- `CombatTimersComponent` renders uniform status/cooldown icons for Character, Grind targets and Group allies. `CombatTimersService` selects actor-specific server state; pure projections in `shared/combat-timers.ts` use the shared `UiClockService` without additional per-icon timers.
+- Successful V2 `use_skill`/`use_item` events carry optional `{key,durationTicks}` cooldown metadata. This is presentation-only and does not change action legality or cooldown semantics. Opening cooldown snapshots account for tick-zero decrement separately from timers initiated by events.
+- Public party encounter snapshots expose only recognized active opening cooldowns and corresponding effective durations. Legacy persisted V2 events are enriched from their own immutable definitions. Between encounters, character/member DTOs expose active absolute deadlines and the effective timer lengths needed for radial fractions; no private inventory, Gambits or Diet is added.
+- Persistent character statuses are included in CharacterDto so effects remain visible outside combat. Status rows group living stacks and show seconds, while cooldown rows hide at their deadline.
+
 ## Frontend change detection budget — 2026-11-21
 
 - **High-frequency work runs outside the Angular zone.** Render loops (`TownRuntime`, `CharacterRig`), pointer and wheel handlers that only drive 3D or plain DOM, DOM-only polls (`battle-hit-feedback`, `tooltip-position`) and the audio poll never enter the zone. What the UI must show reaches Angular through signals (Angular 18 refreshes the views that read a signal even when it changes outside the zone).

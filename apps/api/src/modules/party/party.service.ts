@@ -1,3 +1,4 @@
+import { combatCooldownDurations } from '@nanommo/shared';
 import { guardEncounterDeadline, PARTY_DEADLINE_REACHED } from './party-deadline';
 import { Inject, forwardRef, BadRequestException, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
@@ -73,8 +74,17 @@ export class PartyService {
       if(p){
         const rows=await this.db.query('SELECT m.*,c.name,c."hpCurrent",c."spCurrent",c."statusEffects",c.level,c.vit,c.int FROM party_members m JOIN characters c ON c.id=m."characterId" WHERE m."partyId"=$1 ORDER BY m."orderIndex"',[p.id]);
         const members=[];
-        for(const row of rows){ const c=await this.db.getRepository(Character).findOneBy({id:row.characterId}); const s=c?await this.battle.buildCharacterSnapshot(c,c.hpCurrent,c.spCurrent):null;
-          members.push({characterId:row.characterId,name:row.name,orderIndex:row.orderIndex,pendingLeave:row.pendingLeave,hp:row.hpCurrent,sp:row.spCurrent,maxHp:s?.maxHp??row.hpCurrent,maxSp:s?.maxSp??row.spCurrent,statusEffects:row.statusEffects}); }
+        for (const row of rows) {
+          const c = await this.db.getRepository(Character).findOneBy({id:row.characterId});
+          const snapshot = c ? await this.battle.buildCharacterSnapshot(c,c.hpCurrent,c.spCurrent) : null;
+          const durations = combatCooldownDurations(snapshot ?? {});
+          const cooldowns = Object.fromEntries(Object.entries(c?.consumableCooldowns ?? {}).filter(([key, until]) =>
+            Number(durations[key])>0 && Date.parse(String(until))>Date.now()));
+          members.push({characterId:row.characterId,name:row.name,orderIndex:row.orderIndex,pendingLeave:row.pendingLeave,
+            hp:row.hpCurrent,sp:row.spCurrent,maxHp:snapshot?.maxHp??row.hpCurrent,maxSp:snapshot?.maxSp??row.spCurrent,
+            statusEffects:row.statusEffects,consumableCooldowns:cooldowns,
+            cooldownDurations:Object.fromEntries(Object.entries(durations).filter(([key])=>key in cooldowns))});
+        }
         party={id:p.id,kind:p.kind,leaderCharacterId:p.leaderCharacterId,mapId:p.mapId,revision:Number(p.revision),members,routeActivity:p.activity?.kind==='route'?p.activity:null,teleport:p.activity?.kind==='route'?null:p.activity};
       }
     }

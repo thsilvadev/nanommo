@@ -1,0 +1,12 @@
+:host{display:block;min-width:0}
+.combat-timers{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-width:0}
+.combat-timer{box-sizing:border-box;position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;width:28px;height:28px;border:1px solid #929292;background:#100e0b;border-radius:3px;box-shadow:0 1px 3px #0008;isolation:isolate;cursor:help}
+.combat-timer[data-kind=buff]{border-color:#61c76b}
+.combat-timer[data-kind=debuff]{border-color:#ed6262}
+.combat-timer[data-kind=skill]{border-color:#f5f1e8}
+.combat-timer[data-kind=item]{border-color:#929292}
+.combat-timer:focus-visible{outline:2px solid #e3c992;outline-offset:2px}
+.combat-timer img{display:block;width:24px;height:24px;object-fit:contain}
+.cooldown-sweep{position:absolute;inset:0;border-radius:2px;pointer-events:none}
+.duration{position:absolute;inset:0;display:grid;place-items:center;font:bold 13px/1 Arial,sans-serif;color:#fff;text-shadow:0 1px 2px #000,1px 0 2px #000,-1px 0 2px #000;background:#0003;pointer-events:none;font-variant-numeric:tabular-nums}
+.status-tooltip{display:none}

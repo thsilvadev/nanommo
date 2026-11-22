@@ -194,50 +194,14 @@
   background: #365b7e;
 }
 .status-reserve {
-  height: 70px;
+  min-height: 70px;
+  flex-shrink: 0;
   margin-top: 5px;
   padding-top: 10px;
   border-top: 1px solid #403a30;
   color: #7b6954;
   font: 18px Arial;
   letter-spacing: 1.2px;
-}
-.status-reserve > div.status-effects {
-  height: 38px;
-  margin-top: 6px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.status-effect-icon {
-  position: relative;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border: 1px solid #316b85;
-  background: #12232d;
-  cursor: help;
-}
-.status-effect-icon img {
-  width: 27px;
-  height: 27px;
-}
-.freeze-count {
-  position: absolute;
-  right: -5px;
-  bottom: -4px;
-  min-width: 15px;
-  height: 15px;
-  display: grid;
-  place-items: center;
-  border: 1px solid #4d97b7;
-  background: #112a3a;
-  color: #e8fbff;
-  font: 700 10px Arial;
-}
-.status-effect-icon:focus-visible {
-  outline: 1px solid #95e7ff;
 }
 .diet-block {
   margin-top: auto;
@@ -379,7 +343,7 @@
     font-size: 30px;
   }
   .status-reserve {
-    height: 62px;
+    min-height: 62px;
   }
 }
 @media (max-width: 899px) {
@@ -419,3 +383,5 @@
     font-size: 28px;
   }
 }
+
+.status-reserve > app-combat-timers { margin-top: 6px; }

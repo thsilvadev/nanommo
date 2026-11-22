@@ -1,4 +1,4 @@
-import { equipmentAffinity, elementalResistances } from '@nanommo/shared';
+import { equipmentAffinity, elementalResistances, combatCooldownDurations } from '@nanommo/shared';
 import { Injectable, BadRequestException, NotFoundException, Logger, ConflictException, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -590,6 +590,9 @@ export class CharacterService {
     const attributeBonuses = await this.buildTotalAttributeBonuses(character.id, equipped, equipment.statBonus);
     const attrs = applyAttributeBonuses(character, attributeBonuses);
     const derived = BattleEngine.calculateDerivedStats(character.level, attrs, equipment);
+    const activeCooldownKeys = Object.keys(character.consumableCooldowns ?? {}).filter(key => Date.parse(String(character.consumableCooldowns[key])) > Date.now());
+    const durations = activeCooldownKeys.some(key => key.startsWith('skill:'))
+      ? await this.battleService.getCombatCooldownDurations(character.id) : combatCooldownDurations({});
     return {
       id: character.id,
       userId: character.userId,
@@ -665,6 +668,8 @@ export class CharacterService {
       status: character.status,
       activeGambitPageId: character.activeGambitPageId || undefined,
       lastSeenAt: character.lastSeenAt,
+      statusEffects: character.statusEffects ?? [],
+      cooldownDurations: Object.fromEntries(Object.entries(durations).filter(([key]) => activeCooldownKeys.includes(key))),
       consumableCooldowns: Object.fromEntries(Object.entries(character.consumableCooldowns ?? {}).filter(([, until]) => {
         const timestamp = Date.parse(String(until));
         return Number.isFinite(timestamp) && timestamp > Date.now();

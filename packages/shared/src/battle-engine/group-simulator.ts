@@ -1,3 +1,4 @@
+import { consumableCooldownKey } from './combat-timers';
 import { elementalMultiplier, basicAttackElementMultiplier } from '../elements';
 import { burnStatusPayload, periodicDamageAmount, periodicDamageProfile } from './elemental-status';
 import type { ActorEvent, ActorEventPayload, BattleActor, BattleActorState, BattleInputV2, BattleResultV2, CombatEffectDefinition, CombatSkillDefinition, GroupGambitAction } from '../types/group-battle';
@@ -109,7 +110,7 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
       self.foodBuffItemId=itemId;self.foodBuffTicksRemaining=ticks;self.foodBuffHpRegenPerTenTicks=buff.hpRegenPerTenTicks;self.foodBuffSpRegenPerTenTicks=buff.spRegenPerTenTicks;
     }
     self.castLockTicks=2;
-    record(self,[target],'use_item',{type:'action',itemId,healAmount:target.hp-hpBefore,spGain:target.sp-spBefore});
+    record(self,[target],'use_item',{type:'action',itemId,...(Number(cooldowns[consumableCooldownKey(def,itemId)])>0?{cooldown:{key:consumableCooldownKey(def,itemId),durationTicks:cooldowns[consumableCooldownKey(def,itemId)]}}:{}),healAmount:target.hp-hpBefore,spGain:target.sp-spBefore});
   }
   const applySkillStatus=(self:BattleActorState,target:BattleActorState,skillId:string,e:CombatEffectDefinition,rank:number)=>{
     if(e.applyStatus&&target.hp>0) {
@@ -159,7 +160,7 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
         if(gridKey(from)!==gridKey(target.position)){record(self,[target],'move',{type:'move',from,to:{...target.position},reason:'push'});if(e.targetDebuffOnSuccessfulPush)applyStatus(self,target,String(e.targetDebuffOnSuccessfulPush),Number(e.targetDebuffDurationTicks??12),{sourceSkillId:skillId,moveSpeedMultiplier:Number(e.targetMoveSpeedMultiplier??0.2)});}
       }
     }
-    record(self,[target],'use_skill',{type:'action',skillId,damage:dealt,damageType:def.damageType??(type.startsWith('magic_')?'magical':'physical'),hit:true,crit:false,spSpent:spCost,healAmount:Math.max(0,target.hp-hpBefore)});
+    record(self,[target],'use_skill',{type:'action',skillId,...(Number(self.cooldowns![`skill:${skillId}`])>0?{cooldown:{key:`skill:${skillId}`,durationTicks:self.cooldowns![`skill:${skillId}`]}}:{}),damage:dealt,damageType:def.damageType??(type.startsWith('magic_')?'magical':'physical'),hit:true,crit:false,spSpent:spCost,healAmount:Math.max(0,target.hp-hpBefore)});
     if(target.team!==self.team&&target.hp>0){const species=actorById.get(target.id)?.definitionId;if(species==='mon_unicorn')applyStatus(target,target,'magic_prowess',40,{matkBonus:20,sourceSkillId:'monster_skill_channel'});if(species==='mon_ruinsguardian')applyStatus(target,target,'prowess',40,{atkBonus:10,defBonus:10,sourceSkillId:'monster_skill_prowess'});}
     if(dynamoRank>0){const before=self.sp;self.sp=Math.min(self.maxSp,self.sp+2*dynamoRank);if(self.sp>before)record(self,[self],'sp_refund',{type:'action',spGain:self.sp-before});}
     if(target.hp<=0)death(target);if(target.team!==self.team)reflect(self,target,dealt,def.damageType??(type.startsWith('magic_')?'magical':'physical'));

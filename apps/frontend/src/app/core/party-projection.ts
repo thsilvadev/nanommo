@@ -1,7 +1,7 @@
 /** Public battle projection: replay server events by time, without predicting outcomes. */
 export interface SharedActor {
   id: string; kind: string; team: string; name?: string; monsterId?: string; definitionId?: string;
-  snapshot: { atk?: number; matk?: number; def?: number; mdefPercent?: number; accuracy?: number; evasion?: number; critChance?: number; name?: string; hp: number; sp: number; maxHp: number; maxSp: number; statusEffects?: Array<{ id?: string; type?: string; stacks?: number }> };
+  snapshot: { atk?: number; matk?: number; def?: number; mdefPercent?: number; accuracy?: number; evasion?: number; critChance?: number; name?: string; hp: number; sp: number; maxHp: number; maxSp: number; cooldowns?:Record<string,number>; cooldownDurations?:Record<string,number>; statusEffects?: Array<{ id?: string; type?: string; stacks?: number; expiresAtTick?:number; expiresAt?:string }> };
 }
 export interface SharedActorState { hp: number; sp: number; targetId?: string; statusEffects?: Array<{id?:string;type?:string;stacks?:number}> }
 export interface SharedEvent {

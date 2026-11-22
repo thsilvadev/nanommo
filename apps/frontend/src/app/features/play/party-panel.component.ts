@@ -1,3 +1,5 @@
+import { CombatTimersComponent } from './combat-timers.component';
+import { CombatTimersService } from './combat-timers.service';
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { CharacterStore } from '../../core/game.store';
@@ -8,10 +10,11 @@ import { CharacterSummary } from './components';
 import { UiClockService } from '../../core/ui-clock.service';
 
 @Component({
-  selector: 'app-party-panel', standalone: true, imports: [CommonModule, CharacterSummary],
+  selector: 'app-party-panel', standalone: true, imports: [CommonModule, CharacterSummary, CombatTimersComponent],
   templateUrl: './party-panel.component.html', styleUrl: './party-panel.component.css',
 })
 export class PartyPanelComponent {
+  readonly timers = inject(CombatTimersService);
   readonly party = inject(PartyStore);
   readonly character = inject(CharacterStore);
   readonly locale = inject(LocaleService);

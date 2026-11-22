@@ -1,3 +1,21 @@
+### HUD de duração e cooldown de combate — 2026-11-22
+
+Implementada no worktree `combat-cooldowns-hud`, branch `codex/combat-cooldowns-hud` criada da `main`. Checkout da feature 3D preservado. Merge na `main` depende de comando posterior do usuário; sem push, deploy ou migrações.
+
+- HUD compartilhada em Character/Status, alvo solo e compartilhado no Grind, e abaixo de HP/SP dos aliados em Group. Ícones 28 × 28 px: buffs verdes, debuffs vermelhos, habilidades brancas, itens cinza. Buffs/debuffs mostram segundos arredondados para cima, com stacks no tooltip; efeitos permanentes não ganham duração artificial.
+- Habilidades e consumíveis aparecem apenas durante o cooldown, com máscara escura que libera o ícone em sentido horário, conforme `project/cooldown_effect.gif`. Três ícones SVG próprios para as categorias poção/tônico/supertônico; ícones faltantes dos efeitos de tônicos e violent_shot_slow preenchidos com arte já existente.
+- Confirmado por testes: cooldown compartilhado dentro das categorias, independência entre poções (10s), tônicos (30s) e supertônicos (60s). Sem alteração de balanceamento ou regras de consumo.
+- Eventos de ações bem-sucedidas incluem metadados compactos do cooldown efetivo. Cast start/fizzle não iniciam relógio. Abertura do encontro respeita o decremento do tick zero; prazos absolutos continuam fora de combate. Logs compartilhados já existentes recebem metadados a partir das próprias definições efetivas, sem mutação do log.
+- DTOs públicos expõem apenas timers ativos reconhecidos e suas durações. Inventário, Gambits e Diet continuam privados. Character passa a fornecer status persistentes e duração efetiva das habilidades ainda em cooldown.
+- Revisão independente encontrou dois P2 (decremento inicial e filtragem pública do Group), ambos reproduzidos com testes RED e corrigidos antes da suíte final.
+
+Validação:
+- Builds de `@nanommo/shared`, `@nanommo/api` e frontend de produção; `tsc -p tsconfig.spec.json --noEmit`. Avisos de orçamento CSS já existentes; removido o CSS antigo de status do personagem, mantendo o build dentro do limite de erro.
+- Chromium headless: 24 testes passaram (`combat-timers*.spec.ts`, `status-projection.component.spec.ts`, `shared-character-projection.spec.ts`, `party-projection.spec.ts`).
+- Scripts Node passaram: `combat-timers.test.js`, `combat-timers-public.test.js`, `party-timers-public.test.js`, `group-battle-engine.test.js`, `group-battle-parity.test.js`, `party-alchemy-manual-consumables.test.js`, `shared-public-target-stats.test.js`, `party-rewards-capacity.test.js`, `off-battle-resources-cooldowns.test.js`.
+- Smoke visual do build completo com backend fictício interceptado no navegador: Character, Group, alvo compartilhado e solo, viewport estreito; sem erros de JavaScript. Screenshots de revisão em `/tmp/nanommo-hud-{group,character,solo,mobile}.png`. Não acessa o backend real.
+- `openspec validate combat-timers-hud --strict` e `git diff --check`.
+
 ### Performance, Fase 0.5 (achados do perfil do Firefox) + sino de Sierra + Storage do Outpost — 2026-11-21
 
 Commit e push na `main` autorizados pelo usuário.
