@@ -34,6 +34,68 @@ window.applyConfig = async (c) => {
   scene.background = new THREE.Color('#3a332d');
   scene.add(new THREE.HemisphereLight('#ffffff', '#554433', 2.2));
   const sun = new THREE.DirectionalLight('#ffffff', 2.2); sun.position.set(2, 4, 3); scene.add(sun);
+  if (c.icon) {
+    // icon render: the piece alone, transparent background, orthographic, flat-ish light
+    const S = 512;
+    renderer.setSize(S, S);
+    renderer.setClearColor(0x000000, 0);
+    const scene2 = new THREE.Scene();
+    scene2.add(new THREE.AmbientLight('#ffffff', 1.6));
+    const key = new THREE.DirectionalLight('#ffffff', 1.6); key.position.set(-2, 3, 4); scene2.add(key);
+    const group = new THREE.Group();
+    const info = manifest.visuals[c.icon];
+    const mat = new THREE.MeshStandardMaterial({ map: atlas, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+    const onBody = info.kind === 'skinned' || info.slot === 'head';
+    if (!onBody) {
+      const piece = (await load('/gear/gear-rigid.glb')).scene.getObjectByName(c.icon);
+      piece.traverse((o) => { if (o.isMesh) { const m = new THREE.Mesh(o.geometry, mat); o.updateWorldMatrix(true, false); m.applyMatrix4(o.matrixWorld); group.add(m); } });
+    } else {
+      // on the body in Idle; the body is hidden, except the head (near-black, like the old icons' faces) for head pieces
+      const root = cloneSkinned((await load(`/assets/character/body-male.glb`)).scene);
+      const bones = new Map(); root.traverse((o) => { if (o.isBone) bones.set(o.name, o); });
+      const body = root.getObjectByName('Body');
+      for (const name of ['Brows', 'Eyes']) { const o = root.getObjectByName(name); if (o) o.visible = false; }
+      if (info.slot === 'head') {
+        const g = body.geometry, J = g.getAttribute('skinIndex'), Wt = g.getAttribute('skinWeight'), idx = g.getIndex();
+        const head = body.skeleton.bones.findIndex((b) => b.name === 'Head');
+        const dom = (v) => { let b = 0; for (let k = 1; k < 4; k++) if (Wt.getComponent(v, k) > Wt.getComponent(v, b)) b = k; return J.getComponent(v, b); };
+        const kept = []; for (let i = 0; i < idx.count; i += 3) { const t = [idx.getX(i), idx.getX(i + 1), idx.getX(i + 2)]; if (t.every((v) => dom(v) === head)) kept.push(...t); }
+        const ng = g.clone(); ng.setIndex(kept); body.geometry = ng;
+        body.material = new THREE.MeshBasicMaterial({ color: '#14111a' });
+      } else body.visible = false;
+      if (info.kind === 'rigid') {
+        const piece = (await load('/gear/gear-rigid.glb')).scene.getObjectByName(c.icon);
+        const m = new THREE.Mesh((piece.isMesh ? piece : piece.children[0]).geometry, mat);
+        m.matrixAutoUpdate = false; m.matrix.fromArray(info.transform.male);
+        bones.get(info.bone).add(m);
+      } else {
+        const src = (await load('/gear/gear-male.glb')).scene.getObjectByName(c.icon);
+        const mesh = src.isSkinnedMesh ? src : src.children.find((x) => x.isSkinnedMesh);
+        const copy = new THREE.SkinnedMesh(mesh.geometry, mat); copy.frustumCulled = false;
+        body.parent.add(copy);
+        copy.bind(new THREE.Skeleton(mesh.skeleton.bones.map((b) => bones.get(b.name)), mesh.skeleton.boneInverses), body.bindMatrix);
+      }
+      const anims = await load('/assets/character/animations.glb');
+      const mixer = new THREE.AnimationMixer(root);
+      mixer.clipAction(anims.animations.find((a) => a.name === 'Idle')).play(); mixer.setTime(0.1);
+      root.updateMatrixWorld(true);
+      group.add(root);
+    }
+    group.rotation.set(((c.tilt ?? 0) * Math.PI) / 180, ((c.yaw ?? 0) * Math.PI) / 180, 0);
+    const holder = new THREE.Group(); holder.add(group); holder.rotation.z = ((c.roll ?? 0) * Math.PI) / 180;
+    scene2.add(holder);
+    holder.updateMatrixWorld(true);
+    holder.traverse((o) => { if (o.isSkinnedMesh) o.skeleton.update(); });
+    // fit: box of the actual (skinned) geometry
+    const box = new THREE.Box3();
+    holder.traverse((o) => { if (o.isSkinnedMesh && o.visible) { const p = new THREE.Vector3(); const idx = o.geometry.getIndex(); const used = idx ? new Set(idx.array) : null; const pos = o.geometry.getAttribute('position'); for (let i = 0; i < pos.count; i++) { if (used && !used.has(i)) continue; o.getVertexPosition(i, p); box.expandByPoint(p.applyMatrix4(o.matrixWorld)); } } else if (o.isMesh && o.visible) box.expandByObject(o); });
+    const size = box.getSize(new THREE.Vector3()), centre = box.getCenter(new THREE.Vector3());
+    const half = Math.max(size.x, size.y) / 2 / (c.fill ?? 0.84);
+    const cam = new THREE.OrthographicCamera(-half, half, half, -half, 0.01, 100);
+    cam.position.set(centre.x, centre.y, centre.z + 10); cam.lookAt(centre);
+    renderer.render(scene2, cam);
+    return renderer.domElement.toDataURL('image/png');
+  }
   if (c.weapon) {
     const rigid = (await load('/gear/gear-rigid.glb')).scene;
     const piece = rigid.getObjectByName(c.weapon);
