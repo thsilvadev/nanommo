@@ -162,21 +162,27 @@ material `White`, ver `CharacterRig.bowParts`); o build gera/renomeia isso.
   - `region` — extrai de uma roupa convertida só os triângulos de uma região (botas: pé/tornozelo;
     capa: região das costas) — permite aproveitar partes de um personagem.
   - `rigid` — peça presa a um osso (elmo, chapéu, capa rígida, arma): pivô, escala e orientação.
-- Peças skinned saem **uma por sexo** (`gear/<visual>-male.glb`, `-female.glb`): os dois corpos
-  têm os mesmos nomes de osso mas posições de descanso diferentes.
+- Peças skinned saem **uma por sexo**: os dois corpos têm os mesmos nomes de osso mas posições de
+  descanso diferentes.
+- *(Chamada minha, para a meta de 200 personagens)* **Um atlas de textura único para todo o gear**
+  (`gear/gear-atlas.webp`, ≤ 4096², cada visual com sua região; cores lisas viram amostras; tintas
+  de elemento já "assadas") e **poucos arquivos**: `gear/gear-male.glb` e `gear/gear-female.glb`
+  (todas as peças skinned do sexo, uma malha nomeada por visual, sem texturas embutidas, UVs já no
+  atlas), `gear/gear-rigid.glb` (elmos, chapéus, capas rígidas e armas, um nó por visual, pivô
+  na origem) e `gear/manifest.json`. **Gear nunca contém pele**: triângulos de pele da fonte (material
+  `Skin` da Quaternius ou pele pintada na textura) são removidos no build e a região correspondente
+  fica descoberta — aparece o corpo do próprio jogador.
 - Saídas em `apps/frontend/public/assets/character/gear/` + `gear/manifest.json`:
   ```json
   { "version": 1,
     "items": { "equip_body_phys_t3": "body-handpainted-knight", ... },
     "visuals": {
       "body-handpainted-knight": { "slot": "body", "kind": "skinned",
-        "assets": { "male": "body-handpainted-knight-male.glb", "female": "..." },
-        "covers": ["torso", "upperarms", "forearms", "hands", "thighs", "calves"],
-        "skinMaterials": ["Skin"] },
+        "covers": ["torso", "upperarms", "forearms", "hands", "thighs", "calves"] },
       "head-kaykit-knight": { "slot": "head", "kind": "rigid", "bone": "Head",
-        "asset": "head-kaykit-knight.glb", "transform": { "male": {...}, "female": {...} },
-        "hidesHair": true } } }
+        "transform": { "male": [16 números], "female": [16 números] }, "hidesHair": true } } }
   ```
+  A malha/nó de cada visual tem o nome do visual dentro de `gear-<sexo>.glb` / `gear-rigid.glb`.
 - Higiene: texturas reduzidas (≤ 1024 px, a maioria 512), malha reduzida a um teto por slot
   (proposta: Body ≤ 6k triângulos, elmo/capa/bota ≤ 2k, arma ≤ 1,5k), só os atributos que o
   visualizador usa, quantização como nas roupas de NPC. Reprodutível.
@@ -189,11 +195,10 @@ material `White`, ver `CharacterRig.bowParts`); o build gera/renomeia isso.
 - O corpo do jogador é dividido em **regiões** pelo osso dominante de cada triângulo (cabeça,
   pescoço, tronco, braços, antebraços, mãos, coxas, canelas, pés) — mesma técnica do
   `headOnly()` dos NPCs. Cada peça declara as regiões que `covers`; o corpo mostra o resto.
-- Partes de pele da roupa original:
-  - material separado (Quaternius `Skin`, ex. mãos do Ranger/Peasant): recebe o tom de pele do jogador;
-  - pele pintada na mesma textura (antebraços do robe vermelho, mãos do mago roxo): esses
-    triângulos são **removidos** da roupa no build e a peça **não cobre** essa região — aparece o
-    braço/mão do próprio jogador, com a pele e as tatuagens dele.
+- Partes de pele da roupa original (material `Skin` da Quaternius nas mãos do Ranger/Peasant; pele
+  pintada na textura nos antebraços do robe vermelho e nas mãos do mago roxo): **removidas** da
+  roupa no build e a peça **não cobre** essa região — aparece o braço/mão do próprio jogador, com
+  a pele e as tatuagens dele.
 - Elmo/capuz com `hidesHair: true` esconde o cabelo (e pelos faciais que atravessariam, por flag).
 - Sem `shoes`: pés descalços do corpo. Sem `body`: corpo base de hoje (roupa de baixo).
 
@@ -236,15 +241,19 @@ material `White`, ver `CharacterRig.bowParts`); o build gera/renomeia isso.
     (`vercel.json`, versão no nome como `animations.glb?v=`). A tela mostra progresso e entra no
     jogo mesmo se um asset falhar (o slot fica vazio).
   - *Desenho por frame* — pré-carregar não resolve: 200 personagens × (corpo, cabelo, olhos +
-    até 6 peças) seriam ~2.000 chamadas de desenho. Por isso: (a) **as peças de cada personagem
-    (corpo visível + Body + botas + elmo + capa) são fundidas numa única malha skinned com um
-    atlas de textura por personagem**, montada uma vez ao vestir/trocar equipamento, e as armas
-    rígidas seguem separadas; (b) personagens no LOD `low` (já existe: distantes ou fora da tela,
-    animação a 10 Hz) usam a mesma malha fundida e, além de N mais próximos (proposta N = 60),
-    viram uma versão reduzida (menos triângulos) da malha fundida.
+    até 6 peças) seriam ~2.000 chamadas de desenho. Por isso, na cidade, **todas as peças de um
+    personagem (Body, botas, elmo, capa e as duas armas) viram uma única malha skinned com um único
+    material (o atlas compartilhado)** — peças rígidas entram como skinned com peso 1 no osso delas.
+    A geometria fundida é cacheada por (sexo + conjunto de visuais): personagens com o mesmo
+    equipamento compartilham a mesma geometria. O corpo mostra só as regiões descobertas (geometria
+    de índices cacheada por sexo + regiões). Resultado: +1 chamada de desenho por personagem.
+    O retrato (`CharacterRig`) usa a mesma fusão para Body/botas/elmo/capa, mas mantém as armas como
+    objetos separados (o arco anima a corda e as mãos trocam de lado).
   - **Gate de aprovação:** cena da cidade com 200 personagens T3 completos — medir tempo de frame
     e chamadas de desenho contra a cidade de hoje com 200 personagens sem equipamento; meta:
-    chamadas de desenho por personagem ≤ hoje + 2, e tempo de frame no máximo 25% pior.
+    chamadas de desenho por personagem ≤ hoje + 1, e tempo de frame no máximo 25% pior. Se o
+    tempo de frame estourar, o primeiro recurso é a versão reduzida (LOD1, ~50% dos triângulos,
+    gerada no build) da malha fundida para personagens no LOD `low`.
 
 ### 6. Criador
 
