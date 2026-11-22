@@ -11,6 +11,7 @@ import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { Sex } from '@nanommo/shared';
 import { CLIP_NAMES, LIBRARY_CLIPS, deinterleave, prepareBody, type BodyAsset } from './body-asset';
+import { GEAR_ASSET_VERSION, GEAR_MANIFEST_ASSET, type GearManifest, type LoadedGear } from './gear-manifest';
 
 export type { BodyAsset } from './body-asset';
 /**
@@ -43,6 +44,7 @@ export class CharacterAssetCache {
   private readonly images = new Map<string, Promise<ImageBitmap>>();
   private readonly skins = new Map<string, Promise<THREE.Texture>>();
   private library: Promise<AnimationLibrary> | null = null;
+  private gearLoad: Promise<LoadedGear> | null = null;
 
   constructor(private readonly load: GltfLoad, private readonly assetBase: string) {}
 
@@ -83,6 +85,40 @@ export class CharacterAssetCache {
       mesh.material = (mesh.material as THREE.Material).clone();
     });
     return prepareBody(sex, root, library.clips, library.pelvisRest);
+  }
+
+  /**
+   * The wearable gear (manifest, the three GLBs and the atlas), loaded once per page. Files are
+   * cache-busted by the manifest's content version. A failure is forgotten so the next call retries.
+   */
+  gear(): Promise<LoadedGear> {
+    if (!this.gearLoad) {
+      const pending = (async () => {
+        const response = await fetch(`${this.url(GEAR_MANIFEST_ASSET)}?v=${GEAR_ASSET_VERSION}`);
+        if (!response.ok) throw new Error('Unable to load the gear manifest');
+        const manifest = (await response.json()) as GearManifest;
+        const v = `?v=${manifest.version}`;
+        const [male, female, rigid, bitmap] = await Promise.all([
+          this.gltf(`gear/gear-male.glb${v}`), this.gltf(`gear/gear-female.glb${v}`), this.gltf(`gear/gear-rigid.glb${v}`),
+          this.image(`gear/${manifest.atlas}${v}`),
+        ]);
+        const atlas = new THREE.Texture(bitmap);
+        atlas.flipY = false;
+        atlas.colorSpace = THREE.SRGBColorSpace;
+        atlas.needsUpdate = true;
+        const skinnedOf = (scene: THREE.Object3D) => {
+          const map = new Map<string, THREE.SkinnedMesh>();
+          scene.traverse((o) => { if ((o as THREE.SkinnedMesh).isSkinnedMesh && manifest.visuals[o.name]) map.set(o.name, o as THREE.SkinnedMesh); });
+          return map;
+        };
+        const rigidMap = new Map<string, THREE.Object3D>();
+        for (const child of rigid.scene.children) if (manifest.visuals[child.name]) rigidMap.set(child.name, child);
+        return { manifest, atlas, skinned: { male: skinnedOf(male.scene), female: skinnedOf(female.scene) }, rigid: rigidMap };
+      })();
+      this.gearLoad = pending;
+      pending.catch(() => { if (this.gearLoad === pending) this.gearLoad = null; });
+    }
+    return this.gearLoad;
   }
 
   /** A skin texture composed once per appearance key (bodies of the same look can share it). */

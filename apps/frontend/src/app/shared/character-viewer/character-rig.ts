@@ -13,6 +13,7 @@ import { CLIP_SECONDS, type AnimationState } from '../character-animation/animat
 import { bakeDecal, hexToRgb, sampleColor, tintSkinPixels, type Decal, type Vec3 } from './skin-compositor';
 import { BASE_CLIPS, HIT_CLIPS, MIRRORED_CLIPS, OVERLAY_CLIPS, SKIN_TEXTURE_SIZE, type BodyAsset } from './body-asset';
 import { CharacterAssetCache } from './character-asset-cache';
+import { gripMatrix } from './grip';
 
 /** Height of each body as modelled, in cm (assets report, Task 0). */
 export const NATIVE_HEIGHT_CM: Record<Sex, number> = { male: 181, female: 177 };
@@ -547,51 +548,9 @@ export class CharacterRig implements CharacterRigHandle {
       // The same item in both hands (dual daggers): the second hand gets its own copy.
       const item = source.parent ? Object.assign(source.clone(true), { name: source.name }) : source;
       body.bones.get(HAND_BONES[side])!.add(item);
-      this.gripMatrix(body, side, type).decompose(item.position, item.quaternion, item.scale);
+      gripMatrix(body.fists[side], type).decompose(item.position, item.quaternion, item.scale);
       if (type === 'bow') this.bow = { side, item };
     });
-  }
-
-  /**
-   * Where an item sits in hand-bone space. The handle goes through the hole of
-   * the closed fist (measured from the Idle pose), so the hand wraps it.
-   */
-  private gripMatrix(body: BodyAsset, side: 'right' | 'left', type: HandWeaponType): THREE.Matrix4 {
-    const { centre, lateral, along, palm } = body.fists[side];
-    const basis = (y: THREE.Vector3, zHint: THREE.Vector3) => {
-      const yAxis = y.clone().normalize();
-      const xAxis = new THREE.Vector3().crossVectors(yAxis, zHint).normalize();
-      const zAxis = new THREE.Vector3().crossVectors(xAxis, yAxis);
-      return new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
-    };
-    /** Handle axis: out of the thumb side, tipped towards the fingertips (downwards when the arm hangs). */
-    const through = (tilt: number, outwards = 0) => lateral.clone().multiplyScalar(Math.cos(tilt)).addScaledVector(along, Math.sin(tilt)).addScaledVector(palm, -outwards);
-    let matrix: THREE.Matrix4;
-    switch (type) {
-      case 'greatsword':
-        matrix = basis(through(0.95, 0.35), palm).setPosition(centre);
-        break;
-      case 'bow':
-        // Nearly upright at the side, upper limb forward; the string (bow +X) faces the
-        // forearm and elbow, not the space in front of the character.
-        matrix = basis(through(1.25).applyAxisAngle(palm, -Math.PI / 2), palm).setPosition(centre);
-        break;
-      case 'staff':
-        // Top leans forward, following the fist's hole, so it clears the arm.
-        matrix = basis(through(-0.62, 0.22), palm).setPosition(centre);
-        break;
-      case 'shield':
-        // On the back of the forearm, facing outwards.
-        matrix = basis(along.clone().negate(), palm.clone().negate())
-          .setPosition(centre.clone().addScaledVector(along, -0.15).addScaledVector(palm, -0.038));
-        break;
-      case 'rune':
-        matrix = basis(along.clone().negate(), lateral).setPosition(centre.clone().addScaledVector(along, 0.085));
-        break;
-      default: // dagger, sword, rod
-        matrix = basis(through(0.5, 0.15), palm).setPosition(centre);
-    }
-    return matrix;
   }
 
   // ---- Rendering ---------------------------------------------------------------
