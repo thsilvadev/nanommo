@@ -35,7 +35,7 @@ export const MONSTERS = {
     equipment: { body: 'equip_body_phys_t1', head: 'equip_head_phys_t1', cape: 'equip_cape_phys_t1', shoes: 'equip_shoes_earth_t2', mainHand: 'equip_dagger_t1' }, mainHandType: 'dagger' } },
   giantmosquito: { kind: 'native', size: { len: 1.4 }, clips: {Walk: 'fly',  Idle: 'hover', Attack: 'attack', Dead: 'death1' } },
   rootboundbrute: { kind: 'native', size: { h: 2.6 }, clips: {Walk: 'walk',  Idle: 'idle', Attack: 'attack1', Damage: 'take_damage', Dead: 'death', Cast: 'attack2' } },
-  unicorn: { kind: 'native', size: { h: 2.1 }, clips: {}, split: { Idle: ['Animations', 0, 4], Walk: ['Animations', 25.5, 27.5], Attack: ['Animations', 33.2, 35.4], Dead: ['Animations', 38.8, 40.2] }, hue: { h: 0, s: 0.15, b: 2.3 }, attach: [{ bone: /Head_06/, length: 0.45, radius: 0.05, dir: [0, 0.8, 1], offset: [0, 0.12, 0.1], color: [0.95, 0.85, 0.55] }] },
+  unicorn: { kind: 'native', size: { h: 2.1 }, clips: {}, split: { Idle: ['Animations', 0, 5], Walk: ['Animations', 45.5, 48.5], Attack: ['Animations', 42.3, 43.4], Damage: ['Animations', 43.6, 44.5], Dead: ['Animations', 38.8, 40.2] }, hue: { h: 0, s: 0.15, b: 2.3 }, attach: [{ bone: /Head_06/, length: 0.45, radius: 0.05, dir: [0, 0.8, 1], offset: [0, 0.12, 0.1], color: [0.95, 0.85, 0.55] }] },
   kwaiouaranger: { kind: 'character', method: 'retarget', sex: 'female', recolor: 'goldToGreen', weapon: 'bow-wooden' },
   giantmantis: { kind: 'native', size: { h: 1.8 }, clips: {Walk: 'mantis_walk',  Idle: 'mantis_idle', Attack: 'mantis_attack', Damage: 'mantis_gothit', Dead: 'mantis_death' }, hue: { h: 20, s: 0.8 }, tint: [0.95, 0.8, 1.0] },
   flamingtreant: { kind: 'character', method: 'retarget', boneMap: 'treeman', sex: 'male', scale: 1.6, fx: ['fire'] },

@@ -5,7 +5,7 @@ Movimentos de batalha (mesmos nomes do personagem): **Idle** (parado em combate)
 Fonte da verdade do mapeamento: `monsters.config.mjs`; o manifesto gerado lista os clipes de cada GLB.
 
 **Walk** (2026-11-23): o monstro anda enquanto se desloca no grid (eventos `move` do battle log). Clipe de andar do
-próprio modelo quando existe (22 monstros; unicórnio: trecho 25,5–27,5 s; abelha/mosquito: voo; wisp: Swim; Ridgebreaker: Run);
+próprio modelo quando existe (22 monstros; unicórnio: trecho 45,5–48,5 s; abelha/mosquito: voo; wisp: Swim; Ridgebreaker: Run);
 senão 🔧 um saltitar gerado (thornsprout, duneraider, venomviper, sacredforestguardian, wraith).
 
 Regra para o que falta (decisão do usuário: usar idle ou a mais viável):
@@ -37,7 +37,7 @@ Legenda: ✅ do modelo · 🔧 gerado · ↪ substituto · 🗃 extra guardado (
 | venomviper (Cobra, pintada de verde) | ✅ Idle | ✅ Bite | 🔧 | ✅ Killed | ↪ Attack2 | | Attack, CircleBite, GetUp, Steady, IdleLoop |
 | giantmosquito | ✅ hover | ✅ attack | 🔧 | ✅ death1 | ↪ Attack | | fly, landing, walk, idle (pousado), death2 |
 | rootboundbrute (Troll) | ✅ idle | ✅ attack1 | ✅ take_damage | ✅ death | ↪ attack2 | | idle_break, walk, run |
-| unicorn (Horse Rigged) | ✅ trecho 0–4 s | ✅ empinar 33,2–35,4 s | 🔧 | ✅ queda 38,8–40,2 s | ↪ Attack | | resto do take de 60 s (andar, trote, levantar) |
+| unicorn (Horse Rigged) | ✅ trecho 0–5 s | ✅ empinar 42,3–43,4 s | ✅ coice 43,6–44,5 s | ✅ queda 38,8–40,2 s | ↪ Attack | Walk 45,5–48,5 s | resto do take de 60 s (trote, galope 33–35 s, levantar) |
 | giantmantis | ✅ mantis_idle | ✅ mantis_attack | ✅ mantis_gothit | ✅ mantis_death | ↪ Attack | | run, walk |
 | mirageStalker (Camouflaged-leopard) | ✅ Idle | ✅ Attack | ↪ Growl | ✅ Death | ↪ PounceSwipe | **Bite** (skill futura) | Die, DieLoop, JumpUp, Pounce, Graze, Sick, Run, Walk |
 | arcanewisp (Stonewisp) | ✅ Idle | ↪ Intimidate | ↪ Brace_Enter | ✅ Die | ↪ Brace_Idle | | Brace_Exit, Inspect, Swim |

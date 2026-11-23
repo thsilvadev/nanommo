@@ -103,10 +103,15 @@ export class MonsterViewerComponent implements OnDestroy {
       const clip = clips.find((c) => c.name === (characterRig ? CHARACTER_MAP[name] : name));
       if (clip) { const a = mixer.clipAction(clip); a.play(); a.setEffectiveWeight(0); actions.set(name, a); }
     }
+    // Generated clips (tools/monster-assets) only move the top 'Monster' node: they play over the Idle body pose,
+    // otherwise the limbs would freeze in whatever pose the previous clip left them.
+    const rootOnly = new Set([...actions].filter(([, a]) => a.getClip().tracks.every((t) => t.name.startsWith('Monster.'))).map(([n]) => n));
     const pose = (name: MonsterClip, seconds: number, loop = false) => {
       const chosen = actions.get(name) ?? actions.get('Idle');
-      for (const a of actions.values()) a.setEffectiveWeight(a === chosen ? 1 : 0);
+      const under = rootOnly.has(name) && name !== 'Idle' ? actions.get('Idle') : undefined;
+      for (const a of actions.values()) a.setEffectiveWeight(a === chosen || a === under ? 1 : 0);
       if (chosen) { const d = chosen.getClip().duration; chosen.time = loop ? seconds % d : Math.min(Math.max(seconds, 0), d - 1e-3); }
+      if (under) under.time = (Date.now() / 1000) % under.getClip().duration;
       mixer.update(0);
     };
 
