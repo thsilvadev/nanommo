@@ -1678,7 +1678,7 @@
   "equipment": [
     {
       "id": "equip_sword_t1",
-      "name": "Ironbound Sword",
+      "name": "Bronzebound Sword",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "sword",
@@ -1903,7 +1903,7 @@
     },
     {
       "id": "equip_greatsword_t1",
-      "name": "Ironbound Greatsword",
+      "name": "Bronzebound Greatsword",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "greatsword",
@@ -1973,7 +1973,7 @@
     },
     {
       "id": "equip_greatsword_t2",
-      "name": "Gilded Greatsword",
+      "name": "Katana",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "greatsword",
@@ -2149,7 +2149,7 @@
     },
     {
       "id": "equip_dagger_t1",
-      "name": "Ironbound Dagger",
+      "name": "Bronzebound Dagger",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "dagger",
@@ -2520,7 +2520,7 @@
     },
     {
       "id": "equip_bow_t3",
-      "name": "Royal Bow",
+      "name": "Elite Crimson Bow",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "bow",
@@ -2590,7 +2590,7 @@
     },
     {
       "id": "equip_staff_t1",
-      "name": "Oak Staff",
+      "name": "Staff of Wizardry",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "staff",
@@ -2660,7 +2660,7 @@
     },
     {
       "id": "equip_staff_t2",
-      "name": "Gilded Staff",
+      "name": "High Order's Pole of Plainness",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "staff",
@@ -2730,7 +2730,7 @@
     },
     {
       "id": "equip_staff_t3",
-      "name": "Royal Staff",
+      "name": "Ancient Dark Wizzard's Staff",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "staff",
@@ -3388,7 +3388,7 @@
     },
     {
       "id": "equip_head_phys_t1",
-      "name": "Iron Hood",
+      "name": "Leather Headgear",
       "type": "equipment",
       "slot": "head",
       "levelReq": 1,
@@ -3512,7 +3512,7 @@
     },
     {
       "id": "equip_head_phys_t2",
-      "name": "Steel Helm",
+      "name": "Bronze Helm",
       "type": "equipment",
       "slot": "head",
       "levelReq": 8,
@@ -3636,7 +3636,7 @@
     },
     {
       "id": "equip_head_phys_t3",
-      "name": "Knight's Crown Helm",
+      "name": "Dreaded Warrior's Helm",
       "type": "equipment",
       "slot": "head",
       "levelReq": 15,
@@ -3822,7 +3822,7 @@
     },
     {
       "id": "equip_body_magic_t1",
-      "name": "Peasant's Tunic",
+      "name": "Scholar's Tunic",
       "type": "equipment",
       "slot": "body",
       "levelReq": 1,
@@ -3884,7 +3884,7 @@
     },
     {
       "id": "equip_body_phys_t2",
-      "name": "Dark Knight's Armor",
+      "name": "Plate Armor",
       "type": "equipment",
       "slot": "body",
       "levelReq": 8,
@@ -3946,7 +3946,7 @@
     },
     {
       "id": "equip_body_magic_t2",
-      "name": "Crimson Mage's Robes",
+      "name": "Crimson Mage's Robe",
       "type": "equipment",
       "slot": "body",
       "levelReq": 8,
@@ -4008,7 +4008,7 @@
     },
     {
       "id": "equip_body_phys_t3",
-      "name": "Champion's Plate Armor",
+      "name": "Dark Knight's Armor",
       "type": "equipment",
       "slot": "body",
       "levelReq": 15,
@@ -4070,7 +4070,7 @@
     },
     {
       "id": "equip_body_magic_t3",
-      "name": "Archmage's Robes",
+      "name": "Archmage's Robe",
       "type": "equipment",
       "slot": "body",
       "levelReq": 15,
@@ -4194,7 +4194,7 @@
     },
     {
       "id": "equip_cape_magic_t1",
-      "name": "Rogue's Cloak",
+      "name": "Hood of Sharpness",
       "type": "equipment",
       "slot": "cape",
       "levelReq": 1,
@@ -4866,7 +4866,7 @@
     },
     {
       "id": "equip_shoes_earth_t2",
-      "name": "Peasant's Earth Boots",
+      "name": "Earthly Boots",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 8,
@@ -4911,7 +4911,7 @@
     },
     {
       "id": "equip_shoes_water_t2",
-      "name": "Dark Knight's Tide Boots",
+      "name": "Tide Boots",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 8,
@@ -4956,7 +4956,7 @@
     },
     {
       "id": "equip_shoes_fire_t3",
-      "name": "Champion's Ember Greaves",
+      "name": "Ember Greaves",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 15,
@@ -5001,7 +5001,7 @@
     },
     {
       "id": "equip_shoes_shadow_t3",
-      "name": "Archmage's Umbral Boots",
+      "name": "Umbral Boots",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 15,
@@ -5046,7 +5046,7 @@
     },
     {
       "id": "equip_shoes_wind_t4",
-      "name": "Legendary Storm Greaves",
+      "name": "Storm Shoes",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 22,
@@ -5091,7 +5091,7 @@
     },
     {
       "id": "equip_shoes_holy_t4",
-      "name": "Divine Gold Greaves",
+      "name": "Sacred Boots",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 22,
@@ -5136,7 +5136,7 @@
     },
     {
       "id": "equip_shoes_traveler_t1",
-      "name": "Ranger's Trail Boots",
+      "name": "Traveler's Boots",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 1,

@@ -401,7 +401,7 @@ describe('CharacterViewerComponent', () => {
       }
     }
     expect(created.events.failed).toBe(0);
-  });
+  }, 45_000); // Enumerates all looks with real GLBs and software WebGL.
 
   it('ships every asset the catalogue references', async () => {
     const catalog: AppearanceCatalog = await (await fetch('/data/appearance_catalog.json')).json();

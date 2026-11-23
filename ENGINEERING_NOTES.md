@@ -277,3 +277,9 @@ Do not use a shared boolean cleared by every asynchronous `audio.play()` complet
 ## 3D viewer inputs must compare by value — 2026-11-23
 
 Realtime snapshots replace `character`/`inventory` objects on every battle, so anything derived from them (`appearance`, `portraitEquipment()`, hand types) is a new reference each time even when nothing changed. `CharacterViewerComponent.config` compares structurally (`sameConfig`); any new viewer input must stay JSON-serializable, or the comparison must learn about it. Otherwise each snapshot rebuilds the whole model (skin canvas, deformation, gear) and the grind freezes.
+
+## Stance changes invalidate activity search reservations — 2026-11-23
+
+Rebuilding `BattleQueueEntry` rows is insufficient when a solo `encounter_clocks` reservation survives. Gathering may project many avoided candidates before reserving an actual battle minutes ahead; Hunting then inherits that deadline through `reservedEncounter`. Cancel only a real stance change with no started encounter, inside the existing character lock and transaction. Ordinary loadout edits and repeated same-stance clicks retain their search identity. Regression uses the real queue generator and clock service, with a ten-minute reservation, and verifies normal Hunting timing, immutable active fights and Gathering journal delivery. The Gathering gauge remains valid in Hunting too.
+
+A failed town gear download must not set `dressedKey`. Keep the prior outfit and let an identical later roster update retry; only completed dressing (or an intentional empty outfit) settles the key.

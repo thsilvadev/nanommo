@@ -42,7 +42,7 @@ describe('Town Storage drag/drop and double-click handlers', () => {
     Object.assign(panel, { vendor, inventory, catalog, slots: Array.from({ length: 10 }, (_, i) => i), storageDropListIds: ['storage-drop-list'] });
     const grid: any = Object.create(InventoryGrid.prototype);
     Object.assign(grid, {
-      inventory, vendor, catalog, now: signal(Date.now()),
+      actions: { isItemBusy: () => false }, inventory, vendor, catalog, now: signal(Date.now()),
       highlightedSlot: signal<number | null>(null), sortError: signal<string | null>(null), sorting: signal(false),
     });
     return { selectedNpc, vendor, inventory, catalog, panel, grid };

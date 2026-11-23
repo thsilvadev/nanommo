@@ -7,6 +7,7 @@ import { CatalogService } from '../../core/catalog.service';
 import { LocaleService } from '../../core/locale.service';
 import { UiClockService } from '../../core/ui-clock.service';
 import { SharedBattleView } from '../../core/party-projection';
+import { CombatTimersService } from './combat-timers.service';
 import { PartyPanelComponent } from './party-panel.component';
 import { SharedBattlePanelComponent } from './shared-battle-panel.component';
 
@@ -20,7 +21,7 @@ describe('party components in constrained viewports',()=>{
   beforeEach(async()=>{
     party.set({id:'party',revision:1,kind:'manual',leaderCharacterId:'hero',mapId:'map',members:Array.from({length:5},(_,i)=>({characterId:i===0?'hero':'ally'+i,name:'Character '+(i+1),orderIndex:i,pendingLeave:false,hp:100,sp:50,maxHp:100,maxSp:50,statusEffects:[]}))});
     battle.set({id:'battle',revision:1,state:'started',startAt:new Date(start).toISOString(),endAt:new Date(start+60000).toISOString(),snapshot:{actors:[{id:'hero',kind:'character',team:'a',name:'Hero',snapshot:{hp:100,sp:50,maxHp:100,maxSp:50}},{id:'wolf',kind:'monster',team:'b',name:'Wolf',snapshot:{hp:70,sp:0,maxHp:70,maxSp:0}}]},log:{events:Array.from({length:100},(_,tick)=>({tick,actorId:'hero',targetIds:['wolf'],action:'attack',payload:{type:'action',damage:1},actorStates:{hero:{hp:100,sp:50,targetId:'wolf'},wolf:{hp:70,sp:0}}}))}});
-    await TestBed.configureTestingModule({imports:[RenderingHost],providers:[{provide:UiClockService,useValue:{now:clock}},{provide:PartyStore,useValue:store},{provide:CharacterStore,useValue:{character:()=>({id:'hero',name:'Hero'})}},{provide:CatalogService,useValue:{monster:()=>null}},{provide:LocaleService,useValue:{t:(value:string)=>value}}]}).compileComponents();
+    await TestBed.configureTestingModule({imports:[RenderingHost],providers:[{provide:CombatTimersService,useValue:{member:()=>[],sharedTarget:()=>[]}},{provide:UiClockService,useValue:{now:clock}},{provide:PartyStore,useValue:store},{provide:CharacterStore,useValue:{character:()=>({id:'hero',name:'Hero'})}},{provide:CatalogService,useValue:{monster:()=>null}},{provide:LocaleService,useValue:{t:(value:string)=>value}}]}).compileComponents();
   });
   for(const height of [700,340])it(`keeps group controls and the internally scrolling feed available at ${height}px height`,()=>{
     const fixture=TestBed.createComponent(RenderingHost),host:HTMLElement=fixture.nativeElement;

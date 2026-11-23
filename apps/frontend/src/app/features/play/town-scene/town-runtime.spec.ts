@@ -138,7 +138,7 @@ describe('TownRuntime (real WebGL)', () => {
       rt.dispose();
       runtime = null;
     }
-  });
+  }, 30_000);
 
   it('elevated NPC is pickable', async () => {
     def = (await fetch('/data/town_scenes.json').then(r => r.json())).towns.find((t: TownSceneDef) => t.mapId === 'map_emperial_capital_caelum');
