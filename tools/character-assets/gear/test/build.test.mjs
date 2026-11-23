@@ -75,8 +75,8 @@ test('rigid visuals land in gear-rigid.glb with a finite 16-number transform per
   }
 });
 
-test('user mapping (2026-11-22): green Ranger hood is magic T1, red rogue hood is physical T1', () => {
-  assert.equal(ITEMS.equip_head_magic_t1, 'head-ranger-hood');
+test('user mapping (2026-11-23): magic hats shifted down for the Magician\'s hat T3; red rogue hood is physical T1', () => {
+  assert.deepEqual([ITEMS.equip_head_magic_t1, ITEMS.equip_head_magic_t2, ITEMS.equip_head_magic_t3], ['head-mage-hat', 'head-skeleton-mage-hat', 'head-magician-hat']);
   assert.equal(ITEMS.equip_head_phys_t1, 'head-rogue-hood');
 });
 

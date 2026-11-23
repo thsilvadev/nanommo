@@ -80,6 +80,8 @@ Object.assign(VISUALS, {
   'head-rogue-hood': { ...HAT, source: `${KS}Skeleton_Rogue.glb`, node: 'Skeleton_Rogue_Hood', refMesh: 'Skeleton_Rogue_Head' },
   'head-mage-hat': { ...HAT, source: `${KK}Mage.glb`, node: 'Mage_Hat', refMesh: 'Mage_Head' },
   'head-skeleton-mage-hat': { ...HAT, source: `${KS}Skeleton_Mage.glb`, node: 'Skeleton_Mage_Hat', refMesh: 'Skeleton_Mage_Skull' },
+  // "Magician's hat" (Sketchfab, CC-BY): brim ~0.42 m wide, brim 0.09 m above our Head bone
+  'head-magician-hat': { ...HAT, fit: undefined, refBone: undefined, source: 'sketchfab:9a9ad828456f4cf9a3d3ea08e3fb464c', nodes: ['Cube_0'], refPoint: [0, -2.11, 0], scale: 0.14, doubleSided: true },
 
   'cape-rogue': { ...CAPE, source: `${KK}Rogue.glb`, node: 'Rogue_Cape' },
   'cape-barbarian': { ...CAPE, source: `${KK}Barbarian.glb`, node: 'Barbarian_Cape' },
@@ -145,9 +147,10 @@ export const ITEMS = {
   equip_head_phys_t1: 'head-rogue-hood',
   equip_head_phys_t2: 'head-knight-helmet',
   equip_head_phys_t3: 'head-warrior-helmet',
-  equip_head_magic_t1: 'head-ranger-hood',
-  equip_head_magic_t2: 'head-mage-hat',
-  equip_head_magic_t3: 'head-skeleton-mage-hat',
+  // magic hats shifted one tier down when the Magician's hat became T3 (the ranger hood is no longer used)
+  equip_head_magic_t1: 'head-mage-hat',
+  equip_head_magic_t2: 'head-skeleton-mage-hat',
+  equip_head_magic_t3: 'head-magician-hat',
   equip_cape_phys_t1: 'cape-rogue',
   equip_cape_phys_t2: 'cape-barbarian',
   equip_cape_phys_t3: 'cape-knight',

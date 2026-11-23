@@ -47,3 +47,8 @@ export const MONSTERS = {
   cindergolem: { kind: 'native', size: { h: 2.8 }, clips: { Idle: 'magmagolem_combatidle', Attack: 'magmagolem_chpunch', Damage: 'magmagolem_hit', Cast: 'magmagolem_sprayl' }, split: { Dead: ['Action_AnimDie__magmagolem_death1', 0, 1.25] }, keep: { FireBreath: 'magmagolem_firebreath', ThrowMagma: 'magmagolem_throwmagma' } },
   wraith: { kind: 'native', size: { h: 0.45 }, lift: 1.35, clips: { Idle: 'Take 01' }, attach: [{ bone: /^Cube$/, ring: { count: 14, radius: 0.18 }, offset: [0, -0.05, 0], length: 0.8, radius: 0.045, dir: [0, -1, 0], color: [0.3, 0.6, 1.0], emissive: [0.15, 0.45, 1.0], alpha: 0.45, pulse: true }], fx: ['blue-melting-particles'] },
 };
+
+/** Town NPC figures built by the same pipeline (output: apps/frontend/public/assets/npcs/figure-<id>.glb, Idle only). */
+export const NPC_FIGURES = {
+  yunara: { kind: 'native', size: { h: 1.66 }, clips: { Idle: 'Idle1' }, onlyIdle: true, uid: '6a3a4af54f22442cb272309c91220015' },
+};

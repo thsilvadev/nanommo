@@ -592,8 +592,29 @@ export class TownCharacter {
     this.current = clip;
   }
 
+  /** A ready-made animated figure (NPC 'model' visual): its own rig and its own Idle clip. */
+  private async buildModel(asset: string): Promise<void> {
+    const gltf = await this.factory.cache.gltf(asset);
+    if (this.disposed) return;
+    const root = cloneSkinned(gltf.scene);
+    root.traverse((child) => { const mesh = child as THREE.Mesh; if (mesh.isMesh) { mesh.frustumCulled = false; mesh.castShadow = TOWN_CHARACTER_SHADOWS; } });
+    if (this.factory.prepare) await this.factory.prepare(root);
+    if (this.disposed) return;
+    this.model.add(root);
+    this.mixer = new THREE.AnimationMixer(root);
+    const clip = gltf.animations.find((c) => c.name === 'Idle');
+    if (clip) {
+      const idle = this.mixer.clipAction(clip);
+      idle.setEffectiveWeight(0);
+      this.actions.set('Idle', idle);
+      idle.time = (Math.abs(mulberry32Seed(this.entry.characterId)) % 1000) / 1000 * clip.duration;
+    }
+    this.isDressed = true;
+  }
+
   private async build(): Promise<void> {
     if (this.opts.visual?.kind === 'none') { this.isDressed = true; return; }
+    if (this.opts.visual?.kind === 'model') { await this.buildModel(this.opts.visual.asset); return; }
     const entry = this.entry;
     const sex: Sex = entry.sex ?? 'male';
     const appearance = entry.appearance ?? ({ v: 1 } as CharacterAppearance);

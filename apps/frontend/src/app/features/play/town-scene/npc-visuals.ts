@@ -42,7 +42,9 @@ export interface NpcFigureBody {
   belly?: number;
   costume: NpcCostume[];
 }
-export type NpcFigure = NpcFigureBody | { kind: 'none' };
+/** A ready-made animated model (tools/monster-assets NPC_FIGURES → /assets/npcs/figure-*.glb): feet at y=0, facing +Z, real size, plays its `Idle` clip. */
+export interface NpcFigureModel { kind: 'model'; asset: string }
+export type NpcFigure = NpcFigureBody | NpcFigureModel | { kind: 'none' };
 
 export interface NpcProp {
   kind: NpcPropKind;
@@ -112,9 +114,9 @@ export const NPC_VISUALS: Record<string, NpcVisualDef> = {
     figure: { kind: 'body', sex: 'male', heightCm: 195, appearance: { skin: 4, hair: 3, facialHair: 0 }, outfit: 'male-ranger', tint: '#6a3f96', costume: ['long-robe', 'faceless', 'staff'] },
     props: [{ kind: 'candles', x: 0.8, z: -0.8 }, { kind: 'candles', x: -0.8, z: -0.8 }],
   },
-  // Fortune teller (user decision 2026-11-18): headscarf, shawl, crystal ball and cards.
+  // Fortune teller: the "Spirit Blossom Springs Yunara" model (user decision 2026-11-23), crystal ball and cards.
   cecilia: {
-    figure: { kind: 'body', sex: 'female', heightCm: 166, appearance: { skin: 2, hair: 2, hairColor: 0 }, outfit: 'female-peasant', tint: '#d7b0c4', costume: ['headscarf', 'skirt'] },
+    figure: { kind: 'model', asset: '../npcs/figure-yunara.glb' },
     props: [
       { kind: 'table', x: 0, z: -1.0, scale: [0.3, 0.95, 0.6] },
       { kind: 'crystal-ball', x: 0.05, z: -1.0, y: 0.77 },

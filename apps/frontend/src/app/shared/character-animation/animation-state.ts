@@ -169,7 +169,7 @@ function deadSince(startedAtMs: number): AnimationState {
 }
 
 /** Battle clock and events of a queue entry; null when its timing is unusable. */
-function battleTimeline(entry: AnimationBattleEntry) {
+export function battleTimeline(entry: AnimationBattleEntry) {
   const tickMs = Number(entry.tickDurationMs ?? (entry.log as any)?.header?.tickDurationMs);
   const startMs = Date.parse(entry.startAt);
   const endAtMs = Date.parse(entry.endAt);

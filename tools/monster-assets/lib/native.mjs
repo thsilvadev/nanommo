@@ -140,8 +140,8 @@ export function buildNative(doc, id, cfg) {
 
   const S = cfg.size.h ?? cfg.size.len;
   const generated = [];
-  for (const g of ['Attack', 'Damage', 'Dead']) if (!made.has(g)) { made.set(g, generatedClip(doc, top, g, S)); generated.push(g); }
-  if (!made.has('Cast')) made.set('Cast', aliasClip(doc, made.get('Attack'), 'Cast'));
+  if (!cfg.onlyIdle) for (const g of ['Attack', 'Damage', 'Dead']) if (!made.has(g)) { made.set(g, generatedClip(doc, top, g, S)); generated.push(g); }
+  if (!cfg.onlyIdle && !made.has('Cast')) made.set('Cast', aliasClip(doc, made.get('Attack'), 'Cast'));
 
   for (const a of cfg.attach ?? []) attachCones(doc, a, made.get('Idle'));
   for (const m of root.listMaterials()) {

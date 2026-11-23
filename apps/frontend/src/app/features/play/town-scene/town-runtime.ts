@@ -71,6 +71,7 @@ export async function warmTownAssets(assetBase: string, catalogUrl?: string, onP
   const cache = CharacterAssetCache.shared(assetBase, (url) => loader.loadAsync(url));
   const outfits = new Set<string>();
   for (const visual of Object.values(NPC_VISUALS)) if (visual.figure.kind === 'body' && visual.figure.outfit) outfits.add(npcOutfitAsset(visual.figure.outfit));
+  for (const visual of Object.values(NPC_VISUALS)) if (visual.figure.kind === 'model') outfits.add(visual.figure.asset);
   const tasks: Promise<unknown>[] = [
     loadAppearanceCatalog(catalogUrl),
     cache.body('male'),

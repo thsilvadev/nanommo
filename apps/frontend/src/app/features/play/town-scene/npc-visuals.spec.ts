@@ -43,8 +43,7 @@ describe('NPC_VISUALS registry', () => {
     expect(costume('uncle_phillip')).not.toContain('apron');
     expect(costume('uncle_phillip')).not.toContain('belly');
     expect(body('whitesmith_spitz').appearance.hairColor).toBe(2); // blonde hair and beard
-    expect(costume('cecilia')).toContain('skirt');
-    expect(costume('cecilia')).not.toContain('shawl');
+    expect(NPC_VISUALS['cecilia'].figure).toEqual({ kind: 'model', asset: '../npcs/figure-yunara.glb' }); // user decision 2026-11-23
     expect(body('paje_piata').outfit).toBeUndefined(); // underwear for now
     expect(costume('paje_piata')).toEqual(jasmine.arrayContaining(['leaf-crown', 'leaf-bundles', 'pipe']));
     expect(body('paje_piata').underwear).toBeDefined(); // straw-coloured

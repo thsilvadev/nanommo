@@ -6,7 +6,9 @@ const OUT = path.join(HERE, '../../apps/frontend/public/assets/monsters');
 const picks = JSON.parse(fs.readFileSync(path.join(HERE, 'picks.json'), 'utf8'));
 /** Free on Sketchfab but ripped from a commercial game / franchise: settle or replace before release. */
 const THIRD_PARTY_IP = { ridgebreaker: 'Paragon (Epic Games) character', duneraider: 'Star Wars (Lucasfilm) character', cindergolem: 'D&D Heroes (2003) game asset' };
-const credits = [], unlicensed = [];
+const credits = [], unlicensed = [
+  '- **NPC cecilia** — "Spirit Blossom Springs Yunara" — kaisadilla_ — CC Attribution — https://sketchfab.com/3d-models/spirit-blossom-springs-yunara-6a3a4af54f22442cb272309c91220015 — League of Legends (Riot Games) character',
+];
 for (const [id, cfg] of Object.entries(MONSTERS)) {
   if (cfg.kind === 'char') continue;
   if (cfg.source?.startsWith('kaykit:')) { credits.push(`- **${id}** — KayKit Character Pack: Skeletons 1.0 (${cfg.source.slice(7)}, blade, shield) — Kay Lousberg — CC0 1.0 — https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0`); continue; }

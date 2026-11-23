@@ -107,6 +107,9 @@
     "head-mage-hat": {
       "triangles": 396
     },
+    "head-magician-hat": {
+      "triangles": 650
+    },
     "head-rogue-hood": {
       "triangles": 490
     },
@@ -168,10 +171,10 @@
   "files": {
     "gear-male.glb": 2563828,
     "gear-female.glb": 2683144,
-    "gear-rigid.glb": 1653820,
-    "gear-atlas.webp": 1442270,
-    "manifest.json": 30497
+    "gear-rigid.glb": 1694100,
+    "gear-atlas.webp": 1442910,
+    "manifest.json": 31189
   },
   "atlas": 2048,
-  "totalBytes": 8373559
+  "totalBytes": 8415171
 }

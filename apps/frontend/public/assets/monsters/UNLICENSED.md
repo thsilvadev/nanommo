@@ -2,6 +2,7 @@
 
 Non-commercial / non-standard licenses, or free uploads of third-party game IP. Contact the author or replace before release.
 
+- **NPC cecilia** — "Spirit Blossom Springs Yunara" — kaisadilla_ — CC Attribution — https://sketchfab.com/3d-models/spirit-blossom-springs-yunara-6a3a4af54f22442cb272309c91220015 — League of Legends (Riot Games) character
 - **thornsprout** — "Carnivorous Plant" — AndreOrla — CC Attribution-NonCommercial — https://sketchfab.com/3d-models/carnivorous-plant-2146f4266a2b4987baadfc16745a60d2
 - **ridgebreaker** — "Paragon Grux animated" — Prizrakh — CC Attribution-NonCommercial — https://sketchfab.com/3d-models/paragon-grux-animated-5065a484ef054902bc1671f3f8eab517 — Paragon (Epic Games) character
 - **duneraider** — "Tusken Raider" — SidewalkNZ — CC Attribution — https://sketchfab.com/3d-models/tusken-raider-f830f31e23b14fcdb12c53ee8e14f0d7 — Star Wars (Lucasfilm) character

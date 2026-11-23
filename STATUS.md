@@ -1,3 +1,16 @@
+### Monstros 3D no retrato do grind-panel; Cecília vira Yunara; chapéu de mago T3 novo — 2026-11-23
+
+Branch `feat/monster-3d`.
+
+- **Retrato do monstro (grind-panel):** novo `MonsterViewerComponent` (`shared/monster-viewer/`, three.js sob demanda) por cima do sprite, posado a cada quadro por `monsterAnimationState(batalha ativa, agora)`. A função é pura e lê o mesmo battle log do personagem (`battleTimeline` agora é exportada): Attack/Cast no golpe do monstro (acelerado até a próxima ação dele), Damage no golpe do personagem, Dead no golpe fatal (`hpRemaining.monster <= 0`), Idle no resto. Monstros com rig do personagem usam `animations.glb`. O sprite continua por baixo, com o tooltip, e é a reserva quando não há modelo (Bandit) ou WebGL.
+- **Cecília:** novo tipo de figura de NPC `model` (GLB pronto com o próprio `Idle`); a Cecília usa `/assets/npcs/figure-yunara.glb`, gerado por `tools/monster-assets` (`NPC_FIGURES`, 1,66 m). Mesa, bola de cristal, cartas e banco mantidos.
+- **Chapéus de mago:** `head-magician-hat` (Sketchfab "Magician's hat", CC-BY, peça rígida dupla face no osso Head) é o T3; T3→T2 (`head-skeleton-mage-hat`), T2→T1 (`head-mage-hat`); o capuz de ranger deixou de ser usado por item. Gear regenerado. Os ícones de inventário não mudaram.
+- Licenças: o Yunara é um modelo de fã de uma skin de League of Legends (IP da Riot) e entrou em `apps/frontend/public/assets/monsters/UNLICENSED.md` (9 itens).
+
+Sem migração, nada executado em banco, nenhum deploy ou push.
+
+Validação (2026-11-23): `tsc -p tsconfig.app.json` e `tsconfig.spec.json` sem erros; Karma (ChromeHeadless) com `monster-animation-state.spec.ts` (novo), `npc-visuals.spec.ts` e `animation-state.spec.ts`: 40/40; `pnpm --filter @nanommo/frontend build --configuration production` OK; `npm run gear:test` 32/32 (asserção do mapeamento de chapéus atualizada); folha de contato do slot head conferida. **Não verificado no app rodando:** o retrato 3D no grind-panel e a Yunara na cidade.
+
 ### Monstros 3D (32) para a arena de batalha — 2026-11-23
 
 Branch `feat/monster-3d`. Design `docs/superpowers/specs/2026-11-23-monster-3d-design.md`; plano `docs/superpowers/plans/2026-11-23-monster-3d.md`.

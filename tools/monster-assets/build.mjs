@@ -8,7 +8,7 @@ import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { unpartition, mergeDocuments, prune, dedup, textureCompress, metalRough, resample, weld, simplify, getBounds } from '@gltf-transform/functions';
 import { MeshoptSimplifier } from 'meshoptimizer';
-import { MONSTERS } from './monsters.config.mjs';
+import { MONSTERS, NPC_FIGURES } from './monsters.config.mjs';
 import { buildNative } from './lib/native.mjs';
 import { buildCharacter } from './lib/character.mjs';
 
@@ -26,6 +26,7 @@ function findFile(dir, name) {
   return null;
 }
 export function sourceFile(id, cfg) {
+  if (cfg.uid) return path.join(SOURCE, 'sketchfab', cfg.uid, 'model.glb');
   if (cfg.source?.startsWith('kaykit:')) return findFile(path.join(SOURCE, 'kaykit-Skeletons'), cfg.source.slice(7));
   const f = path.join(SOURCE, 'sketchfab', picks[id].uid, 'model.glb');
   if (!fs.existsSync(f)) throw new Error(`${id}: missing ${f} — run node fetch-sources.mjs`);
@@ -104,3 +105,15 @@ for (const [id, cfg] of Object.entries(MONSTERS)) {
   console.log(id, cfg.kind, `${(fs.statSync(path.join(OUT, file)).size / 1e6).toFixed(2)}MB`, `h=${info.height}`, info.clips.join(','), info.generated?.length ? `gen:${info.generated}` : '');
 }
 fs.writeFileSync(manifestFile, JSON.stringify(Object.fromEntries(Object.keys(MONSTERS).filter((k) => manifest[k]).map((k) => [k, manifest[k]])), null, 2) + '\n');
+
+for (const [id, cfg] of Object.entries(NPC_FIGURES)) {
+  if (only.length && !only.includes(id)) continue;
+  const doc = await io.read(sourceFile(id, cfg));
+  await doc.transform(metalRough());
+  const info = buildNative(doc, id, cfg);
+  await doc.transform(unpartition(), resample({ tolerance: 1e-3 }), prune(), dedup(), textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024] }));
+  for (const a of doc.getRoot().listAccessors()) if (a.listParents().every((x) => x.propertyType === 'Root' || (x.propertyType === 'AnimationSampler' && !x.listParents().some((y) => y.propertyType === 'Animation')))) a.dispose();
+  const file = path.join(OUT, '../npcs', `figure-${id}.glb`);
+  fs.writeFileSync(file, await io.writeBinary(doc));
+  console.log('npc', id, `${(fs.statSync(file).size / 1e6).toFixed(2)}MB`, `h=${info.height}`, info.clips.join(','));
+}
