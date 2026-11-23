@@ -33,6 +33,7 @@ let POSES = {
   // silhouette: front, three-quarter, side, back (the portrait looks from slightly above)
   silhouette: [['Idle', 0.3, 0], ['Idle', 0.3, 30], ['Idle', 0.3, 90], ['Idle', 0.3, 180], ['Walk', 0.4, 20]],
   capetop: [['Idle', 0.3, 180], ['Idle', 0.3, 135], ['Idle', 0.3, 90], ['Idle', 0.3, 30], ['Attack', 0.35, 180]],
+  thigh: [['Idle', 0.3, 0], ['Idle', 0.3, 40], ['Idle', 0.3, 90], ['Walk', 0.4, 30], ['Attack', 0.35, 20]],
   knee: [['Idle', 0.3, 0], ['Idle', 0.3, 60], ['Idle', 0.3, 180], ['Walk', 0.4, 20], ['Walk', 0.7, 90]],
   lumbar: [['Idle', 0.3, 150], ['Idle', 0.3, 180], ['Idle', 0.3, 220], ['Attack', 0.35, 180], ['Walk', 0.4, 160]],
   // seen from above, like the town camera
@@ -40,7 +41,7 @@ let POSES = {
   top: [['Idle', 0.3, 0], ['Idle', 0.3, 90], ['Idle', 0.3, 180], ['Walk', 0.4, 200], ['Attack', 0.35, 160]],
 }[slot] ?? [['Idle', 0.3, 20], ['Attack', 0.35, 60], ['Walk', 0.4, 90], ['CastLoop', 0.3, 0], ['Sit', 0.5, 40]];
 POSES = [...POSES];
-const CAMERA = { capetop: { y: 1.35, dist: 1.6 }, knee: { y: 0.55, dist: 1.4 }, lumbar: { y: 1.05, dist: 1.4 }, top: { y: 1.1, dist: 2.2, eyeY: 3.6 }, nape: { y: 1.3, dist: 0.6, eyeY: 2.9 }, head: { y: 1.62, dist: 1.25 }, boots: { y: 0.35, dist: 1.6 }, ankle: { y: 0.3, dist: 1.9 } }[slot] ?? null;
+const CAMERA = { thigh: { y: 0.82, dist: 1.5 }, capetop: { y: 1.35, dist: 1.6 }, knee: { y: 0.55, dist: 1.4 }, lumbar: { y: 1.05, dist: 1.4 }, top: { y: 1.1, dist: 2.2, eyeY: 3.6 }, nape: { y: 1.3, dist: 0.6, eyeY: 2.9 }, head: { y: 1.62, dist: 1.25 }, boots: { y: 0.35, dist: 1.6 }, ankle: { y: 0.3, dist: 1.9 } }[slot] ?? null;
 const WEAPONS = slot === 'weapons';
 const rows = WEAPONS
   ? [...new Set(visuals.map((v) => manifest.visuals[v].weaponType))].map((t) => ({ v: t, sex: '', list: Object.entries(manifest.items).filter(([, vis]) => manifest.visuals[vis].weaponType === t).sort(([a], [b]) => (a < b ? -1 : 1)).map(([, vis]) => vis) }))

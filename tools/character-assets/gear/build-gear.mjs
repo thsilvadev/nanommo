@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { Document, NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import sharp from 'sharp';
-import { mat4, quat, vec3 } from 'gl-matrix';
+import { mat3, mat4, quat, vec3 } from 'gl-matrix';
 import { ITEMS, VISUALS, SOURCES } from './gear.config.mjs';
 import { CHARACTER_ASSETS, readTargetSkeleton, writeSkeleton } from './lib/skeleton.mjs';
 import { retargetSkinned } from './lib/retarget.mjs';
@@ -190,13 +190,140 @@ async function buildPieces(id, v, target) {
     }
   }
   // doubleSided: an open shell (armour seen from above, into the collar) shows its inside, not the ground
-  const sides = (list) => (v.doubleSided ? list.map(withBackFaces) : list);
+  const sides = async (list) => { if (v.tassets) await fitTassets(list, v.tassets, target); return v.doubleSided ? list.map(withBackFaces) : list; };
   if (!v.liner) return sides(await reduce(pieces, v.maxTris));
   // the shell is never simplified: any error lets the skin poke through it
   const shell = await liner(v, target, pieces);
   // the skin under the shell is hidden at runtime (no z-fighting); the band sits 1 cm inside the shell's
   ((hideBands[v.id] ??= {})[target.sex] ??= []).push({ region: 'calves', minY: round3(shell.band.minY + 0.01), maxY: round3(shell.band.maxY - 0.01) });
-  return [...sides(await reduce(pieces, v.maxTris - shell.index.length / 3)), shell];
+  return [...(await sides(await reduce(pieces, v.maxTris - shell.index.length / 3))), shell];
+}
+
+/**
+ * Thigh plates (tassets) of a retargeted body: the small islands of the mesh over each thigh
+ * (no bone of their own; skinned to the thigh). Each one, in bind space: scaled by T.scale about
+ * its top centre, moved to the front of the thigh (T.frontDeg outwards) with its face turned outwards,
+ * then moved along that direction until its innermost point is T.gap off our thigh's skin.
+ * T: { yRange: [min, max] (island centre height, m), maxVerts, scale, frontDeg, gap }.
+ */
+/** Unit direction of least spread of points around their centre (a plate's face normal). */
+function thinnestAxis(points) {
+  const C = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  for (const p of points) for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) C[a][b] += p[a] * p[b];
+  // inverse power iteration on C + eps·I: converges to the smallest eigenvector
+  const M = mat3.fromValues(C[0][0] + 1e-9, C[1][0], C[2][0], C[0][1], C[1][1] + 1e-9, C[2][1], C[0][2], C[1][2], C[2][2] + 1e-9);
+  const inv = mat3.invert(mat3.create(), M);
+  let v = vec3.fromValues(0.3, 0.2, 1);
+  for (let k = 0; k < 50; k++) vec3.normalize(v, vec3.transformMat3(v, v, inv));
+  return v;
+}
+
+async function fitTassets(pieces, T, target) {
+  const { readTargetBody } = await import('./lib/skeleton.mjs');
+  const body = await readTargetBody(target.sex);
+  const region = target.joints.map((j) => REGION_OF_BONE(j.name));
+  const dom = (i) => { let b = 0; for (let k = 1; k < 4; k++) if (body.weights[i * 4 + k] > body.weights[i * 4 + b]) b = k; return body.joints[i * 4 + b]; };
+  const skinOf = { l: [], r: [] };
+  for (let i = 0; i < body.count; i++) if (region[dom(i)] === 'thighs') skinOf[target.joints[dom(i)].name.endsWith('_l') ? 'l' : 'r'].push(body.positions.subarray(i * 3, i * 3 + 3));
+  let moved = 0;
+  // islands of every piece: vertices joined by triangles or by position (UV seams split vertices)
+  const islandsOf = (piece) => {
+    const P = piece.position, n = P.length / 3;
+    const parent = Int32Array.from({ length: n }, (_, i) => i);
+    const find = (x) => { while (parent[x] !== x) x = parent[x] = parent[parent[x]]; return x; };
+    const at = new Map();
+    for (let i = 0; i < n; i++) { const k = `${Math.round(P[i * 3] * 2000)},${Math.round(P[i * 3 + 1] * 2000)},${Math.round(P[i * 3 + 2] * 2000)}`; if (at.has(k)) parent[find(i)] = find(at.get(k)); else at.set(k, i); }
+    for (let t = 0; t < piece.index.length; t += 3) { parent[find(piece.index[t + 1])] = find(piece.index[t]); parent[find(piece.index[t + 2])] = find(piece.index[t]); }
+    const islands = new Map();
+    for (let i = 0; i < n; i++) { const r = find(i); if (!islands.has(r)) islands.set(r, []); islands.get(r).push(i); }
+    return [...islands.values()].filter((vs) => {
+      if (vs.length > T.maxVerts) return false;
+      const c = [0, 1, 2].map((k) => vs.reduce((acc, i) => acc + P[i * 3 + k], 0) / vs.length);
+      return c[1] >= T.yRange[0] && c[1] <= T.yRange[1] && Math.abs(c[0]) >= 0.06;
+    });
+  };
+  const platesOf = new Map(pieces.map((piece) => [piece, islandsOf(piece)]));
+  // what the plates lie on: our skin and the trousers (every other vertex of the visual), per side
+  const under = { l: [...skinOf.l], r: [...skinOf.r] };
+  for (const piece of pieces) {
+    const P = piece.position, n = P.length / 3, isPlate = new Uint8Array(n);
+    for (const vs of platesOf.get(piece)) for (const i of vs) isPlate[i] = 1;
+    for (let i = 0; i < n; i++) if (!isPlate[i] && P[i * 3 + 1] < T.yRange[1] + 0.05 && P[i * 3 + 1] > T.yRange[0] - 0.15 && Math.abs(P[i * 3]) > 0.02) under[P[i * 3] > 0 ? 'l' : 'r'].push(P.subarray(i * 3, i * 3 + 3).slice());
+  }
+  for (const piece of pieces) {
+    const P = piece.position, N = piece.normal;
+    const plates = platesOf.get(piece);
+    for (const vs of plates) {
+      const c = [0, 1, 2].map((k) => vs.reduce((a, i) => a + P[i * 3 + k], 0) / vs.length);
+      const side = c[0] > 0 ? 'l' : 'r'; // our bind space: the character's left is +X
+      const head = target.pos(`thigh_${side}`), tail = target.pos(`calf_${side}`);
+      const axis = vec3.normalize(vec3.create(), vec3.sub(vec3.create(), tail, head));
+      const radial = (p) => { const d = vec3.sub(vec3.create(), p, head); return vec3.scaleAndAdd(d, d, axis, -vec3.dot(d, axis)); };
+      // 1. scale about the top centre
+      const topY = Math.max(...vs.map((i) => P[i * 3 + 1]));
+      const pivot = [c[0], topY, c[2]];
+      for (const i of vs) for (let k = 0; k < 3; k++) P[i * 3 + k] = pivot[k] + (P[i * 3 + k] - pivot[k]) * T.scale;
+      // 2. turn about the thigh's axis until its centre is T.frontDeg off the front (outwards)
+      const out = side === 'l' ? 1 : -1;
+      const want = vec3.normalize(vec3.create(), [Math.sin((T.frontDeg * Math.PI) / 180) * out, 0, Math.cos((T.frontDeg * Math.PI) / 180)]);
+      const wantR = vec3.normalize(vec3.create(), vec3.scaleAndAdd(vec3.create(), want, axis, -vec3.dot(want, axis)));
+      const q = quat.rotationTo(quat.create(), vec3.normalize(vec3.create(), radial(c)), wantR);
+      for (const i of vs) {
+        const p = vec3.sub(vec3.create(), P.subarray(i * 3, i * 3 + 3), head);
+        P.set(vec3.add(vec3.create(), vec3.transformQuat(p, p, q), head), i * 3);
+        if (N) N.set(vec3.transformQuat(vec3.create(), N.subarray(i * 3, i * 3 + 3), q), i * 3);
+      }
+      // 3. shrink-wrap: the plate is a curved shell much wider than our thigh. Around the thigh's
+      //    axis, per (angle, height) cell, its inner face goes to T.gap off the skin; thickness kept.
+      const frame = (p) => { // (angle about the axis, height along it, radius)
+        const d = vec3.sub(vec3.create(), p, head), h = vec3.dot(d, axis), r = radial(p);
+        const u = wantR, w = vec3.cross(vec3.create(), axis, wantR);
+        return { a: Math.atan2(vec3.dot(r, w), vec3.dot(r, u)), h, r: vec3.length(r), dir: vec3.normalize(vec3.create(), r) };
+      };
+      const A = Math.PI / 12, H = 0.04; // 15°, 4 cm cells
+      const cell = (f) => `${Math.round(f.a / A)}|${Math.round(f.h / H)}`;
+      const skinR = new Map();
+      for (const sp of under[side]) { const f = frame(sp); const k = cell(f); skinR.set(k, Math.max(skinR.get(k) ?? 0, f.r)); }
+      const nearestSkin = (f) => { // the cell and its neighbours (sparse low-poly trousers), else the closest cell (the hip)
+        const ka = Math.round(f.a / A), kh = Math.round(f.h / H);
+        let m = 0;
+        for (let da = -1; da <= 1; da++) for (let dh = -1; dh <= 1; dh++) m = Math.max(m, skinR.get(`${ka + da}|${kh + dh}`) ?? 0);
+        if (m > 0) return m;
+        let best = 0, bd = Infinity;
+        for (const [kk, r] of skinR) { const [ka, kh] = kk.split('|').map(Number); const d = Math.abs(ka - Math.round(f.a / A)) * 2 + Math.abs(kh - Math.round(f.h / H)); if (d < bd) { bd = d; best = r; } }
+        return best;
+      };
+      const frames = new Map(vs.map((i) => [i, frame(P.subarray(i * 3, i * 3 + 3))]));
+      const inner = new Map();
+      for (const f of frames.values()) { const k = cell(f); inner.set(k, Math.min(inner.get(k) ?? Infinity, f.r)); }
+      for (const i of vs) {
+        const f = frames.get(i);
+        const r = nearestSkin(f) + T.gap + (f.r - inner.get(cell(f)));
+        const p = vec3.scaleAndAdd(vec3.create(), vec3.scaleAndAdd(vec3.create(), head, axis, f.h), f.dir, r);
+        P.set(p, i * 3);
+      }
+      // normals from the new shape (smooth over the plate's own triangles)
+      if (N) {
+        const mine = new Set(vs);
+        for (const i of vs) N.fill(0, i * 3, i * 3 + 3);
+        for (let t = 0; t < piece.index.length; t += 3) {
+          const tri = [piece.index[t], piece.index[t + 1], piece.index[t + 2]];
+          if (!tri.every((i) => mine.has(i))) continue;
+          const [p0, p1, p2] = tri.map((i) => P.subarray(i * 3, i * 3 + 3));
+          const fn = vec3.cross(vec3.create(), vec3.sub(vec3.create(), p1, p0), vec3.sub(vec3.create(), p2, p0));
+          for (const i of tri) for (let k = 0; k < 3; k++) N[i * 3 + k] += fn[k];
+        }
+        for (const i of vs) { const l = Math.hypot(N[i * 3], N[i * 3 + 1], N[i * 3 + 2]) || 1; for (let k = 0; k < 3; k++) N[i * 3 + k] /= l; }
+      }
+      if (process.env.DEBUG_TASSETS) {
+        const rs = vs.map((i) => frame(P.subarray(i * 3, i * 3 + 3)));
+        console.log(target.sex, side, 'verts', vs.length, 'r min/max', Math.min(...rs.map((f) => f.r)).toFixed(3), Math.max(...rs.map((f) => f.r)).toFixed(3),
+          'angle span deg', ((Math.max(...rs.map((f) => f.a)) - Math.min(...rs.map((f) => f.a))) * 180 / Math.PI).toFixed(0));
+      }
+      moved++;
+    }
+  }
+  if (moved !== 2) throw new Error(`fitTassets: expected 2 thigh plates, found ${moved}`);
 }
 
 /**

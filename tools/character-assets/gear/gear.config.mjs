@@ -33,7 +33,9 @@ export const VISUALS = {
     covers: ['torso', 'upperarms', 'forearms', 'hands', 'thighs'] },
   'body-handpainted-knight': { ...BODY, method: 'retarget', source: 'sketchfab:42b1d37bce974d48bca12a3f9a7d1136',
     // silhouette (user, 2026-11-23): V torso (chest wider), flatter belly, fuller thighs
-    drop: /Handle|Bone\./, scale: { hand: '0.55', clavicle: '0.5', upperarm: '0.75p', spine_03: [1.15, 1, 1], spine_01: [1, 1, 0.82], thigh: '1.12p' }, dropRegions: ['calves'], size: 256, sizes: { 'Material.015': 1024 }, maxTris: 6600,
+    drop: /Handle|Bone\./, scale: { hand: '0.55', clavicle: '0.5', upperarm: '0.75p', spine_03: [1.25, 1, 1], spine_01: [0.86, 1, 0.82], thigh: '1.25p' },
+    // metal thigh plates: 15% smaller, on the front of the thighs, close to them (user, 2026-11-23)
+    tassets: { yRange: [0.55, 1.05], maxVerts: 400, scale: 0.85, frontDeg: 30, gap: 0.015 }, dropRegions: ['calves'], size: 256, sizes: { 'Material.015': 1024 }, maxTris: 6600,
     // a bit fuller under the knee (user, 2026-11-23), still body-hugging (< 4 mm: build.test.mjs)
     liner: { color: '#3a2a22', knee: true, minY: 0.22, offset: 0.0035 },
     // open at the collar: from above (town camera) the inside shows instead of the ground (user, 2026-11-23)

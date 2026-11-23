@@ -1,3 +1,17 @@
+### Body físico T3 ("Dark Knight's Armor"): V no tronco, coxas, perneiras na frente das coxas — 2026-11-23
+
+Feedback do usuário após a primeira correção de silhueta: o tronco ainda não fazia V, havia "pneuzinhos" nas laterais da barriga e as coxas estavam finas. Pedido: perneiras metálicas mais rentes às pernas, na frente das coxas e 15% menores.
+
+- Escala do retarget: `spine_03: [1.25, 1, 1]` (peito), `spine_01: [0.86, 1, 0.82]` (cintura mais estreita nas laterais e barriga mais rasa), `thigh: '1.25p'`.
+- Novo passo `fitTassets` (`build-gear.mjs`, configurado como `tassets` no visual). As perneiras não têm osso próprio: são as duas ilhas de malha sobre as coxas (presas ao osso da coxa), cada uma um meio tubo de ~160° bem mais largo que a coxa. Para cada ilha, no espaço de bind: reduz 15% em torno do topo, gira em torno do eixo da coxa até ficar 30° fora da frente e depois faz um shrink-wrap: em células de 15° × 4 cm, a face interna vai a 1,5 cm da superfície de baixo (pele mais a calça do próprio visual, com o máximo das células vizinhas), mantendo a espessura. As normais da placa são recalculadas. O passo falha o build se não encontrar exatamente 2 placas. Diagnóstico: `DEBUG_TASSETS=1`.
+- Duas tentativas descartadas, registradas para não repetir. (1) Só girar em torno da coxa e deslizar a placa até a pele: a placa continuava afastada, porque o tubo é mais largo que a coxa. (2) Achar a face da placa por PCA: ela não é plana.
+- Pendente: algumas lascas escuras pequenas na superfície das placas (triângulos que dobram no shrink-wrap), visíveis só de perto.
+- Nova vista de pré-visualização: `shoot-gear.mjs thigh`.
+
+Sem migração, nada executado em banco, nenhum deploy ou push.
+
+Validação (2026-11-23): `npm run gear:test` 32/32; `gear-stress.mjs 200 240` PASSA; specs `character-viewer/*` + `town-character`: 47/47. Folhas de contato `silhouette` e `thigh` conferidas: perneiras na frente das coxas, rentes à calça (sem calça atravessando depois de incluir a calça na superfície de baixo), V no tronco.
+
 ### Traveling travando no mapa (névoa); silhueta do Body T3; capas presas nos ombros — 2026-11-23
 
 - **Travamento no traveling (perfil do Firefox do usuário, produção):** a thread principal ficava ~80% ocupada (50,9 s de CPU em 63 s), com latência de eventos p50 de 55 ms e p99 de 1,3 s; os tooltips travavam. Distribuição: 62% em recálculo de estilos, 48% em layout e ~20% em `imgLoader::LoadImage data:image/png;base64` (as duas nuvens da névoa, 463×463 e 390×390). O retrato 3D ficava só com ~7%. Causa: `applyBakedFog` gravava as nuvens como data-URIs de centenas de KB em variáveis CSS no `style` inline do `.world`, o mesmo atributo que o Angular reescreve a cada movimento de câmera ou pino. Cada restyle fazia os ~300 pseudo-elementos da névoa resolverem de novo essas URLs. Agora as nuvens são URLs `blob:` curtas (`fog-sprites.ts`) e as variáveis ficam numa folha de estilo própria (`installFogStyles`, `style#nm-fog-sprites`), injetada uma vez.
