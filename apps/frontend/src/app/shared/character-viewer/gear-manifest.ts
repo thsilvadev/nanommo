@@ -6,8 +6,11 @@
 import type * as THREE from 'three';
 import type { Sex } from '@nanommo/shared';
 
-/** Bump with every gear rebuild that changes manifest.json (vercel caches /assets/character/*). */
-export const GEAR_ASSET_VERSION = 1;
+/**
+ * Part of the manifest's URL. The manifest itself is fetched with `cache: 'no-cache'` (always
+ * revalidated), so a gear rebuild needs no bump; bumping still forces CDNs that ignore revalidation.
+ */
+export const GEAR_ASSET_VERSION = 2;
 export const GEAR_MANIFEST_ASSET = 'gear/manifest.json';
 
 export type Region = 'head' | 'neck' | 'torso' | 'upperarms' | 'forearms' | 'hands' | 'thighs' | 'calves' | 'feet';

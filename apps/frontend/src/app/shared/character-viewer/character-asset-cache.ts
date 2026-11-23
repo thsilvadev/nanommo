@@ -94,7 +94,9 @@ export class CharacterAssetCache {
   gear(): Promise<LoadedGear> {
     if (!this.gearLoad) {
       const pending = (async () => {
-        const response = await fetch(`${this.url(GEAR_MANIFEST_ASSET)}?v=${GEAR_ASSET_VERSION}`);
+        // Always revalidated (ETag): it names the content version of every other gear file, which
+        // the CDN and the browser may then cache freely. A cached manifest would pin stale gear.
+        const response = await fetch(`${this.url(GEAR_MANIFEST_ASSET)}?v=${GEAR_ASSET_VERSION}`, { cache: 'no-cache' });
         if (!response.ok) throw new Error('Unable to load the gear manifest');
         const manifest = (await response.json()) as GearManifest;
         const v = `?v=${manifest.version}`;

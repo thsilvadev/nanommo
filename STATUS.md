@@ -1,3 +1,11 @@
+### Correção: gear novo não aparecia no navegador (manifesto em cache) — 2026-11-23
+
+Depois do push de `cbdb29a`, o usuário não via as capas nem o Body T3 corrigidos. O `manifest.json` do gear era buscado sempre como `?v=1` (`GEAR_ASSET_VERSION`, que deveria ser incrementado manualmente a cada rebuild e não foi). A Vercel serve `/assets/character/*` com `max-age=86400`, então o navegador reaproveitava o manifesto antigo, e com ele as URLs versionadas dos GLBs antigos. Agora o manifesto é buscado com `cache: 'no-cache'` (sempre revalidado por ETag; os GLBs e o atlas continuam em cache pela versão de conteúdo) e `GEAR_ASSET_VERSION = 2`, para forçar quem ainda tem o manifesto `?v=1` em cache.
+
+Sem migração, nada executado em banco, nenhum deploy ou push.
+
+Validação: `tsc -p tsconfig.app.json --noEmit` passa; specs `character-viewer/*` + `town-scene/*`: 123 SUCCESS, 1 FAILED (`TownRuntime builds all five towns`, timeout de 5 s, que também falha sem esta mudança: na base falharam 2 testes do `town-runtime.spec.ts`).
+
 ### Correção: grind travando com o retrato 3D vestido; capas maiores e visíveis de frente; Body físico T3 sem buracos — 2026-11-23
 
 Feedback do usuário após os equipamentos vestíveis: o grind travava a tela toda (a cidade não), e as capas não apareciam com o personagem de frente.
