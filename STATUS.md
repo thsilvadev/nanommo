@@ -1,3 +1,11 @@
+### Alcance do ataque básico: apenas arco à distância — 2026-11-23
+
+Implementado em worktree isolado, branch `codex/bow-only-ranged-basic`, baseada na main `5d85f1f`. Checkout oficial preservado, incluindo as duas alterações locais do usuário que aumentam o alcance para 8. Sem merge, push, deploy ou migração; integração depende de novo aval conforme preferência do usuário.
+
+Solo e grupo agora atribuem alcance básico 8 somente a Bow e 0 às demais armas, incluindo Staff/Rod. No solo, uma linha Attack com Staff/Rod também deixa de classificar o Gambit como ranged. Skills/itens com alcance próprio continuam podendo definir estilo ranged e mantêm seu alcance; tipo de dano não foi alterado. Encontros já iniciados mantêm os snapshots imutáveis.
+
+Regressão nova `weapon-basic-range.test.js` usa os caminhos reais de geração solo e compartilhada: RED em Staff/Rod nos dois e no alcance antigo 6 de Bow; GREEN após a correção. Cobre Sword, Bow, Staff/Rod e skills ranged sem estender Attack. Build API e seis scripts passaram: weapon-basic-range, stance-search-restart, party-intent-clock, party-alchemy-manual-consumables, group-battle-parity, group-battle-engine. O script extra mastery-snapshot-equipment-gates falha na expectativa legada de Stored Essence, removida do catálogo Rune (hoje Arcane Dynamo/Magic Barrier); esse script/catálogo não foram alterados e a falha não é contada como aprovação. Diff-check passou.
+
 ### Monstros 3D no retrato do grind-panel; Cecília vira Yunara; chapéu de mago T3 novo — 2026-11-23
 
 Branch `feat/monster-3d`.

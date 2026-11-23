@@ -995,14 +995,13 @@ export class BattleService {
       const gambitLines = Array.isArray((gambitPage as any)?.lines) ? (gambitPage as any).lines : [];
       const normalizedWeaponTypes = loadout.weaponTypes.map((type) => String(type).toLowerCase());
       const hasBow = normalizedWeaponTypes.includes('bow');
-      const hasRangedBasic = hasBow || normalizedWeaponTypes.some((type) => ['staff', 'rod', 'rod'].includes(type));
       const hasRangedGambitAction = gambitLines.some((line: any) => {
         if (line?.enabled === false || line?.disabled === true) return false;
         const action = line?.action ?? {};
         const id = action.id ?? action.type;
         const target = action.target ?? action.targetType ?? action.params?.target;
         if (target && !['foe', 'enemy', 'monster'].includes(String(target).toLowerCase())) return false;
-        if (id === 'attack') return hasRangedBasic;
+        if (id === 'attack') return hasBow;
         if (id === 'use_skill') {
           const skillId = action.skillId ?? action.params?.skillId;
           const def = loadout.skillDefs[skillId];
@@ -1017,7 +1016,7 @@ export class BattleService {
       });
       snapshot.combatStyle = hasRangedGambitAction ? 'ranged' : 'melee';
       snapshot.basicAttackDamageType = hasBow ? 'ranged' : normalizedWeaponTypes.some((type) => ['staff', 'rod', 'rod'].includes(type)) ? 'magic' : 'melee';
-      snapshot.basicAttackRange = hasRangedBasic ? 6 : 0;
+      snapshot.basicAttackRange = hasBow ? 8 : 0;
 
       // ---- Gambit is evaluated INSIDE the engine, per gauge fire (SPEC §7.3)
       const regenTickOffset = Math.max(0, Math.floor((nextStartTime.getTime() - regenAnchor) / MS_PER_TICK));
