@@ -27,7 +27,10 @@ for (const s of ['l', 'r']) {
   }
 }
 
-/** opts.scale: { hand: {f: 0.55, perp: false}, upperarm: {f: 0.75, perp: true} } (applies to _l and _r and descendants). */
+/**
+ * opts.scale: { hand: {f: 0.55, perp: false}, upperarm: {f: 0.75, perp: true}, spine_03: {xyz: [1.15, 1, 1]} }
+ * (applies to _l and _r and descendants; xyz: per bind-space axis, X across, Z front-back).
+ */
 export function retargetSkinned(doc, target, opts = {}) {
   const root = doc.getRoot();
   const skinned = root.listNodes().filter((n) => n.getMesh() && n.getSkin());
@@ -87,7 +90,8 @@ export function retargetSkinned(doc, target, opts = {}) {
       const pivot = tp(a);
       const tail = chainTail(a, tp);
       const ax = tail ? vec3.normalize(vec3.create(), vec3.sub(vec3.create(), tail, pivot)) : vec3.fromValues(0, 1, 0);
-      const Sc = spec.perp ? perpScale(ax, spec.f) : mat4.fromScaling(mat4.create(), [spec.f, spec.f, spec.f]);
+      const Sc = spec.xyz ? mat4.fromScaling(mat4.create(), spec.xyz)
+        : spec.perp ? perpScale(ax, spec.f) : mat4.fromScaling(mat4.create(), [spec.f, spec.f, spec.f]);
       const P = mat4.create();
       mat4.translate(P, P, pivot); mat4.multiply(P, P, Sc); mat4.translate(P, P, vec3.negate(vec3.create(), pivot));
       mat4.multiply(m, P, m);

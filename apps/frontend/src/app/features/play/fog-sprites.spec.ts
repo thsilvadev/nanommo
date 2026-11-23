@@ -1,4 +1,4 @@
-import { FOG_CELL_PX, bakeFogSprites } from './fog-sprites';
+import { FOG_CELL_PX, bakeFogSprites, installFogStyles } from './fog-sprites';
 
 describe('bakeFogSprites', () => {
   it('paints both cloud layers once per page, sized to cover the CSS box plus the blur bleed', async () => {
@@ -6,7 +6,9 @@ describe('bakeFogSprites', () => {
     if (!fog) { pending('this browser cannot blur a canvas (CSS fog stays)'); return; }
     expect(bakeFogSprites()).toBe(fog);
     for (const [layer, insetFrac, blur] of [[fog.front, 0.48, 15], [fog.back, 0.58, 22]] as const) {
-      expect(layer.url.startsWith('data:image/png')).toBeTrue();
+      // a short blob: URL, never a data: URI of hundreds of kB re-resolved on every restyle
+      expect(layer.url.startsWith('blob:')).toBeTrue();
+      expect(layer.url.length).toBeLessThan(200);
       // The image covers the CSS box (inset -insetFrac) plus 3·blur on each side.
       expect(-layer.insetPx).toBeGreaterThanOrEqual(FOG_CELL_PX * insetFrac + 3 * blur - 1);
       expect(-layer.insetPx).toBeLessThanOrEqual(FOG_CELL_PX * insetFrac + 3 * blur + 1);
@@ -31,14 +33,17 @@ describe('bakeFogSprites', () => {
     const board = document.createElement('app-map-board');
     board.innerHTML = '<div class="world fog-baked"><div class="fog-cell"></div></div>';
     const world = board.firstElementChild as HTMLElement;
-    world.style.setProperty('--fog-front', `url("${fog.front.url}")`);
-    world.style.setProperty('--fog-front-inset', `${fog.front.insetPx}px`);
+    expect(installFogStyles()).toBeTrue();
+    expect(installFogStyles()).toBeTrue(); // idempotent: one stylesheet per page
+    expect(document.querySelectorAll('style#nm-fog-sprites').length).toBe(1);
     document.body.appendChild(board);
     const cell = world.firstElementChild as HTMLElement;
     const before = getComputedStyle(cell, '::before');
     expect(before.filter).toBe('none');
-    expect(before.backgroundImage.startsWith('url("data:image/png')).toBeTrue();
+    expect(before.backgroundImage).toBe(`url("${fog.front.url}")`);
     expect(before.top).toBe(`${fog.front.insetPx}px`);
+    // nothing in the inline style the camera rewrites on every move
+    expect(world.getAttribute('style')).toBeNull();
     world.classList.add('world--hidden');
     expect(getComputedStyle(world).display).toBe('none');
     board.remove();

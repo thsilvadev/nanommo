@@ -17,7 +17,7 @@ import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.sto
 import { CatalogService } from '../../core/catalog.service';
 import { UiClockService } from '../../core/ui-clock.service';
 import { MAP_ART_URL } from './map-art';
-import { bakeFogSprites } from './fog-sprites';
+import { installFogStyles } from './fog-sprites';
 import { VendorStore } from '../../core/vendor.store';
 import { BrowserNotificationsService } from '../../core/browser-notifications.service';
 import { VendorStockItem, effectiveFoodStatValue, TOWN_MAP_ID, projectStatusTimeline } from '@nanommo/shared';
@@ -740,7 +740,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
     }
   }
   /** Fog cells draw pre-rendered cloud images instead of re-blurring CSS gradients every frame (see fog-sprites.ts). */
-  private applyBakedFog(){const world=this.worldElement?.nativeElement;const fog=world?bakeFogSprites():null;if(!world||!fog)return;world.style.setProperty('--fog-front',`url("${fog.front.url}")`);world.style.setProperty('--fog-front-inset',`${fog.front.insetPx}px`);world.style.setProperty('--fog-back',`url("${fog.back.url}")`);world.style.setProperty('--fog-back-inset',`${fog.back.insetPx}px`);world.classList.add('fog-baked')}
+  private applyBakedFog(){const world=this.worldElement?.nativeElement;if(!world||!installFogStyles())return;world.classList.add('fog-baked')}
   ngOnDestroy(){this.viewportResizeObserver?.disconnect();this.stopTransitionPoll();this.hideTileTooltip();if(this.fleeNoticeTimeout!==null)clearTimeout(this.fleeNoticeTimeout)}
 }
 

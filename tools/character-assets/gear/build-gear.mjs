@@ -178,7 +178,7 @@ async function buildPieces(id, v, target) {
   for (const doc of docs) {
     let result;
     if (v.method === 'parts' || v.method === 'retarget') {
-      const scale = Object.fromEntries(Object.entries(v.scale ?? {}).map(([k, s]) => [k, { f: parseFloat(s), perp: String(s).endsWith('p') }]));
+      const scale = Object.fromEntries(Object.entries(v.scale ?? {}).map(([k, s]) => [k, Array.isArray(s) ? { xyz: s } : { f: parseFloat(s), perp: String(s).endsWith('p') }]));
       result = retargetSkinned(doc, target, { scale });
     } else if (v.method === 'autoskin') {
       result = await autoskinStatic(doc, target, { armDeg: v.armDeg ?? 0, legDeg: v.legDeg ?? 0, rotYDeg: v.rotYDeg ?? 0 });
@@ -203,14 +203,15 @@ async function buildPieces(id, v, target) {
  * A thin one-colour shell over our own legs, skinned like the body (closes open-backed boots, or
  * continues trousers below the knee) without touching the skin texture. v.liner:
  *   color, offset (m, default 0.002), maxY ('top' = the piece's top - below, or metres), minY,
- *   backAbove (above this height only the back half of the calf), knee (true: maxY = knee + 0.04).
+ *   backAbove (above this height only the back half of the calf), knee (true: maxY = knee + kneeLift,
+ *   default 0.04; higher tucks the shell under trousers that end at the knee).
  */
 async function liner(v, target, pieces) {
   const L = v.liner;
   const { readTargetBody } = await import('./lib/skeleton.mjs');
   const body = await readTargetBody(target.sex);
   const region = target.joints.map((j) => REGION_OF_BONE(j.name));
-  const top = L.knee ? target.pos('calf_l')[1] + 0.04
+  const top = L.knee ? target.pos('calf_l')[1] + (L.kneeLift ?? 0.04)
     : (typeof L.maxY === 'number' ? L.maxY : Math.max(...pieces.flatMap((p) => [...p.position].filter((_, i) => i % 3 === 1))) - (L.below ?? 0.03));
   const minY = L.minY ?? -Infinity;
   const backAbove = L.backAbove ?? Infinity;

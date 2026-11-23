@@ -65,7 +65,36 @@ function bakeLayer(cell: number, insetFrac: number, blur: number): FogSprite {
   const o = out.getContext('2d')!;
   o.filter = `blur(${blur}px)`;
   o.drawImage(raw, 0, 0);
-  return { url: out.toDataURL('image/png'), insetPx: -(cell * insetFrac + pad + (size - (side + 2 * pad)) / 2) };
+  return { url: blobUrl(out.toDataURL('image/png')), insetPx: -(cell * insetFrac + pad + (size - (side + 2 * pad)) / 2) };
+}
+
+/**
+ * The PNG as a short `blob:` URL. As a data: URI (hundreds of kB of text) Firefox re-resolved it
+ * for each of the ~300 fog pseudo-elements on every restyle of the map: ~20% of the main thread
+ * while travelling (profile, 2026-11-23). Lives as long as the page, like the sprites.
+ */
+function blobUrl(dataUrl: string): string {
+  const bytes = atob(dataUrl.slice(dataUrl.indexOf(',') + 1));
+  const buffer = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) buffer[i] = bytes.charCodeAt(i);
+  return URL.createObjectURL(new Blob([buffer], { type: 'image/png' }));
+}
+
+/**
+ * Declares the baked sprites once, in a stylesheet of their own (`.world.fog-baked` then uses
+ * them). Never in the world's inline style: Angular rewrites that on every camera move, and each
+ * rewrite re-parsed the images and restyled every fog cell. Returns false when the CSS fog stays.
+ */
+export function installFogStyles(): boolean {
+  const fog = bakeFogSprites();
+  if (!fog) return false;
+  if (document.getElementById('nm-fog-sprites')) return true;
+  const style = document.createElement('style');
+  style.id = 'nm-fog-sprites';
+  style.textContent = `app-map-board .world.fog-baked{--fog-front:url("${fog.front.url}");--fog-front-inset:${fog.front.insetPx}px;`
+    + `--fog-back:url("${fog.back.url}");--fog-back-inset:${fog.back.insetPx}px}`;
+  document.head.appendChild(style);
+  return true;
 }
 
 let baked: FogSprites | null | undefined;
