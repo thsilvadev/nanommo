@@ -1672,7 +1672,7 @@ The frontend loads the character-scoped notification acknowledgement set indepen
 
 ## Battle log — forced monster movement
 
-A movement event with reason: violent_shot_push represents the monster being displaced by the Character's Violent Shot. The Battle Log must identify the monster as the moving unit and render “<Monster> was pushed back ( N ) <direction arrow>”. It must not attribute the displacement to the Character merely because the Character initiated the skill. Other movement events retain their existing actor-based wording.
+A movement event with reason `violent_shot_push` (legacy) or `push` (V2) represents the target being displaced by the caster. The Battle Log names both: `<Caster> pushes <Target> for ( N ) spaces -->.` (or `<--` from the actual displacement, and singular `space` for one). N is the actual movement, not the final attacker-to-target distance. Other movement events retain their existing actor-based wording.
 
 ## Redis connection configuration
 
@@ -1790,3 +1790,9 @@ New immutable encounter inputs carry `elementalRulesVersion: 1`. Replays of stor
 ## Combat timer HUD — 2026-11-22
 
 Character Status, the Grind target and each ally below HP/SP in Group share 28 × 28 px icons. Buffs have green borders and debuffs red; each shows remaining seconds rounded up, with stacks in the tooltip. Effects without an expiry remain until removed and show no invented duration. Skills use white borders; items gray. Their icons appear only while the authoritative cooldown is active, using a dark clockwise radial sweep, and disappear at zero. Potions, tonics and super tonics each use one category icon for their existing independent shared cooldowns (10, 30 and 60 seconds). Cast start/fizzle never initiates a cooldown. Visible events, effective encounter definitions and persistent absolute deadlines govern display, including Group actor identity and target changes. No combat decisions are simulated by the client.
+
+## Violent Shot to the row boundary — 2026-11-23
+
+New solo and group V2 encounters use the ten-column arena. Violent Shot pushes the living target away from the caster as far as reachable on the target's current row, stopping at the boundary or the first occupied square; it never changes rows or crosses another living unit. At opposite column endpoints there are eight empty slots (nine column steps including the target's final occupied slot). The displacement itself depends on the target's starting position and the caster's side; it is not a fixed eight-slot movement. An already blocked/edge target generates no fake movement or successful-push slow. Damage and the existing slow after actual displacement are unchanged.
+
+The canonical skill stores `effect.pushToRowEnd: true` and maximum empty-space `targetDistance: 8`, with matching description and frontend catalogue. V2 frozen inputs without the new flag retain their original target distance and deterministic replay. The legacy eight-position executor remains unchanged for historical compatibility; live solo uses the V2 solo adapter and the same executor as group. This newer contract supersedes the old positional section for new V2 encounters.

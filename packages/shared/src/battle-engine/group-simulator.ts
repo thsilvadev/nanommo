@@ -154,9 +154,10 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
       if(!elementalRules&&def.element)raw*=Number(target.elementalDamageTakenMultiplier?.[def.element]??(target.elementalResistances?.includes(def.element)?0.5:1));
       dealt=damage(self,target,raw,damageType,`skill:${skillId}:${target.id}`,true,def.element);
       applySkillStatus(self,target,skillId,e,rank);
+      // Push along the target's row to the furthest reachable column, never through another unit.
       if(type==='physical_push'&&target.hp>0) {
         const from={...target.position};const direction=target.position.column>=self.position.column?1:-1;const occupied=new Set(blocked(target).map(gridKey));
-        while(gridDistance(self.position,target.position)-1<Number(e.targetDistance??6)) {const next={row:target.position.row,column:target.position.column+direction};if(!validGridPosition(next)||occupied.has(gridKey(next)))break;target.position=next;}
+        while(e.pushToRowEnd===true||gridDistance(self.position,target.position)-1<Number(e.targetDistance??6)) {const next={row:target.position.row,column:target.position.column+direction};if(!validGridPosition(next)||occupied.has(gridKey(next)))break;target.position=next;}
         if(gridKey(from)!==gridKey(target.position)){record(self,[target],'move',{type:'move',from,to:{...target.position},reason:'push'});if(e.targetDebuffOnSuccessfulPush)applyStatus(self,target,String(e.targetDebuffOnSuccessfulPush),Number(e.targetDebuffDurationTicks??12),{sourceSkillId:skillId,moveSpeedMultiplier:Number(e.targetMoveSpeedMultiplier??0.2)});}
       }
     }

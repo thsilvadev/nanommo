@@ -1,3 +1,13 @@
+### Violent Shot até a extremidade da linha e integração autorizada — 2026-11-23
+
+O usuário esclareceu e autorizou integrar as três alterações: alcance básico apenas do arco (8 espaços vazios; Staff/Rod adjacentes), texto ativo do log e Violent Shot empurrando o alvo até o fim alcançável de sua própria linha, para longe do atacante. Antes, o motor V2 parava ao alcançar seis espaços vazios, mesmo havendo caminho até a borda.
+
+Skill canônica e espelho frontend agora têm `pushToRowEnd: true`, `targetDistance: 8` e descrição correspondente. O executor V2, usado por grupo e pelo solo adapter, mantém a linha, para na parede/primeira célula ocupada e só aplica slow quando desloca. Distância vazia máxima de oito corresponde a nove passos incluindo a casa final do alvo; deslocamento real não é constante. Definições antigas congeladas sem a flag conservam seu alcance/replay. Executor legado de oito posições preservado para histórico, sem reescrever batalhas simuladas.
+
+`violent-shot-edge.test.js`: 16 cenários solo/grupo (direita/esquerda, atacante no meio, alvo além do antigo limite seis, parede, bloqueio por unidade, linhas distintas), slow, deslocamento logado, determinismo e duas verificações de snapshots antigos. RED reproduziu finais 7/2 em vez de 9/0; GREEN após corrigir. Revisor Superpowers independente: sem achados críticos/importantes, pronto para merge após validação.
+
+Validação final: 411/411 testes frontend Chromium, 16 scripts backend de alcance/Violent Shot/paridade/replay/fila/status/consumíveis/roster/manifesto, builds shared/API/frontend, typecheck de specs e diff-check passaram. Dois testes legados extras fora do patch têm expectativas desatualizadas: Mastery espera Stored Essence removida; battle-distance-movement espera Ice Bolt com maxRange 7, mas a main já contém 9. Não alterados nem contados como aprovados. Checkout oficial tem somente as duas edições locais de alcance 6→8 do usuário, já incorporadas semanticamente na branch; preservar essas edições na integração. Sem push, deploy, migração ou banco.
+
 ### Texto do empurrão de Violent Shot — 2026-11-23
 
 Formatador compartilhado de logs solo/grupo/histórico reconhece `reason: push` e `violent_shot_push` e mostra o atacante empurrando o alvo: `thiagoarcher pushes Bandit for ( 6 ) spaces -->.`. Direção vem do deslocamento real (`-->`/`<--`), singular preservado para um espaço. Movimento comum mantém o texto existente; sem mudança na mecânica ou no evento persistido.
