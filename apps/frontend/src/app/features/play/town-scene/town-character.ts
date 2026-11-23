@@ -469,6 +469,8 @@ export class TownCharacter {
     if (key === this.dressedKey) return;
     const gear = Object.keys(equipment).length ? await this.factory.cache.gear().catch(() => null) : null;
     if (this.disposed || seq !== this.dressSeq) return;
+    // Leave the previous outfit intact and retry on the next roster snapshot after a network failure.
+    if (Object.keys(equipment).length && !gear) return;
     const { root, template, sex } = target;
     const body = root.getObjectByName('Body') as THREE.SkinnedMesh;
     const plan = gear ? planGear(gear, equipment, () => undefined, hand) : null;

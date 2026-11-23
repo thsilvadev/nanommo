@@ -63,6 +63,19 @@ describe('TownCharacter gear', () => {
     expect(gears(c)[0].geometry).toBe(gears(fresh)[0].geometry);
   });
 
+  it('retries the same equipment after a transient gear download failure', async () => {
+    const realGear = await factory.cache.gear();
+    const load = spyOn(factory.cache, 'gear').and.returnValues(Promise.reject(new Error('temporary network failure')), Promise.resolve(realGear));
+    const e = entry('retry', FULL);
+    const c = character(e);
+    await settle(c);
+    expect(gears(c).length).toBe(0);
+    c.setEntry({ ...e });
+    await c.gearReady();
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(gears(c).length).toBe(1);
+  });
+
   it('NPCs never wear gear', async () => {
     const npc = character({ ...factory.npcEntry('storage', 'Storage'), equipment: FULL }, { npc: true });
     await settle(npc);
