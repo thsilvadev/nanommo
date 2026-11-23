@@ -1,0 +1,138 @@
+{
+ "aramaianwarden": {
+  "uid": "19c1855bdb2c4cdc89da2cfb64da48cf",
+  "title": "Drugdör The Golem Animated",
+  "lic": "CC Attribution"
+ },
+ "arcanewisp": {
+  "uid": "ca27ab932b21407ba30376340f4c4444",
+  "title": "Stonewisp - Mutant Stingray -Rigged and Animated",
+  "lic": "CC Attribution"
+ },
+ "brokensentinel": {
+  "uid": "50f12e6008dc464c8469c9bc7e6629f1",
+  "title": "Low Poly Animated Simple Golem",
+  "lic": "Free Standard"
+ },
+ "cindergolem": {
+  "uid": "376c53aee277477cb5a4ec76e92f2c56",
+  "title": "D&D Heroes (2003) - Magma Golem",
+  "lic": "CC Attribution"
+ },
+ "direwolf": {
+  "uid": "2b183ca4a3984c1385856ca864c7508c",
+  "title": "Magic Wolf",
+  "lic": "CC Attribution"
+ },
+ "fieldbat": {
+  "uid": "c0de6a919e0546f0bfc9d4172d885feb",
+  "title": "giant bat animation",
+  "lic": "CC Attribution"
+ },
+ "giantmantis": {
+  "uid": "5698f36c809b4ce9bd846000845a26aa",
+  "title": "Low Detailed Mantis",
+  "lic": "CC Attribution-NonCommercial-ShareAlike"
+ },
+ "giantmosquito": {
+  "uid": "b11e813ae39b4d03ba73a40d9bbde99a",
+  "title": "Mosquito (SSBN)",
+  "lic": "CC Attribution"
+ },
+ "giantspider": {
+  "uid": "af87017501fc44e39a33c220f2435100",
+  "title": "Animated Spider",
+  "lic": "CC Attribution"
+ },
+ "gravelhorn": {
+  "uid": "0c9978755f244457a566b258139affa4",
+  "title": "Ankylosaurus from unity",
+  "lic": "CC Attribution"
+ },
+ "mirageStalker": {
+  "uid": "89b59872815b4a3295d6dc5b65d979e8",
+  "title": "Camouflaged-leopard",
+  "lic": "CC Attribution"
+ },
+ "mudflatcrocodile": {
+  "uid": "0226417fd07e491a9d5464074f86104b",
+  "title": "fantasy crocodile animation",
+  "lic": "CC Attribution"
+ },
+ "rootboundbrute": {
+  "uid": "bceb1cb47186457c8571a23e6aff1b8e",
+  "title": "Troll",
+  "lic": "CC Attribution"
+ },
+ "ruinsguardian": {
+  "uid": "19c1855bdb2c4cdc89da2cfb64da48cf",
+  "title": "Drugdör The Golem Animated",
+  "lic": "CC Attribution"
+ },
+ "sandscorpion": {
+  "uid": "651c17e0a3784c0386790e5b7c565f1a",
+  "title": "giant scorpion animation",
+  "lic": "CC Attribution"
+ },
+ "slime": {
+  "uid": "a126030f5c894e58834cbd72d9e38823",
+  "title": "Slime",
+  "lic": "CC Attribution"
+ },
+ "boneknight": {
+  "kaykit": "Skeleton_Warrior"
+ },
+ "flamingtreant": {
+  "uid": "e3a094316a8c4820a94d271afffe497c"
+ },
+ "mudcrawler": {
+  "uid": "3ddc6f711201449cbc33617f430d1b20"
+ },
+ "mutantbee": {
+  "uid": "d4683f98637745f1a989bb013215c8de"
+ },
+ "needlebackstalker": {
+  "uid": "fcf5c4b7f22b4e85891b6c6f895e6de2"
+ },
+ "ridgebreaker": {
+  "uid": "5065a484ef054902bc1671f3f8eab517"
+ },
+ "sacredforestguardian": {
+  "uid": "da3b295d2a4549f686cf2a7117f9e8bf"
+ },
+ "saltfangcrab": {
+  "uid": "881ccf6cf2854014808058025e713e70"
+ },
+ "thornsprout": {
+  "uid": "2146f4266a2b4987baadfc16745a60d2"
+ },
+ "unicorn": {
+  "uid": "bc64f4ff7966474ca9bacd42fa73a754"
+ },
+ "venomviper": {
+  "uid": "b15833b5d1314dce8cdc297cb5dd6c0f"
+ },
+ "wraith": {
+  "uid": "8e9bbcf332fd4122b50093e85a1ac4e1"
+ },
+ "moonleafarcanist": {
+  "uid": "41f7a1dfd6984135b876f334908e3ca4"
+ },
+ "bandit": {
+  "uid": "1cc67e5c503840e4aed51cbed0d9b46d"
+ },
+ "duneraider": {
+  "uid": "f830f31e23b14fcdb12c53ee8e14f0d7"
+ },
+ "kwaiouaranger": {
+  "uid": "cbb37a0dc2e04cbebae371456beb0639"
+ },
+ "_extra": {
+  "cecilia": {
+   "uid": "6a3a4af54f22442cb272309c91220015"
+  },
+  "magehat": {
+   "uid": "9a9ad828456f4cf9a3d3ea08e3fb464c"
+  }
+ }
+}

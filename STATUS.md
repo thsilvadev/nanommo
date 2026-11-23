@@ -1,3 +1,19 @@
+### Monstros 3D (32) para a arena de batalha — 2026-11-23
+
+Branch `feat/monster-3d`. Design `docs/superpowers/specs/2026-11-23-monster-3d-design.md`; plano `docs/superpowers/plans/2026-11-23-monster-3d.md`.
+
+- Novo pipeline offline `tools/monster-assets/` (Node + gltf-transform, sem Blender): modelos animados grátis do Sketchfab escolhidos pelo usuário (`picks.json`) e KayKit Skeletons → `apps/frontend/public/assets/monsters/<id>.glb` + `manifest.json` (31 GLBs, 35 MB; Bandit é o próprio personagem com gear, sem GLB).
+- `native`: clipes renomeados para `Idle/Attack/Damage/Dead/Cast` (+ extras como `Bite`), takes longos cortados (unicórnio), o que falta gerado no nó raiz (recuo, tombar, investida); escala em metros medida no primeiro quadro do Idle, pés no chão, de frente para +Z; texturas WebP ≤1024; recolor (slime, golens, mantis, needleback, mudcrawler, unicórnio branco, ranger); chifre e espinhos como cones presos a ossos; espada/escudo KayKit no Bone Knight.
+- `character`: Ranger, Treeman e Plague Doctor passam pelo `retargetSkinned` do gear (mapa de ossos novo para rigs customizados) e usam `animations.glb`.
+- Lista completa de animações usadas/substituídas/faltando em `tools/monster-assets/ANIMATIONS.md`. Efeitos (fogo, auras, partículas) ficam declarados em `fx` para a arena.
+- Licenças: `apps/frontend/public/assets/monsters/CREDITS.md` e `UNLICENSED.md` (7 a resolver: NC, "Free Standard" e IP de terceiros — Grux/Paragon, Tusken Raider, D&D Heroes); `UNLICENSED_ASSETS_README.txt` (e o gerador do gear) aponta para ela.
+- 11 escolhas iniciais não eram baixáveis (pagas ou só visualização) e foram trocadas pelo usuário; o Poly-Art Bandit também não era, daí o Bandit com gear.
+- Não feito ainda: troca da NPC Cecília pelo Yunara e do chapéu de mago T3 pelo "Magician's hat" (modelos já baixados); integração na arena.
+
+Sem migração, nada executado em banco, nenhum deploy ou push.
+
+Validação (2026-11-23): `node build.mjs` gera os 31 GLBs sem erro; folhas de contato renderizadas (Chromium/three 0.170) com cada monstro ao lado do personagem em Idle, Attack, Damage e Dead — todos visíveis, em escala e com a pose esperada (Cinder Golem e unicórnio ajustados após a revisão). `npm run gear:test` em `tools/character-assets`: 32/32.
+
 ### Integração final com glint de refino — 2026-11-23
 
 Usuário concluiu o trabalho no checkout oficial e reiterou a autorização de merge. Commit `4111262` incorporado no worktree isolado: brilho de refino e correção de retry no mesmo `TownCharacter.dress` preservados. Apenas STATUS.md exigiu resolução textual, mantendo os registros das duas linhas de trabalho.

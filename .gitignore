@@ -38,3 +38,7 @@ tools/character-assets/preview/screenshots/
 # Browser performance recordings (tens of MB): keep local
 *.json.gz
 *profile*.json
+
+# monster-assets: shared deps link and the big candidate review pages
+tools/monster-assets/node_modules
+tools/monster-assets/preview/candidates*.html

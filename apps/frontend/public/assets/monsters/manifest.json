@@ -1,0 +1,488 @@
+{
+  "slime": {
+    "file": "slime.glb",
+    "rig": "native",
+    "height": 0.7,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "fieldbat": {
+    "file": "fieldbat.glb",
+    "rig": "native",
+    "height": 1.16,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Damage"
+    ],
+    "fx": []
+  },
+  "mutantbee": {
+    "file": "mutantbee.glb",
+    "rig": "native",
+    "height": 1.42,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Attack",
+      "Damage",
+      "Dead"
+    ],
+    "fx": []
+  },
+  "thornsprout": {
+    "file": "thornsprout.glb",
+    "rig": "native",
+    "height": 1.3,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Damage"
+    ],
+    "fx": []
+  },
+  "mudcrawler": {
+    "file": "mudcrawler.glb",
+    "rig": "native",
+    "height": 0.6,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast",
+      "PowerAttack"
+    ],
+    "generated": [
+      "Damage",
+      "Dead"
+    ],
+    "fx": [
+      "leaves"
+    ]
+  },
+  "direwolf": {
+    "file": "direwolf.glb",
+    "rig": "native",
+    "height": 1.02,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Dead"
+    ],
+    "fx": []
+  },
+  "gravelhorn": {
+    "file": "gravelhorn.glb",
+    "rig": "native",
+    "height": 1.26,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Damage"
+    ],
+    "fx": []
+  },
+  "mudflatcrocodile": {
+    "file": "mudflatcrocodile.glb",
+    "rig": "native",
+    "height": 0.86,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "sandscorpion": {
+    "file": "sandscorpion.glb",
+    "rig": "native",
+    "height": 1.96,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "ridgebreaker": {
+    "file": "ridgebreaker.glb",
+    "rig": "native",
+    "height": 2.8,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "saltfangcrab": {
+    "file": "saltfangcrab.glb",
+    "rig": "native",
+    "height": 0.86,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Damage"
+    ],
+    "fx": []
+  },
+  "needlebackstalker": {
+    "file": "needlebackstalker.glb",
+    "rig": "native",
+    "height": 0.88,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast",
+      "Bite"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "giantspider": {
+    "file": "giantspider.glb",
+    "rig": "native",
+    "height": 0.71,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Damage"
+    ],
+    "fx": []
+  },
+  "duneraider": {
+    "file": "duneraider.glb",
+    "rig": "native",
+    "height": 1.8,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "venomviper": {
+    "file": "venomviper.glb",
+    "rig": "native",
+    "height": 1.5,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Damage"
+    ],
+    "fx": []
+  },
+  "bandit": {
+    "rig": "char",
+    "character": {
+      "sex": "male",
+      "gear": [
+        "body-ranger",
+        "head-rogue-hood",
+        "cape-rogue",
+        "shoes-peasant"
+      ],
+      "weapon": "dagger-serrated"
+    },
+    "fx": []
+  },
+  "giantmosquito": {
+    "file": "giantmosquito.glb",
+    "rig": "native",
+    "height": 1.71,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Damage"
+    ],
+    "fx": []
+  },
+  "rootboundbrute": {
+    "file": "rootboundbrute.glb",
+    "rig": "native",
+    "height": 2.6,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "unicorn": {
+    "file": "unicorn.glb",
+    "rig": "native",
+    "height": 2.1,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Damage"
+    ],
+    "fx": []
+  },
+  "kwaiouaranger": {
+    "file": "kwaiouaranger.glb",
+    "rig": "character",
+    "height": 1.77,
+    "clips": [
+      "character"
+    ],
+    "generated": [],
+    "weapon": "bow-wooden",
+    "fx": []
+  },
+  "giantmantis": {
+    "file": "giantmantis.glb",
+    "rig": "native",
+    "height": 1.8,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "flamingtreant": {
+    "file": "flamingtreant.glb",
+    "rig": "character",
+    "height": 3.22,
+    "clips": [
+      "character"
+    ],
+    "generated": [],
+    "fx": [
+      "fire"
+    ]
+  },
+  "moonleafarcanist": {
+    "file": "moonleafarcanist.glb",
+    "rig": "character",
+    "height": 2.52,
+    "clips": [
+      "character"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "mirageStalker": {
+    "file": "mirageStalker.glb",
+    "rig": "native",
+    "height": 0.91,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast",
+      "Bite"
+    ],
+    "generated": [],
+    "fx": [
+      "aura",
+      "turquoise-eyes"
+    ]
+  },
+  "arcanewisp": {
+    "file": "arcanewisp.glb",
+    "rig": "native",
+    "height": 0.66,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": [
+      "blue-fire-aura"
+    ]
+  },
+  "sacredforestguardian": {
+    "file": "sacredforestguardian.glb",
+    "rig": "native",
+    "height": 3,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Attack",
+      "Damage",
+      "Dead"
+    ],
+    "fx": []
+  },
+  "aramaianwarden": {
+    "file": "aramaianwarden.glb",
+    "rig": "native",
+    "height": 2.8,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "ruinsguardian": {
+    "file": "ruinsguardian.glb",
+    "rig": "native",
+    "height": 3.2,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "boneknight": {
+    "file": "boneknight.glb",
+    "rig": "native",
+    "height": 1.9,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "brokensentinel": {
+    "file": "brokensentinel.glb",
+    "rig": "native",
+    "height": 2.6,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "cindergolem": {
+    "file": "cindergolem.glb",
+    "rig": "native",
+    "height": 2.8,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast",
+      "FireBreath",
+      "ThrowMagma"
+    ],
+    "generated": [],
+    "fx": []
+  },
+  "wraith": {
+    "file": "wraith.glb",
+    "rig": "native",
+    "height": 1.1,
+    "clips": [
+      "Idle",
+      "Attack",
+      "Damage",
+      "Dead",
+      "Cast"
+    ],
+    "generated": [
+      "Attack",
+      "Damage",
+      "Dead"
+    ],
+    "fx": [
+      "blue-melting-particles"
+    ]
+  }
+}
