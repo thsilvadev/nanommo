@@ -24,4 +24,4 @@ An additional legacy `grind-monster-expansion-chat-journal.test.js` run stops in
 
 ## Integration control
 
-Changes are isolated in `codex/review-integration-fixes`, based on reviewed main snapshot `1a4fc22`. The official checkout, main branch, deployment and database were not modified by the final corrections. The user explicitly requested a new approval before merging into official main; leave that merge pending.
+Changes are isolated in `codex/review-integration-fixes`, based on reviewed main snapshot `1a4fc22`. The official checkout, main branch, deployment and database were not modified by the final corrections. The user initially required a new approval before merging into official main and subsequently granted it explicitly. The later `d9ecbf7` item-name commit was reconciled without conflicts, its public mirror synchronized, and the merged result passed all 401 frontend tests and full builds again. Local fast-forward integration is authorized; no push or deployment is included.

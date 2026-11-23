@@ -1,3 +1,7 @@
+### Integração local autorizada na main — 2026-11-23
+
+Usuário autorizou explicitamente o merge das correções revisadas. A main avançou de `1a4fc22` para `d9ecbf7` somente com três correções de nomes; esse commit foi reconciliado sem conflitos na branch isolada e o catálogo público foi sincronizado em `08f0b6a`. O resultado reconciliado passou novamente 401/401 testes do frontend, builds shared/API/frontend, regressões de Hunting/clock/manifesto, igualdade dos catálogos e diff-check. Integração local por fast-forward, sem push, deploy, migração ou alteração em banco. Worktrees e branches preservados.
+
 ### Revisão de integração e correção da busca ao trocar postura — 2026-11-23
 
 Correções isoladas em `codex/review-integration-fixes`, baseada no snapshot revisado `1a4fc22` da main. O usuário determinou que qualquer nova modificação ocorra em outro worktree e que o merge na main oficial aguarde novo aval. O checkout oficial foi somente lido; sem merge final, push, deploy, banco ou migração.
