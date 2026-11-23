@@ -7,7 +7,7 @@ Resultado integrado validado: 403/403 testes frontend Chromium (incluindo novos 
 ### Brilho de refino mais sutil e "fluido"; cheat para ganhar equipamento refinado — 2026-11-23
 
 - Shader (`glintMaterial`, `gear-merge.ts`): a cor original fica 25% mais preservada (mistura com o metal 0,38 → 0,28; reflexo, energia e faixa de varredura também ~25% mais fracos). As faixas paralelas deram lugar a um campo com distorção de domínio: veias de energia curvas, mais brilhantes onde o campo cruza zero, com um halo suave. As veias aparecem e somem em manchas que se movem devagar. A faixa larga que sobe dos pés à cabeça continua.
-- Cheat novo, no padrão dos outros (`dev-cheat.controller.ts`, sem auth): `GET /inventory/__dev_7f3a91c2/grant-equip?item=<id>[,<id>...]&refine=<0-12>[&character=<nome exato>]`. Sem `character`, vale o personagem atualizado mais recentemente. Coloca cada item no inventário com `instanceData.refinementLevel` (ou sem instanceData em +0). Recusa item inexistente, item que não é equipamento e refino fora de 0–12. Implementação: `InventoryService.grantEquipmentCheat`.
+- Cheat novo, no padrão dos outros (`dev-cheat.controller.ts`, sem auth): `GET /inventory/__dev_7f3a91c2/grant-equip?item=<id>[,<id>...]&refine=<0-12>&character=<nome exato>`. `character` é obrigatório: no primeiro teste, sem ele, os itens foram para o personagem atualizado mais recentemente, que era o personagem idle de outra pessoa. Coloca cada item no inventário com `instanceData.refinementLevel` (ou sem instanceData em +0). Recusa item inexistente, item que não é equipamento e refino fora de 0–12. Implementação: `InventoryService.grantEquipmentCheat`.
 
 Sem migração, nada executado em banco, nenhum deploy ou push.
 

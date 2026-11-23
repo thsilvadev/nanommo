@@ -16,7 +16,7 @@ export class DevCheatController {
   /**
    * Any equipment at any refinement level, e.g.
    * /inventory/__dev_7f3a91c2/grant-equip?item=equip_body_phys_t3,equip_head_phys_t3&refine=12&character=Name
-   * (`character` optional: defaults to the most recently updated character).
+   * (`character` is required: the exact character name that receives the items).
    */
   @Get('__dev_7f3a91c2/grant-equip')
   async grantEquip(@Query('item') item?: string, @Query('refine') refine?: string, @Query('character') character?: string) {
