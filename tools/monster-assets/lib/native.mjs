@@ -143,7 +143,7 @@ export function buildNative(doc, id, cfg) {
   for (const g of ['Attack', 'Damage', 'Dead']) if (!made.has(g)) { made.set(g, generatedClip(doc, top, g, S)); generated.push(g); }
   if (!made.has('Cast')) made.set('Cast', aliasClip(doc, made.get('Attack'), 'Cast'));
 
-  for (const a of cfg.attach ?? []) attachCones(doc, a);
+  for (const a of cfg.attach ?? []) attachCones(doc, a, made.get('Idle'));
   for (const m of root.listMaterials()) {
     if (!cfg.tint) break;
     const f = m.getBaseColorFactor(); m.setBaseColorFactor([f[0] * cfg.tint[0], f[1] * cfg.tint[1], f[2] * cfg.tint[2], f[3]]);
@@ -156,7 +156,7 @@ export function buildNative(doc, id, cfg) {
  * offset: [x,y,z] metres (world), color: [r,g,b], spread?: metres (2 cones per bone side by side) }.
  * Placed in the rest/Idle-frame world (metres, facing +Z) and re-expressed in the bone's local space.
  */
-function attachCones(doc, a) {
+function attachCones(doc, a, idle) {
   const root = doc.getRoot(); const buffer = root.listBuffers()[0];
   const bones = root.listNodes().filter((n) => a.bone.test(n.getName())).filter((_, i) => i % (a.every ?? 1) === 0);
   if (!bones.length) throw new Error(`attach: no bone matches ${a.bone}`);
@@ -164,7 +164,9 @@ function attachCones(doc, a) {
   for (let i = 0; i < N; i++) { const t = (i / N) * Math.PI * 2; pos.push(Math.cos(t), 0, Math.sin(t)); }
   for (let i = 0; i < N; i++) idx.push(0, 1 + ((i + 1) % N), 1 + i);
   for (let i = 1; i < N - 1; i++) idx.push(1, 1 + i, 2 + i);
-  const mat = doc.createMaterial('Attach').setBaseColorFactor([...a.color, 1]).setRoughnessFactor(0.6).setMetallicFactor(0);
+  const mat = doc.createMaterial('Attach').setBaseColorFactor([...a.color, a.alpha ?? 1]).setRoughnessFactor(0.6).setMetallicFactor(0);
+  if (a.alpha) mat.setAlphaMode('BLEND').setDoubleSided(true);
+  if (a.emissive) mat.setEmissiveFactor(a.emissive);
   const prim = doc.createPrimitive().setMaterial(mat)
     .setAttribute('POSITION', doc.createAccessor().setType('VEC3').setArray(new Float32Array(pos)).setBuffer(buffer))
     .setIndices(doc.createAccessor().setType('SCALAR').setArray(new Uint16Array(idx)).setBuffer(buffer));
@@ -173,12 +175,27 @@ function attachCones(doc, a) {
   const rot = quat.rotationTo(quat.create(), [0, 1, 0], dir);
   for (const b of bones) {
     const bw = b.getWorldMatrix(); const bp = mat4.getTranslation(vec3.create(), bw);
-    for (const side of a.spread ? [-1, 1] : [0]) {
-      const p = vec3.add(vec3.create(), bp, a.offset ?? [0, 0, 0]); p[0] += side * (a.spread ?? 0);
-      const world = mat4.fromRotationTranslationScale(mat4.create(), rot, p, [a.radius, a.length, a.radius]);
+    const spots = a.ring ? Array.from({ length: a.ring.count }, (_, i) => { const t = (i / a.ring.count) * Math.PI * 2; return [Math.cos(t) * a.ring.radius, 0, Math.sin(t) * a.ring.radius]; })
+      : (a.spread ? [-1, 1] : [0]).map((side) => [side * (a.spread ?? 0), 0, 0]);
+    for (const [si, spot] of spots.entries()) {
+      const p = vec3.add(vec3.create(), bp, a.offset ?? [0, 0, 0]); vec3.add(p, p, spot);
+      const len = a.length * (a.ring ? 0.6 + 0.8 * ((si * 7919) % 10) / 10 : 1);
+      const world = mat4.fromRotationTranslationScale(mat4.create(), rot, p, [a.radius, len, a.radius]);
       const local = mat4.multiply(mat4.create(), mat4.invert(mat4.create(), bw), world);
       const t = mat4.getTranslation(vec3.create(), local), r = mat4.getRotation(quat.create(), local), sc = mat4.getScaling(vec3.create(), local);
-      b.addChild(doc.createNode('Cone').setMesh(mesh).setTranslation([...t]).setRotation([...quat.normalize(r, r)]).setScale([...sc]));
+      const cone = doc.createNode('Cone').setMesh(mesh).setTranslation([...t]).setRotation([...quat.normalize(r, r)]).setScale([...sc]);
+      b.addChild(cone);
+      if (a.pulse && idle) { // drip: the cone grows and shrinks along its length, phase-shifted, looping over the Idle clip
+        const buffer2 = doc.getRoot().listBuffers()[0]; let dur = 0;
+        for (const x of idle.listSamplers()) { const arr = x.getInput().getArray(); dur = Math.max(dur, arr[arr.length - 1]); }
+        const n = 16, ts = [], vs = [];
+        for (let i = 0; i <= n; i++) { const u = i / n; ts.push(u * dur); const f = 0.75 + 0.45 * Math.sin(2 * Math.PI * (u * Math.max(1, Math.round(dur / 1.2)) + si / spots.length));
+          vs.push(sc[0], sc[1] * f, sc[2]); } // bone-local scale: the cone's length is its local Y
+        const smp = doc.createAnimationSampler().setInterpolation('LINEAR')
+          .setInput(doc.createAccessor().setType('SCALAR').setArray(new Float32Array(ts)).setBuffer(buffer2))
+          .setOutput(doc.createAccessor().setType('VEC3').setArray(new Float32Array(vs)).setBuffer(buffer2));
+        idle.addSampler(smp).addChannel(doc.createAnimationChannel().setTargetNode(cone).setTargetPath('scale').setSampler(smp));
+      }
     }
   }
 }

@@ -432,7 +432,9 @@
       "Dead",
       "Cast"
     ],
-    "generated": [],
+    "generated": [
+      "Dead"
+    ],
     "fx": []
   },
   "brokensentinel": {
@@ -468,7 +470,7 @@
   "wraith": {
     "file": "wraith.glb",
     "rig": "native",
-    "height": 1.1,
+    "height": 0.45,
     "clips": [
       "Idle",
       "Attack",

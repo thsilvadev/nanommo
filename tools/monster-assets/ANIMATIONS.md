@@ -30,7 +30,7 @@ Legenda: ✅ do modelo · 🔧 gerado · ↪ substituto · 🗃 extra guardado (
 | needlebackstalker (Chimera) | ✅ 4legsIdle | ✅ 4legsClawsAttackR | ✅ 4legsGetHit | ✅ 4legsDeath | ↪ 4legsHorntAttack | Bite (4legsSnakeBiteAttack) | variantes 2Legs, walk, run |
 | giantspider | ✅ idle | ✅ attack | 🔧 | ✅ die | ↪ Attack | | walks, run |
 | duneraider (Tusken Raider) | ✅ alert_weightshift | ✅ gaderffi_lunge | ✅ rct_stumbleb | ✅ rct_splatb | ↪ larm_throw_upper | | ~45 clipes de cobertura/patrulha |
-| venomviper (Cobra) | ✅ Idle | ✅ Bite | 🔧 | ✅ Killed | ↪ Attack2 | | Attack, CircleBite, GetUp, Steady, IdleLoop |
+| venomviper (Cobra, pintada de verde) | ✅ Idle | ✅ Bite | 🔧 | ✅ Killed | ↪ Attack2 | | Attack, CircleBite, GetUp, Steady, IdleLoop |
 | giantmosquito | ✅ hover | ✅ attack | 🔧 | ✅ death1 | ↪ Attack | | fly, landing, walk, idle (pousado), death2 |
 | rootboundbrute (Troll) | ✅ idle | ✅ attack1 | ✅ take_damage | ✅ death | ↪ attack2 | | idle_break, walk, run |
 | unicorn (Horse Rigged) | ✅ trecho 0–4 s | ✅ empinar 33,2–35,4 s | 🔧 | ✅ queda 38,8–40,2 s | ↪ Attack | | resto do take de 60 s (andar, trote, levantar) |
@@ -40,10 +40,10 @@ Legenda: ✅ do modelo · 🔧 gerado · ↪ substituto · 🗃 extra guardado (
 | sacredforestguardian (Plant Painted) | ✅ ArmatureAction | 🔧 | 🔧 | 🔧 | ↪ Attack | | — (só tinha 1 clipe) |
 | aramaianwarden (Drugdör) | ✅ Idle | ✅ Attack1 | ✅ Defence2 | ✅ Defence3 | ↪ Attack3 | | Attack2, Defence1, Walk, IdlePieces |
 | ruinsguardian (Drugdör) | ✅ Idle | ✅ Attack1 | ✅ Defence2 | ✅ Defence3 | ↪ Attack3 | | idem |
-| boneknight (KayKit Skeleton_Warrior) | ✅ Idle_Combat | ✅ 1H_Melee_Attack_Chop | ✅ Hit_A | ✅ Death_A | ↪ Spellcast_Shoot | | ~80 clipes KayKit |
+| boneknight (Skeleton - low tier enemy) | ✅ Lesha_idle | ✅ Lesha_attack_1 | ✅ Lesha_hitted_2 | 🔧 | ↪ Attack | | Lesha_walk, Lesha_hitted_1 |
 | brokensentinel (Simple Golem) | ✅ Idle | ✅ Attack | ✅ Damage | ✅ Death | ↪ Attack | | Death_2, Idle_To_Walk, Walk |
 | cindergolem (Magma Golem) | ✅ combatidle | ✅ chpunch | ✅ hit | ✅ death1 (cortado em 1,25 s: afunda na lava) | ✅ sprayl | FireBreath, ThrowMagma | walk, sleep, teleport… |
-| wraith (Viking Spirit, estático) | ✅ Take 01 (flutua) | 🔧 | 🔧 | 🔧 | ↪ Attack | | — |
+| wraith (Viking Spirit: capacete flutuante 0,45 m a 1,35 m do chão) | ✅ Take 01 (flutua) + escorridos azuis pulsando | 🔧 | 🔧 | 🔧 | ↪ Attack | | — |
 
 ## Character (nosso esqueleto → todas as animações do personagem: Idle, Attack, Damage, Dead, CombatIdle, CastStart/CastLoop…)
 
