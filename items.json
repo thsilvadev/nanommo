@@ -3450,7 +3450,7 @@
     },
     {
       "id": "equip_head_magic_t1",
-      "name": "Aubergine Witch Hat",
+      "name": "Hood of Sharpness",
       "type": "equipment",
       "slot": "head",
       "levelReq": 1,
@@ -3760,7 +3760,7 @@
     },
     {
       "id": "equip_body_phys_t1",
-      "name": "Ranger's Leathers",
+      "name": "Ranger's Leather Cloth",
       "type": "equipment",
       "slot": "body",
       "levelReq": 1,
@@ -4194,7 +4194,7 @@
     },
     {
       "id": "equip_cape_magic_t1",
-      "name": "Hood of Sharpness",
+      "name": "Magic Mantle",
       "type": "equipment",
       "slot": "cape",
       "levelReq": 1,
