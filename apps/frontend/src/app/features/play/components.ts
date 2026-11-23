@@ -8,7 +8,7 @@ import { CraftQuantityComponent } from './craft-quantity.component';
 import { FollowLogDirective } from './follow-log.directive';
 import { battleEventText, battleEventTone, visibleBattleEvent } from './battle-event-text';
 import { CharacterViewerComponent } from '../../shared/character-viewer/character-viewer.component';
-import { portraitAnimationSource, portraitEquipment, portraitHandTypes, portraitModel } from './character-portrait';
+import { portraitAnimationSource, portraitEquipment, portraitHandTypes, portraitModel, portraitRefinement } from './character-portrait';
 import { battleTickAt, battleTickDurationMs, battleTickExpiryRemainingSeconds } from '../../shared/battle-timing';
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, computed, effect, inject, signal, untracked, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
@@ -92,6 +92,7 @@ export class CharacterSummary implements OnDestroy {
   /** 3D portrait (animated by game state) for characters that have an appearance; the initial stays until it has loaded. */
   readonly portrait = computed(() => portraitModel(this.character.character()));
   readonly portraitEquipment = computed(() => portraitEquipment(this.inventory.equipment()));
+  readonly portraitRefinement = computed(() => portraitRefinement(this.inventory.equipment()));
   readonly portraitHands = computed(() => portraitHandTypes(this.inventory.equipment(), (id) => this.catalog.item(id) as { weaponType?: string } | undefined));
   /** Pose of the portrait: a pure function of the stores and the clock, evaluated by the rig every frame. */
   readonly portraitAnimation = portraitAnimationSource(() => this.character.character(), () => this.battle.active(), () => this.portraitHands());

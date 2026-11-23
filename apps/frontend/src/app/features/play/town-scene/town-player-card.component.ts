@@ -28,7 +28,7 @@ const IDLE: AnimationState = { base: 'Idle' };
         @if (model(); as m) {
           @if (!viewerFailed()) {
             <app-character-viewer [sex]="m.sex" [heightCm]="m.heightCm" [appearance]="m.appearance" [dominantHand]="m.dominantHand"
-              [mainHandType]="hands().main" [offHandType]="hands().off" [equipment]="equipment()" framing="full" [animation]="idle"
+              [mainHandType]="hands().main" [offHandType]="hands().off" [equipment]="equipment()" [refinement]="entry().refinement ?? null" framing="full" [animation]="idle"
               [attr.aria-label]="entry().name" (failed)="viewerFailed.set(true)" />
           } @else { <span class="town-player-initial">{{ initial() }}</span> }
         } @else { <span class="town-player-initial">{{ initial() }}</span> }

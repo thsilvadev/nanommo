@@ -851,6 +851,31 @@ export class InventoryService {
   }
 
   /**
+   * TEMP DEV CHEAT — puts equipment at a refinement level in the inventory, to test the 3D
+   * refinement shimmer (+10/+11 silver, +12 gold). Target: the character with that exact name,
+   * otherwise the most recently updated one (like the other cheats).
+   */
+  async grantEquipmentCheat(itemIds: string[], refine: number, characterName?: string) {
+    if (!itemIds.length) throw new BadRequestException('Pass ?item=<itemId>[,<itemId>...]');
+    if (!Number.isInteger(refine) || refine < 0 || refine > 12) throw new BadRequestException('refine must be an integer from 0 to 12');
+    for (const id of itemIds) {
+      const item = this.dataService.getItemById(id);
+      if (!item) throw new NotFoundException(`Item ${id} not found`);
+      if (item.type !== 'equipment') throw new BadRequestException(`Item ${id} is not equipment`);
+    }
+    const name = characterName?.trim();
+    const [character] = await this.characterRepo.find({ where: name ? { name } : {}, order: { updatedAt: 'DESC' }, take: 1 });
+    if (!character) throw new NotFoundException('Character not found');
+    const granted = [];
+    for (const itemId of itemIds) {
+      const row = await this.addItem(character.id, itemId, 1, 'inventory', refine ? { refinementLevel: refine } : undefined);
+      granted.push({ itemId, refinementLevel: refine, slotIndex: row.slotIndex });
+    }
+    this.logger.warn(`GRANT EQUIP cheat: characterId=${character.id} name=${character.name} items=${itemIds.join(',')} refine=${refine}`);
+    return { characterId: character.id, name: character.name, granted };
+  }
+
+  /**
    * Strip baked food `use_item` events out of a character's unresolved battles.
    *
    * The events live inside `battle_queue_entries.log`, frozen when the battle was

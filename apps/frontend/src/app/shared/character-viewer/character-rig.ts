@@ -7,7 +7,7 @@
  * initial bundle.
  */
 import * as THREE from 'three';
-import type { AppearanceCatalog, AppearanceOption, AppearanceTrait, HandWeaponType, Sex } from '@nanommo/shared';
+import type { AppearanceCatalog, AppearanceOption, AppearanceTrait, HandWeaponType, RefineGlint, Sex } from '@nanommo/shared';
 import type { AnimationSource, CharacterRigHandle, CharacterRigOptions, ViewerConfig, ViewerFraming } from './character-viewer.types';
 import { CLIP_SECONDS, type AnimationState } from '../character-animation/animation-state';
 import { bakeDecal, hexToRgb, sampleColor, tintSkinPixels, type Decal, type Vec3 } from './skin-compositor';
@@ -194,13 +194,14 @@ export class CharacterRig implements CharacterRigHandle {
     const facial = pick('facialHair');
     // Gear failing to load leaves the character bare (with type models in hand), never broken.
     const gear: LoadedGear | null = config.equipment ? await this.assets.gear().catch(() => null) : null;
-    const plan = gear && config.equipment ? planGear(gear, config.equipment, () => undefined, config.dominantHand) : null;
+    const plan = gear && config.equipment ? planGear(gear, config.equipment, () => undefined, config.dominantHand, config.refinement) : null;
     const visualIn = (side: 'right' | 'left') => plan?.weapons.find((w) => w.side === side)?.visual ?? null;
+    const glintIn = (side: 'right' | 'left') => plan?.weapons.find((w) => w.side === side)?.glint ?? 0;
     const [hairObject, beardObject, skinImages, weaponObjects] = await Promise.all([
       hair.asset ? this.loadGlb(hair.asset) : Promise.resolve(null),
       facial.asset?.endsWith('.glb') ? this.loadGlb(facial.asset) : Promise.resolve(null),
       this.loadSkinImages([pick('mouthDetails'), facial, pick('tattoo')]),
-      Promise.all((['right', 'left'] as const).map((side) => (config.hands[side] ? this.loadWeapon(config.hands[side]!, gear, visualIn(side)) : null))),
+      Promise.all((['right', 'left'] as const).map((side) => (config.hands[side] ? this.loadWeapon(config.hands[side]!, gear, visualIn(side), glintIn(side)) : null))),
     ]);
     if (this.disposed) return;
 
@@ -536,16 +537,16 @@ export class CharacterRig implements CharacterRigHandle {
 
   // ---- Hand items ------------------------------------------------------------
 
-  private async loadWeapon(type: HandWeaponType, gear: LoadedGear | null = null, visual: string | null = null): Promise<THREE.Object3D> {
+  private async loadWeapon(type: HandWeaponType, gear: LoadedGear | null = null, visual: string | null = null, glint: RefineGlint = 0): Promise<THREE.Object3D> {
     const source = visual ? gear?.rigid.get(visual) : undefined;
-    const key = source ? visual! : type;
+    const key = source ? (glint ? `${visual}+${glint}` : visual!) : type;
     let weapon = this.weapons.get(key);
     if (weapon) return weapon;
     if (source && gear) {
       // the item's own model, textured by the gear atlas (shared material; geometry shared with the cache)
       weapon = source.clone(true);
       weapon.position.set(0, 0, 0); weapon.quaternion.identity(); weapon.scale.set(1, 1, 1);
-      weapon.traverse((child) => { if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).material = gearMaterial(gear); });
+      weapon.traverse((child) => { if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).material = gearMaterial(gear, glint); });
     } else if (type === 'staff' || type === 'rod' || type === 'rune') {
       weapon = buildProceduralWeapon(type);
     } else {
