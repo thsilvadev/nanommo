@@ -1017,7 +1017,7 @@ export class BattleService {
       });
       snapshot.combatStyle = hasRangedGambitAction ? 'ranged' : 'melee';
       snapshot.basicAttackDamageType = hasBow ? 'ranged' : normalizedWeaponTypes.some((type) => ['staff', 'rod', 'rod'].includes(type)) ? 'magic' : 'melee';
-      snapshot.basicAttackRange = hasRangedBasic ? 6 : 0;
+      snapshot.basicAttackRange = hasRangedBasic ? 8 : 0;
 
       // ---- Gambit is evaluated INSIDE the engine, per gauge fire (SPEC §7.3)
       const regenTickOffset = Math.max(0, Math.floor((nextStartTime.getTime() - regenAnchor) / MS_PER_TICK));

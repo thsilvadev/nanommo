@@ -31,7 +31,7 @@ export class SharedBattleService {
       snapshot.partyLeaderId=p.leaderCharacterId;
       const weapons=snapshot.equippedWeaponTypes??[];
       snapshot.basicAttackDamageType=weapons.includes('bow')?'ranged':weapons.some(w=>['staff','rod'].includes(w))?'magic':'melee';
-      snapshot.basicAttackRange=snapshot.basicAttackDamageType==='melee'?0:6;
+      snapshot.basicAttackRange=snapshot.basicAttackDamageType==='melee'?0:8;
       const gambits=c.activeGambitPageId?await ctx.manager.getRepository(GambitPage).findOneBy({id:c.activeGambitPageId,characterId:c.id}):null;
       actors.push({id:c.id,name:c.name,orderIndex:member.orderIndex,kind:'character',team:'a',position:{row:0,column:0},snapshot,gambits,inventory:await this.inventoryMap(ctx.manager,c.id)});
       let counter=await ctx.manager.getRepository(MapKillCounter).findOneBy({characterId:c.id,mapId:p.mapId});
