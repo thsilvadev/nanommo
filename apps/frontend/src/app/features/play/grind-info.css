@@ -348,4 +348,5 @@
 /* 3D foe over the sprite (the sprite keeps the hover details and is the fallback) */
 .foe-sprite-wrap { position: relative; }
 .foe-3d { position: absolute; left: 50%; top: 3px; width: 199px; height: 199px; max-width: 100%; transform: translateX(-50%); pointer-events: none; z-index: 1; }
-.foe-3d-ready .foe-sprite { opacity: 0; }
+/* the img lives inside app-combatant-portrait (encapsulated): reach it explicitly */
+:host ::ng-deep .foe-3d-ready .foe-sprite { visibility: hidden; }
