@@ -103,7 +103,10 @@ export class BattleHitFeedbackDirective implements OnInit, OnDestroy {
   }
 
   private flash(): void {
-    const target = this.target === 'monster' ? this.host.querySelector('.foe-sprite') as HTMLElement | null : this.host;
+    // the monster's 3D model replaces its sprite once loaded (grind-info `.foe-3d-ready`): flash whichever is shown
+    const target = this.target === 'monster'
+      ? this.host.querySelector(this.host.classList.contains('foe-3d-ready') ? '.foe-3d' : '.foe-sprite') as HTMLElement | null
+      : this.host;
     if (!target) return;
     const cls = this.target === 'character' ? 'battle-hit-flash--character' : 'battle-hit-flash--monster';
     target.classList.remove(cls);
@@ -117,7 +120,7 @@ export class BattleHitFeedbackDirective implements OnInit, OnDestroy {
     if (this.flashTimer !== null) clearTimeout(this.flashTimer);
     this.flashTimer = null;
     this.host.classList.remove('battle-hit-flash--character', 'battle-hit-flash--monster');
-    this.host.querySelector('.foe-sprite')?.classList.remove('battle-hit-flash--monster');
+    this.host.querySelectorAll('.foe-sprite, .foe-3d').forEach((el: Element) => el.classList.remove('battle-hit-flash--monster'));
     for (const timer of this.cleanupTimers.values()) clearTimeout(timer);
     this.cleanupTimers.clear();
     for (const el of this.elements) el.remove();
