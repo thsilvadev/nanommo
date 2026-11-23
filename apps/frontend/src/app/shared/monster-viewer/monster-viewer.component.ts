@@ -13,6 +13,8 @@ type Three = typeof import('three');
 interface Loaded { three: Three; gltf: (url: string) => Promise<{ scene: THREE.Object3D; animations: THREE.AnimationClip[] }>; clone: (o: THREE.Object3D) => THREE.Object3D }
 let shared: Promise<Loaded> | null = null;
 let manifest: Promise<Record<string, MonsterManifestEntry>> | null = null;
+/** Battle ids are `mon_<name>` (monsters.json); the manifest is keyed by `<name>`. */
+export const monsterManifestKey = (monsterId: string) => monsterId.replace(/^mon_/, '');
 /** three.js and the loader are fetched on first use only; parsed files are shared by every viewer. */
 function loadThree(): Promise<Loaded> {
   shared ??= Promise.all([import('three'), import('three/examples/jsm/loaders/GLTFLoader.js'), import('three/examples/jsm/utils/SkeletonUtils.js')])
@@ -60,7 +62,7 @@ export class MonsterViewerComponent implements OnDestroy {
     const gen = ++this.generation;
     cancelAnimationFrame(this.frame);
     try {
-      const entry = (await loadManifest())[id];
+      const entry = (await loadManifest())[monsterManifestKey(id)];
       if (!entry?.file || entry.rig === 'char') throw new Error('no model');
       const { three, gltf, clone } = await loadThree();
       const [model, library] = await Promise.all([gltf(ASSETS + entry.file), entry.rig === 'character' ? gltf(CHARACTER_CLIPS) : Promise.resolve(null)]);
