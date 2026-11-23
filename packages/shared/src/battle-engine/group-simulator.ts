@@ -5,7 +5,7 @@ import type { ActorEvent, ActorEventPayload, BattleActor, BattleActorState, Batt
 import { BattleEngine, effectiveFoodStatValue, effectiveSkillCastTicks } from './index';
 import { Mulberry32 } from './prng';
 import { createActorStates } from './actors';
-import { findGridPathToRange, gridDistance, gridKey, nearestFreeGridPosition, validGridPosition } from './grid';
+import { BATTLE_GRID_SIZE, findGridPathToRange, gridDistance, gridKey, nearestFreeGridPosition, validGridPosition } from './grid';
 import { actionParams, selectGroupGambit, TargetedGambitChoice } from './targeting';
 import { activeGambitLines } from './active-gambits';
 import { actorEvent } from './events';
@@ -156,7 +156,12 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
       applySkillStatus(self,target,skillId,e,rank);
       // Push along the target's row to the furthest reachable column, never through another unit.
       if(type==='physical_push'&&target.hp>0) {
-        const from={...target.position};const direction=target.position.column>=self.position.column?1:-1;const occupied=new Set(blocked(target).map(gridKey));
+        const from={...target.position};
+        // New row-end pushes break equal-column ties towards the nearest horizontal edge.
+        const direction=target.position.column===self.position.column&&e.sameColumnPushToNearestEdge===true
+          ? (target.position.column<BATTLE_GRID_SIZE/2?-1:1)
+          : target.position.column>=self.position.column?1:-1;
+        const occupied=new Set(blocked(target).map(gridKey));
         while(e.pushToRowEnd===true||gridDistance(self.position,target.position)-1<Number(e.targetDistance??6)) {const next={row:target.position.row,column:target.position.column+direction};if(!validGridPosition(next)||occupied.has(gridKey(next)))break;target.position=next;}
         if(gridKey(from)!==gridKey(target.position)){record(self,[target],'move',{type:'move',from,to:{...target.position},reason:'push'});if(e.targetDebuffOnSuccessfulPush)applyStatus(self,target,String(e.targetDebuffOnSuccessfulPush),Number(e.targetDebuffDurationTicks??12),{sourceSkillId:skillId,moveSpeedMultiplier:Number(e.targetMoveSpeedMultiplier??0.2)});}
       }

@@ -253,6 +253,7 @@
           "damagePerRank": 25,
           "targetDistance": 8,
           "pushToRowEnd": true,
+          "sameColumnPushToNearestEdge": true,
           "targetDebuffOnSuccessfulPush": "violent_shot_slow",
           "targetDebuffDurationTicks": 12,
           "targetMoveSpeedMultiplier": 0.2

@@ -29,6 +29,11 @@ const cases=[
   {name:'another unit blocks the path',self:0,target:1,end:7,blocker:8},
   {name:'preserves target row even across different rows',self:0,target:1,end:9,row:0,targetRow:9},
 ];
+for(const targetRow of [4,6])for(let column=0;column<10;column++) {
+  cases.push({name:`same column ${column}, target row ${targetRow}`,self:column,target:column,end:column<5?0:9,row:5,targetRow});
+}
+cases.push({name:'same column left push respects blockers',self:4,target:4,end:3,row:5,targetRow:6,blocker:2});
+cases.push({name:'same column right push respects blockers',self:5,target:5,end:6,row:5,targetRow:6,blocker:7});
 const failures=[];
 for(const mode of ['group','solo'])for(const c of cases) {
   try {
@@ -47,10 +52,17 @@ for(const mode of ['group','solo'])for(const c of cases) {
 // Persisted V2 inputs keep the old skill definition and must replay with its original reach.
 for(const mode of ['group','solo']) {
   const frozen=input(0,1);
-  const {pushToRowEnd,...oldEffect}=skill.effect;
+  const {pushToRowEnd,sameColumnPushToNearestEdge:oldTieRule,...oldEffect}=skill.effect;
   frozen.actors[0].snapshot.skillDefs.violent_shot={...skill,effect:{...oldEffect,targetDistance:6}};
   assert.equal(execute(mode,frozen).actorsAfter.foe.position.column,7,'old persisted skill definitions keep their original six-space push');
+  const sameColumn=input(4,4,{row:5,targetRow:6});
+  sameColumn.actors[0].snapshot.skillDefs.violent_shot={...skill,effect:{...oldEffect,targetDistance:6}};
+  assert.equal(execute(mode,sameColumn).actorsAfter.foe.position.column,9,'old frozen definitions preserve their same-column direction');
+  const previousRowEnd=input(4,4,{row:5,targetRow:6});
+  const {sameColumnPushToNearestEdge,...previousEffect}=skill.effect;
+  previousRowEnd.actors[0].snapshot.skillDefs.violent_shot={...skill,effect:previousEffect};
+  assert.equal(execute(mode,previousRowEnd).actorsAfter.foe.position.column,9,'previous row-end snapshots keep their original rightward tie break');
 }
 assert.equal(catalogue.effect.targetDistance,8,'catalogue records the maximum empty-space distance');
 assert.equal(failures.length,0,'all edge-push cases must pass');
-console.log('violent-shot-edge: 16 solo/group scenarios, walls, blockers, row preservation, slow and deterministic replay passed');
+console.log(`violent-shot-edge: ${cases.length*2} solo/group scenarios, walls, same-column ties, blockers, row preservation, slow and deterministic replay passed`);

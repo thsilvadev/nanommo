@@ -1,3 +1,11 @@
+### Violent Shot: desempate quando ambos estão na mesma coluna — 2026-11-23
+
+Branch isolada `codex/violent-shot-column-tie`, baseada na main `b18be3c`. O usuário confirmou colunas 0–9: se atacante e alvo estão na mesma coluna, em linhas distintas, 0–4 empurra para a esquerda e 5–9 para a direita. Alvo mantém sua linha; ocupação e paredes continuam limitando o deslocamento. Quando as colunas diferem, continua afastando do atacante.
+
+A definição nova congela `sameColumnPushToNearestEdge: true`; snapshots anteriores sem essa flag preservam o antigo desempate para a direita, inclusive os de row-end push. Sem alterar o executor legado nem a apresentação de PvP. Catálogo canônico e espelho frontend sincronizados.
+
+Regressão ampliada para 60 cenários solo/grupo, cobrindo todas as dez colunas com alvo acima e abaixo, fronteira 4/5, bordas, bloqueios, slow e determinismo; snapshots anteriores de seis espaços e de row-end também verificados. RED reproduziu 22 casos incorretos e uma regressão de replay antes do versionamento; GREEN final. Passaram seis scripts (violent-shot-edge, group-battle-engine, group-battle-parity, elemental-replay-compatibility, violent-shot-slow, weapon-basic-range), builds shared/API/frontend e diff-check. Avisos CSS existentes. Main oficial preservada; sem merge, push, deploy, banco ou migração, aguardando aval para integração conforme preferência do usuário.
+
 ### Violent Shot até a extremidade da linha e integração autorizada — 2026-11-23
 
 O usuário esclareceu e autorizou integrar as três alterações: alcance básico apenas do arco (8 espaços vazios; Staff/Rod adjacentes), texto ativo do log e Violent Shot empurrando o alvo até o fim alcançável de sua própria linha, para longe do atacante. Antes, o motor V2 parava ao alcançar seis espaços vazios, mesmo havendo caminho até a borda.
