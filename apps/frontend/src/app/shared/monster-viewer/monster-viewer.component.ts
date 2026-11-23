@@ -9,6 +9,8 @@ export interface MonsterManifestEntry {
   character?: { sex: 'male' | 'female'; heightCm: number; appearance: Record<string, number> & { v: 1 }; equipment: Record<string, string>; mainHandType?: string };
 }
 const ASSETS = '/assets/monsters/';
+/** A flinch lasts this long whatever the authored Damage clip (some run 3.5 s). */
+const HIT_SECONDS = 0.5;
 const CHARACTER_CLIPS = '/assets/character/animations.glb';
 /** Character-rig monsters play the character library: our clip -> its clip. */
 const CHARACTER_MAP: Record<MonsterClip, string> = { Idle: 'CombatIdle', Walk: 'Walk', Attack: 'Attack', Cast: 'Attack', Damage: 'Damage', Dead: 'Dead' };
@@ -134,9 +136,9 @@ export class MonsterViewerComponent implements OnDestroy {
       if (s.dead) pose('Dead', (now - s.dead.startedAtMs) / 1000);
       else {
         const a = s.action;
-        const speed = a?.untilMs ? Math.max(1, duration(a.clip) / Math.max(0.05, (a.untilMs - a.startedAtMs) / 1000)) : 1;
-        const actionAt = a ? ((now - a.startedAtMs) / 1000) * speed : Infinity;
-        const hitAt = s.hit ? (now - s.hit.startedAtMs) / 1000 : Infinity;
+        // the clip is stretched over the action window (the blow, mid-clip, lands on the hit tick)
+        const actionAt = a ? ((now - a.startedAtMs) / Math.max(1, a.endsAtMs - a.startedAtMs)) * duration(a.clip) : Infinity;
+        const hitAt = s.hit ? ((now - s.hit.startedAtMs) / 1000 / HIT_SECONDS) * duration('Damage') : Infinity;
         if (a && actionAt < duration(a.clip)) pose(a.clip, actionAt);
         else if (hitAt < duration('Damage')) pose('Damage', hitAt);
         else if (s.walking && actions.has('Walk')) pose('Walk', now / 1000, true);

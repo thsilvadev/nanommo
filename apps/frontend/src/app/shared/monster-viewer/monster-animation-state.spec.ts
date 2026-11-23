@@ -17,8 +17,10 @@ describe('monsterAnimationState', () => {
   });
   it('flinches on the character hit and attacks on its own strike, sped up to the next one', () => {
     expect(monsterAnimationState(battle(events), t0 + 1100).hit).toEqual({ startedAtMs: t0 + 1000 });
-    expect(monsterAnimationState(battle(events), t0 + 2100).action).toEqual({ clip: 'Attack', startedAtMs: t0 + 2000, untilMs: t0 + 4000 });
-    expect(monsterAnimationState(battle(events), t0 + 4100).action).toEqual({ clip: 'Cast', startedAtMs: t0 + 4000, untilMs: null });
+    // the swing opens 450 ms before its hit, so the middle of the clip (the blow) lands on the hit tick
+    expect(monsterAnimationState(battle(events), t0 + 1600).action).toEqual({ clip: 'Attack', startedAtMs: t0 + 1550, impactAtMs: t0 + 2000, endsAtMs: t0 + 2450 });
+    expect(monsterAnimationState(battle(events), t0 + 2500).action).toBeUndefined();
+    expect(monsterAnimationState(battle(events), t0 + 3600).action).toEqual({ clip: 'Cast', startedAtMs: t0 + 3550, impactAtMs: t0 + 4000, endsAtMs: t0 + 4450 });
   });
   it('dies on the killing blow and stays dead', () => {
     expect(monsterAnimationState(battle(events), t0 + 6000)).toEqual({ dead: { startedAtMs: t0 + 6000 } });
@@ -38,6 +40,15 @@ describe('monsterAnimationState', () => {
   it('maps to character clips for a monster drawn as a character', () => {
     expect(monsterAsCharacterState({ walking: true }, t0)).toEqual({ base: 'Walk' });
     expect(monsterAsCharacterState({ dead: { startedAtMs: t0 } }, t0 + 1).oneShot?.clip).toBe('Dead');
-    expect(monsterAsCharacterState({ action: { clip: 'Attack', startedAtMs: t0, untilMs: null } }, t0 + 100).oneShot).toEqual({ clip: 'Attack', startedAtMs: t0, speed: 1 });
+    expect(monsterAsCharacterState({ action: { clip: 'Attack', startedAtMs: t0, impactAtMs: t0 + 450, endsAtMs: t0 + 900 } }, t0 + 100).oneShot?.speed).toBeCloseTo(1.533 / 0.9, 3);
+    expect(monsterAsCharacterState({ action: { clip: 'Cast', startedAtMs: t0, impactAtMs: t0 + 2000, endsAtMs: t0 + 2200 } }, t0 + 100).cast).toEqual({ startedAtMs: t0, endsAtMs: t0 + 2000 });
+  });
+  it('fills a V2 cast window (cast_start … use_skill) and ends when the skill resolves', () => {
+    const casting = battle([
+      { tick: 10, actor: 'monster', action: 'cast_start', hpRemaining: { character: 30, monster: 10 } },
+      { tick: 14, actor: 'monster', target: 'character', action: 'use_skill', damage: 9, hpRemaining: { character: 21, monster: 10 } },
+    ]);
+    expect(monsterAnimationState(casting, t0 + 5100).action).toEqual({ clip: 'Cast', startedAtMs: t0 + 5000, impactAtMs: t0 + 7000, endsAtMs: t0 + 7200 });
+    expect(monsterAnimationState(casting, t0 + 7300).action).toBeUndefined();
   });
 });
