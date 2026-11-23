@@ -1,4 +1,4 @@
-import { portraitAnimationSource, portraitEquipment, portraitHandTypes, portraitModel } from './character-portrait';
+import { portraitAnimationSource, portraitEquipment, portraitHandTypes, portraitModel, portraitRefinement } from './character-portrait';
 
 describe('character portrait', () => {
   const items: Record<string, { weaponType?: string }> = {
@@ -27,6 +27,14 @@ describe('character portrait', () => {
       { slot: 'mainHand', itemId: 'equip_sword_t1' }, { slot: 'shoes', itemId: 'equip_shoes_holy_t4' },
     ])).toEqual({ body: 'equip_body_phys_t1', mainHand: 'equip_sword_t1', shoes: 'equip_shoes_holy_t4' });
     expect(portraitEquipment([])).toEqual({});
+  });
+
+  it('keeps the refinement of refined visible slots only (gear shimmer)', () => {
+    expect(portraitRefinement([
+      { slot: 'body', itemId: 'b', instanceData: { refinementLevel: 12 } }, { slot: 'head', itemId: 'h', instanceData: { refinementLevel: 10 } },
+      { slot: 'shoes', itemId: 's' }, { slot: 'accessoryLeft', itemId: 'ring', instanceData: { refinementLevel: 11 } },
+      { slot: 'cape', itemId: 'c', instanceData: { refinementLevel: 99 } },
+    ])).toEqual({ body: 12, head: 10, cape: 12 });
   });
 
   it('only builds a model for a character that has an appearance', () => {

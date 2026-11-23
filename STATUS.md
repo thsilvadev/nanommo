@@ -1,3 +1,31 @@
+### Integração final com glint de refino — 2026-11-23
+
+Usuário concluiu o trabalho no checkout oficial e reiterou a autorização de merge. Commit `4111262` incorporado no worktree isolado: brilho de refino e correção de retry no mesmo `TownCharacter.dress` preservados. Apenas STATUS.md exigiu resolução textual, mantendo os registros das duas linhas de trabalho.
+
+Resultado integrado validado: 403/403 testes frontend Chromium (incluindo novos casos de refino), 14 scripts de regressão backend, builds shared/API/frontend, typecheck das specs e diff-check passaram. A checagem de tipos foi executada após concluir o build do shared, para ler os tipos novos de refino. Checkout oficial limpo conferido antes da integração local autorizada. Sem push, deploy, migração ou alteração em banco; worktrees e branches preservados.
+
+### Brilho de refino mais sutil e "fluido"; cheat para ganhar equipamento refinado — 2026-11-23
+
+- Shader (`glintMaterial`, `gear-merge.ts`): a cor original fica 25% mais preservada (mistura com o metal 0,38 → 0,28; reflexo, energia e faixa de varredura também ~25% mais fracos). As faixas paralelas deram lugar a um campo com distorção de domínio: veias de energia curvas, mais brilhantes onde o campo cruza zero, com um halo suave. As veias aparecem e somem em manchas que se movem devagar. A faixa larga que sobe dos pés à cabeça continua.
+- Cheat novo, no padrão dos outros (`dev-cheat.controller.ts`, sem auth): `GET /inventory/__dev_7f3a91c2/grant-equip?item=<id>[,<id>...]&refine=<0-12>[&character=<nome exato>]`. Sem `character`, vale o personagem atualizado mais recentemente. Coloca cada item no inventário com `instanceData.refinementLevel` (ou sem instanceData em +0). Recusa item inexistente, item que não é equipamento e refino fora de 0–12. Implementação: `InventoryService.grantEquipmentCheat`.
+
+Sem migração, nada executado em banco, nenhum deploy ou push.
+
+Validação (2026-11-23): checagem do `grantEquipmentCheat` com repositórios falsos (alvo por nome e padrão, instanceData, recusas). `town-roster.test.js` 29/29. `tsc` do app passa, build da api passa. Capturas do rig real em +0, +10 e +12 conferidas, e o shader compila sem erro no harness.
+
+### Brilho de refino no equipamento 3D (estilo MU): +10/+11 prateado, +12 dourado — 2026-11-23
+
+Pedido do usuário, com referência em `project/mu-online-gear-0.gif` (prateado) e `mu-online-gear-1.gif` (dourado).
+
+- `refineGlint(level)` em `@nanommo/shared` (`town-scene.types.ts`): 0 abaixo de +10, 1 (prata) em +10 e +11, 2 (ouro) em +12. Novo tipo `VisibleRefinement` (slot visível → nível) e campo opcional `TownRosterEntry.refinement`.
+- `gear-merge.ts`: o `GearPlan` leva o brilho de cada peça (`glints`, `weapons[].glint`). Quando alguma peça está refinada, a geometria fundida ganha grupos por parte (`materialIndex` = brilho; grupos vizinhos iguais são unidos) e a malha usa `[atlas, prata, ouro]`. Sem refino nada muda: mesma geometria sem grupos, material único. A chave do cache inclui o brilho. Os materiais de brilho são o atlas com um `onBeforeCompile`: tinge a peça mantendo as cores, aplica um reflexo que segue a normal, faixas finas que correm em diagonal e uma faixa larga que sobe dos pés à cabeça. O relógio é um uniform com getter (`performance.now()`), então nada precisa atualizá-lo.
+- Visualizador (`character-viewer`): novo input `refinement`. As armas na mão usam `gearMaterial(gear, glint)`. O retrato do Character Summary lê o refino de `instanceData.refinementLevel` dos itens equipados (`portraitRefinement`). O card de jogador da cidade e o `town-character` usam `entry.refinement`.
+- API `town-roster.service.ts`: o snapshot agrega `instanceData->'refinementLevel'` por slot visível e `rowOf` lê a mesma coluna. O valor é normalizado com `refinementLevel()`; só aparecem slots refinados. Como o refino só acontece em itens do inventário, o novo nível chega à cidade pelo fluxo de equip que já existe.
+
+Sem migração, nada executado em banco, nenhum deploy ou push.
+
+Validação (2026-11-23): `node apps/api/test/town-roster.test.js` 29/29. O fake de `rowOf` foi ajustado para a coluna nova, e há um teste novo de `refinement`. Karma (ChromeHeadless via `/snap/bin/chromium`) `gear-merge.spec.ts` + `character-portrait.spec.ts`: 13/13, com testes novos de grupos/materiais e de `portraitRefinement`. `tsc` app e spec passam. Builds shared e api passam. `gear-stress.mjs 200 240`: PASSA. Capturas do rig real (`preview/shoot.mjs`) dos conjuntos T2 e T3 em +0, +10 e +12 conferidas.
+
 ### Integração local autorizada na main — 2026-11-23
 
 Usuário autorizou explicitamente o merge das correções revisadas. A main avançou de `1a4fc22` para `d9ecbf7` somente com três correções de nomes; esse commit foi reconciliado sem conflitos na branch isolada e o catálogo público foi sincronizado em `08f0b6a`. O resultado reconciliado passou novamente 401/401 testes do frontend, builds shared/API/frontend, regressões de Hunting/clock/manifesto, igualdade dos catálogos e diff-check. Integração local por fast-forward, sem push, deploy, migração ou alteração em banco. Worktrees e branches preservados.

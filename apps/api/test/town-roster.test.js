@@ -35,12 +35,14 @@ function world() {
     // The SQL does the heavy filtering/limit; the service must not rely on its order.
     query: async (sql, [mapId, viewerId]) => {
       // rowOf(): one character's equipped rows
-      if (/^\s*SELECT slot, "itemId" FROM equipped_items/.test(sql)) {
+      if (/^\s*SELECT slot, "itemId"[^\n]* FROM equipped_items/.test(sql)) {
         const slots = (sql.match(/slot IN \(([^)]*)\)/)?.[1] ?? '').split(',').map(s => s.trim().replace(/'/g, ''));
-        return (characters.get(mapId)?.equipped ?? []).filter(e => slots.includes(e.slot));
+        return (characters.get(mapId)?.equipped ?? []).filter(e => slots.includes(e.slot))
+          .map(e => ({ slot: e.slot, itemId: e.itemId, refinementLevel: e.instanceData?.refinementLevel ?? null }));
       }
       // snapshot(): the roster rows, `equipment` as json_object_agg would build it (null when nothing is equipped)
       const visible = (sql.match(/e\.slot IN \(([^)]*)\)\) AS "equipment"/)?.[1] ?? '').split(',').map(s => s.trim().replace(/'/g, ''));
+      assert.match(sql, /json_object_agg\(e\.slot, e\."instanceData"->'refinementLevel'\)[\s\S]*?AS "refinement"/);
       return [...characters.values()]
         .filter(c => c.currentMapId === mapId && !c.travelIntent && !c.pendingMapTransition)
         .reverse()
@@ -50,6 +52,7 @@ function world() {
             id: c.id, name: c.name, level: c.level, appearance: c.appearance, sex: c.sex, heightCm: c.heightCm, lastSeenAt: c.lastSeenAt,
             inViewerParty: !!partyOf.get(c.id) && partyOf.get(c.id) === partyOf.get(viewerId),
             equipment: eq.length ? Object.fromEntries(eq.map(e => [e.slot, e.itemId])) : null,
+            refinement: eq.some(e => e.instanceData?.refinementLevel != null) ? Object.fromEntries(eq.filter(e => e.instanceData?.refinementLevel != null).map(e => [e.slot, e.instanceData.refinementLevel])) : null,
           };
         });
     },
@@ -287,6 +290,22 @@ test('entries carry the six visible equipment slots (not accessories), in snapsh
   const slept = await w.service.sleep('a');
   assert.deepEqual(slept.equipment, expected);
   assert.equal(slept.offHandItemId, 'equip_shield_t1');
+});
+
+test('entries carry the refinement of visible slots (drives the 3D gear shimmer), clamped and only when refined', async () => {
+  const equipped = [
+    { slot: 'body', itemId: 'equip_body_phys_t3', instanceData: { refinementLevel: 12 } },
+    { slot: 'head', itemId: 'equip_head_phys_t1', instanceData: { refinementLevel: 10 } },
+    { slot: 'mainHand', itemId: 'equip_sword_t2', instanceData: { refinementLevel: 0 } },
+    { slot: 'shoes', itemId: 'equip_shoes_fire_t3' },
+    { slot: 'accessoryLeft', itemId: 'equip_ring_t1', instanceData: { refinementLevel: 12 } },
+  ];
+  const w = world();
+  w.add('a', { equipped });
+  w.online('a');
+  const a = (await w.service.snapshot(TOWN, 'a')).entries.find(e => e.characterId === 'a');
+  assert.deepEqual(a.refinement, { body: 12, head: 10 });
+  assert.deepEqual((await w.service.sleep('a')).refinement, { body: 12, head: 10 });
 });
 
 test('gateway: stale socket disconnect does not put the character to sleep', async () => {

@@ -464,7 +464,8 @@ export class TownCharacter {
     if (!target || this.opts.npc) return;
     const equipment = this.entry.equipment ?? {};
     const hand = this.entry.dominantHand === 'left' ? 'left' : 'right';
-    const key = `${hand}|${JSON.stringify(Object.entries(equipment).sort())}`;
+    const refinement = this.entry.refinement ?? {};
+    const key = `${hand}|${JSON.stringify(Object.entries(equipment).sort())}|${JSON.stringify(Object.entries(refinement).sort())}`;
     const seq = ++this.dressSeq;
     if (key === this.dressedKey) return;
     const gear = Object.keys(equipment).length ? await this.factory.cache.gear().catch(() => null) : null;
@@ -473,7 +474,7 @@ export class TownCharacter {
     if (Object.keys(equipment).length && !gear) return;
     const { root, template, sex } = target;
     const body = root.getObjectByName('Body') as THREE.SkinnedMesh;
-    const plan = gear ? planGear(gear, equipment, () => undefined, hand) : null;
+    const plan = gear ? planGear(gear, equipment, () => undefined, hand, refinement) : null;
     body.geometry = plan && gear
       ? visibleBodyGeometry(sex, body, plan.covered, planBands(gear, plan, sex))
       : visibleBodyGeometry(sex, body, new Set(), []);

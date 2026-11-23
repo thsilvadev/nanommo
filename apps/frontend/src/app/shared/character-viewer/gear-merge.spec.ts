@@ -54,7 +54,7 @@ describe('gear merge', () => {
 
   it('puts the main-hand weapon in the dominant (left) hand', () => {
     const plan = planGear(fakeGear(), { mainHand: 'sword_item' }, item, 'left');
-    expect(plan.weapons).toEqual([{ side: 'left', visual: 'fake-sword', type: 'sword' }]);
+    expect(plan.weapons).toEqual([{ side: 'left', visual: 'fake-sword', type: 'sword', glint: 0 }]);
   });
 
   it('fuses skinned + rigid pieces into one geometry on the body skeleton; rigid vertices follow their bone', () => {
@@ -87,6 +87,22 @@ describe('gear merge', () => {
     const m2 = gearMesh(a!, gear, body.body.skeleton, body.body.bindMatrix);
     expect(m1.name).toBe('Gear');
     expect(m1.material).toBe(m2.material);
+  });
+
+  it('refined pieces shimmer: +10/+11 silver, +12 gold, each part drawn with its material slot', () => {
+    const gear = fakeGear();
+    const plan = planGear(gear, { body: 'body_item', head: 'hat_item', mainHand: 'sword_item' }, item, 'right', { body: 12, head: 9, mainHand: 10 });
+    expect(plan.glints).toEqual([2, 0]);
+    expect(plan.weapons[0].glint).toBe(1);
+    const geometry = mergedGearGeometry(gear, 'male', body, plan, { includeWeapons: true })!;
+    expect(geometry.groups.map((g) => g.materialIndex)).toEqual([2, 0, 1]);
+    const mesh = gearMesh(geometry, gear, body.body.skeleton, body.body.bindMatrix);
+    expect(Array.isArray(mesh.material)).toBeTrue();
+    // unrefined gear keeps the single shared material and its own cached geometry
+    const plain = mergedGearGeometry(gear, 'male', body, planGear(gear, { body: 'body_item', head: 'hat_item', mainHand: 'sword_item' }, item, 'right'), { includeWeapons: true })!;
+    expect(plain).not.toBe(geometry);
+    expect(plain.groups.length).toBe(0);
+    expect(Array.isArray(gearMesh(plain, gear, body.body.skeleton, body.body.bindMatrix).material)).toBeFalse();
   });
 
   it('loads the real gear: every manifest visual resolves to a mesh', async () => {

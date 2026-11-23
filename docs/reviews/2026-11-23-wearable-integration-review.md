@@ -25,3 +25,7 @@ An additional legacy `grind-monster-expansion-chat-journal.test.js` run stops in
 ## Integration control
 
 Changes are isolated in `codex/review-integration-fixes`, based on reviewed main snapshot `1a4fc22`. Corrections were prepared entirely in the isolated worktree. Only the subsequently approved local integration updates official main; deployment and database remain untouched. The user initially required a new approval before merging into official main and subsequently granted it explicitly. The later `d9ecbf7` item-name commit was reconciled without conflicts, its public mirror synchronized, and the merged result passed all 401 frontend tests and full builds again. Local fast-forward integration is authorized; no push or deployment is included.
+
+## Final integration after the concurrent feature completed
+
+The user committed the concurrent refinement feature as `4111262` and explicitly confirmed that official main was ready. Reconciled it in the isolated worktree, preserving refinement glint and retry behavior in `TownCharacter.dress`; the only textual conflict was the status log, whose entries were retained. The integrated result passed 403/403 frontend tests, 14 backend regression scripts, all workspace builds and spec typechecking. Official main was checked clean before the authorized local fast-forward. No push or deployment is included.

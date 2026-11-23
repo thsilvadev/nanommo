@@ -1,4 +1,4 @@
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get, Logger, Query } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 
 /** TEMP DEV CHEAT — remove after Diet/food QA is complete. */
@@ -11,6 +11,17 @@ export class DevCheatController {
   @Get('__dev_7f3a91c2/grant-all-foods')
   async grantAllFoods() {
     return this.inventoryService.grantAllFoodsCheat(10);
+  }
+
+  /**
+   * Any equipment at any refinement level, e.g.
+   * /inventory/__dev_7f3a91c2/grant-equip?item=equip_body_phys_t3,equip_head_phys_t3&refine=12&character=Name
+   * (`character` optional: defaults to the most recently updated character).
+   */
+  @Get('__dev_7f3a91c2/grant-equip')
+  async grantEquip(@Query('item') item?: string, @Query('refine') refine?: string, @Query('character') character?: string) {
+    const ids = String(item ?? '').split(',').map((id) => id.trim()).filter(Boolean);
+    return this.inventoryService.grantEquipmentCheat(ids, Number(refine ?? 0), character);
   }
 
   @Get('__dev_7f3a91c2/reset-diet')

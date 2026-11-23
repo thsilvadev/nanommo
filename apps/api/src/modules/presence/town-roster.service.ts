@@ -4,8 +4,8 @@ import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { Redis } from 'ioredis';
 import { mulberry32Seed, positionAt, TownNav } from '@nanommo/shared';
-import { TOWN_EMOTES, VISIBLE_EQUIPMENT_SLOTS } from '@nanommo/shared';
-import type { CharacterAppearance, Sex, TownEmote, TownEmoteKind, TownMove, TownRosterEntry, TownSceneDef, TownSleep, TownWakeFrom, VisibleEquipment } from '@nanommo/shared';
+import { refinementLevel, TOWN_EMOTES, VISIBLE_EQUIPMENT_SLOTS } from '@nanommo/shared';
+import type { CharacterAppearance, Sex, TownEmote, TownEmoteKind, TownMove, TownRosterEntry, TownSceneDef, TownSleep, TownWakeFrom, VisibleEquipment, VisibleRefinement } from '@nanommo/shared';
 import { Character } from '../../database/entities/character.entity';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { DataService } from '../data/data.service';
@@ -56,6 +56,8 @@ interface RosterRow {
   dominantHand?: 'right' | 'left' | null;
   /** Visible slot -> item id (json_object_agg; null when nothing is equipped). */
   equipment?: Record<string, string> | null;
+  /** Visible slot -> stored refinementLevel (raw; normalised by refinementLevel()). */
+  refinement?: Record<string, unknown> | null;
 }
 
 const VISIBLE_SLOTS_SQL = VISIBLE_EQUIPMENT_SLOTS.map((slot) => `'${slot}'`).join(', ');
@@ -98,6 +100,7 @@ export class TownRosterService {
     const rows: RosterRow[] = await this.characterRepo.query(
       `SELECT c.id, c.name, c.level, c.appearance, c.sex, c."heightCm", c."lastSeenAt", c."dominantHand",
               (SELECT json_object_agg(e.slot, e."itemId") FROM equipped_items e WHERE e."characterId" = c.id AND e.slot IN (${VISIBLE_SLOTS_SQL})) AS "equipment",
+              (SELECT json_object_agg(e.slot, e."instanceData"->'refinementLevel') FROM equipped_items e WHERE e."characterId" = c.id AND e.slot IN (${VISIBLE_SLOTS_SQL}) AND e."instanceData"->'refinementLevel' IS NOT NULL) AS "refinement",
               (vp."characterId" IS NOT NULL) AS "inViewerParty"
          FROM characters c
          LEFT JOIN party_members pm ON pm."characterId" = c.id
@@ -350,7 +353,14 @@ export class TownRosterService {
     // Only `/sleep` sleeps; being offline does not.
     const sleeping = s.sleeping ?? null;
     const equipment: VisibleEquipment = {};
-    for (const slot of VISIBLE_EQUIPMENT_SLOTS) { const id = row.equipment?.[slot]; if (id) equipment[slot] = id; }
+    const refinement: VisibleRefinement = {};
+    for (const slot of VISIBLE_EQUIPMENT_SLOTS) {
+      const id = row.equipment?.[slot];
+      if (!id) continue;
+      equipment[slot] = id;
+      const level = refinementLevel({ refinementLevel: row.refinement?.[slot] });
+      if (level) refinement[slot] = level;
+    }
     return {
       characterId: row.id,
       name: row.name,
@@ -371,18 +381,21 @@ export class TownRosterService {
       mainHandItemId: equipment.mainHand ?? null,
       offHandItemId: equipment.offHand ?? null,
       equipment,
+      refinement,
     };
   }
 
   private async rowOf(c: Character): Promise<RosterRow> {
-    const rows: Array<{ slot: string; itemId: string }> = await this.characterRepo.query(
-      `SELECT slot, "itemId" FROM equipped_items WHERE "characterId" = $1::uuid AND slot IN (${VISIBLE_SLOTS_SQL})`,
+    const rows: Array<{ slot: string; itemId: string; refinementLevel?: unknown }> = await this.characterRepo.query(
+      `SELECT slot, "itemId", "instanceData"->'refinementLevel' AS "refinementLevel" FROM equipped_items WHERE "characterId" = $1::uuid AND slot IN (${VISIBLE_SLOTS_SQL})`,
       [c.id],
     ).catch(() => []);
-    const equipment = Object.fromEntries((Array.isArray(rows) ? rows : []).filter((r) => r?.slot && r.itemId).map((r) => [r.slot, r.itemId]));
+    const worn = (Array.isArray(rows) ? rows : []).filter((r) => r?.slot && r.itemId);
+    const equipment = Object.fromEntries(worn.map((r) => [r.slot, r.itemId]));
+    const refinement = Object.fromEntries(worn.map((r) => [r.slot, r.refinementLevel ?? null]));
     return {
       id: c.id, name: c.name, level: c.level, appearance: c.appearance ?? null, sex: c.sex ?? null, heightCm: c.heightCm ?? null,
-      lastSeenAt: c.lastSeenAt, dominantHand: c.dominantHand ?? null, equipment,
+      lastSeenAt: c.lastSeenAt, dominantHand: c.dominantHand ?? null, equipment, refinement,
     };
   }
 

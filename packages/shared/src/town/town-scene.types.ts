@@ -88,6 +88,14 @@ export const VISIBLE_EQUIPMENT_SLOTS = ['head', 'body', 'cape', 'shoes', 'mainHa
 export type VisibleEquipmentSlot = typeof VISIBLE_EQUIPMENT_SLOTS[number];
 /** Item id per visible slot (absent = empty slot). */
 export type VisibleEquipment = Partial<Record<VisibleEquipmentSlot, string>>;
+/** Refinement level per visible slot (absent = +0). */
+export type VisibleRefinement = Partial<Record<VisibleEquipmentSlot, number>>;
+/** Shimmer drawn over a refined 3D piece: 0 none, 1 silver (+10, +11), 2 gold (+12). */
+export type RefineGlint = 0 | 1 | 2;
+export function refineGlint(level: number | null | undefined): RefineGlint {
+  const n = Number(level) || 0;
+  return n >= 12 ? 2 : n >= 10 ? 1 : 0;
+}
 
 export interface TownRosterEntry {
   characterId: string;
@@ -115,6 +123,8 @@ export interface TownRosterEntry {
   offHandItemId?: string | null;
   /** Every visible slot's item (the 3D model wears them); absent on older servers. */
   equipment?: VisibleEquipment;
+  /** Refinement of the visible slots (only refined ones); absent on older servers. */
+  refinement?: VisibleRefinement;
 }
 
 export interface TownPose {

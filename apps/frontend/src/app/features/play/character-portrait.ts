@@ -1,4 +1,4 @@
-import { VISIBLE_EQUIPMENT_SLOTS, type CharacterAppearance, type HandWeaponType, type Sex, type VisibleEquipment } from '@nanommo/shared';
+import { refinementLevel, VISIBLE_EQUIPMENT_SLOTS, type CharacterAppearance, type HandWeaponType, type Sex, type VisibleEquipment, type VisibleRefinement } from '@nanommo/shared';
 import { characterAnimationState, type AnimationBattleEntry, type AnimationInput, type AnimationState, type AttackStyle } from '../../shared/character-animation/animation-state';
 
 const HAND_TYPES: ReadonlySet<string> = new Set<HandWeaponType>(['dagger', 'sword', 'greatsword', 'bow', 'staff', 'rod', 'shield', 'rune']);
@@ -27,6 +27,17 @@ export function portraitHandTypes(
 export function portraitEquipment(equipment: ReadonlyArray<{ slot: string; itemId: string }>): VisibleEquipment {
   const out: VisibleEquipment = {};
   for (const row of equipment) if ((VISIBLE_EQUIPMENT_SLOTS as readonly string[]).includes(row.slot) && row.itemId) out[row.slot as keyof VisibleEquipment] = row.itemId;
+  return out;
+}
+
+/** Refinement of the worn visible slots (only refined ones): drives the gear shimmer. */
+export function portraitRefinement(equipment: ReadonlyArray<{ slot: string; itemId: string; instanceData?: unknown }>): VisibleRefinement {
+  const out: VisibleRefinement = {};
+  for (const row of equipment) {
+    if (!(VISIBLE_EQUIPMENT_SLOTS as readonly string[]).includes(row.slot) || !row.itemId) continue;
+    const level = refinementLevel(row.instanceData);
+    if (level) out[row.slot as keyof VisibleRefinement] = level;
+  }
   return out;
 }
 

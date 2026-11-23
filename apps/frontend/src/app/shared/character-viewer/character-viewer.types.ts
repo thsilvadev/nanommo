@@ -1,4 +1,4 @@
-import type { AppearanceCatalog, CharacterAppearance, HandWeaponType, Sex, VisibleEquipment } from '@nanommo/shared';
+import type { AppearanceCatalog, CharacterAppearance, HandWeaponType, Sex, VisibleEquipment, VisibleRefinement } from '@nanommo/shared';
 import type { AnimationState } from '../character-animation/animation-state';
 
 /** A fixed pose, or a function evaluated by the rig on every frame with the current time. */
@@ -25,6 +25,8 @@ export interface ViewerConfig {
   framing: ViewerFraming;
   /** Equipped item per visible slot: worn as 3D gear (absent/null: bare body, type models in hand — the creator). */
   equipment?: VisibleEquipment | null;
+  /** Refinement per visible slot: +10/+11 gear shimmers silver, +12 gold. */
+  refinement?: VisibleRefinement | null;
 }
 
 /** Read-only view of the rig, used by the component's consumers and tests. */
