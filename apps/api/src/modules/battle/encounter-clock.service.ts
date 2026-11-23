@@ -42,6 +42,11 @@ export class EncounterClockService {
     return manager ? apply(manager) : this.db.transaction(apply);
   }
 
+  /** A real stance change starts a new search; loadout edits keep their original reservation. */
+  async cancelPendingSearch(characterId: string, manager: EntityManager = this.db.manager): Promise<void> {
+    await manager.query(`UPDATE encounter_clocks SET status='cancelled' WHERE "ownerKind"='character' AND "ownerId"=$1 AND status='searching'`, [characterId]);
+  }
+
   /** Match immutable identity rather than projection ID, because projections may have been replaced. */
   async consumeProjection(entry: any, manager?: EntityManager): Promise<boolean> {
     if (!entry.characterId || !entry.seedUsed || !Number.isFinite(new Date(entry.startAt).getTime())) return false;

@@ -304,6 +304,11 @@ export class BattleService {
     });
   }
 
+  /** Called under the character queue lock and stance transaction, never for loadout edits. */
+  async cancelPendingEncounterSearch(characterId: string, manager: EntityManager): Promise<void> {
+    await this.encounterClocks?.cancelPendingSearch(characterId, manager);
+  }
+
   private async invalidateAndRebuildFutureCombatQueue(characterId: string): Promise<void> {
     const previousQueue = await this.getBattleQueue(characterId, 100);
     // Due and overdue legacy entries already own their immutable snapshot. An

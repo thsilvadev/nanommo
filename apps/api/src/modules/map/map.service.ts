@@ -768,6 +768,7 @@ export class MapService {
       const character = await repo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
       if (!character) throw new NotFoundException('Character not found');
       const oldIntent = character.travelIntent; const previousJobId = oldIntent?.scheduledJobId;
+      const stanceChanged = character.lastGrindStance !== stance;
       character.lastGrindStance = stance; character.travelIntent = null; character.pendingMapTransition = null; character.fleeNextAttemptAt = null; character.fleeAttemptIndex = 0;
       const pauseAt = new Date();
       if (oldIntent) character.gatheringCycle = { ...(character.gatheringCycle ?? {}), lastUpdatedAt: pauseAt.toISOString() };
@@ -777,6 +778,10 @@ export class MapService {
       const now = Date.now(); const active = unresolved.find(entry => entry.startAt.getTime() <= now);
       const cancelledBattleIds = unresolved.filter(entry => !active || entry.id !== active.id).map(entry => entry.id);
       if (cancelledBattleIds.length) await queueRepo.delete({ id: In(cancelledBattleIds), resolved: false });
+      // Gathering can project many avoided candidates before its next actual fight.
+      // Reusing that reservation makes Hunting wait minutes despite rebuilding its queue.
+      // Same-stance clicks and started battles retain their immutable search identity.
+      if (stanceChanged && !active) await this.battleService.cancelPendingEncounterSearch(characterId, manager);
       await repo.save(character);
       return { character, previousJobId, cancelledBattleIds, hasActiveBattle: !!active };
     }));

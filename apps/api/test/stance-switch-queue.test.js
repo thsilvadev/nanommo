@@ -14,11 +14,12 @@ const {Character,BattleQueueEntry}=require('../dist/apps/api/src/database/entiti
   const service=Object.create(MapService.prototype);
   service.characterRepo={...repo,manager:{transaction:async fn=>fn(manager)}};
   service.dataService={getMapById:()=>({type:'grind'})};
-  service.battleService={withCharacterQueueLock:async(_id,fn)=>{locked=true;try{return await fn()}finally{locked=false}},removeBattleQueueJobs:async ids=>{assert.deepEqual(ids,['future']);calls.push('remove-jobs')},queueBattles:async()=>{assert.equal(character.lastGrindStance,'hunting');calls.push('queue')},publishQueueUpdated:async()=>calls.push('publish')};
+  service.battleService={cancelPendingEncounterSearch:async()=>calls.push('cancel-search'),withCharacterQueueLock:async(_id,fn)=>{locked=true;try{return await fn()}finally{locked=false}},removeBattleQueueJobs:async ids=>{assert.deepEqual(ids,['future']);calls.push('remove-jobs')},queueBattles:async()=>{assert.equal(character.lastGrindStance,'hunting');calls.push('queue')},publishQueueUpdated:async()=>calls.push('publish')};
   service.scheduleStationaryActivity=async()=>calls.push('stationary');
   const result=await service.setStance('hero','hunting');
   assert.equal(result.lastGrindStance,'hunting');assert.equal(result.stateVersion,42);
   assert(calls.includes('delete'));assert(calls.includes('remove-jobs'));assert(calls.includes('stationary'));
+  assert.equal(calls.includes('cancel-search'),!hasActive);
   assert.equal(calls.includes('queue'),!hasActive,'restart the hunting queue immediately when no battle is active');
   assert.equal(calls.includes('publish'),hasActive,'keep the active encounter immutable');
  }
