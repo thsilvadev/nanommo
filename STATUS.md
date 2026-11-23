@@ -1,3 +1,14 @@
+### Revisão de integração e correção da busca ao trocar postura — 2026-11-23
+
+Correções isoladas em `codex/review-integration-fixes`, baseada no snapshot revisado `1a4fc22` da main. O usuário determinou que qualquer nova modificação ocorra em outro worktree e que o merge na main oficial aguarde novo aval. O checkout oficial foi somente lido; sem merge final, push, deploy, banco ou migração.
+
+- **Hunting:** regressão com o gerador real da fila e o serviço de reserva reproduziu espera de 600.000 ms herdada de Gathering. Agora uma troca real de postura sem batalha iniciada cancela a antiga reserva na mesma transação e gera a busca normal. Repetir a postura mantém o deadline; batalhas iniciadas/atrasadas continuam imutáveis. A barra de Gathering permanece correta nas duas posturas. Commit `12cfb87`.
+- **System:** teste cobre jobs de encontros evitados, entrega pelo processor e templates reais de passar pelo monstro e “Mudcrawler found you, but you misled it!”, além de descartar logs antigos após mudar para Hunting. Isso valida o caminho local com armazenamento falso; não é uma afirmação de reprodução/diagnóstico de toda ausência de logs em produção.
+- **Revisor Superpowers:** revisão read-only do wearable original e dos dois deltas posteriores até `1a4fc22`. Único achado importante: falha transitória de download marcava o equipamento como vestido, bloqueando tentativas futuras com o mesmo roster. Corrigido em `0bc75a0`, com teste RED→GREEN e assets reais. Sem outros achados críticos/importantes. Relatório em `docs/reviews/2026-11-23-wearable-integration-review.md`.
+- **Integração:** três fixtures antigas receberam doubles das novas dependências; testes exaustivos de todas as cidades/aparências ganharam prazo por teste para WebGL por software, mantendo as asserções. Espelho público dos nomes dos itens regenerado do catálogo canônico já commitado. Commit `5b3cae2`.
+
+Validação final sobre esta branch: 401/401 testes frontend Chromium; 32/32 testes do pipeline de assets; 14 scripts Node de regressão backend (postura, busca, clocks, ações, reservas/consumíveis, timers, recursos, roster e manifesto); builds shared/API/frontend e typecheck completo de specs; OpenSpec estrito das duas changes e diff-check passaram. Avisos CSS/fixtures de ícones existentes permanecem. Teste legado extra `grind-monster-expansion-chat-journal.test.js` para no catálogo porque espera `elementalResistances.includes` no Treant, campo incompatível com o esquema atual; arquivo/catálogo inalterados por este patch, não contado como aprovado. Não foi feito teste com banco real nem alteração de personagem vivo.
+
 ### Body físico T3 ("Dark Knight's Armor"): V no tronco, coxas, perneiras na frente das coxas — 2026-11-23
 
 Feedback do usuário após a primeira correção de silhueta: o tronco ainda não fazia V, havia "pneuzinhos" nas laterais da barriga e as coxas estavam finas. Pedido: perneiras metálicas mais rentes às pernas, na frente das coxas e 15% menores.
