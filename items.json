@@ -1678,7 +1678,7 @@
   "equipment": [
     {
       "id": "equip_sword_t1",
-      "name": "Worn Sword",
+      "name": "Bronzebound Sword",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "sword",
@@ -1753,7 +1753,7 @@
     },
     {
       "id": "equip_sword_t2",
-      "name": "Reinforced Sword",
+      "name": "Gilded Sword",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "sword",
@@ -1828,7 +1828,7 @@
     },
     {
       "id": "equip_sword_t3",
-      "name": "Ancient Sword",
+      "name": "Royal Sword",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "sword",
@@ -1903,7 +1903,7 @@
     },
     {
       "id": "equip_greatsword_t1",
-      "name": "Worn Greatsword",
+      "name": "Bronzebound Greatsword",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "greatsword",
@@ -1973,7 +1973,7 @@
     },
     {
       "id": "equip_greatsword_t2",
-      "name": "Reinforced Greatsword",
+      "name": "Katana",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "greatsword",
@@ -2043,7 +2043,7 @@
     },
     {
       "id": "equip_greatsword_t3",
-      "name": "Ancient Greatsword",
+      "name": "Royal Greatsword",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "greatsword",
@@ -2113,7 +2113,7 @@
     },
     {
       "id": "equip_knife",
-      "name": "Knife",
+      "name": "Field Knife",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "dagger",
@@ -2149,7 +2149,7 @@
     },
     {
       "id": "equip_dagger_t1",
-      "name": "Worn Dagger",
+      "name": "Bronzebound Dagger",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "dagger",
@@ -2226,7 +2226,7 @@
     },
     {
       "id": "equip_dagger_t2",
-      "name": "Reinforced Dagger",
+      "name": "Gilded Dagger",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "dagger",
@@ -2303,7 +2303,7 @@
     },
     {
       "id": "equip_dagger_t3",
-      "name": "Ancient Dagger",
+      "name": "Royal Dagger",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "dagger",
@@ -2380,7 +2380,7 @@
     },
     {
       "id": "equip_bow_t1",
-      "name": "Worn Bow",
+      "name": "Yew Bow",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "bow",
@@ -2450,7 +2450,7 @@
     },
     {
       "id": "equip_bow_t2",
-      "name": "Reinforced Bow",
+      "name": "Gilded Bow",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "bow",
@@ -2520,7 +2520,7 @@
     },
     {
       "id": "equip_bow_t3",
-      "name": "Ancient Bow",
+      "name": "Elite Crimson Bow",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "bow",
@@ -2590,7 +2590,7 @@
     },
     {
       "id": "equip_staff_t1",
-      "name": "Worn Staff",
+      "name": "Staff of Wizardry",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "staff",
@@ -2660,7 +2660,7 @@
     },
     {
       "id": "equip_staff_t2",
-      "name": "Reinforced Staff",
+      "name": "High Order's Pole of Plainness",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "staff",
@@ -2730,7 +2730,7 @@
     },
     {
       "id": "equip_staff_t3",
-      "name": "Ancient Staff",
+      "name": "Ancient Dark Wizzard's Staff",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "staff",
@@ -2800,7 +2800,7 @@
     },
     {
       "id": "equip_rod_t1",
-      "name": "Worn Rod",
+      "name": "Jade Rod",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "rod",
@@ -2875,7 +2875,7 @@
     },
     {
       "id": "equip_rod_t2",
-      "name": "Reinforced Rod",
+      "name": "Sapphire Rod",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "rod",
@@ -2950,7 +2950,7 @@
     },
     {
       "id": "equip_rod_t3",
-      "name": "Ancient Rod",
+      "name": "Runebound Rod",
       "type": "equipment",
       "slot": "mainHand",
       "weaponType": "rod",
@@ -3025,7 +3025,7 @@
     },
     {
       "id": "equip_shield_t1",
-      "name": "Worn Shield",
+      "name": "Oak Shield",
       "type": "equipment",
       "slot": "offHand",
       "weaponType": "shield",
@@ -3085,7 +3085,7 @@
     },
     {
       "id": "equip_shield_t2",
-      "name": "Reinforced Shield",
+      "name": "Knight's Shield",
       "type": "equipment",
       "slot": "offHand",
       "weaponType": "shield",
@@ -3145,7 +3145,7 @@
     },
     {
       "id": "equip_shield_t3",
-      "name": "Ancient Shield",
+      "name": "Royal Shield",
       "type": "equipment",
       "slot": "offHand",
       "weaponType": "shield",
@@ -3205,7 +3205,7 @@
     },
     {
       "id": "equip_rune_t1",
-      "name": "Worn Rune",
+      "name": "Azure Rune",
       "type": "equipment",
       "slot": "offHand",
       "weaponType": "rune",
@@ -3266,7 +3266,7 @@
     },
     {
       "id": "equip_rune_t2",
-      "name": "Runed Rune",
+      "name": "Crimson Rune",
       "type": "equipment",
       "slot": "offHand",
       "weaponType": "rune",
@@ -3327,7 +3327,7 @@
     },
     {
       "id": "equip_rune_t3",
-      "name": "Ancient Rune",
+      "name": "Violet Rune",
       "type": "equipment",
       "slot": "offHand",
       "weaponType": "rune",
@@ -3388,7 +3388,7 @@
     },
     {
       "id": "equip_head_phys_t1",
-      "name": "Worn Helm",
+      "name": "Leather Headgear",
       "type": "equipment",
       "slot": "head",
       "levelReq": 1,
@@ -3450,7 +3450,7 @@
     },
     {
       "id": "equip_head_magic_t1",
-      "name": "Worn Arcane Helm",
+      "name": "Aubergine Witch Hat",
       "type": "equipment",
       "slot": "head",
       "levelReq": 1,
@@ -3512,7 +3512,7 @@
     },
     {
       "id": "equip_head_phys_t2",
-      "name": "Reinforced Helm",
+      "name": "Bronze Helm",
       "type": "equipment",
       "slot": "head",
       "levelReq": 8,
@@ -3574,7 +3574,7 @@
     },
     {
       "id": "equip_head_magic_t2",
-      "name": "Reinforced Arcane Helm",
+      "name": "Crimson Wizard Hat",
       "type": "equipment",
       "slot": "head",
       "levelReq": 8,
@@ -3636,7 +3636,7 @@
     },
     {
       "id": "equip_head_phys_t3",
-      "name": "Ancient Helm",
+      "name": "Dreaded Warrior's Helm",
       "type": "equipment",
       "slot": "head",
       "levelReq": 15,
@@ -3698,7 +3698,7 @@
     },
     {
       "id": "equip_head_magic_t3",
-      "name": "Ancient Arcane Helm",
+      "name": "Archmage's Hat",
       "type": "equipment",
       "slot": "head",
       "levelReq": 15,
@@ -3760,7 +3760,7 @@
     },
     {
       "id": "equip_body_phys_t1",
-      "name": "Worn Chestplate",
+      "name": "Ranger's Leathers",
       "type": "equipment",
       "slot": "body",
       "levelReq": 1,
@@ -3822,7 +3822,7 @@
     },
     {
       "id": "equip_body_magic_t1",
-      "name": "Worn Arcane Chestplate",
+      "name": "Scholar's Tunic",
       "type": "equipment",
       "slot": "body",
       "levelReq": 1,
@@ -3884,7 +3884,7 @@
     },
     {
       "id": "equip_body_phys_t2",
-      "name": "Reinforced Chestplate",
+      "name": "Plate Armor",
       "type": "equipment",
       "slot": "body",
       "levelReq": 8,
@@ -3946,7 +3946,7 @@
     },
     {
       "id": "equip_body_magic_t2",
-      "name": "Reinforced Arcane Chestplate",
+      "name": "Crimson Mage's Robe",
       "type": "equipment",
       "slot": "body",
       "levelReq": 8,
@@ -4008,7 +4008,7 @@
     },
     {
       "id": "equip_body_phys_t3",
-      "name": "Ancient Chestplate",
+      "name": "Dark Knight's Armor",
       "type": "equipment",
       "slot": "body",
       "levelReq": 15,
@@ -4070,7 +4070,7 @@
     },
     {
       "id": "equip_body_magic_t3",
-      "name": "Ancient Arcane Chestplate",
+      "name": "Archmage's Robe",
       "type": "equipment",
       "slot": "body",
       "levelReq": 15,
@@ -4132,7 +4132,7 @@
     },
     {
       "id": "equip_cape_phys_t1",
-      "name": "Worn Cape",
+      "name": "Scout's Mantle",
       "type": "equipment",
       "slot": "cape",
       "levelReq": 1,
@@ -4194,7 +4194,7 @@
     },
     {
       "id": "equip_cape_magic_t1",
-      "name": "Worn Arcane Cape",
+      "name": "Hood of Sharpness",
       "type": "equipment",
       "slot": "cape",
       "levelReq": 1,
@@ -4256,7 +4256,7 @@
     },
     {
       "id": "equip_cape_phys_t2",
-      "name": "Reinforced Cape",
+      "name": "Barbarian's War Cape",
       "type": "equipment",
       "slot": "cape",
       "levelReq": 8,
@@ -4318,7 +4318,7 @@
     },
     {
       "id": "equip_cape_magic_t2",
-      "name": "Reinforced Arcane Cape",
+      "name": "Mage's Mantle",
       "type": "equipment",
       "slot": "cape",
       "levelReq": 8,
@@ -4380,7 +4380,7 @@
     },
     {
       "id": "equip_cape_phys_t3",
-      "name": "Ancient Cape",
+      "name": "Knight's Royal Cape",
       "type": "equipment",
       "slot": "cape",
       "levelReq": 15,
@@ -4442,7 +4442,7 @@
     },
     {
       "id": "equip_cape_magic_t3",
-      "name": "Ancient Arcane Cape",
+      "name": "Archmage's Sigil Cape",
       "type": "equipment",
       "slot": "cape",
       "levelReq": 15,
@@ -4866,7 +4866,7 @@
     },
     {
       "id": "equip_shoes_earth_t2",
-      "name": "Grounded Boots",
+      "name": "Earthly Boots",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 8,
@@ -4911,7 +4911,7 @@
     },
     {
       "id": "equip_shoes_water_t2",
-      "name": "Wading Boots",
+      "name": "Tide Boots",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 8,
@@ -4956,7 +4956,7 @@
     },
     {
       "id": "equip_shoes_fire_t3",
-      "name": "Cinderproof Boots",
+      "name": "Ember Greaves",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 15,
@@ -5046,7 +5046,7 @@
     },
     {
       "id": "equip_shoes_wind_t4",
-      "name": "Stormtread Boots",
+      "name": "Storm Shoes",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 22,
@@ -5091,7 +5091,7 @@
     },
     {
       "id": "equip_shoes_holy_t4",
-      "name": "Sanctified Boots",
+      "name": "Sacred Boots",
       "type": "equipment",
       "slot": "shoes",
       "levelReq": 22,

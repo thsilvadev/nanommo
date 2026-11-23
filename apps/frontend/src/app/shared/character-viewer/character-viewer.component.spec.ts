@@ -338,6 +338,28 @@ describe('CharacterViewerComponent', () => {
     });
   });
 
+  it('does not rebuild the model when a snapshot repeats the same inputs as new objects', async () => {
+    const equipment = { body: 'equip_body_phys_t3', head: 'equip_head_phys_t2' };
+    const created = await create({}, { equipment });
+    fixture = created.fixture;
+    await settle(fixture, created.events);
+    const rig = fixture.componentInstance.rig()! as CharacterRigHandle & { apply: (config: unknown) => Promise<void> };
+    const apply = spyOn(rig, 'apply').and.callThrough();
+    // what the grind does on every battle snapshot: same values, fresh references
+    for (let i = 0; i < 5; i++) {
+      fixture.componentRef.setInput('appearance', { ...defaultAppearance() });
+      fixture.componentRef.setInput('equipment', { ...equipment });
+      fixture.detectChanges();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(apply).not.toHaveBeenCalled();
+    expect(created.events.loaded).toBe(1);
+
+    fixture.componentRef.setInput('equipment', { body: 'equip_body_phys_t3' });
+    await settle(fixture, created.events, { loaded: 2 });
+    expect(apply).toHaveBeenCalledTimes(1);
+  });
+
   it('switches body with sex, scales with height and reuses the renderer', async () => {
     const created = await create({}, { heightCm: 181 });
     fixture = created.fixture;
@@ -364,11 +386,15 @@ describe('CharacterViewerComponent', () => {
     fixture = created.fixture;
     await settle(fixture, created.events);
     let loaded = 1;
+    let shown = JSON.stringify(['male', defaultAppearance()]);
     for (const sex of ['male', 'female'] as const) {
       const count = Math.max(...APPEARANCE_TRAITS.map((trait) => catalog[sex][trait].length));
       for (let index = 0; index < count; index++) {
         const appearance = defaultAppearance();
         for (const trait of APPEARANCE_TRAITS) appearance[trait] = Math.min(index, catalog[sex][trait].length - 1);
+        // the viewer (rightly) does not rebuild for the look it already shows
+        if (JSON.stringify([sex, appearance]) === shown) continue;
+        shown = JSON.stringify([sex, appearance]);
         fixture.componentRef.setInput('sex', sex);
         fixture.componentRef.setInput('appearance', appearance);
         await settle(fixture, created.events, { loaded: ++loaded });

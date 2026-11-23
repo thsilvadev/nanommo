@@ -1,3 +1,21 @@
+### Correção: grind travando com o retrato 3D vestido; capas maiores e visíveis de frente; Body físico T3 sem buracos — 2026-11-23
+
+Feedback do usuário após os equipamentos vestíveis: o grind travava a tela toda (a cidade não), e as capas não apareciam com o personagem de frente.
+
+- **Travamento (causa raiz):** o `config` do `CharacterViewerComponent` era um `computed` com igualdade por referência. No grind, cada batalha empurra snapshots de personagem/inventário com objetos novos (`appearance`, linhas de equipamento → `portraitEquipment()`), então cada snapshot disparava um `rig.apply()` completo na thread principal (deformação do corpo, composição da textura da pele em canvas + upload para a GPU, malha do gear). Agora o `config` usa igualdade estrutural (JSON com chaves ordenadas): só reconstrói quando o visual muda de verdade. Cobre o retrato e o cartão da cidade. Teste novo em `character-viewer.component.spec.ts` (5 snapshots iguais com novas referências → 0 `apply`; antes, 5). O teste "applies every option of every trait" passa a pular a combinação já mostrada (dependia do rebuild redundante).
+- **Capas:** as capas KayKit ficavam atrás do corpo e eram de face única. De frente via-se só a face interna, descartada pelo backface culling. O pipeline ganhou `doubleSided` para peças rígidas (`withBackFaces`: os triângulos de novo com a ordem invertida e as normais negadas, com o mesmo material de face única); as capas ficaram mais largas e longas (`scale [0.62, 1.3, 0.5]`, antes `[0.45, 0.9, 0.45]`; capa do Rei `[0.55, 0.75, 0.5]`, sem `doubleSided` porque já tem forro). `shoot-gear.mjs cape` agora inclui vistas de frente. Regenerado `gear-rigid.glb` (atlas idêntico).
+
+- **Body físico T3 "oco" (Hand Painted Knight):** visto de cima na cidade, mostrava o chão entre o pescoço e as costas. A armadura é uma casca aberta na gola, de face única, e o torso embaixo fica escondido. Agora usa `doubleSided` (o lado de dentro é desenhado; `withBackFaces` vale também para peças skinned e duplica `dominant`). Além disso, `dropNeckBack` remove a parte de trás do cachecol do modelo, que atravessava a pele da nuca (triângulo azul-escuro); a frente do cachecol continua. Novas vistas de pré-visualização: `shoot-gear.mjs top|nape` e `debugHide` em `preview-entry.ts`. Regenerados `gear-male.glb`/`gear-female.glb`.
+
+Sem migração, nada executado em banco, nenhum deploy ou push.
+
+Validação (2026-11-23):
+- `ng test --include=**/character-viewer.component.spec.ts`: 23/23 (o teste novo falhava antes da correção: `apply` chamado 6×).
+- `npm run gear:test` (tools/character-assets): 32 pass, 0 fail. `node preview/shoot-gear.mjs cape`: conferido visualmente (frente, costas, ataque, caminhada, sentado).
+- `node preview/gear-stress.mjs 200 240`: PASSA (+0,25 chamada/personagem, ×1,159; depois do T3 com lado de dentro, ×1,06).
+- Body T3: antes/depois com a mesma câmera (`shoot-gear.mjs nape`, diferença de pixels) mostra os vãos da gola e das ombreiras fechados e a nuca limpa; a frente (`shoot-gear.mjs head`) segue igual. `npm run gear:test` 32/32 de novo; specs `character-viewer/*` + `town-character`: 47/47.
+- `ng test --watch=false` completo: 394 SUCCESS, 6 FAILED. 5 falham igual sem estas mudanças (party em viewport restrito, reconciliação de recursos do party e storage: `CombatTimersService`/`CombatActionsStore` sem provider nos testes, vindos do merge do codex). O 6º é um timeout de 5 s do `TownRuntime builds all five towns`, só com a suíte inteira (código não tocado).
+
 ### Integração da branch codex/combat-cooldowns-hud na main — 2026-11-22
 
 Merge solicitado pelo usuário. Os dois lados foram preservados nos registros e nas notas de engenharia; `PlayComponent` também interrompe o tracker de ações ao desmontar, mantendo o pré-carregamento 3D atual da `main`. Validação: builds de shared/API e frontend de produção, typecheck das specs frontend e dez scripts Node da API passaram; o build frontend exibiu avisos de orçamento. Sem migração, deploy ou push.

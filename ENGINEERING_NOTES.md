@@ -273,3 +273,7 @@ Do not use a shared boolean cleared by every asynchronous `audio.play()` complet
 - Confirmation must bypass GET coalescing: a resource request started before terminal acknowledgement can return the pre-action snapshot. Compare returned character/inventory revisions with installed revisions before dismissing indicators.
 - Do not discard an applied attribute response merely because an older resource event advanced a local request generation. Server stateVersion determines ordering.
 - Cache terminal HTTP results against delayed pending-list responses. Unknown network outcomes keep the same idempotency key; absence from a bounded history is not success. All active-page changes share one conflict domain.
+
+## 3D viewer inputs must compare by value — 2026-11-23
+
+Realtime snapshots replace `character`/`inventory` objects on every battle, so anything derived from them (`appearance`, `portraitEquipment()`, hand types) is a new reference each time even when nothing changed. `CharacterViewerComponent.config` compares structurally (`sameConfig`); any new viewer input must stay JSON-serializable, or the comparison must learn about it. Otherwise each snapshot rebuilds the whole model (skin canvas, deformation, gear) and the grind freezes.

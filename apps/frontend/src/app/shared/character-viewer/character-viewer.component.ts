@@ -44,6 +44,20 @@ export function loadAppearanceCatalog(url = DEFAULT_CATALOG_URL): Promise<Appear
 }
 
 type ViewerState = 'loading' | 'ready' | 'failed';
+
+/**
+ * Inputs compared by value: stores hand the viewer fresh objects on every realtime snapshot
+ * (every battle in the grind), and each apply rebuilds skin, deformation and gear.
+ */
+function sameConfig(a: ViewerConfig, b: ViewerConfig): boolean {
+  return a === b || stableJson(a) === stableJson(b);
+}
+/** JSON with object keys sorted, so key order (e.g. equipment rows' order) does not count. */
+function stableJson(value: unknown): string {
+  return JSON.stringify(value, (_key, v: unknown) => (v && typeof v === 'object' && !Array.isArray(v)
+    ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0)))
+    : v));
+}
 const IDLE: AnimationSource = { base: 'Idle' };
 interface Rig extends CharacterRigHandle { apply(config: ViewerConfig): Promise<void>; dispose(): void }
 
@@ -108,7 +122,7 @@ export class CharacterViewerComponent implements OnDestroy {
     interactive: this.interactive(),
     framing: this.framing(),
     equipment: this.equipment(),
-  }));
+  }), { equal: sameConfig });
 
   private instance: Rig | null = null;
   private pending: ViewerConfig | null = null;

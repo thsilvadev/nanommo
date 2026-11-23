@@ -158,6 +158,6 @@ window.applyConfig = async (c) => {
   root.rotation.y = ((c.yaw ?? 20) * Math.PI) / 180;
   root.updateMatrixWorld(true);
   const cam = new THREE.PerspectiveCamera(30, W / H, 0.1, 50);
-  const cy = c.camera?.y ?? 0.85; cam.position.set(0, cy + 0.15, c.camera?.dist ?? 4.4); cam.lookAt(0, cy, 0);
+  const cy = c.camera?.y ?? 0.85; cam.position.set(0, c.camera?.eyeY ?? cy + 0.15, c.camera?.dist ?? 4.4); cam.lookAt(0, cy, 0);
   renderer.render(scene, cam);
 };

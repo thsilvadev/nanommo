@@ -33,6 +33,8 @@ let rig: CharacterRig | null = null;
     await rig.apply(config);
   }
   if (config.yaw !== undefined) (rig as any).model.rotation.y = config.yaw;
+  // debug: render without one mesh ('Gear' or 'Body') to see which one a hole belongs to
+  if (config.debugHide) (rig as any).model.traverse((o: any) => { if (o.name === config.debugHide) o.visible = false; });
   (rig as any).updateCamera();
   if (config.focus) {
     // Debug close-up on a bone (e.g. a hand).

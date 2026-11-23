@@ -5,8 +5,8 @@
       "femaleTriangles": 2572
     },
     "body-handpainted-knight": {
-      "maleTriangles": 3334,
-      "femaleTriangles": 3260
+      "maleTriangles": 5858,
+      "femaleTriangles": 5788
     },
     "body-peasant": {
       "maleTriangles": 5697,
@@ -66,22 +66,22 @@
       "triangles": 704
     },
     "cape-barbarian": {
-      "triangles": 78
+      "triangles": 156
     },
     "cape-king": {
       "triangles": 112
     },
     "cape-knight": {
-      "triangles": 84
+      "triangles": 168
     },
     "cape-mage": {
-      "triangles": 84
+      "triangles": 168
     },
     "cape-rogue": {
-      "triangles": 84
+      "triangles": 168
     },
     "cape-skeleton-rogue": {
-      "triangles": 84
+      "triangles": 168
     },
     "dagger-golden": {
       "triangles": 736
@@ -166,12 +166,12 @@
     }
   },
   "files": {
-    "gear-male.glb": 2448220,
-    "gear-female.glb": 2567508,
-    "gear-rigid.glb": 1642448,
+    "gear-male.glb": 2563828,
+    "gear-female.glb": 2683144,
+    "gear-rigid.glb": 1653820,
     "gear-atlas.webp": 1442270,
     "manifest.json": 30485
   },
   "atlas": 2048,
-  "totalBytes": 8130931
+  "totalBytes": 8373547
 }

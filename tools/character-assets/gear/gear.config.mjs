@@ -34,6 +34,8 @@ export const VISUALS = {
   'body-handpainted-knight': { ...BODY, method: 'retarget', source: 'sketchfab:42b1d37bce974d48bca12a3f9a7d1136',
     drop: /Handle|Bone\./, scale: { hand: '0.55', clavicle: '0.5', upperarm: '0.75p' }, dropRegions: ['calves'], size: 256, sizes: { 'Material.015': 1024 }, maxTris: 6600,
     liner: { color: '#3a2a22', knee: true, minY: 0.22, offset: 0.002 },
+    // open at the collar: from above (town camera) the inside shows instead of the ground (user, 2026-11-23)
+    doubleSided: true, dropNeckBack: true,
     covers: ['torso', 'upperarms', 'forearms', 'hands', 'thighs'] },
   'body-peasant': { ...BODY, method: 'parts', source: 'quaternius', files: qParts('Peasant', ['Body', 'Legs', 'Arms']),
     removeMaterials: QUATERNIUS_SKIN, size: 512, covers: ['torso', 'upperarms', 'thighs'] },
@@ -64,7 +66,7 @@ const HAT = { slot: 'head', kind: 'rigid', method: 'rigid', bone: 'Head', refBon
 const KK = 'kaykit:adventurers:', KS = 'kaykit:skeletons:';
 // ---- Cape (rigid on spine_03; the KayKit capes share one frame: chest bone at the shoulders' base) ----
 const CAPE = { slot: 'cape', kind: 'rigid', method: 'rigid', bone: 'spine_03', refBone: 'chest', maxTris: 2000, size: 256,
-  scale: [0.45, 0.9, 0.45], offset: [0, 0, -0.04], rotDeg: [-6, 0, 0] };
+  scale: [0.62, 1.3, 0.5], offset: [0, 0, -0.04], rotDeg: [-8, 0, 0], doubleSided: true };
 
 Object.assign(VISUALS, {
   'head-ranger-hood': { slot: 'head', kind: 'skinned', method: 'parts', source: 'quaternius', files: qParts('Ranger', ['Head_Hood']),
@@ -82,7 +84,8 @@ Object.assign(VISUALS, {
   'cape-mage': { ...CAPE, source: `${KK}Mage.glb`, node: 'Mage_Cape' },
   // Low Poly King (static, separate cape meshes): anchored ~0.25 m under the cape's top, like the KayKit capes
   'cape-king': { ...CAPE, source: 'sketchfab:8de69ab370db447887c17255c2163b05', nodes: ['Cape_08 - Default_0', 'Cape_02 - Default_0'],
-    refBone: undefined, refPoint: [0, 1.75, 0], scale: [0.47, 0.57, 0.47], offset: [0, 0.03, -0.04], size: 256, hue: 250 },
+    refBone: undefined, refPoint: [0, 1.75, 0], scale: [0.55, 0.75, 0.5], offset: [0, 0.03, -0.04], size: 256, hue: 250,
+    doubleSided: false /* has its own lining */ },
 });
 
 // ---- Weapons (grip at the origin, long axis +Y; the rig keeps the per-type hand pose) ----

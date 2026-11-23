@@ -146,6 +146,7 @@ function filterPiece(piece, v, target) {
   const head = target.index.get('Head');
   const stray = strayFilter(piece.position);
   const y = (i) => piece.position[i * 3 + 1];
+  const [, neckY, neckZ] = target.pos('neck_01');
   const keep = [];
   for (let t = 0; t < piece.index.length; t += 3) {
     const tri = [piece.index[t], piece.index[t + 1], piece.index[t + 2]];
@@ -156,6 +157,8 @@ function filterPiece(piece, v, target) {
     if (v.dropRegions && count((d) => v.dropRegions.includes(region[d])) >= 2) continue;
     if (v.keepRegions && !(count((d) => v.keepRegions.includes(region[d])) >= 2 || (v.maxY && tri.every((i) => y(i) < v.maxY)))) continue;
     if (v.minY && tri.every((i) => y(i) < v.minY)) continue;
+    // dropNeckBack: a scarf/gorget that wraps the neck inside the skin pokes out at the nape
+    if (v.dropNeckBack && count((d) => region[d] === 'neck' || d === head) >= 2 && tri.every((i) => piece.position[i * 3 + 2] < neckZ && y(i) > neckY - 0.08)) continue;
     if (v.drop && piece.sourceDominant && tri.filter((i) => v.drop.test(piece.sourceDominant[i])).length >= 2) continue;
     if (v.removeSkin?.uvRects) {
       const u = tri.reduce((a, i) => a + piece.uv[i * 2], 0) / 3, w = tri.reduce((a, i) => a + piece.uv[i * 2 + 1], 0) / 3;
@@ -186,12 +189,14 @@ async function buildPieces(id, v, target) {
       if (piece.index.length) pieces.push(piece);
     }
   }
-  if (!v.liner) return reduce(pieces, v.maxTris);
+  // doubleSided: an open shell (armour seen from above, into the collar) shows its inside, not the ground
+  const sides = (list) => (v.doubleSided ? list.map(withBackFaces) : list);
+  if (!v.liner) return sides(await reduce(pieces, v.maxTris));
   // the shell is never simplified: any error lets the skin poke through it
   const shell = await liner(v, target, pieces);
   // the skin under the shell is hidden at runtime (no z-fighting); the band sits 1 cm inside the shell's
   ((hideBands[v.id] ??= {})[target.sex] ??= []).push({ region: 'calves', minY: round3(shell.band.minY + 0.01), maxY: round3(shell.band.maxY - 0.01) });
-  return [...(await reduce(pieces, v.maxTris - shell.index.length / 3)), shell];
+  return [...sides(await reduce(pieces, v.maxTris - shell.index.length / 3)), shell];
 }
 
 /**
@@ -308,6 +313,24 @@ function atlasKey(v, piece) {
   return m.image ? `img:${sha(m.image).slice(0, 16)}:${size}:${fx}` : `col:${m.color.map((c) => c.toFixed(3)).join(',')}:${m.name === 'liner' ? '' : fx}`;
 }
 
+/**
+ * The piece plus its back side: every triangle again with the winding reversed and the normals
+ * negated, on copies of its vertices. A single-sheet cape is then seen from the front too (the
+ * inside, between and around the legs) with the same single-sided material, lit from that side.
+ */
+function withBackFaces(piece) {
+  const n = piece.position.length / 3;
+  const twice = (a, map = (x) => x) => { if (!a) return a; const o = new a.constructor(a.length * 2); o.set(a); o.set(a.map(map), a.length); return o; };
+  return {
+    ...piece,
+    position: twice(piece.position), normal: twice(piece.normal, (x) => -x), uv: twice(piece.uv),
+    joints: twice(piece.joints), weights: twice(piece.weights),
+    dominant: piece.dominant?.length === n ? twice(piece.dominant) : piece.dominant,
+    sourceDominant: piece.sourceDominant?.length === n ? [...piece.sourceDominant, ...piece.sourceDominant] : piece.sourceDominant,
+    index: [...piece.index, ...piece.index.flatMap((_, t, all) => (t % 3 ? [] : [all[t] + n, all[t + 2] + n, all[t + 1] + n]))],
+  };
+}
+
 // ---------------------------------------------------------------- rigid pieces
 
 const headSizes = {};
@@ -415,7 +438,7 @@ async function buildRigid(id, v) {
   }
   const reduced = await reduce(pieces, v.maxTris);
   for (const p of reduced) p.normal = null;
-  const withNormals = reduced.map(compact);
+  const withNormals = reduced.map(compact).map((p) => (v.doubleSided ? withBackFaces(p) : p));
   // per sex: anchor bone space <- neutral frame
   const transform = {};
   for (const sex of SEXES) {
