@@ -59,6 +59,38 @@ function hsl2rgb(h, s, l) {
   const f = (n) => { const k = (n + h / 30) % 12, a = s * Math.min(l, 1 - l); return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
   return [f(0), f(8), f(4)];
 }
+/** Blotches of `color` over every base colour texture (smooth value noise in texture space): { color: [r,g,b] 0..1, amount, cells }. */
+async function mottle(doc, { color, amount = 0.45, cells = 14, threshold = 0.55 }) {
+  const hash = (x, y) => { const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return h - Math.floor(h); };
+  const smooth = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi; const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+    const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; };
+  const seen = new Set();
+  for (const m of doc.getRoot().listMaterials()) {
+    const t = m.getBaseColorTexture(); if (!t || seen.has(t)) continue; seen.add(t);
+    const { data, info } = await sharp(Buffer.from(t.getImage())).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    for (let y = 0; y < info.height; y++) for (let x = 0; x < info.width; x++) {
+      const n = 0.65 * smooth((x / info.width) * cells, (y / info.height) * cells) + 0.35 * smooth((x / info.width) * cells * 3, (y / info.height) * cells * 3);
+      const k = Math.max(0, Math.min(1, (n - threshold) / 0.12)) * amount; if (!k) continue;
+      const i = (y * info.width + x) * 4; const lum = (data[i] + data[i + 1] + data[i + 2]) / 765;
+      for (let c = 0; c < 3; c++) data[i + c] = data[i + c] * (1 - k) + color[c] * 255 * (0.5 + lum) * k;
+    }
+    t.setImage(new Uint8Array(await sharp(data, { raw: info }).png().toBuffer())).setMimeType('image/png');
+  }
+}
+/** Repaints every base colour texture in one colour, keeping each pixel's relative lightness (dark textures become e.g. stone grey). */
+async function stone(doc, color) {
+  const seen = new Set();
+  for (const m of doc.getRoot().listMaterials()) {
+    const t = m.getBaseColorTexture(); if (!t || seen.has(t)) continue; seen.add(t);
+    const { data, info } = await sharp(Buffer.from(t.getImage())).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let lo = 1, hi = 0; for (let i = 0; i < data.length; i += 4) { const l = (data[i] + data[i + 1] + data[i + 2]) / 765; lo = Math.min(lo, l); hi = Math.max(hi, l); }
+    for (let i = 0; i < data.length; i += 4) {
+      const l = ((data[i] + data[i + 1] + data[i + 2]) / 765 - lo) / Math.max(1e-3, hi - lo);
+      for (let c = 0; c < 3; c++) data[i + c] = Math.min(255, color[c] * 255 * (0.45 + 1.1 * l));
+    }
+    t.setImage(new Uint8Array(await sharp(data, { raw: info }).png().toBuffer())).setMimeType('image/png');
+  }
+}
 async function recolorRules(doc, rules) {
   const seen = new Set();
   for (const m of doc.getRoot().listMaterials()) {
@@ -85,6 +117,8 @@ for (const [id, cfg] of Object.entries(MONSTERS)) {
   await doc.transform(metalRough());
   if (cfg.hue) await recolor(doc, cfg.hue);
   if (cfg.recolor) await recolorRules(doc, RULES[cfg.recolor]);
+  if (cfg.stone) await stone(doc, cfg.stone);
+  if (cfg.mottle) await mottle(doc, cfg.mottle);
   const info = cfg.kind === 'native' ? buildNative(doc, id, cfg) : await buildCharacter(doc, id, cfg);
   for (const pr of cfg.props ?? []) {
     const src = await io.read(findFile(path.join(SOURCE, 'kaykit-Skeletons'), pr.file));

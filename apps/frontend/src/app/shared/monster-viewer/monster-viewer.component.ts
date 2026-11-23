@@ -3,11 +3,15 @@ import type * as THREE from 'three';
 import type { MonsterAnimationState, MonsterClip } from './monster-animation-state';
 
 /** /assets/monsters/manifest.json entry (tools/monster-assets). */
-interface MonsterManifestEntry { file?: string; rig: 'native' | 'character' | 'char' }
+export interface MonsterManifestEntry {
+  file?: string; rig: 'native' | 'character' | 'char';
+  /** rig 'char': drawn as a regular character wearing this gear. */
+  character?: { sex: 'male' | 'female'; heightCm: number; appearance: Record<string, number> & { v: 1 }; equipment: Record<string, string>; mainHandType?: string };
+}
 const ASSETS = '/assets/monsters/';
 const CHARACTER_CLIPS = '/assets/character/animations.glb';
 /** Character-rig monsters play the character library: our clip -> its clip. */
-const CHARACTER_MAP: Record<MonsterClip, string> = { Idle: 'CombatIdle', Attack: 'Attack', Cast: 'Attack', Damage: 'Damage', Dead: 'Dead' };
+const CHARACTER_MAP: Record<MonsterClip, string> = { Idle: 'CombatIdle', Walk: 'Walk', Attack: 'Attack', Cast: 'Attack', Damage: 'Damage', Dead: 'Dead' };
 
 type Three = typeof import('three');
 interface Loaded { three: Three; gltf: (url: string) => Promise<{ scene: THREE.Object3D; animations: THREE.AnimationClip[] }>; clone: (o: THREE.Object3D) => THREE.Object3D }
@@ -25,6 +29,7 @@ function loadThree(): Promise<Loaded> {
     });
   return shared;
 }
+export function loadMonsterManifest(): Promise<Record<string, MonsterManifestEntry>> { return loadManifest(); }
 function loadManifest() {
   manifest ??= fetch(ASSETS + 'manifest.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   return manifest;
@@ -51,6 +56,8 @@ export class MonsterViewerComponent implements OnDestroy {
   private frame = 0;
   private generation = 0;
   private resize: ResizeObserver | null = null;
+  /** The shown model (tests read its pose). */
+  private root: THREE.Object3D | null = null;
 
   constructor() {
     effect(() => { const id = this.monsterId(); void this.show(id); });
@@ -85,11 +92,12 @@ export class MonsterViewerComponent implements OnDestroy {
     scene.add(new three.HemisphereLight('#ffffff', '#4a3a2a', 2.2));
     const sun = new three.DirectionalLight('#ffffff', 2); sun.position.set(-3, 6, 5); scene.add(sun);
     root.traverse((o) => { (o as THREE.Mesh).frustumCulled = false; });
+    this.root = root;
     scene.add(root);
 
     const mixer = new three.AnimationMixer(root);
     const actions = new Map<MonsterClip, THREE.AnimationAction>();
-    for (const name of ['Idle', 'Attack', 'Cast', 'Damage', 'Dead'] as MonsterClip[]) {
+    for (const name of ['Idle', 'Walk', 'Attack', 'Cast', 'Damage', 'Dead'] as MonsterClip[]) {
       const clip = clips.find((c) => c.name === (characterRig ? CHARACTER_MAP[name] : name));
       if (clip) { const a = mixer.clipAction(clip); a.play(); a.setEffectiveWeight(0); actions.set(name, a); }
     }
@@ -131,6 +139,7 @@ export class MonsterViewerComponent implements OnDestroy {
         const hitAt = s.hit ? (now - s.hit.startedAtMs) / 1000 : Infinity;
         if (a && actionAt < duration(a.clip)) pose(a.clip, actionAt);
         else if (hitAt < duration('Damage')) pose('Damage', hitAt);
+        else if (s.walking && actions.has('Walk')) pose('Walk', now / 1000, true);
         else pose('Idle', now / 1000, true);
       }
       renderer.render(scene, camera);

@@ -4,6 +4,10 @@ Movimentos de batalha (mesmos nomes do personagem): **Idle** (parado em combate)
 (ataque básico), **Damage** (recebe dano), **Dead** (morte, termina deitado/afundado), **Cast** (habilidade).
 Fonte da verdade do mapeamento: `monsters.config.mjs`; o manifesto gerado lista os clipes de cada GLB.
 
+**Walk** (2026-11-23): o monstro anda enquanto se desloca no grid (eventos `move` do battle log). Clipe de andar do
+próprio modelo quando existe (22 monstros; unicórnio: trecho 25,5–27,5 s; abelha/mosquito: voo; wisp: Swim; Ridgebreaker: Run);
+senão 🔧 um saltitar gerado (thornsprout, duneraider, venomviper, sacredforestguardian, wraith).
+
 Regra para o que falta (decisão do usuário: usar idle ou a mais viável):
 - **Damage faltando** → 🔧 o build gera um *recuo* no nó raiz (tranco para trás, 0,4 s).
 - **Dead faltando** → 🔧 *tombar e afundar* no nó raiz (1,4 s).
@@ -52,7 +56,7 @@ Legenda: ✅ do modelo · 🔧 gerado · ↪ substituto · 🗃 extra guardado (
 | kwaiouaranger | female archer (Mixamo) | dourado→verde, pele morena; arma no manifesto: `bow-wooden` (presa em tempo de execução) |
 | flamingtreant | Treeman | 3,2 m; fx `fire` (arena) |
 | moonleafarcanist | Plague Doctor | o clipe Take 001 do modelo foi descartado |
-| bandit | — | sem GLB: o próprio personagem com `body-ranger`, `head-rogue-hood`, `cape-rogue`, `shoes-peasant`, `dagger-serrated` |
+| bandit | — | sem GLB: o próprio personagem (visualizador do personagem) com `equip_body_phys_t1`, `equip_head_phys_t1`, `equip_cape_phys_t1`, `equip_shoes_earth_t2` e `equip_dagger_t1` |
 
 ## Efeitos para a arena (não construídos aqui; `fx` no manifesto)
 arcanewisp `blue-fire-aura` · mirageStalker `aura`, `turquoise-eyes` · flamingtreant `fire` · mudcrawler `leaves` · wraith `blue-melting-particles`.

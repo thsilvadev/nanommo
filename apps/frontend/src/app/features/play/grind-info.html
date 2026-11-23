@@ -19,7 +19,13 @@
           <strong>{{monster(b.monsterId)?.name||b.monsterId}} Lv.{{monsterLevel(b)}}</strong>
           <small>Battle #{{b.sequenceIndex+1}} · {{elapsedTicks(b)}}s</small>
           <div class="foe-sprite-wrap" [battleHitFeedback]="'monster'" [class.foe-3d-ready]="foe3dReady() === b.monsterId">
-            <app-monster-viewer class="foe-3d" [monsterId]="b.monsterId" [animation]="foePose" (loaded)="foe3dReady.set(b.monsterId)" (failed)="foe3dReady.set(null)" />
+            @if (foeCharacter(b.monsterId); as fc) {
+              <app-character-viewer class="foe-3d" [sex]="fc.sex" [heightCm]="fc.heightCm" [appearance]="$any(fc.appearance)" [equipment]="$any(fc.equipment)"
+                [mainHandType]="$any(fc.mainHandType ?? null)" framing="full" [animation]="foeCharacterPose"
+                (loaded)="foe3dReady.set(b.monsterId)" (failed)="foe3dReady.set(null)" />
+            } @else {
+              <app-monster-viewer class="foe-3d" [monsterId]="b.monsterId" [animation]="foePose" (loaded)="foe3dReady.set(b.monsterId)" (failed)="foe3dReady.set(null)" />
+            }
             <app-combatant-portrait imageClass="foe-sprite" [src]="monsterSprite(b.monsterId)" [name]="monster(b.monsterId)?.name || b.monsterId">
               <app-combatant-details portraitDetails [stats]="monsterStats(b)" [drops]="monsterDrops(b)" />
             </app-combatant-portrait>

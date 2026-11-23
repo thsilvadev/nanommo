@@ -1,4 +1,4 @@
-import { monsterAnimationState } from './monster-animation-state';
+import { monsterAnimationState, monsterAsCharacterState } from './monster-animation-state';
 
 describe('monsterAnimationState', () => {
   const startAt = '2026-01-01T00:00:00.000Z';
@@ -23,5 +23,21 @@ describe('monsterAnimationState', () => {
   it('dies on the killing blow and stays dead', () => {
     expect(monsterAnimationState(battle(events), t0 + 6000)).toEqual({ dead: { startedAtMs: t0 + 6000 } });
     expect(monsterAnimationState(battle(events), t0 + 60000)).toEqual({ dead: { startedAtMs: t0 + 6000 } });
+  });
+  it('walks while it steps across the grid, and stops after its last step', () => {
+    const moving = battle([
+      { tick: 1, actor: 'monster', action: 'move', hpRemaining: { character: 30, monster: 10 } },
+      { tick: 4, actor: 'monster', action: 'move', hpRemaining: { character: 30, monster: 10 } },
+      { tick: 20, actor: 'monster', target: 'character', action: 'attack', damage: 1, hpRemaining: { character: 29, monster: 10 } },
+    ]);
+    expect(monsterAnimationState(moving, t0 + 400).walking).toBeUndefined();
+    expect(monsterAnimationState(moving, t0 + 600).walking).toBeTrue();   // first step, walking to the second
+    expect(monsterAnimationState(moving, t0 + 2400).walking).toBeTrue();  // last step lasts 3 ticks
+    expect(monsterAnimationState(moving, t0 + 3600).walking).toBeUndefined();
+  });
+  it('maps to character clips for a monster drawn as a character', () => {
+    expect(monsterAsCharacterState({ walking: true }, t0)).toEqual({ base: 'Walk' });
+    expect(monsterAsCharacterState({ dead: { startedAtMs: t0 } }, t0 + 1).oneShot?.clip).toBe('Dead');
+    expect(monsterAsCharacterState({ action: { clip: 'Attack', startedAtMs: t0, untilMs: null } }, t0 + 100).oneShot).toEqual({ clip: 'Attack', startedAtMs: t0, speed: 1 });
   });
 });

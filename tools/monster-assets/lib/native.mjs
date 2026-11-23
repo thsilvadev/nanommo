@@ -1,7 +1,7 @@
 /** Native monsters: keep the source rig, rename/cut/generate battle clips, normalize size and facing. */
 import { mat4, quat, vec3 } from 'gl-matrix';
 
-const BATTLE = ['Idle', 'Attack', 'Damage', 'Dead', 'Cast'];
+const BATTLE = ['Idle', 'Walk', 'Attack', 'Damage', 'Dead', 'Cast'];
 
 function clipRange(anim) {
   let t0 = Infinity, t1 = 0;
@@ -67,6 +67,8 @@ function generatedClip(doc, node, name, S) {
     Damage: { t: [0, 0.1, 0.4], T: [[0, 0, 0], [0, 0, -0.15], [0, 0, 0]], R: [qx(0), qx(-8), qx(0)] },
     Attack: { t: [0, 0.25, 0.7], T: [[0, 0, 0], [0, 0.03, Math.min(0.5, 0.2 * S)], [0, 0, 0]], R: [qx(0), qx(10), qx(0)] },
     Dead: { t: [0, 0.7, 1.4], T: [[0, 0, 0], [0, 0, 0], [0, -0.35 * S, 0]], R: [qz(0), qz(85), qz(85)] },
+    // hop forward in place (looping): up-down bob with a little sway
+    Walk: { t: [0, 0.2, 0.4, 0.6, 0.8], T: [[0, 0, 0], [0, 0.06 * S, 0], [0, 0, 0], [0, 0.06 * S, 0], [0, 0, 0]], R: [qz(0), qz(4), qz(0), qz(-4), qz(0)] },
   }[name];
   const anim = doc.createAnimation(name);
   const input = doc.createAccessor().setType('SCALAR').setArray(new Float32Array(tracks.t)).setBuffer(buffer);
@@ -140,7 +142,7 @@ export function buildNative(doc, id, cfg) {
 
   const S = cfg.size.h ?? cfg.size.len;
   const generated = [];
-  if (!cfg.onlyIdle) for (const g of ['Attack', 'Damage', 'Dead']) if (!made.has(g)) { made.set(g, generatedClip(doc, top, g, S)); generated.push(g); }
+  if (!cfg.onlyIdle) for (const g of ['Attack', 'Damage', 'Dead', 'Walk']) if (!made.has(g)) { made.set(g, generatedClip(doc, top, g, S)); generated.push(g); }
   if (!cfg.onlyIdle && !made.has('Cast')) made.set('Cast', aliasClip(doc, made.get('Attack'), 'Cast'));
 
   for (const a of cfg.attach ?? []) attachCones(doc, a, made.get('Idle'));

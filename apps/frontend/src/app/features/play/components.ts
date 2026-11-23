@@ -9,8 +9,8 @@ import { FollowLogDirective } from './follow-log.directive';
 import { battleEventText, battleEventTone, visibleBattleEvent } from './battle-event-text';
 import { CharacterViewerComponent } from '../../shared/character-viewer/character-viewer.component';
 import { portraitAnimationSource, portraitEquipment, portraitHandTypes, portraitModel, portraitRefinement } from './character-portrait';
-import { MonsterViewerComponent } from '../../shared/monster-viewer/monster-viewer.component';
-import { monsterAnimationState } from '../../shared/monster-viewer/monster-animation-state';
+import { MonsterViewerComponent, loadMonsterManifest, monsterManifestKey, type MonsterManifestEntry } from '../../shared/monster-viewer/monster-viewer.component';
+import { monsterAnimationState, monsterAsCharacterState } from '../../shared/monster-viewer/monster-animation-state';
 import { battleTickAt, battleTickDurationMs, battleTickExpiryRemainingSeconds } from '../../shared/battle-timing';
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, computed, effect, inject, signal, untracked, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
@@ -1072,7 +1072,7 @@ export class VendorPanel implements OnDestroy {
 @Component({ selector: 'app-battle-progress', standalone: true, imports: [CommonModule], templateUrl: './battle-progress.html', styleUrl: './battle-progress.css' })
 export class BattleProgress { @Input() entry!: any; readonly now = inject(UiClockService).now; progress() { const s = Date.parse(this.entry.startAt), e = Date.parse(this.entry.endAt); return Math.max(0, Math.min(100, (this.now() - s) / Math.max(1, e - s) * 100)) } remaining() { const sec = Math.max(0, Math.ceil((Date.parse(this.entry.endAt) - this.now()) / 1000)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') } }
 
-@Component({ selector: 'app-grind-info', standalone: true, imports: [CommonModule, CombatTimersComponent, BattleProgress, VendorPanel, TooltipPositionDirective, BattleHitFeedbackDirective, SharedBattlePanelComponent, FollowLogDirective, CombatantPortraitComponent, CombatantDetailsComponent, MonsterViewerComponent], templateUrl: './grind-info.html', styleUrl: './grind-info.css', styles:[`.foe-mana{height:8px;background:#10131c;border:1px solid #294c70;margin-top:3px}.foe-mana i{display:block;height:100%;background:#3e91df}.mana-label{margin-top:5px}.status-icons,.skill-icons{display:flex;gap:5px;flex-wrap:wrap}.status-icon,.monster-skill-icon{position:relative;width:34px;height:34px;display:grid;place-items:center}.status-icon img,.monster-skill-icon img{width:30px;height:30px;object-fit:contain}.status-icon .status-tooltip,.monster-skill-icon .skill-tooltip{display:none;position:absolute;z-index:100;bottom:calc(100% + 7px);left:0;min-width:180px;max-width:260px;padding:8px;background:#120d09;border:1px solid #80613a;box-shadow:0 4px 14px #000;color:#c9b79a;white-space:normal;pointer-events:none;text-align:left}.monster-skill-icon:hover .skill-tooltip,.monster-skill-icon:focus .skill-tooltip,.monster-skill-icon:focus-within .skill-tooltip{display:flex;flex-direction:column;gap:4px}.status-tooltip strong,.skill-tooltip b{color:#e1cfad;font:15px Georgia}.status-tooltip small,.skill-tooltip small{font:12px Arial;line-height:1.3}.status-icon b{position:absolute;right:-3px;bottom:-3px;font-size:10px}`] })
+@Component({ selector: 'app-grind-info', standalone: true, imports: [CommonModule, CombatTimersComponent, BattleProgress, VendorPanel, TooltipPositionDirective, BattleHitFeedbackDirective, SharedBattlePanelComponent, FollowLogDirective, CombatantPortraitComponent, CombatantDetailsComponent, MonsterViewerComponent, CharacterViewerComponent], templateUrl: './grind-info.html', styleUrl: './grind-info.css', styles:[`.foe-mana{height:8px;background:#10131c;border:1px solid #294c70;margin-top:3px}.foe-mana i{display:block;height:100%;background:#3e91df}.mana-label{margin-top:5px}.status-icons,.skill-icons{display:flex;gap:5px;flex-wrap:wrap}.status-icon,.monster-skill-icon{position:relative;width:34px;height:34px;display:grid;place-items:center}.status-icon img,.monster-skill-icon img{width:30px;height:30px;object-fit:contain}.status-icon .status-tooltip,.monster-skill-icon .skill-tooltip{display:none;position:absolute;z-index:100;bottom:calc(100% + 7px);left:0;min-width:180px;max-width:260px;padding:8px;background:#120d09;border:1px solid #80613a;box-shadow:0 4px 14px #000;color:#c9b79a;white-space:normal;pointer-events:none;text-align:left}.monster-skill-icon:hover .skill-tooltip,.monster-skill-icon:focus .skill-tooltip,.monster-skill-icon:focus-within .skill-tooltip{display:flex;flex-direction:column;gap:4px}.status-tooltip strong,.skill-tooltip b{color:#e1cfad;font:15px Georgia}.status-tooltip small,.skill-tooltip small{font:12px Arial;line-height:1.3}.status-icon b{position:absolute;right:-3px;bottom:-3px;font-size:10px}`] })
 export class GrindInfo {
   readonly timers = inject(CombatTimersService);
   readonly party = inject(PartyStore);
@@ -1085,6 +1085,11 @@ export class GrindInfo {
   /** 3D foe (tools/monster-assets) posed from the battle log every frame; the sprite stays until it has loaded or when there is no model. */
   readonly foePose = (nowMs: number) => monsterAnimationState(this.battle.active() as any, nowMs);
   readonly foe3dReady = signal<string | null>(null);
+  /** Monsters drawn as a regular character in gear (manifest rig 'char', e.g. the Bandit). */
+  readonly foeManifest = signal<Record<string, MonsterManifestEntry>>({});
+  private readonly foeManifestLoad = loadMonsterManifest().then((m) => this.foeManifest.set(m));
+  foeCharacter(monsterId: string) { const e = this.foeManifest()[monsterManifestKey(monsterId)]; return e?.rig === 'char' ? e.character ?? null : null; }
+  readonly foeCharacterPose = (nowMs: number) => monsterAsCharacterState(monsterAnimationState(this.battle.active() as any, nowMs), nowMs);
   readonly inventory = inject(InventoryStore);
   readonly catalog = inject(CatalogService); readonly vendor = inject(VendorStore);
   private readonly api = inject(ApiService);
