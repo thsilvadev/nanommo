@@ -26,7 +26,11 @@ export function battleEventText(event: any, actor: string, target: string, name:
       const rowDelta = Math.abs(Number(e.to?.row ?? e.toGridPosition?.row ?? 0) - Number(e.from?.row ?? e.fromGridPosition?.row ?? 0));
       const spaces = Number(e.spacesMoved ?? Math.max(rowDelta, Math.abs(Number(to ?? 0) - Number(from ?? 0))));
       const arrow = to > from ? ' →' : to < from ? ' ←' : e.direction === 'right' || e.direction === 1 ? ' →' : e.direction === 'left' || e.direction === -1 ? ' ←' : '';
-      return `${actor} ${e.reason === 'violent_shot_push' ? 'is pushed' : 'moves'} ( ${spaces} ) ${spaces === 1 ? 'space' : 'spaces'}${arrow}.`;
+      if (e.reason === 'push' || e.reason === 'violent_shot_push') {
+        const pushArrow = arrow === ' →' ? ' -->' : arrow === ' ←' ? ' <--' : '';
+        return `${actor} pushes ${target} for ( ${spaces} ) ${spaces === 1 ? 'space' : 'spaces'}${pushArrow}.`;
+      }
+      return `${actor} moves ( ${spaces} ) ${spaces === 1 ? 'space' : 'spaces'}${arrow}.`;
     }
     case 'ko': return `${actor} is knocked out!`;
     case 'revive': return `${target} returns to battle!`;

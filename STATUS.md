@@ -1,3 +1,9 @@
+### Texto do empurrão de Violent Shot — 2026-11-23
+
+Formatador compartilhado de logs solo/grupo/histórico reconhece `reason: push` e `violent_shot_push` e mostra o atacante empurrando o alvo: `thiagoarcher pushes Bandit for ( 6 ) spaces -->.`. Direção vem do deslocamento real (`-->`/`<--`), singular preservado para um espaço. Movimento comum mantém o texto existente; sem mudança na mecânica ou no evento persistido.
+
+Quatro regressões de formatação no Chromium (três RED antes da correção, quatro GREEN depois), build frontend e diff-check passaram. Avisos CSS existentes. Commit separado do ajuste de alcance, na mesma branch isolada `codex/bow-only-ranged-basic`; sem merge na main, push ou deploy, aguardando aval do usuário para integrar as duas mudanças.
+
 ### Alcance do ataque básico: apenas arco à distância — 2026-11-23
 
 Implementado em worktree isolado, branch `codex/bow-only-ranged-basic`, baseada na main `5d85f1f`. Checkout oficial preservado, incluindo as duas alterações locais do usuário que aumentam o alcance para 8. Sem merge, push, deploy ou migração; integração depende de novo aval conforme preferência do usuário.
