@@ -1,6 +1,6 @@
 # Quebradeira town event + "item obtained" toast — design
 
-Date: 2026-11-24. Status: draft for approval.
+Date: 2026-11-24. Status: approved by the user 2026-11-24.
 
 Two independent pieces, built in this order:
 
@@ -19,8 +19,8 @@ A recurring social moment that pulls idle players into the 3D towns at fixed tim
 
 ### Goals
 
-- Fires every day at **09:30 and 21:30**, timezone **America/Sao_Paulo** *(builder's call)*.
-- Pre-announcements at exactly **30, 15, 5 and 1 minute(s)** before each start (09:00, 09:15, 09:25, 09:29, and the 21:xx equivalents), plus a "started" announcement at :30.
+- Fires **four times a day: 03:30, 09:30, 15:30 and 21:30**, timezone **America/Sao_Paulo** (user-confirmed).
+- Pre-announcements at exactly **30, 15, 5 and 1 minute(s)** before each start (e.g. 09:00, 09:15, 09:25, 09:29, and the equivalents for 03:30, 15:30 and 21:30), plus a "started" announcement at :30.
 - Announcements are `server_announce` messages: shown **in yellow** in the chat **System** channel and in the central on-screen notification band.
 - At start, **every town** gets **200 vases** (5 towns with 3D scenes: `map_town`, `map_outpost`, `map_kwaioua_taba`, `map_aramaia_city`, `map_emperial_capital_caelum`). Vases live **2 minutes**.
 - A vase breaks with **one hit**. **The first hit the server accepts wins** the vase.
@@ -60,7 +60,7 @@ A recurring social moment that pulls idle players into the 3D towns at fixed tim
 | 4 | 1× Bliss Stone | `mat_bliss_stone` |
 | 1 | 1× Divine Shard | `mat_divine_shard` |
 
-All of these exist in `items.json` and stack to 20, so each prize fits one inventory slot. The table should live in a root JSON catalogue (e.g. `town_events.json`, validated by `DataService` at boot, mirrored to the frontend only if the client needs it — it does not) *(builder's call)* rather than hard-coded.
+All of these exist in `items.json` and stack to 20, so each prize fits one inventory slot. The table lives in a root JSON catalogue `town_events.json` (user-confirmed), validated by `DataService` at boot, together with the schedule, vase count, duration and interaction range. It is not mirrored to the frontend: the client does not need it, and the prize layout must stay server-only.
 
 ### Approach (chosen: Redis + Bull repeatable scheduler)
 
@@ -72,7 +72,7 @@ Considered:
 ### Server design
 
 **Scheduling.** A Bull repeatable job (own queue or the existing `battle-queue`, builder decides; a dedicated `town-event` queue is cleaner *(builder's call)*) with cron entries in `America/Sao_Paulo`:
-`0,15,25,29 9,21 * * *` → pre-announce (minutes-left computed from the scheduled time, not wall-clock drift); `30 9,21 * * *` → start. Start schedules a delayed job at +2 min → end. Handlers are idempotent (Redis `SET NX` on `event:quebradeira:<eventKey>:<phase>`, `eventKey` = scheduled start ISO time), since Bull can redeliver.
+`0,15,25,29 3,9,15,21 * * *` → pre-announce (minutes-left computed from the scheduled time, not wall-clock drift); `30 3,9,15,21 * * *` → start. Start schedules a delayed job at +2 min → end. Handlers are idempotent (Redis `SET NX` on `event:quebradeira:<eventKey>:<phase>`, `eventKey` = scheduled start ISO time), since Bull can redeliver.
 
 **Announcements.** Reuse `ChatService.announceServerMessage` (already emits `channel:'journal', type:'server_announce'` through `gateway:chat:global`). Send a localization key + params alongside the English `message` (e.g. `{ key:'event.quebradeira.soon', params:{ minutes:5 } }`) so the client renders pt/en; the English text is the fallback *(builder's call)*. Optional chat line when someone finds a Bliss Stone or Divine Shard: "X found a Divine Shard in Caelum!" *(builder's call; proposed in conversation, not objected to)*.
 
@@ -90,7 +90,7 @@ Broadcast `town:event:vases { eventKey, mapId, endsAt, vases[] }` to the town ro
 
 1. Character is town-present in the map that owns the vase; the event is active (`now < endsAt`, not ended early).
 2. **Cooldown:** `SET town:attackCd:<characterId> 1 PX 1000 NX` — reject if set. This is the general town attack rule.
-3. **Range:** character position from the shared `positionAt(def, nav, entry, now)` is within the interaction range of the vase. "A palm away" becomes ~1.0 world unit from the vase centre (vase radius ~0.3) *(builder's call: exact value tuned to how it looks)*.
+3. **Range:** character position from the shared `positionAt(def, nav, entry, now)` is within the interaction range of the vase. "A palm away": the character does **not** need to touch the vase, just be almost there (user). Use ~1.0 world unit from the vase centre (vase radius ~0.3, so the character stands ~0.5–0.7 short of it), tuned to how it looks.
 4. **Claim:** `HSETNX broken vaseId characterId` — if 0, reply "already broken".
 
 On success:
@@ -111,7 +111,7 @@ The prize grant changes inventory, not future combat, so `runFutureCombatMutatio
 
 **Break effect** *(builder's call)*. Hide the instance; spawn ~10–16 pre-made shard pieces with simple ballistic physics (gravity, spin, bounce once, fade) and a small dust puff; a brief golden sparkle when the vase held a prize (visible to everyone; the prize only becomes known after the break). Short and snappy (≈0.6–1 s).
 
-**Sound** *(builder's call)*. A CC0 ceramic-shatter sample (2–3 variants, slight random pitch per break), via the existing audio service; volume falls off with distance from the local character.
+**Sound** (user-chosen). `project/sons/new_packs/7/potShatter.wav` (16-bit mono 22 kHz; `project/` is gitignored). Copy it to `apps/frontend/public/assets/sounds/pot_shatter.wav`, or convert it to the format the other SFX use. Its license is not recorded next to the file, so add it to `UNLICENSED_ASSETS_README.txt` per the asset policy unless the user supplies the license. Play it through the existing audio service with a slight random pitch per break, and lower the volume with distance from the local character.
 
 **Event lifecycle.** On `town:event:vases` render the set; on `vaseBroken` play the break; on `ended` fade out remaining vases. Disposal on scene teardown.
 
@@ -156,7 +156,7 @@ Considered:
 
 ### Details
 
-- Multiple items in one event (e.g. a battle with 3 drops, mail with several attachments): show them as consecutive replacements, last one stays 4 s *(builder's call: show only the last, or cycle each for ~1 s — pick whatever feels right; the one-box rule must hold)*.
+- Multiple items in one event (e.g. a battle with 3 drops, mail with several attachments): they arrive at the same instant, so show **only the first item of the list** (user-decided). The server may still send the whole list.
 - Emit only after commit, so a rolled-back transaction never toasts.
 - Bull retries of battle resolution must not double-toast (emit only from the first successful claim; `resolveBattle` is already idempotent).
 - Offline resolution: no replay of missed toasts on reconnect.
