@@ -283,3 +283,7 @@ Realtime snapshots replace `character`/`inventory` objects on every battle, so a
 Rebuilding `BattleQueueEntry` rows is insufficient when a solo `encounter_clocks` reservation survives. Gathering may project many avoided candidates before reserving an actual battle minutes ahead; Hunting then inherits that deadline through `reservedEncounter`. Cancel only a real stance change with no started encounter, inside the existing character lock and transaction. Ordinary loadout edits and repeated same-stance clicks retain their search identity. Regression uses the real queue generator and clock service, with a ten-minute reservation, and verifies normal Hunting timing, immutable active fights and Gathering journal delivery. The Gathering gauge remains valid in Hunting too.
 
 A failed town gear download must not set `dressedKey`. Keep the prior outfit and let an identical later roster update retry; only completed dressing (or an intentional empty outfit) settles the key.
+
+## Smashing Spree keys and phases — 2026-11-24
+
+Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `eventKey` (`ss-<startMs>`, or `ss-dev-<ms>` for the dev tool); reusing a key silently skips that phase. Hit checks run in a fixed order (presence → active and `now < endsAt` → cooldown → vase exists → range → `HSETNX`): the cooldown is spent even by an out-of-range swing, and `endsAt` is checked on every hit because the end tick may run late while keys still exist. Prize grants run under `withCharacterQueueLock` (slot races with battle drops).

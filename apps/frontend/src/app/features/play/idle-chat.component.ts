@@ -7,6 +7,8 @@ import { ChatNoticeService } from '../../core/chat-notice.service';
 import { CharacterStore } from '../../core/game.store';
 import { LocaleService } from '../../core/locale.service';
 import { TownStore } from '../../core/town.store';
+import { CatalogService } from '../../core/catalog.service';
+import { formatServerAnnounce } from '../../core/server-announce-text';
 
 type ChatRow = {
   id: string;
@@ -16,6 +18,10 @@ type ChatRow = {
   username?: string;
   characterId?: string;
   severity?: 'success' | 'error';
+  /** `server_announce` (yellow, also on screen) or `event_find` (yellow, chat only). */
+  type?: string;
+  key?: string;
+  params?: Record<string, unknown>;
 };
 
 @Component({
@@ -49,6 +55,7 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly town = inject(TownStore);
   private readonly characters = inject(CharacterStore);
   private readonly locale = inject(LocaleService);
+  private readonly catalog = inject(CatalogService);
 
   constructor(private readonly api: ApiService, private readonly socket: GameSocketService) {}
 
@@ -175,6 +182,15 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   rowLabel(row: ChatRow): string { return row.username || 'Unknown'; }
+
+  isAnnounce(row: ChatRow): boolean { return row.type === 'server_announce' || row.type === 'event_find'; }
+
+  /** Server announcements are localized from their key; everything else shows as sent. */
+  rowText(row: ChatRow): string {
+    if (!row.key) return row.message;
+    const mapName = (id: string) => this.catalog.mapList()?.find((m: any) => m?.id === id)?.name ?? id;
+    return formatServerAnnounce(row, this.locale.locale(), (id) => this.catalog.itemName(id), mapName);
+  }
   trackRow(_index: number, row: ChatRow): string { return row.id; }
 
   private append(row: ChatRow): void {
