@@ -11,6 +11,14 @@ type SoundName =
   | 'boughtItemFromNpc' | 'soldItemToNpc' | 'putInStorage' | 'takeFromStorage' | 'postItemOnMarket'
   | 'use_fairy_in_a_bottle' | 'use_tonic' | 'mailInbox' | 'saveTown' | 'pot_shatter';
 
+/** A town event playing over the region's music (see TownStore.eventMusic). */
+export interface EventMusicSource { eventMusic(): { key: string; startsAt: number; now: number } | null }
+
+/** Smashing Spree (Quebra-Quebra) music: replaces the town's tracks from the start of the event to its end. */
+export const EVENT_MUSIC_TRACK = 'new_packs/7/eventMusic.mp3';
+
+interface MusicRegion { id: string; tracks: string[]; seekSeconds?: () => number }
+
 @Injectable({ providedIn: 'root' })
 export class GameAudioService {
   /** Null when constructed outside dependency injection (unit tests). */
@@ -37,6 +45,11 @@ export class GameAudioService {
   private readonly musicInstances = new Set<HTMLAudioElement>();
   private musicRegion = '';
   private musicTracks: string[] = [];
+  /** Where the region's first track starts (the event music joins the event where it is). */
+  private musicSeek: (() => number) | null = null;
+  /** Tracks still to be seeked before they first play (dropped once playing). */
+  private readonly seekOnStart = new WeakMap<HTMLAudioElement, () => number>();
+  private eventMusic: EventMusicSource | null = null;
   private musicTrackIndex = -1;
   private musicGeneration = 0;
   private musicFadeFrame = 0;
@@ -184,9 +197,10 @@ export class GameAudioService {
     if (this.pendingMusic && this.pendingMusic !== this.music) this.pendingMusic.volume = 0;
   }
 
-  start(characterStore: any, battleStore: any, inventoryStore: any): void {
+  start(characterStore: any, battleStore: any, inventoryStore: any, eventMusic: EventMusicSource | null = null): void {
     if (this.started) return;
     this.started = true;
+    this.eventMusic = eventMusic;
     // start() is called before the first map poll. Do not launch a competing
     // asynchronous stop/fade here: updateMusic owns the initial region transition.
     this.previousLevel = characterStore.character()?.level ?? null;
@@ -210,6 +224,8 @@ export class GameAudioService {
     this.timer = null;
     this.musicRegion = '';
     this.musicTracks = [];
+    this.musicSeek = null;
+    this.eventMusic = null;
     this.musicTrackIndex = -1;
     ++this.musicGeneration;
     this.cancelMusicFade();
@@ -220,7 +236,27 @@ export class GameAudioService {
     this.pendingMusicBlocked = false;
   }
 
-  private regionFor(mapId: string): { id: string; tracks: string[] } | null {
+  /**
+   * The music of where the character is: a live town event (only while the character is
+   * in that town and the event runs) overrides the region. The event's id carries its key,
+   * so arriving, leaving, coming back or the next event each switch tracks, and the track
+   * starts at the event's elapsed time, so everyone in town hears the same moment.
+   */
+  private musicFor(mapId: string): MusicRegion | null {
+    let event: ReturnType<EventMusicSource['eventMusic']> = null;
+    try { event = this.eventMusic?.eventMusic() ?? null; } catch { event = null; }
+    if (event) {
+      const source = this.eventMusic!;
+      const startsAt = event.startsAt;
+      return {
+        id: `event:${event.key}`, tracks: [EVENT_MUSIC_TRACK],
+        seekSeconds: () => { const now = source.eventMusic()?.now ?? Date.now(); return Math.max(0, (now - startsAt) / 1000); },
+      };
+    }
+    return this.regionFor(mapId);
+  }
+
+  private regionFor(mapId: string): MusicRegion | null {
     if (mapId.startsWith('map_green_grounds')) return { id: 'green-grounds', tracks: ['green-grounds.mp3', 'green-grounds_2.mp3', 'green-grounds_3.mp3'] };
     if (mapId.startsWith('map_menace_hills')) return { id: 'menace-hills', tracks: ['menace-hills.mp3', 'menace-hills_2.mp3', 'menace-hills_3.mp3'] };
     if (mapId.startsWith('map_sierra_village') || mapId === 'map_town') return { id: 'sierra-village', tracks: ['sierra-village.mp3'] };
@@ -238,7 +274,7 @@ export class GameAudioService {
   }
 
   private updateMusic(mapId: string): void {
-    const region = this.regionFor(mapId);
+    const region = this.musicFor(mapId);
     const nextRegion = region?.id ?? '';
     if (nextRegion === this.musicRegion) {
       // Recover if a transient map update or interrupted fade left a valid region silent.
@@ -249,6 +285,7 @@ export class GameAudioService {
     }
     this.musicRegion = nextRegion;
     this.musicTracks = region?.tracks ?? [];
+    this.musicSeek = region?.seekSeconds ?? null;
     this.musicTrackIndex = -1;
     const generation = ++this.musicGeneration;
     this.cancelMusicFade();
@@ -274,6 +311,8 @@ export class GameAudioService {
     if (generation !== this.musicGeneration || !this.musicTracks.length || this.pendingMusic) return;
     this.musicTrackIndex = (this.musicTrackIndex + 1) % this.musicTracks.length;
     const audio = new Audio(this.base + this.musicTracks[this.musicTrackIndex]);
+    // Only the region's first track joins mid-way; a track that loops starts from the top.
+    if (this.musicSeek) { this.seekOnStart.set(audio, this.musicSeek); this.musicSeek = null; }
     this.pendingMusic = audio;
     this.musicInstances.add(audio);
     audio.loop = false;
@@ -292,8 +331,10 @@ export class GameAudioService {
   private tryStartPendingMusic(audio: HTMLAudioElement, generation: number): void {
     if (generation !== this.musicGeneration || this.pendingMusic !== audio || !this.musicRegion || this.pendingMusicStarting || this.pendingMusicBlocked) return;
     this.pendingMusicStarting = audio;
+    this.applyStartSeek(audio);
     void audio.play().then(() => {
       if (this.pendingMusicStarting === audio) this.pendingMusicStarting = null;
+      this.seekOnStart.delete(audio);
       if (generation !== this.musicGeneration || this.pendingMusic !== audio || !this.musicRegion) {
         this.stopMusicElement(audio);
         return;
@@ -314,6 +355,24 @@ export class GameAudioService {
       this.pendingMusicBlocked = true;
       this.bindMusicRetry();
     });
+  }
+
+  /**
+   * Seeks a track that joins mid-way, measured when it actually starts (autoplay may hold it
+   * back for a while). Before its metadata loads the seek waits for it.
+   */
+  private applyStartSeek(audio: HTMLAudioElement): void {
+    const seek = this.seekOnStart.get(audio);
+    if (!seek) return;
+    const apply = () => {
+      if (this.seekOnStart.get(audio) !== seek) return; // already playing, or replaced
+      const seconds = seek();
+      const duration = Number(audio.duration);
+      if (!(seconds > 0.25) || (Number.isFinite(duration) && seconds >= duration)) return;
+      try { audio.currentTime = seconds; } catch { /* not seekable yet */ }
+    };
+    if (audio.readyState >= 1) apply();
+    else audio.addEventListener('loadedmetadata', apply, { once: true });
   }
 
   private crossfadeMusic(previous: HTMLAudioElement | null, next: HTMLAudioElement, generation: number): void {

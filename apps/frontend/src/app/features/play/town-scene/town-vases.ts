@@ -1,6 +1,6 @@
 /**
  * Smashing Spree (Quebra-Quebra) vases in the town scene: one InstancedMesh per
- * vase shape (≤ 3 draw calls for 200 vases), plus the shards a vase breaks into.
+ * vase shape (≤ 3 draw calls for 500 vases), plus the shards a vase breaks into.
  * Lazy like the rest of the town runtime (three.js stays out of the main bundle).
  */
 import * as THREE from 'three';

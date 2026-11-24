@@ -8,7 +8,12 @@ import { ServerClockService } from './server-clock.service';
 export interface TownRosterSnapshot { mapId: string | null; serverNow: number; entries: TownRosterEntry[]; event?: TownEventSnapshot | null }
 type TownAck = { success: boolean; entry?: TownRosterEntry; error?: string };
 type HitVaseAck = { success: boolean; vaseId?: string; error?: string; prize?: { itemId: string; quantity: number; via: 'bag' | 'mail' | 'pending' } | null };
-export interface TownVaseEvent { eventKey: string; endsAt: number; vases: TownEventVase[] }
+export interface TownVaseEvent { eventKey: string; startsAt: number; endsAt: number; vases: TownEventVase[] }
+/** What the event music needs: which event (a new one restarts it), when it began and the server time now. */
+export interface TownEventMusic { key: string; startsAt: number; now: number }
+
+/** Event start; a payload from an older server has none (the music then starts from the top). */
+const eventStart = (e: { startsAt?: number; endsAt: number }): number => (Number.isFinite(e.startsAt) ? Number(e.startsAt) : Date.now());
 
 /** Client-side mirror of the server rules (the server stays the authority). */
 export const VASE_HIT_RANGE = 1.0;
@@ -87,13 +92,15 @@ export class TownStore {
           this._mapId.set(null);
           this._entries.set([]);
           this._selectedCharacterId.set(null);
+          // Out of town: its event (vases, music) is no longer mine.
+          this.setVaseEvent(null);
           void this.syncRoster();
           return;
         }
         this._entries.update(list => list.filter(e => e.characterId !== d.characterId));
       }),
       this.socket.on<{ mapId: string } & TownVaseEvent>('town:event:vases').subscribe(d => {
-        if (d?.mapId && d.mapId === this._mapId()) this.setVaseEvent({ eventKey: d.eventKey, endsAt: d.endsAt, vases: d.vases ?? [] });
+        if (d?.mapId && d.mapId === this._mapId()) this.setVaseEvent({ eventKey: d.eventKey, startsAt: eventStart(d), endsAt: d.endsAt, vases: d.vases ?? [] });
       }),
       this.socket.on<TownEventVaseBroken>('town:event:vaseBroken').subscribe(d => {
         const current = this._vaseEvent();
@@ -130,6 +137,19 @@ export class TownStore {
     this._entries.set([]);
     this._selectedCharacterId.set(null);
     this.setVaseEvent(null);
+  }
+
+  /**
+   * The live Smashing Spree of the town this character is in, for the event music; null
+   * when there is none, it is over, or the character is elsewhere. Polled by the audio
+   * service: arriving mid-event, leaving and coming back all follow from this state.
+   */
+  eventMusic(): TownEventMusic | null {
+    const event = this._vaseEvent();
+    const mapId = this._mapId();
+    if (!event || !mapId || mapId !== (this.characters.character()?.currentMapId ?? null)) return null;
+    const now = this.clock.now();
+    return now < event.endsAt ? { key: event.eventKey, startsAt: event.startsAt, now } : null;
   }
 
   /** True only for the town scene the server put this character in. */
@@ -246,7 +266,7 @@ export class TownStore {
     this._mapId.set(snapshot.mapId ?? null);
     this._entries.set(Array.isArray(snapshot.entries) ? snapshot.entries : []);
     const event = snapshot.mapId && snapshot.event?.mapId === snapshot.mapId ? snapshot.event : null;
-    this.setVaseEvent(event ? { eventKey: event.eventKey, endsAt: event.endsAt, vases: event.vases ?? [] } : null);
+    this.setVaseEvent(event ? { eventKey: event.eventKey, startsAt: eventStart(event), endsAt: event.endsAt, vases: event.vases ?? [] } : null);
   }
 
   private upsert(delta: { mapId: string | null; entry: TownRosterEntry } | null | undefined): void {

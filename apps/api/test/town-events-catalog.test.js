@@ -12,6 +12,11 @@ const itemIds = new Set(Object.values(itemsJson).filter(Array.isArray).flat().ma
 assert.equal(cfg.prizes.reduce((sum, rule) => sum + rule.count, 0), 20);
 for (const rule of cfg.prizes) for (const id of rule.oneOf ?? [rule.itemId]) assert.ok(itemIds.has(id), `unknown item ${id}`);
 assert.deepEqual(validateSmashingSpreeConfig(cfg, itemIds), []);
+const townSceneIds = new Set(require(path.join(root, 'town_scenes.json')).towns.map((t) => t.mapId));
+assert.deepEqual(validateSmashingSpreeConfig(cfg, itemIds, townSceneIds), []);
+assert.equal(cfg.townMapId, 'map_town', 'Sierra Village');
+assert.ok(validateSmashingSpreeConfig({ ...cfg, townMapId: 'map_nowhere' }, itemIds, townSceneIds).length > 0, 'town without a scene');
+assert.ok(validateSmashingSpreeConfig({ ...cfg, townMapId: '' }, itemIds).length > 0, 'townMapId required');
 
 const bad = (patch) => validateSmashingSpreeConfig({ ...cfg, ...patch }, itemIds);
 assert.ok(bad({ prizes: [{ count: 1, itemId: 'nope', quantity: 1 }] }).length > 0, 'unknown item');

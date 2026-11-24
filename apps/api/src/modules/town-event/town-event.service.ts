@@ -20,9 +20,14 @@ export type HitVaseResult =
 const EVENT_TTL_S = 3600;
 const ACTIVE_KEY = 'ss:active';
 const eventKey = (ek: string, mapId: string, part: 'vases' | 'prizes' | 'broken' | 'prizesLeft') => `ss:${ek}:${mapId}:${part}`;
+/** Start of an event whose active entry predates `startsAt` (`ss-<startMs>` keys; dev keys fall back to endsAt). */
+function startOfEventKey(ek: string, endsAt: number): number {
+  const ms = Number(/^ss-(?:dev-)?(\d+)$/.exec(ek)?.[1]);
+  return Number.isFinite(ms) && ms > 0 && ms < endsAt ? ms : endsAt;
+}
 export const townAttackCooldownKey = (characterId: string) => `town:attackCd:${characterId}`;
 
-interface ActiveEntry { eventKey: string; endsAt: number }
+interface ActiveEntry { eventKey: string; startsAt: number; endsAt: number }
 
 /**
  * Smashing Spree (pt-BR: Quebra-Quebra). All state lives in Redis and expires by
@@ -53,22 +58,23 @@ export class TownEventService {
     if (phase.kind === 'announce') {
       const unit = phase.minutes === 1 ? 'minute' : 'minutes';
       await this.once(base, () => this.chat.announceServerMessage(
-        `The Smashing Spree starts in ${phase.minutes} ${unit}! Head to any town.`,
-        `${phase.eventKey}:soon:${phase.minutes}`, 'event.smashingSpree.soon', { minutes: phase.minutes },
+        `The Smashing Spree starts in ${phase.minutes} ${unit}! Head to ${this.townName()}.`,
+        `${phase.eventKey}:soon:${phase.minutes}`, 'event.smashingSpree.soon', { minutes: phase.minutes, mapId: this.townMapId() },
       ));
       return;
     }
     if (phase.kind === 'start') {
       const failed: string[] = [];
-      for (const mapId of this.dataService.getTownSceneMapIds()) {
-        try { await this.once(`${base}:${mapId}`, () => this.startTown(phase.eventKey, mapId, phase.endsAt)); }
+      for (const mapId of [this.townMapId()]) {
+        try { await this.once(`${base}:${mapId}`, () => this.startTown(phase.eventKey, mapId, phase.startMs, phase.endsAt)); }
         catch (error) { failed.push(mapId); this.logger.error(`Smashing Spree start failed in ${mapId}: ${this.describe(error)}`); }
       }
-      await this.once(`${base}:announce`, () => this.chat.announceServerMessage('The Smashing Spree has begun! Break the vases in town!', `${phase.eventKey}:started`, 'event.smashingSpree.started', {}));
+      await this.once(`${base}:announce`, () => this.chat.announceServerMessage(`The Smashing Spree has begun! Break the vases in ${this.townName()}!`, `${phase.eventKey}:started`, 'event.smashingSpree.started', { mapId: this.townMapId() }));
       if (failed.length) throw new Error(`Smashing Spree start failed in ${failed.join(', ')}`);
       return;
     }
     await this.once(base, async () => {
+      // Every town scene, not just today's: an event that started under an older config still ends.
       for (const mapId of this.dataService.getTownSceneMapIds()) {
         const active = await this.active(mapId);
         if (active?.eventKey !== phase.eventKey) continue;
@@ -92,7 +98,7 @@ export class TownEventService {
     const layout = await this.layout(active.eventKey, mapId);
     if (!layout) return null;
     const broken = new Set(await this.redis.hkeys(eventKey(active.eventKey, mapId, 'broken')));
-    return { eventKey: active.eventKey, mapId, endsAt: active.endsAt, vases: [...layout.values()].filter((v) => !broken.has(v.id)) };
+    return { eventKey: active.eventKey, mapId, startsAt: active.startsAt ?? startOfEventKey(active.eventKey, active.endsAt), endsAt: active.endsAt, vases: [...layout.values()].filter((v) => !broken.has(v.id)) };
   }
 
   /** Where an unbroken vase of the running event stands. */
@@ -146,7 +152,7 @@ export class TownEventService {
     return { success: true, vaseId, prize: { ...prize, via } };
   }
 
-  private async startTown(ek: string, mapId: string, endsAt: number): Promise<void> {
+  private async startTown(ek: string, mapId: string, startsAt: number, endsAt: number): Promise<void> {
     const cfg = this.dataService.getSmashingSpreeConfig();
     const def = this.dataService.getTownScene(mapId);
     if (!def) return;
@@ -165,9 +171,9 @@ export class TownEventService {
     await this.redis.hdel(eventKey(ek, mapId, 'broken'), '_');
     await this.redis.expire(eventKey(ek, mapId, 'broken'), EVENT_TTL_S);
     await this.redis.set(eventKey(ek, mapId, 'prizesLeft'), String(prizes.size), 'EX', EVENT_TTL_S);
-    await this.redis.hset(ACTIVE_KEY, mapId, JSON.stringify({ eventKey: ek, endsAt } satisfies ActiveEntry));
+    await this.redis.hset(ACTIVE_KEY, mapId, JSON.stringify({ eventKey: ek, startsAt, endsAt } satisfies ActiveEntry));
     this.layouts.set(`${ek}:${mapId}`, new Map(vases.map((v) => [v.id, v])));
-    await this.publish('town:event:vases', mapId, { eventKey: ek, endsAt, vases });
+    await this.publish('town:event:vases', mapId, { eventKey: ek, startsAt, endsAt, vases });
   }
 
   /** A won claim whose prize could not even be read: keep a row for an operator. */
@@ -175,6 +181,13 @@ export class TownEventService {
     const row = { characterId, eventKey: ek, mapId, vaseId, prize: null, reason: `prize lookup failed: ${this.describe(error)}`, at: new Date().toISOString() };
     this.logger.error(`Smashing Spree claim without a resolved prize: ${JSON.stringify(row)}`);
     try { await this.redis.lpush(PENDING_GRANTS_KEY, JSON.stringify(row)); } catch { /* already logged in full */ }
+  }
+
+  private townMapId(): string { return this.dataService.getSmashingSpreeConfig().townMapId; }
+
+  private townName(): string {
+    const mapId = this.townMapId();
+    return this.dataService.getMaps().find((m: any) => m?.id === mapId)?.name ?? mapId;
   }
 
   private describe(error: unknown): string { return error instanceof Error ? error.message : String(error); }

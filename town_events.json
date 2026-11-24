@@ -1,10 +1,11 @@
 {
   "smashingSpree": {
     "timezone": "America/Sao_Paulo",
+    "townMapId": "map_town",
     "startTimes": ["03:30", "09:30", "15:30", "21:30"],
     "announceMinutesBefore": [30, 15, 5, 1],
-    "durationSeconds": 120,
-    "vasesPerTown": 200,
+    "durationSeconds": 300,
+    "vasesPerTown": 500,
     "minVaseSpacing": 1.2,
     "hitRange": 1.0,
     "approachDistance": 0.6,

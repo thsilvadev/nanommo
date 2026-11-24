@@ -67,7 +67,7 @@ export class DataService implements OnModuleInit {
       this.townScenes = new Map((townScenes.towns as TownSceneDef[]).map(def => [def.mapId, def]));
       const townEvents = this.loadJsonFile(path.join(dataDir, 'town_events.json'));
       const itemIds = new Set<string>(Object.values(this.items ?? {}).filter(Array.isArray).flat().map((item: any) => item?.id).filter(Boolean));
-      const townEventErrors = validateSmashingSpreeConfig(townEvents?.smashingSpree, itemIds);
+      const townEventErrors = validateSmashingSpreeConfig(townEvents?.smashingSpree, itemIds, new Set(this.townScenes.keys()));
       if (townEventErrors.length) throw new Error('Invalid town_events.json: ' + townEventErrors.join('; '));
       this.smashingSpree = townEvents.smashingSpree as SmashingSpreeConfig;
 

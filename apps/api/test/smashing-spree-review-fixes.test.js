@@ -12,7 +12,7 @@ const towns = require(path.join(root, 'town_scenes.json')).towns;
 const mapIds = towns.map((t) => t.mapId);
 const startMs = Date.parse('2026-11-24T09:30:00-03:00');
 const eventKey = `ss-${startMs}`;
-const startPhase = { kind: 'start', eventKey, startMs, endsAt: startMs + 120000 };
+const startPhase = { kind: 'start', eventKey, startMs, endsAt: startMs + cfg.durationSeconds * 1000 };
 const realNow = Date.now;
 let clock = startMs + 1000;
 
@@ -21,7 +21,7 @@ function setup(overrides = {}) {
   const poses = new Map();
   const grants = [];
   const svc = new TownEventService(redis,
-    { getSmashingSpreeConfig: () => cfg, getTownSceneMapIds: () => mapIds, getTownScene: (id) => towns.find((t) => t.mapId === id) ?? null },
+    { getSmashingSpreeConfig: () => cfg, getTownSceneMapIds: () => mapIds, getTownScene: (id) => towns.find((t) => t.mapId === id) ?? null, getMaps: () => [{ id: 'map_town', name: 'Sierra Village' }] },
     { poseOf: async (id) => poses.get(id) ?? null },
     { announceServerMessage: async () => undefined, announceEventFind: async () => undefined },
     overrides.grant ?? { grant: async (...a) => { grants.push(a); return 'bag'; } });
@@ -36,7 +36,7 @@ function setup(overrides = {}) {
     const { svc, redis } = setup();
     await svc.runPhase(startPhase);
     let predictable = 0;
-    for (const mapId of mapIds) {
+    for (const mapId of [cfg.townMapId]) {
       const vases = JSON.parse(await redis.get(`ss:${eventKey}:${mapId}:vases`));
       const stored = Object.keys(await redis.hgetall(`ss:${eventKey}:${mapId}:prizes`)).sort();
       const guessed = [...assignPrizes(vases, eventSeed(eventKey, mapId), cfg).keys()].sort();
@@ -67,14 +67,14 @@ function setup(overrides = {}) {
     clock = startMs + 1000;
     const { svc, redis } = setup();
     const set = redis.set; let failOnce = true;
-    redis.set = async (key, ...rest) => { if (failOnce && key === `ss:${eventKey}:map_outpost:vases`) { failOnce = false; throw new Error('redis blip'); } return set(key, ...rest); };
+    redis.set = async (key, ...rest) => { if (failOnce && key === `ss:${eventKey}:map_town:vases`) { failOnce = false; throw new Error('redis blip'); } return set(key, ...rest); };
     await assert.rejects(() => svc.runPhase(startPhase));
     const before = redis.published.filter((p) => p.payload.event === 'town:event:vases').length;
-    assert.equal(before, 4);
+    assert.equal(before, 0);
+    await svc.runPhase(startPhase);
     await svc.runPhase(startPhase);
     const spawned = redis.published.filter((p) => p.payload.event === 'town:event:vases').map((p) => p.payload.mapId);
-    assert.equal(spawned.length, 5, 'the retry starts only the failed town');
-    assert.equal(spawned.filter((m) => m === 'map_outpost').length, 1);
+    assert.deepEqual(spawned, ['map_town'], 'the retry starts the failed town once');
   }
   // I2: the phase comes from the job's scheduled minute; a late start still runs while the event would be live.
   {
@@ -84,7 +84,11 @@ function setup(overrides = {}) {
     clock = Date.parse('2026-11-24T09:31:20-03:00');
     await processor.handleTick(job('2026-11-24T09:30:00-03:00'));
     assert.equal(phases.length, 1); assert.equal(phases[0].kind, 'start');
-    clock = Date.parse('2026-11-24T09:32:30-03:00');
+    clock = Date.parse('2026-11-24T09:34:30-03:00');
+    await processor.handleTick(job('2026-11-24T09:30:00-03:00'));
+    assert.equal(phases.length, 2, 'four minutes late: the five-minute event is still live');
+    phases.pop();
+    clock = Date.parse('2026-11-24T09:35:30-03:00');
     await processor.handleTick(job('2026-11-24T09:30:00-03:00'));
     assert.equal(phases.length, 1, 'too late to start: the event would already be over');
     clock = Date.parse('2026-11-24T09:28:30-03:00');

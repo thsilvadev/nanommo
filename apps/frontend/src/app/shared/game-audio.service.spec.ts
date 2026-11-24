@@ -376,3 +376,103 @@ describe('GameAudioService positional effects', () => {
     }
   });
 });
+
+describe('GameAudioService Smashing Spree music', () => {
+  let service: any;
+  let tracks: any[];
+  let event: { key: string; startsAt: number; now: number } | null;
+  const flush = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); };
+  const source = { eventMusic: () => event };
+  const playing = () => tracks.filter((t) => !t.paused);
+  beforeEach(() => {
+    localStorage.clear(); service = new GameAudioService(); tracks = []; event = null;
+    spyOn(window, 'requestAnimationFrame').and.returnValue(1);
+    spyOn(window, 'cancelAnimationFrame');
+    spyOn(window, 'Audio').and.callFake(function (src?: string) {
+      const track: any = { src, volume: 0, currentTime: 0, paused: true, loop: false, preload: '', readyState: 1, duration: 310, addEventListener: () => {} };
+      track.play = jasmine.createSpy('play').and.callFake(() => { track.paused = false; return Promise.resolve(); });
+      track.pause = jasmine.createSpy('pause').and.callFake(() => { track.paused = true; });
+      tracks.push(track); return track;
+    });
+    service.eventMusic = source;
+  });
+  afterEach(() => { service.destroy(); service.cancelMusicFade(); service.stopOtherMusicInstances(); });
+
+  it('replaces the Sierra music while the event runs, joining at its elapsed time, then goes back to Sierra', async () => {
+    service.updateMusic('map_town'); await flush();
+    expect(tracks[0].src).toContain('sierra-village.mp3');
+
+    // Arrives (or the event starts) 90 s in: the event track starts 90 s in.
+    event = { key: 'ss-1', startsAt: 1_000_000, now: 1_090_000 };
+    service.updateMusic('map_town'); await flush();
+    expect(tracks[1].src).toContain('new_packs/7/eventMusic.mp3');
+    expect(tracks[1].currentTime).toBe(90);
+    expect(service.music).toBe(tracks[1]);
+
+    // Polling during the event changes nothing.
+    service.updateMusic('map_town'); await flush();
+    expect(tracks.length).toBe(2);
+
+    // Over (time out or all prizes found): back to Sierra's own track, from the top.
+    event = null;
+    service.updateMusic('map_town'); await flush();
+    expect(tracks[2].src).toContain('sierra-village.mp3');
+    expect(tracks[2].currentTime).toBe(0);
+    expect(service.music).toBe(tracks[2]);
+  });
+
+  it('leaving stops the event music; coming back rejoins it where the event is now', async () => {
+    event = { key: 'ss-1', startsAt: 0, now: 30_000 };
+    service.updateMusic('map_town'); await flush();
+    expect(tracks[0].currentTime).toBe(30);
+
+    // Leaves town: the store reports no event, the destination's music plays.
+    event = null;
+    service.updateMusic('map_green_grounds_0'); await flush();
+    expect(tracks[1].src).toContain('green-grounds');
+    expect(service.music).toBe(tracks[1]);
+
+    // Back two minutes later: the event track again, 150 s in.
+    event = { key: 'ss-1', startsAt: 0, now: 150_000 };
+    service.updateMusic('map_town'); await flush();
+    expect(tracks[2].src).toContain('eventMusic.mp3');
+    expect(tracks[2].currentTime).toBe(150);
+  });
+
+  it('measures the join point when the track can actually start (autoplay held it back)', async () => {
+    let allow = false;
+    (window.Audio as unknown as jasmine.Spy).and.callFake(function (src?: string) {
+      const track: any = { src, volume: 0, currentTime: 0, paused: true, loop: false, preload: '', readyState: 1, duration: 310, addEventListener: () => {} };
+      track.play = jasmine.createSpy('play').and.callFake(() => (allow ? (track.paused = false, Promise.resolve()) : Promise.reject(new Error('blocked'))));
+      track.pause = jasmine.createSpy('pause');
+      tracks.push(track); return track;
+    });
+    event = { key: 'ss-1', startsAt: 0, now: 10_000 };
+    service.updateMusic('map_town'); await flush();
+    expect(service.pendingMusicBlocked).toBeTrue();
+    event = { key: 'ss-1', startsAt: 0, now: 70_000 };
+    allow = true;
+    document.dispatchEvent(new Event('pointerdown'));
+    await flush();
+    expect(tracks[0].currentTime).toBe(70);
+    expect(service.music).toBe(tracks[0]);
+  });
+
+  it('a new event restarts the event track from its own start', async () => {
+    event = { key: 'ss-1', startsAt: 0, now: 200_000 };
+    service.updateMusic('map_town'); await flush();
+    event = { key: 'ss-2', startsAt: 500_000, now: 500_000 };
+    service.updateMusic('map_town'); await flush();
+    expect(tracks.length).toBe(2);
+    expect(tracks[1].currentTime).toBe(0);
+    expect(playing()).toContain(tracks[1]);
+  });
+
+  it('start() takes the event source and destroy() forgets it', () => {
+    const fresh: any = new GameAudioService();
+    fresh.start({ character: () => null }, {}, {}, source);
+    expect(fresh.eventMusic).toBe(source);
+    fresh.destroy();
+    expect(fresh.eventMusic).toBeNull();
+  });
+});

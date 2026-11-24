@@ -80,7 +80,7 @@ export class PlayComponent implements OnInit, OnDestroy {
       // Loading screen: three.js, the town catalogue, bodies, animations and every player's gear are
       // downloaded and prepared once before the game shows (a town with 200 players never waits on them).
       this.gamePreload.start(this.townScene.preload ? (onProgress) => this.townScene.preload!(onProgress) : undefined);
-      this.battle.bindEvents(this.character, this.inventory); this.gameAudio.start(this.character, this.battle, this.inventory);
+      this.battle.bindEvents(this.character, this.inventory); this.gameAudio.start(this.character, this.battle, this.inventory, this.town);
       void Promise.all([this.character.load(), this.inventory.load(), this.battle.load(), this.catalog.load()]).then(() => { this.tryShowConnectionTip(); void this.loadActiveGambitTitle(); });
     }
     ngOnDestroy() { this.tipConnectionSubscription?.unsubscribe(); this.actions.stop(); this.partyResourceSubscription?.unsubscribe(); this.party.stop(); this.town.stop(); this.mailArrivalSubscription?.unsubscribe(); this.gameAudio.destroy(); }

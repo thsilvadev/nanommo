@@ -16,9 +16,10 @@ assert.equal(at('2026-11-24T09:29:30-03:00').minutes, 1);
 const p0329 = at('2026-11-24T03:29:59-03:00');
 assert.equal(p0329.kind, 'announce'); assert.equal(p0329.minutes, 1); assert.equal(p0329.startMs, Date.parse('2026-11-24T03:30:00-03:00'));
 // Start and end.
-assert.deepEqual(at('2026-11-24T09:30:05-03:00'), { kind: 'start', eventKey: `ss-${start930}`, startMs: start930, endsAt: start930 + 120000 });
-assert.deepEqual(at('2026-11-24T09:32:00-03:00'), { kind: 'end', eventKey: `ss-${start930}`, startMs: start930 });
+assert.deepEqual(at('2026-11-24T09:30:05-03:00'), { kind: 'start', eventKey: `ss-${start930}`, startMs: start930, endsAt: start930 + 300000 });
+assert.deepEqual(at('2026-11-24T09:35:00-03:00'), { kind: 'end', eventKey: `ss-${start930}`, startMs: start930 });
 assert.equal(at('2026-11-24T09:31:00-03:00'), null);
+assert.equal(at('2026-11-24T09:34:00-03:00'), null);
 assert.equal(at('2026-11-24T12:00:00-03:00'), null);
 assert.equal(at('2026-11-24T15:30:00-03:00').kind, 'start');
 assert.equal(at('2026-11-24T21:30:00-03:00').kind, 'start');
@@ -30,12 +31,16 @@ assert.equal(at('2026-11-24T09:30:00Z'), null);
 // Placement.
 const towns = require(path.join(root, 'town_scenes.json')).towns;
 assert.equal(towns.length, 5);
-for (const def of towns) {
+// Sierra Village only, 500 vases, five minutes (user, 2026-11-24).
+assert.equal(cfg.townMapId, 'map_town');
+assert.equal(cfg.vasesPerTown, 500);
+assert.equal(cfg.durationSeconds, 300);
+for (const def of towns.filter((t) => t.mapId === cfg.townMapId)) {
   const nav = new TownNav(def);
   const seed = eventSeed(`ss-${start930}`, def.mapId);
   const vases = placeVases(def, nav, seed, cfg);
-  assert.equal(vases.length, 200, def.mapId);
-  assert.deepEqual(vases.map(v => v.id), Array.from({ length: 200 }, (_, i) => `v${String(i).padStart(3, '0')}`));
+  assert.equal(vases.length, 500, def.mapId);
+  assert.deepEqual(vases.map(v => v.id), Array.from({ length: 500 }, (_, i) => `v${String(i).padStart(3, '0')}`));
   const reach = nav.reachableFrom(def.spawn.x, def.spawn.z);
   for (const v of vases) {
     const cx = Math.floor(v.x), cz = Math.floor(v.z);

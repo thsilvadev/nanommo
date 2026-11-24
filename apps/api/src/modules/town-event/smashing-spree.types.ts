@@ -4,6 +4,8 @@ export interface SmashingSpreePrizeRule { count: number; quantity: number; itemI
 
 export interface SmashingSpreeConfig {
   timezone: string;
+  /** The one town the event runs in (Sierra Village = map_town). */
+  townMapId: string;
   startTimes: string[];
   announceMinutesBefore: number[];
   durationSeconds: number;
@@ -24,12 +26,14 @@ const positive = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && 
 const positiveInt = (v: unknown) => positive(v) && Number.isInteger(v);
 
 /** Every problem in the `smashingSpree` block of town_events.json (empty when valid). */
-export function validateSmashingSpreeConfig(raw: unknown, itemIds: Set<string>): string[] {
+export function validateSmashingSpreeConfig(raw: unknown, itemIds: Set<string>, townSceneMapIds?: Set<string>): string[] {
   const errors: string[] = [];
   const cfg = raw as Partial<SmashingSpreeConfig> | null;
   if (!cfg || typeof cfg !== 'object') return ['smashingSpree block is missing'];
   if (typeof cfg.timezone !== 'string' || !cfg.timezone) errors.push('timezone is required');
   else { try { new Intl.DateTimeFormat('en-US', { timeZone: cfg.timezone }); } catch { errors.push(`unknown timezone ${cfg.timezone}`); } }
+  if (typeof cfg.townMapId !== 'string' || !cfg.townMapId) errors.push('townMapId is required');
+  else if (townSceneMapIds && !townSceneMapIds.has(cfg.townMapId)) errors.push(`townMapId ${cfg.townMapId} has no town scene`);
   if (!Array.isArray(cfg.startTimes) || !cfg.startTimes.length) errors.push('startTimes must be a non-empty array');
   else for (const t of cfg.startTimes) if (typeof t !== 'string' || !HH_MM.test(t)) errors.push(`startTimes entry ${String(t)} must be HH:MM`);
   if (!Array.isArray(cfg.announceMinutesBefore)) errors.push('announceMinutesBefore must be an array');

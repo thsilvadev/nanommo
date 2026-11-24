@@ -4,7 +4,7 @@
 export interface TownEventVase { id: string; x: number; z: number; rot: number; variant: number }
 
 /** Live event state of one town (only unbroken vases). */
-export interface TownEventSnapshot { eventKey: string; mapId: string; endsAt: number; vases: TownEventVase[] }
+export interface TownEventSnapshot { eventKey: string; mapId: string; startsAt: number; endsAt: number; vases: TownEventVase[] }
 
 export interface TownEventVaseBroken { mapId: string; eventKey: string; vaseId: string; byCharacterId: string; at: number; prize: boolean }
 

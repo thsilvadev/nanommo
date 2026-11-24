@@ -24,7 +24,7 @@ export function devStartPhases(nowMs: number, durationSeconds: number): [Smashin
 async function main(): Promise<void> {
   if (process.env.NODE_ENV === 'production') throw new Error('smashing-spree-start-now is a development tool');
   const queue = new Bull(QUEUE, { redis: getRedisConnectionOptions() });
-  const duration = Number(process.env.SMASHING_SPREE_SECONDS ?? 120);
+  const duration = Number(process.env.SMASHING_SPREE_SECONDS ?? 300);
   const [start, end] = devStartPhases(Date.now(), duration);
   await queue.add(RUN_PHASE, { phase: start }, { removeOnComplete: true });
   await queue.add(RUN_PHASE, { phase: end }, { delay: duration * 1000, removeOnComplete: true });

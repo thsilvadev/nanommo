@@ -11,7 +11,7 @@ const towns = require(path.join(root, 'town_scenes.json')).towns;
 const mapIds = towns.map((t) => t.mapId);
 const startMs = Date.parse('2026-11-24T09:30:00-03:00');
 const eventKey = `ss-${startMs}`;
-const startPhase = { kind: 'start', eventKey, startMs, endsAt: startMs + 120000 };
+const startPhase = { kind: 'start', eventKey, startMs, endsAt: startMs + cfg.durationSeconds * 1000 };
 
 let clock = startMs + 1000;
 const realNow = Date.now;
@@ -25,7 +25,7 @@ function setup() {
   const chat = { announceServerMessage: async (...args) => announces.push(args), announceEventFind: async (...args) => finds.push(args) };
   const grants = [];
   const grant = { grant: async (...args) => { grants.push(args); return 'bag'; } };
-  const data = { getSmashingSpreeConfig: () => cfg, getTownSceneMapIds: () => mapIds, getTownScene: (id) => towns.find((t) => t.mapId === id) ?? null };
+  const data = { getSmashingSpreeConfig: () => cfg, getTownSceneMapIds: () => mapIds, getTownScene: (id) => towns.find((t) => t.mapId === id) ?? null, getMaps: () => [{ id: 'map_town', name: 'Sierra Village' }] };
   const svc = new TownEventService(redis, data, roster, chat, grant);
   return { svc, redis, poses, announces, finds, grants };
 }
@@ -39,12 +39,16 @@ const standAt = (poses, id, mapId, v, dx = 0) => poses.set(id, { mapId, x: v.x +
     const { svc, redis, announces } = setup();
     await svc.runPhase(startPhase); await svc.runPhase(startPhase);
     const vases = ofEvent(redis, 'town:event:vases');
-    assert.equal(vases.length, 5);
-    for (const v of vases) { assert.equal(v.payload.vases.length, 200); assert.equal(v.payload.endsAt, startPhase.endsAt); assert.ok(!JSON.stringify(v.payload).includes('itemId')); }
+    assert.equal(vases.length, 1, 'Sierra Village only');
+    assert.equal(vases[0].payload.mapId, 'map_town');
+    for (const v of vases) { assert.equal(v.payload.vases.length, 500); assert.equal(v.payload.startsAt, startMs); assert.equal(v.payload.endsAt, startPhase.endsAt); assert.ok(!JSON.stringify(v.payload).includes('itemId')); }
+    assert.equal(await svc.activeEvent('map_outpost'), null, 'no vases in other towns');
+    assert.equal((await svc.activeEvent('map_town')).startsAt, startMs);
     assert.equal(announces.length, 1); assert.equal(announces[0][2], 'event.smashingSpree.started');
+    assert.deepEqual(announces[0][3], { mapId: 'map_town' }); assert.match(announces[0][0], /in Sierra Village!/);
     await svc.runPhase({ kind: 'announce', eventKey, startMs, minutes: 5 }); await svc.runPhase({ kind: 'announce', eventKey, startMs, minutes: 5 });
-    assert.equal(announces.length, 2); assert.equal(announces[1][2], 'event.smashingSpree.soon'); assert.deepEqual(announces[1][3], { minutes: 5 });
-    assert.match(announces[1][0], /Smashing Spree starts in 5 minutes/);
+    assert.equal(announces.length, 2); assert.equal(announces[1][2], 'event.smashingSpree.soon'); assert.deepEqual(announces[1][3], { minutes: 5, mapId: 'map_town' });
+    assert.match(announces[1][0], /Smashing Spree starts in 5 minutes! Head to Sierra Village\./);
   }
   // Hit validation.
   {
@@ -77,7 +81,7 @@ const standAt = (poses, id, mapId, v, dx = 0) => poses.set(id, { mapId, x: v.x +
     clock = startMs + 1000;
     const { svc, poses, redis } = setup();
     await svc.runPhase(startPhase);
-    const town = 'map_outpost';
+    const town = 'map_town';
     const [v] = await vasesOf(svc, town);
     standAt(poses, 'a', town, v, 0.3); standAt(poses, 'b', town, v, -0.3);
     const results = await Promise.all([svc.hitVase('a', v.id), svc.hitVase('b', v.id)]);
@@ -101,7 +105,7 @@ const standAt = (poses, id, mapId, v, dx = 0) => poses.set(id, { mapId, x: v.x +
     clock = startMs + 1000;
     const { svc, poses, redis, grants, finds } = setup();
     await svc.runPhase(startPhase);
-    const town = 'map_kwaioua_taba';
+    const town = 'map_town';
     const prizeIds = Object.keys(await redis.hgetall(`ss:${eventKey}:${town}:prizes`));
     assert.equal(prizeIds.length, 20);
     const vases = await vasesOf(svc, town);
@@ -124,7 +128,17 @@ const standAt = (poses, id, mapId, v, dx = 0) => poses.set(id, { mapId, x: v.x +
     clock = startPhase.endsAt + 5000;
     await svc.runPhase({ kind: 'end', eventKey, startMs }); await svc.runPhase({ kind: 'end', eventKey, startMs });
     const timeouts = ofEvent(redis, 'town:event:ended').filter((e) => e.payload.reason === 'timeout');
-    assert.equal(timeouts.length, 4, 'only towns still active');
+    assert.equal(timeouts.length, 0, 'ended early: no timeout');
+  }
+  // Timeout end in Sierra Village.
+  {
+    clock = startMs + 1000;
+    const { svc, redis } = setup();
+    await svc.runPhase(startPhase);
+    clock = startPhase.endsAt + 5000;
+    await svc.runPhase({ kind: 'end', eventKey, startMs }); await svc.runPhase({ kind: 'end', eventKey, startMs });
+    const timeouts = ofEvent(redis, 'town:event:ended').filter((e) => e.payload.reason === 'timeout');
+    assert.equal(timeouts.length, 1); assert.equal(timeouts[0].payload.mapId, 'map_town');
   }
   // vasePosition.
   {

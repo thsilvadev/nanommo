@@ -128,6 +128,7 @@ describe('TownStore — Smashing Spree vases', () => {
   let store: TownStore;
   let selfPos: [number, number] | null;
   let inventory: { load: jasmine.Spy };
+  let character: ReturnType<typeof signal<any>>;
   const vases = [{ id: 'v000', x: 10, z: 10, rot: 0, variant: 0 }, { id: 'v001', x: 20, z: 20, rot: 0, variant: 1 }];
   const hits = () => socket.emit.calls.allArgs().filter((a: any[]) => a[0] === 'town:hitVase');
   const moves = () => socket.emit.calls.allArgs().filter((a: any[]) => a[0] === 'town:move');
@@ -150,18 +151,19 @@ describe('TownStore — Smashing Spree vases', () => {
     clock.now.and.callFake(() => Date.now());
     clock.sync.and.resolveTo();
     inventory = { load: jasmine.createSpy('load').and.resolveTo() };
+    character = signal<any>({ id: 'hero', currentMapId: 'map_town' });
     TestBed.configureTestingModule({ providers: [
       TownStore,
       { provide: GameSocketService, useValue: socket },
       { provide: ServerClockService, useValue: clock },
-      { provide: CharacterStore, useValue: { character: signal<any>({ id: 'hero', currentMapId: 'map_town' }) } },
+      { provide: CharacterStore, useValue: { character } },
       { provide: InventoryStore, useValue: inventory },
     ] });
     store = TestBed.inject(TownStore);
     store.start();
     selfPos = [10.5, 10];
     store.setSelfPosition(() => selfPos);
-    events.get('town:roster')!.next({ mapId: 'map_town', serverNow: 1_000_000, entries: [entry('hero')], event: { eventKey: 'ss-1', mapId: 'map_town', endsAt: 1_120_000, vases } });
+    events.get('town:roster')!.next({ mapId: 'map_town', serverNow: 1_000_000, entries: [entry('hero')], event: { eventKey: 'ss-1', mapId: 'map_town', startsAt: 970_000, endsAt: 1_120_000, vases } });
   });
   afterEach(() => { store.stop(); jasmine.clock().uninstall(); });
 
@@ -244,5 +246,37 @@ describe('TownStore — Smashing Spree vases', () => {
     await store.breakVase('v000');
     await flush();
     expect(inventory.load).toHaveBeenCalled();
+  });
+
+  it('eventMusic: the live event of my town, with its start and the server time', () => {
+    expect(store.eventMusic()).toEqual({ key: 'ss-1', startsAt: 970_000, now: 1_000_000 });
+    expect(store.vaseEvent()!.startsAt).toBe(970_000);
+  });
+
+  it('eventMusic: none once the event ends (early or by time)', () => {
+    events.get('town:event:ended')!.next({ mapId: 'map_town', eventKey: 'ss-1', reason: 'all-prizes-found' });
+    expect(store.eventMusic()).toBeNull();
+    events.get('town:roster')!.next({ mapId: 'map_town', serverNow: 1_000_000, entries: [entry('hero')], event: { eventKey: 'ss-1', mapId: 'map_town', startsAt: 970_000, endsAt: 1_120_000, vases } });
+    jasmine.clock().tick(120_000);
+    expect(store.eventMusic()).toBeNull();
+  });
+
+  it('eventMusic: leaving town drops it at once; a snapshot on return brings it back', () => {
+    events.get('town:leave')!.next({ mapId: 'map_town', characterId: 'hero' });
+    expect(store.vaseEvent()).toBeNull();
+    expect(store.eventMusic()).toBeNull();
+    jasmine.clock().tick(60_000);
+    events.get('town:roster')!.next({ mapId: 'map_town', serverNow: 1_060_000, entries: [entry('hero')], event: { eventKey: 'ss-1', mapId: 'map_town', startsAt: 970_000, endsAt: 1_120_000, vases } });
+    expect(store.eventMusic()).toEqual({ key: 'ss-1', startsAt: 970_000, now: 1_060_000 });
+  });
+
+  it('eventMusic: not while the character is on another map', () => {
+    character.set({ id: 'hero', currentMapId: 'map_green_grounds_0' });
+    expect(store.eventMusic()).toBeNull();
+  });
+
+  it('town:event:vases carries the start', () => {
+    events.get('town:event:vases')!.next({ mapId: 'map_town', eventKey: 'ss-2', startsAt: 1_000_000, endsAt: 1_300_000, vases });
+    expect(store.eventMusic()).toEqual({ key: 'ss-2', startsAt: 1_000_000, now: 1_000_000 });
   });
 });
