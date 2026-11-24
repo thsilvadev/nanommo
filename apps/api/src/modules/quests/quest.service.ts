@@ -1,4 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { Redis } from 'ioredis';
+import { REDIS_CLIENT } from '../../config/redis.provider';
+import { publishItemsObtainedVia } from '../gateway/gateway.service';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'crypto';
@@ -21,6 +24,7 @@ export class QuestService {
     @InjectRepository(QuestInstance) private readonly instances: Repository<QuestInstance>,
     private readonly data: DataService,
     config: ConfigService,
+    @Optional() @Inject(REDIS_CLIENT) private readonly redis?: Redis,
   ) {
     const raw = config.get<string>('QUEST_ACTIVE_LIMIT');
     const value = raw === undefined || raw === '' ? 5 : Number(raw);
@@ -378,7 +382,8 @@ export class QuestService {
   }
   async turnIn(characterId: string, instanceId: string): Promise<any> {
     await this.withExpiry(characterId);
-    return this.instances.manager.transaction(async manager => {
+    let granted: Array<{ itemId: string; quantity: number }> = [];
+    const outcome = await this.instances.manager.transaction(async manager => {
       const character = await this.characterAtTown(manager, characterId);
       const repo = manager.getRepository(QuestInstance);
       const instance = await repo.findOne({ where: { id: instanceId, characterId }, lock: { mode: 'pessimistic_write' } });
@@ -397,6 +402,7 @@ export class QuestService {
       if (!this.canFitRewards(afterConsume, rewardRows)) throw new BadRequestException('Not enough Inventory space for all quest rewards');
       await this.consumeRequirements(manager, characterId, fresh.id, requirements);
       for (const reward of rewardRows) await this.grantItem(manager, character, reward);
+      granted = rewardRows.map((reward) => ({ itemId: reward.itemId, quantity: Number(reward.quantity) }));
       const rewards = quest.rewards ?? {};
       character.gold = Math.min(GOLD_CAP, Number(character.gold) + Number(rewards.gold ?? 0));
       let xp = Math.max(0, Number(character.xp ?? 0)) + Number(rewards.characterXp ?? 0); let level = Math.max(1, Number(character.level ?? 1)); let gained = 0;
@@ -413,6 +419,8 @@ export class QuestService {
           npcText: completion.npcText ?? quest.description,
           buttonText: completion.buttonText, action: 'close' } : null };
     });
+    if (this.redis) await publishItemsObtainedVia(this.redis, characterId, granted, 'quest').catch(() => undefined);
+    return outcome;
   }
   private cookingThreshold(level: number): number { const known = [0,20,44,78,128,328,828,1578]; if (level <= 1) return 0; if (known[level-1] !== undefined) return known[level-1]; let total=known[known.length-1], increment=known[known.length-1]-known[known.length-2]; for(let current=known.length;current<level;current++){increment=Math.floor(increment*1.5);total+=increment;}return total; }
   private cookingLevelForXp(xp: number): number { let level=1; while(level<99 && xp>=this.cookingThreshold(level+1)) level++; return level; }

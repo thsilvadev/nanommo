@@ -51,6 +51,13 @@ export function mergeObtained(items: ObtainedItem[]): ObtainedItem[] {
   return [...merged].map(([itemId, quantity]) => ({ itemId, quantity }));
 }
 
+/** Publishes `inventory:obtained` on any Redis client (for services that do not hold GatewayService). */
+export async function publishItemsObtainedVia(redis: Pick<Redis, 'publish'>, characterId: string, items: ObtainedItem[], source: ObtainedSource): Promise<void> {
+  const merged = mergeObtained(items);
+  if (!merged.length) return;
+  await redis.publish(`gateway:inventory:obtained:${characterId}`, JSON.stringify({ items: merged, source }));
+}
+
 /**
  * GatewayService — publishes server events to Redis pub/sub.
  * NanommoGateway consumes those channels and emits the corresponding Socket.IO events.
@@ -125,10 +132,8 @@ export class GatewayService {
    * Call after the transaction commits. Nothing to show publishes nothing.
    */
   async publishItemsObtained(characterId: string, items: ObtainedItem[], source: ObtainedSource): Promise<void> {
-    const merged = mergeObtained(items);
-    if (!merged.length) return;
     try {
-      await this.redis.publish(`gateway:inventory:obtained:${characterId}`, JSON.stringify({ items: merged, source }));
+      await publishItemsObtainedVia(this.redis, characterId, items, source);
     } catch (error) {
       this.logger.warn(`inventory:obtained publish failed for ${characterId}: ${error instanceof Error ? error.message : String(error)}`);
     }

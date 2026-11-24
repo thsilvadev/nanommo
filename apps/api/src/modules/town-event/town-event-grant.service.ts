@@ -32,13 +32,20 @@ export class TownEventGrantService {
 
   async grant(characterId: string, eventKey: string, mapId: string, vaseId: string, prize: TownEventPrize): Promise<PrizeDelivery> {
     const sourceKey = `smashing-spree:${eventKey}:${mapId}:${vaseId}`;
+    let inBag = false;
     try {
       await this.battle.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async (manager) => {
         await this.inventory.addItem(characterId, prize.itemId, prize.quantity, 'inventory', undefined, manager);
       }));
-      return 'bag';
+      inBag = true;
     } catch (error) {
       this.logger.warn(`Smashing Spree prize ${sourceKey} could not go to the bag (${this.describe(error)}); sending by mail`);
+    }
+    if (inBag) {
+      // Committed: a failing toast must never fall through to the mail fallback (that would grant twice).
+      try { await this.gateway.publishItemsObtained(characterId, [{ itemId: prize.itemId, quantity: prize.quantity }], 'event'); }
+      catch (error) { this.logger.warn(`inventory:obtained failed for ${sourceKey}: ${this.describe(error)}`); }
+      return 'bag';
     }
     try {
       const message = await this.mail.sendSystemMail(

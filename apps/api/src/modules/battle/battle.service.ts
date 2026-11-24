@@ -40,7 +40,7 @@ import { EquipmentService } from '../equipment/equipment.service';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { Redis } from 'ioredis';
 import { IdleJournalService } from '../chat/chat-history.service';
-import { GatewayService, BattleResolvedPayload, CharacterLeveledUpPayload, CharacterDiedPayload } from '../gateway/gateway.service';
+import { GatewayService, BattleResolvedPayload, CharacterLeveledUpPayload, CharacterDiedPayload, ObtainedSource } from '../gateway/gateway.service';
 import { MapPresenceService } from '../presence/map-presence.service';
 import { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
 import { getBattleRuntimeConfig } from '../../config/battle-runtime.config';
@@ -1786,8 +1786,8 @@ export class BattleService {
     });
   }
 
-  /** `inventory:obtained` for callers that already hold BattleService (gathering). */
-  async publishItemsObtained(characterId: string, items: Array<{ itemId: string; quantity: number }>, source: 'gather'): Promise<void> {
+  /** `inventory:obtained` for callers that already hold BattleService (gathering, town crafting and vendor). */
+  async publishItemsObtained(characterId: string, items: Array<{ itemId: string; quantity: number }>, source: ObtainedSource): Promise<void> {
     await this.gatewayService.publishItemsObtained(characterId, items, source);
   }
 

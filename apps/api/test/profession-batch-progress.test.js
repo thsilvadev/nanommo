@@ -9,7 +9,7 @@ const {Character}=require('../dist/apps/api/src/database/entities/character.enti
  const manager={getRepository:entity=>entity===Character?repo:{find:async()=>[{itemId:'ore',quantity:ore}]}};
  repo.manager={transaction:async fn=>fn(manager)};
  const service=Object.create(TownService.prototype);
- Object.assign(service,{characterRepo:repo,dataService:{getBlacksmithRecipes:()=>({recipes:[recipe]}),getItemById:()=>({id:'ingot',type:'material'})},inventoryService:{removeItem:async(_c,_i,n)=>{ore-=n;},addItem:async(_c,_i,n)=>delivered.push(n)},battleService:{withCharacterQueueLock:async(_c,fn)=>fn(),runFutureCombatMutation:async(_c,fn)=>fn()},bullQueue:{add:async(...args)=>scheduled.push(args)}});
+ Object.assign(service,{characterRepo:repo,dataService:{getBlacksmithRecipes:()=>({recipes:[recipe]}),getItemById:()=>({id:'ingot',type:'material'})},inventoryService:{removeItem:async(_c,_i,n)=>{ore-=n;},addItem:async(_c,_i,n)=>delivered.push(n)},battleService:{withCharacterQueueLock:async(_c,fn)=>fn(),runFutureCombatMutation:async(_c,fn)=>fn(),publishItemsObtained:async()=>undefined},bullQueue:{add:async(...args)=>scheduled.push(args)}});
  await service.completeCrafting('c','batch');
  assert.deepEqual(delivered,[1],'each completion delivers just one unit');
  assert.equal(ore,4); assert.equal(character.blacksmithXp,5);

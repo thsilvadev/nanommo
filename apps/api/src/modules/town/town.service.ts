@@ -210,7 +210,7 @@ export class TownService {
     const total = unitPrice * quantity;
     if (!Number.isSafeInteger(total)) throw new BadRequestException('Transaction total is invalid');
 
-    return this.characterRepo.manager.transaction(async manager => {
+    const purchase = await this.characterRepo.manager.transaction(async manager => {
       const character = await this.characterForTown(manager, characterId);
       if (Number(character.gold) < total) throw new BadRequestException('Not enough gold');
       const stock = v.sellStock.find(x => x.itemId === itemId)!;
@@ -221,6 +221,8 @@ export class TownService {
       await this.addInventoryAtomic(manager, characterId, itemId, quantity);
       return { goldSpent: total, unitPrice, quantity, itemId };
     });
+    await this.battleService?.publishItemsObtained(characterId, [{ itemId, quantity }], 'vendor');
+    return purchase;
   }
 
   async sellToVendor(characterId: string, vendorId: string, itemId: string, quantity: number, sourceInventoryItemId?: string) {
@@ -581,6 +583,7 @@ export class TownService {
     }));
     if (result) {
       await this.chatService?.announceCraft(characterId, result.announcement.name, result.announcement.itemId, result.announcement.id);
+      await this.battleService?.publishItemsObtained(characterId, [{ itemId: result.announcement.itemId, quantity: 1 }], 'craft');
       if (result.nextSession) await this.scheduleCookingCompletion(characterId, result.nextSession);
       await this.battleService.runFutureCombatMutation(characterId, async () => undefined);
       // Each unit is committed independently; the next 10-second unit starts from this completion.
@@ -771,6 +774,7 @@ export class TownService {
     }));
     if (result) {
       await this.chatService?.announceCraft(characterId, result.announcement.name, result.announcement.itemId, result.announcement.id);
+      await this.battleService?.publishItemsObtained(characterId, [{ itemId: result.announcement.itemId, quantity: 1 }], 'craft');
       if (result.nextSession) await this.scheduleCraftingCompletion(characterId, result.nextSession);
       await this.battleService.runFutureCombatMutation(characterId, async () => undefined);
     }

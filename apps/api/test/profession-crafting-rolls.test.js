@@ -74,6 +74,7 @@ const inventoryService = {
 const battleService = {
   withCharacterQueueLock: async (_characterId, callback) => callback(),
   runFutureCombatMutation: async (_characterId, callback) => callback(),
+  publishItemsObtained: async () => undefined,
 };
 const town = new TownService(characterRepo, inventoryRepo, dataService, inventoryService, {}, battleService, {});
 const equippedRows = [{ characterId: character.id, slot: 'mainHand', itemId: definition.id, instanceData: null }];

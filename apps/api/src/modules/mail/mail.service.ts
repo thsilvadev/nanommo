@@ -175,7 +175,7 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
 
   async collectAttachments(characterId: string, mailId: string): Promise<void> {
     if (!characterId) throw new NotFoundException('Character not found for authenticated account');
-    return this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
+    const collected = await this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
       const characterRepo = manager.getRepository(Character);
       const character = await characterRepo.findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
       if (!character) throw new NotFoundException('Character not found');
@@ -246,7 +246,10 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
       mail.attachmentsCollected = true;
       mail.collected = true;
       await repo.save(mail);
+      return mail.itemId && Number(mail.quantity) > 0 ? [{ itemId: mail.itemId, quantity: Number(mail.quantity) }] : [];
     }));
+    // Gold is not an item: only attachments that landed in the bag toast.
+    if (collected.length) await this.gateway.publishItemsObtained(characterId, collected, 'mail');
   }
 
   async deleteMail(characterId: string, mailId: string): Promise<void> {

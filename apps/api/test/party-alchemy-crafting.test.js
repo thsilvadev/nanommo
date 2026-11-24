@@ -17,7 +17,7 @@ function fixture(level = 7) {
   svc.characterRepo = characterRepo;
   svc.inventoryRepo = inventoryRepo;
   svc.dataService = { getAlchemyRecipes: () => ({ recipes }), getItemById: item, getMapById: id => read('maps').maps.find(row => row.id === id), getNpcCatalog: () => read('npc_catalog') };
-  svc.battleService = { withCharacterQueueLock: async (_id, fn) => fn(), runFutureCombatMutation: async (_id, fn) => fn() };
+  svc.battleService = { withCharacterQueueLock: async (_id, fn) => fn(), runFutureCombatMutation: async (_id, fn) => fn(), publishItemsObtained: async () => undefined };
   svc.bullQueue = { getJob: async () => null, add: async (...args) => state.scheduled.push(args) };
   svc.inventoryService = {
     removeItem: async (_id, itemId, quantity, tx) => {
