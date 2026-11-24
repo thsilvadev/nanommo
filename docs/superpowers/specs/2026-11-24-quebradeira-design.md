@@ -1,5 +1,7 @@
 # Quebradeira town event + "item obtained" toast — design
 
+> **Name (user, 2026-11-24):** the event is **Quebra-Quebra** in pt-BR and **Smashing Spree** in en-US. Code identifiers use `smashingSpree` / `smashing-spree`; "Quebradeira" below is the old working name.
+
 Date: 2026-11-24. Status: approved by the user 2026-11-24.
 
 Two independent pieces, built in this order:

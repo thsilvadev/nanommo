@@ -1,5 +1,7 @@
 # Quebradeira + Item-Obtained Toast Implementation Plan
 
+> **Name (user, 2026-11-24):** the event is **Quebra-Quebra** in pt-BR and **Smashing Spree** in en-US. Code identifiers use `smashingSpree` / `smashing-spree`; "Quebradeira" below is the old working name.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A server-run town event ("Quebradeira") four times a day, where 200 vases per town break on one hit for prizes, plus a single-line "item obtained" toast for every real inventory gain.
@@ -189,7 +191,7 @@
 
   Announcements: `ChatService.announceServerMessage(message, id, key?, params?)`. Add the two optional args, and put `key`/`params` on the row.
   - Keys: `event.quebradeira.soon` `{minutes}`, `event.quebradeira.started`.
-  - English `message` fallbacks: `"The Quebradeira starts in N minute(s)! Head to any town."` / `"The Quebradeira has begun! Break the vases in town!"`.
+  - English `message` fallbacks: `"The Smashing Spree starts in N minute(s)! Head to any town."` / `"The Smashing Spree has begun! Break the vases in town!"`.
 
   Find line: `ChatService.announceEventFind(characterName, itemId, mapId, id)` publishes on `gateway:chat:global` a row `{channel:'journal', type:'event_find', key:'event.quebradeira.found', params:{name,itemId,mapId}, message}`. The row is not `server_announce`, so it causes no screen popup.
 
@@ -229,7 +231,7 @@
 - Consumes: `InventoryService.addItem(characterId, itemId, qty, 'inventory', undefined, manager)`; `MailService.sendSystemMail(characterId, subject, body, gold, attachments, manager?, sourceKey)` (check the exact attachment parameter shape against Market's buyer-item mail in `market.service.ts` ~line 195); `DataSource`.
 - Produces: `TownEventGrantService.grant(characterId, eventKey, mapId, vaseId, prize): Promise<'bag' | 'mail' | 'pending'>`.
   - `sourceKey = quebradeira:${eventKey}:${mapId}:${vaseId}`.
-  - Mail subject `"Quebradeira prize"`, body `"Your bag was full, so your Quebradeira prize is waiting here."`.
+  - Mail subject `"Smashing Spree prize"`, body `"Your bag was full, so your Smashing Spree prize is waiting here."`.
   - Pending: `LPUSH qb:pendingGrants JSON{characterId, eventKey, mapId, vaseId, prize, at}` plus `logger.error`.
   - On `'bag'`: push the inventory snapshot the same way other town actions do, and (once Part 2 lands) emit `inventory:obtained` source `'event'`. Leave a `// Task 11` marker only if Part 2 is not done yet.
   - On `'mail'`: `GatewayService.publishMailNewItem`.
@@ -380,9 +382,9 @@
 **Interfaces:**
 - Produces: `formatServerAnnounce(row: { key?: string; params?: Record<string, unknown>; message: string }, locale: GameLocale, itemName: (id: string) => string, mapName: (id: string) => string): string`.
   - `event.quebradeira.soon`:
-    - en `"The Quebradeira starts in {n} minute(s)! Head to any town."` → n=1: `"…in 1 minute!…"`, else `"…in N minutes!…"`;
-    - pt `"A Quebradeira começa em 1 minuto! Vá para qualquer cidade."` / `"…em N minutos!…"`.
-  - `event.quebradeira.started`: en `"The Quebradeira has begun! Break the vases in town!"`; pt `"A Quebradeira começou! Quebre os vasos na cidade!"`.
+    - en `"The Smashing Spree starts in {n} minute(s)! Head to any town."` → n=1: `"…in 1 minute!…"`, else `"…in N minutes!…"`;
+    - pt `"O Quebra-Quebra começa em 1 minuto! Vá para qualquer cidade."` / `"…em N minutos!…"`.
+  - `event.quebradeira.started`: en `"The Smashing Spree has begun! Break the vases in town!"`; pt `"O Quebra-Quebra começou! Quebre os vasos na cidade!"`.
   - `event.quebradeira.found`: en `"{name} found {item} in {town}!"`; pt `"{name} encontrou {item} em {town}!"`.
   - An unknown key → `row.message`.
 
