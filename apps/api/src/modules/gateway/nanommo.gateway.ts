@@ -544,6 +544,7 @@ export class NanommoGateway
       `gateway:mail:newItem:${characterId}`,
       `gateway:market:orderFilled:${characterId}`,
       `gateway:chat:journal:${characterId}`,
+      `gateway:inventory:obtained:${characterId}`,
     ];
 
     channels.forEach((channel) => {

@@ -36,6 +36,21 @@ export interface BattleQueueUpdatedPayload {
   audioCue?: 'gather';
 }
 
+/** Where an item that landed in the bag came from (the toast shows the same thing for all). */
+export type ObtainedSource = 'battle' | 'party_battle' | 'gather' | 'craft' | 'vendor' | 'mail' | 'quest' | 'event';
+export interface ObtainedItem { itemId: string; quantity: number }
+
+/** Sums repeated item ids, keeping first-seen order (the client shows the first one). */
+export function mergeObtained(items: ObtainedItem[]): ObtainedItem[] {
+  const merged = new Map<string, number>();
+  for (const item of items) {
+    const quantity = Number(item?.quantity);
+    if (!item?.itemId || !Number.isFinite(quantity) || quantity <= 0) continue;
+    merged.set(item.itemId, (merged.get(item.itemId) ?? 0) + quantity);
+  }
+  return [...merged].map(([itemId, quantity]) => ({ itemId, quantity }));
+}
+
 /**
  * GatewayService — publishes server events to Redis pub/sub.
  * NanommoGateway consumes those channels and emits the corresponding Socket.IO events.
@@ -103,6 +118,21 @@ export class GatewayService {
     );
   }
 
+
+  /**
+   * `inventory:obtained`: items that really landed in the bag (drops, gathering,
+   * crafting, vendor, mail, quests, event prizes; never storage moves or unequip).
+   * Call after the transaction commits. Nothing to show publishes nothing.
+   */
+  async publishItemsObtained(characterId: string, items: ObtainedItem[], source: ObtainedSource): Promise<void> {
+    const merged = mergeObtained(items);
+    if (!merged.length) return;
+    try {
+      await this.redis.publish(`gateway:inventory:obtained:${characterId}`, JSON.stringify({ items: merged, source }));
+    } catch (error) {
+      this.logger.warn(`inventory:obtained publish failed for ${characterId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
 
   /**
    * Emit mail:newItem event

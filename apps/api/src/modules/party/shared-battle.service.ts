@@ -124,6 +124,7 @@ export class SharedBattleService {
       }
       // Results and outbox reflect grants, not rolls discarded for capacity.
       awards[c.id].drops=grantedDrops;
+      if(grantedDrops.length)await this.event(ctx.manager,c.id,'inventory:obtained',{items:grantedDrops.map((d:any)=>({itemId:d.itemId,quantity:Number(d.quantity??1)})),source:'party_battle'});
       if(win&&alive.includes(c.id))for(const monster of input.actors.filter(a=>a.kind==='monster'))await this.quests.recordBattleVictory(ctx.manager,c,{id:`${locked.id}:${monster.id}`,monsterId:monster.definitionId,mapId:locked.mapId,endAt:new Date(at)},true);
       if(c.hpCurrent<=0){c.hpCurrent=1;c.spCurrent=0;c.currentMapId=c.savedTownMapId??TOWN_MAP_ID;c.status='town';c.travelIntent=null;c.lastDeathLog={version:2,battleId:locked.id,log:locked.log};await remove(c.id,'death');}
       await ctx.manager.getRepository(Character).save(c);

@@ -899,6 +899,7 @@ export class MapService {
     if (result.kind === 'updated') {
       await this.scheduleStationaryActivity(characterId, 10_000);
       if (result.granted > 0) await this.battleService.publishQueueUpdated(characterId, 'gather');
+      await this.battleService.publishItemsObtained(characterId, result.grantedJournalRows.map((row) => ({ itemId: row.itemId, quantity: 1 })), 'gather');
       const mapName = String(this.dataService.getMapById(result.mapId)?.name ?? result.mapId);
       for (const awarded of result.grantedJournalRows) {
         const itemName = String(this.dataService.getItemById(awarded.itemId)?.name ?? awarded.itemId);

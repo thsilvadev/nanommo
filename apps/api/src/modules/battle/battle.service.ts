@@ -1458,6 +1458,8 @@ export class BattleService {
     }
 
     if (result.kind === 'win' && result.dropNotificationState) {
+      // Only reached on the first successful resolution (duplicates returned above): one toast per real grant.
+      await this.gatewayService.publishItemsObtained(result.character.id, result.dropNotificationState.granted, 'battle');
       try {
         if (result.dropNotificationState.inventoryBecameFull) await this.notifications.publish(result.character.id, {
           kind: 'inventory_full', target: 'inventory',
@@ -1784,8 +1786,13 @@ export class BattleService {
     });
   }
 
-  private async grantBattleDropsBestEffort(character: Character, battle: BattleQueueEntry, manager: EntityManager): Promise<{ inventoryBecameFull: boolean; discardedRareDrops: string[] }> {
-    const result = { inventoryBecameFull: false, discardedRareDrops: [] as string[] };
+  /** `inventory:obtained` for callers that already hold BattleService (gathering). */
+  async publishItemsObtained(characterId: string, items: Array<{ itemId: string; quantity: number }>, source: 'gather'): Promise<void> {
+    await this.gatewayService.publishItemsObtained(characterId, items, source);
+  }
+
+  private async grantBattleDropsBestEffort(character: Character, battle: BattleQueueEntry, manager: EntityManager): Promise<{ inventoryBecameFull: boolean; discardedRareDrops: string[]; granted: Array<{ itemId: string; quantity: number }> }> {
+    const result = { inventoryBecameFull: false, discardedRareDrops: [] as string[], granted: [] as Array<{ itemId: string; quantity: number }> };
     if (!Array.isArray(battle.drops) || battle.drops.length === 0) return result;
     const inventoryRepo = manager.getRepository(InventoryItem);
     let inventoryRows = await inventoryRepo.count({ where: { characterId: character.id, location: 'inventory' } });
@@ -1798,6 +1805,7 @@ export class BattleService {
           continue;
         }
         await this.inventoryService.addItem(character.id, drop.itemId, quantity, 'inventory', drop.instanceData, manager);
+        result.granted.push({ itemId: drop.itemId, quantity });
         const nextCount = await inventoryRepo.count({ where: { characterId: character.id, location: 'inventory' } });
         if (inventoryRows < 50 && nextCount >= 50) result.inventoryBecameFull = true;
         inventoryRows = nextCount;
