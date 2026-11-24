@@ -13,6 +13,7 @@ import { BattleService } from '../battle/battle.service';
 import { MailService } from '../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { GatewayService } from '../gateway/gateway.service';
+import { ChatService } from '../chat/chat.service';
 
 const CHARACTER_GOLD_CAP = 1_000_000_000_000;
 
@@ -35,6 +36,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
     private readonly dataSource: DataSource,
     private readonly notifications: NotificationsService,
     private readonly gateway: GatewayService,
+    private readonly chatService: ChatService,
   ) {}
 
   onModuleInit(): void {
@@ -120,7 +122,7 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
 
   async placeSellOrder(characterId: string, itemId: string, quantity: number, pricePerUnit: number, _untrustedInstanceData?: any, inventoryItemId?: string): Promise<{ order: MarketOrder; matches: MarketDeal[] }> {
     if (!characterId) throw new NotFoundException('Character not found for authenticated account');
-    return this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
+    const result = await this.battleService.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async manager => {
       const characters = manager.getRepository(Character);
       const inventory = manager.getRepository(InventoryItem);
       const orders = manager.getRepository(MarketOrder);
@@ -160,6 +162,9 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       });
       return { order: await orders.save(order), matches: [] };
     }));
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    if (character) void this.chatService.announceMarketListing(character.name, itemId, quantity, pricePerUnit, result.order.id);
+    return result;
   }
 
   async purchaseOrder(characterId: string, orderId: string, quantity: number): Promise<MarketDeal> {
@@ -199,10 +204,10 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
         manager, `market-deal:${deal.id}:buyer-item`,
       );
       const sellerMail = await this.mailService.sendSystemMail(
-        seller.id, 'Market sale proceeds', 'Gold from your Market sale is waiting for collection in Town.', gross,
+        seller.id, 'Market sale proceeds', `Sold ${quantity}x ${itemDef.name ?? order.itemId} for ${gross} gold (${order.pricePerUnit} gold each). Gold is waiting for collection in Town.`, gross,
         undefined, manager, `market-deal:${deal.id}:seller-gold`,
       );
-      return { deal, buyerMail, sellerMail, buyerId: buyer.id, sellerId: seller.id };
+      return { deal, buyerMail, sellerMail, buyerId: buyer.id, sellerId: seller.id, sellerName: seller.name };
     }));
     const deal = delivery.deal;
     try {

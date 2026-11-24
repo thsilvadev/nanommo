@@ -55,6 +55,8 @@
   (hideFutureChange)="hideFutureMailArrivalNotices.set($event)"
   (close)="dismissMailArrivalNotice()" />
 
+<app-notification-messages />
+
 <div class="account-modal-backdrop" *ngIf="deleteAccountOpen()" (click)="cancelDeleteAccount()">
   <section class="account-modal" role="dialog" aria-modal="true" aria-labelledby="delete-account-title"
     (click)="$event.stopPropagation()">

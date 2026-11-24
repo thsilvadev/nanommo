@@ -9,7 +9,7 @@ import { BrowserNotificationsService } from './browser-notifications.service';
 import { TownStore } from './town.store';
 
 export interface VendorModal { mode:'buy'|'sell'; itemId:string; quantity:number; maxQuantity:number; unitPrice:number; sourceInventoryItemId?:string; instanceData?:any; itemInstanceData?:any; }
-export interface CookingState { progress:{level:number;xp:number;xpIntoLevel:number;xpToNextLevel:number;nextLevelXp:number}; recipes:any[]; session:any|null; }
+export interface CookingState { progress:{level:number;xp:number;xpIntoLevel:number;xpToNextLevel:number;nextLevelXp:number}; recipes:any[]; session:any|null; otherSessionActive?: boolean; }
 export interface ProfessionState { progress:any; recipes:any[]; session:any|null; profession:'alchemy'|'blacksmith'; otherSessionActive?:boolean; }
 
 /** Maximum amount selectable when selling the Inventory row that was dragged. */

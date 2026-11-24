@@ -1133,3 +1133,6 @@ CombatantDetailsComponent renders the seven combat stats and an optional drop se
 ### Craft item detail presentation — 2026-11-18
 
 Craft modals share a tooltip template backed by CatalogService.craftItemTooltipLines and the explicit craft-item-tooltip formatter. Only player-facing fields are selected; internal identifiers and arbitrary catalogue objects are never serialized. General inventory tooltip behavior stays separate. Craft popups reuse the body-mounted positioning directive with a short leave grace period to support scrolling longer content without clipping under modal containers.
+# Chat notifications and Market listings — 2026-11-24
+
+Market listing creation publishes a best-effort announcement after the order transaction commits, using a bounded Redis history and the existing chat gateway. Craft and Market live events feed upper notifications in the persistent play shell. System errors feed lower notifications. `server_announce` is a System message stored in a bounded Redis history; its upper notifications are queued for ten seconds each, and Craft/Market overlays arriving during one are suppressed while their channel histories remain available. No producer for server announcements is enabled yet. Market seller mail records the sold item and quantity in its body while retaining gold as the only attachment.

@@ -10,7 +10,7 @@ import { TownStore } from '../../core/town.store';
 
 type ChatRow = {
   id: string;
-  channel: 'global' | 'journal' | 'crafts';
+  channel: 'global' | 'journal' | 'crafts' | 'market';
   message: string;
   sentAt: string;
   username?: string;
@@ -32,12 +32,14 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly craftsEnabled = signal(localStorage.getItem('nanommo.chat.crafts.enabled') !== 'false');
   setCraftsEnabled(enabled: boolean): void { this.craftsEnabled.set(enabled); localStorage.setItem('nanommo.chat.crafts.enabled', String(enabled)); if (enabled) this.scrollToBottom(); }
   readonly journalEnabled = signal(localStorage.getItem('nanommo.chat.journal.enabled') !== 'false');
+  readonly marketEnabled = signal(localStorage.getItem('nanommo.chat.market.enabled') !== 'false');
+  setMarketEnabled(enabled: boolean): void { this.marketEnabled.set(enabled); localStorage.setItem('nanommo.chat.market.enabled', String(enabled)); if (enabled) this.scrollToBottom(); }
   readonly draft = signal('');
   readonly sending = signal(false);
   readonly error = signal('');
   readonly fontSizeLevel = signal(Math.max(0, Math.min(2, Number(localStorage.getItem('nanommo.chat.font-size') ?? 0) || 0)));
   readonly visibleMessages = computed(() => this.messages()
-    .filter(row => (row.channel !== 'journal' || this.journalEnabled()) && (row.channel !== 'crafts' || this.craftsEnabled()))
+    .filter(row => (row.channel !== 'journal' || this.journalEnabled()) && (row.channel !== 'crafts' || this.craftsEnabled()) && (row.channel !== 'market' || this.marketEnabled()))
     .slice(-40));
   private readonly subscriptions: Subscription[] = [];
   private wasAtBottom = true;
@@ -78,7 +80,7 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
 
   async loadHistory(): Promise<void> {
     const followBottom = this.wasAtBottom;
-    const [globalResult, systemResult, craftResult] = await Promise.all([
+    const [globalResult, systemResult, craftResult, marketResult] = await Promise.all([
       this.api.get<ChatRow[]>('/chat/history/global?limit=40').toPromise()
         .then(rows => ({ rows: rows ?? [], error: '' }))
         .catch(() => ({ rows: [] as ChatRow[], error: 'Unable to load Global chat history.' })),
@@ -86,13 +88,15 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
         .then(rows => ({ rows: rows ?? [], error: '' }))
         .catch(() => ({ rows: [] as ChatRow[], error: 'Unable to load System history.' })),
       this.api.get<ChatRow[]>('/chat/history/crafts?limit=40').toPromise().then(rows => ({ rows: rows ?? [], error: '' })).catch(() => ({ rows: [] as ChatRow[], error: 'Unable to load Crafts history.' })),
+      this.api.get<ChatRow[]>('/chat/history/market?limit=40').toPromise().then(rows => ({ rows: rows ?? [], error: '' })).catch(() => ({ rows: [] as ChatRow[], error: 'Unable to load Market history.' })),
     ]);
     this.merge([
       ...globalResult.rows,
       ...craftResult.rows,
+      ...marketResult.rows,
       ...systemResult.rows.map(row => ({ ...row, channel: 'journal' as const })),
     ]);
-    this.error.set([globalResult.error, systemResult.error, craftResult.error].filter(Boolean).join(' '));
+    this.error.set([globalResult.error, systemResult.error, craftResult.error, marketResult.error].filter(Boolean).join(' '));
     if (systemResult.rows.some(row => row.severity === 'error')) {
       this.setChannelEnabled('journal', true);
     } else if (followBottom) {
@@ -174,7 +178,7 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   trackRow(_index: number, row: ChatRow): string { return row.id; }
 
   private append(row: ChatRow): void {
-    if (!row || typeof row.message !== 'string' || (row.channel !== 'global' && row.channel !== 'journal' && row.channel !== 'crafts')) return;
+    if (!row || typeof row.message !== 'string' || !(['global', 'journal', 'crafts', 'market'] as string[]).includes(row.channel)) return;
     const follow = this.wasAtBottom;
     const isSystemError = row.channel === 'journal' && row.severity === 'error';
     this.merge([row]);
@@ -193,14 +197,15 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
     const all = new Map<string, ChatRow>();
     for (const row of [...this.messages(), ...rows]) {
       if (!row?.id || !row.sentAt || typeof row.message !== 'string') continue;
-      const channel: 'global' | 'journal' | 'crafts' = row.channel === 'journal' ? 'journal' : row.channel === 'crafts' ? 'crafts' : 'global';
+      const channel: ChatRow['channel'] = row.channel === 'journal' || row.channel === 'crafts' || row.channel === 'market' ? row.channel : 'global';
       all.set(row.id, { ...row, channel });
     }
     const merged = [...all.values()].sort((a, b) => Date.parse(a.sentAt) - Date.parse(b.sentAt) || a.id.localeCompare(b.id));
     const globalRows = merged.filter(row => row.channel === 'global').slice(-40);
     const journalRows = merged.filter(row => row.channel === 'journal').slice(-40);
     const craftRows = merged.filter(row => row.channel === 'crafts').slice(-40);
-    this.messages.set([...globalRows, ...journalRows, ...craftRows].sort((a, b) => Date.parse(a.sentAt) - Date.parse(b.sentAt) || a.id.localeCompare(b.id)));
+    const marketRows = merged.filter(row => row.channel === 'market').slice(-40);
+    this.messages.set([...globalRows, ...journalRows, ...craftRows, ...marketRows].sort((a, b) => Date.parse(a.sentAt) - Date.parse(b.sentAt) || a.id.localeCompare(b.id)));
   }
 
   private scrollToBottom(): void {

@@ -1,12 +1,13 @@
-import { Directive, ElementRef, NgZone, OnDestroy, inject } from '@angular/core';
+import { AfterViewInit, Directive, ElementRef, NgZone, OnDestroy, inject } from '@angular/core';
 
 @Directive({
   selector: '.item-tooltip:not(.diet-tooltip):not(.status-tooltip), .diet-slot, .status-icon, .status-effect-icon',
   standalone: true,
 })
-export class TooltipPositionDirective implements OnDestroy {
-  private readonly anchor: HTMLElement;
+export class TooltipPositionDirective implements AfterViewInit, OnDestroy {
+  private anchor!: HTMLElement;
   private readonly host: HTMLElement;
+  private readonly zone = inject(NgZone);
   private floating: HTMLElement | null = null;
   private raf = 0;
   private pointer = { x: 0, y: 0 };
@@ -55,13 +56,16 @@ export class TooltipPositionDirective implements OnDestroy {
 
   constructor(element: ElementRef<HTMLElement>) {
     this.host = element.nativeElement;
+  }
+
+  ngAfterViewInit(): void {
     this.anchor = this.host.classList.contains('diet-slot') || this.host.classList.contains('status-icon') || this.host.classList.contains('status-effect-icon')
       ? this.host
       : this.host.parentElement as HTMLElement;
     if (!this.anchor) return;
     // Plain DOM work (clone, position, refresh): listeners and timers stay outside the
     // Angular zone, otherwise every pointermove over an item re-checks the whole app.
-    inject(NgZone).runOutsideAngular(() => {
+    this.zone.runOutsideAngular(() => {
       this.anchor.addEventListener('pointerenter', this.onEnter);
       this.anchor.addEventListener('pointermove', this.onMove);
       this.anchor.addEventListener('pointerleave', this.onLeave);

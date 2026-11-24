@@ -51,9 +51,14 @@ export class ChatService {
       const safe = Math.max(1, Math.min(40, Math.floor(Number(limit) || 40)));
       return (await this.redis.lrange('chat:crafts', 0, safe - 1)).map(row => JSON.parse(row)).reverse();
     }
+    if (channel === 'market') {
+      const safe = Math.max(1, Math.min(40, Math.floor(Number(limit) || 40)));
+      return (await this.redis.lrange('chat:market', 0, safe - 1)).map(row => JSON.parse(row)).reverse();
+    }
     if (channel === 'journal') {
       if (!characterId) throw new BadRequestException('Character context is required for Idle Journal');
-      return this.transientHistory.listJournal(characterId, limit);
+      const [journal, announces] = await Promise.all([this.transientHistory.listJournal(characterId, limit), this.redis.lrange('chat:server-announces', 0, 39)]);
+      return [...journal, ...announces.map(row => JSON.parse(row))].sort((a, b) => Date.parse(a.sentAt) - Date.parse(b.sentAt)).slice(-Math.max(1, Math.min(40, Number(limit) || 40)));
     }
     throw new BadRequestException('Unsupported chat channel');
   }
@@ -85,7 +90,27 @@ export class ChatService {
     }
   }
 
-  async getAvailableChannels(): Promise<any[]> { return ['global', 'journal', 'crafts']; }
+  async announceMarketListing(characterName: string, itemId: string, quantity: number, pricePerUnit: number, listingId: string): Promise<void> {
+    const item = this.dataService.getItemById(itemId);
+    const row = { id: `market:${listingId}`, channel: 'market', message: `${characterName} posted ${quantity}x ${item?.name ?? itemId} for ${pricePerUnit} gold each.`, sentAt: new Date().toISOString() };
+    try {
+      const accepted = await this.redis.set(`chat:market:dedupe:${listingId}`, '1', 'EX', 604800, 'NX');
+      if (accepted !== 'OK') return;
+      const serialized = JSON.stringify(row);
+      await this.redis.multi().lpush('chat:market', serialized).ltrim('chat:market', 0, 39).exec();
+      await this.redis.publish('gateway:chat:global', serialized);
+    } catch (error) {
+      this.logger.error(`Market announcement failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  async announceServerMessage(message: string, id: string): Promise<void> {
+    const row = { id: `server:${id}`, channel: 'journal', type: 'server_announce', message, sentAt: new Date().toISOString() };
+    try { const serialized = JSON.stringify(row); await this.redis.multi().lpush('chat:server-announces', serialized).ltrim('chat:server-announces', 0, 39).exec(); await this.redis.publish('gateway:chat:global', serialized); }
+    catch (error) { this.logger.error(`Server message fan-out failed: ${error instanceof Error ? error.message : String(error)}`); }
+  }
+
+  async getAvailableChannels(): Promise<any[]> { return ['global', 'journal', 'crafts', 'market']; }
 
   async mutePlayer(_characterId: string, _playerId: string, _durationMinutes?: number): Promise<void> { throw new BadRequestException('Player mute is not supported'); }
   async unmutePlayer(_characterId: string, _playerId: string): Promise<void> { throw new BadRequestException('Player mute is not supported'); }

@@ -23,8 +23,9 @@ import { TownStore } from '../../core/town.store';
 import { TOWN_SCENE_ENV } from './town-scene/town-scene.types';
 import { GamePreloadService } from './game-preload.service';
 import { GameLoadingScreenComponent } from './game-loading-screen.component';
+import { NotificationMessagesComponent } from './notification-messages.component';
 @Component({
-    selector: 'app-play', standalone: true, imports: [CommonModule, RouterOutlet, PartyPanelComponent, GrindInfo, LoginMusicControlComponent, MailArrivalNoticeComponent, GameLoadingScreenComponent],
+    selector: 'app-play', standalone: true, imports: [CommonModule, RouterOutlet, PartyPanelComponent, GrindInfo, LoginMusicControlComponent, MailArrivalNoticeComponent, GameLoadingScreenComponent, NotificationMessagesComponent],
     templateUrl: './play.component.html', styleUrl: './play.component.css'
 })
 export class PlayComponent implements OnInit, OnDestroy {

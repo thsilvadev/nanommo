@@ -253,12 +253,12 @@
                 {{recipe.requiredLevel}} · {{recipe.xpReward}} XP</span><span class="cooking-ingredients">
                 <ng-container *ngFor="let ingredient of recipe.ingredients;let last=last">
                   <span class="cooking-ingredient-item" tabindex="0">{{ingredient.quantity}} {{vendor.itemName(ingredient.itemId)}}
-                    ({{ingredient.available}} {{vendor.t('Available')}})
+                    ({{ingredient.available}} {{vendor.t('Available')}}<ng-container *ngIf="ingredient.owned > ingredient.available"> / {{ingredient.owned}} owned</ng-container>)
                     <ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:ingredient.itemId}" />
                   </span>{{last?'':' · '}}
                 </ng-container></span><span *ngIf="!recipe.canReserveOutput" class="cooking-warning">Not enough
                 inventory space</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients"
-                class="cooking-warning">{{vendor.t('Missing ingredients')}}</span><span *ngIf="!recipe.unlocked"
+                class="cooking-warning">{{vendor.t('Missing ingredients')}}<ng-container *ngIf="vendor.cookingState()?.session || vendor.cookingState()?.otherSessionActive"> (some may be reserved for an active session)</ng-container></span><span *ngIf="!recipe.unlocked"
                 class="cooking-locked-label">Unlock at Cooking level {{recipe.requiredLevel}}</span></div>
             <app-craft-quantity *ngIf="recipe.available && !vendor.cookingState()?.session"
               [label]="vendor.t('Quantity')" [max]="recipe.maxCookQuantity" [value]="vendor.cookingQuantity(recipe)"

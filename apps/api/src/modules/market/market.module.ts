@@ -12,6 +12,7 @@ import { GatewayModule } from '../gateway/gateway.module';
 import { BattleModule } from '../battle/battle.module';
 import { MailModule } from '../mail/mail.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ChatModule } from '../chat/chat.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     BattleModule,
     MailModule,
     NotificationsModule,
+    ChatModule,
   ],
   controllers: [MarketController],
   providers: [MarketService],
