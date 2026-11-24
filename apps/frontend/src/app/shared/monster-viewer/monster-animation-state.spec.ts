@@ -22,6 +22,26 @@ describe('monsterAnimationState', () => {
     expect(monsterAnimationState(battle(events), t0 + 2500).action).toBeUndefined();
     expect(monsterAnimationState(battle(events), t0 + 3600).action).toEqual({ clip: 'Cast', startedAtMs: t0 + 3550, impactAtMs: t0 + 4000, endsAtMs: t0 + 4450 });
   });
+  it('a bow monster draws early so the arrow lands on the hit (Kwaiouá Ranger)', () => {
+    const shots = battle([
+      { tick: 6, actor: 'monster', target: 'character', action: 'attack', damage: 3, hpRemaining: { character: 27, monster: 10 } },
+      { tick: 8, actor: 'monster', target: 'character', action: 'attack', damage: 3, hpRemaining: { character: 24, monster: 10 } },
+    ]);
+    // full-speed shot: 1.533 s long, looses at 0.62 (0.95 s in), 0.25 s of flight before the hit at 3000 ms
+    const first = monsterAnimationState(shots, t0 + 2000, 'bow').action!;
+    expect(first.clip).toBe('Attack');
+    expect(first.impactAtMs).toBe(t0 + 3000);
+    expect(first.startedAtMs).toBeCloseTo(t0 + 3000 - (1.533 * 0.62 + 0.25) * 1000, 3);
+    expect(first.endsAtMs - first.startedAtMs).toBeCloseTo(1533, 3);
+    // the next shot only has 1 s after the previous hit: sped up, still looses 0.25 s before its hit
+    const second = monsterAnimationState(shots, t0 + 3900, 'bow').action!;
+    expect(second.impactAtMs).toBe(t0 + 4000);
+    expect(second.startedAtMs).toBeCloseTo(t0 + 3000, 3);
+    const release = second.startedAtMs + (second.endsAtMs - second.startedAtMs) * 0.62;
+    expect(release).toBeCloseTo(t0 + 3750, 3);
+    // melee monsters keep the 450 ms swing
+    expect(monsterAnimationState(shots, t0 + 2800).action!.startedAtMs).toBe(t0 + 2550);
+  });
   it('dies on the killing blow and stays dead', () => {
     expect(monsterAnimationState(battle(events), t0 + 6000)).toEqual({ dead: { startedAtMs: t0 + 6000 } });
     expect(monsterAnimationState(battle(events), t0 + 60000)).toEqual({ dead: { startedAtMs: t0 + 6000 } });

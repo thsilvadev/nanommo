@@ -267,7 +267,7 @@ function mirrorClip(clip: THREE.AnimationClip, root: THREE.Object3D, bones: Map<
 }
 
 /** Closed-fist frame of one hand, from its finger bones in the current pose, in hand-bone space. */
-function measureFist(bones: Map<string, THREE.Bone>, side: 'r' | 'l'): Fist {
+export function measureFist(bones: Map<string, THREE.Bone>, side: 'r' | 'l'): Fist {
   const hand = bones.get(`hand_${side}`)!;
   const local = (name: string) => hand.worldToLocal(new THREE.Vector3().setFromMatrixPosition(bones.get(`${name}_${side}`)!.matrixWorld));
   const average = (names: string[]) => names.map(local).reduce((sum, p) => sum.add(p), new THREE.Vector3()).divideScalar(names.length);

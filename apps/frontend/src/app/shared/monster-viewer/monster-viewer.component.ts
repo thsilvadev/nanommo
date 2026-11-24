@@ -1,14 +1,19 @@
 import { ChangeDetectionStrategy, Component, ElementRef, NgZone, OnDestroy, effect, inject, input, output } from '@angular/core';
 import type * as THREE from 'three';
+import type { AttackStyle } from '../character-animation/animation-state';
 import type { MonsterAnimationState, MonsterClip } from './monster-animation-state';
+import type { MonsterWeapon } from './monster-weapon';
 
 /** /assets/monsters/manifest.json entry (tools/monster-assets). */
 export interface MonsterManifestEntry {
   file?: string; rig: 'native' | 'character' | 'char';
+  /** rig 'character': gear visual held in the hand (tools/monster-assets `weapon`, e.g. `bow-wooden` = Yew Bow T1). */
+  weapon?: string;
   /** rig 'char': drawn as a regular character wearing this gear. */
   character?: { sex: 'male' | 'female'; heightCm: number; appearance: Record<string, number> & { v: 1 }; equipment: Record<string, string>; mainHandType?: string };
 }
 const ASSETS = '/assets/monsters/';
+const isWeaponPart = (o: THREE.Object3D): boolean => { for (let p: THREE.Object3D | null = o; p; p = p.parent) if (p.name.startsWith('weapon:')) return true; return false; };
 /** A flinch lasts this long whatever the authored Damage clip (some run 3.5 s). */
 const HIT_SECONDS = 0.5;
 const CHARACTER_CLIPS = '/assets/character/animations.glb';
@@ -30,6 +35,10 @@ function loadThree(): Promise<Loaded> {
       return { three, gltf, clone };
     });
   return shared;
+}
+/** How a monster's basic attack is animated: a character-rig monster holding a bow draws and looses it. */
+export function monsterAttackStyle(entry: MonsterManifestEntry | null | undefined): AttackStyle {
+  return entry?.rig === 'character' && !!entry.weapon?.startsWith('bow') ? 'bow' : 'melee';
 }
 export function loadMonsterManifest(): Promise<Record<string, MonsterManifestEntry>> { return loadManifest(); }
 function loadManifest() {
@@ -60,6 +69,8 @@ export class MonsterViewerComponent implements OnDestroy {
   private resize: ResizeObserver | null = null;
   /** The shown model (tests read its pose). */
   private root: THREE.Object3D | null = null;
+  /** The hand item of the shown model, if any (tests read it). */
+  private weapon: MonsterWeapon | null = null;
 
   constructor() {
     effect(() => { const id = this.monsterId(); void this.show(id); });
@@ -74,16 +85,21 @@ export class MonsterViewerComponent implements OnDestroy {
       const entry = (await loadManifest())[monsterManifestKey(id)];
       if (!entry?.file || entry.rig === 'char') throw new Error('no model');
       const { three, gltf, clone } = await loadThree();
-      const [model, library] = await Promise.all([gltf(ASSETS + entry.file), entry.rig === 'character' ? gltf(CHARACTER_CLIPS) : Promise.resolve(null)]);
+      // A hand item is optional: without the gear files the monster still shows, empty-handed.
+      const weaponKit = entry.rig === 'character' && entry.weapon
+        ? import('./monster-weapon').then(async (m) => ({ m, gear: await m.loadMonsterWeaponGear() })).catch(() => null)
+        : Promise.resolve(null);
+      const [model, library, kit] = await Promise.all([gltf(ASSETS + entry.file), entry.rig === 'character' ? gltf(CHARACTER_CLIPS) : Promise.resolve(null), weaponKit]);
       if (gen !== this.generation) return;
-      this.zone.runOutsideAngular(() => this.start(three, clone(model.scene), library ? library.animations : model.animations, entry.rig === 'character', gen));
+      const arm = kit && entry.weapon ? (root: THREE.Object3D) => { try { return kit.m.attachMonsterWeapon(root, entry.weapon!, kit.gear); } catch { return null; } } : null;
+      this.zone.runOutsideAngular(() => this.start(three, clone(model.scene), library ? library.animations : model.animations, entry.rig === 'character', gen, arm));
       this.loaded.emit();
     } catch {
       if (gen === this.generation) this.failed.emit();
     }
   }
 
-  private start(three: Three, root: THREE.Object3D, clips: THREE.AnimationClip[], characterRig: boolean, gen: number): void {
+  private start(three: Three, root: THREE.Object3D, clips: THREE.AnimationClip[], characterRig: boolean, gen: number, arm: ((root: THREE.Object3D) => MonsterWeapon | null) | null = null): void {
     if (!this.renderer) {
       this.renderer = new three.WebGLRenderer({ alpha: true, antialias: true });
       this.renderer.outputColorSpace = three.SRGBColorSpace;
@@ -118,7 +134,11 @@ export class MonsterViewerComponent implements OnDestroy {
     // frame the Idle pose: whole body, a little room above, turned toward the player (left)
     pose('Idle', 0);
     root.updateMatrixWorld(true);
-    const box = new three.Box3().setFromObject(root);
+    // framed without the weapon (a bow would widen the box), gripped on the Idle fist
+    const weapon = arm?.(root) ?? null;
+    this.weapon = weapon;
+    const box = new three.Box3();
+    root.traverse((o) => { if ((o as THREE.Mesh).isMesh && !isWeaponPart(o)) box.expandByObject(o); });
     const size = box.getSize(new three.Vector3()), center = box.getCenter(new three.Vector3());
     const camera = new three.PerspectiveCamera(30, 1, 0.05, 200);
     const span = Math.max(size.y, size.x * 0.8, size.z * 0.8) * 1.35;
@@ -138,8 +158,14 @@ export class MonsterViewerComponent implements OnDestroy {
     const tick = () => {
       if (gen !== this.generation) return;
       const now = Date.now(); const s = this.animation()(now);
+      weapon?.restore();
+      let shot: number | null = null;
       if (s.dead) pose('Dead', (now - s.dead.startedAtMs) / 1000);
-      else {
+      else if (weapon?.type === 'bow' && s.action?.clip === 'Attack' && now < s.action.endsAtMs) {
+        // bow: the guard underneath, the arms drawn and loosed procedurally over it
+        shot = Math.max(0, (now - s.action.startedAtMs) / Math.max(1, s.action.endsAtMs - s.action.startedAtMs));
+        pose('Idle', now / 1000, true);
+      } else {
         const a = s.action;
         // the clip is stretched over the action window (the blow, mid-clip, lands on the hit tick)
         const actionAt = a ? ((now - a.startedAtMs) / Math.max(1, a.endsAtMs - a.startedAtMs)) * duration(a.clip) : Infinity;
@@ -149,6 +175,7 @@ export class MonsterViewerComponent implements OnDestroy {
         else if (s.walking && actions.has('Walk')) pose('Walk', now / 1000, true);
         else pose('Idle', now / 1000, true);
       }
+      weapon?.pose(shot !== null && shot < 1 ? shot : null);
       renderer.render(scene, camera);
       this.frame = requestAnimationFrame(tick);
     };

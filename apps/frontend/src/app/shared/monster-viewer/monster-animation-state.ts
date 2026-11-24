@@ -3,7 +3,7 @@
  * pre-computed battle log as the character's (see character-animation/animation-state.ts).
  * No three.js here: unit-tested without WebGL; the viewer turns it into clip times.
  */
-import { battleTimeline, CLIP_SECONDS, type AnimationBattleEntry, type AnimationState } from '../character-animation/animation-state';
+import { ARROW_FLIGHT_SECONDS, BOW_RELEASE_FRACTION, battleTimeline, CLIP_SECONDS, type AnimationBattleEntry, type AnimationState, type AttackStyle } from '../character-animation/animation-state';
 
 export type MonsterClip = 'Idle' | 'Walk' | 'Attack' | 'Cast' | 'Damage' | 'Dead';
 
@@ -34,7 +34,12 @@ const MAX_STEP_GAP_TICKS = 8;
 /** How long the last step of a run lasts when there is no next move to walk to. */
 const LAST_STEP_TICKS = 3;
 
-export function monsterAnimationState(activeBattle: AnimationBattleEntry | null, nowMs: number): MonsterAnimationState {
+/**
+ * `attackStyle: 'bow'` (a monster holding a bow, e.g. the Kwaiouá Ranger): an Attack window is a whole
+ * draw-and-loose (CLIP_SECONDS.Attack long, sped up when the previous action leaves no room) that lets
+ * go at BOW_RELEASE_FRACTION, ARROW_FLIGHT_SECONDS before the hit, like the character's bow shot.
+ */
+export function monsterAnimationState(activeBattle: AnimationBattleEntry | null, nowMs: number, attackStyle: AttackStyle = 'melee'): MonsterAnimationState {
   const battle = activeBattle ? battleTimeline(activeBattle) : null;
   if (!battle || nowMs < battle.startMs) return {};
   const { events, timeOf } = battle;
@@ -44,7 +49,7 @@ export function monsterAnimationState(activeBattle: AnimationBattleEntry | null,
   if (nowMs >= battle.endMs) return {};
 
   const state: MonsterAnimationState = {};
-  const now = monsterActions(events, timeOf, battle.startMs).filter((a) => a.startedAtMs <= nowMs && nowMs < a.endsAtMs).pop();
+  const now = monsterActions(events, timeOf, battle.startMs, attackStyle).filter((a) => a.startedAtMs <= nowMs && nowMs < a.endsAtMs).pop();
   if (now) state.action = now;
   const hit = events
     .filter((e) => e.actor === 'character' && e.target === 'monster' && Number(e.damage ?? 0) > 0 && timeOf(Number(e.tick)) <= nowMs)
@@ -63,7 +68,7 @@ export function monsterAnimationState(activeBattle: AnimationBattleEntry | null,
 
 type MonsterAction = NonNullable<MonsterAnimationState['action']>;
 /** The monster's attacks and skills in time order (V2 `cast_start` … `use_skill`/`cast_fizzle`, V1 `castStartedAtTick`). */
-function monsterActions(events: Array<{ tick?: number; actor?: string; action?: string; castStartedAtTick?: number }>, timeOf: (tick: number) => number, battleStartMs: number): MonsterAction[] {
+function monsterActions(events: Array<{ tick?: number; actor?: string; action?: string; castStartedAtTick?: number }>, timeOf: (tick: number) => number, battleStartMs: number, attackStyle: AttackStyle): MonsterAction[] {
   const out: MonsterAction[] = [];
   let openCast: number | null = null;
   let previousImpact = battleStartMs;
@@ -78,7 +83,13 @@ function monsterActions(events: Array<{ tick?: number; actor?: string; action?: 
       : openCast !== null && openCast < tick ? openCast : null;
     openCast = null;
     if (castFrom !== null) out.push({ clip: 'Cast', startedAtMs: timeOf(castFrom), impactAtMs: impact, endsAtMs: impact + CAST_TAIL_MS });
-    else if (e.action !== 'cast_fizzle') {
+    else if (e.action === 'attack' && attackStyle === 'bow') {
+      const draw = CLIP_SECONDS.Attack * BOW_RELEASE_FRACTION;
+      const room = (impact - previousImpact) / 1000 - ARROW_FLIGHT_SECONDS;
+      const speed = room < draw ? draw / Math.max(room, 0.05) : 1;
+      const startedAtMs = impact - (draw / speed + ARROW_FLIGHT_SECONDS) * 1000;
+      out.push({ clip: 'Attack', startedAtMs, impactAtMs: impact, endsAtMs: startedAtMs + (CLIP_SECONDS.Attack / speed) * 1000 });
+    } else if (e.action !== 'cast_fizzle') {
       const start = Math.max(impact - MONSTER_ATTACK_LEAD_MS, previousImpact);
       const lead = Math.max(50, impact - start);
       out.push({ clip: e.action === 'use_skill' ? 'Cast' : 'Attack', startedAtMs: impact - lead, impactAtMs: impact, endsAtMs: impact + (lead * (1 - MONSTER_IMPACT_FRACTION)) / MONSTER_IMPACT_FRACTION });

@@ -2281,7 +2281,7 @@
       "moveSpeedBase": 70,
       "combatStyle": "ranged",
       "basicAttackDamageType": "ranged",
-      "basicAttackRange": 6,
+      "basicAttackRange": 8,
       "maxSp": 60,
       "spRegenPerTenTicks": 2,
       "isAggressive": true

@@ -9,7 +9,7 @@ import { FollowLogDirective } from './follow-log.directive';
 import { battleEventText, battleEventTone, visibleBattleEvent } from './battle-event-text';
 import { CharacterViewerComponent } from '../../shared/character-viewer/character-viewer.component';
 import { portraitAnimationSource, portraitEquipment, portraitHandTypes, portraitModel, portraitRefinement } from './character-portrait';
-import { MonsterViewerComponent, loadMonsterManifest, monsterManifestKey, type MonsterManifestEntry } from '../../shared/monster-viewer/monster-viewer.component';
+import { MonsterViewerComponent, loadMonsterManifest, monsterManifestKey, type MonsterManifestEntry, monsterAttackStyle } from '../../shared/monster-viewer/monster-viewer.component';
 import { monsterAnimationState, monsterAsCharacterState } from '../../shared/monster-viewer/monster-animation-state';
 import { battleTickAt, battleTickDurationMs, battleTickExpiryRemainingSeconds } from '../../shared/battle-timing';
 import { CommonModule } from '@angular/common';
@@ -1083,7 +1083,7 @@ export class GrindInfo {
   readonly battle = inject(BattleStore);
   readonly character = inject(CharacterStore);
   /** 3D foe (tools/monster-assets) posed from the battle log every frame; the sprite stays until it has loaded or when there is no model. */
-  readonly foePose = (nowMs: number) => monsterAnimationState(this.battle.active() as any, nowMs);
+  readonly foePose = (nowMs: number) => { const b: any = this.battle.active(); return monsterAnimationState(b, nowMs, monsterAttackStyle(this.foeManifest()[monsterManifestKey(String(b?.monsterId ?? ''))])); };
   readonly foe3dReady = signal<string | null>(null);
   /** Monsters drawn as a regular character in gear (manifest rig 'char', e.g. the Bandit). */
   readonly foeManifest = signal<Record<string, MonsterManifestEntry>>({});
