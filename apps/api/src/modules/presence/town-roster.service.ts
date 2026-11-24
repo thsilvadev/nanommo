@@ -42,7 +42,8 @@ interface TownState {
   rev?: number;
 }
 
-export type TownMoveTarget = { x: number; z: number } | { npcId: string };
+/** `approach`: walk to `distance` short of (x, z) on the way from where the character stands, facing it (Smashing Spree vases). */
+export type TownMoveTarget = { x: number; z: number } | { npcId: string } | { approach: { x: number; z: number; distance: number } };
 
 interface RosterRow {
   id: string;
@@ -248,7 +249,13 @@ export class TownRosterService {
 
     let point: [number, number];
     let lookAt: [number, number] | null = null;
-    if ('npcId' in target) {
+    const pose = positionAt(def, nav, current, now);
+    if ('approach' in target) {
+      const a = target.approach;
+      if (!Number.isFinite(a?.x) || !Number.isFinite(a?.z) || !Number.isFinite(a?.distance)) throw new BadRequestException('INVALID_TARGET');
+      point = this.approachPoint(nav, pose, a.x, a.z, a.distance, def.spawn);
+      lookAt = [a.x, a.z];
+    } else if ('npcId' in target) {
       const spot = typeof target.npcId === 'string' ? def.npcSpots[target.npcId] : undefined;
       if (!spot) throw new BadRequestException('UNKNOWN_NPC');
       const facing = (spot.facing * Math.PI) / 180;
@@ -258,7 +265,6 @@ export class TownRosterService {
       if (!Number.isFinite(target.x) || !Number.isFinite(target.z)) throw new BadRequestException('INVALID_TARGET');
       point = [Math.max(0, Math.min(def.size.w, target.x)), Math.max(0, Math.min(def.size.h, target.z))];
     }
-    const pose = positionAt(def, nav, current, now);
     const to = nav.nearestReachable(point[0], point[1], def.spawn.x, def.spawn.z);
     if (!to) throw new BadRequestException('INVALID_TARGET');
     this.lastMoveAt.set(characterId, now);
@@ -299,6 +305,28 @@ export class TownRosterService {
       lastSeenAt: now,
     };
     return this.write(mapId, character, state);
+  }
+
+  /**
+   * Stand point `distance` short of (x, z): straight from the current pose when that
+   * spot is walkable, else the first walkable spot around the target (8 directions),
+   * else the target itself. Already within `distance`: stay where you are.
+   */
+  private approachPoint(nav: TownNav, pose: { x: number; z: number }, x: number, z: number, distance: number, spawn: { x: number; z: number }): [number, number] {
+    const dx = pose.x - x;
+    const dz = pose.z - z;
+    const d = Math.hypot(dx, dz);
+    if (d <= distance) return [pose.x, pose.z];
+    const reach = nav.reachableFrom(spawn.x, spawn.z);
+    const free = (px: number, pz: number) => reach.has(Math.floor(pz) * nav.w + Math.floor(px)) && !nav.blocked(Math.floor(px), Math.floor(pz));
+    const base = Math.atan2(dz, dx);
+    for (let k = 0; k < 8; k++) {
+      const angle = base + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (Math.PI / 4);
+      const px = x + Math.cos(angle) * distance;
+      const pz = z + Math.sin(angle) * distance;
+      if (free(px, pz)) return [round(px), round(pz)];
+    }
+    return [x, z];
   }
 
   private async write(mapId: string, character: Character, state: TownState): Promise<TownRosterEntry> {

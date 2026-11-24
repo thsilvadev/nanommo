@@ -1,4 +1,5 @@
 import { UseInterceptors } from '@nestjs/common';
+import { TownEventService, HitVaseResult } from '../town-event/town-event.service';
 import { AllowWithoutAppearance, AppearanceRequiredInterceptor } from '../character/appearance-required.interceptor';
 import {
   WebSocketGateway,
@@ -74,6 +75,7 @@ export class NanommoGateway
     private readonly chatService: ChatService,
     private readonly townRoster: TownRosterService,
     private readonly partyService: PartyService,
+    private readonly townEvents: TownEventService,
   ) {}
 
   afterInit(server: Server) {
@@ -124,7 +126,8 @@ export class NanommoGateway
         if (channel === 'gateway:map:presence' && payload?.kind === 'town' && payload?.mapId) {
           // Town scene deltas share the presence channel; never re-emit them as map:presence.
           const { kind: _kind, event, ...body } = payload;
-          if (event === 'town:join' || event === 'town:leave' || event === 'town:update') {
+          if (event === 'town:join' || event === 'town:leave' || event === 'town:update'
+            || event === 'town:event:vases' || event === 'town:event:vaseBroken' || event === 'town:event:ended') {
             this.server.to(`map:${payload.mapId}`).emit(event, body);
           }
         } else if (channel === 'gateway:map:presence' && payload?.mapId) {
@@ -211,7 +214,7 @@ export class NanommoGateway
       try {
         await this.townRoster.setOnline(character.id, true);
         const townMapId = this.townRoster.isTownPresent(character);
-        if (townMapId) client.emit('town:roster', await this.townRoster.snapshot(townMapId, character.id));
+        if (townMapId) client.emit('town:roster', await this.townSnapshot(townMapId, character.id));
       } catch (error) {
         this.logger.warn(`Town roster connect failed for ${character.id}: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -431,7 +434,29 @@ export class NanommoGateway
     const character = await this.characterRepo.findOne({ where: { id: client.characterId } });
     const mapId = character ? this.townRoster.isTownPresent(character) : null;
     if (!mapId) return { mapId: null, serverNow: Date.now(), entries: [] };
-    return this.townRoster.snapshot(mapId, client.characterId);
+    return this.townSnapshot(mapId, client.characterId);
+  }
+
+  /** Roster plus the town's live Smashing Spree (late joiners and reconnects see the current vases). */
+  private async townSnapshot(mapId: string, viewerId: string) {
+    const [snapshot, event] = await Promise.all([
+      this.townRoster.snapshot(mapId, viewerId),
+      this.townEvents.activeEvent(mapId).catch(() => null),
+    ]);
+    return { ...snapshot, event };
+  }
+
+  /** Smashing Spree: break a vase (server checks presence, event, cooldown, range, first hit). */
+  @SubscribeMessage('town:hitVase')
+  async handleTownHitVase(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() body: { vaseId?: unknown }): Promise<HitVaseResult> {
+    if (!client.characterId) throw new WsException('Character not found');
+    if (typeof body?.vaseId !== 'string' || !body.vaseId) return { success: false, error: 'UNKNOWN_VASE' };
+    try {
+      return await this.townEvents.hitVase(client.characterId, body.vaseId);
+    } catch (error) {
+      this.logger.error(`town:hitVase failed for ${client.characterId}: ${error instanceof Error ? error.message : String(error)}`);
+      return { success: false, error: 'NO_EVENT' };
+    }
   }
 
   @SubscribeMessage('town:sleep')
@@ -456,9 +481,16 @@ export class NanommoGateway
 
   /** Click-to-move in the town scene: `{ x, z }` (ground point) or `{ npcId }`. */
   @SubscribeMessage('town:move')
-  async handleTownMove(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() body: { x?: unknown; z?: unknown; npcId?: unknown }) {
+  async handleTownMove(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() body: { x?: unknown; z?: unknown; npcId?: unknown; vaseId?: unknown }) {
     if (!client.characterId) throw new WsException('Character not found');
     try {
+      if (typeof body?.vaseId === 'string') {
+        const pose = await this.townRoster.poseOf(client.characterId);
+        const vase = pose ? await this.townEvents.vasePosition(pose.mapId, body.vaseId) : null;
+        if (!vase) return { success: false, error: 'UNKNOWN_VASE' };
+        const distance = this.dataService.getSmashingSpreeConfig().approachDistance;
+        return { success: true, entry: await this.townRoster.move(client.characterId, { approach: { x: vase.x, z: vase.z, distance } }) };
+      }
       const target = typeof body?.npcId === 'string'
         ? { npcId: body.npcId }
         : { x: Number(body?.x), z: Number(body?.z) };
