@@ -1,0 +1,24 @@
+{
+  "smashingSpree": {
+    "timezone": "America/Sao_Paulo",
+    "startTimes": ["03:30", "09:30", "15:30", "21:30"],
+    "announceMinutesBefore": [30, 15, 5, 1],
+    "durationSeconds": 120,
+    "vasesPerTown": 200,
+    "minVaseSpacing": 1.2,
+    "hitRange": 1.0,
+    "approachDistance": 0.6,
+    "attackCooldownMs": 1000,
+    "prizes": [
+      { "count": 10, "itemId": "mega_elixir", "quantity": 20 },
+      { "count": 1, "itemId": "tonic_fontoura", "quantity": 10 },
+      { "count": 1, "itemId": "tonic_kombucha", "quantity": 10 },
+      { "count": 1, "itemId": "tonic_haste_shot", "quantity": 10 },
+      { "count": 1, "itemId": "tonic_capo", "quantity": 10 },
+      { "count": 1, "oneOf": ["fairy_in_a_bottle", "super_tonic_sapupema_tea"], "quantity": 1 },
+      { "count": 4, "itemId": "mat_bliss_stone", "quantity": 1 },
+      { "count": 1, "itemId": "mat_divine_shard", "quantity": 1 }
+    ],
+    "announceFindItemIds": ["mat_bliss_stone", "mat_divine_shard"]
+  }
+}

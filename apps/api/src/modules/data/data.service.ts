@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { SmashingSpreeConfig, validateSmashingSpreeConfig } from '../town-event/smashing-spree.types';
 import * as fs from 'fs';
 import * as path from 'path';
 import { validateAppearanceCatalog, validateTownScenes } from '@nanommo/shared';
@@ -33,6 +34,7 @@ export class DataService implements OnModuleInit {
   private quests: any = null;
   private appearanceCatalog: AppearanceCatalog | null = null;
   private townScenes = new Map<string, TownSceneDef>();
+  private smashingSpree: SmashingSpreeConfig | null = null;
 
   onModuleInit() {
     this.loadAllData();
@@ -63,6 +65,11 @@ export class DataService implements OnModuleInit {
       const townSceneErrors = validateTownScenes(townScenes, this.maps);
       if (townSceneErrors.length) throw new Error('Invalid town_scenes.json: ' + townSceneErrors.join('; '));
       this.townScenes = new Map((townScenes.towns as TownSceneDef[]).map(def => [def.mapId, def]));
+      const townEvents = this.loadJsonFile(path.join(dataDir, 'town_events.json'));
+      const itemIds = new Set<string>(Object.values(this.items ?? {}).filter(Array.isArray).flat().map((item: any) => item?.id).filter(Boolean));
+      const townEventErrors = validateSmashingSpreeConfig(townEvents?.smashingSpree, itemIds);
+      if (townEventErrors.length) throw new Error('Invalid town_events.json: ' + townEventErrors.join('; '));
+      this.smashingSpree = townEvents.smashingSpree as SmashingSpreeConfig;
 
       this.validateCatalogues();
       this.logger.log('All data files loaded successfully');
@@ -404,12 +411,18 @@ export class DataService implements OnModuleInit {
   getAppearanceCatalog(): AppearanceCatalog | null { return this.appearanceCatalog; }
   getTownScene(mapId: string): TownSceneDef | null { return this.townScenes.get(mapId) ?? null; }
   getTownSceneMapIds(): string[] { return [...this.townScenes.keys()]; }
+  /** Smashing Spree (Quebra-Quebra) town event config, validated at boot. */
+  getSmashingSpreeConfig(): SmashingSpreeConfig {
+    if (!this.smashingSpree) throw new Error('town_events.json is not loaded');
+    return this.smashingSpree;
+  }
 
   // Specific getters
   getMonsterById(monsterId: string): any {
     if (!this.monsters || !this.monsters.monsters) return null;
     return this.monsters.monsters.find((m: any) => m.id === monsterId);
   }
+
 
   getMaps(): any[] { return Array.isArray(this.maps?.maps) ? this.maps.maps : []; }
 
