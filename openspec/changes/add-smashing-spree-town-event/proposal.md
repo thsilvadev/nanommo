@@ -17,6 +17,10 @@ Design: `docs/superpowers/specs/2026-11-24-quebradeira-design.md`. Plan: `docs/s
 7. Yellow, localized `server_announce` messages in chat and on screen.
 8. `inventory:obtained` socket event from every real inventory-gain path, and a single replace-in-place toast.
 
+## Amendment (user, 2026-11-24)
+
+Sierra Village only (`townMapId: map_town`), 500 vases (still 20 prizes), 5 minutes; announcements say where; event music in Sierra while the event runs (`project/sons/new_packs/7/eventMusic.mp3`).
+
 ## Non-goals
 
 - No battle-engine involvement, no migrations, no events outside 3D towns, no auto-travel to town, no per-character prize cap.

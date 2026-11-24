@@ -12,3 +12,5 @@
 - [x] 10. `inventory:obtained` channel + battle/party/gather emitters.
 - [x] 11. Craft/vendor/mail/quest/vase emitters.
 - [x] 12. Item-obtained toast component.
+- [x] 13. Sierra Village only (`townMapId`), 500 vases, 5 minutes; announcements name the town; `startsAt` in payloads.
+- [x] 14. Event music in Sierra Village, joined at the elapsed time, back to the town's music at the end.

@@ -1,3 +1,9 @@
+## Smashing Spree in one town, event music as a music region, monster hand items — 2026-11-24
+
+- The event runs only in `town_events.json` `townMapId` (Sierra Village). The end phase still sweeps every town scene, so an event started under an older config always ends.
+- Event music is not a separate player: `GameAudioService` resolves "what should play" every poll, and a live event in the character's town (`TownStore.eventMusic()`) is a region `event:<eventKey>` that overrides the map's playlist. Transitions, crossfades, autoplay retries and mute stay in the one existing music owner. The first track of such a region seeks to the event's elapsed server time when it actually starts.
+- Character-rig monsters may hold a gear visual (manifest `weapon`). `monster-weapon.ts` grips it like a character's hand item; bows use the shared procedural shot in `bow-shot.ts` (also used by `CharacterRig`).
+
 ## Smashing Spree (Quebra-Quebra): Redis-only town event driven by a per-minute tick — 2026-11-24
 
 The event state is ephemeral and lives only in Redis with TTLs: the public vase layout, a server-only prize hash, an `HSETNX` "broken" hash that makes first-hit-wins atomic across API instances, a prizes-left counter for the early end, and `ss:active` per town. No tables, no migration. A single Bull repeatable job (`smashing-spree-tick`, `* * * * *`, tz from `town_events.json`) derives the phase of the current minute with `phaseAt`; every phase is guarded by `SET NX`, so redelivery and multiple instances are harmless. Layout and prizes are Mulberry32-seeded per (event, town). Prize delivery is bag → idempotent system mail → Redis pending list; the claim, not the grant, is the once-only guard. Town broadcasts reuse the `kind:'town'` presence channel; clients never receive prize data before a break.

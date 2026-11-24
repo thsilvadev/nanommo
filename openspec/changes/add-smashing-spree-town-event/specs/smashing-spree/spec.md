@@ -6,18 +6,21 @@
 
 The server SHALL start a Smashing Spree (pt-BR: Quebra-Quebra) at 03:30, 09:30, 15:30 and 21:30 America/Sao_Paulo every day, and SHALL publish a `server_announce` message exactly 30, 15, 5 and 1 minutes before each start and one at the start. Each phase SHALL run at most once per event even if the scheduler fires more than once.
 
+Announcements SHALL name the event town (params `mapId`), so players know to go to Sierra Village.
+
 #### Scenario: Five-minute warning
 - WHEN the scheduler tick runs at 09:25 local time
-- THEN one announcement with key `event.smashingSpree.soon` and minutes 5 is published
+- THEN one announcement with key `event.smashingSpree.soon`, minutes 5 and mapId `map_town` is published ("Head to Sierra Village." / "Vá para Sierra Village.")
 - AND a second tick in the same minute publishes nothing.
 
-### Requirement: Vases per town
+### Requirement: Vases in Sierra Village
 
-At start, every town with a 3D scene SHALL receive 200 vases on reachable ground for 120 seconds, 20 of which hold prizes from `town_events.json`. Prize data SHALL NOT be sent to clients before a vase breaks.
+At start, only the event town `townMapId` of `town_events.json` (Sierra Village, `map_town`) SHALL receive 500 vases on reachable ground for 300 seconds, 20 of which hold prizes from `town_events.json`. Other towns SHALL get no vases. Prize data SHALL NOT be sent to clients before a vase breaks. The public payload and the roster snapshot SHALL carry `startsAt` and `endsAt`.
 
 #### Scenario: Public layout
 - WHEN the event starts
-- THEN each town room receives `town:event:vases` with 200 vases
+- THEN the Sierra Village room receives `town:event:vases` with 500 vases, `startsAt` and `endsAt` 300 s later
+- AND no other town receives vases
 - AND the payload contains no item ids.
 
 ### Requirement: First hit wins
@@ -56,3 +59,20 @@ The server SHALL emit `inventory:obtained` after commit for battle drops, party 
 #### Scenario: Multi-item drop
 - WHEN a battle grants two different items
 - THEN the toast shows only the first one.
+
+### Requirement: Event music in Sierra Village
+
+While the event runs, a client whose character is in the event town SHALL play `new_packs/7/eventMusic.mp3` instead of the town's music, starting at the event's elapsed time (server clock), and SHALL return to the town's music when the event ends (timeout or all prizes found). The music follows the client's live state, so arriving mid-event, leaving before the end, and leaving and coming back each resolve to the right track and position.
+
+#### Scenario: Arrives mid-event
+- WHEN a character arrives in Sierra Village 90 s after the start
+- THEN the event music starts 90 s into the track.
+
+#### Scenario: Leaves and comes back
+- WHEN the character leaves town during the event
+- THEN the destination's music plays
+- AND on return during the same event the event music resumes at the current elapsed time.
+
+#### Scenario: Event ends
+- WHEN the event ends while the character is in Sierra Village
+- THEN Sierra Village's own music plays again.
