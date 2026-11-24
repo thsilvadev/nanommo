@@ -16,6 +16,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { EquipmentModule } from './modules/equipment/equipment.module';
 import { MapModule } from './modules/map/map.module';
 import { TownModule } from './modules/town/town.module';
+import { TownEventModule } from './modules/town-event/town-event.module';
 import { MarketModule } from './modules/market/market.module';
 import { MailModule } from './modules/mail/mail.module';
 import { MailerModule } from './modules/mailer/mailer.module';
@@ -76,6 +77,7 @@ import { getBattleRuntimeConfig } from './config/battle-runtime.config';
     EquipmentModule,
     MapModule,
     TownModule,
+    TownEventModule,
     MarketModule,
     MailModule,
     MailerModule,

@@ -1,4 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bull';
 import { RedisModule } from '../../config/redis.module';
 import { DataModule } from '../data/data.module';
 import { PresenceModule } from '../presence/presence.module';
@@ -8,11 +9,12 @@ import { MailModule } from '../mail/mail.module';
 import { BattleModule } from '../battle/battle.module';
 import { TownEventService } from './town-event.service';
 import { TownEventGrantService } from './town-event-grant.service';
+import { TownEventProcessor, TownEventScheduler } from './town-event.processor';
 
 /** Smashing Spree (Quebra-Quebra) scheduled town event. */
 @Module({
-  imports: [RedisModule, DataModule, PresenceModule, ChatModule, InventoryModule, MailModule, forwardRef(() => BattleModule)],
-  providers: [TownEventService, TownEventGrantService],
+  imports: [BullModule.registerQueue({ name: 'town-event' }), RedisModule, DataModule, PresenceModule, ChatModule, InventoryModule, MailModule, forwardRef(() => BattleModule)],
+  providers: [TownEventService, TownEventGrantService, TownEventScheduler, TownEventProcessor],
   exports: [TownEventService],
 })
 export class TownEventModule {}
