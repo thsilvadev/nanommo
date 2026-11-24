@@ -1,0 +1,10 @@
+<div class="connection-tip-backdrop" (click)="dismiss()">
+  <section class="connection-tip-modal" role="dialog" aria-modal="true" aria-labelledby="connection-tip-title" aria-describedby="connection-tip-text" (click)="$event.stopPropagation()">
+    <div class="connection-tip-rule"><span>✦</span></div>
+    <small class="connection-tip-eyebrow">{{locale.t('A word for the road')}}</small>
+    <h2 id="connection-tip-title">{{locale.t('Traveler’s tip')}}</h2>
+    <p id="connection-tip-text">{{locale.t(tip.text)}}</p>
+    <button #closeButton type="button" (click)="dismiss()">{{locale.t('Continue')}}</button>
+    <div class="connection-tip-rule bottom"><span>✦</span></div>
+  </section>
+</div>
