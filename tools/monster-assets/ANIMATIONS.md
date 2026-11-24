@@ -28,7 +28,7 @@ Legenda: ✅ do modelo · 🔧 gerado · ↪ substituto · 🗃 extra guardado (
 | direwolf (Magic Wolf) | ✅ Idle | ✅ claw attack | ✅ damage | 🔧 | ↪ flame thrower | | stunned, run, trot, walk |
 | gravelhorn (Ankylosaurus) | ✅ idle | ✅ attack1 | 🔧 | ✅ die | ↪ attack2 | | walk, run |
 | mudflatcrocodile | ✅ idle | ✅ attack | ✅ hit | ✅ Death | ↪ Attack01 | | walk |
-| sandscorpion | ✅ idle | ✅ doubleClawsAttack | ✅ buff1 | ✅ death | ↪ stingerAttack | | claws L/R, jump, fall, buff2, walk |
+| sandscorpion | ✅ idle | ✅ doubleClawsAttack | 🔧 recuo (buff1/buff2 = vira de barriga pra cima e levanta, parecia morte) | ✅ death | ↪ stingerAttack | | claws L/R, jump, fall, buff1, buff2, walk |
 | ridgebreaker (Grux) | ✅ Idle | ✅ PrimaryAttack_RA | ✅ HitReact_Front | ✅ Death_B | ↪ PrimaryAttack_LA | | Run |
 | saltfangcrab | ✅ idle | ✅ ClawAttackLeft | 🔧 | ✅ death | ↪ clawAttackRight | | walkRight |
 | needlebackstalker (Chimera) | ✅ 4legsIdle | ✅ 4legsClawsAttackR | ✅ 4legsGetHit | ✅ 4legsDeath | ↪ 4legsHorntAttack | Bite (4legsSnakeBiteAttack) | variantes 2Legs, walk, run |

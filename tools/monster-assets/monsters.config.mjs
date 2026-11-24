@@ -22,7 +22,7 @@ export const MONSTERS = {
   direwolf: { kind: 'native', size: { len: 2.0 }, clips: {Walk: 'magic_wolf|walk',  Idle: 'magic_wolf|Idle', Attack: 'magic_wolf|claw attack', Damage: 'magic_wolf|damage', Cast: 'magic_wolf|flame thrower' } },
   gravelhorn: { kind: 'native', size: { len: 3.2 }, clips: {Walk: 'walk',  Idle: 'idle', Attack: 'attack1', Dead: 'die', Cast: 'attack2' } },
   mudflatcrocodile: { kind: 'native', size: { len: 3.5 }, clips: {Walk: 'walk',  Idle: 'idle', Attack: 'attack', Damage: 'hit', Dead: 'Death', Cast: 'Attack01' } },
-  sandscorpion: { kind: 'native', size: { len: 2.2 }, clips: {Walk: 'walkForward',  Idle: 'idle', Attack: 'doubleClawsAttack', Damage: 'buff1', Dead: 'death', Cast: 'stingerAttack' } },
+  sandscorpion: { kind: 'native', size: { len: 2.2 }, clips: {Walk: 'walkForward',  Idle: 'idle', Attack: 'doubleClawsAttack', Dead: 'death', Cast: 'stingerAttack' } },
   ridgebreaker: { kind: 'native', size: { h: 2.8 }, clips: {Walk: 'Run',  Idle: 'Idle', Attack: 'PrimaryAttack_RA', Damage: 'HitReact_Front', Dead: 'Death_B', Cast: 'PrimaryAttack_LA' }, stone: [0.56, 0.55, 0.52], mottle: { color: [0.3, 0.5, 0.2], amount: 0.6 },
     attach: [{ bone: /^upperarm_[lr]_0\d\d$/, ring: { count: 9, radius: 0.14 }, offset: [0, 0.17, 0], length: 0.2, radius: 0.035, dir: [0, -1, 0], color: [0.95, 0.95, 0.92] }] },
   saltfangcrab: { kind: 'native', size: { len: 1.8 }, clips: {Walk: 'walkRight',  Idle: 'idle', Attack: 'ClawAttackLeft', Dead: 'death', Cast: 'clawAttackRight' } },

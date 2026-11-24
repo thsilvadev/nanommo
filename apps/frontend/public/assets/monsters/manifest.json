@@ -150,7 +150,9 @@
       "Dead",
       "Cast"
     ],
-    "generated": [],
+    "generated": [
+      "Damage"
+    ],
     "fx": []
   },
   "ridgebreaker": {
