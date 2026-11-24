@@ -1,7 +1,9 @@
 import {
   ChangeDetectionStrategy, Component, ElementRef, EventEmitter, NgZone, OnDestroy, OnInit, Output, ViewChild, computed, effect, inject, input, signal, untracked,
 } from '@angular/core';
-import type { TownRosterEntry } from '@nanommo/shared';
+import type { Subscription } from 'rxjs';
+import { mulberry32Seed, type TownRosterEntry } from '@nanommo/shared';
+import { GameAudioService } from '../../../shared/game-audio.service';
 import { CatalogService } from '../../../core/catalog.service';
 import { CharacterStore } from '../../../core/game.store';
 import { LocaleService } from '../../../core/locale.service';
@@ -9,7 +11,11 @@ import { PartyStore } from '../../../core/party.store';
 import { ServerClockService } from '../../../core/server-clock.service';
 import { TownStore } from '../../../core/town.store';
 import { rankForRender } from './town-render-order';
-import { TOWN_SCENE_ENV, type TownPick, type TownSceneRuntimeHandle } from './town-scene.types';
+import { TOWN_SCENE_ENV, VASE_CONTACT_MS, type TownPick, type TownSceneRuntimeHandle } from './town-scene.types';
+
+/** A shattering vase this far away (world units) is at the quietest. */
+const SHATTER_HEARING_RANGE = 20;
+const SHATTER_MIN_VOLUME = 0.15;
 
 /** A pointer that moved more than this between down and up is a drag, never a click. */
 export const TOWN_CLICK_TOLERANCE_PX = 5;
@@ -38,7 +44,10 @@ export class TownSceneComponent implements OnInit, OnDestroy {
   private readonly clock = inject(ServerClockService);
   private readonly catalog = inject(CatalogService);
   private readonly zone = inject(NgZone);
+  private readonly audio = inject(GameAudioService);
   private readonly listeners: Array<() => void> = [];
+  private breakSubscription: Subscription | null = null;
+  private readonly soundTimers = new Set<ReturnType<typeof setTimeout>>();
   readonly locale = inject(LocaleService);
 
   readonly state = signal<'loading' | 'ready' | 'failed'>('loading');
@@ -79,6 +88,16 @@ export class TownSceneComponent implements OnInit, OnDestroy {
       const selection = this.selection();
       runtime?.setSelection(selection);
     });
+    // Smashing Spree: the live vases follow the store; the store reads where I stand from the scene.
+    effect(() => {
+      const runtime = this.runtime();
+      const event = this.town.vaseEvent();
+      if (runtime) this.zone.runOutsideAngular(() => runtime.setVases(event?.vases ?? null));
+    });
+    effect(() => {
+      const runtime = this.runtime();
+      untracked(() => this.town.setSelfPosition(runtime ? () => runtime.selfPosition() : null));
+    });
   }
 
   /**
@@ -95,11 +114,30 @@ export class TownSceneComponent implements OnInit, OnDestroy {
       host.addEventListener('pointermove', move);
       host.addEventListener('wheel', wheel, { passive: false });
       this.listeners.push(() => host.removeEventListener('pointermove', move), () => host.removeEventListener('wheel', wheel));
+      this.breakSubscription = this.town.vaseBreaks.subscribe((b) => this.onVaseBroken(b.vaseId, b.byCharacterId, b.prize));
     });
+  }
+
+  /** Everyone in town sees (and hears) every vase break: the swing, the shards at contact, a shatter that fades with distance. */
+  private onVaseBroken(vaseId: string, byCharacterId: string, prize: boolean): void {
+    const runtime = this.runtime();
+    const at = runtime?.breakVase(vaseId, byCharacterId, prize) ?? null;
+    if (!runtime || !at) return;
+    const self = runtime.selfPosition();
+    const distance = self ? Math.hypot(self[0] - at[0], self[1] - at[1]) : SHATTER_HEARING_RANGE;
+    const volume = Math.max(SHATTER_MIN_VOLUME, Math.min(1, 1 - distance / SHATTER_HEARING_RANGE));
+    // Same pitch on every client: seeded by the vase, 0.92–1.08.
+    const rate = 0.92 + ((Math.abs(mulberry32Seed(vaseId)) % 1000) / 1000) * 0.16;
+    const timer = setTimeout(() => { this.soundTimers.delete(timer); this.audio.playAt('pot_shatter', { volume, rate }); }, VASE_CONTACT_MS);
+    this.soundTimers.add(timer);
   }
 
   ngOnDestroy(): void {
     for (const remove of this.listeners.splice(0)) remove();
+    this.breakSubscription?.unsubscribe();
+    for (const timer of this.soundTimers) clearTimeout(timer);
+    this.soundTimers.clear();
+    this.town.setSelfPosition(null);
     this.destroyed = true;
     this.generation++;
     this.runtime()?.dispose();
@@ -157,8 +195,10 @@ export class TownSceneComponent implements OnInit, OnDestroy {
   onPointerLeave(): void { this.hovering.set(false); }
 
   private hover(point: { x: number; y: number }): void {
-    const hit = this.runtime()?.pick(point.x, point.y) ?? null;
-    this.hovering.set(!!hit && (hit.kind === 'npc' || hit.id !== this.selfId()));
+    const runtime = this.runtime();
+    const hit = runtime?.pick(point.x, point.y) ?? null;
+    runtime?.setHoveredVase(hit?.kind === 'vase' ? hit.id : null);
+    this.hovering.set(!!hit && (hit.kind !== 'character' || hit.id !== this.selfId()));
   }
 
   private click(x: number, y: number): void {
@@ -170,6 +210,10 @@ export class TownSceneComponent implements OnInit, OnDestroy {
       if (!ground) return;
       runtime!.markDestination(ground[0], ground[1]);
       void this.town.moveTo({ x: ground[0], z: ground[1] }).catch(() => undefined);
+      return;
+    }
+    if (hit.kind === 'vase') {
+      void this.town.breakVase(hit.id).catch(() => undefined);
       return;
     }
     if (hit.kind === 'npc') {

@@ -6,14 +6,15 @@
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { TownNav, positionAt, type TownPose, type TownRosterEntry } from '@nanommo/shared';
+import { TownNav, positionAt, type TownEventVase, type TownPose, type TownRosterEntry } from '@nanommo/shared';
 import { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { loadAppearanceCatalog } from '../../../shared/character-viewer/character-viewer.component';
 import { TownCamera } from './town-camera';
 import { TownCharacter, TownCharacterFactory, type TownPickInfo } from './town-character';
 import { buildTownWorld, type TownWorld } from './town-world';
 import { NPC_VISUALS, NPC_PROPS_ASSET, buildNpcVisual, npcAppearance, npcOutfitAsset } from './npc-visuals';
-import type { TownPick, TownSceneRuntimeHandle, TownSceneRuntimeInit } from './town-scene.types';
+import { VASE_CONTACT_MS, type TownPick, type TownSceneRuntimeHandle, type TownSceneRuntimeInit } from './town-scene.types';
+import { TownVases, buildShards } from './town-vases';
 
 const MAX_PIXEL_RATIO = 1.5;
 /** Farther than this from the camera target, a character animates at 10 Hz and hides its name. */
@@ -24,6 +25,31 @@ export const TOWN_AURA_MS = 500;
 const JOIN_AURA_WINDOW_MS = 1500;
 /** Ground marker where a click-to-move was sent. */
 const MARKER_MS = 700;
+/** Shards fly and fade for this long after the swing lands. */
+const SHATTER_MS = 950;
+/** Vases fade out this fast when the event ends. */
+const VASE_FADE_MS = 400;
+const GRAVITY = 9.8;
+
+let dustTexture: THREE.CanvasTexture | null = null;
+let sparkTexture: THREE.CanvasTexture | null = null;
+
+/** Soft round puff (dust) or a bright point (prize sparkle). */
+function radialTexture(kind: 'dust' | 'spark'): THREE.CanvasTexture {
+  const cached = kind === 'dust' ? dustTexture : sparkTexture;
+  if (cached) return cached;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext('2d')!;
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  if (kind === 'dust') { g.addColorStop(0, 'rgba(214,180,140,0.9)'); g.addColorStop(0.6, 'rgba(190,150,110,0.35)'); g.addColorStop(1, 'rgba(180,140,100,0)'); }
+  else { g.addColorStop(0, 'rgba(255,250,220,1)'); g.addColorStop(0.25, 'rgba(255,214,90,0.9)'); g.addColorStop(1, 'rgba(255,190,40,0)'); }
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  const texture = new THREE.CanvasTexture(canvas);
+  if (kind === 'dust') dustTexture = texture; else sparkTexture = texture;
+  return texture;
+}
 
 interface TownEffect { object: THREE.Object3D; startedAt: number; durationMs: number; step: (t: number) => void; done?: () => void }
 
@@ -111,6 +137,8 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   private readonly cleanups: Array<() => void> = [];
   private readonly effects: TownEffect[] = [];
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  private readonly vases: TownVases;
+  private hasVases = false;
   /** False until the first roster is drawn: who is already there when the scene opens gets no aura. */
   private populated = false;
   private selfId: string | null;
@@ -141,6 +169,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     this.scene.add(this.world.group);
     this.scene.fog = this.world.fog;
     this.scene.background = this.world.background;
+    this.vases = new TownVases(this.scene);
 
     const { w, h } = this.size();
     this.cam = new TownCamera(w, h, init.def);
@@ -251,7 +280,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     this.applySelection();
   }
 
-  selectedOf(kind: TownPick['kind'], id: string): boolean {
+  selectedOf(kind: 'npc' | 'character', id: string): boolean {
     return (kind === 'npc' ? this.npcs : this.characters).get(id)?.isSelected() ?? false;
   }
 
@@ -286,13 +315,173 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   centerOn(x: number, z: number): void { this.cam.centerOn(x, z); }
   zoom(factor: number, atPx?: [number, number]): void { this.cam.zoomBy(factor, atPx); }
 
-  /** NPCs win over players; empty ground picks nothing. */
+  /** NPCs win; then the nearest of a vase and a player; empty ground picks nothing. */
   pick(x: number, y: number): TownPick | null {
     const { w, h } = this.size();
     this.raycaster.setFromCamera(new THREE.Vector2((x / w) * 2 - 1, -(y / h) * 2 + 1), this.cam.camera);
     const targets = [...this.npcs.values(), ...this.characters.values()].map((c) => c.hitObject);
-    const hits = this.raycaster.intersectObjects(targets, false).map((hit) => hit.object.userData['pick'] as TownPickInfo);
-    return hits.find((p) => p.kind === 'npc') ?? hits[0] ?? null;
+    const hits = this.raycaster.intersectObjects(targets, false);
+    const infos = hits.map((hit) => hit.object.userData['pick'] as TownPickInfo);
+    const npc = infos.find((p) => p.kind === 'npc');
+    if (npc) return npc;
+    const vaseHit = this.raycaster.intersectObjects(this.vases.pickTargets(), false).find((hit) => this.vases.idOf(hit));
+    if (vaseHit && (!hits.length || vaseHit.distance <= hits[0].distance)) return { kind: 'vase', id: this.vases.idOf(vaseHit)! };
+    return infos[0] ?? null;
+  }
+
+  // ---- Smashing Spree vases ---------------------------------------------------
+
+  setVases(vases: TownEventVase[] | null): void {
+    if (this.disposed) return;
+    if (vases && vases.length) {
+      this.vases.setOpacity(1);
+      this.vases.set(vases);
+      this.hasVases = true;
+      return;
+    }
+    if (!this.hasVases) return;
+    this.hasVases = false;
+    this.addEffect(new THREE.Group(), VASE_FADE_MS, (t) => this.vases.setOpacity(1 - t), () => { if (!this.hasVases) this.vases.set(null); });
+  }
+
+  setHoveredVase(vaseId: string | null): void { this.vases.setHovered(vaseId); }
+
+  breakVase(vaseId: string, byCharacterId: string, prize: boolean): [number, number] | null {
+    if (this.disposed) return null;
+    const at = this.vases.positionOf(vaseId);
+    if (!at) return null;
+    this.vases.hide(vaseId);
+    this.characters.get(byCharacterId)?.playOnce('Attack', at);
+    this.shatter(vaseId, at, prize);
+    return at;
+  }
+
+  selfPosition(): [number, number] | null {
+    const self = this.selfId ? this.characters.get(this.selfId) : undefined;
+    if (!self) return null;
+    const pose = this.pose(self.entry);
+    return [pose.x, pose.z];
+  }
+
+  /**
+   * The vase stays whole until the swing lands (VASE_CONTACT_MS), then: clay shards
+   * fly out, bounce once and fade, a dust puff rises, and a prize vase sparkles gold.
+   */
+  private shatter(vaseId: string, at: [number, number], prize: boolean): void {
+    const group = new THREE.Group();
+    group.name = 'vase-shatter';
+    group.position.set(at[0], 0, at[1]);
+    group.rotation.y = this.vases.rotationOf(vaseId);
+    group.visible = false;
+    const shardMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, side: THREE.DoubleSide, transparent: true });
+    const shards = buildShards(vaseId, this.vases.variantOf(vaseId), shardMaterial);
+    for (const shard of shards) group.add(shard.mesh);
+    const dustMaterial = new THREE.SpriteMaterial({ map: radialTexture('dust'), transparent: true, depthWrite: false, opacity: 0 });
+    const dust = Array.from({ length: 8 }, (_, i) => {
+      const sprite = new THREE.Sprite(dustMaterial);
+      const a = (i / 8) * Math.PI * 2;
+      sprite.position.set(Math.cos(a) * 0.15, 0.2, Math.sin(a) * 0.15);
+      group.add(sprite);
+      return { sprite, dir: new THREE.Vector3(Math.cos(a), 0.45 + (i % 3) * 0.15, Math.sin(a)) };
+    });
+    // Fine clay chips: one Points cloud, a burst faster and lower than the shards.
+    const chipCount = 36;
+    const chipBase = new Float32Array(chipCount * 6); // start xyz + velocity xyz
+    for (let i = 0; i < chipCount; i++) {
+      const a = (i / chipCount) * Math.PI * 2 + (i % 5) * 0.21;
+      const speed = 1.6 + (i % 7) * 0.32;
+      chipBase.set([Math.cos(a) * 0.18, 0.12 + (i % 4) * 0.12, Math.sin(a) * 0.18, Math.cos(a) * speed, 1.2 + (i % 5) * 0.55, Math.sin(a) * speed], i * 6);
+    }
+    const chipGeometry = new THREE.BufferGeometry();
+    chipGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(chipCount * 3), 3));
+    const chipMaterial = new THREE.PointsMaterial({ color: '#a2481f', size: 0.07, transparent: true, depthWrite: false });
+    const chips = new THREE.Points(chipGeometry, chipMaterial);
+    chips.frustumCulled = false;
+    group.add(chips);
+    // Impact ring on the ground.
+    markerGeometry ??= new THREE.RingGeometry(0.28, 0.4, 28);
+    const ringMaterial = new THREE.MeshBasicMaterial({ color: prize ? '#ffd76a' : '#f2c79a', transparent: true, opacity: 0, depthWrite: false, fog: false });
+    const ring = new THREE.Mesh(markerGeometry, ringMaterial);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.04;
+    group.add(ring);
+    let spark: THREE.Points | null = null;
+    let sparkMaterial: THREE.PointsMaterial | null = null;
+    let sparkBase: Float32Array | null = null;
+    if (prize) {
+      const n = 40;
+      sparkBase = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 * 3;
+        const r = 0.08 + (i % 5) * 0.07;
+        sparkBase.set([Math.cos(a) * r, 0.15 + (i % 8) * 0.09, Math.sin(a) * r], i * 3);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(sparkBase.slice(), 3));
+      sparkMaterial = new THREE.PointsMaterial({ map: radialTexture('spark'), size: 0.34, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: '#ffd76a', fog: false });
+      spark = new THREE.Points(geometry, sparkMaterial);
+      group.add(spark);
+    }
+    const total = VASE_CONTACT_MS + SHATTER_MS;
+    let landed = false;
+    const p = new THREE.Vector3();
+    this.addEffect(group, total, (t) => {
+      const elapsed = t * total;
+      if (elapsed < VASE_CONTACT_MS) return;
+      if (!landed) { landed = true; group.visible = true; this.vases.hideInstance(vaseId); }
+      const s = (elapsed - VASE_CONTACT_MS) / 1000;
+      const k = s / (SHATTER_MS / 1000);
+      for (const shard of shards) {
+        const { start, velocity, spin } = shard;
+        // Ballistic until it meets the ground, then one damped bounce.
+        const tHit = (velocity.y + Math.sqrt(velocity.y * velocity.y + 2 * GRAVITY * start.y)) / GRAVITY;
+        if (s < tHit) {
+          p.set(start.x + velocity.x * s, start.y + velocity.y * s - 0.5 * GRAVITY * s * s, start.z + velocity.z * s);
+        } else {
+          const s2 = s - tHit;
+          const vy = (GRAVITY * tHit - velocity.y) * 0.32;
+          p.set(start.x + velocity.x * (tHit + s2 * 0.45), Math.max(0.01, vy * s2 - 0.5 * GRAVITY * s2 * s2), start.z + velocity.z * (tHit + s2 * 0.45));
+        }
+        shard.mesh.position.copy(p);
+        const turn = Math.min(s, tHit + 0.15);
+        shard.mesh.rotation.set(spin.x * turn, spin.y * turn, spin.z * turn);
+      }
+      shardMaterial.opacity = k < 0.65 ? 1 : Math.max(0, 1 - (k - 0.65) / 0.35);
+      const d = Math.min(1, s / 0.6);
+      dustMaterial.opacity = 0.8 * Math.sin(Math.PI * d);
+      for (const puff of dust) {
+        const spread = 0.15 + 0.6 * (1 - (1 - d) * (1 - d));
+        puff.sprite.position.set(puff.dir.x * spread, 0.2 + puff.dir.y * d * 0.8, puff.dir.z * spread);
+        puff.sprite.scale.setScalar(0.45 + 0.75 * d);
+      }
+      const chipPositions = chipGeometry.getAttribute('position') as THREE.BufferAttribute;
+      for (let i = 0; i < chipCount; i++) {
+        const o = i * 6;
+        chipPositions.setXYZ(i, chipBase[o] + chipBase[o + 3] * s, Math.max(0.02, chipBase[o + 1] + chipBase[o + 4] * s - 0.5 * GRAVITY * s * s), chipBase[o + 2] + chipBase[o + 5] * s);
+      }
+      chipPositions.needsUpdate = true;
+      chipMaterial.opacity = Math.max(0, 1 - k * 1.2);
+      const r = Math.min(1, s / 0.35);
+      ring.scale.setScalar(1 + 2.6 * r);
+      ringMaterial.opacity = 0.75 * (1 - r);
+      if (spark && sparkMaterial && sparkBase) {
+        const positions = spark.geometry.getAttribute('position') as THREE.BufferAttribute;
+        for (let i = 0; i < positions.count; i++) {
+          positions.setXYZ(i, sparkBase[i * 3] * (1 + k * 1.6), sparkBase[i * 3 + 1] + k * 0.9, sparkBase[i * 3 + 2] * (1 + k * 1.6));
+        }
+        positions.needsUpdate = true;
+        sparkMaterial.opacity = Math.sin(Math.PI * Math.min(1, k * 1.1));
+      }
+    }, () => {
+      for (const shard of shards) shard.mesh.geometry.dispose();
+      shardMaterial.dispose();
+      dustMaterial.dispose();
+      chipGeometry.dispose();
+      chipMaterial.dispose();
+      ringMaterial.dispose();
+      spark?.geometry.dispose();
+      sparkMaterial?.dispose();
+    });
   }
 
   /** Ground point (world x, z) under a pixel of the scene element, or null off the town. */
@@ -322,7 +511,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   /** Effects still playing (tests). */
   effectCount(): number { return this.effects.length; }
 
-  screenPositionOf(kind: TownPick['kind'], id: string): [number, number] | null {
+  screenPositionOf(kind: 'npc' | 'character', id: string): [number, number] | null {
     const character = (kind === 'npc' ? this.npcs : this.characters).get(id);
     if (!character) return null;
     const point = character.hitObject.getWorldPosition(new THREE.Vector3()).project(this.cam.camera);
@@ -331,7 +520,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   }
 
   /** Vertical extent of a character's click box in world units (tests: elevated NPCs). */
-  hitBoxOf(kind: TownPick['kind'], id: string): { minY: number; maxY: number } | null {
+  hitBoxOf(kind: 'npc' | 'character', id: string): { minY: number; maxY: number } | null {
     const character = (kind === 'npc' ? this.npcs : this.characters).get(id);
     if (!character) return null;
     character.object3d.updateMatrixWorld(true);
@@ -339,7 +528,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     return { minY: box.min.y, maxY: box.max.y };
   }
 
-  worldPositionOf(kind: TownPick['kind'], id: string): [number, number] | null {
+  worldPositionOf(kind: 'npc' | 'character', id: string): [number, number] | null {
     const character = (kind === 'npc' ? this.npcs : this.characters).get(id);
     return character ? [character.object3d.position.x, character.object3d.position.z] : null;
   }
@@ -364,6 +553,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     for (const cleanup of this.cleanups.splice(0)) cleanup();
     for (const effect of this.effects.splice(0)) { effect.object.removeFromParent(); effect.done?.(); }
     for (const character of [...this.characters.values(), ...this.npcs.values()]) character.dispose();
+    this.vases.dispose();
     this.characters.clear();
     this.npcs.clear();
     this.factory.dispose();

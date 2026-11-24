@@ -351,3 +351,28 @@ describe('GameAudioService music transition ownership', () => {
     expect(remove.calls.allArgs().some(args=>args[0]==='keydown')).toBeTrue();
   });
 });
+
+describe('GameAudioService positional effects', () => {
+  it('playAt scales the effects volume and sets the playback rate', () => {
+    const created: HTMLAudioElement[] = [];
+    const RealAudio = window.Audio;
+    (window as any).Audio = function (src: string) { const a = new RealAudio(src); spyOn(a, 'play').and.resolveTo(); created.push(a); return a; };
+    try {
+      const audio = new GameAudioService();
+      audio.volume.set(0.8);
+      audio.effectsVolume.set(0.5);
+      audio.muted.set(false);
+      audio.effectsMuted.set(false);
+      audio.playAt('pot_shatter', { volume: 0.5, rate: 1.1 });
+      expect(created.length).toBe(1);
+      expect(created[0].src).toContain('/assets/sounds/new_packs/7/potShatter.wav');
+      expect(created[0].volume).toBeCloseTo(0.2, 5);
+      expect(created[0].playbackRate).toBeCloseTo(1.1, 5);
+      audio.effectsMuted.set(true);
+      audio.playAt('pot_shatter', { volume: 1, rate: 1 });
+      expect(created.length === 1 || created[1].volume === 0).toBeTrue();
+    } finally {
+      (window as any).Audio = RealAudio;
+    }
+  });
+});

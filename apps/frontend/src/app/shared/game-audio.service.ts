@@ -9,7 +9,7 @@ type SoundName =
   | 'questCompleted' | 'respec' | 'refineFail' | 'refineSuccess' | 'rod_hit_1'
   | 'staff_hit_1' | 'sword_hit_1' | 'potion_drink' | 'flee' | 'foodCooked' | 'gather'
   | 'boughtItemFromNpc' | 'soldItemToNpc' | 'putInStorage' | 'takeFromStorage' | 'postItemOnMarket'
-  | 'use_fairy_in_a_bottle' | 'use_tonic' | 'mailInbox' | 'saveTown';
+  | 'use_fairy_in_a_bottle' | 'use_tonic' | 'mailInbox' | 'saveTown' | 'pot_shatter';
 
 @Injectable({ providedIn: 'root' })
 export class GameAudioService {
@@ -93,6 +93,17 @@ export class GameAudioService {
     void audio.play().catch(() => {});
   }
 
+  /** An effect at a relative loudness (0–1, e.g. distance falloff) and playback rate (pitch variation). */
+  playAt(name: SoundName, opts: { volume: number; rate: number }): void {
+    if (this.muted() || this.effectsMuted()) return;
+    const audio = new Audio(this.base + this.fileName(name));
+    audio.preload = 'auto';
+    audio.volume = Math.max(0, Math.min(1, this.volume() * this.effectsVolume() * opts.volume));
+    audio.playbackRate = opts.rate;
+    (audio as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = false;
+    void audio.play().catch(() => {});
+  }
+
   private fileName(name: SoundName): string {
     const files: Record<SoundName, string> = {
       arrow_hit_1: 'arrow_hit_1.wav', bash: 'bash.wav', dagger_hit_1: 'dagger_hit_1.wav',
@@ -115,7 +126,7 @@ export class GameAudioService {
       use_fairy_in_a_bottle: 'new_packs/3/useFarieInABottle.mp3',
       use_tonic: 'new_packs/3/useTonic.mp3',
       mailInbox: 'new_packs/4/mailInbox.mp3',
-      saveTown: 'new_packs/5/save.mp3',
+      saveTown: 'new_packs/5/save.mp3', pot_shatter: 'new_packs/7/potShatter.wav',
     };
     return files[name];
   }

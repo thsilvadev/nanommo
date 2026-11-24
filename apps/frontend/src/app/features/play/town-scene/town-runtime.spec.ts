@@ -189,6 +189,41 @@ describe('TownRuntime (real WebGL)', () => {
     runtime = null;
     expect(host.querySelector('canvas')).toBeNull();
   });
+
+  describe('Smashing Spree vases', () => {
+    const vases = [
+      { id: 'v000', x: 0, z: 0, rot: 0, variant: 0 },
+      { id: 'v001', x: 0, z: 0, rot: 1, variant: 1 },
+    ];
+    it('picks a vase, breaks it with a short effect, and returns where it stood', async () => {
+      const rt = await start([entry('hero')], 'hero');
+      // Away from the hero (the camera centres on it).
+      const spot = rt.groundPoint(140, 300)!;
+      const placed = vases.map((v, i) => ({ ...v, x: spot[0] + i * 6, z: spot[1] }));
+      rt.setVases(placed);
+      rt.renderNow();
+      expect(rt.pick(140, 294)).toEqual({ kind: 'vase', id: 'v000' });
+      const before = rt.effectCount();
+      expect(rt.breakVase('v000', 'hero', true)).toEqual([placed[0].x, placed[0].z]);
+      expect(rt.effectCount()).toBe(before + 1);
+      expect(rt.animationOf('hero')).toBe('Attack');
+      expect(rt.pick(140, 294)?.kind).not.toBe('vase');
+      expect(rt.breakVase('v000', 'hero', false)).toBeNull();
+      const started = performance.now();
+      while (rt.effectCount() > before && performance.now() - started < 3000) {
+        await new Promise(r => setTimeout(r, 50));
+        (rt as any).updateEffects();
+      }
+      expect(rt.effectCount()).toBe(before);
+    });
+
+    it('selfPosition() is the self pose from positionAt', async () => {
+      const hero = entry('hero');
+      const rt = await start([hero], 'hero');
+      const pose = positionAt(def, new TownNav(def), hero, NOW);
+      expect(rt.selfPosition()).toEqual([pose.x, pose.z]);
+    });
+  });
 });
 
 describe('TownWorld campfire', () => {

@@ -23,7 +23,7 @@ import { gearMesh, mergedGearGeometry, planBands, planGear } from '../../../shar
 export const TOWN_CHARACTER_SHADOWS = true;
 export const TOWN_SKIN_SIZE = 256;
 const NATIVE_HEIGHT_CM: Record<Sex, number> = { male: 181, female: 177 };
-const CLIPS = ['Idle', 'Walk', 'Dead', 'Dance', 'SitDown', 'Sit'] as const;
+const CLIPS = ['Idle', 'Walk', 'Dead', 'Dance', 'SitDown', 'Sit', 'Attack'] as const;
 type TownClip = typeof CLIPS[number];
 const FADE_SECONDS = 0.25;
 const LOW_LOD_STEP_MS = 100; // 10 Hz
@@ -360,6 +360,8 @@ export class TownCharacter {
   private plate: THREE.Sprite | null = null;
   private plateKey = '';
   private mixer: THREE.AnimationMixer | null = null;
+  /** A one-off clip (Smashing Spree swing) that takes over until it ends, facing `face`. */
+  private oneShot: { clip: TownClip; face: [number, number] } | null = null;
   private actions = new Map<TownClip, THREE.AnimationAction>();
   private current: TownClip | null = null;
   private frozen = false;
@@ -493,15 +495,32 @@ export class TownCharacter {
     this.dressedKey = key;
   }
 
+  /**
+   * Plays `clip` once, facing (x, z), then returns to whatever the pose says.
+   * The town swing is always the melee Attack, whatever the character holds.
+   */
+  playOnce(clip: 'Attack', face: [number, number]): void {
+    const action = this.actions.get(clip);
+    if (!action || !this.mixer) return;
+    this.oneShot = { clip, face };
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    this.play(clip);
+  }
+
   update(pose: TownPose, dtMs: number, lod: TownLod, nowMs: number): void {
     this.object3d.position.set(pose.x, this.elevation, pose.z);
-    this.model.rotation.y = pose.facing;
+    this.model.rotation.y = this.oneShot ? Math.atan2(this.oneShot.face[0] - pose.x, this.oneShot.face[1] - pose.z) : pose.facing;
     if (this.plate) this.plate.visible = lod === 'full';
     this.firstSeenAt ??= nowMs;
     for (const animate of this.costumeAnimators) animate(nowMs);
     if (!this.mixer) return;
     this.setStool(pose.state === 'sit' && this.actions.has('Sit'));
-    const clip: TownClip = pose.state === 'sleep' ? 'Dead' : pose.state === 'walk' ? 'Walk'
+    if (this.oneShot) {
+      const shot = this.actions.get(this.oneShot.clip);
+      if (!shot || shot.time >= shot.getClip().duration - 1e-3) this.oneShot = null;
+    }
+    const clip: TownClip = this.oneShot ? this.oneShot.clip : pose.state === 'sleep' ? 'Dead' : pose.state === 'walk' ? 'Walk'
       : pose.state === 'dance' ? 'Dance' : pose.state === 'sit' ? 'Sit' : 'Idle';
     // Sitting down plays SitDown first; it counts as already sitting.
     const playing = this.current === 'SitDown' ? 'Sit' : this.current;

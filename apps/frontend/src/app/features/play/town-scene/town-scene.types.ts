@@ -3,10 +3,13 @@
  * Must not import three.js: the component is eager, the runtime is lazy.
  */
 import { InjectionToken } from '@angular/core';
-import type { TownRosterEntry, TownSceneDef } from '@nanommo/shared';
+import type { TownEventVase, TownRosterEntry, TownSceneDef } from '@nanommo/shared';
 import { isWebglAvailable } from '../../../shared/character-viewer/character-viewer.component';
 
-export interface TownPick { kind: 'npc' | 'character'; id: string }
+export interface TownPick { kind: 'npc' | 'character' | 'vase'; id: string }
+
+/** Time from the start of the attack swing to its contact frame: the vase shatters (and sounds) then. */
+export const VASE_CONTACT_MS = 280;
 
 export interface TownSceneRuntimeInit {
   def: TownSceneDef;
@@ -27,9 +30,16 @@ export interface TownSceneRuntimeHandle {
   /** Local ground marker for a click-to-move. */
   markDestination(x: number, z: number): void;
   setSelection(target: TownPick | null): void;
+  /** Smashing Spree vases to show (null fades them out). A subset of the shown set hides the missing ones. */
+  setVases(vases: TownEventVase[] | null): void;
+  /** Break a vase: the attacker swings, the vase shatters at contact. Returns where it stood, or null if unknown/already broken. */
+  breakVase(vaseId: string, byCharacterId: string, prize: boolean): [number, number] | null;
+  setHoveredVase(vaseId: string | null): void;
+  /** World (x, z) of the local character now (from positionAt), or null. */
+  selfPosition(): [number, number] | null;
   /** Hidden scene (map view): stop the render loop; showing it again resumes it. */
   setActive(active: boolean): void;
-  screenPositionOf(kind: TownPick['kind'], id: string): [number, number] | null;
+  screenPositionOf(kind: 'npc' | 'character', id: string): [number, number] | null;
   pan(dxPx: number, dyPx: number): void;
   zoom(factor: number, atPx?: [number, number]): void;
   resize(): void;

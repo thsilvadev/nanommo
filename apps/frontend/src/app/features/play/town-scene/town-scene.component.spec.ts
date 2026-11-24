@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { NgZone, signal } from '@angular/core';
+import { Subject } from 'rxjs';
+import { GameAudioService } from '../../../shared/game-audio.service';
 import type { TownRosterEntry, TownSceneDef } from '@nanommo/shared';
 import { CharacterStore } from '../../../core/game.store';
 import { PartyStore } from '../../../core/party.store';
@@ -7,7 +9,7 @@ import { ServerClockService } from '../../../core/server-clock.service';
 import { TownStore } from '../../../core/town.store';
 import { CatalogService } from '../../../core/catalog.service';
 import { TownSceneComponent } from './town-scene.component';
-import { TOWN_SCENE_ENV, type TownSceneRuntimeHandle, type TownSceneRuntimeInit } from './town-scene.types';
+import { TOWN_SCENE_ENV, VASE_CONTACT_MS, type TownSceneRuntimeHandle, type TownSceneRuntimeInit } from './town-scene.types';
 import { rankForRender, TOWN_RENDER_CAP } from './town-render-order';
 
 const entry = (characterId: string, extra: Partial<TownRosterEntry> = {}): TownRosterEntry => ({
@@ -33,10 +35,20 @@ describe('TownSceneComponent', () => {
   let init: TownSceneRuntimeInit | null;
   let entries: ReturnType<typeof signal<TownRosterEntry[]>>;
   let moveTo: jasmine.Spy;
+  let breakVase: jasmine.Spy;
+  let setSelfPosition: jasmine.Spy;
+  let vaseEvent: ReturnType<typeof signal<any>>;
+  let vaseBreaks: Subject<any>;
+  let audio: jasmine.SpyObj<GameAudioService>;
 
   beforeEach(() => {
+    breakVase = jasmine.createSpy('breakVase').and.resolveTo();
+    setSelfPosition = jasmine.createSpy('setSelfPosition');
+    vaseEvent = signal<any>(null);
+    vaseBreaks = new Subject();
+    audio = jasmine.createSpyObj<GameAudioService>('audio', ['playAt', 'play']);
     init = null;
-    runtime = jasmine.createSpyObj<TownSceneRuntimeHandle>('runtime', ['setCharacters', 'setSelection', 'setActive', 'pick', 'groundPoint', 'markDestination', 'pan', 'zoom', 'resize', 'dispose', 'screenPositionOf']);
+    runtime = jasmine.createSpyObj<TownSceneRuntimeHandle>('runtime', ['setCharacters', 'setSelection', 'setActive', 'pick', 'groundPoint', 'markDestination', 'pan', 'zoom', 'resize', 'dispose', 'screenPositionOf', 'setVases', 'breakVase', 'selfPosition', 'setHoveredVase']);
     moveTo = jasmine.createSpy('moveTo').and.resolveTo();
     entries = signal<TownRosterEntry[]>([]);
     const def = { mapId: 'map_town', size: { w: 72, h: 72 }, npcSpots: { blacksmith_loren: { x: 1, z: 1, facing: 0 } } } as unknown as TownSceneDef;
@@ -48,7 +60,8 @@ describe('TownSceneComponent', () => {
           loadScene: async () => def,
           createRuntime: async (_host: HTMLElement, i: TownSceneRuntimeInit) => { init = i; return runtime; },
         } },
-        { provide: TownStore, useValue: { entries, mapId: signal('map_town'), moveTo } },
+        { provide: TownStore, useValue: { entries, mapId: signal('map_town'), moveTo, breakVase, setSelfPosition, vaseEvent, vaseBreaks } },
+        { provide: GameAudioService, useValue: audio },
         { provide: CharacterStore, useValue: { character: signal({ id: 'hero' }) } },
         { provide: PartyStore, useValue: { members: signal([]) } },
         { provide: ServerClockService, useValue: { now: () => 123 } },
@@ -221,5 +234,67 @@ describe('TownSceneComponent', () => {
     const fixture = await create();
     fixture.destroy();
     expect(runtime.dispose).toHaveBeenCalled();
+  });
+
+  it('a click on a vase asks the store to break it (no ground walk)', async () => {
+    const fixture = await create();
+    runtime.pick.and.returnValue({ kind: 'vase', id: 'v007' });
+    const host: HTMLElement = fixture.nativeElement.querySelector('.town-scene');
+    host.dispatchEvent(new PointerEvent('pointerdown', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
+    host.dispatchEvent(new PointerEvent('pointerup', { clientX: 100, clientY: 100, pointerId: 1, bubbles: true }));
+    expect(breakVase).toHaveBeenCalledOnceWith('v007');
+    expect(moveTo).not.toHaveBeenCalled();
+    expect(runtime.markDestination).not.toHaveBeenCalled();
+  });
+
+  it('feeds the live vases to the runtime and gives the store the self position', async () => {
+    await create();
+    const vases = [{ id: 'v000', x: 1, z: 2, rot: 0, variant: 0 }];
+    vaseEvent.set({ eventKey: 'ss-1', endsAt: 999, vases });
+    TestBed.flushEffects();
+    expect(runtime.setVases).toHaveBeenCalledWith(vases);
+    expect(setSelfPosition).toHaveBeenCalled();
+    runtime.selfPosition.and.returnValue([4, 5]);
+    const provider = setSelfPosition.calls.mostRecent().args[0];
+    expect(provider()).toEqual([4, 5]);
+    vaseEvent.set(null);
+    TestBed.flushEffects();
+    expect(runtime.setVases).toHaveBeenCalledWith(null);
+  });
+
+  it('a vase break plays the effect and a shatter that is quieter far away', async () => {
+    await create();
+    jasmine.clock().install();
+    try {
+    runtime.breakVase.and.returnValue([10, 0]);
+    runtime.selfPosition.and.returnValue([0, 0]);
+    vaseBreaks.next({ mapId: 'map_town', eventKey: 'ss-1', vaseId: 'v001', byCharacterId: 'ana', at: 1, prize: true });
+    expect(runtime.breakVase).toHaveBeenCalledOnceWith('v001', 'ana', true);
+    expect(audio.playAt).not.toHaveBeenCalled();
+    jasmine.clock().tick(VASE_CONTACT_MS);
+    const near = audio.playAt.calls.mostRecent().args;
+    expect(near[0]).toBe('pot_shatter');
+    expect(near[1].volume).toBeCloseTo(0.5, 2);
+    expect(near[1].rate).toBeGreaterThanOrEqual(0.92);
+    expect(near[1].rate).toBeLessThanOrEqual(1.08);
+    runtime.breakVase.and.returnValue([40, 0]);
+    vaseBreaks.next({ mapId: 'map_town', eventKey: 'ss-1', vaseId: 'v002', byCharacterId: 'ana', at: 2, prize: false });
+    jasmine.clock().tick(VASE_CONTACT_MS);
+    expect(audio.playAt.calls.mostRecent().args[1].volume).toBeCloseTo(0.15, 2);
+    runtime.breakVase.and.returnValue(null);
+    const calls = audio.playAt.calls.count();
+    vaseBreaks.next({ mapId: 'map_town', eventKey: 'ss-1', vaseId: 'gone', byCharacterId: 'ana', at: 3, prize: false });
+    jasmine.clock().tick(VASE_CONTACT_MS);
+    expect(audio.playAt.calls.count()).toBe(calls);
+    } finally { jasmine.clock().uninstall(); }
+  });
+
+  it('hovering a vase shows the pointer and highlights it', async () => {
+    const fixture = await create();
+    runtime.pick.and.returnValue({ kind: 'vase', id: 'v003' });
+    const host: HTMLElement = fixture.nativeElement.querySelector('.town-scene');
+    host.dispatchEvent(new PointerEvent('pointermove', { clientX: 50, clientY: 50, pointerId: 2, bubbles: true }));
+    expect(fixture.componentInstance.hovering()).toBeTrue();
+    expect(runtime.setHoveredVase).toHaveBeenCalledWith('v003');
   });
 });

@@ -16,6 +16,7 @@
     "db:drop": "typeorm schema:drop -d src/database/data-source.ts",
     "db:seed": "ts-node src/database/seeders/seed.ts",
     "reconcile:battle-queue": "node dist/apps/api/src/maintenance/reconcile-battle-queue.js",
+    "dev:smashing-spree:start-now": "pnpm exec nest build && node dist/apps/api/src/maintenance/smashing-spree-start-now.js",
     "db:migration:show": "pnpm exec nest build && node dist/apps/api/src/maintenance/show-migrations.js",
     "db:migration:baseline": "pnpm exec nest build && node dist/apps/api/src/maintenance/record-migration-baseline.js"
   },

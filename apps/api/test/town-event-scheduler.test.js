@@ -55,6 +55,29 @@ assert.equal(SMASHING_SPREE_TICK, 'smashing-spree-tick');
     failing.logger = { error: () => undefined };
     await assert.rejects(() => failing.handleTick({}), /redis down/);
   }
+  // Dev-only manual phases (maintenance/smashing-spree-start-now).
+  {
+    const { SMASHING_SPREE_RUN_PHASE } = require('../dist/apps/api/src/modules/town-event/town-event.processor');
+    const { devStartPhases } = require('../dist/apps/api/src/maintenance/smashing-spree-start-now');
+    assert.equal(SMASHING_SPREE_RUN_PHASE, 'smashing-spree-run-phase');
+    assert.match(processorSrc, /@Process\(SMASHING_SPREE_RUN_PHASE\)/);
+    Date.now = realNow;
+    const [start, end] = devStartPhases(Date.parse('2026-11-24T10:07:12Z'), 120);
+    assert.equal(start.kind, 'start'); assert.equal(end.kind, 'end'); assert.equal(start.eventKey, end.eventKey);
+    assert.match(start.eventKey, /^ss-dev-/);
+    assert.equal(start.endsAt, Date.parse('2026-11-24T10:07:12Z') + 120000);
+    const phases = [];
+    const processor = new TownEventProcessor({ runPhase: async (p) => phases.push(p) }, { getSmashingSpreeConfig: () => cfg });
+    const env = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = 'production';
+      await processor.handleRunPhase({ data: { phase: start } });
+      assert.equal(phases.length, 0, 'refused in production');
+      process.env.NODE_ENV = 'development';
+      await processor.handleRunPhase({ data: { phase: start } });
+      assert.deepEqual(phases, [start]);
+    } finally { process.env.NODE_ENV = env; }
+  }
   Date.now = realNow;
   console.log('town-event-scheduler passed');
 })().catch((e) => { console.error(e); process.exitCode = 1; });

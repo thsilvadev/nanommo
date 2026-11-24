@@ -3,10 +3,12 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import type { Job, Queue } from 'bull';
 import { DataService } from '../data/data.service';
 import { TownEventService } from './town-event.service';
-import { phaseAt } from './smashing-spree.logic';
+import { phaseAt, SmashingSpreePhase } from './smashing-spree.logic';
 
 export const TOWN_EVENT_QUEUE = 'town-event';
 export const SMASHING_SPREE_TICK = 'smashing-spree-tick';
+/** Dev-only: run a given phase now (maintenance/smashing-spree-start-now). Ignored in production. */
+export const SMASHING_SPREE_RUN_PHASE = 'smashing-spree-run-phase';
 const EVERY_MINUTE = '* * * * *';
 
 /** Registers the per-minute Smashing Spree tick (Bull keeps one repeatable across API instances). */
@@ -38,6 +40,15 @@ export class TownEventProcessor {
     private readonly townEvents: TownEventService,
     private readonly dataService: DataService,
   ) {}
+
+  @Process(SMASHING_SPREE_RUN_PHASE)
+  async handleRunPhase(job: Pick<Job<{ phase: SmashingSpreePhase }>, 'data'>): Promise<void> {
+    if (process.env.NODE_ENV === 'production') {
+      this.logger.warn('Ignoring a manual Smashing Spree phase in production');
+      return;
+    }
+    if (job.data?.phase) await this.townEvents.runPhase(job.data.phase);
+  }
 
   @Process(SMASHING_SPREE_TICK)
   async handleTick(_job: Job): Promise<void> {
