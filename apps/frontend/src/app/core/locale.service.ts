@@ -4,6 +4,7 @@ export type GameLocale = 'pt-BR' | 'en-US';
 
 const TRANSLATIONS: Record<GameLocale, Record<string, string>> = {
   'pt-BR': {
+    'A word for the road':'Uma palavra para a jornada', 'Traveler’s tip':'Dica de viajante',
     'Change cancelled':'Alteração cancelada', 'Sending':'Enviando', 'Queued':'Na fila', 'Not applied':'Não aplicado', 'Confirming':'Confirmando', 'Sending change':'Enviando alteração', 'Change rejected':'Alteração rejeitada',
     'Waiting for a window outside combat. The current battle is unchanged.':'Aguardando uma janela fora de combate. A batalha atual não muda.',
     'Confirming the change with the server.':'Confirmando a alteração com o servidor.',
@@ -53,7 +54,7 @@ const TRANSLATIONS: Record<GameLocale, Record<string, string>> = {
     "You can only sleep in town.":"Você só pode dormir na cidade.","You can only do that in town.":"Você só pode fazer isso na cidade.","Unknown command.":"Comando desconhecido.","{name} declined the invite.":"{name} recusou o convite.","{name} did not answer the invite.":"{name} não respondeu ao convite.","The character is already in a group.":"O personagem já está em um grupo.","offline":"offline","Town":"Cidade","Map":"Mapa",
     "monster drop":"item de monstro","deliver items":"entregar itens","kill monster":"derrotar monstro","objective":"objetivo","Type":"Tipo","Effect":"Efeito","Equipment":"Equipamento","Monster Part":"Parte de Monstro","Material":"Material","Consumable":"Consumível","Item":"Item"
   },
-  'en-US': {"PARTY_LEADER_REQUIRED":"Only the leader can do this.", "PARTY_SAME_MAP_REQUIRED":"Both characters must be on the same map.", "CANDIDATE_ALREADY_IN_PARTY":"This character already belongs to a group.", "CANNOT_INVITE_SELF":"Choose another character to invite.", "PARTY_BUSY":"Wait for the current battle to finish.", "INVITE_EXPIRED":"This invitation has expired.", "INVALID_PARTY_ORDER":"Group membership changed. Try ordering again.", "AUTO_PARTY_UNAVAILABLE":"AutoParty is unavailable.", "APPEARANCE_REQUIRED":"Finish creating your character appearance first.", "INVALID_SAVEPOINT":"Save a town before teleporting.", "USE_PARTY_TELEPORT":"The leader must start the group teleport.", "equip":"Equip item", "unequip":"Unequip item", "use_item":"Use item", "gambit_update":"Update gambit", "gambit_activate":"Activate gambit", "attributes":"Update attributes"}
+  'en-US': { 'A word for the road':'A word for the road', 'Traveler’s tip':'Traveler’s tip',"PARTY_LEADER_REQUIRED":"Only the leader can do this.", "PARTY_SAME_MAP_REQUIRED":"Both characters must be on the same map.", "CANDIDATE_ALREADY_IN_PARTY":"This character already belongs to a group.", "CANNOT_INVITE_SELF":"Choose another character to invite.", "PARTY_BUSY":"Wait for the current battle to finish.", "INVITE_EXPIRED":"This invitation has expired.", "INVALID_PARTY_ORDER":"Group membership changed. Try ordering again.", "AUTO_PARTY_UNAVAILABLE":"AutoParty is unavailable.", "APPEARANCE_REQUIRED":"Finish creating your character appearance first.", "INVALID_SAVEPOINT":"Save a town before teleporting.", "USE_PARTY_TELEPORT":"The leader must start the group teleport.", "equip":"Equip item", "unequip":"Unequip item", "use_item":"Use item", "gambit_update":"Update gambit", "gambit_activate":"Activate gambit", "attributes":"Update attributes"}
 };
 
 @Injectable({ providedIn: 'root' })

@@ -72,3 +72,5 @@
     </div>
   </section>
 </div>
+
+<app-connection-tip *ngIf="connectionTip() as tip" [tip]="tip" (close)="dismissConnectionTip()" />
