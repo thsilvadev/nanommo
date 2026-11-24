@@ -9,7 +9,7 @@ const cfg = catalog.smashingSpree;
 const itemsJson = require(path.join(root, 'items.json'));
 const itemIds = new Set(Object.values(itemsJson).filter(Array.isArray).flat().map(item => item.id));
 
-assert.equal(cfg.prizes.reduce((sum, rule) => sum + rule.count, 0), 20);
+assert.equal(cfg.prizes.reduce((sum, rule) => sum + rule.count, 0), 40);
 for (const rule of cfg.prizes) for (const id of rule.oneOf ?? [rule.itemId]) assert.ok(itemIds.has(id), `unknown item ${id}`);
 assert.deepEqual(validateSmashingSpreeConfig(cfg, itemIds), []);
 const townSceneIds = new Set(require(path.join(root, 'town_scenes.json')).towns.map((t) => t.mapId));

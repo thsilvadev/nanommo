@@ -41,7 +41,7 @@ function setup(overrides = {}) {
       const stored = Object.keys(await redis.hgetall(`ss:${eventKey}:${mapId}:prizes`)).sort();
       const guessed = [...assignPrizes(vases, eventSeed(eventKey, mapId), cfg).keys()].sort();
       if (JSON.stringify(stored) === JSON.stringify(guessed)) predictable++;
-      assert.equal(stored.length, 20);
+      assert.equal(stored.length, 40);
     }
     assert.equal(predictable, 0, 'prize vases must not be derivable from public inputs');
   }

@@ -15,7 +15,7 @@ Announcements SHALL name the event town (params `mapId`), so players know to go 
 
 ### Requirement: Vases in Sierra Village
 
-At start, only the event town `townMapId` of `town_events.json` (Sierra Village, `map_town`) SHALL receive 500 vases on reachable ground for 300 seconds, 20 of which hold prizes from `town_events.json`. Other towns SHALL get no vases. Prize data SHALL NOT be sent to clients before a vase breaks. The public payload and the roster snapshot SHALL carry `startsAt` and `endsAt`.
+At start, only the event town `townMapId` of `town_events.json` (Sierra Village, `map_town`) SHALL receive 500 vases on reachable ground for 300 seconds, 40 of which hold prizes from `town_events.json`. Other towns SHALL get no vases. Prize data SHALL NOT be sent to clients before a vase breaks. The public payload and the roster snapshot SHALL carry `startsAt` and `endsAt`.
 
 #### Scenario: Public layout
 - WHEN the event starts
@@ -38,10 +38,10 @@ A vase SHALL break with one accepted hit. The server SHALL accept a hit only fro
 
 ### Requirement: Early end
 
-When all 20 prize vases of a town are broken, that town's remaining vases SHALL disappear and further hits SHALL be rejected.
+When all prize vases of a town (40) are broken, that town's remaining vases SHALL disappear and further hits SHALL be rejected.
 
 #### Scenario: Last prize found
-- WHEN the 20th prize vase of a town breaks
+- WHEN the last (40th) prize vase of a town breaks
 - THEN `town:event:ended` with reason `all-prizes-found` is broadcast to that town.
 
 ### Requirement: Prize delivery

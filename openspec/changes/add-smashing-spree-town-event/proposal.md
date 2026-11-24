@@ -19,7 +19,7 @@ Design: `docs/superpowers/specs/2026-11-24-quebradeira-design.md`. Plan: `docs/s
 
 ## Amendment (user, 2026-11-24)
 
-Sierra Village only (`townMapId: map_town`), 500 vases (still 20 prizes), 5 minutes; announcements say where; event music in Sierra while the event runs (`project/sons/new_packs/7/eventMusic.mp3`).
+Sierra Village only (`townMapId: map_town`), 500 vases, 40 prize vases, 5 minutes; announcements say where; event music in Sierra while the event runs (`project/sons/new_packs/7/eventMusic.mp3`).
 
 ## Non-goals
 

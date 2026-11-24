@@ -4,7 +4,9 @@
 
 Date: 2026-11-24. Status: approved by the user 2026-11-24.
 
-> **Amendment (user, 2026-11-24, after the first release):** the event runs **only in Sierra Village** (`map_town`, `townMapId` in `town_events.json`), with **500 vases** (still the same 20 prizes) for **5 minutes**; announcements name the town. While it runs, players in Sierra hear `new_packs/7/eventMusic.mp3` instead of the town music, joined at the event's elapsed time; at the end the Sierra music returns. Where this conflicts with the text below ("every town", 200 vases, 2 minutes), the amendment wins.
+> **Amendment (user, 2026-11-24, after the first release):** the event runs **only in Sierra Village** (`map_town`, `townMapId` in `town_events.json`), with **500 vases** for **5 minutes**; announcements name the town. While it runs, players in Sierra hear `new_packs/7/eventMusic.mp3` instead of the town music, joined at the event's elapsed time; at the end the Sierra music returns. 
+>
+> **Prize table (user, 2026-11-24):** 40 prize vases: 20× Mega Elixir ×20; 2 each of Fontoura, Kombucha, Haste Shot, Çapó ×10; 1 Fairy in a Bottle *or* Sapupema Leaf Tea ×1; 1 Sapupema Leaf Tea ×1 (the only super tonic); 8 Bliss Stone; 2 Divine Shard. Where this conflicts with the text below ("every town", 200 vases, 2 minutes), the amendment wins.
 
 Two independent pieces, built in this order:
 

@@ -60,12 +60,14 @@ for (const def of towns.filter((t) => t.mapId === cfg.townMapId)) {
 // Prizes.
 const vases = placeVases(towns[0], new TownNav(towns[0]), 7, cfg);
 const prizes = assignPrizes(vases, 7, cfg);
-assert.equal(prizes.size, 20);
+assert.equal(prizes.size, 40);
 const counts = {};
 for (const p of prizes.values()) counts[p.itemId] = (counts[p.itemId] ?? 0) + 1;
-assert.equal(counts.mega_elixir, 10); assert.equal(counts.tonic_fontoura, 1); assert.equal(counts.tonic_kombucha, 1);
-assert.equal(counts.tonic_haste_shot, 1); assert.equal(counts.tonic_capo, 1); assert.equal(counts.mat_bliss_stone, 4); assert.equal(counts.mat_divine_shard, 1);
-assert.equal((counts.fairy_in_a_bottle ?? 0) + (counts.super_tonic_sapupema_tea ?? 0), 1);
+assert.equal(counts.mega_elixir, 20); assert.equal(counts.tonic_fontoura, 2); assert.equal(counts.tonic_kombucha, 2);
+assert.equal(counts.tonic_haste_shot, 2); assert.equal(counts.tonic_capo, 2); assert.equal(counts.mat_bliss_stone, 8); assert.equal(counts.mat_divine_shard, 2);
+// one Fairy-or-Sapupema vase plus one fixed Sapupema vase
+assert.equal((counts.fairy_in_a_bottle ?? 0) + (counts.super_tonic_sapupema_tea ?? 0), 2);
+assert.ok((counts.super_tonic_sapupema_tea ?? 0) >= 1);
 for (const p of prizes.values()) if (p.itemId === 'mega_elixir') assert.equal(p.quantity, 20);
 for (const id of prizes.keys()) assert.ok(vases.some(v => v.id === id));
 assert.deepEqual([...assignPrizes(vases, 7, cfg)], [...prizes], 'deterministic prizes');

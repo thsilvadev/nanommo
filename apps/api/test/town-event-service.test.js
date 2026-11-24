@@ -107,7 +107,7 @@ const standAt = (poses, id, mapId, v, dx = 0) => poses.set(id, { mapId, x: v.x +
     await svc.runPhase(startPhase);
     const town = 'map_town';
     const prizeIds = Object.keys(await redis.hgetall(`ss:${eventKey}:${town}:prizes`));
-    assert.equal(prizeIds.length, 20);
+    assert.equal(prizeIds.length, 40);
     const vases = await vasesOf(svc, town);
     let id = 0;
     for (const vaseId of prizeIds) {
@@ -116,8 +116,8 @@ const standAt = (poses, id, mapId, v, dx = 0) => poses.set(id, { mapId, x: v.x +
       const r = await svc.hitVase(who, vaseId);
       assert.equal(r.success, true); assert.ok(r.prize && r.prize.via === 'bag');
     }
-    assert.equal(grants.length, 20);
-    assert.equal(finds.length, 5, 'four Bliss Stones + one Divine Shard');
+    assert.equal(grants.length, 40);
+    assert.equal(finds.length, 10, 'eight Bliss Stones + two Divine Shards');
     assert.ok(finds.every((f) => ['mat_bliss_stone', 'mat_divine_shard'].includes(f[1])));
     const ended = ofEvent(redis, 'town:event:ended');
     assert.equal(ended.length, 1); assert.equal(ended[0].payload.mapId, town); assert.equal(ended[0].payload.reason, 'all-prizes-found');
