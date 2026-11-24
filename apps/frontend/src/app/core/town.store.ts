@@ -1,12 +1,22 @@
 import { EffectRef, Injectable, Injector, computed, effect, inject, signal } from '@angular/core';
-import { Subscription } from 'rxjs';
-import type { TownEmoteKind, TownRosterEntry } from '@nanommo/shared';
+import { Observable, Subject, Subscription } from 'rxjs';
+import type { TownEmoteKind, TownEventSnapshot, TownEventVase, TownEventVaseBroken, TownRosterEntry } from '@nanommo/shared';
 import { GameSocketService } from './game.socket.service';
-import { CharacterStore } from './game.store';
+import { CharacterStore, InventoryStore } from './game.store';
 import { ServerClockService } from './server-clock.service';
 
-export interface TownRosterSnapshot { mapId: string | null; serverNow: number; entries: TownRosterEntry[] }
+export interface TownRosterSnapshot { mapId: string | null; serverNow: number; entries: TownRosterEntry[]; event?: TownEventSnapshot | null }
 type TownAck = { success: boolean; entry?: TownRosterEntry; error?: string };
+type HitVaseAck = { success: boolean; vaseId?: string; error?: string; prize?: { itemId: string; quantity: number; via: 'bag' | 'mail' | 'pending' } | null };
+export interface TownVaseEvent { eventKey: string; endsAt: number; vases: TownEventVase[] }
+
+/** Client-side mirror of the server rules (the server stays the authority). */
+export const VASE_HIT_RANGE = 1.0;
+export const TOWN_ATTACK_COOLDOWN_MS = 1000;
+/** How often a pending vase hit re-checks range and cooldown. */
+const VASE_HIT_POLL_MS = 100;
+/** A pending hit gives up after this long (path blocked, player wandered off). */
+const VASE_HIT_GIVE_UP_MS = 15_000;
 
 /**
  * Client copy of the town scene roster. The server decides which town (if
@@ -43,6 +53,18 @@ export class TownStore {
     this._selectedCharacterId.set(characterId && characterId !== this.characters.character()?.id ? characterId : null);
   }
 
+  /** Smashing Spree (Quebra-Quebra): the live vases of this town, or null. */
+  private readonly _vaseEvent = signal<TownVaseEvent | null>(null);
+  readonly vaseEvent = this._vaseEvent.asReadonly();
+  private readonly breaks = new Subject<TownEventVaseBroken>();
+  readonly vaseBreaks: Observable<TownEventVaseBroken> = this.breaks.asObservable();
+  private vaseEndTimer: ReturnType<typeof setTimeout> | null = null;
+  private selfPosition: (() => [number, number] | null) | null = null;
+  private pendingHit: { vaseId: string; since: number; reapproached: boolean } | null = null;
+  private hitTimer: ReturnType<typeof setInterval> | null = null;
+  private hitInFlight = false;
+  private lastHitSentAt = -Infinity;
+
   private subscriptions: Subscription[] = [];
   private syncSequence = 0;
   private mapWatch: EffectRef | null = null;
@@ -70,6 +92,19 @@ export class TownStore {
         }
         this._entries.update(list => list.filter(e => e.characterId !== d.characterId));
       }),
+      this.socket.on<{ mapId: string } & TownVaseEvent>('town:event:vases').subscribe(d => {
+        if (d?.mapId && d.mapId === this._mapId()) this.setVaseEvent({ eventKey: d.eventKey, endsAt: d.endsAt, vases: d.vases ?? [] });
+      }),
+      this.socket.on<TownEventVaseBroken>('town:event:vaseBroken').subscribe(d => {
+        const current = this._vaseEvent();
+        if (!d || d.mapId !== this._mapId() || !current || d.eventKey !== current.eventKey) return;
+        this._vaseEvent.set({ ...current, vases: current.vases.filter(v => v.id !== d.vaseId) });
+        if (this.pendingHit?.vaseId === d.vaseId && d.byCharacterId !== this.characters.character()?.id) this.cancelPendingHit();
+        this.breaks.next(d);
+      }),
+      this.socket.on<{ mapId: string; eventKey: string }>('town:event:ended').subscribe(d => {
+        if (d?.mapId === this._mapId() && d.eventKey === this._vaseEvent()?.eventKey) this.setVaseEvent(null);
+      }),
       this.socket.onConnectionState().subscribe(state => {
         if (state !== 'connected') return;
         void this.clock.sync();
@@ -94,6 +129,7 @@ export class TownStore {
     this._mapId.set(null);
     this._entries.set([]);
     this._selectedCharacterId.set(null);
+    this.setVaseEvent(null);
   }
 
   /** True only for the town scene the server put this character in. */
@@ -113,8 +149,86 @@ export class TownStore {
 
   async sleep(): Promise<void> { await this.intent('town:sleep'); }
   async wake(): Promise<void> { await this.intent('town:wake'); }
-  /** Click-to-move to a ground point or up to an NPC (also wakes and ends emotes). */
-  async moveTo(target: { x: number; z: number } | { npcId: string }): Promise<void> { await this.intent('town:move', target); }
+  /** Click-to-move to a ground point or up to an NPC (also wakes and ends emotes). Cancels a pending vase hit. */
+  async moveTo(target: { x: number; z: number } | { npcId: string }): Promise<void> {
+    this.cancelPendingHit();
+    await this.intent('town:move', target);
+  }
+
+  /** The town scene tells the store where the local character stands (world x, z). */
+  setSelfPosition(provider: (() => [number, number] | null) | null): void { this.selfPosition = provider; }
+
+  /**
+   * Click on a vase: hit it now when in range and off cooldown; otherwise walk
+   * up to it and hit on arrival. A newer vase click or a ground click replaces it.
+   */
+  async breakVase(vaseId: string): Promise<void> {
+    if (!this._vaseEvent()?.vases.some(v => v.id === vaseId)) return;
+    this.pendingHit = { vaseId, since: Date.now(), reapproached: false };
+    if (!this.inRange(vaseId)) await this.approach(vaseId);
+    this.ensureHitLoop();
+    await this.tryHit();
+  }
+
+  private async approach(vaseId: string): Promise<void> {
+    try {
+      const ack = await this.socket.emit<TownAck>('town:move', { vaseId });
+      if (ack?.success && ack.entry) this.upsert({ mapId: this._mapId(), entry: ack.entry });
+      else if (this.pendingHit?.vaseId === vaseId) this.cancelPendingHit();
+    } catch {
+      // Offline: the pending hit gives up on its own.
+    }
+  }
+
+  private inRange(vaseId: string): boolean {
+    const vase = this._vaseEvent()?.vases.find(v => v.id === vaseId);
+    const at = this.selfPosition?.();
+    return !!vase && !!at && Math.hypot(at[0] - vase.x, at[1] - vase.z) <= VASE_HIT_RANGE;
+  }
+
+  private ensureHitLoop(): void {
+    if (this.hitTimer) return;
+    this.hitTimer = setInterval(() => void this.tryHit(), VASE_HIT_POLL_MS);
+  }
+
+  private cancelPendingHit(): void {
+    this.pendingHit = null;
+    if (this.hitTimer) { clearInterval(this.hitTimer); this.hitTimer = null; }
+  }
+
+  private async tryHit(): Promise<void> {
+    const pending = this.pendingHit;
+    if (!pending || this.hitInFlight) return;
+    if (Date.now() - pending.since > VASE_HIT_GIVE_UP_MS || !this._vaseEvent()?.vases.some(v => v.id === pending.vaseId)) { this.cancelPendingHit(); return; }
+    if (Date.now() - this.lastHitSentAt < TOWN_ATTACK_COOLDOWN_MS || !this.inRange(pending.vaseId)) return;
+    this.hitInFlight = true;
+    this.lastHitSentAt = Date.now();
+    try {
+      const ack = await this.socket.emit<HitVaseAck>('town:hitVase', { vaseId: pending.vaseId });
+      if (this.pendingHit !== pending) return;
+      if (ack?.success) {
+        this.cancelPendingHit();
+        if (ack.prize?.via === 'bag') void this.injector.get(InventoryStore, null)?.load();
+      } else if (ack?.error === 'OUT_OF_RANGE' && !pending.reapproached) {
+        pending.reapproached = true;
+        await this.approach(pending.vaseId);
+      } else if (ack?.error !== 'COOLDOWN' && ack?.error !== 'OUT_OF_RANGE') {
+        this.cancelPendingHit();
+      }
+    } catch {
+      // Socket error: keep trying until give-up.
+    } finally {
+      this.hitInFlight = false;
+    }
+  }
+
+  private setVaseEvent(event: TownVaseEvent | null): void {
+    if (this.vaseEndTimer) { clearTimeout(this.vaseEndTimer); this.vaseEndTimer = null; }
+    if (event && event.endsAt <= this.clock.now()) event = null;
+    this._vaseEvent.set(event);
+    if (!event) { this.cancelPendingHit(); return; }
+    this.vaseEndTimer = setTimeout(() => this.setVaseEvent(null), event.endsAt - this.clock.now());
+  }
   /** `/dance`, `/sit`; the same one again stops it. */
   async emote(kind: TownEmoteKind): Promise<void> { await this.intent('town:emote', { kind }); }
 
@@ -131,6 +245,8 @@ export class TownStore {
     if ((snapshot.mapId ?? null) !== this._mapId()) this._selectedCharacterId.set(null);
     this._mapId.set(snapshot.mapId ?? null);
     this._entries.set(Array.isArray(snapshot.entries) ? snapshot.entries : []);
+    const event = snapshot.mapId && snapshot.event?.mapId === snapshot.mapId ? snapshot.event : null;
+    this.setVaseEvent(event ? { eventKey: event.eventKey, endsAt: event.endsAt, vases: event.vases ?? [] } : null);
   }
 
   private upsert(delta: { mapId: string | null; entry: TownRosterEntry } | null | undefined): void {
