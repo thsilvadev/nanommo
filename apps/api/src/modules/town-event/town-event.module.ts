@@ -11,10 +11,13 @@ import { TownEventService } from './town-event.service';
 import { TownEventGrantService } from './town-event-grant.service';
 import { TownEventProcessor, TownEventScheduler } from './town-event.processor';
 
+/** Maintenance contexts (migrations, queue reconciliation) never consume or schedule the tick. */
+const MAINTENANCE_ONLY = process.env.BATTLE_QUEUE_MAINTENANCE_ONLY === 'true';
+
 /** Smashing Spree (Quebra-Quebra) scheduled town event. */
 @Module({
   imports: [BullModule.registerQueue({ name: 'town-event' }), RedisModule, DataModule, PresenceModule, ChatModule, InventoryModule, MailModule, forwardRef(() => BattleModule)],
-  providers: [TownEventService, TownEventGrantService, TownEventScheduler, TownEventProcessor],
+  providers: [TownEventService, TownEventGrantService, ...(MAINTENANCE_ONLY ? [] : [TownEventScheduler, TownEventProcessor])],
   exports: [TownEventService],
 })
 export class TownEventModule {}

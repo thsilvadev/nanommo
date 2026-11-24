@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { Redis } from 'ioredis';
 import { TownNav } from '@nanommo/shared';
 import type { TownEventSnapshot, TownEventVase } from '@nanommo/shared';
@@ -6,7 +7,7 @@ import { REDIS_CLIENT } from '../../config/redis.provider';
 import { DataService } from '../data/data.service';
 import { TownRosterService, TOWN_EVENTS_CHANNEL } from '../presence/town-roster.service';
 import { ChatService } from '../chat/chat.service';
-import { TownEventGrantService, PrizeDelivery } from './town-event-grant.service';
+import { TownEventGrantService, PrizeDelivery, PENDING_GRANTS_KEY } from './town-event-grant.service';
 import { assignPrizes, eventSeed, placeVases, SmashingSpreePhase } from './smashing-spree.logic';
 import type { TownEventPrize } from './smashing-spree.types';
 
@@ -30,7 +31,7 @@ interface ActiveEntry { eventKey: string; endsAt: number }
  */
 @Injectable()
 export class TownEventService {
-  private readonly logger = new Logger(TownEventService.name);
+  private logger = new Logger(TownEventService.name);
   private readonly navs = new Map<string, TownNav>();
   private readonly layouts = new Map<string, Map<string, TownEventVase>>();
 
@@ -42,30 +43,46 @@ export class TownEventService {
     private readonly grants: TownEventGrantService,
   ) {}
 
-  /** Runs one scheduler phase; each (event, phase) runs at most once. */
+  /**
+   * Runs one scheduler phase. Each step is guarded by its own `SET NX` key, so a
+   * redelivery or a second instance never repeats it; a step that fails releases
+   * its guard and the phase throws, so a retry redoes only what did not happen.
+   */
   async runPhase(phase: SmashingSpreePhase): Promise<void> {
-    const guard = `ss:phase:${phase.eventKey}:${phase.kind}${phase.kind === 'announce' ? `:${phase.minutes}` : ''}`;
-    if ((await this.redis.set(guard, '1', 'EX', EVENT_TTL_S * 24, 'NX')) !== 'OK') return;
+    const base = `ss:phase:${phase.eventKey}:${phase.kind}${phase.kind === 'announce' ? `:${phase.minutes}` : ''}`;
     if (phase.kind === 'announce') {
       const unit = phase.minutes === 1 ? 'minute' : 'minutes';
-      await this.chat.announceServerMessage(
+      await this.once(base, () => this.chat.announceServerMessage(
         `The Smashing Spree starts in ${phase.minutes} ${unit}! Head to any town.`,
         `${phase.eventKey}:soon:${phase.minutes}`, 'event.smashingSpree.soon', { minutes: phase.minutes },
-      );
-    } else if (phase.kind === 'start') {
+      ));
+      return;
+    }
+    if (phase.kind === 'start') {
+      const failed: string[] = [];
       for (const mapId of this.dataService.getTownSceneMapIds()) {
-        try { await this.startTown(phase.eventKey, mapId, phase.endsAt); }
-        catch (error) { this.logger.error(`Smashing Spree start failed in ${mapId}: ${error instanceof Error ? error.message : String(error)}`); }
+        try { await this.once(`${base}:${mapId}`, () => this.startTown(phase.eventKey, mapId, phase.endsAt)); }
+        catch (error) { failed.push(mapId); this.logger.error(`Smashing Spree start failed in ${mapId}: ${this.describe(error)}`); }
       }
-      await this.chat.announceServerMessage('The Smashing Spree has begun! Break the vases in town!', `${phase.eventKey}:started`, 'event.smashingSpree.started', {});
-    } else {
+      await this.once(`${base}:announce`, () => this.chat.announceServerMessage('The Smashing Spree has begun! Break the vases in town!', `${phase.eventKey}:started`, 'event.smashingSpree.started', {}));
+      if (failed.length) throw new Error(`Smashing Spree start failed in ${failed.join(', ')}`);
+      return;
+    }
+    await this.once(base, async () => {
       for (const mapId of this.dataService.getTownSceneMapIds()) {
         const active = await this.active(mapId);
         if (active?.eventKey !== phase.eventKey) continue;
         await this.redis.hdel(ACTIVE_KEY, mapId);
         await this.publish('town:event:ended', mapId, { eventKey: phase.eventKey, reason: 'timeout' });
       }
-    }
+    });
+  }
+
+  /** Runs `work` unless `guard` is already taken; on failure the guard is released for a retry. */
+  private async once(guard: string, work: () => Promise<unknown>): Promise<void> {
+    if ((await this.redis.set(guard, '1', 'EX', EVENT_TTL_S * 24, 'NX')) !== 'OK') return;
+    try { await work(); }
+    catch (error) { await this.redis.del(guard).catch(() => undefined); throw error; }
   }
 
   /** Live state for a town (unbroken vases only), or null when no event is running there. */
@@ -102,19 +119,30 @@ export class TownEventService {
     if (Math.hypot(pose.x - vase.x, pose.z - vase.z) > cfg.hitRange) return { success: false, error: 'OUT_OF_RANGE' };
     if (!(await this.redis.hsetnx(eventKey(ek, mapId, 'broken'), vaseId, characterId))) return { success: false, error: 'ALREADY_BROKEN' };
 
-    const rawPrize = await this.redis.hget(eventKey(ek, mapId, 'prizes'), vaseId);
-    const prize: TownEventPrize | null = rawPrize ? JSON.parse(rawPrize) : null;
-    await this.publish('town:event:vaseBroken', mapId, { eventKey: ek, vaseId, byCharacterId: characterId, at: Date.now(), prize: !!prize });
+    // The claim is won: from here on nothing may lose the prize. Broadcast/counter
+    // failures are logged; only the grant decides where the prize goes.
+    let prize: TownEventPrize | null;
+    try {
+      const rawPrize = await this.redis.hget(eventKey(ek, mapId, 'prizes'), vaseId);
+      prize = rawPrize ? JSON.parse(rawPrize) : null;
+    } catch (error) {
+      await this.recordUnresolved(characterId, ek, mapId, vaseId, error);
+      return { success: true, vaseId, prize: null };
+    }
+    try { await this.publish('town:event:vaseBroken', mapId, { eventKey: ek, vaseId, byCharacterId: characterId, at: Date.now(), prize: !!prize }); }
+    catch (error) { this.logger.warn(`vaseBroken broadcast failed (${ek} ${mapId} ${vaseId}): ${this.describe(error)}`); }
     if (!prize) return { success: true, vaseId, prize: null };
 
-    const left = await this.redis.decr(eventKey(ek, mapId, 'prizesLeft'));
+    let left: number | null = null;
+    try { left = await this.redis.decr(eventKey(ek, mapId, 'prizesLeft')); }
+    catch (error) { this.logger.warn(`prizesLeft decrement failed (${ek} ${mapId}): ${this.describe(error)}`); }
     const via = await this.grants.grant(characterId, ek, mapId, vaseId, prize);
-    if (cfg.announceFindItemIds.includes(prize.itemId)) {
-      await this.chat.announceEventFind(pose.name, prize.itemId, mapId, `${ek}:${mapId}:${vaseId}`);
-    }
-    if (left === 0 && (await this.redis.hdel(ACTIVE_KEY, mapId))) {
-      await this.publish('town:event:ended', mapId, { eventKey: ek, reason: 'all-prizes-found' });
-    }
+    try {
+      if (cfg.announceFindItemIds.includes(prize.itemId)) await this.chat.announceEventFind(pose.name, prize.itemId, mapId, `${ek}:${mapId}:${vaseId}`);
+      if (left === 0 && (await this.redis.hdel(ACTIVE_KEY, mapId))) {
+        await this.publish('town:event:ended', mapId, { eventKey: ek, reason: 'all-prizes-found' });
+      }
+    } catch (error) { this.logger.warn(`Post-grant announcements failed (${ek} ${mapId} ${vaseId}): ${this.describe(error)}`); }
     return { success: true, vaseId, prize: { ...prize, via } };
   }
 
@@ -124,9 +152,10 @@ export class TownEventService {
     if (!def) return;
     let nav = this.navs.get(mapId);
     if (!nav) { nav = new TownNav(def); this.navs.set(mapId, nav); }
-    const seed = eventSeed(ek, mapId);
-    const vases = placeVases(def, nav, seed, cfg);
-    const prizes = assignPrizes(vases, seed, cfg);
+    // The layout is public (seeded by the event); the prize seed is secret and random,
+    // so nobody can rebuild which vases hold prizes from the broadcast data.
+    const vases = placeVases(def, nav, eventSeed(ek, mapId), cfg);
+    const prizes = assignPrizes(vases, randomBytes(4).readUInt32BE(0), cfg);
     const prizeFields: Record<string, string> = {};
     for (const [vaseId, prize] of prizes) prizeFields[vaseId] = JSON.stringify(prize);
     await this.redis.set(eventKey(ek, mapId, 'vases'), JSON.stringify(vases), 'EX', EVENT_TTL_S);
@@ -140,6 +169,15 @@ export class TownEventService {
     this.layouts.set(`${ek}:${mapId}`, new Map(vases.map((v) => [v.id, v])));
     await this.publish('town:event:vases', mapId, { eventKey: ek, endsAt, vases });
   }
+
+  /** A won claim whose prize could not even be read: keep a row for an operator. */
+  private async recordUnresolved(characterId: string, ek: string, mapId: string, vaseId: string, error: unknown): Promise<void> {
+    const row = { characterId, eventKey: ek, mapId, vaseId, prize: null, reason: `prize lookup failed: ${this.describe(error)}`, at: new Date().toISOString() };
+    this.logger.error(`Smashing Spree claim without a resolved prize: ${JSON.stringify(row)}`);
+    try { await this.redis.lpush(PENDING_GRANTS_KEY, JSON.stringify(row)); } catch { /* already logged in full */ }
+  }
+
+  private describe(error: unknown): string { return error instanceof Error ? error.message : String(error); }
 
   private async active(mapId: string): Promise<ActiveEntry | null> {
     const raw = await this.redis.hget(ACTIVE_KEY, mapId);

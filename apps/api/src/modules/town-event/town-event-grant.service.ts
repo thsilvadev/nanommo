@@ -34,12 +34,16 @@ export class TownEventGrantService {
     const sourceKey = `smashing-spree:${eventKey}:${mapId}:${vaseId}`;
     let inBag = false;
     try {
-      await this.battle.withCharacterQueueLock(characterId, () => this.dataSource.transaction(async (manager) => {
-        await this.inventory.addItem(characterId, prize.itemId, prize.quantity, 'inventory', undefined, manager);
-      }));
-      inBag = true;
+      await this.battle.withCharacterQueueLock(characterId, async () => {
+        await this.dataSource.transaction(async (manager) => {
+          await this.inventory.addItem(characterId, prize.itemId, prize.quantity, 'inventory', undefined, manager);
+        });
+        // Committed. A later failure (lock release) must not send a second copy by mail.
+        inBag = true;
+      });
     } catch (error) {
-      this.logger.warn(`Smashing Spree prize ${sourceKey} could not go to the bag (${this.describe(error)}); sending by mail`);
+      if (!inBag) this.logger.warn(`Smashing Spree prize ${sourceKey} could not go to the bag (${this.describe(error)}); sending by mail`);
+      else this.logger.warn(`Smashing Spree prize ${sourceKey} is in the bag; lock release failed: ${this.describe(error)}`);
     }
     if (inBag) {
       // Committed: a failing toast must never fall through to the mail fallback (that would grant twice).
@@ -58,7 +62,9 @@ export class TownEventGrantService {
     } catch (error) {
       this.logger.error(`Smashing Spree prize ${sourceKey} could not be mailed (${this.describe(error)}); recorded in ${PENDING_GRANTS_KEY}`);
     }
-    await this.redis.lpush(PENDING_GRANTS_KEY, JSON.stringify({ characterId, eventKey, mapId, vaseId, prize, sourceKey, at: new Date().toISOString() }));
+    const row = JSON.stringify({ characterId, eventKey, mapId, vaseId, prize, sourceKey, at: new Date().toISOString() });
+    try { await this.redis.lpush(PENDING_GRANTS_KEY, row); }
+    catch (error) { this.logger.error(`Smashing Spree pending prize could not be recorded (${this.describe(error)}): ${row}`); }
     return 'pending';
   }
 

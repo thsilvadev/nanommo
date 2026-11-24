@@ -26,12 +26,12 @@ export class TownEventScheduler implements OnModuleInit {
     for (const job of await this.queue.getRepeatableJobs()) {
       if (job.name === SMASHING_SPREE_TICK && (job.cron !== EVERY_MINUTE || job.tz !== tz)) await this.queue.removeRepeatableByKey(job.key);
     }
-    await this.queue.add(SMASHING_SPREE_TICK, {}, { repeat: { cron: EVERY_MINUTE, tz }, jobId: SMASHING_SPREE_TICK, removeOnComplete: true, removeOnFail: 50 });
+    await this.queue.add(SMASHING_SPREE_TICK, {}, { repeat: { cron: EVERY_MINUTE, tz }, jobId: SMASHING_SPREE_TICK, removeOnComplete: true, removeOnFail: 50, attempts: 3, backoff: { type: 'fixed', delay: 5000 } });
     this.logger.log(`Smashing Spree tick scheduled (${EVERY_MINUTE}, ${tz})`);
   }
 }
 
-/** Each tick derives the phase of the current minute; TownEventService.runPhase is idempotent, so retries are safe. */
+/** Each tick runs the phase of its scheduled minute; runPhase guards every step, so retries redo only what failed. */
 @Processor('town-event')
 export class TownEventProcessor {
   private logger = new Logger(TownEventProcessor.name);
@@ -50,10 +50,21 @@ export class TownEventProcessor {
     if (job.data?.phase) await this.townEvents.runPhase(job.data.phase);
   }
 
+  /**
+   * The phase comes from the minute the job was scheduled for (a repeat job is
+   * created with `delay` up to its cron time), not from when it runs: a tick
+   * processed late (API restarting at 09:30) still starts the event while it
+   * would be live. A countdown more than a minute late is dropped.
+   */
   @Process(SMASHING_SPREE_TICK)
-  async handleTick(_job: Job): Promise<void> {
-    const phase = phaseAt(Date.now(), this.dataService.getSmashingSpreeConfig());
+  async handleTick(job: Partial<Pick<Job, 'timestamp' | 'opts'>>): Promise<void> {
+    const now = Date.now();
+    const scheduled = Number(job?.timestamp) + Number(job?.opts?.delay ?? 0);
+    const at = job?.opts?.repeat && Number.isFinite(scheduled) && scheduled > 0 ? scheduled : now;
+    const phase = phaseAt(at, this.dataService.getSmashingSpreeConfig());
     if (!phase) return;
+    if (phase.kind === 'start' && now >= phase.endsAt) return;
+    if (phase.kind === 'announce' && now - Math.floor(at / 60_000) * 60_000 > 60_000) return;
     try {
       await this.townEvents.runPhase(phase);
     } catch (error) {
