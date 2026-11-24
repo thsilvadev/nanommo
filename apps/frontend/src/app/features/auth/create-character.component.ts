@@ -203,7 +203,9 @@ export class CreateCharacterComponent {
         await this.router.navigate(['/play']);
         return;
       }
-      this.error.set(this.mode() === 'new' && err?.status === 409
+      this.error.set(err?.error?.message === 'PROHIBITED_CHARACTER_NAME'
+        ? this.locale.t('This character name is not allowed.')
+        : this.mode() === 'new' && err?.status === 409
         ? this.locale.t('Name already in use')
         : err?.error?.message ?? this.locale.t('Could not save the character. Try again.'));
       this.confirming.set(false);

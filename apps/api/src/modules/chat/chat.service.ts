@@ -1,3 +1,4 @@
+import { containsProhibitedLanguage } from '../moderation/language-filter';
 import { BadRequestException, Injectable, Logger, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -26,6 +27,7 @@ export class ChatService {
     const text = typeof message === 'string' ? message.trim() : '';
     if (!text) throw new BadRequestException('Message cannot be empty');
     if (text.length > 200) throw new BadRequestException('Message cannot exceed 200 characters');
+    if (containsProhibitedLanguage(text)) throw new BadRequestException('PROHIBITED_CHAT_MESSAGE');
     const character = await this.characterRepo.findOne({ where: { id: characterId } });
     if (!character) throw new NotFoundException('Character not found');
     // Limit the account rather than the selected Character, so switching Characters cannot bypass the throttle.

@@ -157,7 +157,12 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
       this.append(accepted);
       this.draft.set('');
     } catch (error: any) {
-      this.error.set(error?.message ?? 'Message was not accepted.');
+      if (error?.message === 'PROHIBITED_CHAT_MESSAGE') {
+        this.draft.set('');
+        this.appendLocalError(this.locale.t('Wash your mouth out with soap!'));
+      } else {
+        this.error.set(error?.message ?? 'Message was not accepted.');
+      }
     } finally {
       this.sending.set(false);
     }

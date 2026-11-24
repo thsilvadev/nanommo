@@ -1,3 +1,4 @@
+import { containsProhibitedLanguage } from '../moderation/language-filter';
 import { equipmentAffinity, elementalResistances, combatCooldownDurations } from '@nanommo/shared';
 import { Injectable, BadRequestException, NotFoundException, Logger, ConflictException, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -140,6 +141,7 @@ export class CharacterService {
 
   async createCharacter(userId: string, name: string, dominantHand: 'right' | 'left', appearanceInput: AppearanceInput): Promise<CharacterDto> {
     this.validateName(name);
+    if (containsProhibitedLanguage(name, true)) throw new BadRequestException('PROHIBITED_CHARACTER_NAME');
     if (dominantHand !== 'right' && dominantHand !== 'left') throw new BadRequestException('dominantHand must be right or left');
     const look = this.resolveAppearance(appearanceInput);
 
