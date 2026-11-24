@@ -1993,5 +1993,6 @@ export * from './group-rewards';
 export * from './group-flee';
 export * from './legacy-adapter';
 export * from './solo-adapter';
+export * from './item-target';
 
 export * from './combat-timers';

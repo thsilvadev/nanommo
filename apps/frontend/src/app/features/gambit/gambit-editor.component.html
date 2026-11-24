@@ -46,9 +46,9 @@
                                         (ngModelChange)="setParam(line.conditions[0],spec.name,valueForInput(spec,$event))"></ng-container></label></ng-container>
                     </div>
                 </div>
-                <div class="node-block action-block"><small aria-label="Action" title="Action">►</small><select [ngModel]="line.action.id"
+                <div class="node-block action-block"><small aria-label="Action" title="Action">►</small><select [ngModel]="actionKey(line)"
                         (ngModelChange)="changeAction(line,$event)">
-                        <option *ngFor="let a of actionOptionsForLine(line)" [value]="a.id">{{a.label}}</option>
+                        <option *ngFor="let a of actionChoicesForLine(line)" [value]="a.key">{{a.label}}</option>
                     </select>
                     <div class="param-row"><ng-container
                             *ngFor="let spec of paramSpecs(line.action,'action',line)"><label><span [class.sr-only]="!showParamLabel(spec.name)">{{paramLabel(spec.name)}}</span><ng-container

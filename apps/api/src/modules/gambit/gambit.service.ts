@@ -1,4 +1,4 @@
-import { normalizeElement } from '@nanommo/shared';
+import { normalizeElement, GAMBIT_ITEM_TARGETS, itemTargetError, legacyItemTarget, type GambitItemTarget } from '@nanommo/shared';
 import { Injectable, BadRequestException, NotFoundException, forwardRef, Inject } from '@nestjs/common';
 import { BattleService } from '../battle/battle.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -210,6 +210,20 @@ export class GambitService {
       const actionParams = GambitService.readParams(line.action);
       if (line.action?.id !== 'use_item' || actionParams.itemId !== 'fairy_in_a_bottle') {
         errors.push({ path: `${path}.action`, message: 'Self: Status = KO can only use Fairy in a Bottle' });
+      }
+    }
+
+    // use_item: Use item (Self/Ally/Foe) must fit the condition scope, and revive items their KO line.
+    if (line.action?.id === 'use_item') {
+      const actionParams = GambitService.readParams(line.action);
+      const rawTarget = actionParams.target;
+      if (rawTarget !== undefined && !GAMBIT_ITEM_TARGETS.includes(rawTarget as GambitItemTarget)) {
+        errors.push({ path: `${path}.action.target`, message: `use_item target must be one of ${GAMBIT_ITEM_TARGETS.join(', ')}` });
+      } else {
+        const item = actionParams.itemId ? this.dataService.getItemById(String(actionParams.itemId)) : null;
+        const target = (rawTarget as GambitItemTarget | undefined) ?? legacyItemTarget([String(condition?.id ?? '')], item?.effect?.type);
+        const problem = itemTargetError(target, condition, item);
+        if (problem && !(isSelfKo && problem.startsWith('Self: Status = KO'))) errors.push({ path: `${path}.action`, message: problem });
       }
     }
 

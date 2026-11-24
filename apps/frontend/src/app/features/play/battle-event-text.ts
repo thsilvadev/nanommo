@@ -14,7 +14,7 @@ export function battleEventText(event: any, actor: string, target: string, name:
     case 'status_damage': return `${target} takes ${Number(e.damage ?? 0)} ${status} damage.`;
     case 'attack': return e.hit === false || Number(e.damage ?? 0) === 0 ? `${actor} misses ${target}!` : `${actor} hits ${target} for ${e.damage} damage${e.crit ? ' — CRITICAL!' : '.'}`;
     case 'use_skill': return `${actor} uses ${skill} on ${target}${Number(e.damage) > 0 ? ` for ${e.damage} damage` : ''}${Number(e.healAmount) > 0 ? ` and restores ${e.healAmount} HP` : ''}.`;
-    case 'use_item': return `${actor} uses ${name(String(e.itemId ?? ''), 'item') || 'an item'}${Number(e.healAmount) > 0 ? ` and restores ${e.healAmount} HP` : ''}${Number(e.spGain) > 0 ? ` and ${e.spGain} SP` : ''}.`;
+    case 'use_item': return `${actor} uses ${name(String(e.itemId ?? ''), 'item') || 'an item'}${target && target !== actor ? ` on ${target}` : ''}${Number(e.healAmount) > 0 ? ` and restores ${e.healAmount} HP` : ''}${Number(e.spGain) > 0 ? ` and ${e.spGain} SP` : ''}.`;
     case 'regen': {
       if (e.hpGain != null || e.spGain != null) return `${actor} regenerates ${[Number(e.hpGain) > 0 ? `${e.hpGain} HP` : '', Number(e.spGain) > 0 ? `${e.spGain} SP` : ''].filter(Boolean).join(' and ') || '0 HP'}.`;
       return `${actor} regenerates ${Number(e.amount ?? 0)} ${String(e.resource ?? 'HP').replace(/_regen$/, '').toUpperCase()}.`;

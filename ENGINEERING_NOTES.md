@@ -287,3 +287,5 @@ A failed town gear download must not set `dressedKey`. Keep the prior outfit and
 ## Smashing Spree keys and phases — 2026-11-24
 
 Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `eventKey` (`ss-<startMs>`, or `ss-dev-<ms>` for the dev tool); reusing a key silently skips that phase. Hit checks run in a fixed order (presence → active and `now < endsAt` → cooldown → vase exists → range → `HSETNX`): the cooldown is spent even by an out-of-range swing, and `endsAt` is checked on every hit because the end tick may run late while keys still exist. Prize grants run under `withCharacterQueueLock` (slot races with battle drops).
+
+- **Gambit `use_item` target (2026-11-24).** `params.target` (`self`/`ally`/`foe`) decides who gets the item; when it is missing the engine falls back to `legacyItemTarget` (old pages, replays). Never change the legacy fallback: V2 replays of already simulated battles depend on it. New rules go in `item-target.ts` and apply only to lines with an explicit target.

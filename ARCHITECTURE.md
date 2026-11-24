@@ -1,3 +1,7 @@
+## Gambit item targets come from the condition scope — 2026-11-24
+
+`use_item` lines carry `target` (`self`/`ally`/`foe`); the one condition of a line fixes which targets are legal, and the Ally/Foe that met it is the target. The rules are one shared module (`item-target.ts`) used by the V2 engine, the server validator and the editor, so the three cannot drift. Lines without `target` keep the legacy choice for deterministic replays.
+
 ## Smashing Spree in one town, event music as a music region, monster hand items — 2026-11-24
 
 - The event runs only in `town_events.json` `townMapId` (Sierra Village). The end phase still sweeps every town scene, so an event started under an older config always ends.
