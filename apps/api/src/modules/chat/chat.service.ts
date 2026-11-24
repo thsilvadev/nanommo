@@ -104,10 +104,27 @@ export class ChatService {
     }
   }
 
-  async announceServerMessage(message: string, id: string): Promise<void> {
-    const row = { id: `server:${id}`, channel: 'journal', type: 'server_announce', message, sentAt: new Date().toISOString() };
+  /** Yellow server announcement (chat System channel + on-screen band). `key`/`params` let clients localize; `message` is the English fallback. */
+  async announceServerMessage(message: string, id: string, key?: string, params?: Record<string, unknown>): Promise<void> {
+    const row = { id: `server:${id}`, channel: 'journal', type: 'server_announce', message, ...(key ? { key, params: params ?? {} } : {}), sentAt: new Date().toISOString() };
     try { const serialized = JSON.stringify(row); await this.redis.multi().lpush('chat:server-announces', serialized).ltrim('chat:server-announces', 0, 39).exec(); await this.redis.publish('gateway:chat:global', serialized); }
     catch (error) { this.logger.error(`Server message fan-out failed: ${error instanceof Error ? error.message : String(error)}`); }
+  }
+
+  /** Chat-only line (no on-screen popup) when a Smashing Spree vase held a gem. */
+  async announceEventFind(characterName: string, itemId: string, mapId: string, id: string): Promise<void> {
+    const item = this.dataService.getItemById(itemId);
+    const map = this.dataService.getMaps().find((m: any) => m?.id === mapId);
+    const row = {
+      id: `event-find:${id}`, channel: 'journal', type: 'event_find', key: 'event.smashingSpree.found',
+      params: { name: characterName, itemId, mapId },
+      message: `${characterName} found ${item?.name ?? itemId} in ${map?.name ?? mapId}!`, sentAt: new Date().toISOString(),
+    };
+    try {
+      const serialized = JSON.stringify(row);
+      await this.redis.multi().lpush('chat:server-announces', serialized).ltrim('chat:server-announces', 0, 39).exec();
+      await this.redis.publish('gateway:chat:global', serialized);
+    } catch (error) { this.logger.error(`Event find announcement failed: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
   async getAvailableChannels(): Promise<any[]> { return ['global', 'journal', 'crafts', 'market']; }

@@ -92,6 +92,16 @@ export class TownRosterService {
     return this.dataService.getTownScene(c.currentMapId) ? c.currentMapId : null;
   }
 
+  /** Where a town-present character stands right now (server clock), or null when not in a town scene. */
+  async poseOf(characterId: string): Promise<{ mapId: string; x: number; z: number; name: string } | null> {
+    const character = await this.characterRepo.findOne({ where: { id: characterId } });
+    const mapId = character ? this.isTownPresent(character) : null;
+    if (!character || !mapId) return null;
+    const def = this.dataService.getTownScene(mapId)!;
+    const pose = positionAt(def, this.nav(mapId, def), await this.loadState(mapId, character), Date.now());
+    return { mapId, x: pose.x, z: pose.z, name: character.name };
+  }
+
   async snapshot(mapId: string, viewerId: string): Promise<TownRosterSnapshot> {
     const serverNow = Date.now();
     if (!this.dataService.getTownScene(mapId)) return { mapId, serverNow, entries: [] };
