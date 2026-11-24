@@ -14,6 +14,7 @@ export class CatalogService {
  setEquippedEquipment(rows:any[]){this.equippedEquipment.set(rows??[]);}
  statusEffect(id:string){return this.statusEffects().find(x=>x.id===id);}
  item(id:string){return this.items().find(x=>x.id===id);}
+ itemTierClass(id:string){const item:any=this.item(id);const tier=Number(item?.tier??0);return item?.type==='equipment' && Number.isInteger(tier) && tier>=2 && tier<=5?'tier-'+tier:'';}
  itemName(id:string,instanceData?:any){const item:any=this.item(id);if(!item)return id;const name=this.locale.localized(item,'name',item.name)||id;const level=Math.max(0,Math.min(12,Math.floor(Number(instanceData?.refinementLevel??0))));return level?name+' +'+level:name;}
  itemTypeLabel(idOrType:string){
   const item:any=this.item(idOrType);const type=String(item?.type??idOrType??'');
@@ -163,7 +164,6 @@ export class CatalogService {
    for(const element of ELEMENTS){const value=resistances[element];if(value)lines.push({label:this.elementResistanceLabel(element),value:`${value>0?'+':''}${value}%`});}
   }
   if(item.weaponType&&weaponElement(item,instanceData)!=='neutral')lines.push({label:this.locale.t('Attack Element'),value:this.elementName(weaponElement(item,instanceData))});
-  if(refine)lines.push({label:this.locale.t('Refinement'),value:'+'+refine});
   return lines;
  }
  townNpcsForMap(mapId:string){

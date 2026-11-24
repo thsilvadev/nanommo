@@ -764,7 +764,7 @@ export class InventoryGrid {
   /** Slot → item, rebuilt only when the inventory changes (the grid asks for each of its 50 slots on every pass). */
   private readonly itemsBySlot = computed(() => new Map(this.inventory.items().map(x => [x.slotIndex, x] as const)));
   item(i: number) { return this.itemsBySlot().get(i) }
-  itemTitle(i: any) { return this.catalog.item(i.itemId)?.name ?? i.itemId }
+  itemTitle(i: any) { return this.catalog.itemName(i.itemId, i.instanceData) }
   itemDefinition(i: any) { return this.catalog.item(i.itemId) }
   itemTooltipLines(i: any) { return this.catalog.itemTooltipLines(i.itemId, i.instanceData) }
   formatItemEffect(effect: any) { if (!effect) return ''; if (effect.status) { const status = String(effect.status).replace(/_/g, ' '); return `Cures ${status}.` } if (effect.type === 'heal_hp') return `Restores ${Number(effect.amount) || 0} HP.`; if (effect.type === 'heal_sp') return `Restores ${Number(effect.amount) || 0} SP.`; if (effect.type === 'food_buff') return `Regenerates HP/SP for ${Math.round((Number(effect.durationSeconds) || 0) / 60)} minutes.`; return String(effect.type ?? '').replace(/_/g, ' ').replace(/^./, x => x.toUpperCase()) + '.' }
