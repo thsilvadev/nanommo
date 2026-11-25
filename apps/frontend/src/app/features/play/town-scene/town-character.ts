@@ -827,6 +827,7 @@ export class TownCharacter {
   }
 
   private updatePlate(): void {
+    if (this.opts.arena) return; // the arena draws names and bars in HTML
     const text = this.opts.npc ? this.entry.name : `${this.entry.name}  Lv ${this.entry.level}`;
     const key = `${text}|${this.entry.online}|${this.opts.self}`;
     if (key === this.plateKey) return;

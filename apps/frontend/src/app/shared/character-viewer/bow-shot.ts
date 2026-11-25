@@ -187,8 +187,8 @@ function twoBoneIk(bones: Map<string, THREE.Bone>, side: string, target: THREE.V
   aimBone(lower, hand, shoulder.clone().addScaledVector(dir, d), weight);
 }
 
-/** Arrow with its nock at the origin, pointing along +Y. */
-function buildArrow(): THREE.Object3D {
+/** Arrow with its nock at the origin, pointing along +Y (also flown by the battle arena). */
+export function buildArrow(): THREE.Object3D {
   const group = new THREE.Group();
   group.name = 'bow:arrow';
   const wood = new THREE.MeshStandardMaterial({ color: 0x8a6a42, roughness: 0.8, flatShading: true });

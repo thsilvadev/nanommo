@@ -3,6 +3,9 @@ import {
 } from '@angular/core';
 import { resolveHandAttachments, type AppearanceCatalog, type CharacterAppearance, type HandWeaponType, type Sex, type VisibleEquipment, type VisibleRefinement } from '@nanommo/shared';
 import type { AnimationSource, CharacterRigHandle, ViewerConfig, ViewerFraming } from './character-viewer.types';
+import { DEFAULT_CATALOG_URL, isWebglAvailable, loadAppearanceCatalog } from './appearance-catalog';
+// Angular-free module (the battle arena's lazy chunk loads it without Angular); re-exported for existing callers.
+export { isWebglAvailable, loadAppearanceCatalog } from './appearance-catalog';
 
 export interface CharacterViewerEnv {
   /** Base URL of the character assets, with a trailing slash. */
@@ -13,35 +16,10 @@ export interface CharacterViewerEnv {
   loadGltf?: (url: string, defaultLoad: (url: string) => Promise<unknown>) => Promise<unknown>;
 }
 
-export function isWebglAvailable(): boolean {
-  try {
-    const canvas = document.createElement('canvas');
-    return !!(canvas.getContext('webgl2') ?? canvas.getContext('webgl'));
-  } catch {
-    return false;
-  }
-}
-
 export const CHARACTER_VIEWER_ENV = new InjectionToken<CharacterViewerEnv>('CHARACTER_VIEWER_ENV', {
   providedIn: 'root',
   factory: () => ({ assetBase: '/assets/character/', webglAvailable: isWebglAvailable }),
 });
-
-const DEFAULT_CATALOG_URL = '/data/appearance_catalog.json';
-const catalogs = new Map<string, Promise<AppearanceCatalog>>();
-/** Appearance catalogue mirror, fetched once and shared by every viewer and the creator. */
-export function loadAppearanceCatalog(url = DEFAULT_CATALOG_URL): Promise<AppearanceCatalog> {
-  let pending = catalogs.get(url);
-  if (!pending) {
-    pending = fetch(url).then((response) => {
-      if (!response.ok) throw new Error('Unable to load the appearance catalogue');
-      return response.json() as Promise<AppearanceCatalog>;
-    });
-    pending.catch(() => catalogs.delete(url));
-    catalogs.set(url, pending);
-  }
-  return pending;
-}
 
 type ViewerState = 'loading' | 'ready' | 'failed';
 

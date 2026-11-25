@@ -6,7 +6,7 @@
  */
 import { ARROW_FLIGHT_SECONDS, BOW_RELEASE_FRACTION, CLIP_SECONDS, type AnimationState, type HitClip } from '../../../shared/character-animation/animation-state';
 import { MONSTER_ATTACK_LEAD_MS, MONSTER_IMPACT_FRACTION } from '../../../shared/monster-viewer/monster-animation-state';
-import { damageFeedbackStyle, flashColor, type ArenaFlash, type DamageFeedbackStyle } from '../../../shared/battle-hit-feedback';
+import { damageFeedbackStyle, flashColor, type ArenaFlash, type DamageFeedbackStyle } from '../../../shared/battle-feedback-style';
 import { arenaPositions, type ArenaActorPose } from './arena-positions';
 import type { ArenaActorDef, ArenaBattle, ArenaEvent } from './arena.types';
 

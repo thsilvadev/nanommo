@@ -10,8 +10,8 @@ import type { ArenaCell } from './arena.types';
 
 /** Cells are big: a medium monster uses well under half of one, so giants can grow tall without crowding. */
 export const ARENA_CELL_M = 2.4;
-export const ARENA_CAMERA_PITCH_DEG = 25;
-export const ARENA_CAMERA_FOV_DEG = 30;
+export const ARENA_CAMERA_PITCH_DEG = 12;
+export const ARENA_CAMERA_FOV_DEG = 40;
 const GRID = 10;
 /** Frame at least this many cells (columns × rows): a 1v1 never zooms in too close. */
 const MIN_COLS = 4, MIN_ROWS = 3;
