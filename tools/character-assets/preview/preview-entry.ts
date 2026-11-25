@@ -17,7 +17,15 @@ let rig: CharacterRig | null = null;
       onContextLost: () => { (window as any).contextLost = true; },
     });
   }
-  if (config.animation) {
+  if (config.pose) {
+    // A fixed AnimationState (arena poses: Sprint, Gather, Stun…) shown at `atMs`, after a second of crossfade.
+    const { state, atMs } = config.pose;
+    let clock = atMs - 1000;
+    rig.setAnimation(state, () => clock);
+    await rig.apply(config);
+    for (; clock < atMs; clock = Math.min(atMs, clock + 1000 / 60)) rig.renderNow();
+    rig.renderNow();
+  } else if (config.animation) {
     // Pose at an exact instant of a battle log: replay the second before it at 60 fps
     // on a fake clock, so crossfades are where they would be on screen.
     const { status, battle, atMs } = config.animation;

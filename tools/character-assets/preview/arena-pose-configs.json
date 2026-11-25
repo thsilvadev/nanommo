@@ -1,0 +1,153 @@
+[
+ {
+  "sex": "male",
+  "heightCm": 181,
+  "appearance": {
+   "v": 1,
+   "hair": 2,
+   "hairColor": 1,
+   "skin": 1,
+   "face": 0,
+   "nose": 0,
+   "mouth": 0,
+   "mouthDetails": 0,
+   "chest": 0,
+   "facialHair": 1,
+   "piercing": 0,
+   "tattoo": 0
+  },
+  "dominantHand": "right",
+  "interactive": false,
+  "framing": "portrait",
+  "hands": {
+   "right": "sword",
+   "left": null
+  },
+  "width": 300,
+  "height": 440,
+  "yaw": 1.25,
+  "name": "arena_sprint",
+  "pose": {
+   "state": {
+    "base": "Sprint"
+   },
+   "atMs": 10200
+  }
+ },
+ {
+  "sex": "male",
+  "heightCm": 181,
+  "appearance": {
+   "v": 1,
+   "hair": 2,
+   "hairColor": 1,
+   "skin": 1,
+   "face": 0,
+   "nose": 0,
+   "mouth": 0,
+   "mouthDetails": 0,
+   "chest": 0,
+   "facialHair": 1,
+   "piercing": 0,
+   "tattoo": 0
+  },
+  "dominantHand": "right",
+  "interactive": false,
+  "framing": "portrait",
+  "hands": {
+   "right": "sword",
+   "left": null
+  },
+  "width": 300,
+  "height": 440,
+  "yaw": 1.25,
+  "name": "arena_gather",
+  "pose": {
+   "state": {
+    "base": "Walk",
+    "oneShot": {
+     "clip": "Gather",
+     "startedAtMs": 8000,
+     "speed": 1
+    }
+   },
+   "atMs": 10400
+  }
+ },
+ {
+  "sex": "male",
+  "heightCm": 181,
+  "appearance": {
+   "v": 1,
+   "hair": 2,
+   "hairColor": 1,
+   "skin": 1,
+   "face": 0,
+   "nose": 0,
+   "mouth": 0,
+   "mouthDetails": 0,
+   "chest": 0,
+   "facialHair": 1,
+   "piercing": 0,
+   "tattoo": 0
+  },
+  "dominantHand": "right",
+  "interactive": false,
+  "framing": "portrait",
+  "hands": {
+   "right": "sword",
+   "left": null
+  },
+  "width": 300,
+  "height": 440,
+  "yaw": 1.25,
+  "name": "arena_stun",
+  "pose": {
+   "state": {
+    "base": "CombatIdle",
+    "oneShot": {
+     "clip": "Stun",
+     "startedAtMs": 9500,
+     "speed": 1
+    },
+    "freezeAtMs": 9700
+   },
+   "atMs": 10000
+  }
+ },
+ {
+  "sex": "male",
+  "heightCm": 181,
+  "appearance": {
+   "v": 1,
+   "hair": 2,
+   "hairColor": 1,
+   "skin": 1,
+   "face": 0,
+   "nose": 0,
+   "mouth": 0,
+   "mouthDetails": 0,
+   "chest": 0,
+   "facialHair": 1,
+   "piercing": 0,
+   "tattoo": 0
+  },
+  "dominantHand": "right",
+  "interactive": false,
+  "framing": "portrait",
+  "hands": {
+   "right": "sword",
+   "left": null
+  },
+  "width": 300,
+  "height": 440,
+  "yaw": 1.25,
+  "name": "arena_combat_idle",
+  "pose": {
+   "state": {
+    "base": "CombatIdle"
+   },
+   "atMs": 10000
+  }
+ }
+]

@@ -18,12 +18,17 @@ import { hexToRgb, tintSkinPixels } from '../../../shared/character-viewer/skin-
 import { dressCostume, npcOutfitAsset, type NpcAnimator, type NpcFigure, type NpcFigureBody } from './npc-visuals';
 import { visibleBodyGeometry } from '../../../shared/character-viewer/gear-regions';
 import { gearMesh, mergedGearGeometry, planBands, planGear } from '../../../shared/character-viewer/gear-merge';
+import type { AnimationState } from '../../../shared/character-animation/animation-state';
+import { applyAnimationState, type AnimatedBody } from '../../../shared/character-animation/apply-animation-state';
 
 /** Characters cast shadows from the main light; first thing to switch off if the town drops frames. */
 export const TOWN_CHARACTER_SHADOWS = true;
 export const TOWN_SKIN_SIZE = 256;
 const NATIVE_HEIGHT_CM: Record<Sex, number> = { male: 181, female: 177 };
 const CLIPS = ['Idle', 'Walk', 'Dead', 'Dance', 'SitDown', 'Sit', 'Attack'] as const;
+/** Battle-arena characters: posed by applyAnimationState (Stun holds a frame of Damage2). */
+const ARENA_CLIPS = ['Idle', 'Walk', 'CombatIdle', 'Sprint', 'Attack', 'Dead', 'Gather', 'CastStart', 'CastLoop', 'Damage', 'Damage2'] as const;
+const ARENA_LOOPS: readonly string[] = ['Idle', 'Walk', 'CombatIdle', 'Sprint'];
 type TownClip = typeof CLIPS[number];
 const FADE_SECONDS = 0.25;
 const LOW_LOD_STEP_MS = 100; // 10 Hz
@@ -384,7 +389,11 @@ export class TownCharacter {
   private dressSeq = 0;
   private gearPending: Promise<void> = Promise.resolve();
 
-  constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean; visual?: NpcFigure } = {}) {
+  /** Arena mode: every battle clip as a clock-positioned action (see applyAnimationState). */
+  private animated: AnimatedBody | null = null;
+  private skeletonBones: Map<string, THREE.Bone> | null = null;
+
+  constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean; visual?: NpcFigure; arena?: boolean } = {}) {
     this.entry = entry;
     const pick: TownPickInfo = { kind: opts.npc ? 'npc' : 'character', id: entry.characterId };
     this.object3d.name = `${pick.kind}:${pick.id}`;
@@ -506,6 +515,37 @@ export class TownCharacter {
     action.setLoop(THREE.LoopOnce, 1);
     action.clampWhenFinished = true;
     this.play(clip);
+  }
+
+  hasClip(name: string): boolean { return this.animated ? this.animated.actions.has(name) : this.actions.has(name as TownClip); }
+  clipWeight(name: string): number { return (this.animated?.actions.get(name) ?? this.actions.get(name as TownClip))?.getEffectiveWeight() ?? 0; }
+  /** Skeleton bones by name (arena: bow pose, HUD anchors); null until built. */
+  bones(): Map<string, THREE.Bone> | null { return this.skeletonBones; }
+
+  /** Arena: stand at (x, z) turned `yaw`, posed by `state` at `nowMs`. */
+  drive(state: AnimationState, nowMs: number, x: number, z: number, yaw: number): void {
+    this.object3d.position.set(x, this.elevation, z);
+    this.model.rotation.y = yaw;
+    for (const animate of this.costumeAnimators) animate(nowMs);
+    if (this.animated) applyAnimationState(this.animated, state, nowMs);
+  }
+
+  private buildArenaActions(root: THREE.Object3D, template: BodyAsset): void {
+    const actions = new Map<string, THREE.AnimationAction>();
+    for (const name of ARENA_CLIPS) {
+      const clip = template.clips.find((c) => c.name === name);
+      if (!clip) continue;
+      const action = this.mixer!.clipAction(clip);
+      if (!ARENA_LOOPS.includes(name)) { action.setLoop(THREE.LoopOnce, 1); action.clampWhenFinished = true; }
+      action.timeScale = 0;
+      action.setEffectiveWeight(name === 'Idle' ? 1 : 0);
+      action.play();
+      actions.set(name, action);
+    }
+    this.animated = { actions, weights: new Map(), mixer: this.mixer!, animatedAtMs: null };
+    const bones = new Map<string, THREE.Bone>();
+    root.traverse((o) => { if ((o as THREE.Bone).isBone) bones.set(o.name, o as THREE.Bone); });
+    this.skeletonBones = bones;
   }
 
   update(pose: TownPose, dtMs: number, lod: TownLod, nowMs: number): void {
@@ -688,6 +728,7 @@ export class TownCharacter {
     this.model.add(root);
 
     this.mixer = new THREE.AnimationMixer(root);
+    if (this.opts.arena) { this.buildArenaActions(root, template); return; }
     for (const name of CLIPS) {
       const clip = template.clips.find(c => c.name === name);
       if (!clip) continue;

@@ -98,7 +98,7 @@ describe('CharacterViewerComponent', () => {
     fixture = created.fixture;
     await settle(fixture, created.events);
     const rig = fixture.componentInstance.rig()!;
-    expect(rig.clipNames().sort()).toEqual(['Attack', 'CastLoop', 'CastStart', 'CombatIdle', 'Damage', 'Damage2', 'Dead', 'Idle', 'Walk']);
+    expect(rig.clipNames().sort()).toEqual(['Attack', 'CastLoop', 'CastStart', 'CombatIdle', 'Damage', 'Damage2', 'Dead', 'Gather', 'Idle', 'Sprint', 'Walk']);
     expect(rig.playingClip()).toBe('Idle');
   });
 

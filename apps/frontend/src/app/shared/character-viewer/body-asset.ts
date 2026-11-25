@@ -17,7 +17,10 @@ export const HIT_CLIPS = ['Damage', 'Damage2'] as const;
 export const CLIP_NAMES: string[] = [...BASE_CLIPS, ...OVERLAY_CLIPS, ...HIT_CLIPS];
 /** Town-only emotes (/dance, /sit): loaded with the library, played by the town scene, never by the rig. */
 export const TOWN_CLIPS = ['Dance', 'SitDown', 'Sit'] as const;
-export const LIBRARY_CLIPS: string[] = [...CLIP_NAMES, ...TOWN_CLIPS];
+/** Battle-arena clips: optional (older animation files lack them); bodies get actions when present. */
+export const ARENA_CLIPS = ['Sprint', 'Gather'] as const;
+export const ANIMATED_CLIPS: string[] = [...CLIP_NAMES, ...ARENA_CLIPS];
+export const LIBRARY_CLIPS: string[] = [...ANIMATED_CLIPS, ...TOWN_CLIPS];
 /** Clips authored right-handed (sword arm, casting arm), mirrored for left-handed characters. */
 export const MIRRORED_CLIPS = ['Attack', 'CombatIdle', 'CastStart', 'CastLoop'];
 export const MIRROR_SAMPLES_PER_SECOND = 30;
@@ -176,7 +179,7 @@ export function prepareBody(sex: Sex, root: THREE.Object3D, sourceClips: THREE.A
   // clock and decides its weight, so the mixer never advances anything by itself.
   const makeAction = (clip: THREE.AnimationClip) => {
     const action = mixer.clipAction(clip);
-    if (!(BASE_CLIPS as readonly string[]).includes(clip.name)) {
+    if (!(BASE_CLIPS as readonly string[]).includes(clip.name) && clip.name !== 'Sprint') {
       action.setLoop(THREE.LoopOnce, 1);
       action.clampWhenFinished = true; // Dead (and every one-shot) holds its last frame
     }
@@ -185,7 +188,7 @@ export function prepareBody(sex: Sex, root: THREE.Object3D, sourceClips: THREE.A
     action.play();
     return action;
   };
-  const actions = new Map<string, THREE.AnimationAction>(clips.filter((clip) => CLIP_NAMES.includes(clip.name)).map((clip) => [clip.name, makeAction(clip)]));
+  const actions = new Map<string, THREE.AnimationAction>(clips.filter((clip) => ANIMATED_CLIPS.includes(clip.name)).map((clip) => [clip.name, makeAction(clip)]));
   const mirrorActions = new Map<string, THREE.AnimationAction>(mirrorSources.map((clip) => [clip.name, makeAction(clip)]));
   for (const action of mirrorActions.values()) action.setEffectiveWeight(0);
 
@@ -198,7 +201,7 @@ export function prepareBody(sex: Sex, root: THREE.Object3D, sourceClips: THREE.A
     sex, root, body: bodyMesh, brows: browsMesh, bones, bind, originalBody, originalBrows, surface,
     baseSkin, skinReference: averageSkinColor(baseSkin.data), skinCanvas, skinTexture,
     noseTip, chestCenters: chest, jaw, chin, cheeks, earLobes: ears, mixer, clips, actions, mirrorActions, mirrored: false,
-    weights: new Map(CLIP_NAMES.map((name) => [name, name === 'Idle' ? 1 : 0])), animatedAtMs: null,
+    weights: new Map(ANIMATED_CLIPS.map((name) => [name, name === 'Idle' ? 1 : 0])), animatedAtMs: null,
     fists, deformKey: '', skinKey: '',
   };
 }

@@ -76,6 +76,23 @@ describe('TownCharacter gear', () => {
     expect(gears(c).length).toBe(1);
   });
 
+  it('arena characters load the battle clips and drive a pose from an AnimationState', async () => {
+    const c = character(entry('arena-a', FULL), { arena: true });
+    await settle(c);
+    for (const clip of ['CombatIdle', 'Sprint', 'Gather', 'Attack', 'CastStart', 'Damage2']) expect(c.hasClip(clip)).withContext(clip).toBeTrue();
+    c.drive({ base: 'CombatIdle', oneShot: { clip: 'Gather', startedAtMs: 1000, speed: 1 } }, 2000, 3, -2, Math.PI / 2);
+    expect(c.object3d.position.x).toBe(3);
+    expect(c.object3d.position.z).toBe(-2);
+    expect(c.clipWeight('Gather')).toBeCloseTo(1, 5);
+    expect(c.bones()?.has('hand_r')).toBeTrue();
+  });
+
+  it('town characters do not load the arena clips', async () => {
+    const c = character(entry('town-a'));
+    await settle(c);
+    expect(c.hasClip('Gather')).toBeFalse();
+  });
+
   it('NPCs never wear gear', async () => {
     const npc = character({ ...factory.npcEntry('storage', 'Storage'), equipment: FULL }, { npc: true });
     await settle(npc);

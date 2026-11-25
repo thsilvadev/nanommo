@@ -10,8 +10,9 @@ import * as THREE from 'three';
 import type { AppearanceCatalog, AppearanceOption, AppearanceTrait, HandWeaponType, RefineGlint, Sex } from '@nanommo/shared';
 import type { AnimationSource, CharacterRigHandle, CharacterRigOptions, ViewerConfig, ViewerFraming } from './character-viewer.types';
 import { CLIP_SECONDS, type AnimationState } from '../character-animation/animation-state';
+import { applyAnimationState } from '../character-animation/apply-animation-state';
 import { bakeDecal, hexToRgb, sampleColor, tintSkinPixels, type Decal, type Vec3 } from './skin-compositor';
-import { BASE_CLIPS, HIT_CLIPS, MIRRORED_CLIPS, OVERLAY_CLIPS, SKIN_TEXTURE_SIZE, type BodyAsset } from './body-asset';
+import { MIRRORED_CLIPS, SKIN_TEXTURE_SIZE, type BodyAsset } from './body-asset';
 import { CharacterAssetCache } from './character-asset-cache';
 import { gripMatrix } from './grip';
 import { BowShotState, poseBowShot } from './bow-shot';
@@ -21,10 +22,6 @@ import type { LoadedGear } from './gear-manifest';
 
 /** Height of each body as modelled, in cm (assets report, Task 0). */
 export const NATIVE_HEIGHT_CM: Record<Sex, number> = { male: 181, female: 177 };
-const FADE_IN_SECONDS = 0.12;
-const FADE_OUT_SECONDS = 0.2;
-/** Peak weight of a flinch: enough to read as a hit, not enough to cut the action under it. */
-const HIT_PEAK = 0.4;
 const HAND_BONES = { right: 'hand_r', left: 'hand_l' } as const;
 
 
@@ -640,63 +637,9 @@ export class CharacterRig implements CharacterRigHandle {
   private animate(body: BodyAsset, nowMs: number): void {
     const state: AnimationState = typeof this.animation === 'function' ? this.animation(nowMs) : this.animation;
     this.bowShot.restore();
-    const snap = body.animatedAtMs === null;
-    const dt = snap ? 0 : Math.max(0, (nowMs - body.animatedAtMs!) / 1000);
-    body.animatedAtMs = nowMs;
-    const action = (name: string) => body.actions.get(name)!;
-    const duration = (name: string) => action(name).getClip().duration;
-    const hold = (name: string, seconds: number) => { action(name).time = Math.max(0, Math.min(duration(name), seconds)); };
-
-    for (const name of BASE_CLIPS) action(name).time = ((nowMs / 1000) % duration(name) + duration(name)) % duration(name);
-    let overlay: string | null = null;
     // With a bow, Attack keeps the combat guard underneath and the arms are posed procedurally.
     const bowShot = this.bow && state.oneShot?.clip === 'Attack' ? state.oneShot : null;
-    if (bowShot) {
-      overlay = null;
-    } else if (state.oneShot) {
-      overlay = state.oneShot.clip;
-      hold(overlay, ((nowMs - state.oneShot.startedAtMs) / 1000) * state.oneShot.speed);
-    } else if (state.cast) {
-      const elapsed = (nowMs - state.cast.startedAtMs) / 1000;
-      const enter = duration('CastStart');
-      if (elapsed < enter) {
-        overlay = 'CastStart';
-        hold('CastStart', elapsed);
-      } else {
-        overlay = 'CastLoop';
-        hold('CastLoop', (elapsed - enter) % duration('CastLoop'));
-      }
-    }
-    // Clips that leave the state keep their last time while they fade out.
-
-    const ease = (name: string, target: number) => {
-      const from = body.weights.get(name) ?? 0;
-      const next = snap ? target : target > from ? Math.min(target, from + dt / FADE_IN_SECONDS) : Math.max(target, from - dt / FADE_OUT_SECONDS);
-      body.weights.set(name, next);
-      return next;
-    };
-    const baseWeights = BASE_CLIPS.map((name) => ease(name, name === state.base ? 1 : 0));
-    const overlayWeights = OVERLAY_CLIPS.map((name) => ease(name, name === overlay ? 1 : 0));
-
-    // Compose so the weights always sum to one: a deficit would blend in the bind pose.
-    const overlaySum = overlayWeights.reduce((a, b) => a + b, 0);
-    const overlayScale = overlaySum > 1 ? 1 / overlaySum : 1;
-    const overlayTotal = Math.min(1, overlaySum);
-    const baseSum = baseWeights.reduce((a, b) => a + b, 0) || 1;
-    let hitWeight = 0;
-    if (state.hit) {
-      const elapsed = (nowMs - state.hit.startedAtMs) / 1000;
-      const length = duration(state.hit.clip);
-      if (elapsed >= 0 && elapsed < length) {
-        hitWeight = HIT_PEAK * Math.sin((Math.PI * elapsed) / length);
-        hold(state.hit.clip, elapsed);
-      }
-    }
-    const rest = 1 - hitWeight;
-    BASE_CLIPS.forEach((name, i) => action(name).setEffectiveWeight(rest * (1 - overlayTotal) * (baseWeights[i] / baseSum)));
-    OVERLAY_CLIPS.forEach((name, i) => action(name).setEffectiveWeight(rest * overlayWeights[i] * overlayScale));
-    for (const name of HIT_CLIPS) action(name).setEffectiveWeight(state.hit?.clip === name ? hitWeight : 0);
-    body.mixer.update(0);
+    applyAnimationState(body, bowShot ? { ...state, oneShot: undefined, cast: undefined } : state, nowMs);
     const progress = bowShot ? ((nowMs - bowShot.startedAtMs) / 1000) * bowShot.speed / CLIP_SECONDS.Attack : null;
     this.lastBowDrawn = this.poseBowShot(body, progress !== null && progress >= 0 && progress < 1 ? progress : null);
   }

@@ -11,8 +11,9 @@
  * without WebGL. The rig turns an AnimationState into clip weights and times.
  */
 
-export type BaseClip = 'Idle' | 'Walk' | 'CombatIdle';
-export type OneShotClip = 'Attack' | 'Dead';
+export type BaseClip = 'Idle' | 'Walk' | 'CombatIdle' | 'Sprint';
+/** Stun holds one frame of the Damage2 (Hit_Head) take: see apply-animation-state.ts. */
+export type OneShotClip = 'Attack' | 'Dead' | 'Gather' | 'Stun';
 export type HitClip = 'Damage' | 'Damage2';
 
 export interface AnimationState {
@@ -24,6 +25,8 @@ export interface AnimationState {
   cast?: { startedAtMs: number; endsAtMs: number };
   /** Short flinch blended over whatever plays; it never cuts an Attack or a cast. */
   hit?: { clip: HitClip; startedAtMs: number };
+  /** Frozen (freeze / stun): every clip is evaluated at min(now, freezeAtMs). */
+  freezeAtMs?: number;
 }
 
 /** Authored length of each clip, in seconds (see tools/character-assets; measured from animations.glb). */
@@ -33,6 +36,8 @@ export const CLIP_SECONDS = {
   Damage: 0.333,
   Damage2: 0.433,
   Dead: 2.4,
+  Gather: 5.2,
+  Sprint: 0.667,
 } as const;
 
 /**
