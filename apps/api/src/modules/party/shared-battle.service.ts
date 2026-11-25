@@ -214,6 +214,17 @@ export class SharedBattleService {
     const ids=ctx.characters.map(c=>c.id);
     const active=await ctx.manager.query('SELECT 1 FROM active_battle_participants WHERE "characterId"=ANY($1::uuid[]) LIMIT 1',[ids]);if(active.length)return;
     const legacy=await ctx.manager.query(`SELECT 1 FROM battle_queue_entries WHERE "characterId"=ANY($1::uuid[]) AND NOT resolved AND "startAt"<=to_timestamp($2/1000.0) + interval '50 milliseconds' LIMIT 1`,[ids,ctx.now]);if(legacy.length)return;
+    // Travel can discard a projection without consuming its search reservation.
+    // Reconcile those reservations under the same character locks before checking
+    // deadlines, so an old field search cannot strand commands in town forever.
+    const townIds=ctx.characters.filter(c=>this.data.getMapById(c.currentMapId)?.type==='town').map(c=>c.id);
+    await ctx.manager.query(`UPDATE encounter_clocks clock SET status='cancelled'
+      FROM characters c WHERE clock."ownerKind"='character' AND clock."ownerId"=c.id
+      AND c.id=ANY($1::uuid[]) AND clock.status='searching'
+      AND (clock."mapId"<>c."currentMapId" OR c.id=ANY($2::uuid[]))`,[ids,townIds]);
+    if(ctx.party)await ctx.manager.query(`UPDATE encounter_clocks SET status='cancelled'
+      WHERE "ownerKind"='party' AND "ownerId"=$1 AND status='searching'
+      AND ("mapId"<>$2 OR $3::boolean)`,[ctx.party.id,ctx.party.mapId,this.data.getMapById(ctx.party.mapId)?.type==='town']);
     const due=await ctx.manager.query(`SELECT 1 FROM encounter_clocks WHERE status='searching' AND "dueAt"<=to_timestamp($2/1000.0) + interval '50 milliseconds' AND (("ownerKind"='party' AND "ownerId"=$3) OR ("ownerKind"='character' AND "ownerId"=ANY($1::uuid[]))) LIMIT 1`,[ids,ctx.now,ctx.party?.id??null]);if(due.length)return;
     const pending=await ctx.manager.query(`SELECT * FROM character_action_intents WHERE "characterId"=ANY($1::uuid[]) AND status='pending' AND "createdAt" <= to_timestamp($2/1000.0) ORDER BY "characterId",sequence FOR UPDATE`,[ids,ctx.now]);
     for(const intent of pending){
