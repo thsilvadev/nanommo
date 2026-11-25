@@ -50,6 +50,16 @@ const appearance = { v: 1, hair: 2, hairColor: 1, skin: 1, face: 0, nose: 0, mou
   assert.equal('look' in monster, false, 'monsters carry no look');
   assert.equal(queries.length, 2, 'battle row + one looks query');
 
+  // --- a fled shared battle ends at the flee, not at its precomputed end ------------------
+  const fledRow = { ...row, state: 'fled', endAt: new Date(10_000), result: { fledAt: '1970-01-01T00:00:03.500Z', checkpoint: { durationTicks: 7 } } };
+  service.db = { query: async (sql) => (/FROM shared_battles/.test(sql) ? [fledRow] : []) };
+  assert.equal(new Date((await service.publicBattle('c1')).endAt).toISOString(), '1970-01-01T00:00:03.500Z', 'fled battle ends at fledAt');
+  const olderFled = { ...fledRow, result: { checkpoint: { durationTicks: 7 } } };
+  service.db = { query: async (sql) => (/FROM shared_battles/.test(sql) ? [olderFled] : []) };
+  assert.equal(new Date((await service.publicBattle('c1')).endAt).getTime(), 7 * 500, 'older fled rows: startAt + checkpoint ticks');
+  const sharedSource = fs.readFileSync(path.join(__dirname, '../src/modules/party/shared-battle.service.ts'), 'utf8');
+  assert.match(sharedSource, /fledAt:fled\?new Date\(ctx\.now\)\.toISOString\(\):null/, 'resolve records when the party fled');
+
   // --- next party encounter -----------------------------------------------------------
   const due = new Date('2026-11-24T12:00:05.000Z');
   let clockParams = null;

@@ -136,7 +136,7 @@ export class SharedBattleService {
     }
     await this.advanceCounters(ctx,locked.result?.roster??[],locked.mapId);
     await ctx.manager.query('DELETE FROM active_battle_participants WHERE "battleId"=$1',[locked.id]);
-    await ctx.manager.query('UPDATE shared_battles SET state=$2,revision=revision+1,result=$3 WHERE id=$1',[locked.id,fled?'fled':'resolved',JSON.stringify({awards,checkpoint:fled?checkpoint:null,roster:locked.result?.roster??[]})]);
+    await ctx.manager.query('UPDATE shared_battles SET state=$2,revision=revision+1,result=$3 WHERE id=$1',[locked.id,fled?'fled':'resolved',JSON.stringify({awards,checkpoint:fled?checkpoint:null,fledAt:fled?new Date(ctx.now).toISOString():null,roster:locked.result?.roster??[]})]);
     return true;
   }
   async publicBattle(characterId:string){
@@ -176,7 +176,9 @@ export class SharedBattleService {
     });
     const actorsAfter=Object.fromEntries(Object.entries(row.log.actorsAfter).map(([id,a]:[string,any])=>[id,{hp:a.hp,sp:a.sp,position:a.position,statusEffects:a.statusEffects,targetId:a.targetId}]));
     // Only public combat timers cross this boundary; inventory, Gambits and Diet stay private.
-    return {id:row.id,revision:Number(row.revision),partyId:row.partyId,mapId:row.mapId,startAt:row.startAt,endAt:row.endAt,state:row.state,snapshot:{version:2,tickDurationMs:500,actors},log:{version:2,outcome:row.log.outcome,events,durationTicks:row.log.durationTicks,actorsAfter}};
+    // A fled battle ends at the flee (its row keeps the precomputed end); older rows only have the checkpoint tick.
+    const fledAt=row.state==='fled'?(row.result?.fledAt?new Date(row.result.fledAt):Number.isFinite(Number(row.result?.checkpoint?.durationTicks))?new Date(new Date(row.startAt).getTime()+Number(row.result.checkpoint.durationTicks)*500):null):null;
+    return {id:row.id,revision:Number(row.revision),partyId:row.partyId,mapId:row.mapId,startAt:row.startAt,endAt:fledAt??row.endAt,state:row.state,snapshot:{version:2,tickDurationMs:500,actors},log:{version:2,outcome:row.log.outcome,events,durationTicks:row.log.durationTicks,actorsAfter}};
   }
   async flee(ctx:PartyContext,leaderId:string,remove:(id:string,reason:string)=>Promise<void>){
     const row=(await ctx.manager.query(`SELECT b.* FROM shared_battles b JOIN active_battle_participants a ON a."battleId"=b.id WHERE a."characterId"=$1 FOR UPDATE OF b`,[leaderId]))[0];if(!row)throw new BadRequestException('No active shared battle');

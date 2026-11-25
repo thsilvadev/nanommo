@@ -82,7 +82,7 @@ particles), dynamic zoom, and **PvP**, which must reuse the same arena (team A v
 - `move` events carry no duration: approach = one-cell step when the movement gauge fills; blinkstrike
   and push are instant multi-cell jumps.
 - Flee is not a V2 event: solo shows it as the queue entry's `cancellationReason: 'flee'` + `cancelledAt`
-  (`game.store.ts`); party sets the battle's `endAt` to the flee time.
+  (`game.store.ts`); a fled shared battle keeps its precomputed `endAt` in the database, so `publicBattle` reports the flee time instead (`result.fledAt`, or the checkpoint tick for older rows).
 - Frontend `SharedActor` type lacks `position` although the API sends it (and `actorStates` carry it).
 
 ## Approaches considered
