@@ -65,6 +65,16 @@ describe('ArenaSceneSource', () => {
     expect(source.build(inputs({ nowMs: START + LENGTH + 100, soloQueue: [entry('e1b', later)] })).scene.phase).toBe('walk');
   });
 
+  it('a battle cancelled while the arena was hidden is not replayed when it comes back (travel: no phantom battle)', () => {
+    // Production: open the map, click a destination (the server deletes the queued battles), go back
+    // to the arena: the cancelled battle's start time had passed, so it played as if running.
+    const source = new ArenaSceneSource();
+    source.build(inputs({ nowMs: START - 5000, soloQueue: [entry('e1', START), entry('e2', START + LENGTH + 3000)] }));
+    const back = source.build(inputs({ nowMs: START + 1000, soloQueue: [] }));
+    expect(back.scene.phase).toBe('walk');
+    expect(back.scene.battleId).toBeNull();
+  });
+
   it('a battle that ran is still the previous one after many regenerations', () => {
     const source = new ArenaSceneSource();
     source.build(inputs({ nowMs: START + 1000, soloQueue: [entry('e1', START)] }));

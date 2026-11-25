@@ -50,7 +50,7 @@ export class ArenaSceneSource {
     const now = input.nowMs;
     const queued = input.soloQueue.filter((e) => !input.mapId || !(e as { mapId?: string }).mapId || (e as { mapId?: string }).mapId === input.mapId);
     const solo = queued.map((e) => this.solo(e, input)).filter((b): b is ArenaBattle => !!b).sort((a, b) => a.startAtMs - b.startAtMs);
-    this.settleSolo(new Set(queued.map((e) => e.id)), input.resolved, now);
+    this.settleSolo(new Set(queued.map((e) => e.id)), input.resolved);
     if (input.shared) this.shared(input.shared, input);
     const all = [...this.battles.values()];
     // A battle "ran" once its start passed while known: only those can be the previous one (no phantom outros).
@@ -86,9 +86,11 @@ export class ArenaSceneSource {
 
   /**
    * Solo entries leave the queue when they resolve (or when a combat change regenerates the queue).
-   * A resolved one keeps playing, cut short by its flee / cancellation; one that never started is gone.
+   * A resolved one keeps playing, cut short by its flee / cancellation; one the arena never saw start is
+   * gone, even when its start time has passed: the arena is not drawn while hidden, so a battle a trip
+   * cancelled meanwhile would otherwise come back as a phantom one.
    */
-  private settleSolo(queued: Set<string>, resolved: ArenaResolvedEntry[], now: number): void {
+  private settleSolo(queued: Set<string>, resolved: ArenaResolvedEntry[]): void {
     for (const [key, battle] of [...this.battles]) {
       if (!key.startsWith('solo:') || queued.has(battle.id)) continue;
       const r = resolved.find((x) => x.entryId === battle.id);
@@ -96,7 +98,7 @@ export class ArenaSceneSource {
       if (r && Number.isFinite(cutAt)) {
         if (r.cancellationReason === 'flee') { if (!battle.flee) this.battles.set(key, { ...battle, flee: { atMs: cutAt } }); }
         else if (cutAt < battle.endAtMs) this.battles.set(key, { ...battle, endAtMs: cutAt });
-      } else if (!r && !this.started.has(battle.id) && battle.startAtMs > now) {
+      } else if (!r && !this.started.has(battle.id)) {
         this.battles.delete(key);
       }
     }
