@@ -113,6 +113,28 @@ describe('TownCharacter gear', () => {
     expect(c.clipWeight('Attack')).toBeCloseTo(1, 5);
   });
 
+  it('arena left-handers cast and swing mirrored, like the portrait (the hand that holds the staff casts)', async () => {
+    const MAGE: VisibleEquipment = { body: 'equip_body_magic_t2', mainHand: 'equip_staff_t2' };
+    const right = character({ ...entry('arena-right', MAGE), dominantHand: 'right' }, { arena: true });
+    const left = character({ ...entry('arena-left', MAGE), dominantHand: 'left' }, { arena: true });
+    await Promise.all([settle(right), settle(left)]);
+    const at = (c: TownCharacter, bone: string) => {
+      c.object3d.updateMatrixWorld(true);
+      return c.object3d.worldToLocal(new THREE.Vector3().setFromMatrixPosition(c.bones()!.get(bone)!.matrixWorld));
+    };
+    for (const state of [
+      { base: 'CombatIdle' as const, cast: { startedAtMs: 1000, endsAtMs: 4000 } },
+      { base: 'CombatIdle' as const, oneShot: { clip: 'Attack' as const, startedAtMs: 1000, speed: 1 } },
+    ]) {
+      right.drive(state, 1600, 0, 0, 0);
+      left.drive(state, 1600, 0, 0, 0);
+      const r = at(right, 'hand_r'), l = at(left, 'hand_l');
+      expect(l.x).withContext(`${JSON.stringify(state)} x`).toBeCloseTo(-r.x, 2);
+      expect(l.y).withContext('y').toBeCloseTo(r.y, 2);
+      expect(l.z).withContext('z').toBeCloseTo(r.z, 2);
+    }
+  });
+
   it('town characters do not load the arena clips', async () => {
     const c = character(entry('town-a'));
     await settle(c);

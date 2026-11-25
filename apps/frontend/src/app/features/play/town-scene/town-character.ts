@@ -12,7 +12,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import { Mulberry32, mulberry32Seed } from '@nanommo/shared';
 import type { AppearanceCatalog, AppearanceOption, AppearanceTrait, CharacterAppearance, RefineGlint, Sex, TownPose, TownRosterEntry } from '@nanommo/shared';
 import { APPEARANCE_TRAITS } from '@nanommo/shared';
-import type { BodyAsset } from '../../../shared/character-viewer/body-asset';
+import { MIRRORED_CLIPS, type BodyAsset } from '../../../shared/character-viewer/body-asset';
 import type { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { hexToRgb, tintSkinPixels } from '../../../shared/character-viewer/skin-compositor';
 import { dressCostume, npcOutfitAsset, type NpcAnimator, type NpcFigure, type NpcFigureBody } from './npc-visuals';
@@ -568,8 +568,11 @@ export class TownCharacter {
 
   private buildArenaActions(root: THREE.Object3D, template: BodyAsset): void {
     const actions = new Map<string, THREE.AnimationAction>();
+    // Left-handers play the mirrored swing, guard and cast, as in the portrait (CharacterRig.useHandedness).
+    const leftHanded = this.entry.dominantHand === 'left';
+    const mirrored = template.mirrored ? template.actions : template.mirrorActions;
     for (const name of ARENA_CLIPS) {
-      const clip = template.clips.find((c) => c.name === name);
+      const clip = (leftHanded && MIRRORED_CLIPS.includes(name) ? mirrored.get(name)?.getClip() : undefined) ?? template.clips.find((c) => c.name === name);
       if (!clip) continue;
       const action = this.mixer!.clipAction(clip);
       if (!ARENA_LOOPS.includes(name)) { action.setLoop(THREE.LoopOnce, 1); action.clampWhenFinished = true; }
