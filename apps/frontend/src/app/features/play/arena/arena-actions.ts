@@ -27,14 +27,37 @@ const STRIKES = new Set(['attack', 'use_skill']);
 const DAMAGING = new Set(['attack', 'use_skill', 'use_item', 'reflect']);
 const DOT = new Set(['status_tick', 'status_damage']);
 
-export function projectArenaBattle(battle: ArenaBattle, nowMs: number): ArenaFrame {
+interface ActionIndex { battleStartMs: number; actions: Map<string, Action[]>; hits: Map<string, Array<{ t: number; tick: number }>>; feedback: ArenaFeedback[] }
+const indices = new WeakMap<ArenaBattle, ActionIndex>();
+/** Actions, hits taken and every floating number of a battle, built once (the log never changes). */
+function indexOf(battle: ArenaBattle): ActionIndex {
+  let index = indices.get(battle);
+  if (index) return index;
   const timeOf = (tick: number) => battle.startAtMs + tick * battle.tickMs;
+  const actions = new Map(battle.actors.map((def) => [def.id, actionsOf(battle, def.id, timeOf)]));
+  const hits = new Map<string, Array<{ t: number; tick: number }>>(battle.actors.map((def) => [def.id, []]));
+  for (const e of battle.events) {
+    if (DOT.has(e.action) || Number(e.payload?.['damage'] ?? 0) <= 0) continue;
+    for (const id of e.targetIds) if (id !== e.actorId) hits.get(id)?.push({ t: timeOf(e.tick), tick: e.tick });
+  }
+  index = { battleStartMs: battle.startAtMs, actions, hits, feedback: allFeedback(battle, timeOf) };
+  indices.set(battle, index);
+  return index;
+}
+function lastAtOrBefore<T extends { t: number }>(items: T[], now: number): number {
+  let lo = 0, hi = items.length - 1, found = -1;
+  while (lo <= hi) { const mid = (lo + hi) >> 1; if (items[mid].t <= now) { found = mid; lo = mid + 1; } else hi = mid - 1; }
+  return found;
+}
+
+export function projectArenaBattle(battle: ArenaBattle, nowMs: number): ArenaFrame {
+  const index = indexOf(battle);
   const poses = arenaPositions(battle, nowMs);
-  const actors = battle.actors.map((def, i) => frameOf(battle, def, poses[i], nowMs, timeOf));
+  const actors = battle.actors.map((def, i) => frameOf(def, poses[i], nowMs, index));
   const teamA = actors.filter((a) => battle.actors.find((d) => d.id === a.id)!.team === 'a');
   return {
     actors,
-    feedback: feedbackAt(battle, nowMs, timeOf),
+    feedback: feedbackAt(index.feedback, nowMs),
     wiped: teamA.length > 0 && teamA.every((a) => a.deadAtMs !== null && a.deadAtMs <= nowMs),
     ended: nowMs >= battle.endAtMs || (battle.flee !== null && nowMs >= battle.flee.atMs),
   };
@@ -70,8 +93,8 @@ function actionsOf(battle: ArenaBattle, id: string, timeOf: (tick: number) => nu
   return out.sort((a, b) => a.strikesAtMs - b.strikesAtMs);
 }
 
-function frameOf(battle: ArenaBattle, def: ArenaActorDef, pose: ArenaActorPose, nowMs: number, timeOf: (tick: number) => number): ArenaActorFrame {
-  const actions = actionsOf(battle, def.id, timeOf);
+function frameOf(def: ArenaActorDef, pose: ArenaActorPose, nowMs: number, index: ActionIndex): ArenaActorFrame {
+  const actions = index.actions.get(def.id) ?? [];
   const casting = actions.find((a) => a.casts && a.startsAtMs <= nowMs && nowMs < a.strikesAtMs) ?? null;
   const cast: ArenaCastBar | null = casting && pose.deadAtMs === null ? { startedAtMs: casting.startsAtMs, endsAtMs: casting.strikesAtMs, skillId: casting.skillId } : null;
   const projectile = def.attackStyle === 'bow' ? arrowAt(def.id, actions, nowMs) : null;
@@ -88,16 +111,16 @@ function frameOf(battle: ArenaBattle, def: ArenaActorDef, pose: ArenaActorPose, 
   } else if (cast) {
     anim.cast = { startedAtMs: cast.startedAtMs, endsAtMs: cast.endsAtMs };
   } else if (!pose.fleeing) {
-    const swing = def.kind === 'monster' ? monsterSwing(actions, battle.startAtMs, def.attackStyle, nowMs) : characterSwing(actions, def.attackStyle, nowMs);
+    const swing = def.kind === 'monster' ? monsterSwing(actions, index.battleStartMs, def.attackStyle, nowMs) : characterSwing(actions, def.attackStyle, nowMs);
     if (swing) anim.oneShot = swing;
   }
   if (pose.statusSinceMs.freeze !== undefined) anim.freezeAtMs = Math.min(anim.freezeAtMs ?? Infinity, pose.statusSinceMs.freeze);
 
-  const hit = [...battle.events].reverse().find((e) => e.targetIds.includes(def.id) && e.actorId !== def.id && !DOT.has(e.action)
-    && Number(e.payload['damage'] ?? 0) > 0 && timeOf(e.tick) <= nowMs);
+  const hits = index.hits.get(def.id) ?? [];
+  const hit = hits[lastAtOrBefore(hits, nowMs)];
   if (hit) {
     const clip: HitClip = def.kind === 'monster' || hit.tick % 2 === 0 ? 'Damage' : 'Damage2';
-    const startedAtMs = timeOf(hit.tick);
+    const startedAtMs = hit.t;
     if (nowMs < startedAtMs + CLIP_SECONDS[clip] * 1000) anim.hit = { clip, startedAtMs };
   }
   return { ...pose, anim, cast, projectile };
@@ -153,12 +176,12 @@ function arrowAt(fromId: string, actions: Action[], nowMs: number): ArenaProject
   return null;
 }
 
-function feedbackAt(battle: ArenaBattle, nowMs: number, timeOf: (tick: number) => number): ArenaFeedback[] {
+/** Every floating number of the battle, in time order. */
+function allFeedback(battle: ArenaBattle, timeOf: (tick: number) => number): ArenaFeedback[] {
   const team = new Map(battle.actors.map((a) => [a.id, a.team]));
   const out: ArenaFeedback[] = [];
   battle.events.forEach((e: ArenaEvent, index) => {
     const atMs = timeOf(e.tick);
-    if (atMs > nowMs || nowMs - atMs >= ARENA_FEEDBACK_MS) return;
     const p = e.payload ?? {};
     const targetId = e.targetIds[0] ?? e.actorId;
     const own = team.get(targetId) === 'a';
@@ -176,5 +199,14 @@ function feedbackAt(battle: ArenaBattle, nowMs: number, timeOf: (tick: number) =
       out.push({ key, targetId, atMs, text: `+${Math.floor(Number(p['healAmount']))}`, style: 'heal', flash: null });
     }
   });
+  return out;
+}
+
+/** The numbers on screen at `now` (shown for ARENA_FEEDBACK_MS after they appear). */
+function feedbackAt(all: ArenaFeedback[], nowMs: number): ArenaFeedback[] {
+  let lo = 0, hi = all.length - 1, last = -1;
+  while (lo <= hi) { const mid = (lo + hi) >> 1; if (all[mid].atMs <= nowMs) { last = mid; lo = mid + 1; } else hi = mid - 1; }
+  const out: ArenaFeedback[] = [];
+  for (let i = last; i >= 0 && nowMs - all[i].atMs < ARENA_FEEDBACK_MS; i--) out.unshift(all[i]);
   return out;
 }

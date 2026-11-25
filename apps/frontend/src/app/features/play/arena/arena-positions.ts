@@ -39,61 +39,90 @@ export function moveDurationMs(moveSpeed: number | null, tickMs: number): number
 
 interface Step { from: ArenaCell; to: ArenaCell; startMs: number; endMs: number; kind: 'walk' | 'dash' | 'slide' | 'snap' }
 
-export function arenaPositions(battle: ArenaBattle, nowMs: number): ArenaActorPose[] {
-  const timeOf = (tick: number) => battle.startAtMs + tick * battle.tickMs;
-  return battle.actors.map((def) => {
-    const steps = movementSteps(battle, def.id, def.moveSpeed, timeOf);
-    // Position: the last step that has started, interpolated inside its window.
-    let column = def.start.column, row = def.start.row;
-    let moving: ArenaActorPose['moving'] = null;
-    for (const step of steps) {
-      if (nowMs < step.startMs) break;
-      if (nowMs >= step.endMs || step.kind === 'snap') { column = step.to.column; row = step.to.row; continue; }
-      const f = (nowMs - step.startMs) / (step.endMs - step.startMs);
-      column = step.from.column + (step.to.column - step.from.column) * f;
-      row = step.from.row + (step.to.row - step.from.row) * f;
-      moving = step.kind;
-    }
+/** One actor's recorded state after an event: everything a pose needs, computed once per battle. */
+interface StatePoint { t: number; hp: number; sp: number; statusSinceMs: Partial<Record<ArenaStatusVisual, number>>; statuses: ArenaStatusVisual[]; deadAtMs: number | null }
+interface ActorIndex { steps: Step[]; states: StatePoint[]; targets: Array<{ t: number; id: string }> }
+interface BattleIndex { actors: Map<string, ActorIndex> }
+const indices = new WeakMap<ArenaBattle, BattleIndex>();
 
-    let hp = def.hp, sp = def.sp;
-    let statusIds: string[] = [];
-    const statusSinceMs: Partial<Record<ArenaStatusVisual, number>> = {};
-    let deadAtMs: number | null = null;
-    let targetId: string | null = null;
-    for (const e of battle.events) {
-      const t = timeOf(e.tick);
-      if (t > nowMs) break;
-      if (e.action === 'target' && e.actorId === def.id && e.targetIds[0]) targetId = e.targetIds[0];
-      const state = e.actorStates?.[def.id];
-      if (!state) continue;
-      hp = state.hp; sp = state.sp;
-      statusIds = (state.statusEffects ?? []).map((s) => String(s.type ?? s.id ?? ''));
-      for (const visual of Object.values(STATUS_VISUALS)) {
-        const on = statusIds.some((id) => STATUS_VISUALS[id] === visual);
-        if (on) statusSinceMs[visual] ??= t;
-        else delete statusSinceMs[visual];
-      }
-      if (hp <= 0) deadAtMs ??= t;
-      else deadAtMs = null;
+/** The battle's moves, states and targets per actor, built once (the log never changes). */
+function indexOf(battle: ArenaBattle): BattleIndex {
+  let index = indices.get(battle);
+  if (index) return index;
+  const timeOf = (tick: number) => battle.startAtMs + tick * battle.tickMs;
+  index = { actors: new Map() };
+  for (const def of battle.actors) index.actors.set(def.id, { steps: movementSteps(battle, def.id, def.moveSpeed, timeOf), states: [], targets: [] });
+  const running = new Map(battle.actors.map((def) => [def.id, { since: {} as Partial<Record<ArenaStatusVisual, number>>, dead: null as number | null }]));
+  for (const e of battle.events) {
+    const t = timeOf(e.tick);
+    if (e.action === 'target' && e.targetIds[0]) index.actors.get(e.actorId)?.targets.push({ t, id: e.targetIds[0] });
+    if (!e.actorStates) continue;
+    for (const [id, state] of Object.entries(e.actorStates)) {
+      const actor = index.actors.get(id), run = running.get(id);
+      if (!actor || !run) continue;
+      const ids = (state.statusEffects ?? []).map((x) => String(x.type ?? x.id ?? ''));
+      const since: Partial<Record<ArenaStatusVisual, number>> = {};
+      for (const visual of Object.values(STATUS_VISUALS)) if (ids.some((x) => STATUS_VISUALS[x] === visual)) since[visual] = run.since[visual] ?? t;
+      run.since = since;
+      run.dead = state.hp <= 0 ? run.dead ?? t : null;
+      actor.states.push({ t, hp: state.hp, sp: state.sp, statusSinceMs: since, statuses: (Object.keys(since) as ArenaStatusVisual[]).sort(), deadAtMs: run.dead });
     }
-    const statuses = (Object.keys(statusSinceMs) as ArenaStatusVisual[]).sort();
+  }
+  indices.set(battle, index);
+  return index;
+}
+
+/** Index of the last item with t ≤ now (−1 when none). */
+function lastAtOrBefore<T extends { t: number }>(items: T[], now: number): number {
+  let lo = 0, hi = items.length - 1, found = -1;
+  while (lo <= hi) { const mid = (lo + hi) >> 1; if (items[mid].t <= now) { found = mid; lo = mid + 1; } else hi = mid - 1; }
+  return found;
+}
+
+/** Where the steps put an actor at `now`, and whether it is between cells. */
+function placeAt(steps: Step[], start: ArenaCell, nowMs: number): { column: number; row: number; moving: ArenaActorPose['moving'] } {
+  let column = start.column, row = start.row;
+  let moving: ArenaActorPose['moving'] = null;
+  for (const step of steps) {
+    if (nowMs < step.startMs) break;
+    if (nowMs >= step.endMs || step.kind === 'snap') { column = step.to.column; row = step.to.row; moving = null; continue; }
+    const f = (nowMs - step.startMs) / (step.endMs - step.startMs);
+    column = step.from.column + (step.to.column - step.from.column) * f;
+    row = step.from.row + (step.to.row - step.from.row) * f;
+    moving = step.kind;
+  }
+  return { column, row, moving };
+}
+
+export function arenaPositions(battle: ArenaBattle, nowMs: number): ArenaActorPose[] {
+  const index = indexOf(battle);
+  return battle.actors.map((def) => {
+    const actor = index.actors.get(def.id)!;
+    let { column, row, moving } = placeAt(actor.steps, def.start, nowMs);
+    const point = actor.states[lastAtOrBefore(actor.states, nowMs)];
+    const hp = point?.hp ?? def.hp, sp = point?.sp ?? def.sp;
+    const deadAtMs = point?.deadAtMs ?? null;
+    const statuses = point ? point.statuses : [];
+    const statusSinceMs = point ? { ...point.statusSinceMs } : {};
 
     let facing: 1 | -1 = def.team === 'a' ? 1 : -1;
+    const targetId = actor.targets[lastAtOrBefore(actor.targets, nowMs)]?.id;
     const target = targetId ? battle.actors.find((a) => a.id === targetId) : null;
     if (target) {
-      const targetColumn = finalColumnAt(battle, target.id, target.start.column, target.moveSpeed, nowMs, timeOf);
-      if (targetColumn !== column) facing = targetColumn > column ? 1 : -1;
+      // The target's settled cell (the last step it has finished).
+      const settled = placeAt(index.actors.get(target.id)!.steps.filter((s) => s.endMs <= nowMs), target.start, nowMs).column;
+      if (settled !== column) facing = settled > column ? 1 : -1;
     }
 
     let fleeing: ArenaActorPose['fleeing'] = null;
     if (battle.flee && def.team === 'a' && nowMs >= battle.flee.atMs && deadAtMs === null) {
-      const atFlee = arenaPositionAt(battle, def.id, def.start, def.moveSpeed, battle.flee.atMs, timeOf);
+      const atFlee = placeAt(actor.steps.filter((s) => s.endMs <= battle.flee!.atMs), def.start, battle.flee.atMs);
       column = atFlee.column - ((nowMs - battle.flee.atMs) / 1000) * ARENA_FLEE_SPEED_CELLS_PER_S;
       row = atFlee.row;
       facing = -1; moving = null;
       fleeing = { sinceMs: battle.flee.atMs };
     }
-    return { id: def.id, column, row, facing, moving, hp, sp, statuses, statusSinceMs, deadAtMs, fleeing };
+    return { id: def.id, column, row, facing, moving, hp, sp, statuses: [...statuses], statusSinceMs, deadAtMs, fleeing };
   });
 }
 
@@ -117,17 +146,6 @@ function movementSteps(battle: ArenaBattle, id: string, moveSpeed: number | null
     previousEnd = steps[steps.length - 1].endMs;
   }
   return steps;
-}
-
-function arenaPositionAt(battle: ArenaBattle, id: string, start: ArenaCell, moveSpeed: number | null, nowMs: number, timeOf: (tick: number) => number): ArenaCell {
-  let cell = { ...start };
-  for (const step of movementSteps(battle, id, moveSpeed, timeOf)) if (step.endMs <= nowMs) cell = { ...step.to };
-  return cell;
-}
-
-function finalColumnAt(battle: ArenaBattle, id: string, startColumn: number, moveSpeed: number | null, nowMs: number, timeOf: (tick: number) => number): number {
-  const def = battle.actors.find((a) => a.id === id)!;
-  return arenaPositionAt(battle, id, { row: def.start.row, column: startColumn }, moveSpeed, nowMs, timeOf).column;
 }
 
 export type { ArenaEvent };

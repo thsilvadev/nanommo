@@ -76,9 +76,9 @@ export function arenaScene(input: ArenaTimelineInput): ArenaSceneFrame {
   const outroMs = ARENA_OUTRO_MS * k, introMs = ARENA_INTRO_MS * k;
 
   if (previous && nowMs >= sceneEnd(previous) && nowMs < sceneEnd(previous) + outroMs) {
-    const wiped = projectArenaBattle(previous, nowMs);
-    if (wiped.wiped) return wipeScene(previous, nowMs, wiped);
-    return outroScene(input, previous, (nowMs - sceneEnd(previous)) / outroMs);
+    const frame = projectArenaBattle(previous, nowMs);
+    if (frame.wiped) return wipeScene(previous, nowMs, frame);
+    return outroScene(input, previous, frame, (nowMs - sceneEnd(previous)) / outroMs);
   }
   if (nextStart !== null && nowMs >= nextStart - introMs && nowMs < nextStart) {
     return introScene(input, input.next, introMs > 0 ? (nowMs - (nextStart - introMs)) / introMs : 1);
@@ -139,9 +139,8 @@ function wipeScene(battle: ArenaBattle, nowMs: number, frame: ArenaFrame): Arena
 }
 
 /** After a battle: foes sink out, the party walks back into formation, the ground starts scrolling. */
-function outroScene(input: ArenaTimelineInput, battle: ArenaBattle, progress: number): ArenaSceneFrame {
+function outroScene(input: ArenaTimelineInput, battle: ArenaBattle, frame: ArenaFrame, progress: number): ArenaSceneFrame {
   const f = clamp01(progress);
-  const frame = projectArenaBattle(battle, input.nowMs);
   const cells = walkFormation(input.party.length);
   frame.actors = frame.actors.map((a) => {
     const def = battle.actors.find((d) => d.id === a.id)!;
