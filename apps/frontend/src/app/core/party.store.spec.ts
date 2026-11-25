@@ -25,6 +25,12 @@ describe('PartyStore authority', () => {
     store = TestBed.inject(PartyStore);
   });
   afterEach(() => store.stop());
+  it('keeps the next party encounter time for the battle arena', () => {
+    store.applySnapshot({ ...state(3), nextEncounterAt: '2026-11-24T12:00:05.000Z' });
+    expect(store.nextEncounterAt()).toBe(Date.parse('2026-11-24T12:00:05.000Z'));
+    store.applySnapshot({ ...state(4), nextEncounterAt: null });
+    expect(store.nextEncounterAt()).toBeNull();
+  });
   it('rejects a lower revision party snapshot', () => {
     store.applySnapshot(state(5)); store.applySnapshot(state(2));
     expect(store.party()?.revision).toBe(5);

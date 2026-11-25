@@ -10,7 +10,7 @@ export interface PartyRouteActivity { kind:'route'; segmentStartedAt:number; seg
 export interface PartyView { id: string; kind: 'manual'|'auto'; leaderCharacterId: string; mapId: string; revision: number; members: PartyMember[]; teleport?: PartyTeleport|null; routeActivity?:PartyRouteActivity|null }
 export interface PartyInvite { id:string; inviterId:string; candidateId:string; inviterName?:string; candidateName?:string; status:string; expiresAt:string; mode:string; revision?:number }
 export interface PartyAction { id:string; kind:string; status:'pending'|'applied'|'failed'|'cancelled'; message?:string; result?:{message?:string}; revision?:number }
-export interface PartyState { party:PartyView|null; invites:PartyInvite[]; actions:PartyAction[]; battle?:SharedBattleView|null; autoPartyEnabled:boolean }
+export interface PartyState { party:PartyView|null; invites:PartyInvite[]; actions:PartyAction[]; battle?:SharedBattleView|null; autoPartyEnabled:boolean; /** When the party's next encounter is due (ISO): the battle arena times its walk-in against it. */ nextEncounterAt?:string|null }
 @Injectable({providedIn:'root'})
 export class PartyStore {
   private readonly api = inject(ApiService);
@@ -20,6 +20,8 @@ export class PartyStore {
   readonly invites = signal<PartyInvite[]>([]);
   readonly actions = signal<PartyAction[]>([]);
   readonly battle = signal<SharedBattleView|null>(null);
+  /** Epoch ms of the party's next encounter (null: not searching / unknown). */
+  readonly nextEncounterAt = signal<number|null>(null);
   readonly autoPartyEnabled = signal(false);
   readonly error = signal('');
   /** Machine-readable code of the last failed mutation (e.g. CANDIDATE_ALREADY_IN_PARTY), '' when none. */
@@ -59,7 +61,7 @@ export class PartyStore {
     this.subscriptions = [];
     this.refreshSequence++;
     this.snapshotGeneration++;
-    this.party.set(null); this.invites.set([]); this.actions.set([]); this.battle.set(null);
+    this.party.set(null); this.invites.set([]); this.actions.set([]); this.battle.set(null); this.nextEncounterAt.set(null);
     this.autoPartyEnabled.set(false); this.error.set(''); this.connection.set('disconnected');
   }
 
@@ -85,6 +87,8 @@ export class PartyStore {
     this.invites.set(state.invites ?? []);
     this.actions.set(state.actions ?? []);
     this.autoPartyEnabled.set(!!state.autoPartyEnabled);
+    const due = Date.parse(String(state.nextEncounterAt ?? ''));
+    this.nextEncounterAt.set(Number.isFinite(due) ? due : null);
     const battle = state.battle ?? null;
     const previous = this.battle();
     if (!battle || !previous || previous.id !== battle.id || Number(battle.revision) >= Number(previous.revision)) this.battle.set(battle);

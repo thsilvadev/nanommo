@@ -1,6 +1,7 @@
 import { publicCombatAction } from './combat-action-view';
 import { combatCooldownDurations } from '@nanommo/shared';
 import { guardEncounterDeadline, PARTY_DEADLINE_REACHED } from './party-deadline';
+import { nextPartyEncounterAt } from './party-arena';
 import { Inject, forwardRef, BadRequestException, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In } from 'typeorm';
@@ -90,8 +91,10 @@ export class PartyService {
       }
     }
     battle=await this.shared.publicBattle(characterId);
+    // Battle arena: party battles are created when due; the client times its walk-in against this.
+    const nextEncounterAt = await nextPartyEncounterAt((sql, params) => this.db.query(sql, params), party?.id ?? null);
     const invites=await this.db.query(`SELECT i.*,a.name AS "inviterName",b.name AS "candidateName" FROM party_invites i JOIN characters a ON a.id=i."inviterId" JOIN characters b ON b.id=i."candidateId" WHERE (i."candidateId"=$1 OR i."inviterId"=$1) AND i.status IN ('offered','accepted') ORDER BY i."createdAt"`,[characterId]);
-    return {party,battle,invites,actions:await this.actions(characterId),autoPartyEnabled:character?.autoPartyEnabled??false};
+    return {party,battle,invites,actions:await this.actions(characterId),autoPartyEnabled:character?.autoPartyEnabled??false,nextEncounterAt};
   }
   async invite(inviterId:string,candidateId:string|undefined,candidateName:string|undefined,requestId:string,mode:'manual'|'auto'='manual'){
     if(!candidateId){const c=await this.db.getRepository(Character).findOneBy({name:candidateName??''});if(!c)throw new NotFoundException('Character not found');candidateId=c.id;}

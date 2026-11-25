@@ -13,6 +13,7 @@ import { InventoryService } from '../inventory/inventory.service';
 import { QuestService } from '../quests/quest.service';
 import { getMasteryXpPolicy } from '../../config/mastery-xp-policy';
 import type { PartyContext } from './party.service';
+import { loadArenaLooks } from './party-arena';
 
 @Injectable()
 export class SharedBattleService {
@@ -157,6 +158,9 @@ export class SharedBattleService {
           cooldownDurations:Object.fromEntries(Object.entries(durations).filter(([key])=>key in cooldowns))},
       };
     });
+    // Battle arena: how each character looks (live gear: it only changes between battles).
+    const looks = await loadArenaLooks((sql, params) => this.db.query(sql, params), actors.filter((actor: any) => actor.kind === 'character').map((actor: any) => actor.id));
+    for (const actor of actors) if (actor.kind === 'character') actor.look = looks.get(actor.id) ?? null;
     // Older immutable logs predate action timer metadata. Derive it from that
     // encounter's effective definitions, never from today's rank-one catalogue.
     const events = row.log.events.map((event: any) => {
