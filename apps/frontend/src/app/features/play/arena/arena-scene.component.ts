@@ -95,7 +95,7 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
     });
     effect(() => {
       const active = this.active();
-      untracked(() => { this.runtime?.setActive(active); this.owner.arenaVisible.set(active && !!this.runtime); });
+      untracked(() => { const usable = active && !!this.runtime && !this.failed(); this.runtime?.setActive(usable); this.owner.arenaVisible.set(usable); });
     });
     void loadMonsterManifest().then((m) => { this.manifest = m; });
   }
@@ -104,7 +104,7 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
     if (!this.env.webglAvailable()) { this.failed.set(true); return; }
     try {
       const runtime = await this.zone.runOutsideAngular(() => this.env.createRuntime(this.stage.nativeElement, {
-        assetBase: '/assets/character/', onContextLost: () => this.failed.set(true), now: () => this.clock.now(),
+        assetBase: '/assets/character/', onContextLost: () => this.contextLost(), now: () => this.clock.now(),
       }));
       if (this.destroyed) { runtime.dispose(); return; }
       this.runtime = runtime;
@@ -115,6 +115,13 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
     } catch {
       this.failed.set(true);
     }
+  }
+
+  /** The GPU dropped the arena: show the message and hand the numbers back to the side panels. */
+  private contextLost(): void {
+    this.failed.set(true);
+    this.runtime?.setActive(false);
+    this.owner.arenaVisible.set(false);
   }
 
   ngOnDestroy(): void {

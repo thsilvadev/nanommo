@@ -1,13 +1,19 @@
 /** Appearance catalogue and WebGL detection: plain functions, no Angular (shared by the viewers, the town and the battle arena). */
 import type { AppearanceCatalog } from '@nanommo/shared';
 
+let webgl: boolean | null = null;
+/** Probed once per page: each probe holds a WebGL context (browsers cap them), so it is freed and cached. */
 export function isWebglAvailable(): boolean {
+  if (webgl !== null) return webgl;
   try {
     const canvas = document.createElement('canvas');
-    return !!(canvas.getContext('webgl2') ?? canvas.getContext('webgl'));
+    const context = (canvas.getContext('webgl2') ?? canvas.getContext('webgl')) as WebGLRenderingContext | null;
+    webgl = !!context;
+    context?.getExtension('WEBGL_lose_context')?.loseContext();
   } catch {
-    return false;
+    webgl = false;
   }
+  return webgl;
 }
 
 export const DEFAULT_CATALOG_URL = '/data/appearance_catalog.json';

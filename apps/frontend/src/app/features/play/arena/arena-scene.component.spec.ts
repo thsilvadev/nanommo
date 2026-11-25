@@ -16,6 +16,7 @@ describe('ArenaSceneComponent', () => {
   let now = START + 2 * 500 + 100;
   let source: ArenaFrameSource | null = null;
   let active = false;
+  let lost: (() => void) | null = null;
   const fake: ArenaRuntimeHandle = {
     setSource: (s) => { source = s; }, setActive: (a) => { active = a; }, isRendering: () => active, renderOnce: () => undefined, actorCount: () => 2,
     screenAnchors: () => new Map([['char-self', { x: 100, y: 200, visible: true }], ['monster:mon_mutantbee:0', { x: 500, y: 210, visible: true }]]),
@@ -26,7 +27,7 @@ describe('ArenaSceneComponent', () => {
     TestBed.configureTestingModule({
       imports: [ArenaSceneComponent],
       providers: [
-        { provide: ARENA_SCENE_ENV, useValue: { webglAvailable: () => true, createRuntime: async () => fake } },
+        { provide: ARENA_SCENE_ENV, useValue: { webglAvailable: () => true, createRuntime: async (_: HTMLElement, init: { onContextLost: () => void }) => { lost = init.onContextLost; return fake; } } },
         { provide: CharacterStore, useValue: { character: signal({ id: 'char-self', currentMapId: 'map_green_grounds_2', appearance: defaultAppearance(), sex: 'male', heightCm: 181, dominantHand: 'right', gatheringCycle: { cycleIndex: 3 } }) } },
         { provide: InventoryStore, useValue: { equipment: signal([{ slot: 'mainHand', itemId: 'equip_bow_t1' }]) } },
         { provide: BattleStore, useValue: { queue: signal([SOLO_V2_ENTRY]), lastResolved: signal(null) } },
@@ -75,6 +76,16 @@ describe('ArenaSceneComponent', () => {
     fixture.detectChanges();
     expect(active).toBeTrue();
     expect(TestBed.inject(ArenaFeedbackOwner).arenaVisible()).toBeTrue();
+    fixture.destroy();
+  });
+
+  it('a lost WebGL context hands the numbers back to the side panels', async () => {
+    const fixture = await mount();
+    expect(TestBed.inject(ArenaFeedbackOwner).arenaVisible()).toBeTrue();
+    lost!();
+    expect(fixture.componentInstance.failed()).toBeTrue();
+    expect(TestBed.inject(ArenaFeedbackOwner).arenaVisible()).toBeFalse();
+    expect(active).toBeFalse();
     fixture.destroy();
   });
 
