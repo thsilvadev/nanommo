@@ -9,6 +9,7 @@ import { isWebglAvailable } from '../../../shared/character-viewer/appearance-ca
 import { loadMonsterManifest, monsterAttackStyle, monsterManifestKey, type MonsterManifestEntry } from '../../../shared/monster-viewer/monster-model';
 import { portraitEquipment, portraitHandTypes, portraitRefinement } from '../character-portrait';
 import { ArenaFeedbackOwner } from './arena-feedback-owner.service';
+import { ArenaMonsterWarmup } from './arena-monster-warmup.service';
 import { arenaMapFade, nextMapChange, type ArenaMapChange } from './arena-map-fade';
 import { ArenaSceneSource, type ArenaResolvedEntry, type ArenaSourceInputs } from './arena-scene-source';
 import type { ArenaFrameInput, ArenaRuntimeHandle, ArenaRuntimeInit } from './arena-runtime';
@@ -61,6 +62,7 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
   private readonly catalog = inject(CatalogService);
   private readonly clock = inject(ServerClockService);
   private readonly owner = inject(ArenaFeedbackOwner);
+  private readonly warmup = inject(ArenaMonsterWarmup);
   private readonly zone = inject(NgZone);
   private runtime: ArenaRuntimeHandle | null = null;
   private manifest: Record<string, MonsterManifestEntry> = {};
@@ -118,6 +120,11 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
       const active = this.active();
       untracked(() => { const usable = active && !!this.runtime && !this.failed(); this.runtime?.setActive(usable); this.owner.arenaVisible.set(usable); });
     });
+    // The species the player can meet soon: textures uploaded and shaders linked before they appear.
+    effect(() => {
+      const ids = this.warmup.wanted();
+      untracked(() => { const runtime = this.runtime; if (runtime && !this.failed()) this.zone.runOutsideAngular(() => void runtime.warmMonsters(ids)); });
+    });
     void loadMonsterManifest().then((m) => { this.manifest = m; });
   }
 
@@ -132,6 +139,7 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
       runtime.setSource((now) => (this.latest = this.source.build(this.inputs(now))));
       runtime.setActive(this.active());
       this.owner.arenaVisible.set(this.active());
+      void runtime.warmMonsters(untracked(() => this.warmup.wanted()));
       this.zone.runOutsideAngular(() => { this.hudTimer = setInterval(() => this.refreshHud(), HUD_MS); });
     } catch {
       this.failed.set(true);

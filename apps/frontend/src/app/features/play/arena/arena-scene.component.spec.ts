@@ -8,6 +8,7 @@ import { PartyStore } from '../../../core/party.store';
 import { ServerClockService } from '../../../core/server-clock.service';
 import { ArenaFeedbackOwner } from './arena-feedback-owner.service';
 import { ARENA_SCENE_ENV, ArenaSceneComponent } from './arena-scene.component';
+import { ArenaMonsterWarmup } from './arena-monster-warmup.service';
 import type { ArenaFrameSource, ArenaRuntimeHandle } from './arena-runtime';
 import { SOLO_V2_ENTRY } from './fixtures/solo-v2.fixture';
 
@@ -18,10 +19,13 @@ describe('ArenaSceneComponent', () => {
   let active = false;
   let lost: (() => void) | null = null;
   let characterState: ReturnType<typeof signal<any>>;
+  let warmed: string[][] = [];
+  const wanted = signal<string[]>(['mon_mutantbee']);
   const fake: ArenaRuntimeHandle = {
     setSource: (s) => { source = s; }, setActive: (a) => { active = a; }, isRendering: () => active, renderOnce: () => undefined, actorCount: () => 2,
     screenAnchors: () => new Map([['char-self', { x: 100, y: 200, visible: true }], ['monster:mon_mutantbee:0', { x: 500, y: 210, visible: true }]]),
     resize: () => undefined, dispose: () => undefined,
+    warmMonsters: async (ids) => { warmed.push(ids); },
   };
 
   async function mount(isActive = true) {
@@ -36,6 +40,7 @@ describe('ArenaSceneComponent', () => {
         { provide: CatalogService, useValue: { item: (id: string) => (id === 'equip_bow_t1' ? { weaponType: 'bow' } : undefined) } },
         { provide: ServerClockService, useValue: { now: () => now } },
         { provide: LocaleService, useValue: { t: (s: string) => s } },
+        { provide: ArenaMonsterWarmup, useValue: { wanted } },
       ],
     });
     const fixture = TestBed.createComponent(ArenaSceneComponent);
@@ -46,7 +51,16 @@ describe('ArenaSceneComponent', () => {
     await new Promise((r) => setTimeout(r));
     return fixture;
   }
-  afterEach(() => { source = null; active = false; });
+  afterEach(() => { source = null; active = false; warmed = []; wanted.set(['mon_mutantbee']); });
+
+  it('the arena uploads the wanted species once it exists, and again when they change', async () => {
+    const fixture = await mount();
+    expect(warmed).toEqual([['mon_mutantbee']]);
+    wanted.set(['mon_mutantbee', 'mon_slime']);
+    TestBed.flushEffects();
+    expect(warmed[warmed.length - 1]).toEqual(['mon_mutantbee', 'mon_slime']);
+    fixture.destroy();
+  });
 
   it('renders one HUD per actor with HP and SP bars, straight to the DOM (no change detection at 30 Hz)', async () => {
     const fixture = await mount();
