@@ -44,11 +44,12 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
     { kind: 'pebble', count: 160, colors: ['#9a8a6c', '#7a6a50', '#b09460'], size: [0.06, 0.18], bands: [ALL] },
   ],
   kwaioua_forest: [
-    { kind: 'log', count: 18, colors: ['#5a4128', '#4a3520', '#6b4e30'], size: [0.7, 1.6], bands: [BEHIND, BEHIND, FRONT] },
+    // Fallen trunks of every girth (the log scales as a whole: thin branches to old trunks).
+    { kind: 'log', count: 26, colors: ['#5a4128', '#4a3520', '#6b4e30', '#3d2c1a'], size: [0.5, 2.4], bands: [BEHIND, BEHIND, FRONT] },
     { kind: 'rock', count: 22, colors: ['#5f6b52', '#55604a', '#6b7660'], size: [0.35, 1.0], bands: [BEHIND, FRONT] },
-    { kind: 'bush', count: 44, colors: ['#2e4a20', '#25401a', '#3a5a2c', '#1f3a17'], size: [0.7, 1.6], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'bush', count: 50, colors: ['#1f3a17', '#25401a', '#2e4a20', '#173214'], size: [0.7, 1.7], bands: [BEHIND, BEHIND, FRONT] },
     { kind: 'twig', count: 70, colors: ['#5a4128', '#6b4e30', '#4a3520'], size: [0.5, 1.1], bands: [ALL] },
-    { kind: 'leaf', count: 420, colors: ['#2f4f22', '#3d5f2c', '#4a3a1e', '#6b5a2e', '#25401a'], size: [0.14, 0.26], bands: [ALL] },
+    { kind: 'leaf', count: 560, colors: ['#3d5f2c', '#4f7a34', '#6b5a2e', '#8a6a2a', '#a07a30', '#5f7a2a', '#2f4f22'], size: [0.18, 0.34], bands: [ALL] },
     { kind: 'pebble', count: 120, colors: ['#6b7660', '#5f6b52', '#7d7a6a'], size: [0.05, 0.14], bands: [ALL] },
   ],
   wastelands: [

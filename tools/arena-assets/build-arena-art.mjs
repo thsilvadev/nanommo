@@ -202,10 +202,11 @@ const REGIONS = {
     ground: ground(r, { base: '#9a7f4e', patches: { count: 16, colors: ['#7d6038', '#b09460', '#8a8a4a'] }, speckles: { count: 1100, size: 4, colors: ['#7a6440', '#b49a62', '#6e5a35', '#8f8a50'], blades: false } }),
   }),
   kwaioua_forest: (r) => ({
-    sky: sky('#5d8f6a', '#bfe0b4', `<g fill="#2f5a34" opacity="0.6">${wrap((dx) => Array.from({ length: 14 }, (_, i) => `<ellipse cx="${dx + i * 150 + 40}" cy="${-20 + (i % 3) * 25}" rx="140" ry="110"/>`).join(''))}</g>` + clouds(r, { count: 4, color: '#e9ffe0', opacity: 0.35, y: [120, 220] })),
-    far: svg(W, H, treeline(r, { base: 230, amp: 25, count: 60, size: 90, colors: ['#2d5e2e', '#356b33', '#274f28'], trunk: '#2b2016' }) + treeline(r, { base: 330, amp: 20, count: 70, size: 70, colors: ['#3b7a36', '#33702f', '#447f3a'], trunk: '#33261a' })),
-    near: svg(W, H, ferns(r, { count: 40, y: 420, size: 80, colors: ['#2f6b2c', '#3a7d34', '#28592a'] }) + bushes(r, { count: 18, y: 480, size: 80, colors: ['#22521f', '#2c6127'] })),
-    ground: ground(r, { base: '#3f5a2b', patches: { count: 18, colors: ['#5a4428', '#2e4a20', '#6b5a2e'] }, speckles: { count: 1500, size: 5, colors: ['#7a5a2a', '#4f7a34', '#8a6a36', '#2f4f22'], blades: true } }),
+    // Deep forest: dark greens under the canopy.
+    sky: sky('#2b5233', '#9cc49a', `<g fill="#1c3d22" opacity="0.72">${wrap((dx) => Array.from({ length: 14 }, (_, i) => `<ellipse cx="${dx + i * 150 + 40}" cy="${-20 + (i % 3) * 25}" rx="150" ry="120"/>`).join(''))}</g>` + clouds(r, { count: 3, color: '#e9ffe0', opacity: 0.25, y: [140, 220] })),
+    far: svg(W, H, treeline(r, { base: 225, amp: 25, count: 64, size: 95, colors: ['#1d4220', '#234d26', '#183a1b'], trunk: '#1f170f' }) + treeline(r, { base: 330, amp: 20, count: 72, size: 72, colors: ['#2a5c29', '#22522a', '#2f6430'], trunk: '#2a1f14' })),
+    near: svg(W, H, ferns(r, { count: 46, y: 420, size: 82, colors: ['#1e4c1d', '#285a24', '#163c17'] }) + bushes(r, { count: 20, y: 480, size: 84, colors: ['#123512', '#1a4218', '#0f2e10'] })),
+    ground: ground(r, { base: '#2e4823', patches: { count: 20, colors: ['#4a3820', '#223d19', '#54452a'] }, speckles: { count: 1600, size: 5, colors: ['#5a4428', '#3b682b', '#6b5530', '#1f3c1a'], blades: true } }),
   }),
   wastelands: (r) => ({
     sky: sky('#a9b0ba', '#eceef0', clouds(r, { count: 12, color: '#f6f6f6', opacity: 0.7, size: 1.3 })),
