@@ -21,7 +21,8 @@ export const ARENA_GATHER_SPEED = 2;
 export const ARENA_GATHER_MS = (CLIP_SECONDS.Gather / ARENA_GATHER_SPEED) * 1000;
 /** Foes walk in from off-screen right (the grid is columns 0–9). */
 export const ARENA_RUN_IN_FROM_COLUMN = 11.5;
-const WALK_COLUMN = 4.5;
+/** Team a deploys at column 0: walking there, the intro never walks the party backwards. */
+const WALK_COLUMN = 0;
 const WIPE_FADE_MS = 1000;
 /** After a flee the runners leave the screen before the walk resumes. */
 const FLEE_EXIT_MS = 1500;
@@ -65,6 +66,8 @@ export function walkFormation(count: number): ArenaCell[] {
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const lerp = (a: number, b: number, f: number) => a + (b - a) * f;
 const ease = (f: number) => f * f * (3 - 2 * f);
+/** Someone walking between two columns faces the way they go (no moonwalking); `rest` when not moving across. */
+const facingTo = (from: number, to: number, rest: 1 | -1): 1 | -1 => (Math.abs(to - from) < 0.05 ? rest : to > from ? 1 : -1);
 
 export function arenaScene(input: ArenaTimelineInput): ArenaSceneFrame {
   const { nowMs, current, previous } = input;
@@ -126,7 +129,7 @@ function battleScene(input: ArenaTimelineInput, battle: ArenaBattle): ArenaScene
     frame.actors = frame.actors.map((a) => {
       const def = battle.actors.find((d) => d.id === a.id)!;
       const from = def.team === 'a' ? formation.get(a.id) ?? def.start : { row: def.start.row, column: ARENA_RUN_IN_FROM_COLUMN };
-      return { ...a, column: lerp(from.column, a.column, f), row: lerp(from.row, a.row, f), anim: f < 1 ? { ...a.anim, base: 'Sprint' } : a.anim };
+      return f < 1 ? { ...a, column: lerp(from.column, a.column, f), row: lerp(from.row, a.row, f), facing: facingTo(from.column, a.column, a.facing), anim: { ...a.anim, base: 'Sprint' } } : a;
     });
   }
   return { phase: 'battle', scroll: 0, frame, fade: 0, hud: true, battleId: battle.id };
@@ -147,7 +150,7 @@ function outroScene(input: ArenaTimelineInput, battle: ArenaBattle, frame: Arena
     const slot = input.party.findIndex((m) => m.id === a.id);
     if (def.team === 'a' && slot >= 0 && a.deadAtMs === null) {
       const to = cells[slot];
-      return { ...a, column: lerp(a.column, to.column, ease(f)), row: lerp(a.row, to.row, ease(f)), facing: 1, moving: 'walk', cast: null, projectile: null, anim: { base: 'Walk' } };
+      return { ...a, column: lerp(a.column, to.column, ease(f)), row: lerp(a.row, to.row, ease(f)), facing: facingTo(a.column, to.column, 1), moving: 'walk', cast: null, projectile: null, anim: { base: 'Walk' } };
     }
     return { ...a, exit: f, cast: null, projectile: null };
   });
@@ -170,7 +173,7 @@ function introScene(input: ArenaTimelineInput, next: ArenaBattle | null, progres
     const g = ease(f);
     return {
       id: def.id, column: lerp(from.column, def.start.column, g), row: lerp(from.row, def.start.row, g),
-      facing: def.team === 'a' ? 1 : -1, moving: 'walk', hp: def.hp, sp: def.sp, statuses: [], statusSinceMs: {},
+      facing: facingTo(from.column, def.start.column, def.team === 'a' ? 1 : -1), moving: 'walk', hp: def.hp, sp: def.sp, statuses: [], statusSinceMs: {},
       deadAtMs: null, fleeing: null, cast: null, projectile: null, anim: { base: 'Walk' },
     };
   });

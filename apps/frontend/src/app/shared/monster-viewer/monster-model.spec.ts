@@ -1,6 +1,6 @@
 import { CLIP_SECONDS } from '../character-animation/animation-state';
 import { animationStateToMonster } from './monster-animation-state';
-import { MONSTER_ASSETS, MonsterModel, preloadMonsterModels } from './monster-model';
+import { MonsterModel, parsedMonsterFiles, releaseMonsterFilesExcept, warmMonsterSpecies } from './monster-model';
 
 describe('MonsterModel (live assets)', () => {
   const made: MonsterModel[] = [];
@@ -55,18 +55,58 @@ describe('animationStateToMonster', () => {
   });
 });
 
-describe('preloadMonsterModels (live assets)', () => {
-  it('preloads every monster file once and reports progress up to the total', async () => {
-    const manifest = await (await fetch(MONSTER_ASSETS + 'manifest.json')).json();
-    const expected = Object.values(manifest).filter((e: any) => e.file && e.rig !== 'char').length;
+describe('monster file cache (live assets)', () => {
+  const parsed = (name: string) => parsedMonsterFiles().some((url) => url.includes(`/${name}.glb`));
+  const firstTexture = (model: MonsterModel): any => {
+    let found: any = null;
+    model.object3d.traverse((o: any) => { if (!found && o.isMesh) found = (Array.isArray(o.material) ? o.material : [o.material]).find((m: any) => m?.map)?.map ?? null; });
+    return found;
+  };
+  afterEach(() => releaseMonsterFilesExcept([]));
+
+  it('warms only the species it is given', async () => {
+    releaseMonsterFilesExcept([]);
     const reports: Array<[number, number]> = [];
-    const first = preloadMonsterModels((d, t) => reports.push([d, t]));
-    expect(preloadMonsterModels()).toBe(first);
-    await first;
-    expect(reports[reports.length - 1]).toEqual([expected, expected]);
+    await warmMonsterSpecies(['mon_slime', 'mon_gravelhorn'], (d, t) => reports.push([d, t]));
+    expect(parsed('slime')).toBeTrue();
+    expect(parsed('gravelhorn')).toBeTrue();
+    expect(parsed('wraith')).toBeFalse();
+    expect(reports[reports.length - 1]).toEqual([2, 2]);
     const started = performance.now();
     const model = await MonsterModel.load('mon_gravelhorn');
     expect(performance.now() - started).toBeLessThan(50);
     model.dispose();
+  }, 60_000);
+
+  it('releases files out of the set, freeing their textures', async () => {
+    // (the wraith has no textures since its cone rebuild: the gravelhorn is the textured one released)
+    await warmMonsterSpecies(['mon_wraith', 'mon_gravelhorn']);
+    const gravelhorn = await MonsterModel.load('mon_gravelhorn');
+    const texture = firstTexture(gravelhorn);
+    expect(texture).withContext('gravelhorn has a textured material').not.toBeNull();
+    gravelhorn.dispose();
+    const disposed = spyOn(texture, 'dispose').and.callThrough();
+    expect(releaseMonsterFilesExcept(['mon_wraith'])).toBeGreaterThanOrEqual(1);
+    expect(disposed).toHaveBeenCalled();
+    expect(parsed('gravelhorn')).toBeFalse();
+    expect(parsed('wraith')).toBeTrue();
+  }, 60_000);
+
+  it('a model in use is never released', async () => {
+    const m = await MonsterModel.load('mon_gravelhorn');
+    releaseMonsterFilesExcept([]);
+    expect(parsed('gravelhorn')).toBeTrue();
+    m.dispose();
+    expect(releaseMonsterFilesExcept([])).toBeGreaterThanOrEqual(1);
+    expect(parsed('gravelhorn')).toBeFalse();
+  }, 60_000);
+
+  it('a released species loads again on demand', async () => {
+    await warmMonsterSpecies(['mon_slime']);
+    releaseMonsterFilesExcept([]);
+    const m = await MonsterModel.load('mon_slime');
+    expect(m.placeholder).toBeFalse();
+    expect(parsed('slime')).toBeTrue();
+    m.dispose();
   }, 60_000);
 });

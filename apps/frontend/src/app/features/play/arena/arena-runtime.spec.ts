@@ -4,6 +4,7 @@ import { arenaScene } from './arena-phase';
 import { createArenaRuntime, type ArenaActorVisual, type ArenaRuntimeHandle } from './arena-runtime';
 import type { ArenaBattle } from './arena.types';
 import { SOLO_V2_ENTRY } from './fixtures/solo-v2.fixture';
+import { MonsterModel, releaseMonsterFilesExcept } from '../../../shared/monster-viewer/monster-model';
 
 describe('ArenaRuntime (real WebGL)', () => {
   let host: HTMLElement;
@@ -63,5 +64,23 @@ describe('ArenaRuntime (real WebGL)', () => {
     expect(runtime.isRendering()).toBeTrue();
     runtime.setActive(false);
     expect(runtime.isRendering()).toBeFalse();
+  }, 30000);
+
+  it('warmMonsters uploads every texture of the species before it is drawn', async () => {
+    runtime = await createArenaRuntime(host, { assetBase: '/assets/character/', onContextLost: () => undefined });
+    releaseMonsterFilesExcept([]); // a fresh parse: none of its textures is on any GPU yet
+    const probe = await MonsterModel.load('mon_slime');
+    const textures = new Set<unknown>();
+    probe.object3d.traverse((o: any) => {
+      if (!o.isMesh) return;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) for (const v of Object.values(m ?? {})) if ((v as any)?.isTexture) textures.add(v);
+    });
+    probe.dispose();
+    expect(textures.size).withContext('slime textures').toBeGreaterThan(0);
+    const gl = WebGL2RenderingContext.prototype;
+    const uploads = [spyOn(gl, 'texImage2D').and.callThrough(), spyOn(gl, 'texSubImage2D').and.callThrough(), spyOn(gl, 'texStorage2D').and.callThrough()];
+    await runtime.warmMonsters(['mon_slime']);
+    const uploaded = uploads.reduce((n, spy) => n + spy.calls.count(), 0);
+    expect(uploaded).toBeGreaterThanOrEqual(textures.size);
   }, 30000);
 });

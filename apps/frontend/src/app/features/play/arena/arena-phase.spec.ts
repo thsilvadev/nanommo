@@ -15,11 +15,42 @@ const input = (over: Partial<ArenaTimelineInput>): ArenaTimelineInput => ({
   nowMs: 0, current: null, previous: null, next: null, nextStartAtMs: null, party: SELF, selfId: 'char-self', gatherAtMs: null, ...over,
 });
 
+/** The solo battle with the viewer advancing to column 8 at tick 1 (a melee fighter ends far from its start). */
+function advanced(): ArenaBattle {
+  const b = solo();
+  const move = { tick: 1, actorId: 'char-self', targetIds: [], action: 'move', payload: { type: 'move', from: { row: 5, column: 0 }, to: { row: 5, column: 8 }, reason: 'blinkstrike' } };
+  return { ...b, events: [...b.events.slice(0, 2), move, ...b.events.slice(2)] };
+}
+
+/** Team a walkers (Walk/Sprint) never move on screen against the way they face. */
+function expectNoMoonwalk(frameAt: (t: number) => ReturnType<typeof arenaScene>, from: number, to: number): void {
+  let last = new Map<string, number>();
+  let lastPhase = '';
+  for (let t = from; t <= to; t += 20) {
+    const scene = frameAt(t);
+    // Compare within one phase (a 20 ms sample across a phase boundary spans two motions).
+    if (scene.phase !== lastPhase) last = new Map();
+    lastPhase = scene.phase;
+    const now = new Map<string, number>();
+    for (const a of scene.frame.actors) {
+      if (a.id !== 'char-self') continue;
+      now.set(a.id, a.column);
+      const before = last.get(a.id);
+      const walking = a.anim.base === 'Walk' || a.anim.base === 'Sprint';
+      if (before !== undefined && walking && Math.abs(a.column - before) > 1e-3) {
+        expect(Math.sign(a.column - before)).withContext(`${scene.phase} t=${t} facing ${a.facing}`).toBe(a.facing);
+      }
+    }
+    last = now;
+  }
+}
+
 describe('walkFormation', () => {
   it('stands the party in the central deployment rows at the middle column', () => {
-    expect(walkFormation(1)).toEqual([{ row: 5, column: 4.5 }]);
+    // Column 0 is where team a deploys: the intro never has to walk the party back.
+    expect(walkFormation(1)).toEqual([{ row: 5, column: 0 }]);
     expect(walkFormation(3).map((c) => c.row)).toEqual(CENTRAL_DEPLOYMENT_ROWS[3]);
-    expect(walkFormation(5).every((c) => c.column === 4.5)).toBeTrue();
+    expect(walkFormation(5).every((c) => c.column === 0)).toBeTrue();
   });
 });
 
@@ -77,7 +108,7 @@ describe('arenaScene', () => {
     const scene = arenaScene(input({ nowMs: 5_000_000 }));
     expect(scene.phase).toBe('walk');
     expect(scene.hud).toBeFalse();
-    expect(scene.frame.actors.map((a) => [a.id, a.column, a.row, a.anim.base])).toEqual([['char-self', 4.5, 5, 'Walk']]);
+    expect(scene.frame.actors.map((a) => [a.id, a.column, a.row, a.anim.base])).toEqual([['char-self', 0, 5, 'Walk']]);
   });
 
   it('gather kneels and pauses the scroll', () => {
@@ -114,5 +145,19 @@ describe('arenaScene', () => {
     expect(at(fadeStart + 500).phase).toBe('wipe');
     expect(at(fadeStart + 500).fade).toBeCloseTo(0.5, 2);
     expect(at(fadeStart + 2000).fade).toBe(1);
+  });
+});
+
+describe('no moonwalking', () => {
+  it('the intro brings the party to its cells facing the way it walks', () => {
+    const next = shift(solo(), 100_000);
+    expectNoMoonwalk((t) => arenaScene(input({ nowMs: t, next, nextStartAtMs: next.startAtMs })), next.startAtMs - ARENA_INTRO_MS, next.startAtMs - 1);
+  });
+
+  it('after a battle, a fighter that advanced turns round and walks back to the formation', () => {
+    const previous = advanced();
+    const E = previous.endAtMs;
+    const next = shift(solo(), E + 3000);
+    expectNoMoonwalk((t) => arenaScene(input({ nowMs: t, previous, next, nextStartAtMs: next.startAtMs })), E, E + 3000 - 1);
   });
 });

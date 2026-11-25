@@ -9,7 +9,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { loadAppearanceCatalog } from '../../../shared/character-viewer/appearance-catalog';
 import { buildArrow } from '../../../shared/character-viewer/bow-shot';
-import { MonsterModel, loadMonsterManifest } from '../../../shared/monster-viewer/monster-model';
+import { MonsterModel } from '../../../shared/monster-viewer/monster-model';
 import { TownCharacterFactory } from '../town-scene/town-character';
 import type { ArenaActorFrame } from './arena-actions';
 import { ArenaActorView, type ArenaActorVisual } from './arena-actor-views';
@@ -34,6 +34,11 @@ export interface ArenaRuntimeHandle {
   /** Draw one frame now (tests, and the first frame before the loop runs). */
   renderOnce(nowMs: number): void;
   actorCount(): number;
+  /**
+   * Gets these species ready to draw (textures on the GPU, shaders linked), one species per frame,
+   * so none stalls the frame it first appears on. A newer call supersedes an unfinished one. Never throws.
+   */
+  warmMonsters(ids: string[]): Promise<void>;
   resize(): void;
   dispose(): void;
 }
@@ -73,6 +78,7 @@ class ArenaRuntime implements ArenaRuntimeHandle {
   /** Camera framing: follows `target` smoothly; re-aimed per battle, and outwards when someone leaves the frame. */
   private cam = { key: '', at: { x: 0, z: 0, d: 30 }, target: { x: 0, z: 0, d: 30 } };
   private readonly now: () => number;
+  private warmRun = 0;
 
   constructor(private readonly host: HTMLElement, init: ArenaRuntimeInit, private readonly factory: TownCharacterFactory) {
     this.now = init.now ?? Date.now;
@@ -89,8 +95,7 @@ class ArenaRuntime implements ArenaRuntimeHandle {
     canvas.addEventListener('webglcontextlost', lost);
     this.cleanups.push(() => canvas.removeEventListener('webglcontextlost', lost));
     // Shaders link before a model is first drawn (no stall on the frame it appears).
-    factory.prepare = (object) => this.renderer.compileAsync(object, this.camera, this.scene).catch(() => undefined);
-    void warmMonsterShaders(factory.prepare, () => this.disposed);
+    factory.prepare = (object) => this.prepare(object);
 
     this.scene.background = new THREE.Color('#9fc8ec');
     this.scene.add(new THREE.HemisphereLight('#fff6e6', '#5a6a3a', 1.6));
@@ -111,6 +116,34 @@ class ArenaRuntime implements ArenaRuntimeHandle {
   }
 
   setSource(source: ArenaFrameSource | null): void { this.source = source; }
+
+  async warmMonsters(ids: string[]): Promise<void> {
+    const run = ++this.warmRun;
+    for (const id of ids) {
+      if (this.disposed || run !== this.warmRun) return;
+      try {
+        const model = await MonsterModel.load(id);
+        try { if (!this.disposed) await this.prepare(model.object3d); } finally { model.dispose(); }
+      } catch { /* no model of its own: drawn as a character or a capsule */ }
+      // One species per frame: a warm never makes one long frame.
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
+  }
+
+  /** Before an object is first drawn: its textures on the GPU and its shaders linked. */
+  private prepare(object: THREE.Object3D): Promise<unknown> {
+    if (this.disposed) return Promise.resolve();
+    const textures = new Set<THREE.Texture>();
+    object.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        for (const value of Object.values(m ?? {})) if ((value as THREE.Texture | null)?.isTexture) textures.add(value as THREE.Texture);
+      }
+    });
+    for (const texture of textures) { try { this.renderer.initTexture(texture); } catch { /* drawn (and uploaded) on first use instead */ } }
+    return this.renderer.compileAsync(object, this.camera, this.scene).catch(() => undefined);
+  }
   screenAnchors(): Map<string, ArenaAnchor> { return this.anchors; }
   isRendering(): boolean { return this.frame !== null; }
   actorCount(): number { return this.views.size; }
@@ -257,23 +290,6 @@ class ArenaRuntime implements ArenaRuntimeHandle {
       const visible = v.z < 1 && v.x > -1.1 && v.x < 1.1 && v.y > -1.1 && v.y < 1.1;
       this.anchors.set(id, { x: (v.x * 0.5 + 0.5) * w, y: (-v.y * 0.5 + 0.5) * h, visible });
     }
-  }
-}
-
-/**
- * Links every monster's shaders once the arena exists (the files were parsed on the loading screen), one
- * after the other, so the first appearance of a species never stalls a frame. Never throws.
- */
-async function warmMonsterShaders(prepare: (object: THREE.Object3D) => Promise<unknown>, stopped: () => boolean): Promise<void> {
-  const manifest = await loadMonsterManifest().catch(() => ({} as Awaited<ReturnType<typeof loadMonsterManifest>>));
-  for (const [key, entry] of Object.entries(manifest)) {
-    if (stopped()) return;
-    if (!entry.file || entry.rig === 'char') continue;
-    try {
-      const model = await MonsterModel.load(`mon_${key}`);
-      await prepare(model.object3d);
-      model.dispose();
-    } catch { /* a missing model shows as a capsule anyway */ }
   }
 }
 

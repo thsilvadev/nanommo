@@ -182,9 +182,13 @@ function attachCones(doc, a, idle) {
     for (const [si, spot] of spots.entries()) {
       const p = vec3.add(vec3.create(), bp, a.offset ?? [0, 0, 0]); vec3.add(p, p, spot);
       const len = a.length * (a.ring ? 0.6 + 0.8 * ((si * 7919) % 10) / 10 : 1);
-      const world = mat4.fromRotationTranslationScale(mat4.create(), rot, p, [a.radius, len, a.radius]);
-      const local = mat4.multiply(mat4.create(), mat4.invert(mat4.create(), bw), world);
-      const t = mat4.getTranslation(vec3.create(), local), r = mat4.getRotation(quat.create(), local), sc = mat4.getScaling(vec3.create(), local);
+      // Bone-local TRS built directly: decomposing inverse(bone) x world with mat4.getRotation is wrong for a
+      // non-uniformly scaled cone (thin and long), which laid the Needleback Stalker's spines down sideways.
+      const boneScale = mat4.getScaling(vec3.create(), bw)[0];
+      const boneRot = quat.normalize(quat.create(), mat4.getRotation(quat.create(), bw));
+      const t = vec3.transformMat4(vec3.create(), p, mat4.invert(mat4.create(), bw));
+      const r = quat.multiply(quat.create(), quat.invert(quat.create(), boneRot), rot);
+      const sc = vec3.fromValues(a.radius / boneScale, len / boneScale, a.radius / boneScale);
       const cone = doc.createNode('Cone').setMesh(mesh).setTranslation([...t]).setRotation([...quat.normalize(r, r)]).setScale([...sc]);
       b.addChild(cone);
       if (a.pulse && idle) { // drip: the cone grows and shrinks along its length, phase-shifted, looping over the Idle clip
