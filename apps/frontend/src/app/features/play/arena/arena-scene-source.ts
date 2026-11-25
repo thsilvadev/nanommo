@@ -118,10 +118,13 @@ export class ArenaSceneSource {
 
   private remember(key: string, battle: ArenaBattle): void {
     this.battles.set(key, battle);
+    // Only battles that already ran are dropped, oldest first: a queued one (bounded by the queue itself)
+    // must survive until it plays, or it is rebuilt every frame and never becomes the current battle.
     while (this.battles.size > KEEP) {
-      // Drop a battle that never ran before one that did, then the oldest.
-      const entries = [...this.battles.entries()].sort((a, b) => Number(this.started.has(a[1].id)) - Number(this.started.has(b[1].id)) || a[1].endAtMs - b[1].endAtMs);
-      this.battles.delete(entries[0][0]);
+      const ran = [...this.battles.entries()].filter(([, b]) => this.started.has(b.id)).sort((a, b) => a[1].endAtMs - b[1].endAtMs);
+      if (!ran.length) break;
+      this.battles.delete(ran[0][0]);
+      this.started.delete(ran[0][1].id);
     }
   }
 }

@@ -72,6 +72,20 @@ describe('ArenaSceneSource', () => {
     expect(source.build(inputs({ nowMs: START + LENGTH + 100, soloQueue: [] })).scene.phase).toBe('outro');
   });
 
+  it('keeps playing battles after many have run (a 5-deep queue, battle after battle)', () => {
+    // Production: after ~7 battles the arena kept only the walk while the portraits fought.
+    const source = new ArenaSceneSource();
+    const gap = LENGTH + 3000;
+    const at = (i: number) => START + i * gap;
+    for (let i = 0; i < 20; i++) {
+      const queue = Array.from({ length: 5 }, (_, k) => entry(`e${i + k}`, at(i + k)));
+      for (const t of [at(i) - 1000, at(i) + 1000, at(i) + LENGTH - 500]) {
+        const frame = source.build(inputs({ nowMs: t, soloQueue: queue }));
+        if (t > at(i)) expect(`${i}:${frame.scene.phase}:${frame.scene.battleId}`).toBe(`${i}:battle:e${i}`);
+      }
+    }
+  });
+
   it('gear change during walk re-dresses before the next battle', () => {
     const source = new ArenaSceneSource();
     const walking = source.build(inputs({ nowMs: START - 5000, soloQueue: [entry('e1', START)], selfLook: look('equip_sword_t3') }));
