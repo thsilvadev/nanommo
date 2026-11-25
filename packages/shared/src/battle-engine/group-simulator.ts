@@ -288,8 +288,9 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
         const preparation=actor.kind==='monster'?Math.max(0,(Number(actor.attackIntervalTicks??12)+penalty*18/800)/(hasStatus(self,'rage')?2:1)):BattleEngine.attackDurationTicks(Number(self.attackSpeed??100+self.agi*2)-penalty)/multiplyStatus(self,'attackSpeedMultiplier');
         self.attackGauge=preparation<=0?1:tick>=Number(self.attackPreparationStartsAtTick??0)?self.attackGauge+1/preparation:self.attackGauge;
         if(self.attackGauge>=1-1e-12){self.attackGauge=0;const attack=choose(actor,self,'attack');if(attack){setTarget(self,attack.target);const range=Number(self.basicAttackRange??(self.basicAttackDamageType==='ranged'?6:0));if(!inRange(self,attack.target,range)){if(!self.movementIntent)approach(self,attack.target,range);}else resolveAttack(self,attack.target);}}
-        // Once intent exists, advance movement every tick, not only on a gauge fire.
-        else if(self.targetId&&!self.movementIntent){const target=states[self.targetId];const range=Number(self.movementIntentRange??self.basicAttackRange??0);if(target?.hp>0&&!inRange(self,target,range))approach(self,target,range);}
+        // Keep approaching between gauge fires only while a legal attack asks for it.
+        // A retained spell target alone must not pull a caster into melee on cooldown.
+        else if(!self.movementIntent){const attack=choose(actor,self,'attack');if(attack){setTarget(self,attack.target);const range=Number(self.basicAttackRange??(self.basicAttackDamageType==='ranged'?6:0));if(!inRange(self,attack.target,range))approach(self,attack.target,range);}}
       }
       if(self.hp>0&&Number(self.castLockTicks??0)<=0){self.castGauge++;if(self.castGauge>=BattleEngine.castGaugeThreshold(self.dex)){self.castGauge=0;const choice=choose(actor,self,'cast');if(choice?.action.id==='use_item'){setTarget(self,choice.target);resolveItem(self,choice.action,choice.target);}}}
     }
