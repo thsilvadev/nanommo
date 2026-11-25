@@ -14,7 +14,9 @@ const looks: Record<string, ArenaCharacterLook> = {
   mage: { sex: 'female', heightCm: 168, appearance: { ...defaultAppearance(), hair: 3, hairColor: 4 }, dominantHand: 'right', equipment: { head: 'equip_head_magic_t2', body: 'equip_body_magic_t2', mainHand: 'equip_staff_t2' }, refinement: null, mainHandType: 'staff', offHandType: null },
 };
 
-const solo = (): ArenaBattle => fromSoloEntry(SOLO_V2_ENTRY, { id: 'char-self', look: looks['archer'], attackStyle: 'bow' })!;
+/** The solo entry as the API sends it: the snapshot has no characterId, so the log names the self actor 'character'. */
+const PROD_SOLO_ENTRY = { ...JSON.parse(JSON.stringify(SOLO_V2_ENTRY).replace(/"char-self"/g, '"character"')), characterId: 'char-self' };
+const solo = (): ArenaBattle => fromSoloEntry(PROD_SOLO_ENTRY, { id: 'char-self', look: looks['archer'], attackStyle: 'bow' })!;
 function party(): ArenaBattle {
   const b = fromSharedBattle(PARTY_V2_VIEW, 'char-self');
   for (const a of b.actors) if (a.id === 'char-self') a.look = looks['knight']; else if (a.id === 'char-ally') a.look = looks['mage'];
@@ -29,7 +31,7 @@ function statuses(): ArenaBattle {
 }
 const visualsOf = (b: ArenaBattle) => new Map<string, ArenaActorVisual>(b.actors.map((a) => [a.id, { id: a.id, team: a.team, kind: a.kind, name: a.name, look: a.look, monsterId: a.monsterId }]));
 
-interface Shot { battle: () => ArenaBattle; region: ArenaRegionId; at: (b: ArenaBattle) => number; mode: 'battle' | 'walk' | 'intro'; party?: string[] }
+interface Shot { battle: () => ArenaBattle; region: ArenaRegionId; at: (b: ArenaBattle) => number; mode: 'battle' | 'walk' | 'intro' | 'outro'; party?: string[] }
 const SHOTS: Record<string, Shot> = {
   walk: { battle: solo, region: 'green_grounds', mode: 'walk', at: (b) => b.startAtMs - 6000 },
   intro: { battle: solo, region: 'green_grounds', mode: 'intro', at: (b) => b.startAtMs - 500 },
@@ -38,6 +40,7 @@ const SHOTS: Record<string, Shot> = {
   party_fight: { battle: party, region: 'menace_hills', mode: 'battle', at: (b) => b.startAtMs + 5 * 500 + 30, party: ['char-self', 'char-ally'] },
   party_status: { battle: statuses, region: 'wastelands', mode: 'battle', at: (b) => b.startAtMs + 3 * 500, party: ['char-self', 'char-ally'] },
   ruins: { battle: party, region: 'forest_ruins', mode: 'battle', at: (b) => b.startAtMs + 1 * 500, party: ['char-self', 'char-ally'] },
+  outro: { battle: solo, region: 'green_grounds', mode: 'outro', at: (b) => b.endAtMs + 600 },
   caete: { battle: solo, region: 'caete', mode: 'battle', at: (b) => b.startAtMs + 30 * 500 + 200 },
 };
 
@@ -49,14 +52,14 @@ let runtime: ArenaRuntimeHandle | null = null;
   const partyIds = shot.party ?? ['char-self'];
   const party = partyIds.map((id) => ({ id, look: battle.actors.find((a) => a.id === id)!.look }));
   const input = (now: number): ArenaTimelineInput => ({
-    nowMs: now, current: shot.mode === 'battle' ? battle : null, previous: null,
+    nowMs: now, current: shot.mode === 'battle' || shot.mode === 'outro' ? battle : null, previous: shot.mode === 'outro' ? battle : null,
     next: shot.mode === 'intro' ? battle : null, nextStartAtMs: shot.mode === 'intro' ? battle.startAtMs : null,
     party, selfId: 'char-self', gatherAtMs: null,
   });
   runtime ??= await createArenaRuntime(document.getElementById('host')!, { assetBase: '/assets/character/', catalogUrl: '/data/appearance_catalog.json', onContextLost: () => undefined });
   const target = shot.at(battle);
   // Warm up where every actor of the shot already exists (battle shots: after the start), so models load.
-  const warm = shot.mode === 'battle' ? Math.max(target - 1500, battle.startAtMs + 1) : Math.max(target - 1500, battle.startAtMs - 1100);
+  const warm = shot.mode === 'battle' || shot.mode === 'outro' ? Math.max(target - 1500, battle.startAtMs + 1) : Math.max(target - 1500, battle.startAtMs - 1100);
   let clock = warm;
   runtime.setSource((now) => ({ scene: arenaScene(input(now)), visuals, region: shot.region }));
   // Let every model load and dress, then replay the last 1.5 s at 60 fps (crossfades, camera ease).

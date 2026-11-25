@@ -72,6 +72,18 @@ describe('ArenaSceneSource', () => {
     expect(source.build(inputs({ nowMs: START + LENGTH + 100, soloQueue: [] })).scene.phase).toBe('outro');
   });
 
+  it('production solo entries (self actor id "character") keep the viewing character in the party: it walks off after the battle', () => {
+    // The API's solo snapshot carries no characterId, so solo-adapter names the actor 'character'.
+    const prod = (id: string, startAtMs: number) => ({ ...JSON.parse(JSON.stringify(entry(id, startAtMs)).replace(/"char-self"/g, '"character"')), characterId: 'char-self' });
+    const source = new ArenaSceneSource();
+    const running = source.build(inputs({ nowMs: START + 1000, soloQueue: [prod('e1', START)] }));
+    expect(running.scene.frame.actors.map((a) => a.id)).toContain('char-self');
+    const outro = source.build(inputs({ nowMs: START + LENGTH + 300, soloQueue: [prod('e2', START + LENGTH + 3000)] }));
+    const self = outro.scene.frame.actors.find((a) => a.id === 'char-self')!;
+    expect(self.exit).toBeUndefined();
+    expect(self.anim.base).toBe('Walk');
+  });
+
   it('keeps playing battles after many have run (a 5-deep queue, battle after battle)', () => {
     // Production: after ~7 battles the arena kept only the walk while the portraits fought.
     const source = new ArenaSceneSource();

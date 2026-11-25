@@ -20,8 +20,13 @@ export function fromSoloEntry(
 ): ArenaBattle | null {
   const log = (entry as { log?: any }).log;
   const input = log?.header?.v2Input;
-  const events: ArenaEvent[] | undefined = log?.v2Events;
-  if (!input || !Array.isArray(input.actors) || !Array.isArray(events)) return null;
+  const rawEvents: ArenaEvent[] | undefined = log?.v2Events;
+  if (!input || !Array.isArray(input.actors) || !Array.isArray(rawEvents)) return null;
+  // The solo log names the character actor after its snapshot ('character' when the snapshot has no
+  // characterId, as the API's does); the arena knows the viewer by character id, so rename it.
+  const logSelfId: string | undefined = input.actors.find((actor: any) => actor.kind === 'character')?.id;
+  const rename = (id: string) => (id === logSelfId ? self.id : id);
+  const events = logSelfId && logSelfId !== self.id ? rawEvents.map((e) => renameEvent(e, rename)) : rawEvents;
   const startAtMs = ms(entry.startAt), endAtMs = ms(entry.endAt);
   if (!Number.isFinite(startAtMs) || !Number.isFinite(endAtMs)) return null;
   const actors: ArenaActorDef[] = input.actors.map((actor: any) => {
@@ -29,6 +34,7 @@ export function fromSoloEntry(
     const monsterId = character ? null : String(actor.definitionId ?? '');
     return {
       ...common(actor),
+      id: rename(String(actor.id)),
       look: character ? self.look : null,
       monsterId,
       attackStyle: character ? self.attackStyle : options.monsterStyle?.(monsterId!) ?? 'melee',
@@ -62,6 +68,11 @@ export function fromSharedBattle(view: SharedBattleView, selfId: string, options
     outcome: outcomeOf((view.log as { outcome?: unknown }).outcome),
     selfId, mapId: String(view.mapId ?? ''),
   };
+}
+
+function renameEvent(e: ArenaEvent, rename: (id: string) => string): ArenaEvent {
+  const states = e.actorStates ? Object.fromEntries(Object.entries(e.actorStates).map(([id, s]) => [rename(id), s.targetId ? { ...s, targetId: rename(s.targetId) } : s])) : undefined;
+  return { ...e, actorId: rename(e.actorId), targetIds: e.targetIds.map(rename), ...(states ? { actorStates: states } : {}) };
 }
 
 function common(actor: any): Omit<ArenaActorDef, 'look' | 'monsterId' | 'attackStyle'> {
