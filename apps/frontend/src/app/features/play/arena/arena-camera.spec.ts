@@ -25,6 +25,13 @@ describe('arena camera', () => {
     expect(f.targetX).toBeCloseTo(0, 6);
   });
 
+  it('a battle laid out further right (origin) frames the same way, moved by its offset', () => {
+    const here = frameCells([{ row: 5, column: 0 }, { row: 5, column: 9 }, { row: 4, column: -3 }], 16 / 9);
+    const there = frameCells([{ row: 5, column: 20 }, { row: 5, column: 29 }, { row: 4, column: 17 }], 16 / 9, 20);
+    expect(there.targetX - here.targetX).toBeCloseTo(20 * ARENA_CELL_M, 6);
+    expect(there.distance).toBeCloseTo(here.distance, 6);
+  });
+
   it('keeps real size but clamps a giant to its cell width', () => {
     expect(monsterScale(6, 4)).toBeCloseTo((1.1 * ARENA_CELL_M) / 6, 6);
     expect(monsterScale(0.8, 0.6)).toBe(1);

@@ -198,7 +198,6 @@ class ArenaRuntime implements ArenaRuntimeHandle {
   private apply(input: ArenaFrameInput, nowMs: number, dtMs: number): void {
     const { scene } = input;
     this.scenery.setRegion(input.region, nowMs);
-    this.scenery.update(scene.scroll, dtMs, nowMs);
 
     // Views: create for new actors, drop the ones that left the frame.
     const seen = new Set<string>();
@@ -218,6 +217,8 @@ class ArenaRuntime implements ArenaRuntimeHandle {
     this.updateArrows(scene.frame.actors, nowMs);
     this.updateSparks(scene, nowMs);
     this.updateCamera(scene, dtMs);
+    // The scenery follows the camera along x (the party travels right battle after battle).
+    this.scenery.update(scene.scroll, dtMs, nowMs, this.cam.at.x);
   }
 
   private updateArrows(actors: ArenaActorFrame[], nowMs: number): void {
@@ -259,7 +260,7 @@ class ArenaRuntime implements ArenaRuntimeHandle {
   private updateCamera(scene: ArenaSceneFrame, dtMs: number): void {
     const living = scene.frame.actors.filter((a) => a.deadAtMs === null && !a.fleeing);
     const cells = (living.length ? living : scene.frame.actors).map((a) => ({ row: a.row, column: a.column }));
-    const want = frameCells(cells, this.camera.aspect);
+    const want = frameCells(cells, this.camera.aspect, scene.origin);
     const battle = scene.phase === 'battle' || scene.phase === 'wipe';
     const key = battle ? `battle:${scene.battleId}` : 'walk';
     const first = this.cam.key === '';

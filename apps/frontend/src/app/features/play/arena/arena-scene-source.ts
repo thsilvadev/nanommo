@@ -8,7 +8,7 @@ import type { BattleQueueEntry } from '../../../core/game.models';
 import type { SharedBattleView } from '../../../core/party-projection';
 import type { AttackStyle } from '../../../shared/character-animation/animation-state';
 import { fromSharedBattle, fromSoloEntry } from './arena-battle';
-import { arenaScene, arenaSceneEnd } from './arena-phase';
+import { arenaBattleOffset, arenaScene, arenaSceneEnd, arenaWalkColumn } from './arena-phase';
 import { arenaRegionOf } from './arena-region';
 import type { ArenaActorVisual, ArenaFrameInput } from './arena-runtime';
 import type { ArenaBattle, ArenaBattleOptions, ArenaCharacterLook } from './arena.types';
@@ -43,6 +43,8 @@ export class ArenaSceneSource {
   private readonly battles = new Map<string, ArenaBattle>();
   private readonly memberLooks = new Map<string, ArenaCharacterLook | null>();
   private readonly started = new Set<string>();
+  /** Column offset of each battle, fixed the first time it is laid out (see arena-phase). */
+  private readonly offsets = new Map<string, number>();
 
   constructor(private readonly options: ArenaBattleOptions = {}) {}
 
@@ -64,7 +66,8 @@ export class ArenaSceneSource {
     const ids = input.partyIds.length ? input.partyIds : [input.selfId];
     const lookOf = (id: string) => (id === input.selfId ? input.selfLook : this.memberLooks.get(id) ?? null);
     const party = ids.map((id) => ({ id, look: lookOf(id) }));
-    const scene = arenaScene({ nowMs: now, current, previous, next, nextStartAtMs, party, selfId: input.selfId, gatherAtMs: input.gatherAtMs });
+    const offsets = this.layOut(previous, current, next);
+    const scene = arenaScene({ nowMs: now, current, previous, next, nextStartAtMs, party, selfId: input.selfId, gatherAtMs: input.gatherAtMs, offsets });
 
     const visuals = new Map<string, ArenaActorVisual>();
     for (const b of [previous, current, next]) {
@@ -73,6 +76,23 @@ export class ArenaSceneSource {
     }
     for (const member of party) if (!visuals.has(member.id)) visuals.set(member.id, { id: member.id, team: 'a', kind: 'character', name: member.id, look: member.look, monsterId: null });
     return { scene, visuals, region: arenaRegionOf(input.mapId) };
+  }
+
+  /**
+   * Each battle is laid out once, where the party stands when it comes up: its rearmost team-a cell on
+   * the column the party walks at after the battle before. A battle that never had one (seen only as
+   * the previous one) keeps offset 0.
+   */
+  private layOut(previous: ArenaBattle | null, current: ArenaBattle | null, next: ArenaBattle | null): { previous: number; current: number; next: number } {
+    const prev = previous ? this.offsets.get(previous.id) ?? 0 : 0;
+    if (previous && !this.offsets.has(previous.id)) this.offsets.set(previous.id, prev);
+    const walkColumn = arenaWalkColumn(previous, prev);
+    const fix = (b: ArenaBattle) => { if (!this.offsets.has(b.id)) this.offsets.set(b.id, arenaBattleOffset(walkColumn, b)); return this.offsets.get(b.id)!; };
+    const cur = current ? fix(current) : 0;
+    // The next battle is laid out only between battles (while one runs, the walk column is not known yet).
+    const nxt = next ? (current ? this.offsets.get(next.id) ?? 0 : fix(next)) : 0;
+    if (this.offsets.size > KEEP * 3) for (const id of [...this.offsets.keys()]) if (![...this.battles.values()].some((b) => b.id === id)) this.offsets.delete(id);
+    return { previous: prev, current: cur, next: nxt };
   }
 
   private solo(entry: BattleQueueEntry, input: ArenaSourceInputs): ArenaBattle | null {

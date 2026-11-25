@@ -24,20 +24,23 @@ export function cellToWorld(cell: { row: number; column: number }): { x: number;
   return { x: (cell.column - (GRID - 1) / 2) * ARENA_CELL_M, z: (cell.row - (GRID - 1) / 2) * ARENA_CELL_M };
 }
 
-/** Where the camera looks and how far it stands back so every given cell (clamped into the grid) is in view. */
-export function frameCells(cells: ArenaCell[], aspect: number): { targetX: number; targetZ: number; distance: number } {
-  const clamp = (v: number) => Math.max(0, Math.min(GRID - 1, v));
-  const cols = cells.length ? cells.map((c) => clamp(c.column)) : [0, GRID - 1];
-  const rows = cells.length ? cells.map((c) => clamp(c.row)) : [0, GRID - 1];
-  const span = (values: number[], min: number) => {
+/**
+ * Where the camera looks and how far it stands back so every given cell (clamped into the grid) is in view.
+ * Columns are absolute: the grid's 10 columns start at `origin` (a battle's column offset).
+ */
+export function frameCells(cells: ArenaCell[], aspect: number, origin = 0): { targetX: number; targetZ: number; distance: number } {
+  const clampTo = (lo: number) => (v: number) => Math.max(lo, Math.min(lo + GRID - 1, v));
+  const cols = cells.length ? cells.map((c) => clampTo(origin)(c.column)) : [origin, origin + GRID - 1];
+  const rows = cells.length ? cells.map((c) => clampTo(0)(c.row)) : [0, GRID - 1];
+  const span = (values: number[], min: number, base: number) => {
     let lo = Math.min(...values) - MARGIN, hi = Math.max(...values) + MARGIN;
     const grow = Math.max(0, min - 1 - (hi - lo)) / 2;
     lo -= grow; hi += grow;
     // Never more than the whole grid (plus its margin).
-    lo = Math.max(lo, -MARGIN); hi = Math.min(hi, GRID - 1 + MARGIN);
+    lo = Math.max(lo, base - MARGIN); hi = Math.min(hi, base + GRID - 1 + MARGIN);
     return { lo, hi };
   };
-  const c = span(cols, MIN_COLS), r = span(rows, MIN_ROWS);
+  const c = span(cols, MIN_COLS, origin), r = span(rows, MIN_ROWS, 0);
   const width = (c.hi - c.lo + 1) * ARENA_CELL_M;
   const depth = (r.hi - r.lo + 1) * ARENA_CELL_M;
   const centre = cellToWorld({ column: (c.lo + c.hi) / 2, row: (r.lo + r.hi) / 2 });

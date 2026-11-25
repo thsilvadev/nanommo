@@ -75,6 +75,23 @@ describe('ArenaSceneSource', () => {
     expect(back.scene.battleId).toBeNull();
   });
 
+  it('nobody walks back: the next battle is laid out from the walk column, and keeps that layout', () => {
+    const source = new ArenaSceneSource();
+    const gap = LENGTH + 4000;
+    const queue = [entry('e1', START), entry('e2', START + gap)];
+    source.build(inputs({ nowMs: START + 1000, soloQueue: queue }));
+    const walk = source.build(inputs({ nowMs: START + LENGTH + 2000, soloQueue: [queue[1]] }));
+    expect(walk.scene.phase).toBe('walk');
+    const walkColumn = walk.scene.frame.actors.find((a) => a.id === 'char-self')!.column;
+    const intro = (t: number) => source.build(inputs({ nowMs: t, soloQueue: [queue[1]] })).scene.frame.actors.find((a) => a.id === 'char-self')!.column;
+    expect(intro(START + gap - 600)).toBeGreaterThanOrEqual(walkColumn - 1e-9);
+    const fight = source.build(inputs({ nowMs: START + gap + 500, soloQueue: [queue[1]] }));
+    expect(fight.scene.phase).toBe('battle');
+    expect(fight.scene.frame.actors.find((a) => a.id === 'char-self')!.column).toBeGreaterThanOrEqual(walkColumn - 1e-9);
+    const origin = fight.scene.origin;
+    expect(source.build(inputs({ nowMs: START + gap + 1500, soloQueue: [queue[1]] })).scene.origin).toBe(origin);
+  });
+
   it('a battle that ran is still the previous one after many regenerations', () => {
     const source = new ArenaSceneSource();
     source.build(inputs({ nowMs: START + 1000, soloQueue: [entry('e1', START)] }));

@@ -2,7 +2,7 @@ import { CENTRAL_DEPLOYMENT_ROWS } from '@nanommo/shared';
 import { CLIP_SECONDS } from '../../../shared/character-animation/animation-state';
 import { fromSharedBattle, fromSoloEntry } from './arena-battle';
 import { projectArenaBattle } from './arena-actions';
-import { ARENA_GATHER_MS, ARENA_INTRO_MS, ARENA_OUTRO_MS, ARENA_PARTY_RUN_IN_MS, ARENA_RUN_IN_FROM_COLUMN, arenaScene, walkFormation, type ArenaTimelineInput } from './arena-phase';
+import { ARENA_GATHER_MS, ARENA_INTRO_MS, ARENA_OUTRO_MS, ARENA_PARTY_RUN_IN_MS, ARENA_RUN_IN_FROM_COLUMN, arenaBattleOffset, arenaScene, arenaWalkColumn, walkFormation, type ArenaTimelineInput } from './arena-phase';
 import type { ArenaBattle } from './arena.types';
 import { SOLO_V2_ENTRY } from './fixtures/solo-v2.fixture';
 import { PARTY_V2_VIEW } from './fixtures/party-v2.fixture';
@@ -46,9 +46,9 @@ function expectNoMoonwalk(frameAt: (t: number) => ReturnType<typeof arenaScene>,
 }
 
 describe('walkFormation', () => {
-  it('stands the party in the central deployment rows at the middle column', () => {
-    // Column 0 is where team a deploys: the intro never has to walk the party back.
+  it('stands the party in the central deployment rows at the walk column', () => {
     expect(walkFormation(1)).toEqual([{ row: 5, column: 0 }]);
+    expect(walkFormation(2, 7).map((c) => c.column)).toEqual([7, 7]);
     expect(walkFormation(3).map((c) => c.row)).toEqual(CENTRAL_DEPLOYMENT_ROWS[3]);
     expect(walkFormation(5).every((c) => c.column === 0)).toBeTrue();
   });
@@ -101,7 +101,8 @@ describe('arenaScene', () => {
     const last = at(-1);
     expect(last.find((a) => a.id === foe.id)!.column).toBeCloseTo(foe.start.column, 1);
     expect(last.find((a) => a.id === self.id)!.column).toBeCloseTo(self.start.column, 1);
-    expect(last.find((a) => a.id === self.id)!.anim.base).toBe('Walk');
+    // The ground has stopped: the ranged fighter stands on its cell.
+    expect(last.find((a) => a.id === self.id)!.anim.base).toBe('Idle');
   });
 
   it('walking: the party walks in formation, no HUD', () => {
@@ -154,10 +155,92 @@ describe('no moonwalking', () => {
     expectNoMoonwalk((t) => arenaScene(input({ nowMs: t, next, nextStartAtMs: next.startAtMs })), next.startAtMs - ARENA_INTRO_MS, next.startAtMs - 1);
   });
 
-  it('after a battle, a fighter that advanced turns round and walks back to the formation', () => {
+  it('after a battle, a fighter that advanced keeps facing forward', () => {
     const previous = advanced();
     const E = previous.endAtMs;
     const next = shift(solo(), E + 3000);
     expectNoMoonwalk((t) => arenaScene(input({ nowMs: t, previous, next, nextStartAtMs: next.startAtMs })), E, E + 3000 - 1);
+  });
+});
+
+describe('between battles nobody walks back (arena v2)', () => {
+  /** advanced() plus an ally that never moves from column 0 (a ranged fighter behind the melee one). */
+  function withAlly(): ArenaBattle {
+    const b = advanced();
+    const self = b.actors.find((a) => a.id === 'char-self')!;
+    return { ...b, actors: [...b.actors, { ...self, id: 'char-ally', name: 'Ally', start: { row: 3, column: 0 } }] };
+  }
+  const PARTY = [{ id: 'char-self', look: null }, { id: 'char-ally', look: null }];
+
+  it('the walk resumes at the column of the most advanced fighter', () => {
+    const previous = advanced();
+    expect(arenaWalkColumn(previous, 0)).toBe(8);
+    expect(arenaWalkColumn(previous, 3)).toBe(11);
+    expect(arenaWalkColumn(null, 0)).toBe(0);
+    const walk = arenaScene(input({ nowMs: previous.endAtMs + 1500, previous }));
+    expect(walk.phase).toBe('walk');
+    expect(walk.frame.actors.map((a) => a.column)).toEqual([8]);
+    expect(walk.origin).toBe(8);
+  });
+
+  it('a fighter behind sprints forward to the leader; nobody moves left until the next battle starts', () => {
+    const previous = withAlly();
+    const E = previous.endAtMs;
+    const next = shift(solo(), E + 6000);
+    const W = arenaWalkColumn(previous, 0);
+    const offsets = { previous: 0, next: arenaBattleOffset(W, next) };
+    const at = (t: number) => arenaScene(input({ nowMs: t, previous, next, nextStartAtMs: next.startAtMs, party: PARTY, offsets }));
+    const ally = (t: number) => at(t).frame.actors.find((a) => a.id === 'char-ally')!;
+    expect(ally(E + 200).anim.base).toBe('Sprint');
+    expect(ally(E + 200).column).toBeGreaterThan(0);
+    let last = new Map<string, number>();
+    for (let t = E; t < next.startAtMs; t += 20) {
+      for (const a of at(t).frame.actors.filter((x) => x.id.startsWith('char-'))) {
+        const before = last.get(a.id);
+        if (before !== undefined) expect(a.column).withContext(`${a.id} t=${t - E}`).toBeGreaterThanOrEqual(before - 1e-9);
+        last.set(a.id, a.column);
+        expect(a.facing).toBe(1);
+      }
+    }
+    expect(ally(E + 4700).column).toBeCloseTo(W, 6);
+    expect(ally(E + 4700).anim.base).toBe('Walk');
+  });
+
+  it('the next battle is laid out from where the party stands: the rearmost start lands on the walk column', () => {
+    const previous = advanced();
+    const E = previous.endAtMs;
+    const next = shift(solo(), E + 3000);
+    const W = arenaWalkColumn(previous, 0);
+    const O = arenaBattleOffset(W, next);
+    expect(O).toBe(8); // the solo bow fighter deploys at column 0
+    const offsets = { previous: 0, next: O, current: O };
+    const before = arenaScene(input({ nowMs: next.startAtMs - 1, previous, next, nextStartAtMs: next.startAtMs, offsets }));
+    expect(before.frame.actors.find((a) => a.id === 'char-self')!.column).toBeCloseTo(8, 6);
+    expect(before.origin).toBe(O);
+    const foe = next.actors.find((a) => a.team === 'b')!;
+    expect(before.frame.actors.find((a) => a.id === foe.id)!.column).toBeCloseTo(foe.start.column + O, 1);
+    const fight = arenaScene(input({ nowMs: next.startAtMs + 10, previous, next, current: next, nextStartAtMs: next.startAtMs, offsets }));
+    expect(fight.phase).toBe('battle');
+    expect(fight.origin).toBe(O);
+    expect(fight.frame.actors.find((a) => a.id === 'char-self')!.column).toBeCloseTo(8, 6);
+  });
+
+  it('a melee fighter that deploys ahead of the ranged runs to its cell while the ranged stands', () => {
+    const previous = withAlly();
+    const E = previous.endAtMs;
+    const base = shift(solo(), E + 8000);
+    const self = base.actors.find((a) => a.id === 'char-self')!;
+    // Next battle: the viewer deploys at column 4 (melee), the ally at 0 (ranged).
+    const next: ArenaBattle = { ...base, actors: [...base.actors.map((a) => (a.id === 'char-self' ? { ...a, start: { row: 5, column: 4 } } : a)), { ...self, id: 'char-ally', name: 'Ally', start: { row: 3, column: 0 } }] };
+    const W = arenaWalkColumn(previous, 0);
+    const O = arenaBattleOffset(W, next);
+    expect(O).toBe(W);
+    const at = (t: number) => arenaScene(input({ nowMs: t, previous, next, nextStartAtMs: next.startAtMs, party: PARTY, offsets: { previous: 0, next: O } }));
+    const mid = at(next.startAtMs - ARENA_INTRO_MS / 2).frame.actors;
+    expect(mid.find((a) => a.id === 'char-ally')!.column).toBeCloseTo(W, 6);
+    expect(mid.find((a) => a.id === 'char-self')!.anim.base).toBe('Sprint');
+    const end = at(next.startAtMs - 1).frame.actors;
+    expect(end.find((a) => a.id === 'char-self')!.column).toBeCloseTo(W + 4, 1);
+    expect(end.find((a) => a.id === 'char-ally')!.column).toBeCloseTo(W, 6);
   });
 });
