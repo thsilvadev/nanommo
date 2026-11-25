@@ -10,14 +10,18 @@
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { Mulberry32, mulberry32Seed } from '@nanommo/shared';
-import type { AppearanceCatalog, AppearanceOption, AppearanceTrait, CharacterAppearance, Sex, TownPose, TownRosterEntry } from '@nanommo/shared';
+import type { AppearanceCatalog, AppearanceOption, AppearanceTrait, CharacterAppearance, RefineGlint, Sex, TownPose, TownRosterEntry } from '@nanommo/shared';
 import { APPEARANCE_TRAITS } from '@nanommo/shared';
 import type { BodyAsset } from '../../../shared/character-viewer/body-asset';
 import type { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { hexToRgb, tintSkinPixels } from '../../../shared/character-viewer/skin-compositor';
 import { dressCostume, npcOutfitAsset, type NpcAnimator, type NpcFigure, type NpcFigureBody } from './npc-visuals';
 import { visibleBodyGeometry } from '../../../shared/character-viewer/gear-regions';
-import { gearMesh, mergedGearGeometry, planBands, planGear } from '../../../shared/character-viewer/gear-merge';
+import { gearMaterial, gearMesh, mergedGearGeometry, planBands, planGear } from '../../../shared/character-viewer/gear-merge';
+import { BowShotState, poseBowShot, type HeldBow } from '../../../shared/character-viewer/bow-shot';
+import { gripMatrix } from '../../../shared/character-viewer/grip';
+import type { LoadedGear } from '../../../shared/character-viewer/gear-manifest';
+import { CLIP_SECONDS } from '../../../shared/character-animation/animation-state';
 import type { AnimationState } from '../../../shared/character-animation/animation-state';
 import { applyAnimationState, type AnimatedBody } from '../../../shared/character-animation/apply-animation-state';
 
@@ -392,6 +396,9 @@ export class TownCharacter {
   /** Arena mode: every battle clip as a clock-positioned action (see applyAnimationState). */
   private animated: AnimatedBody | null = null;
   private skeletonBones: Map<string, THREE.Bone> | null = null;
+  /** Arena: the bow in hand, its own object so the shot can draw the string (see bow-shot.ts). */
+  private bow: HeldBow | null = null;
+  private readonly bowShot = new BowShotState();
 
   constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean; visual?: NpcFigure; arena?: boolean } = {}) {
     this.entry = entry;
@@ -491,7 +498,11 @@ export class TownCharacter {
       : visibleBodyGeometry(sex, body, new Set(), []);
     const old = root.getObjectByName('Gear');
     if (old) old.removeFromParent();
-    const geometry = plan && gear ? mergedGearGeometry(gear, sex, template, plan, { includeWeapons: true }) : null;
+    // Arena: a bow stays out of the fused mesh and is held as its own object (the shot bends its string).
+    const bow = this.opts.arena && plan && gear ? plan.weapons.find((w) => w.type === 'bow' && gear.rigid.has(w.visual)) ?? null : null;
+    const fused = bow && plan ? { ...plan, weapons: plan.weapons.filter((w) => w !== bow) } : plan;
+    const geometry = fused && gear ? mergedGearGeometry(gear, sex, template, fused, { includeWeapons: true }) : null;
+    this.holdBow(root, template, bow && gear ? { gear, ...bow } : null);
     if (geometry && gear) {
       const mesh = gearMesh(geometry, gear, body.skeleton, body.bindMatrix);
       mesh.castShadow = TOWN_CHARACTER_SHADOWS;
@@ -527,7 +538,32 @@ export class TownCharacter {
     this.object3d.position.set(x, this.elevation, z);
     this.model.rotation.y = yaw;
     for (const animate of this.costumeAnimators) animate(nowMs);
-    if (this.animated) applyAnimationState(this.animated, state, nowMs);
+    if (!this.animated) return;
+    this.bowShot.restore();
+    // With a bow, Attack keeps the combat guard underneath and the arms are posed procedurally (as in the portrait).
+    const shot = this.bow && state.oneShot?.clip === 'Attack' ? state.oneShot : null;
+    applyAnimationState(this.animated, shot ? { ...state, oneShot: undefined, cast: undefined } : state, nowMs);
+    if (!this.bow || !this.skeletonBones || !this.gearBody) return;
+    const progress = shot ? (((nowMs - shot.startedAtMs) / 1000) * shot.speed) / CLIP_SECONDS.Attack : null;
+    poseBowShot(this.bowShot, this.skeletonBones, this.gearBody.root, this.bow, progress !== null && progress >= 0 && progress < 1 ? progress : null);
+  }
+
+  private holdBow(root: THREE.Object3D, template: BodyAsset, bow: { gear: LoadedGear; side: 'right' | 'left'; visual: string; glint: RefineGlint } | null): void {
+    this.bowShot.restore();
+    this.bow?.item.removeFromParent();
+    this.bow = null;
+    this.bowShot.parts = null;
+    if (!bow) return;
+    const hand = root.getObjectByName(bow.side === 'right' ? 'hand_r' : 'hand_l');
+    const source = bow.gear.rigid.get(bow.visual);
+    if (!hand || !source) return;
+    const item = source.clone(true);
+    item.name = `weapon:${bow.visual}`;
+    item.position.set(0, 0, 0); item.quaternion.identity(); item.scale.set(1, 1, 1);
+    item.traverse((child) => { child.frustumCulled = false; if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).material = gearMaterial(bow.gear, bow.glint); });
+    gripMatrix(template.fists[bow.side], 'bow').decompose(item.position, item.quaternion, item.scale);
+    hand.add(item);
+    this.bow = { side: bow.side, item };
   }
 
   private buildArenaActions(root: THREE.Object3D, template: BodyAsset): void {

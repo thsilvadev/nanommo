@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { defaultAppearance, type TownRosterEntry, type VisibleEquipment } from '@nanommo/shared';
 import { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { loadAppearanceCatalog } from '../../../shared/character-viewer/character-viewer.component';
+import { CLIP_SECONDS } from '../../../shared/character-animation/animation-state';
 import { TownCharacter, TownCharacterFactory } from './town-character';
 
 describe('TownCharacter gear', () => {
@@ -85,6 +86,31 @@ describe('TownCharacter gear', () => {
     expect(c.object3d.position.z).toBe(-2);
     expect(c.clipWeight('Gather')).toBeCloseTo(1, 5);
     expect(c.bones()?.has('hand_r')).toBeTrue();
+  });
+
+  it('arena archers draw and loose the bow (the portrait shot), not the melee Attack swing', async () => {
+    const ARCHER: VisibleEquipment = { body: 'equip_body_phys_t3', mainHand: 'equip_bow_t1' };
+    const c = character(entry('arena-archer', ARCHER), { arena: true });
+    await settle(c);
+    const bows = named(c, 'weapon:');
+    expect(bows.length).withContext('the bow is its own object in the hand').toBe(1);
+    expect(bows[0].parent?.name).toBe('hand_r');
+    const arrowOnString = () => { let seen = false; bows[0].traverse((o) => { if (o !== bows[0] && o.name === 'bow:arrow' && o.visible) seen = true; }); return seen; };
+    // 40 % into the Attack window: the string is being drawn, the arrow is nocked.
+    const attack = { base: 'CombatIdle' as const, oneShot: { clip: 'Attack' as const, startedAtMs: 1000, speed: 1 } };
+    c.drive(attack, 1000 + 0.4 * 1000 * CLIP_SECONDS.Attack, 0, 0, 0);
+    expect(c.clipWeight('Attack')).toBeCloseTo(0, 5);
+    expect(arrowOnString()).toBeTrue();
+    c.drive({ base: 'CombatIdle' }, 9000, 0, 0, 0);
+    expect(arrowOnString()).toBeFalse();
+  });
+
+  it('arena melee characters keep the Attack swing', async () => {
+    const c = character(entry('arena-knight', FULL), { arena: true });
+    await settle(c);
+    expect(named(c, 'weapon:').length).toBe(0);
+    c.drive({ base: 'CombatIdle', oneShot: { clip: 'Attack', startedAtMs: 1000, speed: 1 } }, 1400, 0, 0, 0);
+    expect(c.clipWeight('Attack')).toBeCloseTo(1, 5);
   });
 
   it('town characters do not load the arena clips', async () => {
