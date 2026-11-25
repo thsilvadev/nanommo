@@ -301,3 +301,7 @@ Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `ev
 - The solo battle log names the self actor `character` (the API's character snapshot has no `characterId`); never match a solo actor by character id. `fromSoloEntry` renames it.
 - Every map transition bumps `gatheringCycle.cycleIndex` (map.service); a completed gather is an increment on the same map.
 - `apps/frontend/.angular/cache` grows without bound across Karma/build runs (it reached ~40 GB and filled the disk); delete it when space runs low, it rebuilds itself.
+- `mat4.getRotation` is wrong on a non-uniformly scaled matrix: build bone-local TRS directly (tools/monster-assets `attachCones`).
+- A monster GLB replaced in place stays cached up to a day (`vercel.json`): rename or version it when its content changes.
+- Monster files are reference-counted (`monster-model.ts`): `MonsterModel.load` takes a reference before awaiting the file and `dispose()` gives it back; `releaseMonsterFilesExcept` only frees files with no live model. Never dispose a monster's shared geometry/materials/textures yourself.
+- three r170 assigns `WebGLRenderer` methods (`initTexture`, `compileAsync`, …) per instance in the constructor: a spy on `WebGLRenderer.prototype` never fires.

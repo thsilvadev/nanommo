@@ -1,3 +1,13 @@
+### Arena: monstros por mapa e vizinhos, mão esquerda, moonwalk, cones — 2026-11-25
+
+Branch `fix/arena-prod-feedback-2` (a partir de `origin/main`, sem upstream). Plano `docs/superpowers/plans/2026-11-25-arena-monsters-by-map.md` (decisão do usuário: "2, mapa e vizinhos").
+
+Correções já no branch: canhotos conjuram e golpeiam com a mão que segura a arma (espelho); sem moonwalk entre batalhas; cones anexados apontam para onde foram configurados (Needleback Stalker com espinhos em pé) e Ridgebreaker, unicórnio e wraith refeitos com cones (o wraith mudou de visual: escorridos para baixo, commit `369e2ae`, reversível); trocas de equipamento na fila destravadas na cidade.
+
+Monstros por mapa: sai o `preloadMonsterModels` (lia os 31 monstros no loading, ~418 MB de texturas decodificadas). Agora `nearbyMonsterIds` escolhe as espécies do mapa atual e dos 8 vizinhos (`maps.json`, candidatos de raid incluídos); `ArenaMonsterWarmup` aquece esse conjunto (mais as espécies já na fila) na tela de loading e a cada troca de mapa, e depois libera o resto; `monster-model.ts` virou um cache com contagem de referências (`warmMonsterSpecies`, `releaseMonsterFilesExcept`: um modelo em uso nunca é liberado; liberar descarta geometria, materiais, texturas e o ImageBitmap); a arena sobe as texturas para a GPU (`initTexture`) e linka os shaders do conjunto, uma espécie por frame (`warmMonsters`). Medição (largura×altura×4 das imagens dos GLBs, sem mipmaps): todos 418 MB / 31 espécies; `map_town` 9 MB (2); `map_green_grounds_0` 146 MB (6); `map_wastelands_0` 118 MB (6); pior mapa `map_kwaioua_forest_0` 234 MB.
+
+Validação: `tsc` app e spec sem erros; Karma (config isolada, porta 9917) `**/{arena,monster-viewer}/*.spec.ts` 142/142 e `**/{game-preload.service,party-resource-refresh}.spec.ts` 5/5 — cada teste novo visto falhando antes; prints `intro solo_close party_fight` com todos os modelos (sem cápsula). **Não rodados** (o usuário encerrou a sessão): Karma completo, build de produção, revisão independente do branch. **Não verificado no app rodando**, sem push/deploy.
+
 ### Arena de batalha — correções do teste em produção — 2026-11-25
 
 Branch `fix/arena-prod-feedback` (a partir de `main`). Plano `docs/superpowers/plans/2026-11-25-arena-preload-face-fade.md` (pré-carregamento, rosto, fade; sem design doc separado, a pedido). Cada correção tem teste RED→GREEN.
