@@ -1,62 +1,74 @@
-import { signal } from '@angular/core';
 import { MapBoard } from '../components';
-import { ARENA_VIEW_FADE_MS } from './arena-view-mode';
+import { WorldViewState } from './world-view-state.service';
 
 describe('MapBoard arena view', () => {
-  function board(webgl = true) {
+  function board(webgl = true, state = new WorldViewState()) {
     const b: any = Object.create(MapBoard.prototype);
-    b.arenaChoice = signal<'map' | 'arena' | null>(null);
-    b.viewFade = signal(false);
-    b.arenaPlace = null;
+    b.worldView = state;
     b.webgl = webgl;
     return b;
   }
-  beforeEach(() => jasmine.clock().install());
-  afterEach(() => jasmine.clock().uninstall());
 
-  it('switching to the arena fades to black for 1 s, swaps, then fades back', () => {
+  it('switching to the arena is instant (no fade)', () => {
     const b = board();
     b.setArenaMode('arena');
-    expect(b.viewFade()).toBeTrue();
-    expect(b.arenaChoice()).toBeNull();
-    jasmine.clock().tick(ARENA_VIEW_FADE_MS);
-    expect(b.arenaChoice()).toBe('arena');
-    jasmine.clock().tick(1);
-    expect(b.viewFade()).toBeFalse();
-  });
-
-  it('a second click during the fade is ignored', () => {
-    const b = board();
-    b.setArenaMode('arena');
+    expect(b.worldView.arenaChoice()).toBe('arena');
     b.setArenaMode('map');
-    jasmine.clock().tick(ARENA_VIEW_FADE_MS + 1);
-    expect(b.arenaChoice()).toBe('arena');
+    expect(b.worldView.arenaChoice()).toBe('map');
   });
 
-  it('arriving at the destination grind map fades into the arena', () => {
+  it('arriving at the destination grind map opens the arena', () => {
     const b = board();
     b.trackArenaPlace({ inTown: false, traveling: true, isGrind: true });
     b.trackArenaPlace({ inTown: false, traveling: true, isGrind: true });
-    expect(b.viewFade()).toBeFalse();
+    expect(b.worldView.arenaChoice()).toBeNull();
     b.trackArenaPlace({ inTown: false, traveling: false, isGrind: true });
-    expect(b.viewFade()).toBeTrue();
-    jasmine.clock().tick(ARENA_VIEW_FADE_MS + 1);
-    expect(b.arenaChoice()).toBe('arena');
+    expect(b.worldView.arenaChoice()).toBe('arena');
   });
 
-  it('without WebGL arriving never fades', () => {
+  it('without WebGL arriving never opens the arena', () => {
     const b = board(false);
     b.trackArenaPlace({ inTown: false, traveling: true, isGrind: true });
     b.trackArenaPlace({ inTown: false, traveling: false, isGrind: true });
-    expect(b.viewFade()).toBeFalse();
+    expect(b.worldView.arenaChoice()).toBeNull();
   });
 
   it('entering a town forgets the arena at once', () => {
     const b = board();
-    b.arenaChoice.set('arena');
+    b.worldView.arenaChoice.set('arena');
     b.trackArenaPlace({ inTown: false, traveling: true, isGrind: true });
     b.trackArenaPlace({ inTown: true, traveling: false, isGrind: false });
-    expect(b.arenaChoice()).toBeNull();
-    expect(b.viewFade()).toBeFalse();
+    expect(b.worldView.arenaChoice()).toBeNull();
+  });
+
+  it('coming back from another page (/character) shows the arena again', () => {
+    const state = new WorldViewState();
+    const first = board(true, state);
+    first.trackArenaPlace({ inTown: false, traveling: false, isGrind: true });
+    first.setArenaMode('arena');
+    // MapBoard is destroyed by the navigation and a new one is created on the way back.
+    const second = board(true, state);
+    second.trackArenaPlace({ inTown: false, traveling: false, isGrind: true });
+    expect(second.worldView.arenaChoice()).toBe('arena');
+  });
+
+  it('a trip that ends while on another page still opens the arena on the way back', () => {
+    const state = new WorldViewState();
+    board(true, state).trackArenaPlace({ inTown: false, traveling: true, isGrind: true });
+    const back = board(true, state);
+    back.trackArenaPlace({ inTown: false, traveling: false, isGrind: true });
+    expect(back.worldView.arenaChoice()).toBe('arena');
+  });
+});
+
+describe('WorldViewState', () => {
+  it('another character starts from the map view', () => {
+    const state = new WorldViewState();
+    state.forCharacter('a');
+    state.arenaChoice.set('arena');
+    state.forCharacter('a');
+    expect(state.arenaChoice()).toBe('arena');
+    state.forCharacter('b');
+    expect(state.arenaChoice()).toBeNull();
   });
 });

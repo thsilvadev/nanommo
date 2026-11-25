@@ -29,6 +29,3 @@ export function arenaChoiceAfter(prev: ArenaPlace | null, next: ArenaPlace, choi
   if (prev?.traveling && !next.traveling && next.isGrind) return 'arena';
   return choice;
 }
-
-/** Map ↔ arena switch: this long to black, swap, this long back. */
-export const ARENA_VIEW_FADE_MS = 1000;

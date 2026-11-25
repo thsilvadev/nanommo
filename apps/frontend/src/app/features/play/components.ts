@@ -39,7 +39,8 @@ import type { TownPick } from './town-scene/town-scene.types';
 import { TownViewToggleComponent, type MapViewMode } from './town-scene/town-view-toggle.component';
 import { ArenaToggleComponent } from './arena/arena-toggle.component';
 import { ArenaSceneComponent } from './arena/arena-scene.component';
-import { ARENA_VIEW_FADE_MS, arenaChoiceAfter, worldViewMode, type ArenaChoice, type ArenaPlace } from './arena/arena-view-mode';
+import { arenaChoiceAfter, worldViewMode, type ArenaChoice, type ArenaPlace } from './arena/arena-view-mode';
+import { WorldViewState } from './arena/world-view-state.service';
 import { isWebglAvailable } from '../../shared/character-viewer/character-viewer.component';
 import type { TownRosterEntry } from '@nanommo/shared';
 import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkDragPreview, CdkDragPlaceholder } from '@angular/cdk/drag-drop';
@@ -167,31 +168,24 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   readonly party = inject(PartyStore);
   // ---- Town scene (map | house toggle) ----
   readonly town = inject(TownStore);
-  private readonly viewChoice = signal<{ mapId: string; mode: MapViewMode } | null>(null);
+  /** View choices outlive this component (it is destroyed when another page opens). */
+  private readonly worldView = inject(WorldViewState);
   readonly inTownScene = computed(() => this.town.isTown(this.character.character()?.currentMapId));
   // ---- Battle arena (map | arena toggle on non-town maps) ----
   readonly webgl = isWebglAvailable();
-  private readonly arenaChoice = signal<ArenaChoice | null>(null);
-  /** Black overlay while switching map ↔ arena. */
-  readonly viewFade = signal(false);
-  private arenaPlace: ArenaPlace | null = null;
   /** The arena is mounted the first time it is shown, then only hidden (its renderer and models stay warm). */
   readonly arenaMounted = signal(false);
-  readonly viewMode = computed(() => worldViewMode({ inTown: this.inTownScene(), mapId: this.character.character()?.currentMapId, townChoice: this.viewChoice(), arenaChoice: this.arenaChoice(), webgl: this.webgl }));
-  /** Map ↔ arena: fade to black, swap at the peak, fade back. A click during a fade is ignored. */
-  setArenaMode(mode: ArenaChoice) {
-    if (this.viewFade()) return;
-    this.viewFade.set(true);
-    setTimeout(() => { this.arenaChoice.set(mode); setTimeout(() => this.viewFade.set(false), 0); }, ARENA_VIEW_FADE_MS);
-  }
+  readonly viewMode = computed(() => worldViewMode({ inTown: this.inTownScene(), mapId: this.character.character()?.currentMapId, townChoice: this.worldView.townChoice(), arenaChoice: this.worldView.arenaChoice(), webgl: this.webgl }));
+  /** Map ↔ arena: an instant switch (the arena stays mounted and warm once shown). */
+  setArenaMode(mode: ArenaChoice) { this.worldView.arenaChoice.set(mode); }
   /** Where the character is now; arriving at a travel destination opens the arena, entering a town forgets it. */
   trackArenaPlace(place: ArenaPlace) {
-    const previous = this.arenaPlace;
-    this.arenaPlace = place;
-    const next = arenaChoiceAfter(previous, place, this.arenaChoice());
-    if (next === this.arenaChoice()) return;
+    const previous = this.worldView.arenaPlace;
+    this.worldView.arenaPlace = place;
+    const next = arenaChoiceAfter(previous, place, this.worldView.arenaChoice());
+    if (next === this.worldView.arenaChoice()) return;
     if (next === 'arena') { if (this.webgl) this.setArenaMode('arena'); }
-    else this.arenaChoice.set(next);
+    else this.worldView.arenaChoice.set(next);
   }
   /** Who wears the blue ring: the selected player, else the NPC chosen in the selector. */
   readonly townSelection = computed<TownPick | null>(() => {
@@ -201,9 +195,9 @@ export class MapBoard implements OnDestroy, AfterViewInit {
     return npcId ? { kind: 'npc', id: npcId } : null;
   });
   /** A manual map/town choice only lasts while the character stays on that map: arriving anywhere forgets it. */
-  forgetViewChoiceOnMapChange(previousMapId: string | null | undefined, nextMapId: string | null | undefined) { if (previousMapId !== nextMapId) this.viewChoice.set(null); }
+  forgetViewChoiceOnMapChange(previousMapId: string | null | undefined, nextMapId: string | null | undefined) { if (previousMapId !== nextMapId) this.worldView.townChoice.set(null); }
   private viewChoiceMapId: string | null | undefined = undefined;
-  setViewMode(mode: MapViewMode) { const mapId = this.character.character()?.currentMapId; if (mapId) this.viewChoice.set({ mapId, mode }); }
+  setViewMode(mode: MapViewMode) { const mapId = this.character.character()?.currentMapId; if (mapId) this.worldView.townChoice.set({ mapId, mode }); }
   /** Clicked in the scene: the scene also walks the character up to the NPC (which wakes it from /sleep). */
   onTownNpcSelected(npcId: string) {
     this.vendor.selectNpc(npcId);
@@ -253,6 +247,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
       const c=this.character.character();
       if(!c)return;
       this.trackLocationArrival(c);
+      untracked(()=>this.worldView.forCharacter(c.id));
       untracked(()=>this.trackArenaPlace({inTown:this.town.isTown(c.currentMapId),traveling:!!c.travelIntent,isGrind:!this.town.isTown(c.currentMapId)}));
       this.rebuildDiscovery(c.discoveredMapIds);
       const level=Number(c.level??0);

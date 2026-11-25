@@ -1,7 +1,7 @@
-import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MapBoard } from '../components';
 import { mapViewMode, TownViewToggleComponent } from './town-view-toggle.component';
+import { WorldViewState } from '../arena/world-view-state.service';
 
 describe('map-board view mode (mapViewMode)', () => {
   it('in a town the default is the town scene (house)', () => {
@@ -71,19 +71,20 @@ describe('TownViewToggleComponent', () => {
 describe('MapBoard view choice', () => {
   function board() {
     const b: any = Object.create(MapBoard.prototype);
-    b.viewChoice = signal<{ mapId: string; mode: 'map' | 'town' } | null>({ mapId: 'map_town', mode: 'map' });
+    b.worldView = new WorldViewState();
+    b.worldView.townChoice.set({ mapId: 'map_town', mode: 'map' });
     return b;
   }
 
   it('choice of another visit is ignored: leaving the map forgets it', () => {
     const b = board();
     b.forgetViewChoiceOnMapChange('map_town', 'map_green_grounds_0');
-    expect(b.viewChoice()).toBeNull();
+    expect(b.worldView.townChoice()).toBeNull();
   });
 
   it('keeps the choice while the map does not change', () => {
     const b = board();
     b.forgetViewChoiceOnMapChange('map_town', 'map_town');
-    expect(b.viewChoice()).toEqual({ mapId: 'map_town', mode: 'map' });
+    expect(b.worldView.townChoice()).toEqual({ mapId: 'map_town', mode: 'map' });
   });
 });
