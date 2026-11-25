@@ -30,64 +30,129 @@ const CHARACTER_MAP: Record<MonsterClip, string> = { Idle: 'CombatIdle', Walk: '
 const CLIPS: MonsterClip[] = ['Idle', 'Walk', 'Attack', 'Cast', 'Damage', 'Dead'];
 
 export type Three = typeof import('three');
-interface Loaded { three: Three; gltf: (url: string) => Promise<{ scene: THREE.Object3D; animations: THREE.AnimationClip[] }>; clone: (o: THREE.Object3D) => THREE.Object3D }
+type Gltf = { scene: THREE.Object3D; animations: THREE.AnimationClip[] };
+interface Loaded { three: Three; gltf: (url: string) => Promise<Gltf>; clone: (o: THREE.Object3D) => THREE.Object3D }
 let shared: Promise<Loaded> | null = null;
 let manifest: Promise<Record<string, MonsterManifestEntry>> | null = null;
+/** The manifest once fetched (files are only requested after it, so release can map ids to files synchronously). */
+let manifestValue: Record<string, MonsterManifestEntry> = {};
+/** A parsed (or parsing) file; `users` = live MonsterModels built from it. */
+interface FileEntry { promise: Promise<Gltf>; gltf: Gltf | null; users: number }
+const files = new Map<string, FileEntry>();
+/** Shared by every character-rig species: never released. */
+const SHARED_FILES = new Set([CHARACTER_CLIPS]);
 /** Battle ids are `mon_<name>` (monsters.json); the manifest is keyed by `<name>`. */
 export const monsterManifestKey = (monsterId: string) => monsterId.replace(/^mon_/, '');
 /** three.js and the loader are fetched on first use only; parsed files are shared by every model. */
 export function loadMonsterThree(): Promise<Loaded> {
   shared ??= Promise.all([import('three'), import('three/examples/jsm/loaders/GLTFLoader.js'), import('three/examples/jsm/utils/SkeletonUtils.js')])
     .then(([three, { GLTFLoader }, { clone }]) => {
-      const loader = new GLTFLoader(); const files = new Map<string, Promise<any>>();
+      const loader = new GLTFLoader();
       const gltf = (url: string) => {
-        if (!files.has(url)) { const p = loader.loadAsync(url); p.catch(() => files.delete(url)); files.set(url, p); }
-        return files.get(url)!;
+        let entry = files.get(url);
+        if (!entry) {
+          const created: FileEntry = { promise: loader.loadAsync(url) as Promise<Gltf>, gltf: null, users: 0 };
+          created.promise.then((g) => { created.gltf = g; }, () => { if (files.get(url) === created) files.delete(url); });
+          files.set(url, entry = created);
+        }
+        return entry.promise;
       };
       return { three, gltf, clone };
     });
   return shared;
+}
+/** Takes a reference on a file before it is awaited (a release in between keeps it). */
+function takeFile(loaded: Loaded, url: string): Promise<Gltf> {
+  const promise = loaded.gltf(url);
+  files.get(url)!.users++;
+  return promise;
+}
+function giveBackFile(url: string): void {
+  const entry = files.get(url);
+  if (entry && entry.users > 0) entry.users--;
 }
 /** How a monster's basic attack is animated: a character-rig monster holding a bow draws and looses it. */
 export function monsterAttackStyle(entry: MonsterManifestEntry | null | undefined): AttackStyle {
   return entry?.rig === 'character' && !!entry.weapon?.startsWith('bow') ? 'bow' : 'melee';
 }
 export function loadMonsterManifest(): Promise<Record<string, MonsterManifestEntry>> {
-  manifest ??= fetch(MONSTER_ASSETS + 'manifest.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+  manifest ??= fetch(MONSTER_ASSETS + 'manifest.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
+    .then((m: Record<string, MonsterManifestEntry>) => (manifestValue = m));
   return manifest;
 }
+/** The species' own file (null: no model of its own, or drawn as a character). */
+function monsterFileUrl(entry: MonsterManifestEntry | undefined): string | null {
+  return entry?.file && entry.rig !== 'char' ? MONSTER_ASSETS + entry.file : null;
+}
 
-let preloading: Promise<void> | null = null;
-/** Files downloaded and parsed at once while preloading. */
-const PRELOAD_CONCURRENCY = 4;
+/** Files downloaded and parsed at once while warming. */
+const WARM_CONCURRENCY = 4;
 /**
- * Loading screen: downloads and parses every monster file once (and, for character-rig monsters, the
- * shared clips and the weapon gear), so a monster never stalls the game the first time it appears.
- * Once per page; a failed file counts as done (it loads again when needed).
+ * Downloads and parses the files of the given species that are not parsed yet (and, for character-rig
+ * species, the shared clips and the weapon gear), so they never stall a battle when they first appear.
+ * A failed file counts as done (it loads again when needed). Nothing happens without WebGL.
  */
-export function preloadMonsterModels(onProgress?: (done: number, total: number) => void): Promise<void> {
-  if (!preloading) {
-    const run = (async () => {
-      if (!isWebglAvailable()) return;
-      const entries = Object.values(await loadMonsterManifest()).filter((e) => e.file && e.rig !== 'char');
-      const { gltf } = await loadMonsterThree();
-      const total = entries.length;
-      let done = 0, next = 0;
-      onProgress?.(0, total);
-      const one = async (entry: MonsterManifestEntry) => {
-        const extra = entry.rig === 'character'
-          ? [gltf(CHARACTER_CLIPS), ...(entry.weapon ? [import('./monster-weapon').then((m) => m.loadMonsterWeaponGear())] : [])]
-          : [];
-        await Promise.all([gltf(MONSTER_ASSETS + entry.file), ...extra]).catch(() => undefined);
-        onProgress?.(++done, total);
-      };
-      const worker = async () => { while (next < entries.length) await one(entries[next++]); };
-      await Promise.all(Array.from({ length: Math.min(PRELOAD_CONCURRENCY, total) }, worker));
-    })();
-    preloading = run;
-    run.catch(() => { if (preloading === run) preloading = null; });
+export async function warmMonsterSpecies(ids: string[], onProgress?: (done: number, total: number) => void): Promise<void> {
+  if (!isWebglAvailable()) return;
+  const all = await loadMonsterManifest();
+  const entries = [...new Set(ids)].map((id) => all[monsterManifestKey(id)]).filter((e): e is MonsterManifestEntry => !!monsterFileUrl(e));
+  const total = entries.length;
+  onProgress?.(0, total);
+  if (!total) return;
+  const { gltf } = await loadMonsterThree();
+  let done = 0, next = 0;
+  const one = async (entry: MonsterManifestEntry) => {
+    const extra = entry.rig === 'character'
+      ? [gltf(CHARACTER_CLIPS), ...(entry.weapon ? [import('./monster-weapon').then((m) => m.loadMonsterWeaponGear())] : [])]
+      : [];
+    await Promise.all([gltf(monsterFileUrl(entry)!), ...extra]).catch(() => undefined);
+    onProgress?.(++done, total);
+  };
+  const worker = async () => { while (next < entries.length) await one(entries[next++]); };
+  await Promise.all(Array.from({ length: Math.min(WARM_CONCURRENCY, total) }, worker));
+}
+
+/**
+ * Frees every parsed monster file that belongs to none of `ids` and that no live MonsterModel uses:
+ * its geometries, materials and textures (GPU copies included). Files still parsing are left alone;
+ * the shared character clips are never released. Returns how many files were released.
+ */
+export function releaseMonsterFilesExcept(ids: string[]): number {
+  const keep = new Set(ids.map((id) => monsterFileUrl(manifestValue[monsterManifestKey(id)])).filter((u): u is string => !!u));
+  let released = 0;
+  for (const [url, entry] of files) {
+    if (!entry.gltf || entry.users > 0 || keep.has(url) || SHARED_FILES.has(url)) continue;
+    files.delete(url);
+    disposeParsed(entry.gltf.scene);
+    released++;
   }
-  return preloading;
+  return released;
+}
+
+/** URLs of the monster files parsed right now (shared clips excluded). */
+export function parsedMonsterFiles(): string[] {
+  return [...files].filter(([url, e]) => !!e.gltf && !SHARED_FILES.has(url)).map(([url]) => url);
+}
+
+function disposeParsed(scene: THREE.Object3D): void {
+  const materials = new Set<THREE.Material>();
+  scene.traverse((o) => {
+    const mesh = o as THREE.SkinnedMesh;
+    if (!mesh.isMesh) return;
+    mesh.geometry?.dispose();
+    mesh.skeleton?.dispose();
+    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) if (m) materials.add(m);
+  });
+  for (const material of materials) {
+    for (const value of Object.values(material)) {
+      const texture = value as THREE.Texture | null;
+      if (!texture?.isTexture) continue;
+      texture.dispose();
+      // The decoded image too (GLTFLoader decodes into ImageBitmaps in Chromium).
+      (texture.source?.data as { close?: () => void } | undefined)?.close?.();
+    }
+    material.dispose();
+  }
 }
 
 export class MonsterModel {
@@ -102,6 +167,8 @@ export class MonsterModel {
     readonly frameBox: THREE.Box3,
     readonly placeholder: boolean,
     private readonly owned: Array<{ dispose(): void }> = [],
+    /** The species file this model holds a reference on (given back on dispose). */
+    private fileUrl: string | null = null,
   ) {}
 
   /** The hand item, if any (character-rig monsters). */
@@ -116,13 +183,19 @@ export class MonsterModel {
   /** Rejects when the species has no model of its own (no manifest entry, no file, or drawn as a character). */
   static async load(monsterId: string): Promise<MonsterModel> {
     const entry = (await loadMonsterManifest())[monsterManifestKey(monsterId)];
-    if (!entry?.file || entry.rig === 'char') throw new Error(`no model for ${monsterId}`);
-    const { three, gltf, clone } = await loadMonsterThree();
+    const url = monsterFileUrl(entry);
+    if (!entry || !url) throw new Error(`no model for ${monsterId}`);
+    const loaded = await loadMonsterThree();
+    const file = takeFile(loaded, url);
+    try { return await MonsterModel.build(loaded, entry, file, url); } catch (error) { giveBackFile(url); throw error; }
+  }
+
+  private static async build({ three, gltf, clone }: Loaded, entry: MonsterManifestEntry, file: Promise<Gltf>, url: string): Promise<MonsterModel> {
     // A hand item is optional: without the gear files the monster still shows, empty-handed.
     const weaponKit = entry.rig === 'character' && entry.weapon
       ? import('./monster-weapon').then(async (m) => ({ m, gear: await m.loadMonsterWeaponGear() })).catch(() => null)
       : Promise.resolve(null);
-    const [model, library, kit] = await Promise.all([gltf(MONSTER_ASSETS + entry.file), entry.rig === 'character' ? gltf(CHARACTER_CLIPS) : Promise.resolve(null), weaponKit]);
+    const [model, library, kit] = await Promise.all([file, entry.rig === 'character' ? gltf(CHARACTER_CLIPS) : Promise.resolve(null), weaponKit]);
     const root = clone(model.scene);
     root.traverse((o) => { (o as THREE.Mesh).frustumCulled = false; });
     const clips = library ? library.animations : model.animations;
@@ -132,7 +205,7 @@ export class MonsterModel {
       const clip = clips.find((c) => c.name === (entry.rig === 'character' ? CHARACTER_MAP[name] : name));
       if (clip) { const a = mixer.clipAction(clip); a.play(); a.setEffectiveWeight(0); actions.set(name, a); }
     }
-    const instance = new MonsterModel(three, root, mixer, actions, null, new three.Box3(), false);
+    const instance = new MonsterModel(three, root, mixer, actions, null, new three.Box3(), false, [], url);
     // Framed in the Idle pose, without the weapon, gripped on the Idle fist.
     instance.pose('Idle', 0, false, 0);
     root.updateMatrixWorld(true);
@@ -197,6 +270,7 @@ export class MonsterModel {
     this.mixer?.uncacheRoot(this.object3d);
     this.object3d.removeFromParent();
     for (const item of this.owned) item.dispose();
+    if (this.fileUrl) { giveBackFile(this.fileUrl); this.fileUrl = null; }
   }
 
   /** Generated clips (tools/monster-assets) only move the top 'Monster' node: they play over the Idle body pose. */
