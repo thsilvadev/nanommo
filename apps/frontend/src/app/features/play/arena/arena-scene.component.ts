@@ -9,6 +9,7 @@ import { isWebglAvailable } from '../../../shared/character-viewer/appearance-ca
 import { loadMonsterManifest, monsterAttackStyle, monsterManifestKey, type MonsterManifestEntry } from '../../../shared/monster-viewer/monster-model';
 import { portraitEquipment, portraitHandTypes, portraitRefinement } from '../character-portrait';
 import { ArenaFeedbackOwner } from './arena-feedback-owner.service';
+import { arenaMapFade, nextMapChange, type ArenaMapChange } from './arena-map-fade';
 import { ArenaSceneSource, type ArenaResolvedEntry, type ArenaSourceInputs } from './arena-scene-source';
 import type { ArenaFrameInput, ArenaRuntimeHandle, ArenaRuntimeInit } from './arena-runtime';
 import type { ArenaCharacterLook } from './arena.types';
@@ -44,6 +45,7 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
   @ViewChild('stage', { static: true }) stage!: ElementRef<HTMLElement>;
   @ViewChild('hudLayer', { static: true }) hudLayer!: ElementRef<HTMLElement>;
   @ViewChild('wipe', { static: true }) wipe!: ElementRef<HTMLElement>;
+  @ViewChild('flash', { static: true }) flash!: ElementRef<HTMLElement>;
 
   readonly failed = signal(false);
   private readonly hudViews = new Map<string, HudView>();
@@ -71,6 +73,9 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
   private gatherAtMs: number | null = null;
   private lastCycle: number | null = null;
   private lastCycleMapId: string | null = null;
+  /** The last map change (white fade, scene swapped at the peak) and the map seen before any change. */
+  private mapChange: ArenaMapChange | null = null;
+  private seenMapId: string | null = null;
   private shared: { id: string; atMs: number } | null = null;
   /** Recently resolved solo entries (a flee or cancellation cuts the cached battle short). */
   private resolved: ArenaResolvedEntry[] = [];
@@ -87,6 +92,17 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
       if (this.lastCycle !== null && cycle > this.lastCycle && mapId === this.lastCycleMapId) this.gatherAtMs = this.clock.now();
       this.lastCycle = cycle;
       this.lastCycleMapId = mapId;
+    });
+    // A map change fades the arena to white and swaps the scene at the peak.
+    effect(() => {
+      const mapId = this.mapId() ?? this.character.character()?.currentMapId ?? null;
+      if (!mapId) return;
+      untracked(() => {
+        const shown = this.mapChange ? this.mapChange.toMapId : this.seenMapId;
+        if (shown === mapId) return;
+        if (this.seenMapId === null) { this.seenMapId = mapId; return; }
+        this.mapChange = nextMapChange(this.mapChange, mapId, this.clock.now(), this.seenMapId);
+      });
     });
     // Resolved entries leave the queue; keep their flee/cancellation for the arena.
     effect(() => {
@@ -141,7 +157,7 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
     const c = this.character.character();
     const party = this.party.party();
     return {
-      nowMs, mapId: this.mapId() ?? c?.currentMapId ?? null, selfId: c?.id ?? 'self',
+      nowMs, mapId: (this.mapChange ? arenaMapFade(this.mapChange, nowMs).mapId : null) ?? this.mapId() ?? c?.currentMapId ?? null, selfId: c?.id ?? 'self',
       selfLook: this.selfLook(), selfAttackStyle: this.selfAttackStyle(),
       soloQueue: party ? [] : this.battles.queue(), resolved: this.resolved,
       shared: party ? this.party.battle() : null,
@@ -178,6 +194,8 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
       if (!anchor?.visible || this.shownNumbers.has(f.key)) continue;
       this.showNumber(f.key, anchor.x, anchor.y + 24, f.text === 'Miss' ? this.locale.t('Miss') : f.text, f.style, ((i % 5) - 2) * 12);
     }
+    const white = String(Math.round(arenaMapFade(this.mapChange, now).white * 100) / 100);
+    if (this.flash.nativeElement.style.opacity !== white) this.flash.nativeElement.style.opacity = white;
     const fade = String(scene.fade);
     if (this.wipe.nativeElement.style.opacity !== fade) this.wipe.nativeElement.style.opacity = fade;
   }

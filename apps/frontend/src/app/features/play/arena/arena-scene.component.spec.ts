@@ -108,4 +108,21 @@ describe('ArenaSceneComponent', () => {
     expect(component.inputs(now).gatherAtMs).withContext('gather on the same map').toBe(now);
     fixture.destroy();
   });
+
+  it('a map change whitens the arena and swaps the scene at the peak', async () => {
+    const fixture = await mount();
+    const component = fixture.componentInstance;
+    characterState.update((c: any) => ({ ...c, currentMapId: 'map_ipora_beach_1' }));
+    fixture.componentRef.setInput('mapId', 'map_ipora_beach_1');
+    fixture.detectChanges();
+    const at = now;
+    expect(component.inputs(at + 250).mapId).toBe('map_green_grounds_2');
+    now = at + 250;
+    source!(now);
+    component.refreshHud();
+    expect(fixture.nativeElement.querySelector('.arena-flash').style.opacity).toBe('0.5');
+    expect(component.inputs(at + 600).mapId).toBe('map_ipora_beach_1');
+    now = at;
+    fixture.destroy();
+  });
 });

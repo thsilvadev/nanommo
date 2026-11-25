@@ -22,3 +22,4 @@ app-arena-scene .arena-number { position: absolute; transform: translate(-50%, 0
 app-arena-scene .floating-damage--heal { color: #6dff8a; }
 app-arena-scene .floating-damage--miss { color: #d9d9d9; font-size: 20px; }
 app-arena-scene .arena-wipe { position: absolute; inset: 0; background: #000; pointer-events: none; z-index: 4; }
+app-arena-scene .arena-flash { position: absolute; inset: 0; background: #fff; pointer-events: none; z-index: 5; }
