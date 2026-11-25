@@ -289,3 +289,12 @@ A failed town gear download must not set `dressedKey`. Keep the prior outfit and
 Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `eventKey` (`ss-<startMs>`, or `ss-dev-<ms>` for the dev tool); reusing a key silently skips that phase. Hit checks run in a fixed order (presence → active and `now < endsAt` → cooldown → vase exists → range → `HSETNX`): the cooldown is spent even by an out-of-range swing, and `endsAt` is checked on every hit because the end tick may run late while keys still exist. Prize grants run under `withCharacterQueueLock` (slot races with battle drops).
 
 - **Gambit `use_item` target (2026-11-24).** `params.target` (`self`/`ally`/`foe`) decides who gets the item; when it is missing the engine falls back to `legacyItemTarget` (old pages, replays). Never change the legacy fallback: V2 replays of already simulated battles depend on it. New rules go in `item-target.ts` and apply only to lines with an explicit target.
+
+## Battle arena traps — 2026-11-25
+
+- Keep the arena chunk free of Angular: anything `arena-runtime.ts` imports must not import a component, directive or store (that is why `loadAppearanceCatalog`/`isWebglAvailable` live in `appearance-catalog.ts` and the damage-style rules in `battle-feedback-style.ts`). The screenshot harness bundles the runtime with esbuild and fails with "JIT compilation failed" the moment Angular sneaks in.
+- With a low broadcast camera the horizon must stay on screen: pitch above half the vertical FOV shows only ground. Background layers sit behind the ground plane, which hides their lower part; size them so their ridge lands just above the horizon.
+- Do not re-start a camera ease every time the wanted frame grows: during an intro it never finishes and actors leave the screen. Follow the target with a critically damped step instead.
+- Generated monster clips play over the Idle body at the same weight; "which clip is playing" must prefer the clip over the Idle underlay.
+- Never tint shared materials for a hit flash: gear and monster materials are shared across instances (`gearMaterial`, SkeletonUtils clones). Each arena view clones the materials it tints.
+- Karma on the default port can pick up another session's Chrome and report its failures as yours; run with an isolated config/port when other sessions test in parallel.
