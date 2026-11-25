@@ -23,6 +23,7 @@ import { TownStore } from '../../core/town.store';
 import { TOWN_SCENE_ENV } from './town-scene/town-scene.types';
 import { GamePreloadService, combinePreloads, type PreloadProgress } from './game-preload.service';
 import { CharacterFaceService } from './arena/character-face.service';
+import { ArenaMonsterWarmup } from './arena/arena-monster-warmup.service';
 import { GameLoadingScreenComponent } from './game-loading-screen.component';
 import { NotificationMessagesComponent } from './notification-messages.component';
 import { ItemObtainedToastComponent } from './item-obtained-toast.component';
@@ -48,6 +49,7 @@ export class PlayComponent implements OnInit, OnDestroy {
     private readonly townScene = inject(TOWN_SCENE_ENV);
     readonly gamePreload = inject(GamePreloadService);
     private readonly characterFace = inject(CharacterFaceService);
+    private readonly monsterWarmup = inject(ArenaMonsterWarmup);
     private readonly seenMailIds = new Set<string>();
     private readMailArrivalPreference(): boolean { try { return localStorage.getItem('nanommo:hide-mail-arrival-notice') === 'true'; } catch { return false; } }
     dismissMailArrivalNotice() { try { if (this.hideFutureMailArrivalNotices()) localStorage.setItem('nanommo:hide-mail-arrival-notice', 'true'); else localStorage.removeItem('nanommo:hide-mail-arrival-notice'); } catch { } this.mailArrivalNotice.set(null); }
@@ -81,9 +83,10 @@ export class PlayComponent implements OnInit, OnDestroy {
       });
       // Loading screen: three.js, the town catalogue, bodies, animations and every player's gear are
       // downloaded and prepared once before the game shows (a town with 200 players never waits on them).
-      // Every monster model too: none of them stalls a battle the first time it appears.
+      // The monsters of the current map and its neighbours too (then kept in step with every map change):
+      // none of them stalls a battle the first time it appears.
       const townPreload = this.townScene.preload;
-      this.gamePreload.start(combinePreloads([...(townPreload ? [(onProgress?: PreloadProgress) => townPreload(onProgress)] : []), (onProgress?: PreloadProgress) => this.characterFace.preload(onProgress)]));
+      this.gamePreload.start(combinePreloads([...(townPreload ? [(onProgress?: PreloadProgress) => townPreload(onProgress)] : []), (onProgress?: PreloadProgress) => this.monsterWarmup.preload(onProgress), (onProgress?: PreloadProgress) => this.characterFace.preload(onProgress)]));
       this.battle.bindEvents(this.character, this.inventory); this.gameAudio.start(this.character, this.battle, this.inventory, this.town);
       void Promise.all([this.character.load(), this.inventory.load(), this.battle.load(), this.catalog.load()]).then(() => { this.tryShowConnectionTip(); void this.loadActiveGambitTitle(); });
     }
