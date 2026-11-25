@@ -19,7 +19,7 @@ export type { BodyAsset } from './body-asset';
  * stale-while-revalidate (vercel.json): bump `v` whenever animations.glb is
  * rebuilt, or players keep the old file next to new code.
  */
-export const ANIMATIONS_ASSET = 'animations.glb?v=2';
+export const ANIMATIONS_ASSET = 'animations.glb?v=3';
 export type GltfLoad = (url: string) => Promise<unknown>;
 
 interface AnimationLibrary { clips: THREE.AnimationClip[]; pelvisRest: number }

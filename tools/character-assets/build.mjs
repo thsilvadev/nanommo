@@ -173,6 +173,8 @@ const CLIPS = {
   Sword_Idle: 'CombatIdle', Spell_Simple_Enter: 'CastStart', Spell_Simple_Idle_Loop: 'CastLoop', Hit_Head: 'Damage2',
   // Town emotes (/dance, /sit: sit down, then hold seated).
   Dance_Loop: 'Dance', Sitting_Enter: 'SitDown', Sitting_Idle_Loop: 'Sit',
+  // Battle arena: kneel to gather, sprint to dash / flee. (Stun holds a frame of Damage2.)
+  Fixing_Kneeling: 'Gather', Sprint_Loop: 'Sprint',
 };
 
 /**

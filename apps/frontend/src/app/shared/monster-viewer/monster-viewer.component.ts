@@ -16,7 +16,7 @@ const ASSETS = '/assets/monsters/';
 const isWeaponPart = (o: THREE.Object3D): boolean => { for (let p: THREE.Object3D | null = o; p; p = p.parent) if (p.name.startsWith('weapon:')) return true; return false; };
 /** A flinch lasts this long whatever the authored Damage clip (some run 3.5 s). */
 const HIT_SECONDS = 0.5;
-const CHARACTER_CLIPS = '/assets/character/animations.glb';
+const CHARACTER_CLIPS = '/assets/character/animations.glb?v=3'; // keep in step with ANIMATIONS_ASSET
 /** Character-rig monsters play the character library: our clip -> its clip. */
 const CHARACTER_MAP: Record<MonsterClip, string> = { Idle: 'CombatIdle', Walk: 'Walk', Attack: 'Attack', Cast: 'Attack', Damage: 'Damage', Dead: 'Dead' };
 
