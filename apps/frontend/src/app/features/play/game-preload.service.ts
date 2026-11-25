@@ -1,6 +1,18 @@
 import { Injectable, signal } from '@angular/core';
 
 export type PreloadProgress = (done: number, total: number) => void;
+export type PreloadTask = (onProgress?: PreloadProgress) => Promise<void>;
+
+/** Runs every task at once as one preload: progress is the sum of each task's latest report; a failed task counts as finished. */
+export function combinePreloads(tasks: PreloadTask[]): PreloadTask {
+  return async (onProgress) => {
+    const latest = tasks.map(() => ({ done: 0, total: 0 }));
+    const report = () => onProgress?.(latest.reduce((s, r) => s + r.done, 0), latest.reduce((s, r) => s + r.total, 0));
+    await Promise.all(tasks.map((task, i) => task((done, total) => { latest[i] = { done, total }; report(); })
+      .catch(() => undefined)
+      .then(() => { if (latest[i].done < latest[i].total) { latest[i] = { done: latest[i].total, total: latest[i].total }; report(); } })));
+  };
+}
 /** Gives up waiting after this long: the game opens and the rest keeps loading in the background. */
 export const GAME_PRELOAD_TIMEOUT_MS = 20_000;
 

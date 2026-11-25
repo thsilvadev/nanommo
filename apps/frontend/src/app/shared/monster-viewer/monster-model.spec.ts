@@ -1,6 +1,6 @@
 import { CLIP_SECONDS } from '../character-animation/animation-state';
 import { animationStateToMonster } from './monster-animation-state';
-import { MonsterModel } from './monster-model';
+import { MONSTER_ASSETS, MonsterModel, preloadMonsterModels } from './monster-model';
 
 describe('MonsterModel (live assets)', () => {
   const made: MonsterModel[] = [];
@@ -53,4 +53,20 @@ describe('animationStateToMonster', () => {
     expect(animationStateToMonster({ base: 'CombatIdle', hit: { clip: 'Damage', startedAtMs: 50 } })).toEqual({ hit: { startedAtMs: 50 } });
     expect(animationStateToMonster({ base: 'CombatIdle', oneShot: { clip: 'Stun', startedAtMs: 10, speed: 1 } })).toEqual({});
   });
+});
+
+describe('preloadMonsterModels (live assets)', () => {
+  it('preloads every monster file once and reports progress up to the total', async () => {
+    const manifest = await (await fetch(MONSTER_ASSETS + 'manifest.json')).json();
+    const expected = Object.values(manifest).filter((e: any) => e.file && e.rig !== 'char').length;
+    const reports: Array<[number, number]> = [];
+    const first = preloadMonsterModels((d, t) => reports.push([d, t]));
+    expect(preloadMonsterModels()).toBe(first);
+    await first;
+    expect(reports[reports.length - 1]).toEqual([expected, expected]);
+    const started = performance.now();
+    const model = await MonsterModel.load('mon_gravelhorn');
+    expect(performance.now() - started).toBeLessThan(50);
+    model.dispose();
+  }, 60_000);
 });

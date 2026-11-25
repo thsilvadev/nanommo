@@ -10,6 +10,7 @@ import type * as THREE from 'three';
 import type { AttackStyle } from '../character-animation/animation-state';
 import type { MonsterAnimationState, MonsterClip } from './monster-animation-state';
 import type { MonsterWeapon } from './monster-weapon';
+import { isWebglAvailable } from '../character-viewer/appearance-catalog';
 
 /** /assets/monsters/manifest.json entry (tools/monster-assets). */
 export interface MonsterManifestEntry {
@@ -54,6 +55,39 @@ export function monsterAttackStyle(entry: MonsterManifestEntry | null | undefine
 export function loadMonsterManifest(): Promise<Record<string, MonsterManifestEntry>> {
   manifest ??= fetch(MONSTER_ASSETS + 'manifest.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   return manifest;
+}
+
+let preloading: Promise<void> | null = null;
+/** Files downloaded and parsed at once while preloading. */
+const PRELOAD_CONCURRENCY = 4;
+/**
+ * Loading screen: downloads and parses every monster file once (and, for character-rig monsters, the
+ * shared clips and the weapon gear), so a monster never stalls the game the first time it appears.
+ * Once per page; a failed file counts as done (it loads again when needed).
+ */
+export function preloadMonsterModels(onProgress?: (done: number, total: number) => void): Promise<void> {
+  if (!preloading) {
+    const run = (async () => {
+      if (!isWebglAvailable()) return;
+      const entries = Object.values(await loadMonsterManifest()).filter((e) => e.file && e.rig !== 'char');
+      const { gltf } = await loadMonsterThree();
+      const total = entries.length;
+      let done = 0, next = 0;
+      onProgress?.(0, total);
+      const one = async (entry: MonsterManifestEntry) => {
+        const extra = entry.rig === 'character'
+          ? [gltf(CHARACTER_CLIPS), ...(entry.weapon ? [import('./monster-weapon').then((m) => m.loadMonsterWeaponGear())] : [])]
+          : [];
+        await Promise.all([gltf(MONSTER_ASSETS + entry.file), ...extra]).catch(() => undefined);
+        onProgress?.(++done, total);
+      };
+      const worker = async () => { while (next < entries.length) await one(entries[next++]); };
+      await Promise.all(Array.from({ length: Math.min(PRELOAD_CONCURRENCY, total) }, worker));
+    })();
+    preloading = run;
+    run.catch(() => { if (preloading === run) preloading = null; });
+  }
+  return preloading;
 }
 
 export class MonsterModel {

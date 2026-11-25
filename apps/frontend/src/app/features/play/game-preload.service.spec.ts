@@ -1,4 +1,4 @@
-import { GamePreloadService } from './game-preload.service';
+import { GamePreloadService, combinePreloads } from './game-preload.service';
 
 describe('GamePreloadService', () => {
   beforeEach(() => jasmine.clock().install());
@@ -35,5 +35,16 @@ describe('GamePreloadService', () => {
     const none = new GamePreloadService();
     none.start(undefined);
     expect(none.ready()).toBeTrue();
+  });
+});
+
+describe('combinePreloads', () => {
+  it('combinePreloads sums progress and survives a failing task', async () => {
+    const reports: Array<[number, number]> = [];
+    const a = async (p?: (d: number, t: number) => void) => { p?.(1, 2); await Promise.resolve(); p?.(2, 2); };
+    const b = async (p?: (d: number, t: number) => void) => { p?.(0, 3); await Promise.resolve(); p?.(3, 3); throw new Error('one file failed'); };
+    await expectAsync(combinePreloads([a, b])((d, t) => reports.push([d, t]))).toBeResolved();
+    expect(reports[reports.length - 1]).toEqual([5, 5]);
+    expect(reports.some(([d, t]) => d < t)).toBeTrue();
   });
 });

@@ -21,7 +21,8 @@ import { PartyPanelComponent } from './party-panel.component';
 import { PartyStore } from '../../core/party.store';
 import { TownStore } from '../../core/town.store';
 import { TOWN_SCENE_ENV } from './town-scene/town-scene.types';
-import { GamePreloadService } from './game-preload.service';
+import { GamePreloadService, combinePreloads, type PreloadProgress } from './game-preload.service';
+import { preloadMonsterModels } from '../../shared/monster-viewer/monster-model';
 import { GameLoadingScreenComponent } from './game-loading-screen.component';
 import { NotificationMessagesComponent } from './notification-messages.component';
 import { ItemObtainedToastComponent } from './item-obtained-toast.component';
@@ -79,7 +80,9 @@ export class PlayComponent implements OnInit, OnDestroy {
       });
       // Loading screen: three.js, the town catalogue, bodies, animations and every player's gear are
       // downloaded and prepared once before the game shows (a town with 200 players never waits on them).
-      this.gamePreload.start(this.townScene.preload ? (onProgress) => this.townScene.preload!(onProgress) : undefined);
+      // Every monster model too: none of them stalls a battle the first time it appears.
+      const townPreload = this.townScene.preload;
+      this.gamePreload.start(combinePreloads([...(townPreload ? [(onProgress?: PreloadProgress) => townPreload(onProgress)] : []), preloadMonsterModels]));
       this.battle.bindEvents(this.character, this.inventory); this.gameAudio.start(this.character, this.battle, this.inventory, this.town);
       void Promise.all([this.character.load(), this.inventory.load(), this.battle.load(), this.catalog.load()]).then(() => { this.tryShowConnectionTip(); void this.loadActiveGambitTitle(); });
     }
