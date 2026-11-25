@@ -84,3 +84,46 @@ describe('ArenaActorView flyers', () => {
     bee.dispose(); walker.dispose();
   });
 });
+
+describe('ArenaActorView loading', () => {
+  const frame: ArenaActorFrame = {
+    id: 'm', column: 5, row: 5, facing: -1, moving: null, hp: 10, sp: 0, statuses: [], statusSinceMs: {}, deadAtMs: null, fleeing: null,
+    anim: { base: 'CombatIdle' }, cast: null, projectile: null,
+  };
+  /** Visible meshes of the model itself (not the blob shadow or the cast ring, which are planes/rings). */
+  const bodyMeshes = (view: ArenaActorView) => {
+    const out: THREE.Mesh[] = [];
+    view.object3d.traverseVisible((o) => {
+      const mesh = o as THREE.Mesh;
+      const type = (mesh.geometry as THREE.BufferGeometry | undefined)?.type;
+      if (mesh.isMesh && type !== 'PlaneGeometry' && type !== 'RingGeometry') out.push(mesh);
+    });
+    return out;
+  };
+  const until = async (check: () => boolean) => { for (let i = 0; i < 100 && !check(); i++) await new Promise((r) => setTimeout(r, 50)); };
+
+  it('a loading monster shows nothing until its model is compiled', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    let prepared = false;
+    const factory = { prepare: () => { prepared = true; return gate; } } as unknown as TownCharacterFactory;
+    const view = new ArenaActorView({ id: 'm', team: 'b', kind: 'monster', name: 'Gravelhorn', look: null, monsterId: 'mon_gravelhorn' }, factory, Promise.resolve({}));
+    view.update(frame, 1000, []);
+    expect(bodyMeshes(view).length).withContext('no grey capsule while loading').toBe(0);
+    await until(() => prepared);
+    view.update(frame, 1100, []);
+    expect(bodyMeshes(view).length).withContext('loaded but not compiled yet').toBe(0);
+    release();
+    await until(() => { view.update(frame, 1200, []); return bodyMeshes(view).length > 0; });
+    expect(bodyMeshes(view).some((m) => (m as THREE.SkinnedMesh).isSkinnedMesh)).toBeTrue();
+    view.dispose();
+  });
+
+  it('a monster with no model shows the grey capsule', async () => {
+    const factory = { prepare: () => Promise.resolve() } as unknown as TownCharacterFactory;
+    const view = new ArenaActorView({ id: 'm', team: 'b', kind: 'monster', name: 'Nobody', look: null, monsterId: 'mon_does_not_exist' }, factory, Promise.resolve({}));
+    await until(() => { view.update(frame, 1000, []); return bodyMeshes(view).some((m) => m.geometry.type === 'CapsuleGeometry'); });
+    expect(bodyMeshes(view).some((m) => m.geometry.type === 'CapsuleGeometry')).toBeTrue();
+    view.dispose();
+  });
+});

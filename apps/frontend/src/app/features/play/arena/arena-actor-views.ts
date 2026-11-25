@@ -93,7 +93,16 @@ class MonsterPosable implements Posable {
   dispose() { this.model.dispose(); }
 }
 
-/** Grey (or team-tinted) capsule: a character without a look, or a model still loading / missing. */
+/** Nothing on screen: a model that is still loading (it appears whole once ready, never as a capsule first). */
+class EmptyPosable implements Posable {
+  readonly object3d = new THREE.Group();
+  ready = true;
+  drive(_state: AnimationState, _nowMs: number, yaw: number) { this.object3d.rotation.y = yaw; }
+  height() { return 1.7; }
+  dispose() { /* nothing owned */ }
+}
+
+/** Grey (or team-tinted) capsule: a character without a look, or a monster without a model. */
 class PlaceholderPosable implements Posable {
   readonly object3d = new THREE.Group();
   ready = true;
@@ -139,7 +148,8 @@ export class ArenaActorView {
   constructor(readonly visual: ArenaActorVisual, private readonly factory: TownCharacterFactory, manifest: Promise<Record<string, MonsterManifestEntry>> = loadMonsterManifest()) {
     this.object3d.name = `arena:${visual.id}`;
     this.lookKey = JSON.stringify(visual.look);
-    this.posable = new PlaceholderPosable(visual.team === 'a' ? '#8fa6c8' : '#9a8f86');
+    const loads = visual.kind === 'character' ? !!visual.look : !!visual.monsterId;
+    this.posable = loads ? new EmptyPosable() : new PlaceholderPosable(visual.team === 'a' ? '#8fa6c8' : '#9a8f86');
     this.object3d.add(this.posable.object3d);
 
     const shadowGeometry = new THREE.PlaneGeometry(1.4, 1.4);
@@ -219,6 +229,9 @@ export class ArenaActorView {
       return;
     }
     const model = await MonsterModel.loadOrPlaceholder(monsterId);
+    if (this.disposed) { model.dispose(); return; }
+    // Shaders linked before it is first drawn (no stall on the frame it appears).
+    await this.factory?.prepare?.(model.object3d)?.catch(() => undefined);
     if (this.disposed) { model.dispose(); return; }
     this.swap(new MonsterPosable(model));
   }

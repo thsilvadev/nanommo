@@ -9,6 +9,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { loadAppearanceCatalog } from '../../../shared/character-viewer/appearance-catalog';
 import { buildArrow } from '../../../shared/character-viewer/bow-shot';
+import { MonsterModel, loadMonsterManifest } from '../../../shared/monster-viewer/monster-model';
 import { TownCharacterFactory } from '../town-scene/town-character';
 import type { ArenaActorFrame } from './arena-actions';
 import { ArenaActorView, type ArenaActorVisual } from './arena-actor-views';
@@ -89,6 +90,7 @@ class ArenaRuntime implements ArenaRuntimeHandle {
     this.cleanups.push(() => canvas.removeEventListener('webglcontextlost', lost));
     // Shaders link before a model is first drawn (no stall on the frame it appears).
     factory.prepare = (object) => this.renderer.compileAsync(object, this.camera, this.scene).catch(() => undefined);
+    void warmMonsterShaders(factory.prepare, () => this.disposed);
 
     this.scene.background = new THREE.Color('#9fc8ec');
     this.scene.add(new THREE.HemisphereLight('#fff6e6', '#5a6a3a', 1.6));
@@ -255,6 +257,23 @@ class ArenaRuntime implements ArenaRuntimeHandle {
       const visible = v.z < 1 && v.x > -1.1 && v.x < 1.1 && v.y > -1.1 && v.y < 1.1;
       this.anchors.set(id, { x: (v.x * 0.5 + 0.5) * w, y: (-v.y * 0.5 + 0.5) * h, visible });
     }
+  }
+}
+
+/**
+ * Links every monster's shaders once the arena exists (the files were parsed on the loading screen), one
+ * after the other, so the first appearance of a species never stalls a frame. Never throws.
+ */
+async function warmMonsterShaders(prepare: (object: THREE.Object3D) => Promise<unknown>, stopped: () => boolean): Promise<void> {
+  const manifest = await loadMonsterManifest().catch(() => ({} as Awaited<ReturnType<typeof loadMonsterManifest>>));
+  for (const [key, entry] of Object.entries(manifest)) {
+    if (stopped()) return;
+    if (!entry.file || entry.rig === 'char') continue;
+    try {
+      const model = await MonsterModel.load(`mon_${key}`);
+      await prepare(model.object3d);
+      model.dispose();
+    } catch { /* a missing model shows as a capsule anyway */ }
   }
 }
 
