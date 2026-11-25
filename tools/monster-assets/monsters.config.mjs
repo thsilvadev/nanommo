@@ -9,7 +9,7 @@
  * kind 'char'      — no GLB: the regular character model with `character` (appearance + equipment).
  *
  * size: { h } height or { len } longest horizontal extent, in metres (the character is ~1.75 m).
- * rotY: degrees to turn the model so it faces +Z. tint: [r,g,b] multiplier on every material
+ * rotY: degrees to turn the model so it faces +Z. rev: cache-busting version of a GLB rebuilt in place. tint: [r,g,b] multiplier on every material
  * (or { match: /material name/, rgb }). recolor: hue-range swaps on textures. attach: cones on bones.
  * fx: runtime effects for the arena (not built here).
  */
@@ -29,7 +29,7 @@ export const MONSTERS = {
   needlebackstalker: { kind: 'native', size: { len: 2.0 }, clips: {Walk: '4legsWalk',  Idle: '4legsIdle', Attack: '4legsClawsAttackR', Damage: '4legsGetHit', Dead: '4legsDeath', Cast: '4legsHorntAttack' }, keep: { Bite: '4legsSnakeBiteAttack' }, hue: { h: 125, s: 0.8, b: 0.8 }, attach: [0, -0.12, 0.12].map((z) => ({ bone: /CHIMERA_ (Pelvis|Spine|Spine1|Neck)_/, length: 0.35, radius: 0.03, dir: [0, 1, -0.7], offset: [0, 0.22, z], spread: 0.07, color: [0.8, 0.82, 0.75] })) },
   giantspider: { kind: 'native', size: { len: 2.8 }, clips: {Walk: 'Armature|walk',  Idle: 'Armature|idle', Attack: 'Armature|attack', Dead: 'Armature|die' } },
   duneraider: { kind: 'native', size: { h: 1.8 }, clips: { Idle: 'emp_officer_alert_weightshift', Attack: 'emp_tuskenraider_atk_gaderffi_lunge', Damage: 'emp_officer_rct_stumbleb', Dead: 'emp_tuskenraider_rct_splatb', Cast: 'emp_officer_atk_larm_throw_upper' } },
-  venomviper: { kind: 'native', size: { h: 1.5 }, clips: { Idle: 'Idle', Attack: 'Bite', Dead: 'Killed', Cast: 'Attack2' }, hue: { h: 85, s: 1.3 } },
+  venomviper: { kind: 'native', size: { h: 1.5 }, rotY: -90, rev: 2, clips: { Idle: 'Idle', Attack: 'Bite', Dead: 'Killed', Cast: 'Attack2' }, hue: { h: 85, s: 1.3 } },
   bandit: { kind: 'char', character: { sex: 'male', heightCm: 178,
     appearance: { v: 1, hair: 1, hairColor: 0, skin: 2, face: 1, nose: 0, mouth: 0, mouthDetails: 0, chest: 0, facialHair: 2, piercing: 0, tattoo: 0 },
     equipment: { body: 'equip_body_phys_t1', head: 'equip_head_phys_t1', cape: 'equip_cape_phys_t1', shoes: 'equip_shoes_earth_t2', mainHand: 'equip_dagger_t1' }, mainHandType: 'dagger' } },

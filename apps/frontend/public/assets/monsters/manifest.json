@@ -238,7 +238,7 @@
     "fx": []
   },
   "venomviper": {
-    "file": "venomviper.glb",
+    "file": "venomviper.glb?v=2",
     "rig": "native",
     "height": 1.5,
     "clips": [

@@ -135,7 +135,8 @@ for (const [id, cfg] of Object.entries(MONSTERS)) {
   for (const a of doc.getRoot().listAccessors()) if (a.listParents().every((x) => x.propertyType === 'Root' || (x.propertyType === 'AnimationSampler' && !x.listParents().some((y) => y.propertyType === 'Animation')))) a.dispose();
   const file = `${id}.glb`;
   fs.writeFileSync(path.join(OUT, file), await io.writeBinary(doc));
-  manifest[id] = { file, rig: cfg.kind, height: info.height, clips: info.clips, generated: info.generated, ...(cfg.weapon ? { weapon: cfg.weapon } : {}), fx: cfg.fx ?? [] };
+  // rev: bumped when a GLB is rebuilt in place, so browsers and the CDN (cached for a day) fetch the new one.
+  manifest[id] = { file: cfg.rev ? `${file}?v=${cfg.rev}` : file, rig: cfg.kind, height: info.height, clips: info.clips, generated: info.generated, ...(cfg.weapon ? { weapon: cfg.weapon } : {}), fx: cfg.fx ?? [] };
   console.log(id, cfg.kind, `${(fs.statSync(path.join(OUT, file)).size / 1e6).toFixed(2)}MB`, `h=${info.height}`, info.clips.join(','), info.generated?.length ? `gen:${info.generated}` : '');
 }
 fs.writeFileSync(manifestFile, JSON.stringify(Object.fromEntries(Object.keys(MONSTERS).filter((k) => manifest[k]).map((k) => [k, manifest[k]])), null, 2) + '\n');
