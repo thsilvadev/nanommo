@@ -17,7 +17,7 @@ const LENGTH = Date.parse(SOLO_V2_ENTRY.endAt) - START;
 function inputs(over: Partial<ArenaSourceInputs>): ArenaSourceInputs {
   return {
     nowMs: START + 1000, mapId: 'map_green_grounds_2', selfId: 'char-self', selfLook: look('equip_sword_t3'), selfAttackStyle: 'melee',
-    soloQueue: [], shared: null, sharedReceivedAtMs: null, nextEncounterAt: null, partyIds: [], gatherAtMs: null, ...over,
+    soloQueue: [], resolved: [], shared: null, sharedReceivedAtMs: null, nextEncounterAt: null, partyIds: [], gatherAtMs: null, ...over,
   };
 }
 
@@ -42,6 +42,34 @@ describe('ArenaSceneSource', () => {
     source.build(inputs({ nowMs: START + LENGTH - 100, soloQueue: [entry('e1', START)] }));
     const frame = source.build(inputs({ nowMs: START + LENGTH + 100, soloQueue: [entry('e2', START + LENGTH + 3000)] }));
     expect(frame.scene.phase).toBe('outro');
+  });
+
+  it('a solo flee still plays after the entry leaves the queue: the character runs off', () => {
+    const source = new ArenaSceneSource();
+    source.build(inputs({ nowMs: START + 2000, soloQueue: [entry('e1', START)] }));
+    const fledAt = START + 3000;
+    const resolved = [{ entryId: 'e1', cancellationReason: 'flee', cancelledAt: new Date(fledAt).toISOString() }];
+    const running = source.build(inputs({ nowMs: fledAt + 300, soloQueue: [], resolved }));
+    expect(running.scene.phase).toBe('battle');
+    expect(running.scene.frame.actors.find((a) => a.id === 'char-self')!.fleeing).toEqual({ sinceMs: fledAt });
+    const after = source.build(inputs({ nowMs: fledAt + 1600, soloQueue: [], resolved }));
+    expect(after.scene.phase).toBe('outro');
+    expect(source.build(inputs({ nowMs: START + LENGTH + 200, soloQueue: [], resolved })).scene.phase).toBe('walk');
+  });
+
+  it('a regenerated entry that never started leaves no phantom outro', () => {
+    const source = new ArenaSceneSource();
+    source.build(inputs({ nowMs: START - 5000, soloQueue: [entry('e1', START)] }));
+    const later = START + LENGTH + 10_000;
+    source.build(inputs({ nowMs: START - 4000, soloQueue: [entry('e1b', later)] }));
+    expect(source.build(inputs({ nowMs: START + LENGTH + 100, soloQueue: [entry('e1b', later)] })).scene.phase).toBe('walk');
+  });
+
+  it('a battle that ran is still the previous one after many regenerations', () => {
+    const source = new ArenaSceneSource();
+    source.build(inputs({ nowMs: START + 1000, soloQueue: [entry('e1', START)] }));
+    for (let i = 0; i < 10; i++) source.build(inputs({ nowMs: START + 2000 + i, soloQueue: [entry('e1', START), entry(`gen${i}`, START + LENGTH + 60_000 + i * 1000)] }));
+    expect(source.build(inputs({ nowMs: START + LENGTH + 100, soloQueue: [] })).scene.phase).toBe('outro');
   });
 
   it('gear change during walk re-dresses before the next battle', () => {

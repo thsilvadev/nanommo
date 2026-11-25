@@ -87,6 +87,7 @@ export function arenaScene(input: ArenaTimelineInput): ArenaSceneFrame {
 }
 
 /** When a battle stops owning the scene: its end, or the fleeing party gone off-screen. */
+export function arenaSceneEnd(b: ArenaBattle): number { return sceneEnd(b); }
 function sceneEnd(b: ArenaBattle): number {
   return b.flee ? Math.min(b.endAtMs, b.flee.atMs + FLEE_EXIT_MS) : b.endAtMs;
 }

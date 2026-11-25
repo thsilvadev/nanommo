@@ -9,7 +9,7 @@ import { isWebglAvailable } from '../../../shared/character-viewer/appearance-ca
 import { loadMonsterManifest, monsterAttackStyle, monsterManifestKey, type MonsterManifestEntry } from '../../../shared/monster-viewer/monster-model';
 import { portraitEquipment, portraitHandTypes, portraitRefinement } from '../character-portrait';
 import { ArenaFeedbackOwner } from './arena-feedback-owner.service';
-import { ArenaSceneSource, type ArenaSourceInputs } from './arena-scene-source';
+import { ArenaSceneSource, type ArenaResolvedEntry, type ArenaSourceInputs } from './arena-scene-source';
 import type { ArenaFrameInput, ArenaRuntimeHandle, ArenaRuntimeInit } from './arena-runtime';
 import type { ArenaCharacterLook } from './arena.types';
 
@@ -68,6 +68,8 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
   private gatherAtMs: number | null = null;
   private lastCycle: number | null = null;
   private shared: { id: string; atMs: number } | null = null;
+  /** Recently resolved solo entries (a flee or cancellation cuts the cached battle short). */
+  private resolved: ArenaResolvedEntry[] = [];
   private destroyed = false;
 
   constructor() {
@@ -77,6 +79,11 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
       if (!Number.isFinite(cycle)) return;
       if (this.lastCycle !== null && cycle > this.lastCycle) this.gatherAtMs = this.clock.now();
       this.lastCycle = cycle;
+    });
+    // Resolved entries leave the queue; keep their flee/cancellation for the arena.
+    effect(() => {
+      const r = this.battles.lastResolved();
+      if (r?.entryId && !this.resolved.some((x) => x.entryId === r.entryId)) this.resolved = [...this.resolved, { entryId: r.entryId, cancelledAt: r.cancelledAt ?? null, cancellationReason: (r as { cancellationReason?: string | null }).cancellationReason ?? null }].slice(-20);
     });
     // Party battles are only known once created: remember when this client first saw each one.
     effect(() => {
@@ -121,7 +128,7 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
     return {
       nowMs, mapId: this.mapId() ?? c?.currentMapId ?? null, selfId: c?.id ?? 'self',
       selfLook: this.selfLook(), selfAttackStyle: this.selfAttackStyle(),
-      soloQueue: party ? [] : this.battles.queue(),
+      soloQueue: party ? [] : this.battles.queue(), resolved: this.resolved,
       shared: party ? this.party.battle() : null,
       sharedReceivedAtMs: this.shared && this.shared.id === this.party.battle()?.id ? this.shared.atMs : null,
       nextEncounterAt: party ? this.party.nextEncounterAt() : null,

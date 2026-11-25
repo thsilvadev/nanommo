@@ -8,10 +8,12 @@ import type { BattleQueueEntry } from '../../../core/game.models';
 import type { SharedBattleView } from '../../../core/party-projection';
 import type { AttackStyle } from '../../../shared/character-animation/animation-state';
 import { fromSharedBattle, fromSoloEntry } from './arena-battle';
-import { arenaScene } from './arena-phase';
+import { arenaScene, arenaSceneEnd } from './arena-phase';
 import { arenaRegionOf } from './arena-region';
 import type { ArenaActorVisual, ArenaFrameInput } from './arena-runtime';
 import type { ArenaBattle, ArenaBattleOptions, ArenaCharacterLook } from './arena.types';
+
+export interface ArenaResolvedEntry { entryId: string; cancelledAt?: string | null; cancellationReason?: string | null }
 
 export interface ArenaSourceInputs {
   nowMs: number;
@@ -21,6 +23,8 @@ export interface ArenaSourceInputs {
   selfAttackStyle: AttackStyle;
   /** The solo battle queue (pre-computed entries). */
   soloQueue: BattleQueueEntry[];
+  /** Solo battles resolved recently (they leave the queue): a flee or a cancellation cuts them short. */
+  resolved: ArenaResolvedEntry[];
   /** The party's latest shared battle, if in a party. */
   shared: SharedBattleView | null;
   /** When this client first saw `shared` (party battles are not known in advance). */
@@ -32,27 +36,28 @@ export interface ArenaSourceInputs {
   gatherAtMs: number | null;
 }
 
-/** Battles kept after they leave the queue (outro, previous). */
-const KEEP = 6;
+/** Battles kept after they leave the queue (outro, previous) plus the queued ones. */
+const KEEP = 12;
 
 export class ArenaSceneSource {
   private readonly battles = new Map<string, ArenaBattle>();
   private readonly memberLooks = new Map<string, ArenaCharacterLook | null>();
+  private readonly started = new Set<string>();
 
   constructor(private readonly options: ArenaBattleOptions = {}) {}
 
   build(input: ArenaSourceInputs): ArenaFrameInput {
     const now = input.nowMs;
-    const solo = input.soloQueue
-      .filter((e) => !input.mapId || !(e as { mapId?: string }).mapId || (e as { mapId?: string }).mapId === input.mapId)
-      .map((e) => this.solo(e, input))
-      .filter((b): b is ArenaBattle => !!b)
-      .sort((a, b) => a.startAtMs - b.startAtMs);
-    const shared = input.shared ? this.shared(input.shared, input) : null;
-    const known = [...solo, ...(shared ? [shared] : [])];
+    const queued = input.soloQueue.filter((e) => !input.mapId || !(e as { mapId?: string }).mapId || (e as { mapId?: string }).mapId === input.mapId);
+    const solo = queued.map((e) => this.solo(e, input)).filter((b): b is ArenaBattle => !!b).sort((a, b) => a.startAtMs - b.startAtMs);
+    this.settleSolo(new Set(queued.map((e) => e.id)), input.resolved, now);
+    if (input.shared) this.shared(input.shared, input);
+    const all = [...this.battles.values()];
+    // A battle "ran" once its start passed while known: only those can be the previous one (no phantom outros).
+    for (const b of all) if (b.startAtMs <= now) this.started.add(b.id);
 
-    const current = known.find((b) => b.startAtMs <= now && now < b.endAtMs) ?? null;
-    const previous = [...this.battles.values()].filter((b) => b.endAtMs <= now).sort((a, b) => b.endAtMs - a.endAtMs)[0] ?? null;
+    const current = all.find((b) => b.startAtMs <= now && now < arenaSceneEnd(b)) ?? null;
+    const previous = all.filter((b) => this.started.has(b.id) && arenaSceneEnd(b) <= now).sort((a, b) => arenaSceneEnd(b) - arenaSceneEnd(a))[0] ?? null;
     const next = solo.find((b) => b.startAtMs > now) ?? null;
     const nextStartAtMs = next?.startAtMs ?? (input.nextEncounterAt !== null && input.nextEncounterAt > now ? input.nextEncounterAt : null);
 
@@ -71,13 +76,30 @@ export class ArenaSceneSource {
   }
 
   private solo(entry: BattleQueueEntry, input: ArenaSourceInputs): ArenaBattle | null {
-    const key = `solo:${entry.id}:${entry.startAt}:${(entry as { cancelledAt?: string | null }).cancelledAt ?? ''}`;
-    let battle = this.battles.get(key) ?? null;
-    if (!battle) {
-      battle = fromSoloEntry(entry, { id: input.selfId, look: input.selfLook, attackStyle: input.selfAttackStyle }, this.options);
-      if (battle) this.remember(key, battle);
-    }
+    const key = `solo:${entry.id}`;
+    const cached = this.battles.get(key);
+    if (cached && cached.startAtMs === Date.parse(entry.startAt)) return cached;
+    const battle = fromSoloEntry(entry, { id: input.selfId, look: input.selfLook, attackStyle: input.selfAttackStyle }, this.options);
+    if (battle) this.remember(key, battle); else this.battles.delete(key);
     return battle;
+  }
+
+  /**
+   * Solo entries leave the queue when they resolve (or when a combat change regenerates the queue).
+   * A resolved one keeps playing, cut short by its flee / cancellation; one that never started is gone.
+   */
+  private settleSolo(queued: Set<string>, resolved: ArenaResolvedEntry[], now: number): void {
+    for (const [key, battle] of [...this.battles]) {
+      if (!key.startsWith('solo:') || queued.has(battle.id)) continue;
+      const r = resolved.find((x) => x.entryId === battle.id);
+      const cutAt = Date.parse(String(r?.cancelledAt ?? ''));
+      if (r && Number.isFinite(cutAt)) {
+        if (r.cancellationReason === 'flee') { if (!battle.flee) this.battles.set(key, { ...battle, flee: { atMs: cutAt } }); }
+        else if (cutAt < battle.endAtMs) this.battles.set(key, { ...battle, endAtMs: cutAt });
+      } else if (!r && !this.started.has(battle.id) && battle.startAtMs > now) {
+        this.battles.delete(key);
+      }
+    }
   }
 
   private shared(view: SharedBattleView, input: ArenaSourceInputs): ArenaBattle {
@@ -96,8 +118,10 @@ export class ArenaSceneSource {
 
   private remember(key: string, battle: ArenaBattle): void {
     this.battles.set(key, battle);
-    if (this.battles.size <= KEEP) return;
-    const oldest = [...this.battles.entries()].sort((a, b) => a[1].endAtMs - b[1].endAtMs)[0];
-    this.battles.delete(oldest[0]);
+    while (this.battles.size > KEEP) {
+      // Drop a battle that never ran before one that did, then the oldest.
+      const entries = [...this.battles.entries()].sort((a, b) => Number(this.started.has(a[1].id)) - Number(this.started.has(b[1].id)) || a[1].endAtMs - b[1].endAtMs);
+      this.battles.delete(entries[0][0]);
+    }
   }
 }

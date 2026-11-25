@@ -29,7 +29,7 @@ describe('ArenaSceneComponent', () => {
         { provide: ARENA_SCENE_ENV, useValue: { webglAvailable: () => true, createRuntime: async () => fake } },
         { provide: CharacterStore, useValue: { character: signal({ id: 'char-self', currentMapId: 'map_green_grounds_2', appearance: defaultAppearance(), sex: 'male', heightCm: 181, dominantHand: 'right', gatheringCycle: { cycleIndex: 3 } }) } },
         { provide: InventoryStore, useValue: { equipment: signal([{ slot: 'mainHand', itemId: 'equip_bow_t1' }]) } },
-        { provide: BattleStore, useValue: { queue: signal([SOLO_V2_ENTRY]) } },
+        { provide: BattleStore, useValue: { queue: signal([SOLO_V2_ENTRY]), lastResolved: signal(null) } },
         { provide: PartyStore, useValue: { party: signal(null), battle: signal(null), nextEncounterAt: signal(null), members: signal([]) } },
         { provide: CatalogService, useValue: { item: (id: string) => (id === 'equip_bow_t1' ? { weaponType: 'bow' } : undefined) } },
         { provide: ServerClockService, useValue: { now: () => now } },
