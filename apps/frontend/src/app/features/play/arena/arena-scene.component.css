@@ -1,24 +1,24 @@
-:host { position: absolute; inset: 0; z-index: 1; display: block; cursor: default; }
+app-arena-scene { position: absolute; inset: 0; z-index: 1; display: block; cursor: default; }
 /* Hidden (map view): kept mounted, not drawn. */
-:host(.arena-hidden) { visibility: hidden; pointer-events: none; }
-.arena-scene { position: absolute; inset: 0; overflow: hidden; background: #000; }
-.arena-stage { position: absolute; inset: 0; }
-:host ::ng-deep .arena-stage canvas { width: 100% !important; height: 100% !important; }
-.arena-failed { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #d0b98f; font: 16px Georgia; text-align: center; padding: 24px; }
-.arena-hud-layer { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
-.arena-hud { position: absolute; left: 0; top: 0; width: 76px; margin-left: -38px; margin-top: -30px; display: flex; flex-direction: column; gap: 2px; align-items: stretch; will-change: transform; }
-.arena-hud-name { font: 700 11px/1.1 Arial, sans-serif; color: #f3e6c8; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px #000, 0 0 3px #000; }
-.arena-hud--foe .arena-hud-name { color: #ffd3c4; }
-.arena-bar { display: block; height: 5px; background: rgba(12, 10, 16, 0.78); border: 1px solid rgba(0, 0, 0, 0.85); border-radius: 2px; overflow: hidden; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
-.arena-bar i { display: block; height: 100%; transition: width 160ms linear; }
-.arena-bar--hp i { background: linear-gradient(#7ee36e, #3fa13a); }
-.arena-hud--foe .arena-bar--hp i { background: linear-gradient(#ff7a6a, #c9302a); }
-.arena-bar--sp { height: 4px; }
-.arena-bar--sp i { background: linear-gradient(#7cc4ff, #2f7fd6); }
-.arena-bar--cast { height: 4px; margin-top: 1px; }
-.arena-bar--cast i { background: linear-gradient(#fff3a8, #f0b43a); transition: none; }
+app-arena-scene.arena-hidden { visibility: hidden; pointer-events: none; }
+app-arena-scene .arena-scene { position: absolute; inset: 0; overflow: hidden; background: #000; }
+app-arena-scene .arena-stage { position: absolute; inset: 0; }
+app-arena-scene .arena-stage canvas { width: 100% !important; height: 100% !important; }
+app-arena-scene .arena-failed { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #d0b98f; font: 16px Georgia; text-align: center; padding: 24px; }
+app-arena-scene .arena-hud-layer { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+app-arena-scene .arena-hud { position: absolute; left: 0; top: 0; width: 76px; margin-left: -38px; margin-top: -30px; display: flex; flex-direction: column; gap: 2px; align-items: stretch; will-change: transform; }
+app-arena-scene .arena-hud-name { font: 700 11px/1.1 Arial, sans-serif; color: #f3e6c8; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px #000, 0 0 3px #000; }
+app-arena-scene .arena-hud--foe .arena-hud-name { color: #ffd3c4; }
+app-arena-scene .arena-bar { display: block; height: 5px; background: rgba(12, 10, 16, 0.78); border: 1px solid rgba(0, 0, 0, 0.85); border-radius: 2px; overflow: hidden; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+app-arena-scene .arena-bar i { display: block; height: 100%; transition: width 160ms linear; }
+app-arena-scene .arena-bar--hp i { background: linear-gradient(#7ee36e, #3fa13a); }
+app-arena-scene .arena-hud--foe .arena-bar--hp i { background: linear-gradient(#ff7a6a, #c9302a); }
+app-arena-scene .arena-bar--sp { height: 4px; }
+app-arena-scene .arena-bar--sp i { background: linear-gradient(#7cc4ff, #2f7fd6); }
+app-arena-scene .arena-bar--cast { height: 4px; margin-top: 1px; }
+app-arena-scene .arena-bar--cast i { background: linear-gradient(#fff3a8, #f0b43a); transition: none; }
 /* Floating numbers reuse the panels' styles (styles.css); positioned at the actor, not the panel. */
-.arena-number { position: absolute; transform: translate(-50%, 0); z-index: 3; }
-.floating-damage--heal { color: #6dff8a; }
-.floating-damage--miss { color: #d9d9d9; font-size: 20px; }
-.arena-wipe { position: absolute; inset: 0; background: #000; pointer-events: none; z-index: 4; }
+app-arena-scene .arena-number { position: absolute; transform: translate(-50%, 0); z-index: 3; }
+app-arena-scene .floating-damage--heal { color: #6dff8a; }
+app-arena-scene .floating-damage--miss { color: #d9d9d9; font-size: 20px; }
+app-arena-scene .arena-wipe { position: absolute; inset: 0; background: #000; pointer-events: none; z-index: 4; }

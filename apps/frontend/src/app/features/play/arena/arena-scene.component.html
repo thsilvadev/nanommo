@@ -3,18 +3,7 @@
   @if (failed()) {
     <p class="arena-failed">{{ locale.t('The arena needs WebGL, which this browser cannot provide.') }}</p>
   }
-  <div class="arena-hud-layer" aria-hidden="true">
-    @for (item of hud(); track item.id) {
-      <div class="arena-hud" [class.arena-hud--foe]="item.team === 'b'" [style.transform]="'translate(' + item.x + 'px,' + item.y + 'px)'">
-        <span class="arena-hud-name">{{ item.name }}</span>
-        <span class="arena-bar arena-bar--hp"><i [style.width.%]="item.hp * 100"></i></span>
-        @if (item.hasSp) { <span class="arena-bar arena-bar--sp"><i [style.width.%]="item.sp * 100"></i></span> }
-        @if (item.cast !== null) { <span class="arena-bar arena-bar--cast"><i [style.width.%]="item.cast * 100"></i></span> }
-      </div>
-    }
-    @for (n of numbers(); track n.key) {
-      <span [class]="'floating-damage arena-number floating-damage--' + n.style" [style.left.px]="n.x" [style.top.px]="n.y" [style.--damage-offset-x]="n.offset + 'px'">{{ n.text }}</span>
-    }
-  </div>
-  <div class="arena-wipe" [style.opacity]="fade()"></div>
+  <!-- Names, bars and floating numbers: written by refreshHud() straight to the DOM. -->
+  <div #hudLayer class="arena-hud-layer" aria-hidden="true"></div>
+  <div #wipe class="arena-wipe" style="opacity:0"></div>
 </div>

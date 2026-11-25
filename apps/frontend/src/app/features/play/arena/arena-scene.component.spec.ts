@@ -46,11 +46,10 @@ describe('ArenaSceneComponent', () => {
   }
   afterEach(() => { source = null; active = false; });
 
-  it('renders one HUD per actor with HP and SP bars', async () => {
+  it('renders one HUD per actor with HP and SP bars, straight to the DOM (no change detection at 30 Hz)', async () => {
     const fixture = await mount();
     source!(now);
     fixture.componentInstance.refreshHud();
-    fixture.detectChanges();
     const huds = fixture.nativeElement.querySelectorAll('.arena-hud');
     expect(huds.length).toBe(2);
     expect(fixture.nativeElement.querySelectorAll('.arena-bar--hp').length).toBe(2);
@@ -62,7 +61,6 @@ describe('ArenaSceneComponent', () => {
     const fixture = await mount();
     source!(now);
     fixture.componentInstance.refreshHud();
-    fixture.detectChanges();
     expect(fixture.nativeElement.querySelectorAll('.arena-number').length).toBeGreaterThan(0);
     expect(TestBed.inject(ArenaFeedbackOwner).arenaVisible()).toBeTrue();
     fixture.destroy();

@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, InjectionToken, NgZone, OnDestroy, ViewChild, effect, inject, input, signal, untracked } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, InjectionToken, NgZone, OnDestroy, ViewChild, ViewEncapsulation, effect, inject, input, signal, untracked } from '@angular/core';
 import type { VisibleEquipment } from '@nanommo/shared';
 import { BattleStore, CharacterStore, InventoryStore } from '../../../core/game.store';
 import { CatalogService } from '../../../core/catalog.service';
@@ -23,8 +23,6 @@ export const ARENA_SCENE_ENV = new InjectionToken<ArenaSceneEnv>('ARENA_SCENE_EN
   factory: () => ({ webglAvailable: isWebglAvailable, createRuntime: async (host, init) => (await import('./arena-runtime')).createArenaRuntime(host, init) }),
 });
 
-export interface ArenaHudItem { id: string; x: number; y: number; name: string; team: 'a' | 'b'; hp: number; sp: number; hasSp: boolean; cast: number | null }
-export interface ArenaNumber { key: string; x: number; y: number; text: string; style: string; offset: number }
 /** HUD refresh rate (positions follow the 3D anchors; the canvas itself runs at the display rate). */
 const HUD_MS = 33;
 
@@ -36,16 +34,21 @@ const HUD_MS = 33;
 @Component({
   selector: 'app-arena-scene', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './arena-scene.component.html', styleUrl: './arena-scene.component.css',
+  // The HUD is written straight to the DOM (no change detection at 30 Hz), so its styles cannot be
+  // emulated-encapsulated: every selector is scoped under `app-arena-scene` instead.
+  encapsulation: ViewEncapsulation.None,
 })
 export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
   readonly active = input(false);
   readonly mapId = input<string | null>(null);
   @ViewChild('stage', { static: true }) stage!: ElementRef<HTMLElement>;
+  @ViewChild('hudLayer', { static: true }) hudLayer!: ElementRef<HTMLElement>;
+  @ViewChild('wipe', { static: true }) wipe!: ElementRef<HTMLElement>;
 
-  readonly hud = signal<ArenaHudItem[]>([]);
-  readonly numbers = signal<ArenaNumber[]>([]);
-  readonly fade = signal(0);
   readonly failed = signal(false);
+  private readonly hudViews = new Map<string, HudView>();
+  /** Floating numbers on screen, by feedback key (each removes itself when its animation ends). */
+  private readonly shownNumbers = new Map<string, HTMLElement>();
   readonly locale = inject(LocaleService);
 
   private readonly env = inject(ARENA_SCENE_ENV);
@@ -137,41 +140,55 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
     };
   }
 
-  /** HUD positions and contents from the latest drawn frame (30 Hz). */
+  /** HUD positions and contents from the latest drawn frame (30 Hz), written straight to the DOM. */
   refreshHud(): void {
     const frame = this.latest;
     if (!frame || !this.runtime || !this.active()) return;
     const anchors = this.runtime.screenAnchors();
     const now = this.clock.now();
     const scene = frame.scene;
-    const hud: ArenaHudItem[] = [];
+    const seen = new Set<string>();
     if (scene.hud) {
       for (const a of scene.frame.actors) {
         const anchor = anchors.get(a.id);
         const visual = frame.visuals.get(a.id);
         if (!anchor?.visible || !visual || a.deadAtMs !== null || (a.exit ?? 0) > 0) continue;
-        const max = { hp: visual.maxHp ?? 0, sp: visual.maxSp ?? 0 };
-        hud.push({
-          id: a.id, x: anchor.x, y: anchor.y, name: visual.name, team: visual.team,
-          hp: max.hp > 0 ? Math.max(0, Math.min(1, a.hp / max.hp)) : 0, sp: max.sp > 0 ? Math.max(0, Math.min(1, a.sp / max.sp)) : 0, hasSp: max.sp > 0,
-          cast: a.cast ? Math.max(0, Math.min(1, (now - a.cast.startedAtMs) / Math.max(1, a.cast.endsAtMs - a.cast.startedAtMs))) : null,
-        });
+        seen.add(a.id);
+        const maxHp = visual.maxHp ?? 0, maxSp = visual.maxSp ?? 0;
+        this.hudView(a.id, visual.name, visual.team).update(anchor.x, anchor.y,
+          maxHp > 0 ? a.hp / maxHp : 0, maxSp > 0 ? a.sp / maxSp : null,
+          a.cast ? (now - a.cast.startedAtMs) / Math.max(1, a.cast.endsAtMs - a.cast.startedAtMs) : null);
       }
     }
-    const numbers: ArenaNumber[] = [];
+    for (const [id, view] of this.hudViews) if (!seen.has(id)) { view.root.remove(); this.hudViews.delete(id); }
     for (const [i, f] of scene.frame.feedback.entries()) {
       const anchor = anchors.get(f.targetId);
-      if (!anchor?.visible) continue;
-      const existing = this.numbers().find((n) => n.key === f.key);
-      // A number stays where it appeared (its CSS animation carries it).
-      numbers.push(existing ?? { key: f.key, x: anchor.x, y: anchor.y + 24, text: f.text === 'Miss' ? this.locale.t('Miss') : f.text, style: f.style, offset: ((i % 5) - 2) * 12 });
+      if (!anchor?.visible || this.shownNumbers.has(f.key)) continue;
+      this.showNumber(f.key, anchor.x, anchor.y + 24, f.text === 'Miss' ? this.locale.t('Miss') : f.text, f.style, ((i % 5) - 2) * 12);
     }
-    this.hud.set(hud);
-    this.numbers.set(numbers);
-    this.fade.set(scene.fade);
+    const fade = String(scene.fade);
+    if (this.wipe.nativeElement.style.opacity !== fade) this.wipe.nativeElement.style.opacity = fade;
   }
 
-  trackId(_: number, item: { id?: string; key?: string }): string { return item.id ?? item.key ?? ''; }
+  private hudView(id: string, name: string, team: 'a' | 'b'): HudView {
+    let view = this.hudViews.get(id);
+    if (!view) { view = new HudView(name, team); this.hudLayer.nativeElement.appendChild(view.root); this.hudViews.set(id, view); }
+    return view;
+  }
+
+  /** A floating number at the actor, in the panels' style; its CSS animation carries it and it then removes itself. */
+  private showNumber(key: string, x: number, y: number, text: string, style: string, offset: number): void {
+    const el = document.createElement('span');
+    el.className = `floating-damage arena-number floating-damage--${style}`;
+    el.textContent = text;
+    el.style.left = `${x}px`; el.style.top = `${y}px`;
+    el.style.setProperty('--damage-offset-x', `${offset}px`);
+    this.hudLayer.nativeElement.appendChild(el);
+    this.shownNumbers.set(key, el);
+    const remove = () => { el.remove(); setTimeout(() => this.shownNumbers.delete(key), 2000); };
+    el.addEventListener('animationend', remove, { once: true });
+    setTimeout(remove, 1800);
+  }
 
   private selfLook(): ArenaCharacterLook | null {
     const c = this.character.character();
@@ -192,4 +209,32 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
 
 function rows(equipment: VisibleEquipment): Array<{ slot: string; itemId: string }> {
   return Object.entries(equipment).filter(([, id]) => !!id).map(([slot, itemId]) => ({ slot, itemId: itemId as string }));
+}
+
+/** One combatant's name and bars, updated in place (no Angular in the 30 Hz path). */
+class HudView {
+  readonly root = document.createElement('div');
+  private readonly hp: HTMLElement;
+  private readonly sp: HTMLElement;
+  private readonly cast: HTMLElement;
+  private last = '';
+  constructor(name: string, team: 'a' | 'b') {
+    this.root.className = `arena-hud${team === 'b' ? ' arena-hud--foe' : ''}`;
+    const label = document.createElement('span'); label.className = 'arena-hud-name'; label.textContent = name;
+    const bar = (kind: string) => { const outer = document.createElement('span'); outer.className = `arena-bar arena-bar--${kind}`; const inner = document.createElement('i'); outer.appendChild(inner); this.root.appendChild(outer); return inner; };
+    this.root.appendChild(label);
+    this.hp = bar('hp'); this.sp = bar('sp'); this.cast = bar('cast');
+  }
+  update(x: number, y: number, hp: number, sp: number | null, cast: number | null): void {
+    const pct = (v: number) => `${Math.round(Math.max(0, Math.min(1, v)) * 1000) / 10}%`;
+    const key = `${Math.round(x)}|${Math.round(y)}|${pct(hp)}|${sp === null ? '-' : pct(sp)}|${cast === null ? '-' : pct(cast)}`;
+    if (key === this.last) return;
+    this.last = key;
+    this.root.style.transform = `translate(${Math.round(x)}px,${Math.round(y)}px)`;
+    this.hp.style.width = pct(hp);
+    (this.sp.parentElement as HTMLElement).style.display = sp === null ? 'none' : '';
+    if (sp !== null) this.sp.style.width = pct(sp);
+    (this.cast.parentElement as HTMLElement).style.display = cast === null ? 'none' : '';
+    if (cast !== null) this.cast.style.width = pct(cast);
+  }
 }
