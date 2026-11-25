@@ -55,7 +55,8 @@ export class CharacterFaceService {
     if (!this.env.webglAvailable()) return Promise.resolve();
     this.rendering = this.env.render(look)
       .then((url) => { this.face.set(url); this.write({ key, url }); })
-      .catch(() => { this.renderedKey = null; })
+      // A failed look is not retried this session: each try builds a WebGL context (a hitch per Character update).
+      .catch(() => undefined)
       .finally(() => { this.rendering = null; });
     return this.rendering;
   }

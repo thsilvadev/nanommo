@@ -8,17 +8,18 @@ describe('CharacterFaceService', () => {
   const PNG = 'data:image/png;base64,AAA';
   let renders: number;
   let webgl: boolean;
+  let fail = false;
   let character: ReturnType<typeof signal<any>>;
   const look = (hair = 2) => ({ id: 'c1', sex: 'male', heightCm: 181, dominantHand: 'right', appearance: { ...defaultAppearance(), hair } });
 
   function service(): CharacterFaceService {
     TestBed.resetTestingModule();
-    const env: FaceRenderEnv = { webglAvailable: () => webgl, render: async () => { renders++; return PNG; } };
+    const env: FaceRenderEnv = { webglAvailable: () => webgl, render: async () => { renders++; if (fail) throw new Error('hair 404'); return PNG; } };
     TestBed.configureTestingModule({ providers: [{ provide: CHARACTER_FACE_RENDER, useValue: env }, { provide: CharacterStore, useValue: { character } }] });
     return TestBed.inject(CharacterFaceService);
   }
   beforeEach(() => {
-    renders = 0; webgl = true; character = signal<any>(look());
+    renders = 0; webgl = true; fail = false; character = signal<any>(look());
     try { localStorage.removeItem('nanommo.face'); } catch { /* ignore */ }
   });
 
@@ -58,5 +59,18 @@ describe('CharacterFaceService', () => {
     await expectAsync(b.preload(undefined, 50)).toBeResolved();
     expect(b.url()).toBeNull();
     expect(renders).toBe(0);
+  });
+
+  it('a failed render is not retried on every character update (no new WebGL context each time)', async () => {
+    fail = true;
+    const face = service();
+    await face.preload();
+    for (let hp = 1; hp <= 5; hp++) {
+      character.update((c: any) => ({ ...c, hp }));
+      TestBed.flushEffects();
+      await new Promise((r) => setTimeout(r));
+    }
+    expect(renders).toBe(1);
+    expect(face.url()).toBeNull();
   });
 });

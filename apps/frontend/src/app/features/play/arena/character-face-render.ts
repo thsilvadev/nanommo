@@ -25,14 +25,15 @@ export async function renderFace(look: FaceLook, catalogUrl?: string): Promise<s
     import('../../../shared/character-viewer/appearance-catalog'),
   ]);
   const loader = new GLTFLoader();
+  let rig: Awaited<ReturnType<typeof CharacterRig.create>> | null = null;
   const host = document.createElement('div');
-  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${FACE_PX}px;height:${FACE_PX}px;pointer-events:none`;
-  document.body.appendChild(host);
-  const rig = await CharacterRig.create(host, {
-    assetBase: ASSET_BASE, catalog: () => loadAppearanceCatalog(catalogUrl), load: (url) => loader.loadAsync(url),
-    cache: CharacterAssetCache.shared(ASSET_BASE, (url) => loader.loadAsync(url)), onContextLost: () => undefined,
-  });
   try {
+    host.style.cssText = `position:fixed;left:-10000px;top:0;width:${FACE_PX}px;height:${FACE_PX}px;pointer-events:none`;
+    document.body.appendChild(host);
+    rig = await CharacterRig.create(host, {
+      assetBase: ASSET_BASE, catalog: () => loadAppearanceCatalog(catalogUrl), load: (url) => loader.loadAsync(url),
+      cache: CharacterAssetCache.shared(ASSET_BASE, (url) => loader.loadAsync(url)), onContextLost: () => undefined,
+    });
     const config: ViewerConfig = {
       sex: look.sex, heightCm: look.heightCm, appearance: look.appearance, hands: { right: null, left: null },
       dominantHand: look.dominantHand, interactive: false, framing: 'face', equipment: null, refinement: null,
@@ -40,7 +41,7 @@ export async function renderFace(look: FaceLook, catalogUrl?: string): Promise<s
     await rig.apply(config);
     return rig.snapshot(FACE_PX);
   } finally {
-    rig.dispose();
+    rig?.dispose();
     host.remove();
   }
 }
