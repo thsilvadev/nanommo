@@ -298,3 +298,6 @@ Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `ev
 - Generated monster clips play over the Idle body at the same weight; "which clip is playing" must prefer the clip over the Idle underlay.
 - Never tint shared materials for a hit flash: gear and monster materials are shared across instances (`gearMaterial`, SkeletonUtils clones). Each arena view clones the materials it tints.
 - Karma on the default port can pick up another session's Chrome and report its failures as yours; run with an isolated config/port when other sessions test in parallel.
+- The solo battle log names the self actor `character` (the API's character snapshot has no `characterId`); never match a solo actor by character id. `fromSoloEntry` renames it.
+- Every map transition bumps `gatheringCycle.cycleIndex` (map.service); a completed gather is an increment on the same map.
+- `apps/frontend/.angular/cache` grows without bound across Karma/build runs (it reached ~40 GB and filled the disk); delete it when space runs low, it rebuilds itself.
