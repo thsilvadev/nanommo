@@ -308,3 +308,8 @@ Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `ev
 - The arena runtime does not draw while hidden, so `ArenaSceneSource` sees nothing between two views: decide whether a cached battle is still real from "did it leave the queue / did the arena see it start", never from its start time (a trip deletes queued battles while the map view is open).
 - `MapBoard` is destroyed whenever another page opens: view choices that must survive navigation live in `WorldViewState` (root service).
 - Monster GLBs rebuilt in place: set `rev` in `tools/monster-assets/monsters.config.mjs` (the manifest gets `file?v=<rev>`).
+- Arena columns are absolute: a battle's grid is shifted by its offset (`ArenaSceneSource.layOut`), the camera frames from `scene.origin`, and the scenery group follows the camera x. Anything new placed in the arena must use absolute columns, and anything fixed to the world must scroll with `walked + cameraX`.
+- Arena ground props are merged geometries: every part must have the same attributes (drop `uv` when mixing hand-built and three.js geometries) or `mergeGeometries` returns null.
+- The arena water/ground draw order matters: the painted layers never write depth, so a 3D surface behind the far layer must draw before it (`renderOrder` between sky and far).
+- Screenshot harness: `page.screenshot` with a clip, not `locator.screenshot` (the stability wait stalls under SwiftShader); one process per region when shooting many.
+
