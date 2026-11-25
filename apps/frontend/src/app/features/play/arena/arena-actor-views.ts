@@ -130,7 +130,7 @@ export class ArenaActorView {
   private ice: THREE.Group | null = null;
   private readonly owned: Array<{ dispose(): void }> = [];
   /** Materials this view cloned for itself (flash and fade never touch shared materials). */
-  private readonly ownMaterials = new WeakSet<THREE.Material>();
+  private readonly tinter = new ArenaTint();
   private lookKey: string;
   private disposed = false;
 
@@ -200,6 +200,7 @@ export class ArenaActorView {
     this.ice?.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); (m.material as THREE.Material | undefined)?.dispose?.(); });
     for (const s of [...this.stars, ...this.zs]) s.material.dispose();
     for (const o of this.owned) o.dispose();
+    this.tinter.dispose();
     this.object3d.removeFromParent();
   }
 
@@ -234,23 +235,7 @@ export class ArenaActorView {
 
   /** Emissive tint (hit flash) and opacity (exit) on this view's own material copies. */
   private tint(color: string, strength: number, opacity: number): void {
-    const c = new THREE.Color(color).multiplyScalar(strength * 0.55);
-    this.posable.object3d.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      if (!mesh.isMesh || !mesh.material) return;
-      const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      const own = list.map((m) => {
-        if (this.ownMaterials.has(m)) return m;
-        const copy = m.clone(); this.ownMaterials.add(copy); this.owned.push(copy); return copy;
-      });
-      mesh.material = Array.isArray(mesh.material) ? own : own[0];
-      for (const m of own) {
-        const std = m as THREE.MeshStandardMaterial;
-        if (std.emissive) std.emissive.copy(c);
-        m.transparent = opacity < 1 || m.userData['wasTransparent'] === true;
-        m.opacity = opacity;
-      }
-    });
+    this.tinter.apply(this.posable.object3d, color, strength, opacity);
   }
 
   private updateStars(on: boolean, head: number, nowMs: number): void {
@@ -290,5 +275,54 @@ export class ArenaActorView {
       this.fx.add(this.ice);
     }
     if (this.ice) this.ice.visible = on;
+  }
+}
+
+interface Authored { emissive: THREE.Color | null; transparent: boolean; opacity: number }
+const FLASH_GAIN = 0.55;
+
+/**
+ * Hit flash and exit fade on per-view material copies: gear and monster materials are
+ * shared between instances, so a view never tints those. A copy remembers the authored
+ * emissive, transparency and opacity, the flash adds to that glow and the fade scales
+ * that opacity; when neither shows, the authored values come back. Nothing is copied
+ * until there is something to show.
+ */
+export class ArenaTint {
+  private readonly authored = new WeakMap<THREE.Material, Authored>();
+  private readonly owned: THREE.Material[] = [];
+  private readonly color = new THREE.Color();
+  private active = false;
+
+  apply(root: THREE.Object3D, color: string, strength: number, opacity: number): void {
+    const showing = strength > 0 || opacity < 1;
+    if (!showing && !this.active) return;
+    this.active = showing;
+    this.color.set(color).multiplyScalar(strength * FLASH_GAIN);
+    root.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || !mesh.material) return;
+      const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      const own = list.map((m) => (this.authored.has(m) ? m : this.copy(m)));
+      if (own.some((m, i) => m !== list[i])) mesh.material = Array.isArray(mesh.material) ? own : own[0];
+      for (const m of own) {
+        const a = this.authored.get(m)!;
+        const std = m as THREE.MeshStandardMaterial;
+        if (std.emissive && a.emissive) std.emissive.copy(a.emissive).add(this.color);
+        const transparent = a.transparent || opacity < 1;
+        if (m.transparent !== transparent) { m.transparent = transparent; m.needsUpdate = true; }
+        m.opacity = a.opacity * opacity;
+      }
+    });
+  }
+
+  dispose(): void { for (const m of this.owned) m.dispose(); this.owned.length = 0; }
+
+  private copy(m: THREE.Material): THREE.Material {
+    const copy = m.clone();
+    const std = copy as THREE.MeshStandardMaterial;
+    this.authored.set(copy, { emissive: std.emissive ? std.emissive.clone() : null, transparent: copy.transparent, opacity: copy.opacity });
+    this.owned.push(copy);
+    return copy;
   }
 }
