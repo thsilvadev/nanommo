@@ -17,6 +17,7 @@ describe('ArenaSceneComponent', () => {
   let source: ArenaFrameSource | null = null;
   let active = false;
   let lost: (() => void) | null = null;
+  let characterState: ReturnType<typeof signal<any>>;
   const fake: ArenaRuntimeHandle = {
     setSource: (s) => { source = s; }, setActive: (a) => { active = a; }, isRendering: () => active, renderOnce: () => undefined, actorCount: () => 2,
     screenAnchors: () => new Map([['char-self', { x: 100, y: 200, visible: true }], ['monster:mon_mutantbee:0', { x: 500, y: 210, visible: true }]]),
@@ -28,7 +29,7 @@ describe('ArenaSceneComponent', () => {
       imports: [ArenaSceneComponent],
       providers: [
         { provide: ARENA_SCENE_ENV, useValue: { webglAvailable: () => true, createRuntime: async (_: HTMLElement, init: { onContextLost: () => void }) => { lost = init.onContextLost; return fake; } } },
-        { provide: CharacterStore, useValue: { character: signal({ id: 'char-self', currentMapId: 'map_green_grounds_2', appearance: defaultAppearance(), sex: 'male', heightCm: 181, dominantHand: 'right', gatheringCycle: { cycleIndex: 3 } }) } },
+        { provide: CharacterStore, useValue: { character: (characterState = signal<any>({ id: 'char-self', currentMapId: 'map_green_grounds_2', appearance: defaultAppearance(), sex: 'male', heightCm: 181, dominantHand: 'right', gatheringCycle: { cycleIndex: 3 } })) } },
         { provide: InventoryStore, useValue: { equipment: signal([{ slot: 'mainHand', itemId: 'equip_bow_t1' }]) } },
         { provide: BattleStore, useValue: { queue: signal([SOLO_V2_ENTRY]), lastResolved: signal(null) } },
         { provide: PartyStore, useValue: { party: signal(null), battle: signal(null), nextEncounterAt: signal(null), members: signal([]) } },
@@ -93,6 +94,18 @@ describe('ArenaSceneComponent', () => {
     const fixture = await mount();
     const frame = source!(now)!;
     expect(frame.visuals.get('char-self')!.look!.mainHandType).toBe('bow');
+    fixture.destroy();
+  });
+
+  it('a completed gather kneels the character; a map change (which also starts a new cycle) does not', async () => {
+    const fixture = await mount();
+    const component = fixture.componentInstance;
+    characterState.update((c: any) => ({ ...c, currentMapId: 'map_green_grounds_3', gatheringCycle: { cycleIndex: 4 } }));
+    fixture.detectChanges();
+    expect(component.inputs(now).gatherAtMs).withContext('map change').toBeNull();
+    characterState.update((c: any) => ({ ...c, gatheringCycle: { cycleIndex: 5 } }));
+    fixture.detectChanges();
+    expect(component.inputs(now).gatherAtMs).withContext('gather on the same map').toBe(now);
     fixture.destroy();
   });
 });

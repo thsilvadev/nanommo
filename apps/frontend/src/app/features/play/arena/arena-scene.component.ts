@@ -70,18 +70,23 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
   private hudTimer: ReturnType<typeof setInterval> | null = null;
   private gatherAtMs: number | null = null;
   private lastCycle: number | null = null;
+  private lastCycleMapId: string | null = null;
   private shared: { id: string; atMs: number } | null = null;
   /** Recently resolved solo entries (a flee or cancellation cuts the cached battle short). */
   private resolved: ArenaResolvedEntry[] = [];
   private destroyed = false;
 
   constructor() {
-    // A completed gather (the cycle index grows): the viewing character kneels.
+    // A completed gather (the cycle index grows on the same map): the viewing character kneels.
+    // Entering a map also starts a new cycle (map.service), which is not a gather.
     effect(() => {
-      const cycle = Number(this.character.character()?.gatheringCycle?.cycleIndex);
+      const c = this.character.character();
+      const cycle = Number(c?.gatheringCycle?.cycleIndex);
       if (!Number.isFinite(cycle)) return;
-      if (this.lastCycle !== null && cycle > this.lastCycle) this.gatherAtMs = this.clock.now();
+      const mapId = c?.currentMapId ?? null;
+      if (this.lastCycle !== null && cycle > this.lastCycle && mapId === this.lastCycleMapId) this.gatherAtMs = this.clock.now();
       this.lastCycle = cycle;
+      this.lastCycleMapId = mapId;
     });
     // Resolved entries leave the queue; keep their flee/cancellation for the arena.
     effect(() => {
