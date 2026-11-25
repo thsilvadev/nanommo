@@ -71,6 +71,8 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
     { kind: 'pebble', count: 120, colors: ['#9a9a8c', '#8a8a7c'], size: [0.06, 0.16], bands: [ALL] },
   ],
   ipora_beach: [
+    { kind: 'palm', count: 9, colors: ['#ffffff', '#f2f2e6', '#e8eedc'], size: [0.8, 1.15], bands: [[-24, -17]] },
+    { kind: 'log', count: 4, colors: ['#c9b89a', '#b8a585'], size: [0.5, 0.9], bands: [BEHIND, FRONT] },
     { kind: 'rock', count: 14, colors: ['#b9a98a', '#a8977a', '#c9b99a'], size: [0.3, 0.9], bands: [BEHIND, FRONT] },
     { kind: 'pebble', count: 150, colors: ['#f3e6bf', '#e6d2a0', '#d9c3a0', '#ffffff'], size: [0.04, 0.1], bands: [ALL] },
   ],

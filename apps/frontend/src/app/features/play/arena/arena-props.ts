@@ -83,15 +83,71 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
       return shade(g, (_p, n) => (n.y > 0.7 ? 1.1 : 0.9));
     }
     case 'palm':
-      return shade(new THREE.ConeGeometry(0.3, 4, 6), () => 1);
+      return palmGeometry();
   }
+}
+
+/** Paints a geometry one colour (vertex colours carry the real colour; the instance colour is near white). */
+function paint(g: THREE.BufferGeometry, color: string, vary = 0): THREE.BufferGeometry {
+  const out = g.index ? g.toNonIndexed() : g;
+  // Same attributes on every part (mergeGeometries refuses a mix): position, normal, color.
+  out.deleteAttribute('uv');
+  out.computeVertexNormals();
+  const c = new THREE.Color(color), pos = out.getAttribute('position');
+  const colors = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) { const k = 1 + vary * Math.sin(pos.getY(i) * 7.1 + pos.getX(i) * 3.3); colors.set([c.r * k, c.g * k, c.b * k], i * 3); }
+  out.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return out;
+}
+
+/** A coconut palm about 6 m tall: a leaning ringed trunk, nine drooping fronds, coconuts. */
+function palmGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const H = 5.6, lean = 1.3, segments = 8;
+  const at = (t: number) => new THREE.Vector3(lean * t * t, H * t, 0);
+  for (let k = 0; k < segments; k++) {
+    const a = at(k / segments), b = at((k + 1) / segments), len = a.distanceTo(b);
+    const seg = new THREE.CylinderGeometry(0.15 - 0.05 * ((k + 1) / segments), 0.2 - 0.05 * (k / segments), len, 8, 1);
+    seg.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()));
+    seg.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+    parts.push(paint(seg, k % 2 ? '#8a6a44' : '#7a5c3a', 0.05));
+  }
+  const top = at(1);
+  for (let k = 0; k < 9; k++) {
+    // A frond: a strip along a drooping arc, widest past its middle, pointed at the tip.
+    const L = 2.6 + (k % 3) * 0.3, steps = 10, verts: number[] = [];
+    const point = (t: number, side: number) => {
+      const w = 0.42 * Math.sin(Math.PI * Math.min(1, t * 1.15)) * side;
+      return new THREE.Vector3(t * L, 0.5 * t - 1.6 * t * t, w);
+    };
+    for (let i = 0; i < steps; i++) {
+      const t0 = i / steps, t1 = (i + 1) / steps;
+      const c0 = point(t0, 0), c1 = point(t1, 0), l0 = point(t0, 1), l1 = point(t1, 1), r0 = point(t0, -1), r1 = point(t1, -1);
+      // A shallow V: the leaflets hang a little below the rachis.
+      for (const p of [l0, l1, r0, r1]) p.y -= 0.12 * Math.abs(p.z) / 0.42;
+      verts.push(...c0.toArray(), ...l0.toArray(), ...c1.toArray(), ...c1.toArray(), ...l0.toArray(), ...l1.toArray());
+      verts.push(...c0.toArray(), ...c1.toArray(), ...r0.toArray(), ...r0.toArray(), ...c1.toArray(), ...r1.toArray());
+    }
+    const frond = new THREE.BufferGeometry();
+    frond.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+    frond.rotateY((k / 9) * Math.PI * 2 + 0.3);
+    frond.translate(top.x, top.y, top.z);
+    parts.push(paint(frond, k % 2 ? '#2f8a38' : '#3f9a40', 0.12));
+  }
+  for (const [x, z] of [[0.18, 0], [-0.1, 0.15], [-0.05, -0.17]]) {
+    const nut = new THREE.IcosahedronGeometry(0.16, 0);
+    nut.translate(top.x + x, top.y - 0.22, top.z + z);
+    parts.push(paint(nut, '#6b4a26'));
+  }
+  return mergeGeometries(parts)!;
 }
 
 /** A region's props: build once, then `update` every frame with the travel and the region's relief. */
 export class ArenaProps {
   readonly group = new THREE.Group();
   private readonly meshes: Array<{ mesh: THREE.InstancedMesh; items: ArenaPropInstance[] }> = [];
-  private readonly material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  // Double-sided: fronds and leaves are single sheets.
+  private readonly material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide });
   private readonly geometries: THREE.BufferGeometry[] = [];
   private lastTravelled = Number.NaN;
   private readonly m = new THREE.Matrix4();

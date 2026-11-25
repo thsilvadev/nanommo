@@ -127,14 +127,50 @@ function ferns(r, { count, y, size, colors }) {
   }
   return out;
 }
+/** Point on a quadratic Bézier. */
+const qb = (a, c, b, t) => [(1 - t) ** 2 * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]];
+/** Coconut palms: tapered, ringed, two-tone trunks; pinnate fronds drooping from the crown; coconuts. */
 function palms(r, { count, y, size }) {
   let out = '';
   for (let i = 0; i < count; i++) {
-    const x = range(r, 0, W), s = size * range(r, 0.8, 1.2), lean = range(r, -0.35, 0.35) * s, by = y + range(r, 0, 30);
-    const top = [x + lean, by - s];
-    const leaves = Array.from({ length: 7 }, (_, k) => { const a = -Math.PI + (k / 6) * Math.PI; const ex = top[0] + Math.cos(a) * s * 0.55, ey = top[1] + Math.sin(a) * s * 0.25 + s * 0.18; return `M${top[0]},${top[1]} Q${(top[0] + ex) / 2},${top[1] - s * 0.12} ${ex},${ey}`; });
-    out += wrap((dx) => `<g transform="translate(${dx},0)"><path d="M${x},${by} Q${x + lean * 0.2},${by - s * 0.5} ${top[0]},${top[1]}" stroke="#7a5a36" stroke-width="${s * 0.07}" fill="none"/>`
-      + `<path d="${leaves.join(' ')}" stroke="#2f8f3e" stroke-width="${s * 0.06}" fill="none" stroke-linecap="round"/></g>`);
+    const x = range(r, 0, W), s = size * range(r, 0.8, 1.2), lean = range(r, -0.4, 0.4) * s, by = y + range(r, 0, 30);
+    const base = [x, by], ctrl = [x + lean * 0.15, by - s * 0.55], top = [x + lean, by - s];
+    // Trunk: a polygon around the curve, wide at the foot, ringed every few percent.
+    const n = 24, left = [], right = [], rings = [];
+    for (let k = 0; k <= n; k++) {
+      const t = k / n, [px, py] = qb(base, ctrl, top, t), [qx, qy] = qb(base, ctrl, top, Math.min(1, t + 0.01));
+      const len = Math.hypot(qx - px, qy - py) || 1, nx = -(qy - py) / len, ny = (qx - px) / len, w = s * (0.045 - 0.018 * t) * (k === 0 ? 1.35 : 1);
+      left.push([px + nx * w, py + ny * w]); right.push([px - nx * w, py - ny * w]);
+      if (k % 2 === 1 && k < n) rings.push(`M${(px + nx * w).toFixed(1)},${(py + ny * w).toFixed(1)} Q${(px + 2).toFixed(1)},${(py + 3).toFixed(1)} ${(px - nx * w).toFixed(1)},${(py - ny * w).toFixed(1)}`);
+    }
+    const poly = (pts) => pts.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join(' L');
+    const trunk = `<path d="M${poly(left)} L${poly([...right].reverse())} Z" fill="#8a6a44"/>`
+      + `<path d="M${poly(left)} L${poly([...left].reverse().map(([a, b], k) => { const [c, d] = [...right].reverse()[k]; return [a * 0.62 + c * 0.38, b * 0.62 + d * 0.38]; }))} Z" fill="#a8865a" opacity="0.8"/>`
+      + `<path d="${rings.join(' ')}" stroke="#5e4428" stroke-width="${(s * 0.007).toFixed(1)}" fill="none" opacity="0.8"/>`;
+    // Fronds: a drooping rachis with leaflets on both sides, back ones darker.
+    let fronds = '';
+    const count2 = 9;
+    for (let k = 0; k < count2; k++) {
+      const a = -Math.PI + (k / (count2 - 1)) * Math.PI + range(r, -0.12, 0.12), back = k % 2 === 1;
+      const len = s * range(r, 0.42, 0.58), droop = s * range(r, 0.18, 0.32);
+      const end = [top[0] + Math.cos(a) * len, top[1] + Math.sin(a) * len * 0.35 + droop];
+      const mid = [top[0] + Math.cos(a) * len * 0.55, top[1] + Math.sin(a) * len * 0.5 - s * 0.06];
+      const dark = back ? '#1f6b2c' : '#2f8a38', light = back ? '#2d7c34' : '#4fa846';
+      let leaflets = '';
+      for (let m = 2; m <= 14; m++) {
+        const t = m / 15, [px, py] = qb(top, mid, end, t), [qx, qy] = qb(top, mid, end, Math.min(1, t + 0.02));
+        const l = Math.hypot(qx - px, qy - py) || 1, ux = (qx - px) / l, uy = (qy - py) / l, ll = s * 0.11 * Math.sin(Math.PI * Math.min(1, t * 1.1));
+        for (const side of [-1, 1]) {
+          const ex = px + (ux * 0.55 - uy * side) * ll, ey = py + (uy * 0.55 + ux * side) * ll + ll * 0.35;
+          leaflets += `M${px.toFixed(1)},${py.toFixed(1)} Q${((px + ex) / 2).toFixed(1)},${((py + ey) / 2 - ll * 0.15).toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)} `;
+        }
+      }
+      fronds += `<path d="${leaflets}" stroke="${dark}" stroke-width="${(s * 0.016).toFixed(1)}" stroke-linecap="round" fill="none"/>`
+        + `<path d="${leaflets}" stroke="${light}" stroke-width="${(s * 0.006).toFixed(1)}" stroke-linecap="round" fill="none" opacity="0.7"/>`
+        + `<path d="M${top[0]},${top[1]} Q${mid[0].toFixed(1)},${mid[1].toFixed(1)} ${end[0].toFixed(1)},${end[1].toFixed(1)}" stroke="#5f7a2a" stroke-width="${(s * 0.008).toFixed(1)}" fill="none"/>`;
+    }
+    const nuts = [[-0.03, 0.035], [0.025, 0.04], [0, 0.06]].map(([dx, dy]) => `<circle cx="${(top[0] + dx * s).toFixed(1)}" cy="${(top[1] + dy * s).toFixed(1)}" r="${(s * 0.03).toFixed(1)}" fill="#6b4a26"/>`).join('');
+    out += wrap((dx) => `<g transform="translate(${dx},0)">${trunk}${fronds}${nuts}</g>`);
   }
   return out;
 }
@@ -250,10 +286,22 @@ const REGIONS = {
   }),
   ipora_beach: (r) => ({
     sky: sky('#3fb2f5', '#e3f7ff', clouds(r, { count: 7, y: [40, 170] })),
+    // Same sea gradient; crests and foam grow towards the shore, a wet band and lacy foam at the sand,
+    // sun glitter and a sail far out.
     far: svg(W, H, mountains(r, { base: 292, amp: 10, fill: '#7fb07a', shade: null })
-      + `<rect y="290" width="${W}" height="${H - 290}" fill="url(#sea)"/>` + `<g stroke="#ffffff" stroke-opacity="0.55" stroke-width="2">${wrap((dx) => Array.from({ length: 50 }, () => { const x = range(r, 0, W) + dx, y = range(r, 305, 430); return `<path d="M${x},${y} q14,-5 28,0"/>`; }).join(''))}</g>`
-      + `<path d="${ridgePath(ridge(r, { base: 440, amp: 12, octaves: 3 }), H)}" fill="#ecd9a2"/>`, vgrad('sea', [[0, '#2a95c4'], [1, '#86e0d8']])),
-    near: svg(W, H, palms(r, { count: 9, y: 500, size: 300 }) + bushes(r, { count: 10, y: 500, size: 60, colors: ['#3f8a3a', '#4f9a44'] })),
+      + `<path d="${ridgePath(ridge(r, { base: 293, amp: 5, octaves: 2 }), H)}" fill="#9cc79a" opacity="0.6"/>`
+      + `<rect y="290" width="${W}" height="${H - 290}" fill="url(#sea)"/>`
+      + `<rect y="290" width="${W}" height="6" fill="#d8f4ff" opacity="0.55"/>`
+      + Array.from({ length: 9 }, (_, row) => {
+        const t = row / 8, yy = 304 + t * t * 128, amp = 1 + t * 3.5, len = 18 + t * 46, op = 0.25 + t * 0.5, w = 1 + t * 2.2;
+        return `<g stroke="#ffffff" stroke-opacity="${op.toFixed(2)}" stroke-width="${w.toFixed(1)}" fill="none" stroke-linecap="round">${wrap((dx) => Array.from({ length: Math.round(26 - t * 12) }, () => { const x = range(r, 0, W) + dx, y = yy + range(r, -4, 4); return `<path d="M${x.toFixed(0)},${y.toFixed(1)} q${(len / 2).toFixed(0)},-${amp.toFixed(1)} ${len.toFixed(0)},0"/>`; }).join(''))}</g>`;
+      }).join('')
+      + `<g fill="#ffffff" opacity="0.8">${wrap((dx) => Array.from({ length: 60 }, () => { const x = 1150 + range(r, -160, 160) + dx, y = range(r, 300, 420); return `<ellipse cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" rx="${range(r, 2, 6).toFixed(1)}" ry="1"/>`; }).join(''))}</g>`
+      + wrap((dx) => `<g transform="translate(${dx + 640},282)"><path d="M0,0 L22,0 L18,6 L4,6 Z" fill="#6b4a2e"/><path d="M11,-1 L11,-30 L24,-3 Z" fill="#ffffff"/><path d="M10,-3 L10,-22 L1,-3 Z" fill="#f2efe6"/></g>`)
+      + `<path d="${ridgePath(ridge(r, { base: 436, amp: 9, octaves: 3 }), H)}" fill="#cdb67e"/>`
+      + `<path d="${ridgePath(ridge(r, { base: 432, amp: 9, octaves: 3 }), H, 6).replace(/ Z$/, '').replace(/^M0,\d+ /, 'M').replace(/L\d+,${H} $/, '')}" stroke="#ffffff" stroke-width="5" fill="none" opacity="0.85" stroke-dasharray="26 6 9 5"/>`
+      + `<path d="${ridgePath(ridge(r, { base: 446, amp: 12, octaves: 3 }), H)}" fill="#ecd9a2"/>`, vgrad('sea', [[0, '#2a95c4'], [1, '#86e0d8']])),
+    near: svg(W, H, palms(r, { count: 8, y: 505, size: 230 }) + bushes(r, { count: 8, y: 505, size: 58, colors: ['#3f8a3a', '#4f9a44', '#357a30'] })),
     ground: ground(r, { base: '#e2cf98', patches: { count: 14, colors: ['#d4bd80', '#efe0b0', '#c9b27a'] }, speckles: { count: 1600, size: 3, colors: ['#c9b07a', '#f3e6bf', '#b89e6a'], blades: false } }),
   }),
   gods_bridge: (r) => ({
