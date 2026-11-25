@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Output, computed, inject, input } from '@angular/core';
 import { LocaleService } from '../../../core/locale.service';
 import type { ArenaChoice } from './arena-view-mode';
+import { CharacterFaceService } from './character-face.service';
 
 /**
  * Round button in the map head of a non-town map, same look as the town
@@ -15,7 +16,11 @@ import type { ArenaChoice } from './arena-view-mode';
     @if (available()) {
       <button type="button" class="arena-view-button" [attr.aria-label]="locale.t(target() === 'map' ? 'Map' : 'Character')" [attr.title]="locale.t(target() === 'map' ? 'Map' : 'Character')"
         (pointerdown)="$event.stopPropagation()" (click)="$event.stopPropagation(); go()">
-        <img [src]="target() === 'map' ? '/assets/ui/town-view-map.svg' : '/assets/ui/arena-view-head.svg'" alt="" draggable="false" />
+        @if (target() === 'arena' && face.url(); as picture) {
+          <img class="face" [src]="picture" alt="" draggable="false" />
+        } @else {
+          <img [src]="target() === 'map' ? '/assets/ui/town-view-map.svg' : '/assets/ui/arena-view-head.svg'" alt="" draggable="false" />
+        }
       </button>
     }`,
   styles: [`
@@ -28,6 +33,7 @@ import type { ArenaChoice } from './arena-view-mode';
     .arena-view-button:active { transform: translateY(0); }
     .arena-view-button:focus-visible { outline: 2px solid #ffd36a; outline-offset: 3px; }
     img { width: 30px; height: 30px; display: block; pointer-events: none; user-select: none; }
+    img.face { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
   `],
 })
 export class ArenaToggleComponent {
@@ -35,6 +41,8 @@ export class ArenaToggleComponent {
   readonly available = input(true);
   @Output() readonly modeChange = new EventEmitter<ArenaChoice>();
   readonly locale = inject(LocaleService);
+  /** The player's own face (rendered on the loading screen), shown instead of the head icon once known. */
+  readonly face = inject(CharacterFaceService);
   readonly target = computed<ArenaChoice>(() => (this.mode() === 'arena' ? 'map' : 'arena'));
 
   go(): void {

@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { LocaleService } from '../../../core/locale.service';
 import { ArenaToggleComponent } from './arena-toggle.component';
+import { signal } from '@angular/core';
+import { CharacterFaceService } from './character-face.service';
 
 describe('ArenaToggleComponent', () => {
-  function render(mode: 'map' | 'arena', available = true) {
-    TestBed.configureTestingModule({ imports: [ArenaToggleComponent] });
+  function render(mode: 'map' | 'arena', available = true, face: string | null = null) {
+    TestBed.configureTestingModule({ imports: [ArenaToggleComponent], providers: [{ provide: CharacterFaceService, useValue: { url: signal(face) } }] });
     const fixture = TestBed.createComponent(ArenaToggleComponent);
     fixture.componentRef.setInput('mode', mode);
     fixture.componentRef.setInput('available', available);
@@ -45,5 +47,13 @@ describe('ArenaToggleComponent', () => {
     locale.locale.set('pt-BR');
     f.detectChanges();
     expect(button(f)!.getAttribute('title')).toBe('Personagem');
+  });
+
+  it('shows the player face when it is known', () => {
+    expect(button(render('map', true, 'data:image/png;base64,AAA'))!.querySelector('img')!.getAttribute('src')).toBe('data:image/png;base64,AAA');
+  });
+
+  it('without a face it keeps the head icon', () => {
+    expect(button(render('map', true, null))!.querySelector('img')!.getAttribute('src')).toContain('arena-view-head');
   });
 });

@@ -427,4 +427,13 @@ describe('CharacterViewerComponent', () => {
     expect(rig.isRendering()).toBeFalse();
     expect(host.querySelector('canvas')).toBeNull();
   });
+
+  it('face framing snapshots a PNG of the head', async () => {
+    const { fixture, events } = await create({}, { framing: 'face' });
+    await settle(fixture, events, { loaded: 1 });
+    const png = fixture.componentInstance.rig()!.snapshot(64);
+    expect(png.startsWith('data:image/png;base64,')).toBeTrue();
+    expect(png.length).toBeGreaterThan(2000);
+    fixture.destroy();
+  });
 });

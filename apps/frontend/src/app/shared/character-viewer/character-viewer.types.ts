@@ -11,7 +11,8 @@ export type AnimationSource = AnimationState | ((nowMs: number) => AnimationStat
  */
 
 /** full: whole body in a fixed 2.24 m frame (creator); portrait: whole body facing the screen (Character Summary); bust: head and shoulders. */
-export type ViewerFraming = 'full' | 'portrait' | 'bust';
+/** `face`: the head alone, facing the camera (the arena toggle's picture). */
+export type ViewerFraming = 'full' | 'portrait' | 'bust' | 'face';
 
 export interface ViewerConfig {
   sex: Sex;
@@ -31,6 +32,8 @@ export interface ViewerConfig {
 
 /** Read-only view of the rig, used by the component's consumers and tests. */
 export interface CharacterRigHandle {
+  /** Renders one square frame of `size` CSS px now and returns it as a PNG data URL. */
+  snapshot(size: number): string;
   bone(name: string): { readonly children: ReadonlyArray<{ readonly name: string }> };
   clipNames(): string[];
   /** The clip with the largest effective weight. */

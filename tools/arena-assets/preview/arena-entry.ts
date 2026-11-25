@@ -5,6 +5,7 @@ import { arenaScene, type ArenaTimelineInput } from '../../../apps/frontend/src/
 import { fromSharedBattle, fromSoloEntry } from '../../../apps/frontend/src/app/features/play/arena/arena-battle';
 import type { ArenaBattle, ArenaCharacterLook } from '../../../apps/frontend/src/app/features/play/arena/arena.types';
 import type { ArenaRegionId } from '../../../apps/frontend/src/app/features/play/arena/arena-region';
+import { renderFace } from '../../../apps/frontend/src/app/features/play/arena/character-face-render';
 import { SOLO_V2_ENTRY } from '../../../apps/frontend/src/app/features/play/arena/fixtures/solo-v2.fixture';
 import { PARTY_V2_VIEW } from '../../../apps/frontend/src/app/features/play/arena/fixtures/party-v2.fixture';
 
@@ -46,6 +47,7 @@ const SHOTS: Record<string, Shot> = {
 
 let runtime: ArenaRuntimeHandle | null = null;
 (window as any).shoot = async (name: string) => {
+  if (name === 'face') return shootFace();
   const shot = SHOTS[name];
   const battle = shot.battle();
   const visuals = visualsOf(battle);
@@ -70,4 +72,16 @@ let runtime: ArenaRuntimeHandle | null = null;
   const anchors = [...runtime.screenAnchors()].map(([id, a]) => `${id}:${Math.round(a.x)},${Math.round(a.y)},${a.visible}`);
   return { actors: runtime.actorCount(), actorsAtWarm, anchors };
 };
-(window as any).shots = Object.keys(SHOTS);
+/** The arena toggle's picture: the archer's bare face (the look wears a helmet; the face must not). */
+async function shootFace(): Promise<object> {
+  const archer = looks['archer'];
+  const url = await renderFace({ sex: archer.sex, heightCm: archer.heightCm, appearance: archer.appearance, dominantHand: archer.dominantHand }, '/data/appearance_catalog.json');
+  const host = document.getElementById('host')!;
+  host.innerHTML = `<div style="display:flex;gap:40px;align-items:center;padding:40px;background:#2b2233;height:100%;box-sizing:border-box">
+    <img src="${url}" style="width:384px;height:384px;image-rendering:auto;background:#555" />
+    <span style="width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 38%,#3a2c46 0%,#1c1524 62%,#0e0a13 100%);box-shadow:0 0 0 2px #d9a441">
+      <img src="${url}" style="width:34px;height:34px;border-radius:50%;object-fit:cover" /></span></div>`;
+  await new Promise((r) => setTimeout(r, 200));
+  return { bytes: url.length };
+}
+(window as any).shots = [...Object.keys(SHOTS), 'face'];
