@@ -27,9 +27,9 @@ type Notice = { id: string; message: string; announce?: AnnounceRow };
     :host{position:fixed;inset:0;z-index:2500;pointer-events:none}
     .notification-messages{position:absolute;top:27vh;left:50%;transform:translateX(-50%);width:min(680px,calc(100vw - 28px));display:flex;flex-direction:column;align-items:center;gap:10px}
     .notification-stack{display:flex;flex-direction:column;align-items:center;gap:7px;width:100%}
-    .notification-message{box-sizing:border-box;max-width:100%;padding:9px 16px;border:1px solid #b68b4a;border-radius:3px;background:linear-gradient(180deg,#281d12f2,#110d0bf2);box-shadow:0 4px 18px #000c;color:#f1d79e;text-align:center;font:600 16px/1.35 Georgia,serif;text-shadow:0 1px 2px #000;overflow-wrap:anywhere;animation:notification-enter .18s ease-out}
-    .announce-message{border-color:#c9a227;color:#ffe14d}
-    .error-message{border-color:#a84c43;background:linear-gradient(180deg,#321613f5,#170c0bf5);color:#ff8e82}
+    .notification-message{box-sizing:border-box;max-width:100%;padding:9px 16px;border:0;background:rgba(17,13,11,.02);color:#f1d79e;text-align:center;font:600 16px/1.35 Georgia,serif;text-shadow:0 1px 2px #000;overflow-wrap:anywhere;animation:notification-enter .18s ease-out}
+    .announce-message{color:#ffe14d}
+    .error-message{color:#ff8e82}
     @keyframes notification-enter{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
     @media(max-width:600px){.notification-messages{top:21vh}.notification-message{font-size:14px;padding:8px 11px}}
   `],
@@ -92,7 +92,7 @@ export class NotificationMessagesComponent implements OnInit, OnDestroy {
       this.timers.delete(key);
       this.announceActive = false;
       this.showNextAnnounce();
-    }, 10_000));
+    }, 6_000));
   }
 
   private push(target: typeof this.upper, id: string, rawMessage: unknown): void {
@@ -105,6 +105,6 @@ export class NotificationMessagesComponent implements OnInit, OnDestroy {
     this.timers.set(key, setTimeout(() => {
       target.update(rows => rows.filter(row => row.id !== id));
       this.timers.delete(key);
-    }, 10_000));
+    }, 6_000));
   }
 }
