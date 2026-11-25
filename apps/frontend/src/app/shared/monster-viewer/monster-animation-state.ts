@@ -111,3 +111,23 @@ export function monsterAsCharacterState(s: MonsterAnimationState, nowMs: number)
   if (s.hit && nowMs < s.hit.startedAtMs + CLIP_SECONDS.Damage * 1000) state.hit = { clip: 'Damage', startedAtMs: s.hit.startedAtMs };
   return state;
 }
+
+/**
+ * The battle arena poses every actor with one AnimationState (arena-actions.ts); this is
+ * the same moment for a monster model. An Attack one-shot's window is the monster swing
+ * (impact at MONSTER_IMPACT_FRACTION); stun shows the idle body (the arena freezes it).
+ */
+export function animationStateToMonster(state: AnimationState): MonsterAnimationState {
+  const out: MonsterAnimationState = {};
+  const shot = state.oneShot;
+  if (shot?.clip === 'Dead') return { dead: { startedAtMs: shot.startedAtMs } };
+  if (shot?.clip === 'Attack') {
+    const window = (CLIP_SECONDS.Attack / Math.max(0.05, shot.speed)) * 1000;
+    out.action = { clip: 'Attack', startedAtMs: shot.startedAtMs, impactAtMs: shot.startedAtMs + window * MONSTER_IMPACT_FRACTION, endsAtMs: shot.startedAtMs + window };
+  } else if (state.cast) {
+    out.action = { clip: 'Cast', startedAtMs: state.cast.startedAtMs, impactAtMs: state.cast.endsAtMs, endsAtMs: state.cast.endsAtMs + CAST_TAIL_MS };
+  }
+  if (state.hit) out.hit = { startedAtMs: state.hit.startedAtMs };
+  if (!shot && (state.base === 'Walk' || state.base === 'Sprint')) out.walking = true;
+  return out;
+}
