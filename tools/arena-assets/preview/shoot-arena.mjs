@@ -43,7 +43,7 @@ await page.waitForFunction(() => typeof window.shoot === 'function', null, { tim
 const names = only.length ? only : await page.evaluate(() => window.shots);
 for (const name of names) {
   const info = await page.evaluate((n) => window.shoot(n), name);
-  await page.locator('#host').screenshot({ path: path.join(outDir, `${name}.png`) });
+  await page.screenshot({ path: path.join(outDir, `${name}.png`), clip: { x: 0, y: 0, width: 1280, height: 560 }, timeout: 120000 });
   console.log(name, JSON.stringify(info));
 }
 await browser.close();

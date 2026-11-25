@@ -1,7 +1,7 @@
 // Arena screenshot harness (bundled by shoot-arena.mjs): real runtime, real battle fixtures.
 import { defaultAppearance } from '@nanommo/shared';
 import { createArenaRuntime, type ArenaActorVisual, type ArenaRuntimeHandle } from '../../../apps/frontend/src/app/features/play/arena/arena-runtime';
-import { arenaScene, type ArenaTimelineInput } from '../../../apps/frontend/src/app/features/play/arena/arena-phase';
+import { arenaBattleOffset, arenaScene, arenaWalkColumn, type ArenaTimelineInput } from '../../../apps/frontend/src/app/features/play/arena/arena-phase';
 import { fromSharedBattle, fromSoloEntry } from '../../../apps/frontend/src/app/features/play/arena/arena-battle';
 import type { ArenaBattle, ArenaCharacterLook } from '../../../apps/frontend/src/app/features/play/arena/arena.types';
 import type { ArenaRegionId } from '../../../apps/frontend/src/app/features/play/arena/arena-region';
@@ -32,9 +32,17 @@ function statuses(): ArenaBattle {
 }
 const visualsOf = (b: ArenaBattle) => new Map<string, ArenaActorVisual>(b.actors.map((a) => [a.id, { id: a.id, team: a.team, kind: a.kind, name: a.name, look: a.look, monsterId: a.monsterId }]));
 
-interface Shot { battle: () => ArenaBattle; region: ArenaRegionId; at: (b: ArenaBattle) => number; mode: 'battle' | 'walk' | 'intro' | 'outro'; party?: string[] }
+interface Shot { battle: () => ArenaBattle; region: ArenaRegionId; at: (b: ArenaBattle) => number; mode: 'battle' | 'walk' | 'intro' | 'outro' | 'chain'; party?: string[] }
 const SHOTS: Record<string, Shot> = {
   walk: { battle: solo, region: 'green_grounds', mode: 'walk', at: (b) => b.startAtMs - 6000 },
+  walk_green_grounds: { battle: solo, region: 'green_grounds', mode: 'walk', at: (b) => b.startAtMs - 6000 },
+  walk_menace_hills: { battle: solo, region: 'menace_hills', mode: 'walk', at: (b) => b.startAtMs - 6000 },
+  walk_kwaioua_forest: { battle: solo, region: 'kwaioua_forest', mode: 'walk', at: (b) => b.startAtMs - 6000 },
+  walk_wastelands: { battle: solo, region: 'wastelands', mode: 'walk', at: (b) => b.startAtMs - 6000 },
+  walk_caete: { battle: solo, region: 'caete', mode: 'walk', at: (b) => b.startAtMs - 6000 },
+  walk_forest_ruins: { battle: solo, region: 'forest_ruins', mode: 'walk', at: (b) => b.startAtMs - 6000 },
+  walk_ipora_beach: { battle: solo, region: 'ipora_beach', mode: 'walk', at: (b) => b.startAtMs - 6000 },
+  walk_gods_bridge: { battle: solo, region: 'gods_bridge', mode: 'walk', at: (b) => b.startAtMs - 6000 },
   intro: { battle: solo, region: 'green_grounds', mode: 'intro', at: (b) => b.startAtMs - 500 },
   solo_approach: { battle: solo, region: 'kwaioua_forest', mode: 'battle', at: (b) => b.startAtMs + 9 * 500 + 380 },
   solo_close: { battle: solo, region: 'ipora_beach', mode: 'battle', at: (b) => b.startAtMs + 26 * 500 + 420 },
@@ -43,7 +51,29 @@ const SHOTS: Record<string, Shot> = {
   ruins: { battle: party, region: 'forest_ruins', mode: 'battle', at: (b) => b.startAtMs + 1 * 500, party: ['char-self', 'char-ally'] },
   outro: { battle: solo, region: 'green_grounds', mode: 'outro', at: (b) => b.endAtMs + 600 },
   caete: { battle: solo, region: 'caete', mode: 'battle', at: (b) => b.startAtMs + 30 * 500 + 200 },
+  // Party battle → outro → walk → intro → the same battle again 6 s later (nobody walks back).
+  chain_end: { battle: party, region: 'green_grounds', mode: 'chain', at: (b) => b.endAtMs - 100, party: ['char-self', 'char-ally'] },
+  chain_outro: { battle: party, region: 'green_grounds', mode: 'chain', at: (b) => b.endAtMs + 700, party: ['char-self', 'char-ally'] },
+  chain_walk: { battle: party, region: 'green_grounds', mode: 'chain', at: (b) => b.endAtMs + 3000, party: ['char-self', 'char-ally'] },
+  chain_intro: { battle: party, region: 'green_grounds', mode: 'chain', at: (b) => b.endAtMs + CHAIN_GAP - 600, party: ['char-self', 'char-ally'] },
+  chain_start: { battle: party, region: 'green_grounds', mode: 'chain', at: (b) => b.endAtMs + CHAIN_GAP + 1500, party: ['char-self', 'char-ally'] },
 };
+const CHAIN_GAP = 6000;
+const chained = new WeakMap<ArenaBattle, ArenaBattle>();
+function nextOf(b: ArenaBattle): ArenaBattle {
+  let n = chained.get(b);
+  if (!n) { n = { ...b, id: `${b.id}:next`, startAtMs: b.endAtMs + CHAIN_GAP, endAtMs: b.endAtMs + CHAIN_GAP + (b.endAtMs - b.startAtMs) }; chained.set(b, n); }
+  return n;
+}
+function chainInput(now: number, prev: ArenaBattle, party: ArenaTimelineInput['party']): ArenaTimelineInput {
+  const next = nextOf(prev);
+  const offset = arenaBattleOffset(arenaWalkColumn(prev, 0), next);
+  const current = now < prev.endAtMs ? prev : now >= next.startAtMs ? next : null;
+  return {
+    nowMs: now, current, previous: now >= prev.endAtMs ? prev : null, next: now < next.startAtMs ? next : null, nextStartAtMs: next.startAtMs,
+    party, selfId: 'char-self', gatherAtMs: null, offsets: { previous: 0, current: current === next ? offset : 0, next: offset },
+  };
+}
 
 let runtime: ArenaRuntimeHandle | null = null;
 (window as any).shoot = async (name: string) => {
@@ -53,7 +83,7 @@ let runtime: ArenaRuntimeHandle | null = null;
   const visuals = visualsOf(battle);
   const partyIds = shot.party ?? ['char-self'];
   const party = partyIds.map((id) => ({ id, look: battle.actors.find((a) => a.id === id)!.look }));
-  const input = (now: number): ArenaTimelineInput => ({
+  const input = (now: number): ArenaTimelineInput => shot.mode === 'chain' ? chainInput(now, battle, party) : ({
     nowMs: now, current: shot.mode === 'battle' || shot.mode === 'outro' ? battle : null, previous: shot.mode === 'outro' ? battle : null,
     next: shot.mode === 'intro' ? battle : null, nextStartAtMs: shot.mode === 'intro' ? battle.startAtMs : null,
     party, selfId: 'char-self', gatherAtMs: null,
@@ -61,7 +91,7 @@ let runtime: ArenaRuntimeHandle | null = null;
   runtime ??= await createArenaRuntime(document.getElementById('host')!, { assetBase: '/assets/character/', catalogUrl: '/data/appearance_catalog.json', onContextLost: () => undefined });
   const target = shot.at(battle);
   // Warm up where every actor of the shot already exists (battle shots: after the start), so models load.
-  const warm = shot.mode === 'battle' || shot.mode === 'outro' ? Math.max(target - 1500, battle.startAtMs + 1) : Math.max(target - 1500, battle.startAtMs - 1100);
+  const warm = shot.mode === 'chain' ? Math.max(battle.endAtMs - 1500, target - 2000) : shot.mode === 'battle' || shot.mode === 'outro' ? Math.max(target - 1500, battle.startAtMs + 1) : shot.mode === 'walk' ? target - 1500 : Math.max(target - 1500, battle.startAtMs - 1100);
   let clock = warm;
   runtime.setSource((now) => ({ scene: arenaScene(input(now)), visuals, region: shot.region }));
   // Let every model load and dress, then replay the last 1.5 s at 60 fps (crossfades, camera ease).
