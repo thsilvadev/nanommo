@@ -1,6 +1,10 @@
 /** Public battle projection: replay server events by time, without predicting outcomes. */
 export interface SharedActor {
   id: string; kind: string; team: string; name?: string; monsterId?: string; definitionId?: string;
+  /** Deployment cell (sent by the API). */
+  position?: { row: number; column: number };
+  /** Characters: how they look in the arena (null when the character has no appearance yet). */
+  look?: import('../features/play/arena/arena-battle').SharedActorLook | null;
   snapshot: { atk?: number; matk?: number; def?: number; mdefPercent?: number; accuracy?: number; evasion?: number; critChance?: number; name?: string; hp: number; sp: number; maxHp: number; maxSp: number; cooldowns?:Record<string,number>; cooldownDurations?:Record<string,number>; statusEffects?: Array<{ id?: string; type?: string; stacks?: number; expiresAtTick?:number; expiresAt?:string }> };
 }
 export interface SharedActorState { hp: number; sp: number; targetId?: string; statusEffects?: Array<{id?:string;type?:string;stacks?:number}> }
@@ -10,7 +14,7 @@ export interface SharedEvent {
   payload?: Record<string, any>;
 }
 export interface SharedBattleView {
-  id: string; revision: number; startAt: string; endAt: string; state: string;
+  id: string; revision: number; startAt: string; endAt: string; state: string; mapId?: string;
   snapshot: { actors: SharedActor[]; tickDurationMs?: number };
   log: { events: SharedEvent[]; durationTicks?: number };
 }
