@@ -38,6 +38,7 @@ import { TownPlayerCardComponent } from './town-scene/town-player-card.component
 import type { TownPick } from './town-scene/town-scene.types';
 import { TownViewToggleComponent, type MapViewMode } from './town-scene/town-view-toggle.component';
 import { ArenaToggleComponent } from './arena/arena-toggle.component';
+import { ArenaSceneComponent } from './arena/arena-scene.component';
 import { ARENA_VIEW_FADE_MS, arenaChoiceAfter, worldViewMode, type ArenaChoice, type ArenaPlace } from './arena/arena-view-mode';
 import { isWebglAvailable } from '../../shared/character-viewer/character-viewer.component';
 import type { TownRosterEntry } from '@nanommo/shared';
@@ -161,7 +162,7 @@ export class CharacterSummary implements OnDestroy {
   go(p: string) { void this.router.navigateByUrl(p) } equipped(slot: string) { return this.inventory.equipment().find(x => x.slot === slot) } canEnterEquipmentSlot(slot: string, drag: CdkDrag) { if(this.actions.isSlotBusy(slot))return false; const data: any = drag?.data; if (data?.source !== 'inventory') return false; const item: any = this.catalog.item(data.itemId); return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } itemIcon(slot: string, fallback: string) { const e = this.equipped(slot); return e ? this.catalog.itemIcon(e.itemId) : fallback } slotDropId(slot: string) { return `character-slot-${slot}` } isSlotFocused(slot: string) { const id = this.inventory.draggedItemId(); const item: any = id ? this.catalog.item(id) : null; return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } onEquipmentDragStart(itemId: string) { this.inventory.beginDrag(itemId); document.dispatchEvent(new Event('nm:drag-start')) } onEquipmentDragEnd() { this.inventory.endDrag(); document.dispatchEvent(new Event('nm:drag-end')) } equipDragData(slot: string, it: any) { return { source: 'equipment', slot, ...it } } async dropEquipment(slot: string, ev: CdkDragDrop<any>) { const data = ev.item.data; try { if (data?.source === 'inventory') { await this.inventory.equip(slot, data.itemId, data.id) } } catch { } finally { this.inventory.endDrag() } } async unequip(slot: string) { if(this.actions.isSlotBusy(slot))return; try { await this.inventory.unequip(slot) } catch { } } ngOnDestroy() { clearInterval(this.townTimer) }
 }
 
-@Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule, TownSceneComponent, TownViewToggleComponent, ArenaToggleComponent], templateUrl: './map-board.html', styleUrl: './map-board.css' })
+@Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule, TownSceneComponent, TownViewToggleComponent, ArenaToggleComponent, ArenaSceneComponent], templateUrl: './map-board.html', styleUrl: './map-board.css' })
 export class MapBoard implements OnDestroy, AfterViewInit {
   readonly party = inject(PartyStore);
   // ---- Town scene (map | house toggle) ----
@@ -174,6 +175,8 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   /** Black overlay while switching map ↔ arena. */
   readonly viewFade = signal(false);
   private arenaPlace: ArenaPlace | null = null;
+  /** The arena is mounted the first time it is shown, then only hidden (its renderer and models stay warm). */
+  readonly arenaMounted = signal(false);
   readonly viewMode = computed(() => worldViewMode({ inTown: this.inTownScene(), mapId: this.character.character()?.currentMapId, townChoice: this.viewChoice(), arenaChoice: this.arenaChoice(), webgl: this.webgl }));
   /** Map ↔ arena: fade to black, swap at the peak, fade back. A click during a fade is ignored. */
   setArenaMode(mode: ArenaChoice) {
@@ -269,6 +272,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
     // The tile tooltip lives on <body>; leaving the map view (e.g. arriving in a town) removes the
     // tiles without a pointerleave, so drop it here or it stays floating over the town scene.
     effect(()=>{if(this.viewMode()!=='map')untracked(()=>this.hideTileTooltip());}, { allowSignalWrites: true });
+    effect(()=>{if(this.viewMode()==='arena')untracked(()=>this.arenaMounted.set(true));}, { allowSignalWrites: true });
     effect(()=>{
       const resolved=this.battle.lastResolved();
       if(!resolved||resolved.entryId===this.lastFleeNoticeEntryId)return;

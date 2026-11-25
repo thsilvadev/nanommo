@@ -19,6 +19,8 @@ import type { ArenaCharacterLook, ArenaTeam } from './arena.types';
 export interface ArenaActorVisual {
   id: string; team: ArenaTeam; kind: 'character' | 'monster' | 'pet'; name: string;
   look: ArenaCharacterLook | null; monsterId: string | null;
+  /** For the HUD bars (absent for walkers). */
+  maxHp?: number; maxSp?: number;
 }
 
 const FLASH_COLORS: Record<ArenaFlash, string> = { white: '#ffffff', red: '#ff3b3b', green: '#4dff6a', orange: '#ff9a2e', darkred: '#6b0000' };
