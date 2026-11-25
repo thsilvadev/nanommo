@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { LocaleService } from '../../../core/locale.service';
 import { ArenaToggleComponent } from './arena-toggle.component';
 
 describe('ArenaToggleComponent', () => {
@@ -32,5 +33,17 @@ describe('ArenaToggleComponent', () => {
 
   it('no webgl hides arena toggle', () => {
     expect(button(render('map', false))).toBeNull();
+  });
+
+  it('on the map the tooltip names the character view (Character / Personagem), not "Arena"', () => {
+    const f = render('map');
+    const locale = TestBed.inject(LocaleService);
+    locale.locale.set('en-US');
+    f.detectChanges();
+    expect(button(f)!.getAttribute('title')).toBe('Character');
+    expect(button(f)!.getAttribute('aria-label')).toBe('Character');
+    locale.locale.set('pt-BR');
+    f.detectChanges();
+    expect(button(f)!.getAttribute('title')).toBe('Personagem');
   });
 });

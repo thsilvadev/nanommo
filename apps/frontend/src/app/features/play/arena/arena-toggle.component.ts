@@ -13,7 +13,7 @@ import type { ArenaChoice } from './arena-view-mode';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (available()) {
-      <button type="button" class="arena-view-button" [attr.aria-label]="locale.t(target() === 'map' ? 'Map' : 'Arena')" [attr.title]="locale.t(target() === 'map' ? 'Map' : 'Arena')"
+      <button type="button" class="arena-view-button" [attr.aria-label]="locale.t(target() === 'map' ? 'Map' : 'Character')" [attr.title]="locale.t(target() === 'map' ? 'Map' : 'Character')"
         (pointerdown)="$event.stopPropagation()" (click)="$event.stopPropagation(); go()">
         <img [src]="target() === 'map' ? '/assets/ui/town-view-map.svg' : '/assets/ui/arena-view-head.svg'" alt="" draggable="false" />
       </button>
