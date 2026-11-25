@@ -1,6 +1,7 @@
 import { Directive, ElementRef, Input, NgZone, OnDestroy, OnInit, inject } from '@angular/core';
 import { BattleStore } from '../core/game.store';
 import { battleTickAt } from './battle-timing';
+import { ArenaFeedbackOwner } from '../features/play/arena/arena-feedback-owner.service';
 
 export type BattleDamageTarget = 'character' | 'monster';
 export interface FloatingDamageEvent {
@@ -48,6 +49,8 @@ export class BattleHitFeedbackDirective implements OnInit, OnDestroy {
   private readonly host = inject(ElementRef<HTMLElement>).nativeElement;
   private readonly battle = inject(BattleStore);
   private readonly zone = inject(NgZone);
+  /** While the battle arena is shown, it owns the numbers and flashes. */
+  private readonly owner = inject(ArenaFeedbackOwner);
   private timer: ReturnType<typeof setInterval> | null = null;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
   private battleId = '';
@@ -83,7 +86,7 @@ export class BattleHitFeedbackDirective implements OnInit, OnDestroy {
       const event = events[i];
       if (Number(event.tick ?? 0) > tick) break;
       this.lastEventIndex = i;
-      if (!isFloatingDamageEvent(event) || event.target !== this.target) continue;
+      if (!isFloatingDamageEvent(event) || event.target !== this.target || this.owner.arenaVisible()) continue;
       this.showDamage(event);
       this.flash();
     }

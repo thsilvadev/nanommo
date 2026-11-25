@@ -367,3 +367,7 @@
 .town-view-toggle { margin: 0 auto 4px 12px; align-self: center; pointer-events: auto; }
 .town-scene-area { position: absolute; inset: 0; z-index: 1; cursor: default; }
 .town-scene-area--hidden { visibility: hidden; pointer-events: none; }
+
+/* Map ↔ arena switch: fades to black and back (1 s each way). */
+.view-fade { position: absolute; inset: 0; z-index: 8; background: #000; opacity: 0; pointer-events: none; transition: opacity 1000ms ease-in-out; }
+.view-fade--on { opacity: 1; pointer-events: auto; }

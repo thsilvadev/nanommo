@@ -36,7 +36,10 @@ import { TownStore } from '../../core/town.store';
 import { TownSceneComponent } from './town-scene/town-scene.component';
 import { TownPlayerCardComponent } from './town-scene/town-player-card.component';
 import type { TownPick } from './town-scene/town-scene.types';
-import { TownViewToggleComponent, mapViewMode, type MapViewMode } from './town-scene/town-view-toggle.component';
+import { TownViewToggleComponent, type MapViewMode } from './town-scene/town-view-toggle.component';
+import { ArenaToggleComponent } from './arena/arena-toggle.component';
+import { ARENA_VIEW_FADE_MS, arenaChoiceAfter, worldViewMode, type ArenaChoice, type ArenaPlace } from './arena/arena-view-mode';
+import { isWebglAvailable } from '../../shared/character-viewer/character-viewer.component';
 import type { TownRosterEntry } from '@nanommo/shared';
 import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop, CdkDragStart, CdkDragPreview, CdkDragPlaceholder } from '@angular/cdk/drag-drop';
 
@@ -158,14 +161,35 @@ export class CharacterSummary implements OnDestroy {
   go(p: string) { void this.router.navigateByUrl(p) } equipped(slot: string) { return this.inventory.equipment().find(x => x.slot === slot) } canEnterEquipmentSlot(slot: string, drag: CdkDrag) { if(this.actions.isSlotBusy(slot))return false; const data: any = drag?.data; if (data?.source !== 'inventory') return false; const item: any = this.catalog.item(data.itemId); return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } itemIcon(slot: string, fallback: string) { const e = this.equipped(slot); return e ? this.catalog.itemIcon(e.itemId) : fallback } slotDropId(slot: string) { return `character-slot-${slot}` } isSlotFocused(slot: string) { const id = this.inventory.draggedItemId(); const item: any = id ? this.catalog.item(id) : null; return item?.type === 'equipment' && (item.slot === slot || (slot === 'offHand' && item.secondaryHand === true) || (item.slot === 'accessory' && (slot === 'accessoryLeft' || slot === 'accessoryRight'))) } onEquipmentDragStart(itemId: string) { this.inventory.beginDrag(itemId); document.dispatchEvent(new Event('nm:drag-start')) } onEquipmentDragEnd() { this.inventory.endDrag(); document.dispatchEvent(new Event('nm:drag-end')) } equipDragData(slot: string, it: any) { return { source: 'equipment', slot, ...it } } async dropEquipment(slot: string, ev: CdkDragDrop<any>) { const data = ev.item.data; try { if (data?.source === 'inventory') { await this.inventory.equip(slot, data.itemId, data.id) } } catch { } finally { this.inventory.endDrag() } } async unequip(slot: string) { if(this.actions.isSlotBusy(slot))return; try { await this.inventory.unequip(slot) } catch { } } ngOnDestroy() { clearInterval(this.townTimer) }
 }
 
-@Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule, TownSceneComponent, TownViewToggleComponent], templateUrl: './map-board.html', styleUrl: './map-board.css' })
+@Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule, TownSceneComponent, TownViewToggleComponent, ArenaToggleComponent], templateUrl: './map-board.html', styleUrl: './map-board.css' })
 export class MapBoard implements OnDestroy, AfterViewInit {
   readonly party = inject(PartyStore);
   // ---- Town scene (map | house toggle) ----
   readonly town = inject(TownStore);
   private readonly viewChoice = signal<{ mapId: string; mode: MapViewMode } | null>(null);
   readonly inTownScene = computed(() => this.town.isTown(this.character.character()?.currentMapId));
-  readonly viewMode = computed(() => mapViewMode(this.inTownScene(), this.character.character()?.currentMapId, this.viewChoice()));
+  // ---- Battle arena (map | arena toggle on non-town maps) ----
+  readonly webgl = isWebglAvailable();
+  private readonly arenaChoice = signal<ArenaChoice | null>(null);
+  /** Black overlay while switching map ↔ arena. */
+  readonly viewFade = signal(false);
+  private arenaPlace: ArenaPlace | null = null;
+  readonly viewMode = computed(() => worldViewMode({ inTown: this.inTownScene(), mapId: this.character.character()?.currentMapId, townChoice: this.viewChoice(), arenaChoice: this.arenaChoice(), webgl: this.webgl }));
+  /** Map ↔ arena: fade to black, swap at the peak, fade back. A click during a fade is ignored. */
+  setArenaMode(mode: ArenaChoice) {
+    if (this.viewFade()) return;
+    this.viewFade.set(true);
+    setTimeout(() => { this.arenaChoice.set(mode); setTimeout(() => this.viewFade.set(false), 0); }, ARENA_VIEW_FADE_MS);
+  }
+  /** Where the character is now; arriving at a travel destination opens the arena, entering a town forgets it. */
+  trackArenaPlace(place: ArenaPlace) {
+    const previous = this.arenaPlace;
+    this.arenaPlace = place;
+    const next = arenaChoiceAfter(previous, place, this.arenaChoice());
+    if (next === this.arenaChoice()) return;
+    if (next === 'arena') { if (this.webgl) this.setArenaMode('arena'); }
+    else this.arenaChoice.set(next);
+  }
   /** Who wears the blue ring: the selected player, else the NPC chosen in the selector. */
   readonly townSelection = computed<TownPick | null>(() => {
     const player = this.town.selectedCharacter();
@@ -226,6 +250,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
       const c=this.character.character();
       if(!c)return;
       this.trackLocationArrival(c);
+      untracked(()=>this.trackArenaPlace({inTown:this.town.isTown(c.currentMapId),traveling:!!c.travelIntent,isGrind:!this.town.isTown(c.currentMapId)}));
       this.rebuildDiscovery(c.discoveredMapIds);
       const level=Number(c.level??0);
       if(level!==this.lastQuestNotificationLevel){
@@ -542,13 +567,13 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   private revealedSlow(x:number,y:number){for(const id of this.discovered){const m=this.maps.find(v=>v.id===id);if(!m)continue;const dx=Math.abs(Number(m.coordinates.x)-x),dy=Math.abs(Number(m.coordinates.y)-y);if(dx+dy<=1)return true;}return false}
   private clampCamera(x:number,y:number,zoom=this.zoom()){const visibleWidth=this.viewportWidth/zoom,visibleHeight=this.viewportHeight/zoom;const maxX=this.worldWidth-visibleWidth,maxY=this.worldHeight-visibleHeight;return {x:Math.max(Math.min(0,maxX),Math.min(Math.max(0,maxX),x)),y:Math.max(Math.min(0,maxY),Math.min(Math.max(0,maxY),y))}}
   private centerOnCurrentMap(){const m=this.currentMap();if(!m||this.viewportWidth<=0||this.viewportHeight<=0||this.lastCenteredMapId===m.id)return;this.lastCenteredMapId=m.id;const z=this.zoom();const p=this.clampCamera(this.gridColumn(m)*153+76.5-this.viewportWidth/(2*z),this.gridRow(m)*153+76.5-this.viewportHeight/(2*z),z);this.cameraX.set(p.x);this.cameraY.set(p.y)}
-  onPointerDown(e:PointerEvent){if(this.viewMode()==='town')return;if(e.button!==0&&e.pointerType==='mouse')return;this.hideTileTooltip();this.drag={id:e.pointerId,startX:e.clientX,startY:e.clientY,cameraX:this.cameraX(),cameraY:this.cameraY(),moved:false}}
-  onPointerMove(e:PointerEvent){if(this.viewMode()==='town')return;const d=this.drag;if(!d||d.id!==e.pointerId)return;const dx=e.clientX-d.startX,dy=e.clientY-d.startY;if(Math.abs(dx)+Math.abs(dy)>5)d.moved=true;if(!d.moved)return;const viewport=e.currentTarget as HTMLElement;if(!viewport.hasPointerCapture(e.pointerId))viewport.setPointerCapture(e.pointerId);const z=this.zoom();const p=this.clampCamera(d.cameraX-dx/z,d.cameraY-dy/z,z);this.cameraX.set(p.x);this.cameraY.set(p.y)}
-  onPointerUp(e:PointerEvent){if(this.viewMode()==='town')return;const d=this.drag;if(!d||d.id!==e.pointerId)return;if(d.moved)this.suppressClickUntil=Date.now()+250;this.drag=null}
-  onPointerCancel(e:PointerEvent){if(this.viewMode()==='town')return;if(this.drag?.id===e.pointerId)this.drag=null}
-  onViewportClick(e:MouseEvent){if(this.viewMode()==='town')return;if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}const target=e.target as HTMLElement;const button=target.closest?.('.map-tile') as HTMLButtonElement|null;if(!button||button.disabled)return;const tile=this.maps.find(m=>m.id===button.getAttribute('data-map-id'));if(tile)this.onTileClick(e,tile)}
+  onPointerDown(e:PointerEvent){if(this.viewMode()!=='map')return;if(e.button!==0&&e.pointerType==='mouse')return;this.hideTileTooltip();this.drag={id:e.pointerId,startX:e.clientX,startY:e.clientY,cameraX:this.cameraX(),cameraY:this.cameraY(),moved:false}}
+  onPointerMove(e:PointerEvent){if(this.viewMode()!=='map')return;const d=this.drag;if(!d||d.id!==e.pointerId)return;const dx=e.clientX-d.startX,dy=e.clientY-d.startY;if(Math.abs(dx)+Math.abs(dy)>5)d.moved=true;if(!d.moved)return;const viewport=e.currentTarget as HTMLElement;if(!viewport.hasPointerCapture(e.pointerId))viewport.setPointerCapture(e.pointerId);const z=this.zoom();const p=this.clampCamera(d.cameraX-dx/z,d.cameraY-dy/z,z);this.cameraX.set(p.x);this.cameraY.set(p.y)}
+  onPointerUp(e:PointerEvent){if(this.viewMode()!=='map')return;const d=this.drag;if(!d||d.id!==e.pointerId)return;if(d.moved)this.suppressClickUntil=Date.now()+250;this.drag=null}
+  onPointerCancel(e:PointerEvent){if(this.viewMode()!=='map')return;if(this.drag?.id===e.pointerId)this.drag=null}
+  onViewportClick(e:MouseEvent){if(this.viewMode()!=='map')return;if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}const target=e.target as HTMLElement;const button=target.closest?.('.map-tile') as HTMLButtonElement|null;if(!button||button.disabled)return;const tile=this.maps.find(m=>m.id===button.getAttribute('data-map-id'));if(tile)this.onTileClick(e,tile)}
   onTileClick(e:MouseEvent,tile:any){if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}if(!this.isRevealed(tile.coordinates.x,tile.coordinates.y))return;this.selected.set(tile.id);this.enter(tile.id)}
-  onWheel(e:WheelEvent){if(this.viewMode()==='town')return;e.preventDefault();const viewport=e.currentTarget as HTMLElement;const rect=viewport.getBoundingClientRect();const localX=e.clientX-rect.left,localY=e.clientY-rect.top;const oldZoom=this.zoom();const nextZoom=Math.max(this.zoomMin,Math.min(this.zoomMax,Number((oldZoom*(e.deltaY>0?.9:1.1)).toFixed(4))));if(nextZoom===oldZoom)return;const worldX=this.cameraX()+localX/oldZoom,worldY=this.cameraY()+localY/oldZoom;const p=this.clampCamera(worldX-localX/nextZoom,worldY-localY/nextZoom,nextZoom);this.zoom.set(nextZoom);this.cameraX.set(p.x);this.cameraY.set(p.y)}
+  onWheel(e:WheelEvent){if(this.viewMode()!=='map')return;e.preventDefault();const viewport=e.currentTarget as HTMLElement;const rect=viewport.getBoundingClientRect();const localX=e.clientX-rect.left,localY=e.clientY-rect.top;const oldZoom=this.zoom();const nextZoom=Math.max(this.zoomMin,Math.min(this.zoomMax,Number((oldZoom*(e.deltaY>0?.9:1.1)).toFixed(4))));if(nextZoom===oldZoom)return;const worldX=this.cameraX()+localX/oldZoom,worldY=this.cameraY()+localY/oldZoom;const p=this.clampCamera(worldX-localX/nextZoom,worldY-localY/nextZoom,nextZoom);this.zoom.set(nextZoom);this.cameraX.set(p.x);this.cameraY.set(p.y)}
   showTileTooltip(tile:any,e:PointerEvent|FocusEvent){this.hoveredMap.set(tile);if(e instanceof PointerEvent)this.tooltipPointer={x:e.clientX,y:e.clientY};else{const r=(e.target as HTMLElement).getBoundingClientRect();this.tooltipPointer={x:r.left+r.width/2,y:r.top+r.height/2}}this.renderTileTooltip()}
   moveTileTooltip(e:PointerEvent){this.tooltipPointer={x:e.clientX,y:e.clientY};this.positionTileTooltip()}
   hideTileTooltip(){this.hoveredMap.set(null);this.tooltipEl?.remove();this.tooltipEl=null}

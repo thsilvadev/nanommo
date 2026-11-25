@@ -2,7 +2,8 @@
   <div #viewport class="viewport" role="application" aria-label="World map. Drag to explore and select a revealed location." (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp($event)" (pointercancel)="onPointerCancel($event)" (lostpointercapture)="onPointerCancel($event)" (wheel)="onWheel($event)" (click)="onViewportClick($event)">
     <div class="map-head">
       <h1>Currently in: {{mapName()}}</h1>
-      <app-town-view-toggle *ngIf="inTownScene()" class="town-view-toggle" [mode]="viewMode()" (modeChange)="setViewMode($event)" />
+      <app-town-view-toggle *ngIf="inTownScene()" class="town-view-toggle" [mode]="$any(viewMode())" (modeChange)="setViewMode($event)" />
+      <app-arena-toggle *ngIf="!inTownScene() && character.character()?.currentMapId" class="town-view-toggle" [available]="webgl" [mode]="viewMode()==='arena' ? 'arena' : 'map'" (modeChange)="setArenaMode($event)" />
       <div class="map-meta">
         <div *ngIf="teleportActivity() as teleport" class="activity-gauge teleporting" role="progressbar" [attr.aria-label]="locale.t('Teleporting…')" [attr.aria-valuenow]="teleportProgress()" aria-valuemin="0" aria-valuemax="100">
           <div class="activity-gauge-fill" [style.width.%]="teleportProgress()"></div><strong>{{locale.t('Teleporting…')}}{{teleport.paused ? ' · '+locale.t('Paused during battle') : ''}}</strong>
@@ -34,6 +35,8 @@
       </button>
       <img *ngIf="currentMap()" class="location-pin" src="/assets/maps/pinpoint.svg" alt="Current location" [style.animation]="character.character()?.travelIntent ? 'none' : null" [style.left.px]="locationPinPosition().x" [style.top.px]="locationPinRenderY()">
     </div>
+    <!-- Map ↔ arena switch: 1 s to black, swap, 1 s back. -->
+    <div class="view-fade" [class.view-fade--on]="viewFade()" aria-hidden="true"></div>
   </div>
   <p *ngIf="fleeNotice()" class="map-error flee-success">{{fleeNotice()}}</p>
   <p *ngIf="mapTransitionPending()" class="map-feedback">waiting for battle to end to move...</p>

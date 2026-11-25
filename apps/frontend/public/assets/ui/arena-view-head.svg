@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3c79a"/><stop offset="1" stop-color="#c98b5c"/></linearGradient>
+    <linearGradient id="helm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dfe6ee"/><stop offset="1" stop-color="#8d99a8"/></linearGradient>
+    <linearGradient id="plume" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6b4a"/><stop offset="1" stop-color="#b8261a"/></linearGradient>
+  </defs>
+  <ellipse cx="32" cy="58" rx="20" ry="3.4" fill="#000" opacity=".3"/>
+  <!-- plume -->
+  <path d="M30 9 C36 2 50 4 52 13 C46 10 40 11 36 15 Z" fill="url(#plume)" stroke="#3b1a12" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- neck and shoulders -->
+  <path d="M18 56 C19 48 25 45 32 45 C39 45 45 48 46 56 Z" fill="#7a4a8c" stroke="#2a1630" stroke-width="2.4" stroke-linejoin="round"/>
+  <!-- face -->
+  <path d="M20 30 C20 20 25 15 32 15 C39 15 44 20 44 30 C44 40 39 47 32 47 C25 47 20 40 20 30 Z" fill="url(#skin)" stroke="#4a2a16" stroke-width="2.4"/>
+  <!-- helmet -->
+  <path d="M17 30 C17 18 23 11 32 11 C41 11 47 18 47 30 L42 30 C41 23 37 19 32 19 C27 19 23 23 22 30 Z" fill="url(#helm)" stroke="#2c3440" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M30 19 L34 19 L34 33 L30 33 Z" fill="url(#helm)" stroke="#2c3440" stroke-width="2"/>
+  <path d="M22 13 C26 12 29 12 31 12" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+  <!-- eyes and mouth -->
+  <circle cx="26.5" cy="32" r="2.1" fill="#2a1a10"/>
+  <circle cx="37.5" cy="32" r="2.1" fill="#2a1a10"/>
+  <path d="M28 40 C30 41.6 34 41.6 36 40" stroke="#6a2f1a" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>
