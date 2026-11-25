@@ -14,12 +14,14 @@ export function firstHostileStyle(actor:BattleActor):'melee'|'ranged' {
   }
   return 'ranged';
 }
+/** Rows a team of N principals deploys on (also the battle arena's walking formation). */
+export const CENTRAL_DEPLOYMENT_ROWS:Readonly<Record<number,readonly number[]>>={1:[5],2:[4,5],3:[4,5,6],4:[3,4,5,6],5:[3,4,5,6,7]};
 /** Roster order controls central rows; identities remain independent of display names. */
 export function placeBattleActors(actors:BattleActor[]):BattleActor[] {
   const out=actors.map(a=>({...a,position:{...a.position}}));
   const teams=['a','b'].map(team=>out.filter(a=>a.team===team).sort(stableActorOrder));
   if(teams.some(t=>t.length>10)) throw new Error('At most 10 actors per team');
-  const rows:Record<number,number[]>={1:[5],2:[4,5],3:[4,5,6],4:[3,4,5,6],5:[3,4,5,6,7]};
+  const rows=CENTRAL_DEPLOYMENT_ROWS;
   const occupied=new Set<string>();
   const nearestRow=(anchor:number,column:number):number=>{
     const candidates=[anchor,...Array.from({length:10},(_,d)=>[anchor-d-1,anchor+d+1]).flat()];
