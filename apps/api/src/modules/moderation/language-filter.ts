@@ -1,6 +1,6 @@
 /** Curated terms; keep ambiguous identity and animal words out of this list. */
 const TERMS = [
-  'puta', 'putas', 'puto', 'putos', 'vagabunda', 'vagabundas', 'vagabundo',
+  'fdp', 'puta', 'putas', 'puto', 'putos', 'vagabunda', 'vagabundas', 'vagabundo',
   'bitch', 'bitches', 'fuck', 'fucking', 'fucker', 'motherfucker', 'shit', 'asshole',
   'caralho', 'porra', 'merda', 'filho da puta', 'filha da puta', 'vai se foder',
   'foda se', 'fuder', 'fudido', 'fudida', 'arrombado', 'arrombada', 'cuzao',
