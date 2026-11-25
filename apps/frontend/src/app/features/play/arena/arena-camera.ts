@@ -54,3 +54,19 @@ export function monsterScale(nativeWidthM: number, _nativeHeightM: number): numb
   const max = 1.1 * ARENA_CELL_M;
   return nativeWidthM > max ? max / nativeWidthM : 1;
 }
+
+/**
+ * Monsters whose walk and idle are flight (bee, mosquito: their clips hover) fly at this height in
+ * the arena; the blob shadow stays on the ground. The wraith floats by its own build lift; the
+ * field bat's model has no flight clips, so it walks.
+ */
+const FLYERS_M: Record<string, number> = { mutantbee: 1.2, giantmosquito: 1.2 };
+/** A killed flyer drops to the ground over this long (accelerating, like a fall). */
+export const ARENA_FLYER_FALL_MS = 600;
+
+export function arenaHoverM(monsterId: string | null, deadAtMs: number | null, nowMs: number): number {
+  const height = monsterId ? FLYERS_M[monsterId.replace(/^mon_/, '')] ?? 0 : 0;
+  if (!height || deadAtMs === null || nowMs <= deadAtMs) return height;
+  const f = Math.min(1, (nowMs - deadAtMs) / ARENA_FLYER_FALL_MS);
+  return height * (1 - f * f);
+}

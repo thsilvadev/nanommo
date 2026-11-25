@@ -196,7 +196,7 @@ class ArenaRuntime implements ArenaRuntimeHandle {
       if (!from || !to) { arrow.visible = false; return; }
       const f = (nowMs - shooter.projectile!.launchAtMs) / (shooter.projectile!.hitAtMs - shooter.projectile!.launchAtMs);
       const a = from.object3d.position.clone().setY(from.headHeight() * 0.72);
-      const b = to.object3d.position.clone().setY(to.headHeight() * 0.6);
+      const b = to.object3d.position.clone().setY(to.aimHeight());
       const pos = a.clone().lerp(b, f);
       pos.y += Math.sin(f * Math.PI) * 0.8;
       const ahead = a.clone().lerp(b, Math.min(1, f + 0.02)); ahead.y += Math.sin(Math.min(1, f + 0.02) * Math.PI) * 0.8;
@@ -215,7 +215,7 @@ class ArenaRuntime implements ArenaRuntimeHandle {
       spark.visible = !!view;
       if (!view || !hit) return;
       const f = (nowMs - hit.atMs) / SPARK_MS;
-      spark.position.copy(view.object3d.position).setY(view.headHeight() * 0.62);
+      spark.position.copy(view.object3d.position).setY(view.aimHeight());
       spark.scale.setScalar(0.4 + f * 1.4);
       spark.material.opacity = 1 - f;
     });

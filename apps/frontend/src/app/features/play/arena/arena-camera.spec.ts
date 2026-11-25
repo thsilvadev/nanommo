@@ -1,4 +1,4 @@
-import { ARENA_CELL_M, cellToWorld, frameCells, monsterScale } from './arena-camera';
+import { ARENA_CELL_M, ARENA_FLYER_FALL_MS, arenaHoverM, cellToWorld, frameCells, monsterScale } from './arena-camera';
 
 const all = Array.from({ length: 100 }, (_, i) => ({ row: Math.floor(i / 10), column: i % 10 }));
 
@@ -28,5 +28,19 @@ describe('arena camera', () => {
   it('keeps real size but clamps a giant to its cell width', () => {
     expect(monsterScale(6, 4)).toBeCloseTo((1.1 * ARENA_CELL_M) / 6, 6);
     expect(monsterScale(0.8, 0.6)).toBe(1);
+  });
+
+  it('flying monsters (bee, mosquito) hover at 1.2 m and fall to the ground when they die; walkers stay on it', () => {
+    expect(arenaHoverM('mon_mutantbee', null, 5000)).toBeCloseTo(1.2, 6);
+    expect(arenaHoverM('mon_giantmosquito', null, 5000)).toBeCloseTo(1.2, 6);
+    expect(arenaHoverM('mon_fieldbat', null, 5000)).toBe(0);
+    expect(arenaHoverM('mon_gravelhorn', null, 5000)).toBe(0);
+    expect(arenaHoverM(null, null, 5000)).toBe(0);
+    // Killed at 1000: still up at the blow, falling after, on the ground once the fall is over.
+    expect(arenaHoverM('mon_mutantbee', 1000, 1000)).toBeCloseTo(1.2, 6);
+    const mid = arenaHoverM('mon_mutantbee', 1000, 1000 + ARENA_FLYER_FALL_MS / 2);
+    expect(mid).toBeGreaterThan(0);
+    expect(mid).toBeLessThan(1.2);
+    expect(arenaHoverM('mon_mutantbee', 1000, 1000 + ARENA_FLYER_FALL_MS)).toBe(0);
   });
 });

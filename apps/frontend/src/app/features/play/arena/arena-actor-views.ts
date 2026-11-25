@@ -12,7 +12,7 @@ import { MonsterModel, loadMonsterManifest, monsterManifestKey, type MonsterMani
 import { TownCharacter, type TownCharacterFactory } from '../town-scene/town-character';
 import type { ArenaFlash } from '../../../shared/battle-feedback-style';
 import type { ArenaActorFrame, ArenaFeedback } from './arena-actions';
-import { monsterScale } from './arena-camera';
+import { arenaHoverM, monsterScale } from './arena-camera';
 import type { ArenaCharacterLook, ArenaTeam } from './arena.types';
 
 /** What the runtime needs to draw an actor (from ArenaActorDef, or a walking party member). */
@@ -133,6 +133,8 @@ export class ArenaActorView {
   private readonly tinter = new ArenaTint();
   private lookKey: string;
   private disposed = false;
+  /** Flyers: metres above the ground this frame (the shadow stays on the ground). */
+  private hover = 0;
 
   constructor(readonly visual: ArenaActorVisual, private readonly factory: TownCharacterFactory, manifest: Promise<Record<string, MonsterManifestEntry>> = loadMonsterManifest()) {
     this.object3d.name = `arena:${visual.id}`;
@@ -166,15 +168,19 @@ export class ArenaActorView {
     else this.swap(new CharacterModel(this.factory, entry));
   }
 
-  /** Head height above the feet, metres (status effects and the HUD anchor sit there). */
-  headHeight(): number { return this.posable.height(); }
+  /** Head height above the ground, metres (status effects and the HUD anchor sit there); flyers included. */
+  headHeight(): number { return this.hover + this.posable.height(); }
+  /** Where arrows and hit sparks land: the body, flyers included. */
+  aimHeight(): number { return this.hover + this.posable.height() * 0.6; }
 
   update(frame: ArenaActorFrame, nowMs: number, feedback: ArenaFeedback[]): void {
     if (this.pending?.ready) this.commit();
     const yaw = frame.facing > 0 ? Math.PI / 2 : -Math.PI / 2;
     this.posable.drive(frame.anim, nowMs, yaw);
     const exit = frame.exit ?? 0;
-    this.posable.object3d.position.y = (this.posable instanceof PlaceholderPosable ? this.posable.object3d.position.y : 0) - exit * 0.6;
+    this.hover = arenaHoverM(this.visual.kind === 'character' ? null : this.visual.monsterId, frame.deadAtMs, nowMs);
+    const bob = this.posable instanceof PlaceholderPosable ? this.posable.object3d.position.y : 0;
+    this.posable.object3d.position.y = bob + this.hover - exit * 0.6;
     const head = this.headHeight();
 
     // Cast ring: pulses while casting.
@@ -185,7 +191,7 @@ export class ArenaActorView {
 
     this.updateStars(frame.statuses.includes('stun'), head, nowMs);
     this.updateZs(frame.statuses.includes('sleep'), head, nowMs);
-    this.updateIce(frame.statuses.includes('freeze'), head);
+    this.updateIce(frame.statuses.includes('freeze'), this.posable.height());
 
     // Hit flash: the newest flash on this actor, fading over FLASH_MS.
     const hit = feedback.filter((f) => f.targetId === this.visual.id && f.flash && nowMs - f.atMs < FLASH_MS).pop();
@@ -262,19 +268,19 @@ export class ArenaActorView {
   }
 
   /** A ~90 % transparent ice-blue crystal block around the body. */
-  private updateIce(on: boolean, head: number): void {
+  /** `body`: the body's own height (a flyer's block sits around it, up in the air). */
+  private updateIce(on: boolean, body: number): void {
     if (on && !this.ice) {
-      const w = 1.1, h = head + 0.25;
+      const w = 1.1, h = body + 0.25;
       const geometry = new THREE.BoxGeometry(w, h, w);
       const block = new THREE.Mesh(geometry, new THREE.MeshPhysicalMaterial({ color: '#bfe9ff', transparent: true, opacity: 0.12, roughness: 0.08, metalness: 0, clearcoat: 1, depthWrite: false }));
       const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: '#e8f8ff', transparent: true, opacity: 0.45 }));
       this.ice = new THREE.Group();
       this.ice.add(block, edges);
-      this.ice.position.y = h / 2;
       this.ice.renderOrder = 15;
       this.fx.add(this.ice);
     }
-    if (this.ice) this.ice.visible = on;
+    if (this.ice) { this.ice.visible = on; this.ice.position.y = this.hover + (body + 0.25) / 2; }
   }
 }
 

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { ArenaTint } from './arena-actor-views';
+import { ArenaActorView, ArenaTint } from './arena-actor-views';
+import type { ArenaActorFrame } from './arena-actions';
+import type { TownCharacterFactory } from '../town-scene/town-character';
 
 describe('ArenaTint (hit flash and exit fade)', () => {
   function model() {
@@ -55,5 +57,30 @@ describe('ArenaTint (hit flash and exit fade)', () => {
     tint.apply(mesh, '#000000', 0, 1);
     expect((mesh.material as THREE.Material).transparent).toBeFalse();
     expect((mesh.material as THREE.Material).opacity).toBe(1);
+  });
+});
+
+describe('ArenaActorView flyers', () => {
+  const frame = (over: Partial<ArenaActorFrame> = {}): ArenaActorFrame => ({
+    id: 'bee', column: 5, row: 5, facing: -1, moving: null, hp: 10, sp: 0, statuses: [], statusSinceMs: {}, deadAtMs: null, fleeing: null,
+    anim: { base: 'CombatIdle' }, cast: null, projectile: null, ...over,
+  });
+  const view = (monsterId: string) => new ArenaActorView(
+    { id: 'bee', team: 'b', kind: 'monster', name: 'Bee', look: null, monsterId },
+    null as unknown as TownCharacterFactory, new Promise(() => undefined),
+  );
+
+  it('a bee flies 1.2 m up (HUD and aim follow it), its shadow stays on the ground, and it lands once dead', () => {
+    const bee = view('mon_mutantbee');
+    const walker = view('mon_gravelhorn');
+    bee.update(frame(), 1000, []);
+    walker.update(frame(), 1000, []);
+    expect(bee.headHeight() - walker.headHeight()).toBeCloseTo(1.2, 6);
+    expect(bee.aimHeight() - walker.aimHeight()).toBeCloseTo(1.2, 6);
+    const shadow = bee.object3d.children.find((o) => (o as any).geometry?.type === 'PlaneGeometry')!;
+    expect(shadow.position.y).toBeLessThan(0.05);
+    bee.update(frame({ deadAtMs: 1000, anim: { base: 'CombatIdle', oneShot: { clip: 'Dead', startedAtMs: 1000, speed: 1 } } }), 5000, []);
+    expect(bee.headHeight()).toBeCloseTo(walker.headHeight(), 6);
+    bee.dispose(); walker.dispose();
   });
 });
