@@ -13,7 +13,7 @@ import { ARENA_FLAT_HALF_DEPTH_M } from './arena-terrain';
 
 export const ARENA_PROP_PERIOD_M = 180;
 
-export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm';
+export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm' | 'post';
 export interface ArenaPropSpec {
   kind: ArenaPropKind;
   count: number;
@@ -98,6 +98,8 @@ const hash = (s: string) => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0
 export function arenaPropLayout(region: ArenaRegionId): ArenaPropInstance[] {
   const r = rng(hash(`arena-props:${region}`));
   const out: ArenaPropInstance[] = [];
+  // God's Bridge: the parapet's posts, evenly spaced along the deck's back edge.
+  if (region === 'gods_bridge') for (let i = 0; i < ARENA_PROP_PERIOD_M / 2.5; i++) out.push({ kind: 'post', u: i * 2.5, z: -14.6, size: 1, yaw: 0, tilt: 0, color: '#c2b294', variant: 0 });
   for (const spec of arenaPropSpecs(region)) {
     for (let i = 0; i < spec.count; i++) {
       const band = spec.bands[Math.floor(r() * spec.bands.length)];

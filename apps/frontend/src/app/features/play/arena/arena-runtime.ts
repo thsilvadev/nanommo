@@ -16,7 +16,7 @@ import { ArenaActorView, type ArenaActorVisual } from './arena-actor-views';
 import { ARENA_CAMERA_FOV_DEG, ARENA_CAMERA_PITCH_DEG, cellToWorld, frameCells } from './arena-camera';
 import type { ArenaSceneFrame } from './arena-phase';
 import type { ArenaRegionId } from './arena-region';
-import { ArenaScenery } from './arena-scenery';
+import { ArenaScenery, arenaLight } from './arena-scenery';
 
 export type { ArenaActorVisual } from './arena-actor-views';
 export interface ArenaFrameInput { scene: ArenaSceneFrame; visuals: Map<string, ArenaActorVisual>; region: ArenaRegionId }
@@ -64,6 +64,9 @@ class ArenaRuntime implements ArenaRuntimeHandle {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(ARENA_CAMERA_FOV_DEG, 16 / 9, 0.5, 400);
   private readonly scenery: ArenaScenery;
+  private readonly hemi = new THREE.HemisphereLight('#fff6e6', '#5a6a3a', 1.6);
+  private readonly sun = new THREE.DirectionalLight('#ffffff', 2.2);
+  private litRegion: string | null = null;
   private readonly views = new Map<string, ArenaActorView>();
   private readonly arrows: THREE.Object3D[] = [];
   private readonly sparks: THREE.Sprite[] = [];
@@ -98,10 +101,9 @@ class ArenaRuntime implements ArenaRuntimeHandle {
     factory.prepare = (object) => this.prepare(object);
 
     this.scene.background = new THREE.Color('#9fc8ec');
-    this.scene.add(new THREE.HemisphereLight('#fff6e6', '#5a6a3a', 1.6));
-    const sun = new THREE.DirectionalLight('#ffffff', 2.2);
-    sun.position.set(-8, 16, 12);
-    this.scene.add(sun);
+    this.scene.add(this.hemi);
+    this.sun.position.set(-8, 16, 12);
+    this.scene.add(this.sun);
     this.scenery = new ArenaScenery(this.renderer.capabilities.getMaxAnisotropy());
     this.scene.add(this.scenery.group);
     this.sparkMaterial = new THREE.SpriteMaterial({ map: sparkTexture(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -198,6 +200,12 @@ class ArenaRuntime implements ArenaRuntimeHandle {
   private apply(input: ArenaFrameInput, nowMs: number, dtMs: number): void {
     const { scene } = input;
     this.scenery.setRegion(input.region, nowMs);
+    if (input.region !== this.litRegion) {
+      this.litRegion = input.region;
+      const light = arenaLight(input.region);
+      this.hemi.color.set(light.sky); this.hemi.groundColor.set(light.ground); this.hemi.intensity = light.hemi;
+      this.sun.color.set(light.sun); this.sun.intensity = light.sunIntensity;
+    }
 
     // Views: create for new actors, drop the ones that left the frame.
     const seen = new Set<string>();

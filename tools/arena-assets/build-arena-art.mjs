@@ -187,6 +187,27 @@ function ground(r, { base, speckles, patches, patchOpacity = 0.55, extra = '' })
   return svg(G, G, body + extra, blur('gblur', 10));
 }
 
+/** God's Bridge deck: courses of worn stone slabs running along the bridge, dark joints, a little moss. */
+function deck(r) {
+  const courses = 4, h = G / courses;
+  let body = '';
+  for (let c = 0; c < courses; c++) {
+    let x = range(r, -60, 0);
+    while (x < G) {
+      const w = range(r, 70, 150), tone = ['#b5a486', '#a39274', '#bcae90', '#9c8b6e', '#ad9c7e'][Math.floor(r() * 5)];
+      const draw = (dx) => `<rect x="${(x + dx).toFixed(1)}" y="${c * h + 2}" width="${(w - 4).toFixed(1)}" height="${h - 4}" rx="5" fill="${tone}"/>`
+        + `<rect x="${(x + dx + 4).toFixed(1)}" y="${c * h + 5}" width="${(w - 12).toFixed(1)}" height="5" fill="#ffffff" opacity="0.08"/>`;
+      body += [-G, 0, G].map(draw).join('');
+      x += w;
+    }
+  }
+  for (let i = 0; i < 260; i++) {
+    const x = range(r, 0, G), y = range(r, 0, G), s = range(r, 1, 4);
+    body += [-G, 0, G].flatMap((dx) => [-G, 0, G].map((dy) => `<circle cx="${x + dx}" cy="${y + dy}" r="${s * 0.6}" fill="${r() < 0.3 ? '#6f7a4a' : '#7d6d55'}" opacity="0.6"/>`)).join('');
+  }
+  return svg(G, G, `<rect width="${G}" height="${G}" fill="#5e5242"/>` + body);
+}
+
 // ---- regions ---------------------------------------------------------------------
 const REGIONS = {
   green_grounds: (r) => ({
@@ -236,10 +257,21 @@ const REGIONS = {
     ground: ground(r, { base: '#e2cf98', patches: { count: 14, colors: ['#d4bd80', '#efe0b0', '#c9b27a'] }, speckles: { count: 1600, size: 3, colors: ['#c9b07a', '#f3e6bf', '#b89e6a'], blades: false } }),
   }),
   gods_bridge: (r) => ({
-    sky: sky('#5da6ea', '#e0f1ff', clouds(r, { count: 9 })),
-    far: svg(W, H, mountains(r, { base: 250, amp: 60, fill: '#7d8a7a', shade: '#66726a' }) + `<rect y="370" width="${W}" height="${H - 370}" fill="#4aa3c8"/>` + bridge(r, { y: 290, span: 560, color: '#b3a68c' }) + treeline(r, { base: 380, amp: 10, count: 40, size: 40, colors: ['#4f8c3c', '#5b9a45'] })),
-    near: svg(W, H, rocks(r, { count: 16, y: 450, size: 32, colors: ['#8a8a82', '#a09f96'] }) + grassTufts(r, { count: 110, y: 430, height: 34, colors: ['#5f9a46', '#4f8a3a', '#7aaa55'] })),
-    ground: ground(r, { base: '#6a9a48', patches: { count: 14, colors: ['#9a9486', '#7a5d39', '#5a8a3e'] }, speckles: { count: 1300, size: 5, colors: ['#4d8834', '#76b04f', '#8a8a80'], blades: true } }),
+    // Sunset over the river: the arena stands on the bridge deck; the 3D river runs below (arena-scenery).
+    sky: svg(W, H, `<rect width="${W}" height="${H}" fill="url(#sky)"/>`
+      + `<circle cx="1150" cy="405" r="150" fill="#ffd27a" opacity="0.35" filter="url(#haze)"/>`
+      + `<circle cx="1150" cy="405" r="62" fill="#ffe7a8" opacity="0.6" filter="url(#soft)"/><circle cx="1150" cy="405" r="44" fill="#fff4cf"/>`
+      + clouds(r, { count: 6, y: [150, 330], color: '#f6a3a0', opacity: 0.55, size: 1.2 })
+      + clouds(r, { count: 5, y: [60, 160], color: '#8a5a8f', opacity: 0.45, size: 1.4 }),
+      vgrad('sky', [[0, '#241d4f'], [0.38, '#6b3a72'], [0.62, '#c2577a'], [0.8, '#f2884a'], [0.92, '#ffc777'], [1, '#ffd98f']]) + blur('soft', 6) + blur('haze', 30)),
+    far: svg(W, H, mountains(r, { base: 285, amp: 30, fill: '#4a2f57', shade: '#3a2547' })
+      + `<path d="${ridgePath(ridge(r, { base: 322, amp: 8, octaves: 3 }), H)}" fill="#33203f"/>`
+      + bridge(r, { y: 282, span: 380, color: '#3e2a4c', height: 58 })
+      + `<rect y="338" width="${W}" height="${H - 338}" fill="url(#river)"/>`
+      + `<g stroke="#ffcf8a" stroke-opacity="0.45" stroke-width="2">${wrap((dx) => Array.from({ length: 40 }, () => { const x = range(r, 0, W) + dx, y = range(r, 344, 505); return `<path d="M${x},${y} h${range(r, 10, 40).toFixed(0)}"/>`; }).join(''))}</g>`,
+      vgrad('river', [[0, '#e8a070'], [0.5, '#b0607a'], [1, '#5a3f72']])),
+    near: svg(W, H, `<g stroke="#2a1d33" stroke-width="3" fill="none" stroke-linecap="round">${wrap((dx) => Array.from({ length: 9 }, () => { const x = range(r, 0, W) + dx, y = range(r, 40, 200), s = range(r, 8, 16); return `<path d="M${x - s},${y - s * 0.4} Q${x - s * 0.4},${y - s * 0.6} ${x},${y} Q${x + s * 0.4},${y - s * 0.6} ${x + s},${y - s * 0.4}"/>`; }).join(''))}</g>`),
+    ground: deck(r),
   }),
 };
 

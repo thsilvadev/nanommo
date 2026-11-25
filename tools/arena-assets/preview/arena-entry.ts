@@ -48,6 +48,7 @@ const SHOTS: Record<string, Shot> = {
   solo_close: { battle: solo, region: 'ipora_beach', mode: 'battle', at: (b) => b.startAtMs + 26 * 500 + 420 },
   party_fight: { battle: party, region: 'menace_hills', mode: 'battle', at: (b) => b.startAtMs + 5 * 500 + 30, party: ['char-self', 'char-ally'] },
   party_status: { battle: statuses, region: 'wastelands', mode: 'battle', at: (b) => b.startAtMs + 3 * 500, party: ['char-self', 'char-ally'] },
+  bridge_fight: { battle: party, region: 'gods_bridge', mode: 'battle', at: (b) => b.startAtMs + 5 * 500 + 30, party: ['char-self', 'char-ally'] },
   ruins: { battle: party, region: 'forest_ruins', mode: 'battle', at: (b) => b.startAtMs + 1 * 500, party: ['char-self', 'char-ally'] },
   outro: { battle: solo, region: 'green_grounds', mode: 'outro', at: (b) => b.endAtMs + 600 },
   caete: { battle: solo, region: 'caete', mode: 'battle', at: (b) => b.startAtMs + 30 * 500 + 200 },

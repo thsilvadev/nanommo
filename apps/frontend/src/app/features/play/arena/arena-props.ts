@@ -78,6 +78,10 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
       const g = lumpy(0.5, 0, 0.6, 9.1); g.translate(0, 0.12, 0);
       return shade(g, (p) => 0.85 + 0.3 * Math.max(0, p.y / 0.3));
     }
+    case 'post': {
+      const g = new THREE.BoxGeometry(0.42, 1.12, 0.42); g.translate(0, 0.56, 0);
+      return shade(g, (_p, n) => (n.y > 0.7 ? 1.1 : 0.9));
+    }
     case 'palm':
       return shade(new THREE.ConeGeometry(0.3, 4, 6), () => 1);
   }
