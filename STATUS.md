@@ -1,3 +1,15 @@
+### Arena v2, etapa 1 (bugs): visão mantida entre páginas, troca instantânea, fade só entre regiões, sem batalha fantasma, víbora de lado — 2026-11-25
+
+Branch `fix/arena-v2-bugs` (a partir de `main` = `origin/main` `20fa9dc`). Plano `docs/superpowers/plans/2026-11-25-arena-v2.md` (lista de 10 itens do usuário dividida em bugs, feitos aqui, e estética, para depois do push).
+
+- Voltar de outra página (/character…) mantém a visão (arena ou mapa; cidade/mapa também): as escolhas e o último lugar saíram do `MapBoard` para o serviço raiz `WorldViewState` (reinicia ao trocar de personagem). Uma viagem que termina com o jogador em outra página ainda abre a arena na volta.
+- Mapa ↔ arena troca na hora (sem o fade preto de 1 s + 1 s; overlay `.view-fade` e `ARENA_VIEW_FADE_MS` removidos).
+- Fade branco só quando a região muda (`arenaRegionOf`); `green_grounds_0 → _1` troca sem fade; um salto na mesma região durante o clarear segue o fade em curso.
+- Batalha fantasma na viagem: com a arena escondida o runtime não desenha nem acompanha a fila; a viagem apaga as batalhas futuras; ao voltar, uma batalha apagada cujo horário já passou virava "atual". `ArenaSceneSource.settleSolo` agora descarta toda batalha que saiu da fila sem resolução e que a arena nunca viu começar.
+- Venom Viper olhava para a câmera (o GLB apontava para +X): `rotY: -90` no `monsters.config.mjs`, GLB reconstruído; novo campo `rev` no build → `venomviper.glb?v=2` no manifest (o GLB tem cache de 1 dia).
+
+Validação: teste novo da batalha fantasma visto falhando antes da correção (`Expected 'battle' to be 'walk'`); Karma completo **625/625** (config isolada, porta 9917); `tsc` app e spec sem erros; `ng build --configuration production` OK; `node apps/api/test/vercel-monster-cache.test.js` ok; prints do harness `tools/monster-assets/preview/shoot.mjs` da víbora antes/depois (agora de frente para +Z como os outros). **Não verificado no app rodando**; sem push/deploy; nenhuma migration.
+
 ### Arena: monstros por mapa e vizinhos, mão esquerda, moonwalk, cones — 2026-11-25
 
 Branch `fix/arena-prod-feedback-2` (a partir de `origin/main`, sem upstream). Plano `docs/superpowers/plans/2026-11-25-arena-monsters-by-map.md` (decisão do usuário: "2, mapa e vizinhos").

@@ -305,3 +305,6 @@ Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `ev
 - A monster GLB replaced in place stays cached up to a day (`vercel.json`): rename or version it when its content changes.
 - Monster files are reference-counted (`monster-model.ts`): `MonsterModel.load` takes a reference before awaiting the file and `dispose()` gives it back; `releaseMonsterFilesExcept` only frees files with no live model. Never dispose a monster's shared geometry/materials/textures yourself.
 - three r170 assigns `WebGLRenderer` methods (`initTexture`, `compileAsync`, …) per instance in the constructor: a spy on `WebGLRenderer.prototype` never fires.
+- The arena runtime does not draw while hidden, so `ArenaSceneSource` sees nothing between two views: decide whether a cached battle is still real from "did it leave the queue / did the arena see it start", never from its start time (a trip deletes queued battles while the map view is open).
+- `MapBoard` is destroyed whenever another page opens: view choices that must survive navigation live in `WorldViewState` (root service).
+- Monster GLBs rebuilt in place: set `rev` in `tools/monster-assets/monsters.config.mjs` (the manifest gets `file?v=<rev>`).
