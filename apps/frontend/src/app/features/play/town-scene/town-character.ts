@@ -8,6 +8,7 @@
  * AnimationMixer playing Idle / Walk / Dead and the emotes (Dance, SitDown → Sit).
  */
 import * as THREE from 'three';
+import { SpeechBubble } from './town-speech-bubble';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { Mulberry32, mulberry32Seed } from '@nanommo/shared';
 import type { AppearanceCatalog, AppearanceOption, AppearanceTrait, CharacterAppearance, RefineGlint, Sex, TownPose, TownRosterEntry } from '@nanommo/shared';
@@ -75,6 +76,8 @@ function hslToRgb(h: number, s: number, l: number, out: [number, number, number]
   out[2] = hueToRgb(p, q, h - 1 / 3) * 255;
 }
 const PLATE_HEIGHT = 2.15;
+/** Name plates come down towards this height as the close-up camera shrinks them (just over the head). */
+const PLATE_CLOSE_HEIGHT = 1.9;
 
 export type TownLod = 'full' | 'low';
 export interface TownPickInfo { kind: 'npc' | 'character'; id: string }
@@ -367,7 +370,10 @@ export class TownCharacter {
   private readonly model = new THREE.Group();
   private readonly hitbox: THREE.Mesh;
   private plate: THREE.Sprite | null = null;
+  /** Name plate size relative to its top-down size (the close-up camera shrinks it). */
+  private plateScale = 1;
   private plateKey = '';
+  private bubble: SpeechBubble | null = null;
   private mixer: THREE.AnimationMixer | null = null;
   /** A one-off clip (Smashing Spree swing) that takes over until it ends, facing `face`. */
   private oneShot: { clip: TownClip; face: [number, number] } | null = null;
@@ -591,6 +597,10 @@ export class TownCharacter {
     this.object3d.position.set(pose.x, this.elevation, pose.z);
     this.model.rotation.y = this.oneShot ? Math.atan2(this.oneShot.face[0] - pose.x, this.oneShot.face[1] - pose.z) : pose.facing;
     if (this.plate) this.plate.visible = lod === 'full';
+    if (this.bubble && !this.bubble.step(performance.now(), this.plateScale, this.plateY() + 0.32 * this.plateScale)) {
+      this.bubble.dispose();
+      this.bubble = null;
+    }
     this.firstSeenAt ??= nowMs;
     for (const animate of this.costumeAnimators) animate(nowMs);
     if (!this.mixer) return;
@@ -628,6 +638,8 @@ export class TownCharacter {
     if (this.disposed) return;
     this.disposed = true;
     this.mixer?.stopAllAction();
+    this.bubble?.dispose();
+    this.bubble = null;
     this.object3d.removeFromParent();
     for (const item of this.owned) item.dispose();
   }
@@ -865,6 +877,28 @@ export class TownCharacter {
     }
   }
 
+  /** Shows a chat line in a speech bubble over the head (replaces the one still up). */
+  say(text: string): void {
+    if (this.disposed || !text.trim()) return;
+    this.bubble?.dispose();
+    this.bubble = new SpeechBubble(text.trim());
+    this.bubble.step(performance.now(), this.plateScale, this.plateY() + 0.32 * this.plateScale);
+    this.object3d.add(this.bubble.sprite);
+  }
+
+  /** Text of the speech bubble still up, or null (tests). */
+  speech(): string | null { return this.bubble?.text ?? null; }
+
+  /** Shrinks the name plate (1 = top-down size); the close-up camera keeps it from covering the faces. */
+  setPlateScale(scale: number): void {
+    if (Math.abs(scale - this.plateScale) < 1e-3) return;
+    this.plateScale = scale;
+    this.plate?.scale.set(3.4 * scale, 0.64 * scale, 1);
+    this.plate?.position.setY(this.plateY());
+  }
+
+  private plateY(): number { return PLATE_CLOSE_HEIGHT + (PLATE_HEIGHT - PLATE_CLOSE_HEIGHT) * this.plateScale; }
+
   private updatePlate(): void {
     if (this.opts.arena) return; // the arena draws names and bars in HTML
     const text = this.opts.npc ? this.entry.name : `${this.entry.name}  Lv ${this.entry.level}`;
@@ -891,8 +925,8 @@ export class TownCharacter {
     texture.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, fog: false });
     this.plate = new THREE.Sprite(material);
-    this.plate.scale.set(3.4, 0.64, 1);
-    this.plate.position.y = PLATE_HEIGHT;
+    this.plate.scale.set(3.4 * this.plateScale, 0.64 * this.plateScale, 1);
+    this.plate.position.y = this.plateY();
     this.plate.renderOrder = 10;
     this.object3d.add(this.plate);
     this.owned.push({ dispose: () => { texture.dispose(); material.dispose(); } });

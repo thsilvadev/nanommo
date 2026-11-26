@@ -35,6 +35,8 @@ export interface TownSceneRuntimeHandle {
   /** Break a vase: the attacker swings, the vase shatters at contact. Returns where it stood, or null if unknown/already broken. */
   breakVase(vaseId: string, byCharacterId: string, prize: boolean): [number, number] | null;
   setHoveredVase(vaseId: string | null): void;
+  /** Chat line said by a character in this town: a speech bubble over its head. */
+  say(characterId: string, text: string): void;
   /** World (x, z) of the local character now (from positionAt), or null. */
   selfPosition(): [number, number] | null;
   /** Hidden scene (map view): stop the render loop; showing it again resumes it. */

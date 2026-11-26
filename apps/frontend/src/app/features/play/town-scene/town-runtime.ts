@@ -9,16 +9,19 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { TownNav, positionAt, type TownEventVase, type TownPose, type TownRosterEntry } from '@nanommo/shared';
 import { CharacterAssetCache } from '../../../shared/character-viewer/character-asset-cache';
 import { loadAppearanceCatalog } from '../../../shared/character-viewer/character-viewer.component';
-import { TownCamera } from './town-camera';
+import { TOWN_CAMERA_MIN_DISTANCE, TownCamera } from './town-camera';
 import { TownCharacter, TownCharacterFactory, type TownPickInfo } from './town-character';
 import { buildTownWorld, type TownWorld } from './town-world';
 import { NPC_VISUALS, NPC_PROPS_ASSET, buildNpcVisual, npcAppearance, npcOutfitAsset } from './npc-visuals';
 import { VASE_CONTACT_MS, type TownPick, type TownSceneRuntimeHandle, type TownSceneRuntimeInit } from './town-scene.types';
 import { TownVases, buildShards } from './town-vases';
+import { loadBubbleFont } from './town-speech-bubble';
 
 const MAX_PIXEL_RATIO = 1.5;
 /** Farther than this from the camera target, a character animates at 10 Hz and hides its name. */
 const LOD_DISTANCE = 45;
+/** Below this camera pitch, obstacles between the camera and the characters it looks at are hidden. */
+const CLOSE_UP_PITCH_DEG = 40;
 /** Spawn / vanish aura around a character entering or leaving the town. */
 export const TOWN_AURA_MS = 500;
 /** A roster entry that joined less than this long ago still gets the spawn aura when first drawn. */
@@ -134,6 +137,8 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   private readonly npcProps: Promise<void>[] = [];
   private readonly raycaster = new THREE.Raycaster();
   private readonly frustum = new THREE.Frustum();
+  /** World obstacles with their bounds, for the close-up camera to hide what stands in front of it. */
+  private obstacleBounds: Array<{ object: THREE.Object3D; box: THREE.Box3 }> | null = null;
   private readonly cleanups: Array<() => void> = [];
   private readonly effects: TownEffect[] = [];
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -166,6 +171,7 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     host.appendChild(canvas);
 
     this.world = buildTownWorld(init.def);
+    void loadBubbleFont();
     this.scene.add(this.world.group);
     this.scene.fog = this.world.fog;
     this.scene.background = this.world.background;
@@ -345,6 +351,14 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   }
 
   setHoveredVase(vaseId: string | null): void { this.vases.setHovered(vaseId); }
+
+  say(characterId: string, text: string): void {
+    // The first bubble waits for its font (loaded once, page-wide); later ones draw at once.
+    void loadBubbleFont().then(() => { if (!this.disposed) this.characters.get(characterId)?.say(text); });
+  }
+
+  /** Text of the speech bubble over a character, or null (tests). */
+  speechOf(characterId: string): string | null { return this.characters.get(characterId)?.speech() ?? null; }
 
   breakVase(vaseId: string, byCharacterId: string, prize: boolean): [number, number] | null {
     if (this.disposed) return null;
@@ -628,8 +642,10 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   }
 
   private tick(dtMs: number): void {
+    this.cam.step(dtMs);
     const camera = this.cam.camera;
     this.frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+    this.applyCloseUp();
     const target = this.cam.target;
     const lodOf = (x: number, z: number) => {
       const near = Math.hypot(x - target.x, z - target.z) <= LOD_DISTANCE;
@@ -647,6 +663,42 @@ export class TownRuntime implements TownSceneRuntimeHandle {
     this.world.update(now);
     this.updateEffects();
     this.renderNow();
+  }
+
+  /**
+   * Close-up camera: name plates shrink with the distance (keeping their
+   * closest top-down screen size), and obstacles wholly between the camera
+   * and the characters it looks at are hidden, so a house or a tree crown
+   * never fills the frame.
+   */
+  private applyCloseUp(): void {
+    // Every frame (a no-op when unchanged): characters that joined since get it too.
+    const plateScale = Math.min(1, this.cam.viewDistance / TOWN_CAMERA_MIN_DISTANCE);
+    for (const character of this.characters.values()) character.setPlateScale(plateScale);
+    for (const npc of this.npcs.values()) npc.setPlateScale(plateScale);
+    const closeUp = this.cam.pitchDeg < CLOSE_UP_PITCH_DEG;
+    if (!closeUp && !this.obstacleBounds) return;
+    this.obstacleBounds ??= this.world.group.children
+      .filter((o) => o.name.startsWith('obstacle:'))
+      .map((object) => ({ object, box: new THREE.Box3().setFromObject(object) }));
+    const camera = this.cam.camera;
+    const forward = camera.getWorldDirection(new THREE.Vector3());
+    const focusDepth = this.cam.viewDistance - 0.6;
+    const corner = new THREE.Vector3();
+    for (const { object, box } of this.obstacleBounds) {
+      let hide = false;
+      if (closeUp && (box.containsPoint(camera.position) || this.frustum.intersectsBox(box))) {
+        // Farthest corner along the view: in front of the characters if it is closer than they are.
+        let far = -Infinity;
+        for (let i = 0; i < 8; i++) {
+          corner.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z);
+          far = Math.max(far, corner.sub(camera.position).dot(forward));
+        }
+        hide = far < focusDepth || box.containsPoint(camera.position);
+      }
+      object.visible = !hide;
+    }
+    if (!closeUp) this.obstacleBounds = null;
   }
 
   private startLoop(): void {

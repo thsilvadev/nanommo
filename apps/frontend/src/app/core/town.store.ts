@@ -63,6 +63,9 @@ export class TownStore {
   readonly vaseEvent = this._vaseEvent.asReadonly();
   private readonly breaks = new Subject<TownEventVaseBroken>();
   readonly vaseBreaks: Observable<TownEventVaseBroken> = this.breaks.asObservable();
+  private readonly said = new Subject<{ characterId: string; message: string }>();
+  /** Global chat lines said by someone in my town now (speech bubbles). */
+  readonly speech: Observable<{ characterId: string; message: string }> = this.said.asObservable();
   private vaseEndTimer: ReturnType<typeof setTimeout> | null = null;
   private selfPosition: (() => [number, number] | null) | null = null;
   private pendingHit: { vaseId: string; since: number; reapproached: boolean } | null = null;
@@ -108,6 +111,12 @@ export class TownStore {
         this._vaseEvent.set({ ...current, vases: current.vases.filter(v => v.id !== d.vaseId) });
         if (this.pendingHit?.vaseId === d.vaseId && d.byCharacterId !== this.characters.character()?.id) this.cancelPendingHit();
         this.breaks.next(d);
+      }),
+      this.socket.on<{ channel?: string; senderCharacterId?: string; message?: string; type?: string; key?: string }>('chat:message').subscribe(row => {
+        // Players' own words only (announcements carry a type/key and no sender).
+        if (!row || row.channel !== 'global' || !row.senderCharacterId || row.type || row.key || typeof row.message !== 'string') return;
+        if (!this._mapId() || !this._entries().some(e => e.characterId === row.senderCharacterId)) return;
+        this.said.next({ characterId: row.senderCharacterId, message: row.message });
       }),
       this.socket.on<{ mapId: string; eventKey: string }>('town:event:ended').subscribe(d => {
         if (d?.mapId === this._mapId() && d.eventKey === this._vaseEvent()?.eventKey) this.setVaseEvent(null);
