@@ -632,6 +632,7 @@ export class CharacterService {
       attack: derived.atk,
       magicAttack: derived.matk,
       defense: derived.def,
+      mdefPercent: derived.mdefPercent,
       elementalAffinity: equipmentAffinity(equipped.map(row => ({ ...row, definition: this.dataService.getItemById(row.itemId) }))),
       elementalResistances: elementalResistances(equipmentAffinity(equipped.map(row => ({ ...row, definition: this.dataService.getItemById(row.itemId) })))),
       attackSpeed: derived.attackSpeed,

@@ -86,6 +86,8 @@ export class CharacterDto {
   elementalResistances!: Record<string, number>;
   attackSpeed!: number;
   castTimeReduction!: number;
+  /** Magic damage reduction in percent (equipment, 0–100). */
+  mdefPercent!: number;
   evasion!: number;
   accuracy!: number;
   hpRegenPerTenTicks!: number;

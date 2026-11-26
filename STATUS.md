@@ -1,3 +1,9 @@
+### Character → Stats: MDEF visível e valores alinhados à direita — 2026-11-26
+
+O MDEF não aparecia porque a API nunca o enviava: `derived.mdefPercent` já era calculado (é o que a batalha usa), mas não estava no `CharacterDto` nem no mapper. Agora `mdefPercent` vai na resposta do personagem (shared DTO + `character.service`) e a página mostra `MDEF  N%` depois de Defense. As linhas de stats viraram `minmax(0,1fr) auto` com o valor em `justify-self: end` (rótulo colado à esquerda, valor à direita; "Shadow Resistance" não quebra mais linha), no desktop e no mobile.
+
+Validação: `tsc` API, app e spec ok; Karma `features/character` 4/4; layout conferido num print do Chromium headless com as regras CSS reais e rótulos longos. **Não verificado no app rodando**; até o backend ir para produção o front mostra `MDEF 0%`. Sem push/deploy; nenhuma migration.
+
 ### Rootbound Brute: Rage só quando desarmado — 2026-11-26
 
 O gambit do Brute era `always → attack` (P1) e `always → Rage` (P2), mas linhas de ataque e de skill/item alimentam **barras separadas** (`selectGroupGambit` filtra por barra; a prioridade só ordena dentro de cada uma) e o cast é checado antes do ataque: com SP cheio (60/60, Rage custa 50) ele usava Rage no início de toda batalha. A linha do Rage agora é `self_has_status: disarm` (mesmo formato do Wraith/silence); mirror do frontend sincronizado. O usuário escolheu ajustar o dado e não mudar a regra das barras por enquanto (rework possível no futuro).
