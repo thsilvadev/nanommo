@@ -44,6 +44,8 @@ export function arenaLight(region: ArenaRegionId): ArenaLight { return LIGHTS[re
 interface LayerSet {
   region: ArenaRegionId; group: THREE.Group; materials: THREE.MeshBasicMaterial[]; textures: THREE.Texture[]; layers: Array<{ spec: LayerSpec; texture: THREE.Texture }>;
   ground: THREE.Texture; groundMaterial: THREE.MeshLambertMaterial; travel: { value: number }; time: { value: number }; props: ArenaProps; bornAt: number;
+  /** The painted layers (sky, far, near): they turn with the camera's yaw, like a sky box; the ground does not. */
+  backdrop: THREE.Group;
   /** Extra materials faded with the ground (the bridge's river, wall and parapet). */
   extras: THREE.Material[];
   /** Textures still downloading (the region is drawn whole once this is 0; a failed one counts as done). */
@@ -82,11 +84,12 @@ export class ArenaScenery {
   }
 
   /**
-   * Advance the scroll by `dtMs` at `scroll` (0..1 of the walk speed) and settle a crossfade. The
+   * Advance the scroll by `dtMs` at `scroll` (0..1 of the walk speed) and settle a crossfade; the painted
+   * layers turn by `yawRad` round the look point (the player's orbit) so they always fill the view. The
    * scenery stays centred on the camera (`cameraX`, metres): moving the camera right reads as walking
    * that far, so the ground stays put under the actors and the layers slide by their parallax.
    */
-  update(scroll: number, dtMs: number, nowMs: number, cameraX = 0): void {
+  update(scroll: number, dtMs: number, nowMs: number, cameraX = 0, yawRad = 0): void {
     this.walked += ARENA_WALK_SPEED_M_S * scroll * (dtMs / 1000);
     this.group.position.x = cameraX;
     const travelled = this.walked + cameraX;
@@ -97,6 +100,7 @@ export class ArenaScenery {
       set.travel.value = travelled;
       set.time.value = (nowMs % 600_000) / 1000;
       set.props.update(travelled);
+      set.backdrop.rotation.y = yawRad;
     }
     if (this.current) {
       const f = this.leaving ? Math.min(1, (nowMs - this.current.bornAt) / CROSSFADE_MS) : 1;
@@ -195,7 +199,9 @@ export class ArenaScenery {
     const assets = arenaRegionAssets(region);
     const group = new THREE.Group();
     group.name = `arena:scenery:${region}`;
-    const set: LayerSet = { region, group, materials: [], textures: [], layers: [], ground: null!, groundMaterial: null!, travel: { value: 0 }, time: { value: 0 }, props: null!, bornAt: nowMs, extras: [], pending: 0 };
+    const set: LayerSet = { region, group, materials: [], textures: [], layers: [], ground: null!, groundMaterial: null!, travel: { value: 0 }, time: { value: 0 }, props: null!, bornAt: nowMs, extras: [], pending: 0, backdrop: new THREE.Group() };
+    set.backdrop.name = 'arena:backdrop';
+    group.add(set.backdrop);
     this.building = set;
     // Painted layers: unlit, behind everything, never write depth (the grid draws over them).
     for (const spec of LAYERS) {
@@ -206,7 +212,7 @@ export class ArenaScenery {
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.set(0, spec.bottom + spec.height / 2, spec.z);
       mesh.renderOrder = -10 + LAYERS.indexOf(spec);
-      group.add(mesh);
+      set.backdrop.add(mesh);
       set.materials.push(material); set.textures.push(texture); set.layers.push({ spec, texture });
     }
     // Ground: lit, tiling both ways, reaching under the far layer and in front of the camera. 1 m quads

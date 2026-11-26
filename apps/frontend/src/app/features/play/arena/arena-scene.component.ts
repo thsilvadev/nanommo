@@ -12,7 +12,7 @@ import { ArenaFeedbackOwner } from './arena-feedback-owner.service';
 import { ArenaMonsterWarmup } from './arena-monster-warmup.service';
 import { arenaMapFade, nextMapChange, settleMapChange, type ArenaMapChange } from './arena-map-fade';
 import { arenaRegionOf } from './arena-region';
-import { arenaFocusOrder, arenaFocusSlot } from './arena-camera';
+import { ARENA_CAMERA_PITCH_DEG, arenaFocusOrder, arenaFocusSlot, clampOrbit } from './arena-camera';
 import { ArenaSceneSource, type ArenaResolvedEntry, type ArenaSourceInputs } from './arena-scene-source';
 import type { ArenaFrameInput, ArenaRuntimeHandle, ArenaRuntimeInit } from './arena-runtime';
 import type { ArenaBattleOptions, ArenaCharacterLook } from './arena.types';
@@ -33,6 +33,8 @@ const HUD_MS = 33;
 /** One wheel notch of zoom (0…1), and the zoom a focus key brings at least. */
 const ZOOM_STEP = 0.2;
 const FOCUS_ZOOM = 0.6;
+/** Degrees the camera turns per pixel dragged. */
+const ORBIT_DEG_PER_PX = 0.35;
 /** A key typed into a field (chat, search) is text, not a camera command. */
 const typing = (target: EventTarget | null): boolean => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
@@ -65,6 +67,10 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
   /** The player's camera: zoom 0 (automatic frame) … 1 (close shot), on `focusId` (null: their own character). */
   private zoom = 0;
   private focusId: string | null = null;
+  /** The player's orbit round the centred fighter (click and drag); the broadcast camera at 0 / the default pitch. */
+  private yawDeg = 0;
+  private pitchDeg = ARENA_CAMERA_PITCH_DEG;
+  private orbitDrag: { id: number; x: number; y: number } | null = null;
   private readonly env = inject(ARENA_SCENE_ENV);
   private readonly character = inject(CharacterStore);
   private readonly inventory = inject(InventoryStore);
@@ -165,8 +171,30 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
     if (!this.runtime || !event.deltaY) return;
     event.preventDefault();
     this.zoom = Math.max(0, Math.min(1, this.zoom + (event.deltaY < 0 ? 1 : -1) * ZOOM_STEP));
-    if (this.zoom === 0) this.focusId = null;
+    if (this.zoom === 0) { this.focusId = null; this.yawDeg = 0; this.pitchDeg = ARENA_CAMERA_PITCH_DEG; }
     this.pushView();
+  }
+
+  /** Click and drag over the arena: turn the camera round the centred fighter (centring the player first). */
+  onPointerDown(event: PointerEvent): void {
+    if (!this.runtime || event.button !== 0) return;
+    event.stopPropagation();
+    this.orbitDrag = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    try { (event.currentTarget as HTMLElement | null)?.setPointerCapture?.(event.pointerId); } catch { /* a synthetic pointer cannot be captured */ }
+    if (this.zoom === 0) { this.zoom = FOCUS_ZOOM; this.pushView(); }
+  }
+
+  onPointerMove(event: PointerEvent): void {
+    const drag = this.orbitDrag;
+    if (!drag || drag.id !== event.pointerId) return;
+    const orbit = clampOrbit(this.yawDeg - (event.clientX - drag.x) * ORBIT_DEG_PER_PX, this.pitchDeg + (event.clientY - drag.y) * ORBIT_DEG_PER_PX);
+    drag.x = event.clientX; drag.y = event.clientY;
+    this.yawDeg = orbit.yawDeg; this.pitchDeg = orbit.pitchDeg;
+    this.pushView();
+  }
+
+  onPointerUp(event: PointerEvent): void {
+    if (this.orbitDrag?.id === event.pointerId) this.orbitDrag = null;
   }
 
   /** 1…9, 0, -, =, [, ], \\ and Numpad1…5: centre on the 1st…20th living fighter (never while typing). */
@@ -186,7 +214,7 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
   }
 
   private pushView(): void {
-    this.runtime?.setView({ focusId: this.focusId, selfId: this.character.character()?.id ?? 'self', zoom: this.zoom });
+    this.runtime?.setView({ focusId: this.focusId, selfId: this.character.character()?.id ?? 'self', zoom: this.zoom, yawDeg: this.yawDeg, pitchDeg: this.pitchDeg });
   }
 
   /** The GPU dropped the arena: show the message and hand the numbers back to the side panels. */

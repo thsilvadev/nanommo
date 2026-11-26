@@ -1,5 +1,5 @@
 <div class="arena-scene">
-  <div #stage class="arena-stage" (wheel)="onWheel($event)"></div>
+  <div #stage class="arena-stage" (wheel)="onWheel($event)" (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp($event)" (pointercancel)="onPointerUp($event)" (lostpointercapture)="onPointerUp($event)"></div>
   @if (failed()) {
     <p class="arena-failed">{{ locale.t('The arena needs WebGL, which this browser cannot provide.') }}</p>
   }

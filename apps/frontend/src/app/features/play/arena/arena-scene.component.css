@@ -2,7 +2,8 @@ app-arena-scene { position: absolute; inset: 0; z-index: 1; display: block; curs
 /* Hidden (map view): kept mounted, not drawn. */
 app-arena-scene.arena-hidden { visibility: hidden; pointer-events: none; }
 app-arena-scene .arena-scene { position: absolute; inset: 0; overflow: hidden; background: #000; }
-app-arena-scene .arena-stage { position: absolute; inset: 0; }
+app-arena-scene .arena-stage { position: absolute; inset: 0; cursor: grab; touch-action: none; }
+app-arena-scene .arena-stage:active { cursor: grabbing; }
 app-arena-scene .arena-stage canvas { width: 100% !important; height: 100% !important; }
 app-arena-scene .arena-failed { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #d0b98f; font: 16px Georgia; text-align: center; padding: 24px; }
 app-arena-scene .arena-hud-layer { position: absolute; inset: 0; pointer-events: none; z-index: 2; }

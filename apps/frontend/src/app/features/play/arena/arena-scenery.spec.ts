@@ -12,4 +12,18 @@ describe('ArenaScenery (live assets)', () => {
     expect(scenery.ready('green_grounds')).toBeFalse();
     scenery.dispose();
   }, 30_000);
+
+  it('the painted backdrop turns with the camera; the ground stays on the world', () => {
+    const scenery = new ArenaScenery(1);
+    scenery.setRegion('caete', 0);
+    scenery.update(0, 16, 16, 0, 0.8);
+    const backdrop = scenery.group.getObjectByName('arena:backdrop')!;
+    expect(backdrop).toBeTruthy();
+    expect(backdrop.rotation.y).toBeCloseTo(0.8, 6);
+    expect(backdrop.children.length).toBe(3);
+    const region = scenery.group.getObjectByName('arena:scenery:caete')!;
+    expect(region.rotation.y).toBe(0);
+    scenery.dispose();
+  });
 });
+

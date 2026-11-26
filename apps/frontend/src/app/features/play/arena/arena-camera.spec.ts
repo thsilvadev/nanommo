@@ -1,4 +1,4 @@
-import { ARENA_CELL_M, ARENA_FLYER_FALL_MS, ARENA_FOCUS_DISTANCE_M, arenaFocusOrder, arenaFocusSlot, arenaHoverM, cellToWorld, frameCells, monsterScale, zoomedFrame } from './arena-camera';
+import { ARENA_CAMERA_PITCH_DEG, ARENA_CELL_M, ARENA_FLYER_FALL_MS, ARENA_FOCUS_DISTANCE_M, ARENA_ORBIT_MAX_YAW_DEG, ARENA_ORBIT_PITCH_RANGE_DEG, clampOrbit, orbitCamera, arenaFocusOrder, arenaFocusSlot, arenaHoverM, cellToWorld, frameCells, monsterScale, zoomedFrame } from './arena-camera';
 
 const all = Array.from({ length: 100 }, (_, i) => ({ row: Math.floor(i / 10), column: i % 10 }));
 
@@ -75,6 +75,28 @@ describe('arena camera', () => {
   it('focus order: living fighters, the party side first', () => {
     const a = (id: string, team: 'a' | 'b', dead = false) => ({ id, team, deadAtMs: dead ? 1 : null, fleeing: null });
     expect(arenaFocusOrder([a('m1', 'b'), a('me', 'a'), a('m2', 'b', true), a('ally', 'a'), a('m3', 'b')])).toEqual(['me', 'ally', 'm1', 'm3']);
+  });
+
+  it('orbit: yaw 0 at the default pitch is the broadcast camera; yaw turns it around the look point', () => {
+    const at = { x: 2, z: 1, d: 10 };
+    const pitch = (ARENA_CAMERA_PITCH_DEG * Math.PI) / 180;
+    const front = orbitCamera(at, 0, ARENA_CAMERA_PITCH_DEG);
+    expect(front.position.x).toBeCloseTo(2, 6);
+    expect(front.position.y).toBeCloseTo(10 * Math.sin(pitch) + 0.9, 6);
+    expect(front.position.z).toBeCloseTo(1 + 10 * Math.cos(pitch), 6);
+    expect(front.lookAt).toEqual({ x: 2, y: 0.9, z: 1 });
+    const side = orbitCamera(at, 90, ARENA_CAMERA_PITCH_DEG);
+    expect(side.position.x).toBeCloseTo(2 + 10 * Math.cos(pitch), 6);
+    expect(side.position.z).toBeCloseTo(1, 6);
+    // Same distance whatever the angles.
+    const any = orbitCamera(at, 37, 40);
+    expect(Math.hypot(any.position.x - 2, any.position.y - 0.9, any.position.z - 1)).toBeCloseTo(10, 6);
+  });
+
+  it('orbit stays where the painted scenery covers the view', () => {
+    expect(clampOrbit(500, 500)).toEqual({ yawDeg: ARENA_ORBIT_MAX_YAW_DEG, pitchDeg: ARENA_ORBIT_PITCH_RANGE_DEG[1] });
+    expect(clampOrbit(-500, -500)).toEqual({ yawDeg: -ARENA_ORBIT_MAX_YAW_DEG, pitchDeg: ARENA_ORBIT_PITCH_RANGE_DEG[0] });
+    expect(clampOrbit(10, 20)).toEqual({ yawDeg: 10, pitchDeg: 20 });
   });
 });
 

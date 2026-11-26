@@ -13,7 +13,7 @@ import { MonsterModel } from '../../../shared/monster-viewer/monster-model';
 import { TownCharacterFactory } from '../town-scene/town-character';
 import type { ArenaActorFrame } from './arena-actions';
 import { ArenaActorView, type ArenaActorVisual } from './arena-actor-views';
-import { ARENA_CAMERA_FOV_DEG, ARENA_CAMERA_PITCH_DEG, cellToWorld, frameCells, zoomedFrame } from './arena-camera';
+import { ARENA_CAMERA_FOV_DEG, ARENA_CAMERA_PITCH_DEG, cellToWorld, frameCells, orbitCamera, zoomedFrame } from './arena-camera';
 import type { ArenaSceneFrame } from './arena-phase';
 import type { ArenaRegionId } from './arena-region';
 import { ArenaScenery, arenaLight } from './arena-scenery';
@@ -47,7 +47,8 @@ export interface ArenaRuntimeHandle {
   dispose(): void;
 }
 
-export interface ArenaView { focusId: string | null; selfId: string; zoom: number }
+/** yawDeg / pitchDeg: the player's orbit round the look point (0 / ARENA_CAMERA_PITCH_DEG: the broadcast camera). */
+export interface ArenaView { focusId: string | null; selfId: string; zoom: number; yawDeg: number; pitchDeg: number }
 
 export interface ArenaRuntimeInit { assetBase: string; catalogUrl?: string; onContextLost: () => void; now?: () => number }
 
@@ -156,7 +157,7 @@ class ArenaRuntime implements ArenaRuntimeHandle {
   isRendering(): boolean { return this.frame !== null; }
   actorCount(): number { return this.views.size; }
   sceneryReady(region: ArenaRegionId): boolean { return this.scenery.ready(region); }
-  private view: ArenaView = { focusId: null, selfId: '', zoom: 0 };
+  private view: ArenaView = { focusId: null, selfId: '', zoom: 0, yawDeg: 0, pitchDeg: ARENA_CAMERA_PITCH_DEG };
   setView(view: ArenaView): void { this.view = { ...view }; }
 
   setActive(active: boolean): void {
@@ -235,7 +236,7 @@ class ArenaRuntime implements ArenaRuntimeHandle {
     this.updateSparks(scene, nowMs);
     this.updateCamera(scene, dtMs);
     // The scenery follows the camera along x (the party travels right battle after battle).
-    this.scenery.update(scene.scroll, dtMs, nowMs, this.cam.at.x);
+    this.scenery.update(scene.scroll, dtMs, nowMs, this.cam.at.x, (this.view.yawDeg * Math.PI) / 180);
   }
 
   private updateArrows(actors: ArenaActorFrame[], nowMs: number): void {
@@ -298,9 +299,9 @@ class ArenaRuntime implements ArenaRuntimeHandle {
     const k = 1 - Math.exp(-dtMs / CAMERA_FOLLOW_MS);
     const at = this.cam.at, to = this.cam.target;
     at.x += (to.x - at.x) * k; at.z += (to.z - at.z) * k; at.d += (to.d - at.d) * k;
-    const pitch = (ARENA_CAMERA_PITCH_DEG * Math.PI) / 180;
-    this.camera.position.set(at.x, at.d * Math.sin(pitch) + 0.9, at.z + at.d * Math.cos(pitch));
-    this.camera.lookAt(at.x, 0.9, at.z);
+    const { position, lookAt } = orbitCamera(at, this.view.yawDeg, this.view.pitchDeg);
+    this.camera.position.set(position.x, position.y, position.z);
+    this.camera.lookAt(lookAt.x, lookAt.y, lookAt.z);
   }
 
   private updateAnchors(): void {

@@ -1,6 +1,6 @@
 // Arena screenshot harness (bundled by shoot-arena.mjs): real runtime, real battle fixtures.
 import { defaultAppearance } from '@nanommo/shared';
-import { createArenaRuntime, type ArenaActorVisual, type ArenaRuntimeHandle } from '../../../apps/frontend/src/app/features/play/arena/arena-runtime';
+import { createArenaRuntime, type ArenaActorVisual, type ArenaRuntimeHandle, type ArenaView } from '../../../apps/frontend/src/app/features/play/arena/arena-runtime';
 import { arenaBattleOffset, arenaScene, arenaWalkColumn, type ArenaTimelineInput } from '../../../apps/frontend/src/app/features/play/arena/arena-phase';
 import { fromSharedBattle, fromSoloEntry } from '../../../apps/frontend/src/app/features/play/arena/arena-battle';
 import type { ArenaBattle, ArenaCharacterLook } from '../../../apps/frontend/src/app/features/play/arena/arena.types';
@@ -32,7 +32,7 @@ function statuses(): ArenaBattle {
 }
 const visualsOf = (b: ArenaBattle) => new Map<string, ArenaActorVisual>(b.actors.map((a) => [a.id, { id: a.id, team: a.team, kind: a.kind, name: a.name, look: a.look, monsterId: a.monsterId }]));
 
-interface Shot { battle: () => ArenaBattle; region: ArenaRegionId; at: (b: ArenaBattle) => number; mode: 'battle' | 'walk' | 'intro' | 'outro' | 'chain'; party?: string[] }
+interface Shot { battle: () => ArenaBattle; region: ArenaRegionId; at: (b: ArenaBattle) => number; mode: 'battle' | 'walk' | 'intro' | 'outro' | 'chain'; party?: string[]; view?: Omit<ArenaView, 'selfId' | 'focusId'> }
 const SHOTS: Record<string, Shot> = {
   walk: { battle: solo, region: 'green_grounds', mode: 'walk', at: (b) => b.startAtMs - 6000 },
   walk_green_grounds: { battle: solo, region: 'green_grounds', mode: 'walk', at: (b) => b.startAtMs - 6000 },
@@ -52,6 +52,11 @@ const SHOTS: Record<string, Shot> = {
   ruins: { battle: party, region: 'forest_ruins', mode: 'battle', at: (b) => b.startAtMs + 1 * 500, party: ['char-self', 'char-ally'] },
   outro: { battle: solo, region: 'green_grounds', mode: 'outro', at: (b) => b.endAtMs + 600 },
   caete: { battle: solo, region: 'caete', mode: 'battle', at: (b) => b.startAtMs + 30 * 500 + 200 },
+  // The player's orbit (click and drag) at its limits: the painted scenery must still fill the view.
+  orbit_left: { battle: party, region: 'menace_hills', mode: 'battle', at: (b) => b.startAtMs + 5 * 500 + 30, party: ['char-self', 'char-ally'], view: { zoom: 0.6, yawDeg: -70, pitchDeg: 12 } },
+  orbit_right: { battle: party, region: 'kwaioua_forest', mode: 'battle', at: (b) => b.startAtMs + 5 * 500 + 30, party: ['char-self', 'char-ally'], view: { zoom: 0.6, yawDeg: 70, pitchDeg: 12 } },
+  orbit_high: { battle: party, region: 'caete', mode: 'battle', at: (b) => b.startAtMs + 5 * 500 + 30, party: ['char-self', 'char-ally'], view: { zoom: 0.6, yawDeg: 30, pitchDeg: 60 } },
+  orbit_bridge: { battle: party, region: 'gods_bridge', mode: 'battle', at: (b) => b.startAtMs + 5 * 500 + 30, party: ['char-self', 'char-ally'], view: { zoom: 0.6, yawDeg: -70, pitchDeg: 5 } },
   // Party battle → outro → walk → intro → the same battle again 6 s later (nobody walks back).
   chain_end: { battle: party, region: 'green_grounds', mode: 'chain', at: (b) => b.endAtMs - 100, party: ['char-self', 'char-ally'] },
   chain_outro: { battle: party, region: 'green_grounds', mode: 'chain', at: (b) => b.endAtMs + 700, party: ['char-self', 'char-ally'] },
@@ -95,6 +100,7 @@ let runtime: ArenaRuntimeHandle | null = null;
   const warm = shot.mode === 'chain' ? Math.max(battle.endAtMs - 1500, target - 2000) : shot.mode === 'battle' || shot.mode === 'outro' ? Math.max(target - 1500, battle.startAtMs + 1) : shot.mode === 'walk' ? target - 1500 : Math.max(target - 1500, battle.startAtMs - 1100);
   let clock = warm;
   runtime.setSource((now) => ({ scene: arenaScene(input(now)), visuals, region: shot.region }));
+  runtime.setView({ focusId: null, selfId: 'char-self', zoom: 0, yawDeg: 0, pitchDeg: 12, ...shot.view });
   // Let every model load and dress, then replay the last 1.5 s at 60 fps (crossfades, camera ease).
   for (let i = 0; i < 80; i++) { runtime.renderOnce(clock); await new Promise((r) => setTimeout(r, 100)); }
   const actorsAtWarm = arenaScene(input(clock)).frame.actors.map((a) => `${a.id}@${a.column.toFixed(1)},${a.row.toFixed(1)}`);

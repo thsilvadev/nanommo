@@ -29,7 +29,7 @@ describe('ArenaSceneComponent', () => {
     sceneryReady: () => sceneryReady,
     setView: (v) => { views.push(v); },
   };
-  let views: Array<{ focusId: string | null; selfId: string; zoom: number }> = [];
+  let views: Array<{ focusId: string | null; selfId: string; zoom: number; yawDeg: number; pitchDeg: number }> = [];
   let sceneryReady = true;
 
   async function mount(isActive = true) {
@@ -184,6 +184,28 @@ describe('ArenaSceneComponent', () => {
     input.dispatchEvent(new KeyboardEvent('keydown', { key: '1', code: 'Digit1', bubbles: true }));
     expect(views.length).toBe(count);
     input.remove();
+    fixture.destroy();
+  });
+
+  it('click and drag turns the camera around the centred character; zooming all the way out resets it', async () => {
+    const fixture = await mount();
+    const component = fixture.componentInstance;
+    source!(now); component.refreshHud();
+    views = [];
+    const stage = fixture.nativeElement.querySelector('.arena-stage') as HTMLElement;
+    const pointer = (type: string, x: number, y: number) => stage.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, button: 0, pointerId: 1, bubbles: true }));
+    pointer('pointerdown', 100, 100);
+    pointer('pointermove', 160, 120); // right and down: the camera turns left and rises
+    pointer('pointerup', 160, 120);
+    const turned = views.at(-1)!;
+    expect(turned.yawDeg).toBeLessThan(0);
+    expect(turned.pitchDeg).toBeGreaterThan(12);
+    expect(turned.zoom).withContext('dragging centres the character').toBeGreaterThan(0);
+    expect(turned.focusId).toBeNull();
+    pointer('pointermove', 400, 400);
+    expect(views.at(-1)).toEqual(turned);
+    for (let i = 0; i < 10; i++) stage.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, cancelable: true }));
+    expect(views.at(-1)).toEqual(jasmine.objectContaining({ zoom: 0, yawDeg: 0, pitchDeg: 12 }));
     fixture.destroy();
   });
 });

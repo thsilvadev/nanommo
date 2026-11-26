@@ -52,6 +52,31 @@ export function frameCells(cells: ArenaCell[], aspect: number, origin = 0): { ta
   return { targetX: centre.x, targetZ: centre.z, distance: Math.max(byWidth, byDepth) };
 }
 
+/** The player's orbit (click and drag): at most this far round from the front, the painted scenery behind the grid still fills the view. */
+export const ARENA_ORBIT_MAX_YAW_DEG = 70;
+/** Pitch the player may drag to: from almost level to well above. */
+export const ARENA_ORBIT_PITCH_RANGE_DEG: readonly [number, number] = [5, 60];
+
+export function clampOrbit(yawDeg: number, pitchDeg: number): { yawDeg: number; pitchDeg: number } {
+  return {
+    yawDeg: Math.max(-ARENA_ORBIT_MAX_YAW_DEG, Math.min(ARENA_ORBIT_MAX_YAW_DEG, yawDeg)),
+    pitchDeg: Math.max(ARENA_ORBIT_PITCH_RANGE_DEG[0], Math.min(ARENA_ORBIT_PITCH_RANGE_DEG[1], pitchDeg)),
+  };
+}
+
+/**
+ * The camera `d` metres from the look point (x, 0.9 m, z), turned `yawDeg` round it (0: from the front,
+ * +z; positive: towards +x) and raised `pitchDeg` above it.
+ */
+export function orbitCamera(at: { x: number; z: number; d: number }, yawDeg: number, pitchDeg: number): { position: { x: number; y: number; z: number }; lookAt: { x: number; y: number; z: number } } {
+  const yaw = (yawDeg * Math.PI) / 180, pitch = (pitchDeg * Math.PI) / 180;
+  const flat = at.d * Math.cos(pitch);
+  return {
+    position: { x: at.x + flat * Math.sin(yaw), y: at.d * Math.sin(pitch) + 0.9, z: at.z + flat * Math.cos(yaw) },
+    lookAt: { x: at.x, y: 0.9, z: at.z },
+  };
+}
+
 /** Camera distance of the closest zoom (zoom 1): a close shot of one fighter. */
 export const ARENA_FOCUS_DISTANCE_M = 7;
 
