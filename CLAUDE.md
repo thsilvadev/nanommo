@@ -96,6 +96,10 @@ The frontend reads mirrors in `apps/frontend/public/data/`. Edit only the root f
 - Stores reconcile HTTP responses and realtime snapshots by `stateVersion`; stale HTTP responses must not overwrite newer socket snapshots. `CharacterStore.load()` resolves with `state = 'error'` instead of throwing — guards must inspect state.
 - UI state such as grind stance must initialize from an authoritative `/characters` read, never a hard-coded default.
 
+## Debugging production
+
+See `DEBUGGING.md`. The API writes one log file per UTC minute (`~/nanommo/logs/api/api_YYYY-MM-DD_HH-MMZ.log` on the server, last 30+ minutes kept). When the user reports a production bug, **remind them of it** and ask for the screenshots plus `scripts/fetch-server-logs.sh` output (user's local time is UTC−4). `[queue-delete]` lines record every battle-queue deletion by travel/stance.
+
 ## Workflow conventions
 
 - **OpenSpec**: features are specified as changes under `openspec/changes/<name>/` (proposal, design, tasks, spec deltas); the consolidated spec is `openspec/specs/`. Validate with `openspec validate <name> --strict`.

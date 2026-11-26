@@ -2,6 +2,10 @@ node_modules/
 dist/
 build/
 *.log
+# API minute logs (docker-compose bind mount; DEBUGGING.md). Ignored so the deploy's git clean keeps them.
+logs/
+# Server logs fetched with scripts/fetch-server-logs.sh
+debug-logs/
 
 # TypeScript emit that landed next to the sources. The api/shared tsconfigs
 # build to dist/; these were stale committed copies of an older emit and were

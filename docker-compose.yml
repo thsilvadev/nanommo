@@ -51,6 +51,11 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    environment:
+      # One API log file per UTC minute, last 30 minutes kept: ~/nanommo/logs/api on the server (DEBUGGING.md).
+      LOG_MINUTE_DIR: /app/logs/api
+    volumes:
+      - ./logs/api:/app/logs/api
     ports:
       - "3010:3000"
     networks:

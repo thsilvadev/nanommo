@@ -1,8 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { installMinuteLogFiles } from './logging/minute-log-files';
 
 async function bootstrap() {
+  // One log file per UTC minute, last 30 minutes kept (see DEBUGGING.md). Off unless LOG_MINUTE_DIR is set.
+  if (process.env.LOG_MINUTE_DIR) installMinuteLogFiles({ dir: process.env.LOG_MINUTE_DIR });
+
   const app = await NestFactory.create(AppModule);
 
   // Trust only the first proxy (Caddy) - enables Express to read X-Forwarded-For header for rate limiting
