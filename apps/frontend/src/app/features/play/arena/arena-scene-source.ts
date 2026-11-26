@@ -33,6 +33,8 @@ export interface ArenaSourceInputs {
   nextEncounterAt: number | null;
   /** Party members in order (self included); empty when solo. */
   partyIds: string[];
+  /** How each party member looks now (from the party state): a partner is drawn before any shared battle. */
+  memberLooks?: Readonly<Record<string, ArenaCharacterLook | null>>;
   gatherAtMs: number | null;
 }
 
@@ -64,7 +66,7 @@ export class ArenaSceneSource {
     const nextStartAtMs = next?.startAtMs ?? (input.nextEncounterAt !== null && input.nextEncounterAt > now ? input.nextEncounterAt : null);
 
     const ids = input.partyIds.length ? input.partyIds : [input.selfId];
-    const lookOf = (id: string) => (id === input.selfId ? input.selfLook : this.memberLooks.get(id) ?? null);
+    const lookOf = (id: string) => (id === input.selfId ? input.selfLook : input.memberLooks?.[id] ?? this.memberLooks.get(id) ?? null);
     const party = ids.map((id) => ({ id, look: lookOf(id) }));
     const offsets = this.layOut(previous, current, next);
     const scene = arenaScene({ nowMs: now, current, previous, next, nextStartAtMs, party, selfId: input.selfId, gatherAtMs: input.gatherAtMs, offsets });

@@ -71,5 +71,26 @@ const appearance = { v: 1, hair: 2, hairColor: 1, skin: 1, face: 0, nose: 0, mou
   const partySource = fs.readFileSync(path.join(__dirname, '../src/modules/party/party.service.ts'), 'utf8');
   assert.match(partySource, /nextEncounterAt\s*=\s*await nextPartyEncounterAt\(/);
   assert.match(partySource, /return \{party,battle,invites,actions:await this\.actions\(characterId\),autoPartyEnabled:[^}]*,nextEncounterAt\}/);
+  // --- party members carry their look (the arena draws a partner before any shared battle) ---
+  const { PartyService } = require('../dist/apps/api/src/modules/party/party.service');
+  const party = Object.create(PartyService.prototype);
+  const memberRows = [{ characterId: 'c1', name: 'One', orderIndex: 0, pendingLeave: false, hpCurrent: 10, spCurrent: 5, statusEffects: [] }, { characterId: 'c2', name: 'Two', orderIndex: 1, pendingLeave: false, hpCurrent: 10, spCurrent: 5, statusEffects: [] }];
+  party.member = async () => ({ partyId: 'p1', characterId: 'c1' });
+  party.actions = async () => [];
+  party.shared = { publicBattle: async () => null };
+  party.battle = { buildCharacterSnapshot: async () => ({ maxHp: 10, maxSp: 5 }) };
+  party.db = {
+    getRepository: () => ({ findOneBy: async ({ id }) => ({ id, hpCurrent: 10, spCurrent: 5, consumableCooldowns: {} }) }),
+    query: async (sql) => {
+      if (/FROM parties WHERE id/.test(sql)) return [{ id: 'p1', kind: 'manual', leaderCharacterId: 'c1', mapId: 'map_town', revision: 3, activity: null }];
+      if (/FROM party_members m JOIN characters/.test(sql)) return memberRows;
+      if (/equipped_items/.test(sql)) return [{ id: 'c1', appearance, sex: 'male', heightCm: 181, dominantHand: 'right', equipment: { mainHand: 'equip_bow_t1' }, refinement: null }, { id: 'c2', appearance, sex: 'female', heightCm: 165, dominantHand: 'left', equipment: {}, refinement: null }];
+      return [];
+    },
+  };
+  const state = await party.get('c1');
+  assert.equal(state.party.members.find((m) => m.characterId === 'c2').look.sex, 'female', 'a member carries its look');
+  assert.equal(state.party.members.find((m) => m.characterId === 'c1').look.equipment.mainHand, 'equip_bow_t1');
+
   console.log('party-arena-visuals: passed');
 })().catch((error) => { console.error(error); process.exit(1); });

@@ -13,7 +13,8 @@ import { ArenaMonsterWarmup } from './arena-monster-warmup.service';
 import { arenaMapFade, nextMapChange, type ArenaMapChange } from './arena-map-fade';
 import { ArenaSceneSource, type ArenaResolvedEntry, type ArenaSourceInputs } from './arena-scene-source';
 import type { ArenaFrameInput, ArenaRuntimeHandle, ArenaRuntimeInit } from './arena-runtime';
-import type { ArenaCharacterLook } from './arena.types';
+import type { ArenaBattleOptions, ArenaCharacterLook } from './arena.types';
+import { arenaLook } from './arena-battle';
 
 export interface ArenaSceneEnv {
   webglAvailable: () => boolean;
@@ -66,10 +67,13 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
   private readonly zone = inject(NgZone);
   private runtime: ArenaRuntimeHandle | null = null;
   private manifest: Record<string, MonsterManifestEntry> = {};
-  private readonly source = new ArenaSceneSource({
+  private readonly battleOptions: ArenaBattleOptions = {
     monsterStyle: (id) => monsterAttackStyle(this.manifest[monsterManifestKey(id)]),
     handTypes: (equipment) => portraitHandTypes(rows(equipment), (id) => this.catalog.item(id) as { weaponType?: string } | undefined),
-  });
+  };
+  private readonly source = new ArenaSceneSource(this.battleOptions);
+  /** The party members' looks, converted once per party snapshot (the frame loop reads them 60 times a second). */
+  private memberLooksOf: { members: unknown; looks: Record<string, ArenaCharacterLook | null> } | null = null;
   private latest: ArenaFrameInput | null = null;
   private hudTimer: ReturnType<typeof setInterval> | null = null;
   private gatherAtMs: number | null = null;
@@ -172,6 +176,7 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
       sharedReceivedAtMs: this.shared && this.shared.id === this.party.battle()?.id ? this.shared.atMs : null,
       nextEncounterAt: party ? this.party.nextEncounterAt() : null,
       partyIds: party ? this.party.members().map((m) => m.characterId) : [],
+      memberLooks: party ? this.memberLooks() : {},
       gatherAtMs: this.gatherAtMs,
     };
   }
@@ -226,6 +231,14 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
     const remove = () => { el.remove(); setTimeout(() => this.shownNumbers.delete(key), 2000); };
     el.addEventListener('animationend', remove, { once: true });
     setTimeout(remove, 1800);
+  }
+
+  private memberLooks(): Record<string, ArenaCharacterLook | null> {
+    const members = this.party.members();
+    if (this.memberLooksOf?.members !== members) {
+      this.memberLooksOf = { members, looks: Object.fromEntries(members.filter((m) => m.look !== undefined).map((m) => [m.characterId, arenaLook(m.look ?? null, this.battleOptions)])) };
+    }
+    return this.memberLooksOf.looks;
   }
 
   private selfLook(): ArenaCharacterLook | null {

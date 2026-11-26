@@ -1,7 +1,7 @@
 import { publicCombatAction } from './combat-action-view';
 import { combatCooldownDurations } from '@nanommo/shared';
 import { guardEncounterDeadline, PARTY_DEADLINE_REACHED } from './party-deadline';
-import { nextPartyEncounterAt } from './party-arena';
+import { loadArenaLooks, nextPartyEncounterAt } from './party-arena';
 import { Inject, forwardRef, BadRequestException, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In } from 'typeorm';
@@ -87,6 +87,9 @@ export class PartyService {
             statusEffects:row.statusEffects,consumableCooldowns:cooldowns,
             cooldownDurations:Object.fromEntries(Object.entries(durations).filter(([key])=>key in cooldowns))});
         }
+        // Battle arena: how each member looks, so a partner is drawn before the party's first battle.
+        const looks=await loadArenaLooks((sql,params)=>this.db.query(sql,params),members.map(m=>m.characterId));
+        for(const m of members as any[])m.look=looks.get(m.characterId)??null;
         party={id:p.id,kind:p.kind,leaderCharacterId:p.leaderCharacterId,mapId:p.mapId,revision:Number(p.revision),members,routeActivity:p.activity?.kind==='route'?p.activity:null,teleport:p.activity?.kind==='route'?null:p.activity};
       }
     }

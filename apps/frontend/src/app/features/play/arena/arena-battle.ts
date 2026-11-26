@@ -93,7 +93,8 @@ export interface SharedActorLook {
   equipment?: VisibleEquipment | null; refinement?: VisibleRefinement | null;
 }
 
-function arenaLook(look: SharedActorLook | null, options: ArenaBattleOptions): ArenaCharacterLook | null {
+/** A character's look as the API sends it (party state, shared battle) → what the arena draws. */
+export function arenaLook(look: SharedActorLook | null, options: ArenaBattleOptions): ArenaCharacterLook | null {
   if (!look?.appearance) return null;
   const equipment = look.equipment ?? {};
   const hands = options.handTypes?.(equipment) ?? { main: null, off: null };

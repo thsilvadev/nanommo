@@ -31,6 +31,12 @@ describe('ArenaSceneSource', () => {
     expect(frame.region).toBe('green_grounds');
   });
 
+  it("a partner is drawn with the party's look before the party's first battle", () => {
+    const source = new ArenaSceneSource();
+    const frame = source.build(inputs({ partyIds: ['char-self', 'char-ally'], memberLooks: { 'char-ally': look('equip_bow_t1') } }));
+    expect(frame.visuals.get('char-ally')?.look?.equipment.mainHand).toBe('equip_bow_t1');
+  });
+
   it('the next queued battle drives the intro', () => {
     const source = new ArenaSceneSource();
     const frame = source.build(inputs({ nowMs: START - 500, soloQueue: [entry('e1', START)] }));
