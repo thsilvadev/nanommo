@@ -360,6 +360,17 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   /** Text of the speech bubble over a character, or null (tests). */
   speechOf(characterId: string): string | null { return this.characters.get(characterId)?.speech() ?? null; }
 
+  /** On-screen height (px) of a character's speech bubble, or null (tests). */
+  speechScreenHeightOf(characterId: string): number | null {
+    const sprite = this.characters.get(characterId)?.object3d.getObjectByName('speech-bubble');
+    if (!sprite) return null;
+    sprite.updateMatrixWorld(true);
+    const base = sprite.getWorldPosition(new THREE.Vector3());
+    const top = base.clone().setY(base.y + sprite.scale.y);
+    const { h } = this.size();
+    return Math.abs(base.project(this.cam.camera).y - top.project(this.cam.camera).y) / 2 * h;
+  }
+
   breakVase(vaseId: string, byCharacterId: string, prize: boolean): [number, number] | null {
     if (this.disposed) return null;
     const at = this.vases.positionOf(vaseId);
@@ -674,7 +685,9 @@ export class TownRuntime implements TownSceneRuntimeHandle {
   private applyCloseUp(): void {
     // Every frame (a no-op when unchanged): characters that joined since get it too.
     const plateScale = Math.min(1, this.cam.viewDistance / TOWN_CAMERA_MIN_DISTANCE);
-    for (const character of this.characters.values()) character.setPlateScale(plateScale);
+    // Speech bubbles keep one size on screen at every zoom (zooming out never makes them unreadable).
+    const bubbleScale = this.cam.viewDistance / TOWN_CAMERA_MIN_DISTANCE;
+    for (const character of this.characters.values()) { character.setPlateScale(plateScale); character.setBubbleScale(bubbleScale); }
     for (const npc of this.npcs.values()) npc.setPlateScale(plateScale);
     const closeUp = this.cam.pitchDeg < CLOSE_UP_PITCH_DEG;
     if (!closeUp && !this.obstacleBounds) return;

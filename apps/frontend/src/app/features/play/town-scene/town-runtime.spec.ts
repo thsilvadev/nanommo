@@ -67,6 +67,21 @@ describe('TownRuntime (real WebGL)', () => {
     expect(rt.speechOf('ana')).toBe('de novo');
   });
 
+  it('a speech bubble keeps its size on screen when the camera zooms out', async () => {
+    const rt = await start([entry('hero'), entry('ana')], 'hero');
+    rt.say('ana', 'Olá, Sierra!');
+    await (await import('./town-speech-bubble')).loadBubbleFont();
+    await new Promise((r) => setTimeout(r, 250)); // past the pop-in
+    const settleFrames = () => { (rt as any).tick(Infinity); (rt as any).tick(0); };
+    settleFrames();
+    const near = rt.speechScreenHeightOf('ana')!;
+    rt.zoom(100); // as far out as the camera goes
+    settleFrames();
+    const far = rt.speechScreenHeightOf('ana')!;
+    expect(near).toBeGreaterThan(5);
+    expect(far / near).withContext(`near ${near.toFixed(1)} px, far ${far.toFixed(1)} px`).toBeGreaterThan(0.85);
+  });
+
   it('places characters where positionAt says', async () => {
     const hero = entry('hero');
     const rt = await start([hero], 'hero');

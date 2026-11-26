@@ -68,6 +68,36 @@ export function phaseAt(nowMs: number, cfg: SmashingSpreeConfig): SmashingSpreeP
   return null;
 }
 
+/** Longest a GM may schedule a Smashing Spree ahead (one day). */
+export const MANUAL_MAX_MINUTES = 24 * 60;
+
+/** One phase of a GM-scheduled event and when (epoch ms) it runs. */
+export interface ManualPhase { phase: SmashingSpreePhase; runAt: number }
+
+/**
+ * A GM-scheduled Smashing Spree starting `minutesToStart` minutes from `nowMs`:
+ * the configured countdown announcements that fit before it (minutes ≤ the lead,
+ * so 20 → 15, 5, 1; 3 → 1; 0 → none), the start and the end. Its key
+ * (`ss-gm-<startMs>`) never collides with the scheduled `ss-<startMs>` ones.
+ */
+export function manualSchedule(nowMs: number, minutesToStart: number, cfg: SmashingSpreeConfig): ManualPhase[] {
+  if (!Number.isInteger(minutesToStart) || minutesToStart < 0 || minutesToStart > MANUAL_MAX_MINUTES) {
+    throw new RangeError(`minutesToStart must be an integer from 0 to ${MANUAL_MAX_MINUTES}`);
+  }
+  const startMs = nowMs + minutesToStart * MINUTE;
+  const endsAt = startMs + cfg.durationSeconds * 1000;
+  const eventKey = `ss-gm-${startMs}`;
+  const announces = [...new Set(cfg.announceMinutesBefore)]
+    .filter((minutes) => minutesToStart > 0 && minutes <= minutesToStart)
+    .sort((a, b) => b - a)
+    .map((minutes): ManualPhase => ({ phase: { kind: 'announce', eventKey, startMs, minutes }, runAt: startMs - minutes * MINUTE }));
+  return [
+    ...announces,
+    { phase: { kind: 'start', eventKey, startMs, endsAt }, runAt: startMs },
+    { phase: { kind: 'end', eventKey, startMs }, runAt: endsAt },
+  ];
+}
+
 const round = (v: number) => Math.round(v * 1000) / 1000;
 
 /** `cfg.vasesPerTown` vases on reachable ground, spaced out, clear of NPCs, POI centres and the spawn. */

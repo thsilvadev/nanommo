@@ -338,3 +338,8 @@ Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `ev
 - `MapService` tests build the service without its constructor (`this.logger` is undefined there): module-level loggers for code those tests reach.
 - **Gambit priority does not cross gauges (2026-11-26):** `attack` lines feed the attack gauge, `use_skill`/`use_item` lines the cast gauge, and the cast is checked first each tick. A higher-priority `always → attack` never stops a lower `always → <skill>` line: gate skill lines with a condition (e.g. `self_has_status: disarm`). Monster skills come from `skill_trees.json` `monsterSkills`, not `trees`: a test that looks them up in `trees` silently runs monsters without skills.
 
+## GM commands and columns added after deploy — 2026-11-26
+
+- A new column that must not break a deploy landing before its migration: `select: false, insert: false, update: false` **and no `default` in the entity**. TypeORM puts every column with an entity `default` in the `INSERT ... RETURNING` list (`EntityMetadata.getInsertionReturningColumns`), so a default alone breaks registration on the old schema. Read it with a raw query that tolerates the missing column (`GmAccessService`).
+- GM commands: add a class in `modules/gm/commands/`, list it in `GM_COMMAND_CLASSES`, and import its module in `GmModule`. Throw `GmCommandError` (or a Nest `HttpException`) for problems the GM should read; anything else is logged as a failure.
+- GM-scheduled Smashing Spree keys are `ss-gm-<startMs>`; `startOfEventKey` must keep accepting the `dev-`/`gm-` prefixes.

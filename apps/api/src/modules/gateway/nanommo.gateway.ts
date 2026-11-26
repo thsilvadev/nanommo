@@ -32,6 +32,7 @@ import { Redis } from 'ioredis';
 import { randomUUID } from 'crypto';
 import { PartyService } from '../party/party.service';
 import { ChatService } from '../chat/chat.service';
+import { GmService, type GmCommandResult } from '../gm/gm.service';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -76,6 +77,7 @@ export class NanommoGateway
     private readonly townRoster: TownRosterService,
     private readonly partyService: PartyService,
     private readonly townEvents: TownEventService,
+    private readonly gm: GmService,
   ) {}
 
   afterInit(server: Server) {
@@ -400,6 +402,12 @@ export class NanommoGateway
       return { success: false, error: errorMessage };
 
     }
+  }
+
+  /** GM command typed in chat (`/start-event smashing-spree 20`); non-GMs get UNKNOWN_COMMAND. */
+  @SubscribeMessage('gm:command')
+  async handleGmCommand(@ConnectedSocket() client: AuthenticatedSocket, @MessageBody() body: { line?: unknown }): Promise<GmCommandResult> {
+    return this.gm.execute(client.userId, client.characterId, body?.line);
   }
 
   /**

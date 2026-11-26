@@ -1,7 +1,11 @@
 import { Controller, Get, Logger, Query } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 
-/** TEMP DEV CHEAT — remove after Diet/food QA is complete. */
+/**
+ * DISABLED (2026-11-26): not registered in InventoryModule; the same cheats are GM chat
+ * commands now (/grant-equip, /grant-foods, /reset-diet, /upgrade-diet in modules/gm).
+ * TEMP DEV CHEAT — remove after Diet/food QA is complete.
+ */
 @Controller('inventory')
 export class DevCheatController {
   private readonly logger = new Logger(DevCheatController.name);

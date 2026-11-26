@@ -99,12 +99,34 @@ describe('IdleChatComponent slash commands', () => {
     expect(errorRows(chat).map(r => r.message)).toEqual(['You can only do that in town.']);
   });
 
-  it('an unknown command shows "Unknown command."', async () => {
+  it('an unknown command asks the server (GM commands) and shows "Unknown command." when it is not one', async () => {
+    socket.emit.and.resolveTo({ success: false, error: 'UNKNOWN_COMMAND' });
     const chat = create();
     chat.draft.set('/xyz');
     await chat.send();
-    expect(socket.emit).not.toHaveBeenCalled();
+    expect(socket.emit).toHaveBeenCalledOnceWith('gm:command', { line: '/xyz' });
     expect(errorRows(chat).map(r => r.message)).toEqual(['Unknown command.']);
+    expect(chat.draft()).toBe('');
+  });
+
+  it('a GM command answer shows as a System line, never in global chat', async () => {
+    socket.emit.and.resolveTo({ success: true, message: 'Smashing Spree starts in 20 min.' });
+    const chat = create();
+    chat.setJournalEnabled(false);
+    chat.draft.set('/start-event smashing-spree 20');
+    await chat.send();
+    expect(socket.emit).toHaveBeenCalledOnceWith('gm:command', { line: '/start-event smashing-spree 20' });
+    const rows = chat.messages().filter(r => r.channel === 'journal' && r.severity === 'success');
+    expect(rows.map(r => r.message)).toEqual(['Smashing Spree starts in 20 min.']);
+    expect(chat.journalEnabled()).toBeTrue();
+  });
+
+  it('a rejected GM command shows its error and usage in red', async () => {
+    socket.emit.and.resolveTo({ success: false, error: '/start-event: Unknown event code.\nUsage: /start-event <event-code> <minutesToEvent>' });
+    const chat = create();
+    chat.draft.set('/start-event party 5');
+    await chat.send();
+    expect(errorRows(chat).map(r => r.message)).toEqual(['/start-event: Unknown event code.\nUsage: /start-event <event-code> <minutesToEvent>']);
   });
 
   it('ChatNoticeService errors become red System lines', () => {
