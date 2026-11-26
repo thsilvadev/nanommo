@@ -58,7 +58,7 @@ export class TownEventService {
     if (phase.kind === 'announce') {
       const unit = phase.minutes === 1 ? 'minute' : 'minutes';
       await this.once(base, () => this.chat.announceServerMessage(
-        `The Smashing Spree starts in ${phase.minutes} ${unit}! Head to ${this.townName()}.`,
+        `The Smashing Spree starts in ${phase.minutes} ${unit}! Prepare to be in ${this.townName()} in time!`,
         `${phase.eventKey}:soon:${phase.minutes}`, 'event.smashingSpree.soon', { minutes: phase.minutes, mapId: this.townMapId() },
       ));
       return;

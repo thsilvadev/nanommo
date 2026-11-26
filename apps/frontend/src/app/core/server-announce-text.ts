@@ -20,9 +20,10 @@ export function formatServerAnnounce(row: AnnounceRow, locale: GameLocale, itemN
       if (!Number.isFinite(n)) return row.message;
       // Older rows (before the event moved to Sierra Village) carry no mapId.
       const town = eventTown(p, mapName);
+      if (!town) return pt ? `O Quebra-Quebra começa em ${plural(n, 'minuto', 'minutos')}! Vá para qualquer cidade.` : `The Smashing Spree starts in ${plural(n, 'minute', 'minutes')}! Head to any town.`;
       return pt
-        ? `O Quebra-Quebra começa em ${plural(n, 'minuto', 'minutos')}! Vá para ${town ?? 'qualquer cidade'}.`
-        : `The Smashing Spree starts in ${plural(n, 'minute', 'minutes')}! Head to ${town ?? 'any town'}.`;
+        ? `O Quebra-Quebra começa em ${plural(n, 'minuto', 'minutos')}! Prepare-se para estar em ${town} a tempo!`
+        : `The Smashing Spree starts in ${plural(n, 'minute', 'minutes')}! Prepare to be in ${town} in time!`;
     }
     case 'event.smashingSpree.started': {
       const town = eventTown(p, mapName);

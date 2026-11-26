@@ -48,7 +48,7 @@ const standAt = (poses, id, mapId, v, dx = 0) => poses.set(id, { mapId, x: v.x +
     assert.deepEqual(announces[0][3], { mapId: 'map_town' }); assert.match(announces[0][0], /in Sierra Village!/);
     await svc.runPhase({ kind: 'announce', eventKey, startMs, minutes: 5 }); await svc.runPhase({ kind: 'announce', eventKey, startMs, minutes: 5 });
     assert.equal(announces.length, 2); assert.equal(announces[1][2], 'event.smashingSpree.soon'); assert.deepEqual(announces[1][3], { minutes: 5, mapId: 'map_town' });
-    assert.match(announces[1][0], /Smashing Spree starts in 5 minutes! Head to Sierra Village\./);
+    assert.match(announces[1][0], /Smashing Spree starts in 5 minutes! Prepare to be in Sierra Village in time!/);
   }
   // Hit validation.
   {
