@@ -1,4 +1,4 @@
-import { arenaMapFade, nextMapChange, type ArenaMapChange } from './arena-map-fade';
+import { ARENA_MAP_FADE_IN_MS, ARENA_MAP_FADE_MAX_HOLD_MS, ARENA_MAP_FADE_OUT_MS, arenaMapFade, nextMapChange, settleMapChange, type ArenaMapChange } from './arena-map-fade';
 
 // Maps of three different regions (a region change is what fades).
 const a = 'map_green_grounds_1', b = 'map_menace_hills_1', c = 'map_ipora_beach_1';
@@ -30,7 +30,7 @@ describe('arenaMapFade', () => {
   it('the first map seen is no change, and a change after the fade starts from clear', () => {
     expect(nextMapChange(null, a, 500)).toBeNull();
     const first: ArenaMapChange = { atMs: 1000, fromMapId: a, toMapId: b };
-    expect(nextMapChange(first, c, 5000)).toEqual({ atMs: 5000, fromMapId: b, toMapId: c });
+    expect(nextMapChange(first, c, 5000)).toEqual({ atMs: 5000, fromMapId: b, toMapId: c, readyAtMs: null });
   });
 
   it('a map of the same region swaps at once, without a fade (green_grounds-0 → green_grounds-1)', () => {
@@ -47,4 +47,38 @@ describe('arenaMapFade', () => {
     expect(arenaMapFade(hop, 1700).mapId).toBe('map_menace_hills_2');
     expect(arenaMapFade(hop, 2000)).toEqual({ white: 0, mapId: 'map_menace_hills_2' });
   });
+
+  // The white stays until the new region's scene has loaded, then clears.
+  it('a region change holds the white until the new scene is ready', () => {
+    const change = nextMapChange(null, b, 1000, a)!;
+    expect(change.readyAtMs).toBeNull();
+    const peak = change.atMs + ARENA_MAP_FADE_IN_MS;
+    expect(arenaMapFade(change, peak + 5000)).toEqual({ white: 1, mapId: b });
+    const ready = { ...change, readyAtMs: peak + 5000 };
+    expect(arenaMapFade(ready, peak + 5000)).toEqual({ white: 1, mapId: b });
+    expect(arenaMapFade(ready, peak + 5000 + ARENA_MAP_FADE_OUT_MS / 2).white).toBeCloseTo(0.5, 6);
+    expect(arenaMapFade(ready, peak + 5000 + ARENA_MAP_FADE_OUT_MS)).toEqual({ white: 0, mapId: b });
+    // Ready before the peak: the white clears as soon as it is full.
+    expect(arenaMapFade({ ...change, readyAtMs: change.atMs }, peak + ARENA_MAP_FADE_OUT_MS / 2).white).toBeCloseTo(0.5, 6);
+  });
+
+  it('settleMapChange marks the change ready once the new scene is, past the peak (or after the longest hold)', () => {
+    const change = nextMapChange(null, b, 1000, a)!;
+    const peak = change.atMs + ARENA_MAP_FADE_IN_MS;
+    expect(settleMapChange(change, true, peak - 1)).toBe(change);
+    expect(settleMapChange(change, false, peak + 100)).toBe(change);
+    expect(settleMapChange(change, true, peak + 100)!.readyAtMs).toBe(peak + 100);
+    expect(settleMapChange(change, false, peak + ARENA_MAP_FADE_MAX_HOLD_MS)!.readyAtMs).toBe(peak + ARENA_MAP_FADE_MAX_HOLD_MS);
+    const settled = { ...change, readyAtMs: peak };
+    expect(settleMapChange(settled, false, peak + 100)).toBe(settled);
+    expect(settleMapChange(null, true, 0)).toBeNull();
+  });
+
+  it('a second region change while the white holds waits for the newest scene', () => {
+    const first = nextMapChange(null, b, 1000, a)!;
+    const second = nextMapChange(first, c, 4000)!;
+    expect(arenaMapFade(second, 4000)).toEqual({ white: 1, mapId: c });
+    expect(second.readyAtMs).toBeNull();
+  });
 });
+

@@ -46,6 +46,8 @@ interface LayerSet {
   ground: THREE.Texture; groundMaterial: THREE.MeshLambertMaterial; travel: { value: number }; time: { value: number }; props: ArenaProps; bornAt: number;
   /** Extra materials faded with the ground (the bridge's river, wall and parapet). */
   extras: THREE.Material[];
+  /** Textures still downloading (the region is drawn whole once this is 0; a failed one counts as done). */
+  pending: number;
 }
 
 export class ArenaScenery {
@@ -57,9 +59,16 @@ export class ArenaScenery {
   private wanted: ArenaRegionId | null = null;
   /** Metres walked so far (drives every layer's texture offset). */
   private walked = 0;
+  /** The set whose textures build() is creating (they count themselves into its `pending`). */
+  private building: LayerSet | null = null;
 
   constructor(private readonly maxAnisotropy: number) {
     this.group.name = 'arena:scenery';
+  }
+
+  /** Is `region` the scenery shown, with every texture loaded (the map fade clears only then)? */
+  ready(region: ArenaRegionId): boolean {
+    return this.current?.region === region && this.current.pending === 0;
   }
 
   setRegion(region: ArenaRegionId, nowMs: number): void {
@@ -115,7 +124,10 @@ export class ArenaScenery {
   }
 
   private texture(url: string, repeatX: number, repeatY = 1): THREE.Texture {
-    const texture = this.loader.load(url);
+    const set = this.building;
+    if (set) set.pending++;
+    const settle = () => { if (set) set.pending = Math.max(0, set.pending - 1); };
+    const texture = this.loader.load(url, settle, undefined, settle);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = repeatY > 1 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
@@ -183,7 +195,8 @@ export class ArenaScenery {
     const assets = arenaRegionAssets(region);
     const group = new THREE.Group();
     group.name = `arena:scenery:${region}`;
-    const set: LayerSet = { region, group, materials: [], textures: [], layers: [], ground: null!, groundMaterial: null!, travel: { value: 0 }, time: { value: 0 }, props: null!, bornAt: nowMs, extras: [] };
+    const set: LayerSet = { region, group, materials: [], textures: [], layers: [], ground: null!, groundMaterial: null!, travel: { value: 0 }, time: { value: 0 }, props: null!, bornAt: nowMs, extras: [], pending: 0 };
+    this.building = set;
     // Painted layers: unlit, behind everything, never write depth (the grid draws over them).
     for (const spec of LAYERS) {
       const texture = this.texture(assets[spec.key], spec.repeat);
@@ -217,6 +230,7 @@ export class ArenaScenery {
     group.add(set.props.group);
     if (bridge) this.buildBridge(set);
     set.ground = ground; set.groundMaterial = groundMaterial; set.textures.push(ground);
+    this.building = null;
     return set;
   }
 }

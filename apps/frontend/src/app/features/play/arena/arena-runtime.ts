@@ -34,6 +34,8 @@ export interface ArenaRuntimeHandle {
   /** Draw one frame now (tests, and the first frame before the loop runs). */
   renderOnce(nowMs: number): void;
   actorCount(): number;
+  /** The scenery of `region` is on screen with every texture loaded (the map fade clears then). */
+  sceneryReady(region: ArenaRegionId): boolean;
   /**
    * Gets these species ready to draw (textures on the GPU, shaders linked), one species per frame,
    * so none stalls the frame it first appears on. A newer call supersedes an unfinished one. Never throws.
@@ -149,6 +151,7 @@ class ArenaRuntime implements ArenaRuntimeHandle {
   screenAnchors(): Map<string, ArenaAnchor> { return this.anchors; }
   isRendering(): boolean { return this.frame !== null; }
   actorCount(): number { return this.views.size; }
+  sceneryReady(region: ArenaRegionId): boolean { return this.scenery.ready(region); }
 
   setActive(active: boolean): void {
     this.active = active;

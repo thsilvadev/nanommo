@@ -10,7 +10,8 @@ import { loadMonsterManifest, monsterAttackStyle, monsterManifestKey, type Monst
 import { portraitEquipment, portraitHandTypes, portraitRefinement } from '../character-portrait';
 import { ArenaFeedbackOwner } from './arena-feedback-owner.service';
 import { ArenaMonsterWarmup } from './arena-monster-warmup.service';
-import { arenaMapFade, nextMapChange, type ArenaMapChange } from './arena-map-fade';
+import { arenaMapFade, nextMapChange, settleMapChange, type ArenaMapChange } from './arena-map-fade';
+import { arenaRegionOf } from './arena-region';
 import { ArenaSceneSource, type ArenaResolvedEntry, type ArenaSourceInputs } from './arena-scene-source';
 import type { ArenaFrameInput, ArenaRuntimeHandle, ArenaRuntimeInit } from './arena-runtime';
 import type { ArenaBattleOptions, ArenaCharacterLook } from './arena.types';
@@ -183,6 +184,11 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
 
   /** HUD positions and contents from the latest drawn frame (30 Hz), written straight to the DOM. */
   refreshHud(): void {
+    // A region change holds the white until the new scene has loaded (hidden: nothing to wait for).
+    if (this.mapChange?.readyAtMs === null) {
+      const change = this.mapChange;
+      this.mapChange = settleMapChange(change, !this.active() || !!this.runtime?.sceneryReady(arenaRegionOf(change.toMapId)), this.clock.now());
+    }
     const frame = this.latest;
     if (!frame || !this.runtime || !this.active()) return;
     const anchors = this.runtime.screenAnchors();

@@ -26,7 +26,9 @@ describe('ArenaSceneComponent', () => {
     screenAnchors: () => new Map([['char-self', { x: 100, y: 200, visible: true }], ['monster:mon_mutantbee:0', { x: 500, y: 210, visible: true }]]),
     resize: () => undefined, dispose: () => undefined,
     warmMonsters: async (ids) => { warmed.push(ids); },
+    sceneryReady: () => sceneryReady,
   };
+  let sceneryReady = true;
 
   async function mount(isActive = true) {
     TestBed.configureTestingModule({
@@ -139,4 +141,26 @@ describe('ArenaSceneComponent', () => {
     now = at;
     fixture.destroy();
   });
+
+  it('the white holds until the new region has loaded, then clears', async () => {
+    const fixture = await mount();
+    const component = fixture.componentInstance;
+    const flash = () => fixture.nativeElement.querySelector('.arena-flash').style.opacity;
+    sceneryReady = false;
+    characterState.update((c: any) => ({ ...c, currentMapId: 'map_ipora_beach_1' }));
+    fixture.componentRef.setInput('mapId', 'map_ipora_beach_1');
+    fixture.detectChanges();
+    const at = now;
+    now = at + 3000; source!(now); component.refreshHud();
+    expect(flash()).withContext('still loading: full white').toBe('1');
+    sceneryReady = true;
+    now = at + 3100; source!(now); component.refreshHud();
+    now = at + 3350; source!(now); component.refreshHud();
+    expect(flash()).withContext('loaded: clearing').toBe('0.5');
+    now = at + 3700; source!(now); component.refreshHud();
+    expect(flash()).toBe('0');
+    now = at; sceneryReady = true;
+    fixture.destroy();
+  });
 });
+
