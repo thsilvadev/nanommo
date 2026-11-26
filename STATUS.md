@@ -1,3 +1,15 @@
+### Rodada 4: itens do evento no gambit, Heavy Swing em área, zoom/foco da arena, quest com bolsa cheia, aviso do Smashing Spree — 2026-11-26
+
+Branch `fix/round4` (a partir de `main` `e5f12c5`, sem upstream).
+
+- **Mega Elixir (e outras poções do evento) fora do gambit**: o editor só lista consumíveis em `knownItemIds`, e o prêmio do Smashing Spree entrava na bolsa dentro de uma transação, onde `markItemKnown` não marca nada. Agora o grant registra o item (`InventoryService.rememberKnownItem`, um `UPDATE` jsonb atômico na mesma transação) e o editor também oferece todo consumível que está na bolsa (resolve na hora para quem já ganhou).
+- **Heavy Swing em área** (OpenSpec `heavy-swing-area`): continua exigindo alvo em melee; o mesmo dano bruto atinge todo inimigo vivo nas 8 casas em volta do conjurador (defesa e rolagem próprias), nunca aliados; Disarm só no alvo. Acertos extras são eventos `splash` (sem cooldown, SP ou contagem de maestria); arena mostra números/flinch; o log diz "X's Heavy Swing also hits Y". Catálogo `effect.areaRadius: 1`; inputs persistidos guardam a definição antiga.
+- **Câmera da arena**: roda do mouse dá zoom do enquadramento automático até um close no próprio personagem; `1…9, 0, -, =, [, ], \` e `Numpad1…5` centralizam no 1º…20º combatente vivo (party primeiro); ignora teclas digitadas no chat; se o focado cair, volta para o jogador.
+- **Quest com bolsa cheia**: o servidor já recusava; agora responde `QUEST_REWARD_NO_SPACE` e o cliente mostra "Libere espaço para receber a recompensa." / "Free up space to receive your reward." em vermelho no chat e na tela (`ChatNoticeService`).
+- **Smashing Spree**: "Head to Sierra Village." → "Prepare to be in Sierra Village in time!" / "Prepare-se para estar em Sierra Village a tempo!" (cliente e fallback do servidor). Esses avisos já iam para o NotificationMessage.
+
+Validação: testes novos vistos falhando antes; Karma completo **663/663**; `tsc` app/spec ok; `ng build --configuration production` OK; testes Node novos (`heavy-swing-area`, `quest-reward-no-space`, `inventory-remember-known-item`, `town-event-grant` estendido, `town-event-service`) passam; SQL do `rememberKnownItem` testado num Postgres 16 descartável; falhas em `mastery-*`, `hand-equipment-mastery-contract`, `grind-monster-expansion-chat-journal`, `defense-monster-casting-passive-logs`, `battle-distance-movement`, `quest-standardization` são idênticas no `main`. **Não verificado no app rodando**; sem push/deploy; nenhuma migration.
+
 ### Arena v2, rodada 3 (bugs de produção): Violent Shot, monstros que paravam, som em party, parceiro cápsula, destino em batalha, fome, fade — 2026-11-26
 
 Branch `fix/arena-v2-round3` (a partir de `main` `8b22bbb`, sem upstream). Lista do usuário depurada com causa raiz antes de cada correção (vídeo do Violent Shot analisado quadro a quadro; batalhas reais do motor passadas pela projeção da arena num harness Node).

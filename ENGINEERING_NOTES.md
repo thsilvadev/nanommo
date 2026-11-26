@@ -321,3 +321,8 @@ Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `ev
 - Movement rule changes must be versioned on `BattleInputV2` (like `elementalRulesVersion`): flee/checkpoints re-simulate persisted inputs, so an unversioned change rewrites battles already shown to players. `movementRulesVersion: 1` caps the movement gauge while standing still.
 - Battle sound follows two sources: the solo queue (`BattleStore.active()`, legacy `log.events`) and the party battle (`PartyStore.battle()`, V2 events). A new battle source needs its own audio path.
 - Party travel decisions must use the solo rules explicitly (hunger: `townGuardHungry`); `preparePartyFood` feeds people and is for battle boundaries only.
+
+## Round 4 traps — 2026-11-26
+
+- `InventoryService.addItem(..., manager)` does not record the item as known (`markItemKnown` returns early in a transaction): a transactional grant must record it itself (`rememberKnownItem`, atomic SQL) or the item never appears in Gambit options.
+- Extra hits of an area skill are `splash` events on purpose: anything counting `use_skill` (mastery XP, cooldown timers) must not see them. Damage displays must list `splash` with the damaging actions.
