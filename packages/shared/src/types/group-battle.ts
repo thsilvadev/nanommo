@@ -15,6 +15,8 @@ export interface CombatEffectDefinition {
   hpPercent?: number; spPercent?: number; flatPerRank?: number; atkMultiplier?: number;
   multiplierPerRank?: boolean; damagePerRank?: number; applyStatus?: string; status?: string;
   statusChance?: number; statusDurationTicks?: number; statusDurationTicksByRank?: number[];
+  /** Area skills: every other living foe within this Chebyshev distance of the caster takes the same damage. */
+  areaRadius?: number;
   durationTicks?: number; durationSeconds?: number; targetDistance?: number;
   healPercentMaxHp?: number; healFlat?: number; absorbPerRank?: number; defBonusPerRank?: number;
   matkScaleDenominator?: number; burnChance?: number; burnIntervalTicks?: number; burnDurationTicks?: number;

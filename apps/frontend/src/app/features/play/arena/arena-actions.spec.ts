@@ -139,4 +139,17 @@ describe('flashColor', () => {
     expect(flashColor({ action: 'status_tick', status: 'burn' }, false)).toBe('orange');
     expect(flashColor({ action: 'status_tick', status: 'bleed' }, false)).toBe('darkred');
   });
+
+  it('a splash hit shows its number and a flinch on the foe it reached', () => {
+    const b = tiny([
+      { tick: 4, actorId: 'a', targetIds: ['b'], action: 'use_skill', payload: { type: 'action', skillId: 'heavy_swing', damage: 30, hit: true } },
+      { tick: 4, actorId: 'a', targetIds: ['c'], action: 'splash', payload: { type: 'action', skillId: 'heavy_swing', damage: 28, hit: true } },
+    ], { ally: true });
+    // A second monster next to the swordsman (the helper's third actor, made a foe).
+    Object.assign(b.actors[2], { team: 'b', kind: 'monster', monsterId: 'mon_slime', start: { row: 4, column: 5 } });
+    const frame = projectArenaBattle(b, b.startAtMs + 4 * 500 + 10);
+    expect(frame.feedback.map((f) => [f.targetId, f.text])).toEqual([['b', '30'], ['c', '28']]);
+    expect(frame.actors.find((x) => x.id === 'c')!.anim.hit).toBeTruthy();
+  });
 });
+

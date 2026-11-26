@@ -128,6 +128,8 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
     const baseCost=Number(def.spCost??0);const dynamoRank=Number(self.skillDefs?.arcane_dynamo?.masteryRank??0);const spCost=Math.max(0,baseCost);if(self.sp<spCost)return;
     const spBefore=self.sp;self.sp-=spCost;self.cooldowns![`skill:${skillId}`]=Math.max(0,Number(def.cooldownTicks??0))+(Number(def.cooldownTicks??0)>0?1:0);
     const hpBefore=target.hp;let dealt=0;const type=String(e.type??'');
+    // Area skills (effect.areaRadius): the same raw damage reaches every other living foe around the caster.
+    let splashRaw:number|null=null;let splashType='physical';
     if(type==='rage'){target.statusEffects=(target.statusEffects??[]).filter(s=>(definitions.statuses?.[statusId(s)] as {polarity?:string}|undefined)?.polarity!=='debuff');applyStatus(self,target,'rage',Number(e.durationTicks??30),{sourceSkillId:skillId,atkBonus:Number(e.atk??20)});}
     else if(type==='self_status_buff'&&e.applyStatus)applyStatus(self,target,e.applyStatus,Number(e.durationTicks??19998),{sourceSkillId:skillId});
     else if(type==='pickpocket'){
@@ -152,6 +154,7 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
       if(e.dmgMult!==undefined)raw=((def.damageType==='magical'?self.matk:self.atk)+sumStatus(self,def.damageType==='magical'?'matkBonus':'atkBonus'))*Number(e.dmgMult);
       if(e.damageMultiplier!==undefined)raw=(def.damageType==='magical'?self.matk:self.atk)*Number(e.damageMultiplier)+Number(e.flatDamage??0);
       const magic=def.damageType==='magical'||def.damageType==='magic'||type.startsWith('magic_');const damageType=def.damageType??(magic?'magical':'physical');
+      splashRaw=raw;splashType=damageType;
       if(!elementalRules&&def.element)raw*=Number(target.elementalDamageTakenMultiplier?.[def.element]??(target.elementalResistances?.includes(def.element)?0.5:1));
       dealt=damage(self,target,raw,damageType,`skill:${skillId}:${target.id}`,true,def.element);
       applySkillStatus(self,target,skillId,e,rank);
@@ -171,6 +174,14 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
     if(target.team!==self.team&&target.hp>0){const species=actorById.get(target.id)?.definitionId;if(species==='mon_unicorn')applyStatus(target,target,'magic_prowess',40,{matkBonus:20,sourceSkillId:'monster_skill_channel'});if(species==='mon_ruinsguardian')applyStatus(target,target,'prowess',40,{atkBonus:10,defBonus:10,sourceSkillId:'monster_skill_prowess'});}
     if(dynamoRank>0){const before=self.sp;self.sp=Math.min(self.maxSp,self.sp+2*dynamoRank);if(self.sp>before)record(self,[self],'sp_refund',{type:'action',spGain:self.sp-before});}
     if(target.hp<=0)death(target);if(target.team!==self.team)reflect(self,target,dealt,def.damageType??(type.startsWith('magic_')?'magical':'physical'));
+    const radius=Number(e.areaRadius??0);
+    if(radius>0&&splashRaw!==null&&target.team!==self.team)for(const foe of units.filter(u=>u.team!==self.team&&u.hp>0&&u.id!==target.id&&gridDistance(self.position,u.position)<=radius)){
+      if(self.hp<=0)break;
+      // Full damage, its own roll; no status (Disarm stays on the target). Not a use_skill: no cooldown, SP or mastery count.
+      const hit=damage(self,foe,splashRaw,splashType,`skill:${skillId}:${foe.id}`,true,def.element);
+      record(self,[foe],'splash',{type:'action',skillId,damage:hit,damageType:splashType,hit:true});
+      if(foe.hp<=0)death(foe);reflect(self,foe,hit,splashType);
+    }
   };
   const reflect=(source:BattleActorState,target:BattleActorState,dealt:number,damageType:string)=>{
     const type=['magic','magical'].includes(damageType)?'magic_reflection':'physical_reflection';const status=(target.statusEffects??[]).find(s=>statusId(s)===type);

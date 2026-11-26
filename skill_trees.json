@@ -96,8 +96,8 @@
           "rank": 5
         },
         "spCost": 10,
-        "description": "30–50 SP by rank; (ATK × 1.1) + (20 × rank) physical damage; Disarm for 3/6/9/12/15 seconds by rank; 25 second cooldown.",
-        "effectDescription": "30–50 SP by rank; (ATK × 1.1) + (20 × rank) physical damage; Disarm for 3/6/9/12/15 seconds by rank; 25 second cooldown.",
+        "description": "30–50 SP by rank; (ATK × 1.1) + (20 × rank) physical damage to the target and every foe around you; Disarm (target only) for 3/6/9/12/15 seconds by rank; 25 second cooldown.",
+        "effectDescription": "30–50 SP by rank; (ATK × 1.1) + (20 × rank) physical damage to the target and every foe around you; Disarm (target only) for 3/6/9/12/15 seconds by rank; 25 second cooldown.",
         "requiresWeaponEquipped": "greatsword",
         "spCostByRank": [
           30,
@@ -115,6 +115,7 @@
           "flatPerRank": 20,
           "applyStatus": "disarm",
           "statusChance": 1,
+          "areaRadius": 1,
           "statusDurationTicksByRank": [
             3,
             6,

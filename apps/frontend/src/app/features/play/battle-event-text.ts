@@ -14,6 +14,7 @@ export function battleEventText(event: any, actor: string, target: string, name:
     case 'status_damage': return `${target} takes ${Number(e.damage ?? 0)} ${status} damage.`;
     case 'attack': return e.hit === false || Number(e.damage ?? 0) === 0 ? `${actor} misses ${target}!` : `${actor} hits ${target} for ${e.damage} damage${e.crit ? ' — CRITICAL!' : '.'}`;
     case 'use_skill': return `${actor} uses ${skill} on ${target}${Number(e.damage) > 0 ? ` for ${e.damage} damage` : ''}${Number(e.healAmount) > 0 ? ` and restores ${e.healAmount} HP` : ''}.`;
+    case 'splash': return `${actor}'s ${skill} also hits ${target} for ${Number(e.damage ?? 0)} damage.`;
     case 'use_item': return `${actor} uses ${name(String(e.itemId ?? ''), 'item') || 'an item'}${target && target !== actor ? ` on ${target}` : ''}${Number(e.healAmount) > 0 ? ` and restores ${e.healAmount} HP` : ''}${Number(e.spGain) > 0 ? ` and ${e.spGain} SP` : ''}.`;
     case 'regen': {
       if (e.hpGain != null || e.spGain != null) return `${actor} regenerates ${[Number(e.hpGain) > 0 ? `${e.hpGain} HP` : '', Number(e.spGain) > 0 ? `${e.spGain} SP` : ''].filter(Boolean).join(' and ') || '0 HP'}.`;
@@ -41,7 +42,7 @@ export function battleEventTone(event: any): string {
   const e = { ...event, ...(event.payload ?? {}) };
   if (e.actor === 'monster' && ['regen', 'sp_regen'].includes(e.action)) return 'foe-regen';
   if (['regen', 'sp_regen', 'revive'].includes(e.action) || Number(e.healAmount) > 0 && !Number(e.damage)) return 'healing';
-  if (['attack', 'use_skill', 'status_damage'].includes(e.action) && Number(e.damage) > 0) return e.actor === 'character' ? 'outgoing' : 'incoming';
+  if (['attack', 'use_skill', 'splash', 'status_damage'].includes(e.action) && Number(e.damage) > 0) return e.actor === 'character' ? 'outgoing' : 'incoming';
   if (String(e.action).startsWith('status')) return 'status';
   if (['cast_start', 'use_skill', 'use_item'].includes(e.action)) return 'skill';
   return 'muted';

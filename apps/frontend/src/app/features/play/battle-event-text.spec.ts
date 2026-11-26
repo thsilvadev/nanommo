@@ -1,4 +1,4 @@
-import { battleEventText } from './battle-event-text';
+import { battleEventText, battleEventTone } from './battle-event-text';
 
 describe('battle movement text', () => {
   const text = (event: any) => battleEventText(event, 'thiagoarcher', 'Bandit', id => id);
@@ -22,4 +22,11 @@ describe('battle movement text', () => {
     expect(text({ action: 'move', fromPosition: 1, toPosition: 2, spacesMoved: 1, reason: 'approach_out_of_range_action' }))
       .toBe('thiagoarcher moves ( 1 ) space →.');
   });
+
+  it('a Heavy Swing splash reads as an extra hit of that skill', () => {
+    const splash = { action: 'splash', actor: 'character', payload: { type: 'action', skillId: 'heavy_swing', damage: 240, hit: true } };
+    expect(battleEventText(splash, 'Hero', 'Slime', (id) => (id === 'heavy_swing' ? 'Heavy Swing' : id))).toBe("Hero's Heavy Swing also hits Slime for 240 damage.");
+    expect(battleEventTone(splash)).toBe('outgoing');
+  });
 });
+

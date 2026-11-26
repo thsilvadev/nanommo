@@ -24,7 +24,7 @@ export interface ArenaFrame { actors: ArenaActorFrame[]; feedback: ArenaFeedback
 
 export const ARENA_FEEDBACK_MS = 1100;
 const STRIKES = new Set(['attack', 'use_skill']);
-const DAMAGING = new Set(['attack', 'use_skill', 'use_item', 'reflect']);
+const DAMAGING = new Set(['attack', 'use_skill', 'splash', 'use_item', 'reflect']);
 const DOT = new Set(['status_tick', 'status_damage']);
 
 interface ActionIndex { battleStartMs: number; actions: Map<string, Action[]>; hits: Map<string, Array<{ t: number; tick: number }>>; feedback: ArenaFeedback[] }
