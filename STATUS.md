@@ -1,3 +1,9 @@
+### Rootbound Brute: Rage só quando desarmado — 2026-11-26
+
+O gambit do Brute era `always → attack` (P1) e `always → Rage` (P2), mas linhas de ataque e de skill/item alimentam **barras separadas** (`selectGroupGambit` filtra por barra; a prioridade só ordena dentro de cada uma) e o cast é checado antes do ataque: com SP cheio (60/60, Rage custa 50) ele usava Rage no início de toda batalha. A linha do Rage agora é `self_has_status: disarm` (mesmo formato do Wraith/silence); mirror do frontend sincronizado. O usuário escolheu ajustar o dado e não mudar a regra das barras por enquanto (rework possível no futuro).
+
+Validação: `brute-rage-only-when-disarmed` (novo, motor real `simulateBattleV2Solo` com as monster skills como o `BattleService` carrega) visto falhando antes (Rage nos ticks 12 e 412 sem Disarm) e passando depois (0 Rage sem Disarm; 8 Rages, todas sob Disarm da Heavy Swing); `movement-gauge-cap` e `group-battle-parity` passam; `validate-monster-catalog` (mapLength de `map_green_grounds_0`), `grind-monster-expansion-chat-journal` e `battle-distance-movement` falham **igual** antes da mudança. Sem push/deploy; nenhuma migration.
+
 ### Logs de minuto da API no servidor (DEBUGGING.md) — 2026-11-26
 
 - A API copia stdout/stderr (sem cores) para `logs/api/api_AAAA-MM-DD_HH-MMZ.log` (UTC, um arquivo por minuto) quando `LOG_MINUTE_DIR` está definido; a cada 30 min apaga os anteriores aos últimos 30. `docker-compose.yml` define `LOG_MINUTE_DIR` e monta `./logs/api` (`~/nanommo/logs/api` no servidor); `logs/` no `.gitignore` sobrevive ao `git clean -fd` do deploy.
