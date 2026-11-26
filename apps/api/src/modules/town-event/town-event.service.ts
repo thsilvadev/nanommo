@@ -20,9 +20,9 @@ export type HitVaseResult =
 const EVENT_TTL_S = 3600;
 const ACTIVE_KEY = 'ss:active';
 const eventKey = (ek: string, mapId: string, part: 'vases' | 'prizes' | 'broken' | 'prizesLeft') => `ss:${ek}:${mapId}:${part}`;
-/** Start of an event whose active entry predates `startsAt` (`ss-<startMs>` keys; dev keys fall back to endsAt). */
+/** Start of an event whose active entry predates `startsAt` (`ss-[dev-|gm-]<startMs>` keys; anything else falls back to endsAt). */
 function startOfEventKey(ek: string, endsAt: number): number {
-  const ms = Number(/^ss-(?:dev-)?(\d+)$/.exec(ek)?.[1]);
+  const ms = Number(/^ss-(?:dev-|gm-)?(\d+)$/.exec(ek)?.[1]);
   return Number.isFinite(ms) && ms > 0 && ms < endsAt ? ms : endsAt;
 }
 export const townAttackCooldownKey = (characterId: string) => `town:attackCd:${characterId}`;

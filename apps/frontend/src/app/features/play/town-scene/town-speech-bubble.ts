@@ -136,9 +136,9 @@ export class SpeechBubble {
   }
 
   /**
-   * Animates the bubble; false once it has faded out. `scale` follows the name
-   * plates (the close-up camera shrinks both), `plateTop` is where the plate
-   * ends above the character's origin.
+   * Animates the bubble; false once it has faded out. `scale` grows with the
+   * camera distance so the bubble keeps one size on screen at every zoom;
+   * `plateTop` is where the plate ends above the character's origin.
    */
   step(nowMs: number, scale: number, plateTop: number): boolean {
     this.scale = scale;

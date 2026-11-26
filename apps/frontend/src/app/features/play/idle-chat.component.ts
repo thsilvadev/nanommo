@@ -170,7 +170,7 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private async runCommand(text: string): Promise<void> {
     const command = text.slice(1).trim().split(/\s+/)[0].toLowerCase();
-    if (command !== 'sleep' && command !== 'dance' && command !== 'sit') { this.notices.error(this.locale.t('Unknown command.')); return; }
+    if (command !== 'sleep' && command !== 'dance' && command !== 'sit') { await this.runServerCommand(text); return; }
     const notInTown = command === 'sleep' ? 'You can only sleep in town.' : 'You can only do that in town.';
     if (!this.town.isTown(this.characters.character()?.currentMapId)) { this.notices.error(this.locale.t(notInTown)); return; }
     try {
@@ -180,6 +180,28 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
       const code = String(error?.message ?? '');
       this.notices.error(this.locale.t(code === 'NOT_IN_TOWN' ? notInTown : code || 'Unknown command.'));
     }
+  }
+
+  /**
+   * Any other slash command goes to the server as a GM command. Accounts that are
+   * not GMs (and unknown commands) get UNKNOWN_COMMAND, shown like before; a GM
+   * sees the answer as a System line.
+   */
+  private async runServerCommand(text: string): Promise<void> {
+    if (!this.socket.connected) { this.error.set('Chat is disconnected; message was not sent.'); return; }
+    let reply: { success?: boolean; message?: string; error?: string } | null = null;
+    try { reply = await this.socket.emit<any>('gm:command', { line: text }); } catch { reply = null; }
+    if (reply?.success && typeof reply.message === 'string') { this.appendLocalNotice(reply.message); return; }
+    const error = reply?.error;
+    if (!error || error === 'UNKNOWN_COMMAND') { this.notices.error(this.locale.t('Unknown command.')); return; }
+    this.appendLocalError(error);
+  }
+
+  /** A System line that is not an error (GM command answers); shown even if System was hidden. */
+  private appendLocalNotice(message: string): void {
+    this.append({ id: `local-notice-${Date.now()}-${++this.noticeSeq}`, channel: 'journal', severity: 'success', message, sentAt: new Date().toISOString() });
+    if (!this.journalEnabled()) this.setChannelEnabled('journal', true);
+    this.scrollToBottom();
   }
 
   private appendLocalError(message: string): void {

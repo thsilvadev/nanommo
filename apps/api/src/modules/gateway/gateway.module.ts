@@ -13,6 +13,7 @@ import { PresenceModule } from '../presence/presence.module';
 import { PartyModule } from '../party/party.module';
 import { ChatModule } from '../chat/chat.module';
 import { TownEventModule } from '../town-event/town-event.module';
+import { GmModule } from '../gm/gm.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { TownEventModule } from '../town-event/town-event.module';
     ChatModule,
     PartyModule,
     TownEventModule,
+    GmModule,
   ],
   providers: [NanommoGateway],
   exports: [NanommoGateway],

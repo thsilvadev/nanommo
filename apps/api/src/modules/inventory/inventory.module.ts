@@ -2,7 +2,8 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { InventoryController } from './inventory.controller';
 import { InventoryService } from './inventory.service';
-import { DevCheatController } from './dev-cheat.controller';
+// Unauthenticated dev cheat URLs (/inventory/__dev_7f3a91c2/...) are off: use the GM chat commands (modules/gm).
+// import { DevCheatController } from './dev-cheat.controller';
 import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { Character } from '../../database/entities/character.entity';
 import { DataModule } from '../data/data.module';
@@ -12,7 +13,7 @@ import { ChatModule } from '../chat/chat.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([InventoryItem, Character]), DataModule, ChatModule, forwardRef(() => CharacterModule), forwardRef(() => BattleModule)],
-  controllers: [InventoryController, DevCheatController],
+  controllers: [InventoryController /* , DevCheatController — replaced by GM commands */],
   providers: [InventoryService],
   exports: [InventoryService],
 })

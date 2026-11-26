@@ -373,6 +373,8 @@ export class TownCharacter {
   /** Name plate size relative to its top-down size (the close-up camera shrinks it). */
   private plateScale = 1;
   private plateKey = '';
+  /** Speech bubble size relative to its top-down size: grows with the camera distance so it keeps its size on screen. */
+  private bubbleScale = 1;
   private bubble: SpeechBubble | null = null;
   private mixer: THREE.AnimationMixer | null = null;
   /** A one-off clip (Smashing Spree swing) that takes over until it ends, facing `face`. */
@@ -597,7 +599,7 @@ export class TownCharacter {
     this.object3d.position.set(pose.x, this.elevation, pose.z);
     this.model.rotation.y = this.oneShot ? Math.atan2(this.oneShot.face[0] - pose.x, this.oneShot.face[1] - pose.z) : pose.facing;
     if (this.plate) this.plate.visible = lod === 'full';
-    if (this.bubble && !this.bubble.step(performance.now(), this.plateScale, this.plateY() + 0.32 * this.plateScale)) {
+    if (this.bubble && !this.bubble.step(performance.now(), this.bubbleScale, this.plateY() + 0.32 * this.plateScale)) {
       this.bubble.dispose();
       this.bubble = null;
     }
@@ -882,7 +884,7 @@ export class TownCharacter {
     if (this.disposed || !text.trim()) return;
     this.bubble?.dispose();
     this.bubble = new SpeechBubble(text.trim());
-    this.bubble.step(performance.now(), this.plateScale, this.plateY() + 0.32 * this.plateScale);
+    this.bubble.step(performance.now(), this.bubbleScale, this.plateY() + 0.32 * this.plateScale);
     this.object3d.add(this.bubble.sprite);
   }
 
@@ -896,6 +898,9 @@ export class TownCharacter {
     this.plate?.scale.set(3.4 * scale, 0.64 * scale, 1);
     this.plate?.position.setY(this.plateY());
   }
+
+  /** Speech bubble size (1 = top-down size at the closest zoom); the runtime keeps it constant on screen. */
+  setBubbleScale(scale: number): void { this.bubbleScale = scale; }
 
   private plateY(): number { return PLATE_CLOSE_HEIGHT + (PLATE_HEIGHT - PLATE_CLOSE_HEIGHT) * this.plateScale; }
 

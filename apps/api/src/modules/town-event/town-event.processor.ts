@@ -9,6 +9,8 @@ export const TOWN_EVENT_QUEUE = 'town-event';
 export const SMASHING_SPREE_TICK = 'smashing-spree-tick';
 /** Dev-only: run a given phase now (maintenance/smashing-spree-start-now). Ignored in production. */
 export const SMASHING_SPREE_RUN_PHASE = 'smashing-spree-run-phase';
+/** A phase of a GM-scheduled event (`/start-event smashing-spree <minutes>`); runs in every environment. */
+export const SMASHING_SPREE_GM_PHASE = 'smashing-spree-gm-phase';
 const EVERY_MINUTE = '* * * * *';
 
 /** Registers the per-minute Smashing Spree tick (Bull keeps one repeatable across API instances). */
@@ -48,6 +50,26 @@ export class TownEventProcessor {
       return;
     }
     if (job.data?.phase) await this.townEvents.runPhase(job.data.phase);
+  }
+
+  /**
+   * A GM-scheduled phase. Like the tick, a start that is processed late still
+   * runs while the event would be live, and a countdown more than a minute
+   * late (API down at its time) is dropped instead of announcing a wrong time.
+   */
+  @Process(SMASHING_SPREE_GM_PHASE)
+  async handleGmPhase(job: Pick<Job<{ phase: SmashingSpreePhase; runAt: number }>, 'data'>): Promise<void> {
+    const phase = job.data?.phase;
+    if (!phase) return;
+    const now = Date.now();
+    if (phase.kind === 'start' && now >= phase.endsAt) return;
+    if (phase.kind === 'announce' && now - Number(job.data.runAt) > 60_000) return;
+    try {
+      await this.townEvents.runPhase(phase);
+    } catch (error) {
+      this.logger.error(`GM Smashing Spree ${phase.kind} failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
   }
 
   /**

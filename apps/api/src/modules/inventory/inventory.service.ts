@@ -841,13 +841,22 @@ export class InventoryService {
     return { maxHp: stats.maxHp, maxSp: stats.maxSp };
   }
 
+  /**
+   * Target of a cheat: the character with that exact name (GM commands), or the
+   * most recently updated character (the legacy dev URLs, which pass no name).
+   */
+  private async cheatTarget(repo: Repository<Character>, characterName?: string): Promise<Character> {
+    const name = characterName?.trim();
+    const [candidate] = name
+      ? await repo.find({ where: { name }, take: 1 })
+      : await repo.find({ order: { updatedAt: 'DESC' }, take: 1 });
+    if (!candidate) throw new NotFoundException(name ? `Character ${name} not found` : 'Character not found');
+    return candidate;
+  }
+
   /** TEMP DEV CHEAT — remove after Diet/food QA is complete. */
-  async grantAllFoodsCheat(quantity = 10) {
-    const [candidate] = await this.characterRepo.find({
-      order: { updatedAt: 'DESC' },
-      take: 1,
-    });
-    if (!candidate) throw new NotFoundException('Character not found');
+  async grantAllFoodsCheat(quantity = 10, characterName?: string) {
+    const candidate = await this.cheatTarget(this.characterRepo, characterName);
 
     const character = await this.characterRepo.findOne({ where: { id: candidate.id } });
     if (!character) throw new NotFoundException('Character not found');
@@ -918,14 +927,10 @@ export class InventoryService {
   }
 
   /** TEMP DEV CHEAT — remove after Diet/food QA is complete. */
-  async resetDietCheat() {
+  async resetDietCheat(characterName?: string) {
     const character = await this.characterRepo.manager.transaction(async (manager) => {
       const repo = manager.getRepository(Character);
-      const [candidate] = await repo.find({
-        order: { updatedAt: 'DESC' },
-        take: 1,
-      });
-      if (!candidate) throw new NotFoundException('Character not found');
+      const candidate = await this.cheatTarget(repo, characterName);
 
       const character = await repo.findOne({
         where: { id: candidate.id },
@@ -965,14 +970,10 @@ export class InventoryService {
   }
 
   /** TEMP DEV CHEAT — remove after Diet/food QA is complete. */
-  async upgradeDietCheat() {
+  async upgradeDietCheat(characterName?: string) {
     const character = await this.characterRepo.manager.transaction(async (manager) => {
       const repo = manager.getRepository(Character);
-      const [candidate] = await repo.find({
-        order: { updatedAt: 'DESC' },
-        take: 1,
-      });
-      if (!candidate) throw new NotFoundException('Character not found');
+      const candidate = await this.cheatTarget(repo, characterName);
 
       const character = await repo.findOne({
         where: { id: candidate.id },
