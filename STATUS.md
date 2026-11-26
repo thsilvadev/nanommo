@@ -1,3 +1,7 @@
+### GM: cheats miram o próprio GM quando não há nome — 2026-11-26
+
+`/grant-equip`, `/grant-foods`, `/reset-diet`, `/upgrade-diet`, `/reset-skilltree` aceitam o nome como opcional (`[charName]`); sem nome, o alvo é o personagem do GM (`targetName`). `/grant-equip` reconhece que o primeiro argumento já é a lista de itens quando todos os ids existem no catálogo; `/grant-foods 5` é quantidade para si. Validação: `gm-commands.test.js` (casos novos com e sem nome) passa; DI do `GmModule` compilada (7 comandos). Sem push/deploy; nenhuma migration nova.
+
 ### GM: comandos de chat, `/start-event` e balão de fala legível no zoom out — 2026-11-26
 
 **Papel GM.** `users.role` (`player` | `gm`), migration forward-only `1800800000000-UserRole`: cria a coluna (default `player`, CHECK) e torna GM a conta dona do personagem `thiagosauro`. Para GMs futuros: `maintenance/set-user-role <charName> <gm|player>`. A coluna fica **fora de toda leitura/escrita do ORM** (`select/insert/update: false`, sem `default` na entidade), então um deploy que chegue antes da migration continua logando e cadastrando todo mundo; até a migration rodar, ninguém é GM (`GmAccessService` loga um WARN e responde "não").

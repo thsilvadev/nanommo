@@ -15,6 +15,8 @@ const { GmService } = require(`${dist}/modules/gm/gm.service`);
 const { GmAccessService } = require(`${dist}/modules/gm/gm-access.service`);
 const { GmCommandError, tokenizeGmLine } = require(`${dist}/modules/gm/gm.types`);
 const { StartEventCommand } = require(`${dist}/modules/gm/commands/start-event.command`);
+const { GrantEquipCommand, GrantFoodsCommand, ResetDietCommand, UpgradeDietCommand } = require(`${dist}/modules/gm/commands/inventory-cheat.commands`);
+const { ResetSkillTreeCommand } = require(`${dist}/modules/gm/commands/reset-skilltree.command`);
 
 const cfg = require(path.join(root, 'town_events.json')).smashingSpree;
 const towns = require(path.join(root, 'town_scenes.json')).towns;
@@ -78,6 +80,44 @@ const silence = (svc) => { svc.logger = { log() {}, warn() {}, error() {} }; ret
     assert.equal(help.success, true);
     for (const name of ['/broken <x>', '/crash', '/echo <text>', '/gm-help']) assert.ok(help.message.includes(name), `help lists ${name}`);
     assert.throws(() => new GmService([echo, echo], access, characterRepo), /Duplicate GM command \/echo/);
+  }
+
+  // Cheats target the GM's own character unless a name is given.
+  {
+    const ctx = { userId: 'user-gm', characterId: 'char-gm', characterName: 'thiagosauro' };
+    const calls = [];
+    const inventory = {
+      grantEquipmentCheat: async (ids, refine, name) => { calls.push(['equip', ids, refine, name]); return { name, granted: ids.map((itemId) => ({ itemId })) }; },
+      grantAllFoodsCheat: async (qty, name) => { calls.push(['foods', qty, name]); return { foods: [] }; },
+      resetDietCheat: async (name) => { calls.push(['reset', name]); return { diet: [] }; },
+      upgradeDietCheat: async (name) => { calls.push(['upgrade', name]); return { diet: [] }; },
+    };
+    const items = new Set(['equip_a', 'equip_b']);
+    const data = { getItemById: (id) => (items.has(id) ? { id } : null) };
+    const equip = new GrantEquipCommand(inventory, data);
+    await equip.run(['equip_a,equip_b', '12'], ctx);
+    await equip.run(['equip_a'], ctx);
+    await equip.run(['Ana', 'equip_a', '3'], ctx);
+    await assert.rejects(equip.run([], ctx), (e) => e instanceof GmCommandError);
+    const foods = new GrantFoodsCommand(inventory);
+    await foods.run([], ctx);
+    await foods.run(['5'], ctx);
+    await foods.run(['Ana', '7'], ctx);
+    await new ResetDietCommand(inventory).run([], ctx);
+    await new UpgradeDietCommand(inventory).run(['Ana'], ctx);
+    const resets = [];
+    await new ResetSkillTreeCommand({ resetMasteryForCharacterName: async (n) => { resets.push(n); return { characterName: n, categoriesReset: 8 }; } }).run([], ctx);
+    assert.deepEqual(calls, [
+      ['equip', ['equip_a', 'equip_b'], 12, 'thiagosauro'],
+      ['equip', ['equip_a'], 0, 'thiagosauro'],
+      ['equip', ['equip_a'], 3, 'Ana'],
+      ['foods', 10, 'thiagosauro'],
+      ['foods', 5, 'thiagosauro'],
+      ['foods', 7, 'Ana'],
+      ['reset', 'thiagosauro'],
+      ['upgrade', 'Ana'],
+    ]);
+    assert.deepEqual(resets, ['thiagosauro']);
   }
 
   // GmAccessService: the role comes from the database; a missing column (pre-migration) means no GM.
