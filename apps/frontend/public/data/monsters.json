@@ -1972,7 +1972,8 @@
         {
           "priority": 2,
           "condition": {
-            "type": "always"
+            "type": "self_has_status",
+            "status": "disarm"
           },
           "action": {
             "type": "use_skill",
