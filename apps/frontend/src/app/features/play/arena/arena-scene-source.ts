@@ -47,6 +47,8 @@ export class ArenaSceneSource {
   private readonly started = new Set<string>();
   /** Column offset of each battle, fixed the first time it is laid out (see arena-phase). */
   private readonly offsets = new Map<string, number>();
+  /** Solo battles cut where they left the queue unresolved, as they were before the cut (see settleSolo). */
+  private readonly uncut = new Map<string, ArenaBattle>();
 
   constructor(private readonly options: ArenaBattleOptions = {}) {}
 
@@ -54,7 +56,7 @@ export class ArenaSceneSource {
     const now = input.nowMs;
     const queued = input.soloQueue.filter((e) => !input.mapId || !(e as { mapId?: string }).mapId || (e as { mapId?: string }).mapId === input.mapId);
     const solo = queued.map((e) => this.solo(e, input)).filter((b): b is ArenaBattle => !!b).sort((a, b) => a.startAtMs - b.startAtMs);
-    this.settleSolo(new Set(queued.map((e) => e.id)), input.resolved);
+    this.settleSolo(new Set(queued.map((e) => e.id)), new Set(input.soloQueue.map((e) => e.id)), input.resolved, now);
     if (input.shared) this.shared(input.shared, input);
     const all = [...this.battles.values()];
     // A battle "ran" once its start passed while known: only those can be the previous one (no phantom outros).
@@ -99,6 +101,9 @@ export class ArenaSceneSource {
 
   private solo(entry: BattleQueueEntry, input: ArenaSourceInputs): ArenaBattle | null {
     const key = `solo:${entry.id}`;
+    // Back in the queue after a cut (a stale snapshot without it): it was not deleted after all.
+    const uncut = this.uncut.get(key);
+    if (uncut) { this.uncut.delete(key); this.battles.set(key, uncut); }
     const cached = this.battles.get(key);
     if (cached && cached.startAtMs === Date.parse(entry.startAt)) return cached;
     const battle = fromSoloEntry(entry, { id: input.selfId, look: input.selfLook, attackStyle: input.selfAttackStyle }, this.options);
@@ -111,17 +116,29 @@ export class ArenaSceneSource {
    * A resolved one keeps playing, cut short by its flee / cancellation; one the arena never saw start is
    * gone, even when its start time has passed: the arena is not drawn while hidden, so a battle a trip
    * cancelled meanwhile would otherwise come back as a phantom one.
+   *
+   * One the arena saw start that leaves the queue with no resolution was deleted by the server (a
+   * destination picked, a route committed, a queue rebuilt): it is cut where it left, else it plays on
+   * to its original end as a ghost, over the battle the panel and the sounds follow. Its uncut form is
+   * kept, so a flee or cancellation reported just after the queue update still plays as reported.
    */
-  private settleSolo(queued: Set<string>, resolved: ArenaResolvedEntry[]): void {
-    for (const [key, battle] of [...this.battles]) {
-      if (!key.startsWith('solo:') || queued.has(battle.id)) continue;
-      const r = resolved.find((x) => x.entryId === battle.id);
-      const cutAt = Date.parse(String(r?.cancelledAt ?? ''));
-      if (r && Number.isFinite(cutAt)) {
-        if (r.cancellationReason === 'flee') { if (!battle.flee) this.battles.set(key, { ...battle, flee: { atMs: cutAt } }); }
-        else if (cutAt < battle.endAtMs) this.battles.set(key, { ...battle, endAtMs: cutAt });
-      } else if (!r && !this.started.has(battle.id)) {
+  private settleSolo(queued: Set<string>, present: Set<string>, resolved: ArenaResolvedEntry[], now: number): void {
+    for (const key of [...this.uncut.keys()]) if (!this.battles.has(key)) this.uncut.delete(key);
+    for (const [key, current] of [...this.battles]) {
+      if (!key.startsWith('solo:') || queued.has(current.id)) continue;
+      const r = resolved.find((x) => x.entryId === current.id);
+      if (r) {
+        const battle = this.uncut.get(key) ?? current;
+        this.uncut.delete(key);
+        const cutAt = Date.parse(String(r.cancelledAt ?? ''));
+        if (Number.isFinite(cutAt) && r.cancellationReason === 'flee') this.battles.set(key, battle.flee ? battle : { ...battle, flee: { atMs: cutAt } });
+        else if (Number.isFinite(cutAt) && cutAt < battle.endAtMs) this.battles.set(key, { ...battle, endAtMs: cutAt });
+        else this.battles.set(key, battle);
+      } else if (!this.started.has(current.id)) {
         this.battles.delete(key);
+      } else if (!present.has(current.id) && !this.uncut.has(key)) {
+        this.uncut.set(key, current);
+        if (now < current.endAtMs) this.battles.set(key, { ...current, endAtMs: Math.max(current.startAtMs, now) });
       }
     }
   }

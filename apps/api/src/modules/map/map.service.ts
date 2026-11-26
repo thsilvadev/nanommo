@@ -18,6 +18,22 @@ import { QuestService } from '../quests/quest.service';
 const FAST_TRAVEL_SECONDS = 10;
 const TOWN_GUARD_HUNGER_MESSAGE = 'Town Guard: You are hungry! Eat something or go cleanse your sins for a change.';
 
+/**
+ * The battle a travel / stance change must wait for, and every battle it must not delete. All entries
+ * whose start has passed are kept (their client has drawn them start): the last to end is the one that
+ * matters. Picking the first started one by order chose a battle that had ended but was not resolved yet
+ * (its Bull job is late), and deleted the battle actually running: the arena kept playing it as a ghost
+ * while the panel moved on (2026-11-26).
+ */
+/** Deleted queue rows (see startedBattlesOf): logged to debug a battle that vanished. */
+const queueDeleteLogger = new Logger('MapService');
+
+export function startedBattlesOf<T extends { startAt: Date; endAt: Date }>(unresolved: T[], now: number): { started: T[]; active: T | undefined } {
+  const started = unresolved.filter(entry => entry.startAt.getTime() <= now);
+  const active = started.reduce<T | undefined>((last, entry) => (!last || entry.endAt.getTime() > last.endAt.getTime() ? entry : last), undefined);
+  return { started, active };
+}
+
 @Injectable()
 export class MapService {
   private readonly logger = new Logger(MapService.name);
@@ -100,9 +116,10 @@ export class MapService {
 
       const now = Date.now();
       const unresolved = await queueRepo.find({ where: { characterId, resolved: false }, order: { sequenceIndex: 'ASC' } });
-      const active = unresolved.find(entry => entry.startAt.getTime() <= now);
+      const { started, active } = startedBattlesOf(unresolved, now);
       const previousMapId = character.currentMapId;
-      const cancelledBattleIds = unresolved.filter(entry => !active || entry.id !== active.id).map(entry => entry.id);
+      const cancelledBattleIds = unresolved.filter(entry => !started.includes(entry)).map(entry => entry.id);
+      if (cancelledBattleIds.length) queueDeleteLogger.log(`[queue-delete] travel request characterId=${characterId} deleted=${cancelledBattleIds.join(',')} kept=${started.map(entry => entry.id).join(',') || '-'}`);
       if (cancelledBattleIds.length) await queueRepo.delete({ id: In(cancelledBattleIds), resolved: false });
       const oldIntent = character.travelIntent ?? null;
       const previousJobId = oldIntent?.scheduledJobId as string | undefined;
@@ -285,7 +302,7 @@ export class MapService {
       if (expectedScheduleVersion !== undefined && Number(intent.scheduleVersion) !== expectedScheduleVersion) return { kind: 'stale' as const, reason: 'schedule-version-mismatch', currentGeneration: Number(intent.generation), currentScheduleVersion: Number(intent.scheduleVersion ?? 0), currentMapId: character.currentMapId, destinationMapId: intent.destinationMapId };
       const now = Date.now();
       const unresolved = await queueRepo.find({ where: { characterId, resolved: false }, order: { startAt: 'ASC', sequenceIndex: 'ASC' } });
-      const startedBattle = unresolved.find(entry => entry.startAt.getTime() <= now);
+      const startedBattle = startedBattlesOf(unresolved, now).active;
       if (startedBattle) {
         // Travel and encounters resume only after the immutable battle's full interval.
         const priorAccruedAt = Date.parse(String(intent.lastAccruedAt ?? ''));
@@ -412,6 +429,7 @@ export class MapService {
         character.travelIntent = finished ? null : intent;
         character.lastSeenAt = new Date(now);
         const cancelledBattleIds = unresolved.map(entry => entry.id);
+        if (cancelledBattleIds.length) queueDeleteLogger.log(`[queue-delete] route commit characterId=${characterId} deleted=${cancelledBattleIds.join(',')} startedAmongThem=${unresolved.filter(entry => entry.startAt.getTime() <= now).map(entry => entry.id).join(',') || '-'}`);
         if (cancelledBattleIds.length) await queueRepo.delete({ id: In(cancelledBattleIds), resolved: false });
         await characterRepo.save(character);
         return {
@@ -775,8 +793,9 @@ export class MapService {
       const map = this.dataService.getMapById(character.currentMapId);
       character.status = map?.type === 'town' ? 'town' : 'grinding';
       const unresolved = await queueRepo.find({ where: { characterId, resolved: false }, order: { startAt: 'ASC' } });
-      const now = Date.now(); const active = unresolved.find(entry => entry.startAt.getTime() <= now);
-      const cancelledBattleIds = unresolved.filter(entry => !active || entry.id !== active.id).map(entry => entry.id);
+      const now = Date.now(); const { started, active } = startedBattlesOf(unresolved, now);
+      const cancelledBattleIds = unresolved.filter(entry => !started.includes(entry)).map(entry => entry.id);
+      if (cancelledBattleIds.length) queueDeleteLogger.log(`[queue-delete] stance change characterId=${characterId} deleted=${cancelledBattleIds.join(',')} kept=${started.map(entry => entry.id).join(',') || '-'}`);
       if (cancelledBattleIds.length) await queueRepo.delete({ id: In(cancelledBattleIds), resolved: false });
       // Gathering can project many avoided candidates before its next actual fight.
       // Reusing that reservation makes Hunting wait minutes despite rebuilding its queue.

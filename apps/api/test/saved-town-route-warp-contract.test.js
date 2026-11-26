@@ -17,7 +17,7 @@ assert.match(mapService, /findSavedTownWaypointIndex\(route as any\[\], characte
 assert.match(mapService, /kind: savedTownTeleport \? 'saved-town-teleport' : routeViaSavedTown \? 'saved-town-route-teleport' : 'route'/);
 assert.match(mapService, /if \(intent\.kind === 'saved-town-route-teleport'\)/);
 assert.match(mapService, /const continuedRoute = target\s*\?\s*findCardinalRoute\(this\.dataService\.getMaps\(\), waypointId, target\.id\)/);
-assert.ok(mapService.indexOf('const startedBattle = unresolved.find') < mapService.indexOf("if (intent.kind === 'saved-town-route-teleport')"), 'started-battle gate must run before the waypoint teleport');
+assert.ok(mapService.indexOf('const startedBattle = startedBattlesOf(unresolved, now).active') < mapService.indexOf("if (intent.kind === 'saved-town-route-teleport')"), 'started-battle gate must run before the waypoint teleport');
 assert.match(battleService, /character\.travelIntent\.kind === 'saved-town-route-teleport' \|\| character\.travelIntent\.viaSavedTownWaypoint === true/);
 assert.match(battleService, /savedTownWaypointTravel\.kind = 'saved-town-route-teleport'/, 'death after the first waypoint re-enters the recomputation path');
 assert.match(battleService, /savedTownWaypointTravel\.waypointMapId = respawnTownId/);

@@ -329,3 +329,10 @@ Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `ev
 
 - **Arena orbit (2026-11-26):** the painted layers are flat planes facing the default camera; any camera yaw must turn them with it (`ArenaScenery.update(..., yawRad)`, group `arena:backdrop`), or their edges show the empty clear colour. The 3D ground ends ~40 m in front of the grid, which is why the orbit stops at ±70°.
 - **Gear blade stretch:** `bladeStretch.from` is in metres along the built weapon (after scaling to `length`); measure the guard with a width profile of `gear-rigid.glb` before choosing it. `gear/build-gear.mjs --only` writes outputs with only those visuals: build everything.
+
+## Ghost battles in the arena — 2026-11-26
+
+- A solo battle the arena saw start that leaves the queue **without** a resolution was deleted by the server (travel, route commit, queue rebuild): `ArenaSceneSource.settleSolo` cuts it where it left (keeping its uncut form for a resolution that arrives late). Keeping it to its original `endAt` drew it over the real battle (`current` is the first match in insertion order) while the panel and the sounds followed `queue[0]`.
+- The arena's resolutions come from `BattleStore.recentResolved()`, written in the same `battle:resolved` handler that drops the entry from the queue. Do not go back to an `effect` on `lastResolved`: effects run after the frame can already see the queue without the entry, and a single-value signal loses resolutions that land together.
+- Travel/stance changes keep **every** unresolved entry whose start has passed (`startedBattlesOf` in `map.service.ts`); "the first started one by order" can be an ended battle whose Bull job is late, and then the running battle was deleted.
+- `MapService` tests build the service without its constructor (`this.logger` is undefined there): module-level loggers for code those tests reach.

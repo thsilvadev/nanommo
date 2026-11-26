@@ -1,3 +1,13 @@
+### Batalha fantasma na arena (painel/sons numa batalha, arena em outra) — 2026-11-26
+
+Depurado com causa raiz: prints do usuário (Giant Spider no painel e Saltfang Crab na arena; TRAVELING no painel e a arena lutando) reproduzidos com o `ArenaSceneSource` real.
+
+- **Causa:** o painel e o áudio seguem `queue[0]`; a arena segue o horário de todas as batalhas que guardou. Uma batalha que a arena viu começar e que o servidor **apagou** (troca de destino, conclusão de trecho, rebuild) saía da fila sem `battle:resolved`, e a arena a mantinha até o `endAt` original, por cima da real.
+- **Cliente:** `settleSolo` corta uma batalha iniciada que sai da fila sem resolução (guarda a forma original para um flee/cancelamento que chegue depois, e desfaz o corte se ela voltar à fila). `BattleStore.recentResolved` é atualizado no mesmo handler que tira a entrada da fila (substitui o `effect` sobre `lastResolved`, que perdia resoluções simultâneas).
+- **Servidor:** viagem e troca de stance não apagam mais nenhuma batalha já iniciada; a "ativa" é a que termina por último (`startedBattlesOf`); antes, uma batalha terminada com job atrasado virava a ativa e a que estava rodando era apagada. Linhas `[queue-delete]` registram toda remoção.
+
+Validação: 5 testes novos da arena (2 vistos falhando antes da correção); Karma da arena **168/168** e Karma completo **672/672**; `tsc` app e spec ok; Node: `travel-keeps-started-battles` (novo), `saved-town-route-warp-contract` (atualizado), `stance-switch-queue`, `stance-search-restart`, `world-travel-gathering-flee`, `battle-queue-reconciliation`, `stationary-scheduling-stance`, `party-flee-boundary` passam; `battle-distance-movement`, `map-leave-town-idempotency`, `map-presence-cleanup`, `map-transition-and-counter-concurrency`, `map-transition-frontend-contract`, `town-action-queue.integration`, `town-canonical-map-unification` falham **igual** sem a mudança. **Não verificado no app rodando**; sem push/deploy; nenhuma migration.
+
 ### Espadões com lâmina 1,5× e câmera orbital da arena — 2026-11-26
 
 Branch `feat/arena-orbit` (sobre `feat/greatsword-blades`, a partir de `main` `6ea6331`, sem upstream).
