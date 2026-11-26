@@ -212,7 +212,7 @@ test('a shell hides the skin under it: the manifest carries per-sex hide bands f
   assert.ok(legging.maxY <= knee + 0.05 && legging.minY >= 0.2, JSON.stringify(legging));
 });
 
-const LENGTH = { dagger: [0.2, 0.42], sword: [0.9, 1.1], greatsword: [1.4, 1.6], bow: [1.2, 1.35], staff: [1.5, 1.75], rod: [0.5, 0.65], shield: [0.6, 0.8], rune: [0.15, 0.32] };
+const LENGTH = { dagger: [0.2, 0.42], sword: [0.9, 1.1], greatsword: [1.85, 2.05] /* hilt + 1.5x blade (2026-11-26) */, bow: [1.2, 1.35], staff: [1.5, 1.75], rod: [0.5, 0.65], shield: [0.6, 0.8], rune: [0.15, 0.32] };
 test('weapon mapping requested by the user (2026-11-22)', () => {
   assert.equal(ITEMS.equip_dagger_t1, 'dagger-serrated');
   assert.equal(VISUALS['dagger-serrated'].source, 'weapons:Sword_2');

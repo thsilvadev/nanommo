@@ -104,9 +104,10 @@ Object.assign(VISUALS, {
   'sword-medieval': W('mainHand', 'sword', 'weapons:Sword', 0.95, BLADE),
   'sword-claymore': W('mainHand', 'sword', 'weapons:Claymore', 1.0, BLADE),
   'sword-golden': W('mainHand', 'sword', 'weapons:Sword_Golden', 1.05, BLADE),
-  'greatsword-big': W('mainHand', 'greatsword', 'weapons:Sword_Big', 1.45, BLADE),
-  'greatsword-katana': W('mainHand', 'greatsword', 'sketchfab:09ef2c4a3a62405886c674888bbf244f', 1.45, { up: 'z', grip: 0.14, size: 512 }),
-  'greatsword-kaykit': W('mainHand', 'greatsword', `${KKA}sword_2handed_color.gltf`, 1.55),
+  // Greatswords: blades 1.5× longer than the model's (from the top of the guard / the KayKit grip wraps); hilts unchanged.
+  'greatsword-big': W('mainHand', 'greatsword', 'weapons:Sword_Big', 1.45, { ...BLADE, bladeStretch: { from: 0.38, factor: 1.5 } }),
+  'greatsword-katana': W('mainHand', 'greatsword', 'sketchfab:09ef2c4a3a62405886c674888bbf244f', 1.45, { up: 'z', grip: 0.14, size: 512, bladeStretch: { from: 0.22, factor: 1.5 } }),
+  'greatsword-kaykit': W('mainHand', 'greatsword', `${KKA}sword_2handed_color.gltf`, 1.55, { bladeStretch: { from: 0.45, factor: 1.5 } }),
   // knife: the T1 dagger's old model, 20% smaller, darker blade
   'knife-medieval': W('mainHand', 'dagger', 'weapons:Dagger', 0.224, { ...BLADE, materialColors: { Steel: '#55585e', LightSteel: '#686b71', DarkSteel: '#3c3e43' } }),
   'dagger-serrated': W('mainHand', 'dagger', 'weapons:Sword_2', 0.38, BLADE),

@@ -43,3 +43,12 @@ function upperHull(points) {
   }
   return hull;
 }
+
+/**
+ * Lengthens a blade (long axis +Y, metres) by `factor` above the guard at y = `from`: every vertex above
+ * it moves to from + (y - from) × factor; x, z (the width) and everything at or below the guard (guard,
+ * grip, pommel) stay. Mutates `positions` (flat xyz).
+ */
+export function stretchBlade(positions, from, factor) {
+  for (let i = 1; i < positions.length; i += 3) if (positions[i] > from) positions[i] = from + (positions[i] - from) * factor;
+}
