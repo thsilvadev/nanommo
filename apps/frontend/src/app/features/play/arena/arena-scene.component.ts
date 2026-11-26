@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, InjectionToken, NgZone, OnDestroy, ViewChild, ViewEncapsulation, effect, inject, input, signal, untracked } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, InjectionToken, NgZone, OnDestroy, ViewChild, ViewEncapsulation, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import type { VisibleEquipment } from '@nanommo/shared';
 import { BattleStore, CharacterStore, InventoryStore } from '../../../core/game.store';
 import { CatalogService } from '../../../core/catalog.service';
@@ -99,8 +99,12 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
   private mapChange: ArenaMapChange | null = null;
   private seenMapId: string | null = null;
   private shared: { id: string; atMs: number } | null = null;
-  /** Recently resolved solo entries (a flee or cancellation cuts the cached battle short). */
-  private resolved: ArenaResolvedEntry[] = [];
+  /**
+   * Recently resolved solo entries (a flee or cancellation cuts the cached battle short). Read from the
+   * store, which updates it with the queue in one handler: a frame never sees an entry gone from the queue
+   * whose resolution is not known yet (the arena would take it for a deleted battle).
+   */
+  private readonly resolved = computed<ArenaResolvedEntry[]>(() => this.battles.recentResolved().map((r) => ({ entryId: r.entryId, cancelledAt: r.cancelledAt ?? null, cancellationReason: r.cancellationReason ?? null })));
   private destroyed = false;
 
   constructor() {
@@ -125,11 +129,6 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
         if (this.seenMapId === null) { this.seenMapId = mapId; return; }
         this.mapChange = nextMapChange(this.mapChange, mapId, this.clock.now(), this.seenMapId);
       });
-    });
-    // Resolved entries leave the queue; keep their flee/cancellation for the arena.
-    effect(() => {
-      const r = this.battles.lastResolved();
-      if (r?.entryId && !this.resolved.some((x) => x.entryId === r.entryId)) this.resolved = [...this.resolved, { entryId: r.entryId, cancelledAt: r.cancelledAt ?? null, cancellationReason: (r as { cancellationReason?: string | null }).cancellationReason ?? null }].slice(-20);
     });
     // Party battles are only known once created: remember when this client first saw each one.
     effect(() => {
@@ -238,7 +237,7 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
     return {
       nowMs, mapId: (this.mapChange ? arenaMapFade(this.mapChange, nowMs).mapId : null) ?? this.mapId() ?? c?.currentMapId ?? null, selfId: c?.id ?? 'self',
       selfLook: this.selfLook(), selfAttackStyle: this.selfAttackStyle(),
-      soloQueue: party ? [] : this.battles.queue(), resolved: this.resolved,
+      soloQueue: party ? [] : this.battles.queue(), resolved: this.resolved(),
       shared: party ? this.party.battle() : null,
       sharedReceivedAtMs: this.shared && this.shared.id === this.party.battle()?.id ? this.shared.atMs : null,
       nextEncounterAt: party ? this.party.nextEncounterAt() : null,

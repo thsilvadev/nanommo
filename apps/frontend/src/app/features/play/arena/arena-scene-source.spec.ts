@@ -81,6 +81,57 @@ describe('ArenaSceneSource', () => {
     expect(back.scene.battleId).toBeNull();
   });
 
+  it('a running battle the server deletes (no resolution) stops when it leaves the queue: no ghost fight', () => {
+    // Production (2026-11-26): the server deleted the running battle on a travel; the panel showed TRAVELING
+    // while the arena kept fighting that battle until its original end.
+    const source = new ArenaSceneSource();
+    source.build(inputs({ nowMs: START + 50, soloQueue: [entry('crab', START)] }));
+    const gone = START + 200;
+    source.build(inputs({ nowMs: gone, soloQueue: [] }));
+    const later = source.build(inputs({ nowMs: START + LENGTH / 2, soloQueue: [] }));
+    expect(later.scene.battleId).not.toBe('crab');
+    expect(later.scene.phase).not.toBe('battle');
+  });
+
+  it('a deleted battle does not hide the queued battle that took its time: the arena shows what the panel shows', () => {
+    // Production (2026-11-26): the panel and the sounds were on a Giant Spider, the arena on a Saltfang Crab.
+    const source = new ArenaSceneSource();
+    source.build(inputs({ nowMs: START + 50, soloQueue: [entry('crab', START)] }));
+    source.build(inputs({ nowMs: START + 300, soloQueue: [entry('spider', START + 100)] }));
+    const frame = source.build(inputs({ nowMs: START + 9000, soloQueue: [entry('spider', START + 100)] }));
+    expect(frame.scene.phase).toBe('battle');
+    expect(frame.scene.battleId).toBe('spider');
+  });
+
+  it('a flee whose resolution arrives after the queue update still plays the flee', () => {
+    const source = new ArenaSceneSource();
+    source.build(inputs({ nowMs: START + 2000, soloQueue: [entry('e1', START)] }));
+    const fledAt = START + 3000;
+    source.build(inputs({ nowMs: fledAt + 100, soloQueue: [] }));
+    const resolved = [{ entryId: 'e1', cancellationReason: 'flee', cancelledAt: new Date(fledAt).toISOString() }];
+    const running = source.build(inputs({ nowMs: fledAt + 300, soloQueue: [], resolved }));
+    expect(running.scene.phase).toBe('battle');
+    expect(running.scene.frame.actors.find((a) => a.id === 'char-self')!.fleeing).toEqual({ sinceMs: fledAt });
+  });
+
+  it('a battle missing from one stale queue snapshot and back in the next is not cut', () => {
+    const source = new ArenaSceneSource();
+    source.build(inputs({ nowMs: START + 1000, soloQueue: [entry('e1', START)] }));
+    source.build(inputs({ nowMs: START + 1100, soloQueue: [] }));
+    const frame = source.build(inputs({ nowMs: START + 3000, soloQueue: [entry('e1', START)] }));
+    expect(frame.scene.phase).toBe('battle');
+    expect(frame.scene.battleId).toBe('e1');
+  });
+
+  it('a battle resolved normally keeps playing to its end after it leaves the queue', () => {
+    const source = new ArenaSceneSource();
+    source.build(inputs({ nowMs: START + 1000, soloQueue: [entry('e1', START)] }));
+    const resolved = [{ entryId: 'e1' }];
+    const frame = source.build(inputs({ nowMs: START + 2000, soloQueue: [], resolved }));
+    expect(frame.scene.phase).toBe('battle');
+    expect(frame.scene.battleId).toBe('e1');
+  });
+
   it('nobody walks back: the next battle is laid out from the walk column, and keeps that layout', () => {
     const source = new ArenaSceneSource();
     const gap = LENGTH + 4000;
