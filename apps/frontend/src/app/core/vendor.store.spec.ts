@@ -242,3 +242,28 @@ describe('Town NPC selection state', () => {
     expect(store.stock()).toEqual([]);
   });
 });
+
+describe('Quest turn-in with a full bag', () => {
+  const full = { error: { code: 'QUEST_REWARD_NO_SPACE', message: 'Free up space to receive your reward.' } };
+  function makeStore() {
+    const store: any = Object.create(VendorStore.prototype);
+    store.api = { post: jasmine.createSpy('post').and.returnValue({ toPromise: () => Promise.reject(full) }) };
+    store.notices = { error: jasmine.createSpy('error') };
+    store.locale = { t: (text: string) => `t(${text})` };
+    store.questBusy = signal(false); store.error = signal<string | null>(null); store.notifications = { acknowledge: async () => undefined };
+    store.questSpeechOverride = signal(null); store.questInteraction = signal(null);
+    return store;
+  }
+  it('the turn-in button shows the red "free up space" notice (chat and screen)', async () => {
+    const store = makeStore();
+    await store.turnInQuest('instance-1');
+    expect(store.notices.error).toHaveBeenCalledWith('t(QUEST_REWARD_NO_SPACE)');
+    expect(store.error()).toBe('t(QUEST_REWARD_NO_SPACE)');
+  });
+  it('turning in from the NPC dialogue shows it too', async () => {
+    const store = makeStore();
+    store.questInteraction.set({ kind: 'active', action: 'turn_in', instanceId: 'instance-1' });
+    await store.chooseQuestInteraction();
+    expect(store.notices.error).toHaveBeenCalledWith('t(QUEST_REWARD_NO_SPACE)');
+  });
+});

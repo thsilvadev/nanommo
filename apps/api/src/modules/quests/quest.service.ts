@@ -399,7 +399,7 @@ export class QuestService {
       const requirements = this.deliveryRequirements(quest);
       const afterConsume = await this.rowsAfterDelivery(manager, characterId, fresh.id, requirements);
       const rewardRows = this.rewardInstances(quest, fresh.id);
-      if (!this.canFitRewards(afterConsume, rewardRows)) throw new BadRequestException('Not enough Inventory space for all quest rewards');
+      if (!this.canFitRewards(afterConsume, rewardRows)) throw new BadRequestException({ code: 'QUEST_REWARD_NO_SPACE', message: 'Free up space to receive your reward.' });
       await this.consumeRequirements(manager, characterId, fresh.id, requirements);
       for (const reward of rewardRows) await this.grantItem(manager, character, reward);
       granted = rewardRows.map((reward) => ({ itemId: reward.itemId, quantity: Number(reward.quantity) }));

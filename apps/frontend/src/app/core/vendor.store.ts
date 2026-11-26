@@ -6,6 +6,7 @@ import { TownNpc, VendorStockItem, VendorQuote, NpcDialogueState } from '@nanomm
 import { LocaleService } from './locale.service';
 import { GameAudioService } from '../shared/game-audio.service';
 import { BrowserNotificationsService } from './browser-notifications.service';
+import { ChatNoticeService } from './chat-notice.service';
 import { TownStore } from './town.store';
 
 export interface VendorModal { mode:'buy'|'sell'; itemId:string; quantity:number; maxQuantity:number; unitPrice:number; sourceInventoryItemId?:string; instanceData?:any; itemInstanceData?:any; }
@@ -26,7 +27,7 @@ export class VendorStore {
   private readonly api=inject(ApiService);
   private readonly audio=inject(GameAudioService);
   readonly notifications=inject(BrowserNotificationsService);
-  readonly locale=inject(LocaleService);
+  readonly locale=inject(LocaleService); private readonly notices=inject(ChatNoticeService);
   readonly character=inject(CharacterStore);
   readonly inventory=inject(InventoryStore);
   readonly catalog=inject(CatalogService);
@@ -293,7 +294,7 @@ export class VendorStore {
         await Promise.all([this.character.load(),this.inventory.load()]);
       }
       await Promise.all([this.loadQuestStateOnly(),this.refreshAvailableQuestNotifications()]);
-    }catch(e:any){this.error.set(e?.error?.message??'Quest interaction rejected');}
+    }catch(e:any){this.questError(e,'Quest interaction rejected');}
     finally{this.questBusy.set(false);}
   }
   async loadQuestStateOnly(){
@@ -308,6 +309,12 @@ export class VendorStore {
     catch(e:any){this.error.set(e?.error?.message??'Quest action rejected');}
     finally{this.questBusy.set(false);}
   }
+  /** A rejected quest step: a full bag is a red System notice (chat and screen); anything else stays in the dialogue. */
+  private questError(e:any,fallback:string){
+    const code=String(e?.error?.code??'');
+    if(code==='QUEST_REWARD_NO_SPACE'){const text=this.locale.t(code);this.error.set(text);this.notices.error(text);return;}
+    this.error.set(e?.error?.message??fallback);
+  }
   async turnInQuest(instanceId:string){
     if(this.questBusy())return;this.questBusy.set(true);this.error.set(null);
     try{
@@ -320,7 +327,7 @@ export class VendorStore {
       await Promise.all([this.inventory.load(),this.character.load(),this.refreshAvailableQuestNotifications()]);
       if(!result?.interaction) await this.loadQuestActions();
     }
-    catch(e:any){this.error.set(e?.error?.message??'Quest turn-in rejected');}
+    catch(e:any){this.questError(e,'Quest turn-in rejected');}
     finally{this.questBusy.set(false);}
   }
 
