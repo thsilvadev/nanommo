@@ -273,7 +273,12 @@ export class PartyService {
       const active=(await ctx.manager.query(`SELECT b.* FROM shared_battles b JOIN active_battle_participants a ON a."battleId"=b.id WHERE a."characterId"=$1`,[first.characterId]))[0];
       if(active){
         const endAt=new Date(active.endAt).getTime();
-        if(endAt>ctx.now)return;
+        if(endAt>ctx.now){
+          // A destination change during this battle: the party tries to flee it (every 10 s, like a solo flee).
+          const trip=ctx.party.activity;
+          if(trip?.kind==='route'&&trip.fleeBattleId===active.id&&await this.shared.autoFlee(ctx,ctx.party.leaderCharacterId,(id,reason)=>this.remove(ctx,id,reason)))await this.changed(ctx);
+          return;
+        }
         ctx.now=endAt;
         await this.shared.resolve(ctx,active,(id,reason)=>this.remove(ctx,id,reason));
       } else {
@@ -358,9 +363,13 @@ export class PartyService {
       const hungry:string[]=[];
       if(this.data.getMapById(p.mapId)?.type==='town')for(const m of ctx.members){const c=ctx.characters.find(c=>c.id===m.characterId)!;if(townGuardHungry(c as any,ctx.now))hungry.push(c.name);}
       if(hungry.length){for(const m of ctx.members)await this.event(ctx.manager,m.characterId,'party:actionUpdated',{status:'failed',message:`Town Guard: ${hungry.join(', ')} need to eat or cleanse their sins.`});return;}
-      if(await this.isBusy(ctx,ctx.members.map(m=>m.characterId)))this.error('PARTY_BUSY');
+      // In a shared battle the trip waits for it, and the party tries to flee it (see tickParty).
+      const fighting=(await ctx.manager.query(`SELECT b.id FROM shared_battles b JOIN active_battle_participants a ON a."battleId"=b.id WHERE a."characterId"=ANY($1::uuid[]) LIMIT 1`,[ctx.members.map(m=>m.characterId)]))[0]??null;
+      if(!fighting&&await this.isBusy(ctx,ctx.members.map(m=>m.characterId)))this.error('PARTY_BUSY');
       p.activity={kind:'route',destinationMapId:destination,routeMapIds:route,segmentIndex:0,generation:randomUUID(),participantIds:p.kind==='manual'?ctx.members.map(m=>m.characterId):[characterId],paused:false,segmentDueAt:ctx.now};
-      await this.advanceRoute(ctx,true);await this.changed(ctx);
+      await this.advanceRoute(ctx,true);
+      if(fighting&&p.activity){const a=p.activity;a.remainingMs=Math.max(0,Number(a.segmentDueAt??ctx.now)-ctx.now);a.paused=true;a.lastAccruedAt=ctx.now;a.fleeBattleId=fighting.id;await ctx.manager.query('UPDATE parties SET activity=$2 WHERE id=$1',[p.id,JSON.stringify(a)]);}
+      await this.changed(ctx);
     });return this.get(characterId);
   }
   private async advanceRoute(ctx:PartyContext,initial=false){

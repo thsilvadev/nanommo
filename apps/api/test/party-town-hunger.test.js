@@ -12,7 +12,7 @@ const { PartyService } = require('../dist/apps/api/src/modules/party/party.servi
       { id: 'b', userId: 'u2', name: 'Member', currentMapId: 'town', ...memberFood },
     ];
     const ctx = { now: 1000, party: { id: 'p', kind: 'manual', leaderCharacterId: 'a', mapId: 'town', activity: null }, members: [{ characterId: 'a' }, { characterId: 'b' }], characters,
-      manager: { getRepository: () => ({ findOneBy: async () => ({ emailVerified: true }) }) } };
+      manager: { getRepository: () => ({ findOneBy: async () => ({ emailVerified: true }) }), query: async () => [] } };
     let travelled = false;
     Object.assign(service, {
       data: { getMapById: (id) => (id === 'town' ? town : field), getMaps: () => [town, field] },

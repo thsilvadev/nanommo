@@ -183,23 +183,44 @@ export class SharedBattleService {
   async flee(ctx:PartyContext,leaderId:string,remove:(id:string,reason:string)=>Promise<void>){
     const row=(await ctx.manager.query(`SELECT b.* FROM shared_battles b JOIN active_battle_participants a ON a."battleId"=b.id WHERE a."characterId"=$1 FOR UPDATE OF b`,[leaderId]))[0];if(!row)throw new BadRequestException('No active shared battle');
     if(new Date(row.endAt).getTime()<=ctx.now)throw new BadRequestException('Battle has already ended');
-    const tick=Math.max(0,Math.min(row.log.durationTicks,Math.floor((ctx.now-new Date(row.startAt).getTime())/500)));
-    const state=Shared.replayBattleV2(row.snapshot,tick);
+    const state=this.fleeCheckpoint(ctx,row);
     if(state.actorsAfter[leaderId].hp<=0)throw new BadRequestException('KO leader cannot flee');
     const c=ctx.characters.find(c=>c.id===leaderId)!;
     if(c.fleeNextAttemptAt&&c.fleeNextAttemptAt.getTime()>ctx.now)throw new BadRequestException('Flee is on cooldown');
+    await this.attemptFlee(ctx,row,state,c,remove);
+  }
+  /**
+   * The party changed destination during this battle: try to flee when the leader's flee cooldown allows.
+   * Never throws for "not now" (battle over, cooldown, KO leader): the battle then simply runs its course.
+   */
+  async autoFlee(ctx:PartyContext,leaderId:string,remove:(id:string,reason:string)=>Promise<void>):Promise<boolean>{
+    const row=(await ctx.manager.query(`SELECT b.* FROM shared_battles b JOIN active_battle_participants a ON a."battleId"=b.id WHERE a."characterId"=$1 FOR UPDATE OF b`,[leaderId]))[0];
+    if(!row||new Date(row.endAt).getTime()<=ctx.now)return false;
+    const c=ctx.characters.find(c=>c.id===leaderId);
+    if(!c||(c.fleeNextAttemptAt&&c.fleeNextAttemptAt.getTime()>ctx.now))return false;
+    const state=this.fleeCheckpoint(ctx,row);
+    if(!(state.actorsAfter[leaderId]?.hp>0))return false;
+    return this.attemptFlee(ctx,row,state,c,remove);
+  }
+  private fleeCheckpoint(ctx:PartyContext,row:any){
+    const tick=Math.max(0,Math.min(row.log.durationTicks,Math.floor((ctx.now-new Date(row.startAt).getTime())/500)));
+    return Shared.replayBattleV2(row.snapshot,tick);
+  }
+  /** Every living member rolls against every living enemy targeting it: one lost roll and nobody gets away. */
+  private async attemptFlee(ctx:PartyContext,row:any,state:any,c:Character,remove:(id:string,reason:string)=>Promise<void>):Promise<boolean>{
     c.fleeNextAttemptAt=new Date(ctx.now+10000);
     const attempt=c.fleeAttemptIndex++;let success=true;
-    for(const a of row.snapshot.actors.filter(a=>a.team==='a')){
+    for(const a of row.snapshot.actors.filter((a:any)=>a.team==='a')){
       const current=state.actorsAfter[a.id];if(current.hp<=0)continue;
-      for(const enemy of row.snapshot.actors.filter(e=>e.team==='b'&&state.actorsAfter[e.id].hp>0&&state.actorsAfter[e.id].targetId===a.id)){
+      for(const enemy of row.snapshot.actors.filter((e:any)=>e.team==='b'&&state.actorsAfter[e.id].hp>0&&state.actorsAfter[e.id].targetId===a.id)){
         const chance=calculateFleeChancePercent(Number(a.snapshot.moveSpeed??0),Number(enemy.snapshot.moveSpeed??0),Number(a.snapshot.luk??5));
         if(new Mulberry32(`${row.seed}:flee:${attempt}:${a.id}:${enemy.id}`).nextPercent()>=chance)success=false;
       }
     }
     await ctx.manager.getRepository(Character).save(c);
     if(success)await this.resolve(ctx,row,remove,true,state);
-    else await this.event(ctx.manager,leaderId,'party:actionUpdated',{status:'failed',message:'Flee failed'});
+    else await this.event(ctx.manager,c.id,'party:actionUpdated',{status:'failed',message:'Flee failed'});
+    return success;
   }
   async enqueue(ctx:PartyContext,id:string,requestId:string,kind:string,payload:any){
     if(!['equip','unequip','use_item','gambit_update','gambit_activate','attributes'].includes(kind))throw new BadRequestException('Unsupported action');
