@@ -160,7 +160,8 @@
 }
 .unknown-stats span {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
   gap: 7px;
   font: 18px Arial;
   color: #9c8b72;
@@ -169,6 +170,10 @@
   font-style: normal;
   color: #c3b08e;
   font-size: 18px;
+  /* Label flush left, value flush right: long labels (Shadow Resistance) keep one line. */
+  justify-self: end;
+  text-align: end;
+  white-space: nowrap;
 }
 .gambit-full {
   flex: 1;
@@ -332,7 +337,7 @@
   }
   .unknown-stats span {
     font-size: 10px;
-    grid-template-columns: 100px 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
   .unknown-stats em {
     font-size: 10px;
