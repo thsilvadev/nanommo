@@ -39,6 +39,7 @@ describe('TownSceneComponent', () => {
   let setSelfPosition: jasmine.Spy;
   let vaseEvent: ReturnType<typeof signal<any>>;
   let vaseBreaks: Subject<any>;
+  let speech: Subject<any>;
   let audio: jasmine.SpyObj<GameAudioService>;
 
   beforeEach(() => {
@@ -46,9 +47,10 @@ describe('TownSceneComponent', () => {
     setSelfPosition = jasmine.createSpy('setSelfPosition');
     vaseEvent = signal<any>(null);
     vaseBreaks = new Subject();
+    speech = new Subject();
     audio = jasmine.createSpyObj<GameAudioService>('audio', ['playAt', 'play']);
     init = null;
-    runtime = jasmine.createSpyObj<TownSceneRuntimeHandle>('runtime', ['setCharacters', 'setSelection', 'setActive', 'pick', 'groundPoint', 'markDestination', 'pan', 'zoom', 'resize', 'dispose', 'screenPositionOf', 'setVases', 'breakVase', 'selfPosition', 'setHoveredVase']);
+    runtime = jasmine.createSpyObj<TownSceneRuntimeHandle>('runtime', ['setCharacters', 'setSelection', 'setActive', 'pick', 'groundPoint', 'markDestination', 'pan', 'zoom', 'resize', 'dispose', 'screenPositionOf', 'setVases', 'breakVase', 'selfPosition', 'setHoveredVase', 'say']);
     moveTo = jasmine.createSpy('moveTo').and.resolveTo();
     entries = signal<TownRosterEntry[]>([]);
     const def = { mapId: 'map_town', size: { w: 72, h: 72 }, npcSpots: { blacksmith_loren: { x: 1, z: 1, facing: 0 } } } as unknown as TownSceneDef;
@@ -60,7 +62,7 @@ describe('TownSceneComponent', () => {
           loadScene: async () => def,
           createRuntime: async (_host: HTMLElement, i: TownSceneRuntimeInit) => { init = i; return runtime; },
         } },
-        { provide: TownStore, useValue: { entries, mapId: signal('map_town'), moveTo, breakVase, setSelfPosition, vaseEvent, vaseBreaks } },
+        { provide: TownStore, useValue: { entries, mapId: signal('map_town'), moveTo, breakVase, setSelfPosition, vaseEvent, vaseBreaks, speech } },
         { provide: GameAudioService, useValue: audio },
         { provide: CharacterStore, useValue: { character: signal({ id: 'hero' }) } },
         { provide: PartyStore, useValue: { members: signal([]) } },
@@ -260,6 +262,12 @@ describe('TownSceneComponent', () => {
     vaseEvent.set(null);
     TestBed.flushEffects();
     expect(runtime.setVases).toHaveBeenCalledWith(null);
+  });
+
+  it('a chat line said in town shows as a speech bubble', async () => {
+    await create();
+    speech.next({ characterId: 'ana', message: 'bom dia!' });
+    expect(runtime.say).toHaveBeenCalledOnceWith('ana', 'bom dia!');
   });
 
   it('a vase break plays the effect and a shatter that is quieter far away', async () => {

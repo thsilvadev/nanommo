@@ -47,6 +47,7 @@ export class TownSceneComponent implements OnInit, OnDestroy {
   private readonly audio = inject(GameAudioService);
   private readonly listeners: Array<() => void> = [];
   private breakSubscription: Subscription | null = null;
+  private speechSubscription: Subscription | null = null;
   private readonly soundTimers = new Set<ReturnType<typeof setTimeout>>();
   readonly locale = inject(LocaleService);
 
@@ -115,6 +116,7 @@ export class TownSceneComponent implements OnInit, OnDestroy {
       host.addEventListener('wheel', wheel, { passive: false });
       this.listeners.push(() => host.removeEventListener('pointermove', move), () => host.removeEventListener('wheel', wheel));
       this.breakSubscription = this.town.vaseBreaks.subscribe((b) => this.onVaseBroken(b.vaseId, b.byCharacterId, b.prize));
+      this.speechSubscription = this.town.speech.subscribe((s) => this.runtime()?.say(s.characterId, s.message));
     });
   }
 
@@ -135,6 +137,7 @@ export class TownSceneComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     for (const remove of this.listeners.splice(0)) remove();
     this.breakSubscription?.unsubscribe();
+    this.speechSubscription?.unsubscribe();
     for (const timer of this.soundTimers) clearTimeout(timer);
     this.soundTimers.clear();
     this.town.setSelfPosition(null);
@@ -189,7 +192,9 @@ export class TownSceneComponent implements OnInit, OnDestroy {
   onWheel(event: WheelEvent): void {
     event.preventDefault();
     const point = this.local(event);
-    this.runtime()?.zoom(Math.exp(event.deltaY * 0.0015), [point.x, point.y]);
+    // deltaMode 1 (lines, Firefox) and 2 (pages) to pixels, so a notch is ~100 px everywhere.
+    const deltaPx = event.deltaY * (event.deltaMode === 1 ? 33 : event.deltaMode === 2 ? 800 : 1);
+    this.runtime()?.zoom(Math.exp(deltaPx * 0.0015), [point.x, point.y]);
   }
 
   onPointerLeave(): void { this.hovering.set(false); }

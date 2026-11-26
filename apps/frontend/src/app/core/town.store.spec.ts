@@ -50,6 +50,19 @@ describe('TownStore', () => {
 
   const ids = () => store.entries().map(e => e.characterId);
 
+  it('a global chat line from someone in my town becomes speech; others and announcements do not', () => {
+    const said: any[] = [];
+    store.speech.subscribe(s => said.push(s));
+    events.get('town:roster')!.next({ mapId: 'map_town', serverNow: 1000, entries: [entry('hero'), entry('a')] });
+    const chat = events.get('chat:message')!;
+    chat.next({ id: '1', channel: 'global', senderCharacterId: 'a', username: 'A', message: 'olá!', sentAt: 'x' });
+    chat.next({ id: '2', channel: 'global', senderCharacterId: 'hero', username: 'HERO', message: 'oi', sentAt: 'x' });
+    chat.next({ id: '3', channel: 'global', senderCharacterId: 'far', username: 'FAR', message: 'not here', sentAt: 'x' });
+    chat.next({ id: '4', channel: 'global', type: 'server_announce', key: 'k', message: 'drop!', sentAt: 'x' });
+    chat.next({ id: '5', channel: 'market', senderCharacterId: 'a', message: 'sold', sentAt: 'x' });
+    expect(said).toEqual([{ characterId: 'a', message: 'olá!' }, { characterId: 'hero', message: 'oi' }]);
+  });
+
   it('applies roster → join → update(sleep) → leave in order', () => {
     events.get('town:roster')!.next({ mapId: 'map_town', serverNow: 1000, entries: [entry('hero'), entry('a')] });
     expect(store.mapId()).toBe('map_town');

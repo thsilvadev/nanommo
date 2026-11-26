@@ -54,6 +54,19 @@ describe('TownRuntime (real WebGL)', () => {
     expect(rt.animationOf('zzz')).toBe('Dead');
   });
 
+  it('a chat line shows a speech bubble over the speaker only', async () => {
+    const rt = await start([entry('hero'), entry('ana')], 'hero');
+    rt.say('ana', 'Olá, Sierra!');
+    rt.say('nobody', 'lost');
+    await new Promise((r) => setTimeout(r, 0));
+    await (await import('./town-speech-bubble')).loadBubbleFont();
+    expect(rt.speechOf('ana')).toBe('Olá, Sierra!');
+    expect(rt.speechOf('hero')).toBeNull();
+    rt.say('ana', 'de novo');
+    await (await import('./town-speech-bubble')).loadBubbleFont();
+    expect(rt.speechOf('ana')).toBe('de novo');
+  });
+
   it('places characters where positionAt says', async () => {
     const hero = entry('hero');
     const rt = await start([hero], 'hero');
