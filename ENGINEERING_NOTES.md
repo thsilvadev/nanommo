@@ -326,3 +326,6 @@ Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `ev
 
 - `InventoryService.addItem(..., manager)` does not record the item as known (`markItemKnown` returns early in a transaction): a transactional grant must record it itself (`rememberKnownItem`, atomic SQL) or the item never appears in Gambit options.
 - Extra hits of an area skill are `splash` events on purpose: anything counting `use_skill` (mastery XP, cooldown timers) must not see them. Damage displays must list `splash` with the damaging actions.
+
+- **Arena orbit (2026-11-26):** the painted layers are flat planes facing the default camera; any camera yaw must turn them with it (`ArenaScenery.update(..., yawRad)`, group `arena:backdrop`), or their edges show the empty clear colour. The 3D ground ends ~40 m in front of the grid, which is why the orbit stops at ±70°.
+- **Gear blade stretch:** `bladeStretch.from` is in metres along the built weapon (after scaling to `length`); measure the guard with a width profile of `gear-rigid.glb` before choosing it. `gear/build-gear.mjs --only` writes outputs with only those visuals: build everything.

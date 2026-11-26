@@ -1,3 +1,12 @@
+### Espadões com lâmina 1,5× e câmera orbital da arena — 2026-11-26
+
+Branch `feat/arena-orbit` (sobre `feat/greatsword-blades`, a partir de `main` `6ea6331`, sem upstream).
+
+- **Espadões:** o build de gear ganhou `bladeStretch: { from, factor }` (estica só acima da guarda; largura, guarda e cabo intactos). As três espadas largas têm lâminas 1,5× (T1/T2 a partir da guarda, T3 acima das faixas de couro): ~1,45 m → ~1,97 m. Só `gear-rigid.glb` mudou; a versão do manifest muda e os clientes baixam o novo. O usuário aceitou que, parado na cidade (Idle), a ponta afunde ~60 cm no chão.
+- **Câmera orbital:** clicar e arrastar na arena gira a câmera em volta do combatente centralizado (o jogador ou o escolhido pelas teclas de foco): ±70° de lado, 5°–60° de inclinação; arrastar partindo do enquadramento automático centraliza o jogador; zoom todo para fora volta à câmera padrão. O fundo pintado gira com a câmera (como skybox) para sempre preencher a vista; chão, adereços e combatentes ficam no mundo. O limite de 70° existe porque o chão termina ~40 m à frente da grade.
+
+Validação: testes novos vistos falhando antes; Karma completo **667/667**; `tsc` app e spec ok; `npm run gear:test` 33/33; prints do harness `tools/arena-assets/preview` (`orbit_left/right/high/bridge`) conferidos antes e depois da correção do fundo; folha de contato dos espadões antes/depois em `tools/character-assets/preview/screenshots/greatsword-blades-before-after.png`. **Não verificado no app rodando**; sem push/deploy; nenhuma migration.
+
 ### Rodada 4: itens do evento no gambit, Heavy Swing em área, zoom/foco da arena, quest com bolsa cheia, aviso do Smashing Spree — 2026-11-26
 
 Branch `fix/round4` (a partir de `main` `e5f12c5`, sem upstream).
