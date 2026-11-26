@@ -11,6 +11,7 @@ const TIPS: Record<'pt-BR' | 'en-US', ConnectionTip[]> = {
     { id: 'attributes', text: 'Distribua seus pontos de atributo para combinar com as armas e habilidades que você mais usa.' },
     { id: 'quests', text: 'Confira as missões disponíveis: elas podem oferecer objetivos e recompensas úteis para sua jornada.' },
     { id: 'party', text: 'Em grupo, o líder controla a postura e as viagens; coordenem a rota antes de partir.' },
+    { id: 'battle-fate', text: 'Não é possível mudar o destino de uma luta já iniciada: consumo de comida e mudanças em gambits e equipamentos valem a partir da próxima batalha. Poções, só via gambit!' },
   ],
   'en-US': [
     { id: 'market', text: 'Take a look at the Market now and then — it may have exactly what you need.' },
@@ -20,6 +21,7 @@ const TIPS: Record<'pt-BR' | 'en-US', ConnectionTip[]> = {
     { id: 'attributes', text: 'Spend attribute points to complement the weapons and skills you use most.' },
     { id: 'quests', text: 'Check available quests for useful goals and rewards on your journey.' },
     { id: 'party', text: 'In a group, the leader controls stance and travel; coordinate your route before setting out.' },
+    { id: 'battle-fate', text: 'A fight already underway cannot be changed: food, Gambit and equipment changes apply from the next battle on. Potions only work through Gambits!' },
   ],
 };
 

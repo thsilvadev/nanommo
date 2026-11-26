@@ -1,3 +1,19 @@
+### Dica de conexão: destino da luta, comida/gambits/equipamentos e poções — 2026-11-26
+
+Nova dica `battle-fate` em `ConnectionTipsService` (pt-BR e en-US): uma luta já iniciada não muda; comida, gambits e equipamentos valem a partir da próxima batalha; poções só via gambit. Entra no sorteio normal das dicas de conexão (1 por personagem a cada 24 h, sem repetir a anterior). Validação: `tsc` app ok. Sem commit/push/deploy.
+
+### Cidade: balão de fala do chat sobre a cabeça — 2026-11-26
+
+Quem está na cidade e fala no chat Global ganha um balão sobre a cabeça (na cidade de quem vê): `TownStore.speech` filtra `chat:message` (canal global, com `senderCharacterId`, sem `type`/`key` de anúncio, remetente no roster da cidade atual) → `TownSceneComponent` → `runtime.say()` → `TownCharacter.say()`. O balão (`town-speech-bubble.ts`) é um sprite com textura de canvas: retângulo com cantos levemente arredondados e um rabinho, fundo preto 70%, texto `#fff3c4` em **Alegreya Sans Medium** (SIL OFL, hospedada em `public/assets/fonts/` com a licença ao lado; carregada sob demanda via `FontFace`, fallback Georgia). Quebra de linha em até 4 linhas (com reticências), palavra longa cortada; aparece com um pop, dura 4–10 s conforme o tamanho e some com fade; uma fala nova substitui a anterior. Acompanha o nameplate: encolhe junto no close-up e, no close-up, o nameplate (e o balão) descem para perto da cabeça.
+
+Validação: `tsc` app e spec ok; Karma `town-scene` + `town.store` + idle-chat **verde** (novos: filtro de speech na store, componente → `say`, wrap/duração do balão, runtime real com WebGL). Visual conferido em render real no Chromium headless (top-down e close-up). **Não verificado no app rodando**; sem commit/push/deploy; nenhuma migration.
+
+### Cidade: zoom "close-up" lateralizado (3 níveis) — 2026-11-26
+
+Depois do zoom mais próximo do top-down (distância 18), continuar dando zoom in faz a câmera da cidade "cair" para perto do chão e olhar os personagens de frente (`TOWN_CAMERA_CLOSE_LEVELS` em `town-camera.ts`): três níveis, um por notch do scroll, com ~6 / ~10,5 / ~17 unidades de largura visível (≈5, ≈9 e ≈15 chars lado a lado), pitch 5°/8°/12° mirando na altura do peito. Mais um notch para fora volta ao top-down de 55° em 18. Tudo desliza (`TownCamera.step(dt)` por frame; inclusive o zoom top-down, que mantém o ponto sob o cursor durante o deslize); entrar no close-up desliza o alvo até o ponto do chão sob o cursor. Input acumulado com cooldown de 280 ms, então um fling de trackpad anda um nível só; `deltaMode` linha/página do wheel (Firefox) normalizado para pixels. No close-up os nameplates encolhem com a distância e obstáculos inteiramente entre a câmera e os personagens (árvores, casas) ficam ocultos.
+
+Validação: `tsc` spec ok; Karma `town-scene` **102/102** (testes novos de níveis/larguras/pitch, fling e deslize; os antigos adaptados ao deslize). Render real em Chromium headless (spec temporário, removido) com 24 chars enfileirados conferido nos três níveis. **Não verificado no app rodando**; sem commit/push/deploy; nenhuma migration.
+
 ### Character → Stats: MDEF visível e valores alinhados à direita — 2026-11-26
 
 O MDEF não aparecia porque a API nunca o enviava: `derived.mdefPercent` já era calculado (é o que a batalha usa), mas não estava no `CharacterDto` nem no mapper. Agora `mdefPercent` vai na resposta do personagem (shared DTO + `character.service`) e a página mostra `MDEF  N%` depois de Defense. As linhas de stats viraram `minmax(0,1fr) auto` com o valor em `justify-self: end` (rótulo colado à esquerda, valor à direita; "Shadow Resistance" não quebra mais linha), no desktop e no mobile.
