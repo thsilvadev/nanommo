@@ -13,7 +13,7 @@ import { MonsterModel } from '../../../shared/monster-viewer/monster-model';
 import { TownCharacterFactory } from '../town-scene/town-character';
 import type { ArenaActorFrame } from './arena-actions';
 import { ArenaActorView, type ArenaActorVisual } from './arena-actor-views';
-import { ARENA_CAMERA_FOV_DEG, ARENA_CAMERA_PITCH_DEG, cellToWorld, frameCells } from './arena-camera';
+import { ARENA_CAMERA_FOV_DEG, ARENA_CAMERA_PITCH_DEG, cellToWorld, frameCells, zoomedFrame } from './arena-camera';
 import type { ArenaSceneFrame } from './arena-phase';
 import type { ArenaRegionId } from './arena-region';
 import { ArenaScenery, arenaLight } from './arena-scenery';
@@ -34,6 +34,8 @@ export interface ArenaRuntimeHandle {
   /** Draw one frame now (tests, and the first frame before the loop runs). */
   renderOnce(nowMs: number): void;
   actorCount(): number;
+  /** The player's camera: zoom 0…1 towards `focusId` (or `selfId` when that one is not a living fighter). */
+  setView(view: ArenaView): void;
   /** The scenery of `region` is on screen with every texture loaded (the map fade clears then). */
   sceneryReady(region: ArenaRegionId): boolean;
   /**
@@ -44,6 +46,8 @@ export interface ArenaRuntimeHandle {
   resize(): void;
   dispose(): void;
 }
+
+export interface ArenaView { focusId: string | null; selfId: string; zoom: number }
 
 export interface ArenaRuntimeInit { assetBase: string; catalogUrl?: string; onContextLost: () => void; now?: () => number }
 
@@ -152,6 +156,8 @@ class ArenaRuntime implements ArenaRuntimeHandle {
   isRendering(): boolean { return this.frame !== null; }
   actorCount(): number { return this.views.size; }
   sceneryReady(region: ArenaRegionId): boolean { return this.scenery.ready(region); }
+  private view: ArenaView = { focusId: null, selfId: '', zoom: 0 };
+  setView(view: ArenaView): void { this.view = { ...view }; }
 
   setActive(active: boolean): void {
     this.active = active;
@@ -271,11 +277,15 @@ class ArenaRuntime implements ArenaRuntimeHandle {
   private updateCamera(scene: ArenaSceneFrame, dtMs: number): void {
     const living = scene.frame.actors.filter((a) => a.deadAtMs === null && !a.fleeing);
     const cells = (living.length ? living : scene.frame.actors).map((a) => ({ row: a.row, column: a.column }));
-    const want = frameCells(cells, this.camera.aspect, scene.origin);
+    const framed = frameCells(cells, this.camera.aspect, scene.origin);
+    // The player's zoom: towards the focused fighter, or their own character when that one is down.
+    const focused = living.find((a) => a.id === this.view.focusId) ?? living.find((a) => a.id === this.view.selfId) ?? null;
+    const zoomed = this.view.zoom > 0 && !!focused;
+    const want = zoomed ? zoomedFrame(framed, cellToWorld(focused!), this.view.zoom) : framed;
     const battle = scene.phase === 'battle' || scene.phase === 'wipe';
     const key = battle ? `battle:${scene.battleId}` : 'walk';
     const first = this.cam.key === '';
-    if (key !== this.cam.key || !battle) {
+    if (key !== this.cam.key || !battle || zoomed) {
       // Walking, entering, leaving: follow the ideal frame. A new battle: aim at its frame.
       this.cam.target = { x: want.targetX, z: want.targetZ, d: want.distance };
     } else if (want.distance > this.cam.target.d * 1.04) {

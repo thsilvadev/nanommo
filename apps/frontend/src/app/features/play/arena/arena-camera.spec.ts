@@ -1,4 +1,4 @@
-import { ARENA_CELL_M, ARENA_FLYER_FALL_MS, arenaHoverM, cellToWorld, frameCells, monsterScale } from './arena-camera';
+import { ARENA_CELL_M, ARENA_FLYER_FALL_MS, ARENA_FOCUS_DISTANCE_M, arenaFocusOrder, arenaFocusSlot, arenaHoverM, cellToWorld, frameCells, monsterScale, zoomedFrame } from './arena-camera';
 
 const all = Array.from({ length: 100 }, (_, i) => ({ row: Math.floor(i / 10), column: i % 10 }));
 
@@ -50,4 +50,31 @@ describe('arena camera', () => {
     expect(mid).toBeLessThan(1.2);
     expect(arenaHoverM('mon_mutantbee', 1000, 1000 + ARENA_FLYER_FALL_MS)).toBe(0);
   });
+
+  it('zoom 0 keeps the automatic frame; zoom 1 is a close shot centred on the focused actor', () => {
+    const want = { targetX: 0, targetZ: 0, distance: 30 };
+    const focus = { x: 6, z: 2 };
+    expect(zoomedFrame(want, focus, 0)).toEqual(want);
+    expect(zoomedFrame(want, null, 1)).toEqual(want);
+    expect(zoomedFrame(want, focus, 1)).toEqual({ targetX: 6, targetZ: 2, distance: ARENA_FOCUS_DISTANCE_M });
+    const half = zoomedFrame(want, focus, 0.5);
+    expect(half.targetX).toBeCloseTo(3, 6);
+    expect(half.distance).toBeCloseTo((30 + ARENA_FOCUS_DISTANCE_M) / 2, 6);
+    // Already closer than the close shot: zooming never pulls back.
+    expect(zoomedFrame({ ...want, distance: 4 }, focus, 1).distance).toBe(4);
+  });
+
+  it('focus keys: 1–9, 0, -, =, [, ], \\ then numpad 1–5 are the 1st to 20th living fighter', () => {
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '[', ']', '\\'];
+    keys.forEach((key, i) => expect(arenaFocusSlot({ key, code: 'X' })).withContext(key).toBe(i));
+    [1, 2, 3, 4, 5].forEach((n) => expect(arenaFocusSlot({ key: String(n), code: `Numpad${n}` })).toBe(14 + n));
+    expect(arenaFocusSlot({ key: '6', code: 'Numpad6' })).toBeNull();
+    expect(arenaFocusSlot({ key: 'a', code: 'KeyA' })).toBeNull();
+  });
+
+  it('focus order: living fighters, the party side first', () => {
+    const a = (id: string, team: 'a' | 'b', dead = false) => ({ id, team, deadAtMs: dead ? 1 : null, fleeing: null });
+    expect(arenaFocusOrder([a('m1', 'b'), a('me', 'a'), a('m2', 'b', true), a('ally', 'a'), a('m3', 'b')])).toEqual(['me', 'ally', 'm1', 'm3']);
+  });
 });
+

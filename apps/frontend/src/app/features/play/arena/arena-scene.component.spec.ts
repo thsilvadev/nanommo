@@ -27,7 +27,9 @@ describe('ArenaSceneComponent', () => {
     resize: () => undefined, dispose: () => undefined,
     warmMonsters: async (ids) => { warmed.push(ids); },
     sceneryReady: () => sceneryReady,
+    setView: (v) => { views.push(v); },
   };
+  let views: Array<{ focusId: string | null; selfId: string; zoom: number }> = [];
   let sceneryReady = true;
 
   async function mount(isActive = true) {
@@ -160,6 +162,28 @@ describe('ArenaSceneComponent', () => {
     now = at + 3700; source!(now); component.refreshHud();
     expect(flash()).toBe('0');
     now = at; sceneryReady = true;
+    fixture.destroy();
+  });
+
+  it('the mouse wheel zooms on my character; a number key centres on that living fighter', async () => {
+    const fixture = await mount();
+    const component = fixture.componentInstance;
+    source!(now); component.refreshHud();
+    views = [];
+    const stage = fixture.nativeElement.querySelector('.arena-stage') as HTMLElement;
+    stage.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, cancelable: true }));
+    expect(views.at(-1)).toEqual(jasmine.objectContaining({ focusId: null, selfId: 'char-self' }));
+    expect(views.at(-1)!.zoom).toBeGreaterThan(0);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '2', code: 'Digit2' }));
+    expect(views.at(-1)!.focusId).toBe('monster:mon_mutantbee:0');
+    for (let i = 0; i < 10; i++) stage.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, cancelable: true }));
+    expect(views.at(-1)).toEqual(jasmine.objectContaining({ focusId: null, zoom: 0 }));
+    // Typing in the chat is not a camera command.
+    const input = document.createElement('input'); document.body.appendChild(input);
+    const count = views.length;
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: '1', code: 'Digit1', bubbles: true }));
+    expect(views.length).toBe(count);
+    input.remove();
     fixture.destroy();
   });
 });

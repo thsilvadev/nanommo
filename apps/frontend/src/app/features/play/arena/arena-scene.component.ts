@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, InjectionToken, NgZone, OnDestroy, ViewChild, ViewEncapsulation, effect, inject, input, signal, untracked } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, InjectionToken, NgZone, OnDestroy, ViewChild, ViewEncapsulation, effect, inject, input, signal, untracked } from '@angular/core';
 import type { VisibleEquipment } from '@nanommo/shared';
 import { BattleStore, CharacterStore, InventoryStore } from '../../../core/game.store';
 import { CatalogService } from '../../../core/catalog.service';
@@ -12,6 +12,7 @@ import { ArenaFeedbackOwner } from './arena-feedback-owner.service';
 import { ArenaMonsterWarmup } from './arena-monster-warmup.service';
 import { arenaMapFade, nextMapChange, settleMapChange, type ArenaMapChange } from './arena-map-fade';
 import { arenaRegionOf } from './arena-region';
+import { arenaFocusOrder, arenaFocusSlot } from './arena-camera';
 import { ArenaSceneSource, type ArenaResolvedEntry, type ArenaSourceInputs } from './arena-scene-source';
 import type { ArenaFrameInput, ArenaRuntimeHandle, ArenaRuntimeInit } from './arena-runtime';
 import type { ArenaBattleOptions, ArenaCharacterLook } from './arena.types';
@@ -29,6 +30,11 @@ export const ARENA_SCENE_ENV = new InjectionToken<ArenaSceneEnv>('ARENA_SCENE_EN
 
 /** HUD refresh rate (positions follow the 3D anchors; the canvas itself runs at the display rate). */
 const HUD_MS = 33;
+/** One wheel notch of zoom (0…1), and the zoom a focus key brings at least. */
+const ZOOM_STEP = 0.2;
+const FOCUS_ZOOM = 0.6;
+/** A key typed into a field (chat, search) is text, not a camera command. */
+const typing = (target: EventTarget | null): boolean => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
 /**
  * The battle arena view of the world panel: hosts the three.js runtime and an HTML
@@ -56,6 +62,9 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
   private readonly shownNumbers = new Map<string, HTMLElement>();
   readonly locale = inject(LocaleService);
 
+  /** The player's camera: zoom 0 (automatic frame) … 1 (close shot), on `focusId` (null: their own character). */
+  private zoom = 0;
+  private focusId: string | null = null;
   private readonly env = inject(ARENA_SCENE_ENV);
   private readonly character = inject(CharacterStore);
   private readonly inventory = inject(InventoryStore);
@@ -149,6 +158,35 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
     } catch {
       this.failed.set(true);
     }
+  }
+
+  /** Wheel over the arena: zoom in (up) / out (down); all the way out goes back to the automatic frame. */
+  onWheel(event: WheelEvent): void {
+    if (!this.runtime || !event.deltaY) return;
+    event.preventDefault();
+    this.zoom = Math.max(0, Math.min(1, this.zoom + (event.deltaY < 0 ? 1 : -1) * ZOOM_STEP));
+    if (this.zoom === 0) this.focusId = null;
+    this.pushView();
+  }
+
+  /** 1…9, 0, -, =, [, ], \\ and Numpad1…5: centre on the 1st…20th living fighter (never while typing). */
+  @HostListener('window:keydown', ['$event'])
+  onKey(event: KeyboardEvent): void {
+    if (!this.runtime || !this.active() || event.ctrlKey || event.altKey || event.metaKey || typing(event.target)) return;
+    const slot = arenaFocusSlot(event);
+    if (slot === null) return;
+    const actors = this.latest?.scene.frame.actors ?? [];
+    const team = (id: string) => this.latest?.visuals.get(id)?.team ?? 'a';
+    const id = arenaFocusOrder(actors.map((a) => ({ id: a.id, team: team(a.id), deadAtMs: a.deadAtMs, fleeing: a.fleeing })))[slot];
+    if (!id) return;
+    event.preventDefault();
+    this.focusId = id;
+    this.zoom = Math.max(this.zoom, FOCUS_ZOOM);
+    this.pushView();
+  }
+
+  private pushView(): void {
+    this.runtime?.setView({ focusId: this.focusId, selfId: this.character.character()?.id ?? 'self', zoom: this.zoom });
   }
 
   /** The GPU dropped the arena: show the message and hand the numbers back to the side panels. */

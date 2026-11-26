@@ -52,6 +52,38 @@ export function frameCells(cells: ArenaCell[], aspect: number, origin = 0): { ta
   return { targetX: centre.x, targetZ: centre.z, distance: Math.max(byWidth, byDepth) };
 }
 
+/** Camera distance of the closest zoom (zoom 1): a close shot of one fighter. */
+export const ARENA_FOCUS_DISTANCE_M = 7;
+
+/**
+ * The player's zoom (0: the automatic frame; 1: a close shot) towards the focused fighter's world position.
+ * Zooming never pulls the camera back.
+ */
+export function zoomedFrame(want: { targetX: number; targetZ: number; distance: number }, focus: { x: number; z: number } | null, zoom: number): { targetX: number; targetZ: number; distance: number } {
+  const z = Math.max(0, Math.min(1, zoom));
+  if (!focus || z === 0) return want;
+  const lerp = (a: number, b: number) => a + (b - a) * z;
+  return { targetX: lerp(want.targetX, focus.x), targetZ: lerp(want.targetZ, focus.z), distance: lerp(want.distance, Math.min(want.distance, ARENA_FOCUS_DISTANCE_M)) };
+}
+
+/** Focus keys by the character they type (works on any layout); the numpad by its code (its digits type like the row's). */
+const FOCUS_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '[', ']', '\\'];
+
+/** Which living fighter a key focuses (0-based: 1…9, 0, -, =, [, ], \\ then Numpad1…5 = 0…19), null when none. */
+export function arenaFocusSlot(event: { key: string; code: string }): number | null {
+  const pad = /^Numpad([1-5])$/.exec(event.code);
+  if (pad) return 14 + Number(pad[1]);
+  if (event.code.startsWith('Numpad')) return null;
+  const i = FOCUS_KEYS.indexOf(event.key);
+  return i < 0 ? null : i;
+}
+
+/** The fighters the focus keys go through: the living ones, the party side first, each side in frame order. */
+export function arenaFocusOrder(actors: ReadonlyArray<{ id: string; team: 'a' | 'b'; deadAtMs: number | null; fleeing: unknown }>): string[] {
+  const living = actors.filter((a) => a.deadAtMs === null && !a.fleeing);
+  return [...living.filter((a) => a.team === 'a'), ...living.filter((a) => a.team === 'b')].map((a) => a.id);
+}
+
 /** Real size, except a model wider than ~one cell shrinks to fit (height follows: giants still stand tall). */
 export function monsterScale(nativeWidthM: number, _nativeHeightM: number): number {
   const max = 1.1 * ARENA_CELL_M;
