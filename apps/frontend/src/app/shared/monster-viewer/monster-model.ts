@@ -258,8 +258,10 @@ export class MonsterModel {
       const actionAt = a ? ((nowMs - a.startedAtMs) / Math.max(1, a.endsAtMs - a.startedAtMs)) * this.clipDuration(a.clip) : Infinity;
       const hitAt = s.hit ? ((nowMs - s.hit.startedAtMs) / 1000 / HIT_SECONDS) * this.clipDuration('Damage') : Infinity;
       if (a && actionAt < this.clipDuration(a.clip)) this.pose(a.clip, actionAt, false, nowMs);
-      else if (hitAt < this.clipDuration('Damage')) this.pose('Damage', hitAt, false, nowMs);
+      // Walking wins over the hit flinch: the flinch would freeze the legs while the body keeps moving
+      // (the hit still shows as the flash and the number).
       else if (s.walking && this.actions.has('Walk')) this.pose('Walk', nowMs / 1000, true, nowMs);
+      else if (hitAt < this.clipDuration('Damage')) this.pose('Damage', hitAt, false, nowMs);
       else this.pose('Idle', nowMs / 1000, true, nowMs);
     }
     weapon?.pose(shot !== null && shot < 1 ? shot : null);

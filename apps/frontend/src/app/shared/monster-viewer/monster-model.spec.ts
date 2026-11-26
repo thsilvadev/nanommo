@@ -33,6 +33,17 @@ describe('MonsterModel (live assets)', () => {
     expect(model.clipTime('Dead')).toBeCloseTo(model.clipDuration('Dead') - 1e-3, 3);
   });
 
+  // A hit flinch would freeze the legs while the monster keeps gliding across the ground.
+  it('a walking monster keeps walking when it is hit', async () => {
+    const model = await MonsterModel.load('mon_direwolf');
+    made.push(model);
+    expect(model.clipNames()).toContain('Walk');
+    model.drive({ walking: true, hit: { startedAtMs: 1000 } }, 1100);
+    expect(model.playingClip()).toBe('Walk');
+    model.drive({ hit: { startedAtMs: 1000 } }, 1100);
+    expect(model.playingClip()).toBe('Damage');
+  });
+
   it('two models of one species are separate instances', async () => {
     const [a, b] = await Promise.all([MonsterModel.load('mon_slime'), MonsterModel.load('mon_slime')]);
     made.push(a, b);
