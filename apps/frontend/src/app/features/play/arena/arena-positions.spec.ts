@@ -94,6 +94,71 @@ describe('arenaPositions', () => {
     expect(pose(b, 'a', at(b, 2) + ARENA_DASH_MS).column).toBe(8);
   });
 
+  // The engine records a push (and a revive) as the caster's event: the cells are the target's.
+  it('a push slides the pushed actor, not the one who pushed', () => {
+    const b = tiny([{ tick: 4, actorId: 'a', targetIds: ['b'], action: 'move', payload: { type: 'move', from: { row: 5, column: 1 }, to: { row: 5, column: 9 }, reason: 'push' } }]);
+    b.actors[1].start = { row: 5, column: 1 };
+    expect(pose(b, 'a', at(b, 4) + 1000).column).toBe(0);
+    expect(pose(b, 'b', at(b, 4) + 100).moving).toBe('slide');
+    expect(pose(b, 'b', at(b, 4) + 1000).column).toBe(9);
+  });
+
+  it('a revive puts the revived actor on its new cell', () => {
+    const b = tiny([{ tick: 4, actorId: 'b', targetIds: ['a'], action: 'move', payload: { type: 'move', from: { row: 5, column: 0 }, to: { row: 4, column: 0 }, reason: 'revive' } }]);
+    expect(pose(b, 'a', at(b, 4)).row).toBe(4);
+    expect(pose(b, 'b', at(b, 4)).row).toBe(5);
+  });
+
+  it('a step taken on the tick of a push walks on after the slide instead of jumping', () => {
+    const b = tiny([
+      { tick: 4, actorId: 'a', targetIds: ['b'], action: 'move', payload: { type: 'move', from: { row: 5, column: 1 }, to: { row: 5, column: 9 }, reason: 'push' } },
+      { tick: 4, actorId: 'b', targetIds: ['a'], action: 'move', payload: { type: 'move', from: { row: 5, column: 9 }, to: { row: 5, column: 8 }, reason: 'approach' } },
+    ]);
+    b.actors[1].start = { row: 5, column: 1 };
+    const sliding = pose(b, 'b', at(b, 4) + 100);
+    expect(sliding.moving).toBe('slide');
+    expect(sliding.column).toBeGreaterThan(1);
+    expect(sliding.column).toBeLessThan(9);
+    expect(pose(b, 'b', at(b, 6)).column).toBe(8);
+  });
+
+  it('a slowed actor walks the whole way between its steps instead of stopping', () => {
+    const slow = { hp: 50, sp: 0, statusEffects: [{ type: 'violent_shot_slow', moveSpeedMultiplier: 0.2 }] };
+    const b = tiny([
+      { tick: 10, actorId: 'b', targetIds: ['a'], action: 'move', payload: { type: 'move', from: { row: 5, column: 9 }, to: { row: 5, column: 8 }, reason: 'approach' }, actorStates: { b: slow } },
+      { tick: 26, actorId: 'b', targetIds: ['a'], action: 'move', payload: { type: 'move', from: { row: 5, column: 8 }, to: { row: 5, column: 7 }, reason: 'approach' }, actorStates: { b: slow } },
+    ]);
+    const mid = pose(b, 'b', at(b, 18));
+    expect(mid.moving).toBe('walk');
+    expect(mid.column).toBeLessThan(8);
+    expect(mid.column).toBeGreaterThan(7);
+  });
+
+  it('an actor killed on its way keeps walking until the blow lands', () => {
+    const b = tiny([
+      { tick: 4, actorId: 'b', targetIds: ['a'], action: 'move', payload: { type: 'move', from: { row: 5, column: 9 }, to: { row: 5, column: 8 }, reason: 'approach' } },
+      { tick: 6, actorId: 'a', targetIds: ['b'], action: 'attack', payload: { damage: 50, hit: true }, actorStates: { b: { hp: 0, sp: 0 } } },
+    ]);
+    const before = pose(b, 'b', at(b, 6) - 1);
+    expect(before.moving).toBe('walk');
+    expect(before.column).toBeLessThan(8);
+    expect(before.column).toBeGreaterThan(7);
+    const dead = pose(b, 'b', at(b, 6) + 3000);
+    expect(dead.moving).toBeNull();
+    expect(dead.column).toBeCloseTo(before.column, 2);
+  });
+
+  it('an actor that had arrived and struck does not creep forward before dying', () => {
+    const b = tiny([
+      { tick: 4, actorId: 'b', targetIds: ['a'], action: 'move', payload: { type: 'move', from: { row: 5, column: 2 }, to: { row: 5, column: 1 }, reason: 'approach' } },
+      { tick: 5, actorId: 'b', targetIds: ['a'], action: 'attack', payload: { damage: 5, hit: true } },
+      { tick: 6, actorId: 'a', targetIds: ['b'], action: 'attack', payload: { damage: 50, hit: true }, actorStates: { b: { hp: 0, sp: 0 } } },
+    ]);
+    b.actors[1].start = { row: 5, column: 2 };
+    expect(pose(b, 'b', at(b, 6) - 1).column).toBe(1);
+    expect(pose(b, 'b', at(b, 6) - 1).moving).toBeNull();
+  });
+
   it('flee exits left', () => {
     const b = { ...solo(), flee: { atMs: solo().startAtMs + 3000 } };
     const p = pose(b, 'char-self', b.flee.atMs + 1000);
