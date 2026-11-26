@@ -6,8 +6,8 @@ const { TownEventGrantService } = require('../dist/apps/api/src/modules/town-eve
 const prize = { itemId: 'mat_divine_shard', quantity: 1 };
 function setup({ addItem, sendSystemMail }) {
   const redis = createFakeRedis();
-  const calls = { add: [], mail: [], mailNotice: [], locks: [] };
-  const inventory = { addItem: async (...args) => { calls.add.push(args); return addItem(...args); } };
+  const calls = { add: [], mail: [], mailNotice: [], locks: [], known: [] };
+  const inventory = { addItem: async (...args) => { calls.add.push(args); return addItem(...args); }, rememberKnownItem: async (...args) => { calls.known.push(args); } };
   const mail = { sendSystemMail: async (...args) => { calls.mail.push(args); return sendSystemMail(...args); } };
   const gateway = { publishMailNewItem: async (...args) => calls.mailNotice.push(args) };
   const battle = { withCharacterQueueLock: async (id, op) => { calls.locks.push(id); return op(); } };
@@ -24,6 +24,9 @@ const key = 'smashing-spree:ss-1:map_town:v007';
     assert.equal(await svc.grant('c1', 'ss-1', 'map_town', 'v007', prize), 'bag');
     assert.deepEqual(calls.add[0].slice(0, 4), ['c1', 'mat_divine_shard', 1, 'inventory']);
     assert.ok(calls.add[0][5], 'runs inside a transaction manager');
+    // The prize becomes known (Gambit item options) in the same transaction as the grant.
+    assert.deepEqual(calls.known.map((args) => args.slice(0, 2)), [['c1', 'mat_divine_shard']]);
+    assert.equal(calls.known[0][2], calls.add[0][5], 'same transaction manager');
     assert.deepEqual(calls.locks, ['c1']);
     assert.equal(calls.mail.length, 0);
   }

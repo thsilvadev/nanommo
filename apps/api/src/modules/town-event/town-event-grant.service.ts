@@ -37,6 +37,8 @@ export class TownEventGrantService {
       await this.battle.withCharacterQueueLock(characterId, async () => {
         await this.dataSource.transaction(async (manager) => {
           await this.inventory.addItem(characterId, prize.itemId, prize.quantity, 'inventory', undefined, manager);
+          // Known for Gambits (addItem in a transaction leaves that to the caller).
+          await this.inventory.rememberKnownItem(characterId, prize.itemId, manager);
         });
         // Committed. A later failure (lock release) must not send a second copy by mail.
         inBag = true;

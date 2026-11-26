@@ -481,6 +481,18 @@ export class InventoryService {
   }
 
   /**
+   * Make an item known (Gambit item options) inside the caller's transaction: one SQL append, so no
+   * Character entity is loaded or saved here (a stale save could not undo it, and it cannot undo another).
+   * For grants made in a transaction by a caller that does not update its own loaded Character.
+   */
+  async rememberKnownItem(characterId: string, itemId: string, manager: EntityManager): Promise<void> {
+    await manager.query(
+      `UPDATE characters SET "knownItemIds" = "knownItemIds" || jsonb_build_array($2::text) WHERE id = $1 AND NOT ("knownItemIds" ? $2)`,
+      [characterId, itemId],
+    );
+  }
+
+  /**
    * First successful item grant makes the catalogue entry known for Gambits.
    * Battle transactions update their already-loaded Character instance in
    * BattleService instead, preventing a stale entity save from overwriting it.

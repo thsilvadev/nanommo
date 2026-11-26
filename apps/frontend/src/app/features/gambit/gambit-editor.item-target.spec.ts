@@ -47,6 +47,12 @@ describe('GambitEditorComponent — Use item (Self / Ally / Foe)', () => {
     expect(ids(line({ id: 'self_has_status', params: { status: 'ko' } }, { id: 'use_item', params: { target: 'self' } }))).toEqual(['fairy_in_a_bottle']);
     expect(ids(line({ id: 'self_hp', params: {} }, { id: 'use_item', params: { target: 'self' } }))).toEqual(['mega_elixir', 'tonic_haste_shot']);
   });
+  // An item can reach the bag without being recorded as known (a Smashing Spree prize did): what is in the bag is offered too.
+  it('offers a consumable that is in the bag even when it is not recorded as known', () => {
+    editor.character = { character: () => ({ knownItemIds: ['tonic_haste_shot'] }) };
+    editor.inventory = { items: () => [{ itemId: 'mega_elixir', quantity: 3 }] };
+    expect(ids(line({ id: 'self_hp', params: {} }, { id: 'use_item', params: { target: 'self' } }))).toEqual(['mega_elixir', 'tonic_haste_shot']);
+  });
   it('changing the condition keeps the action on an allowed target and drops an item that no longer fits', () => {
     const l: any = line({ id: 'foe_has_status', params: {} }, { id: 'use_item', params: { target: 'foe', itemId: 'tonic_haste_shot' } });
     editor.changeCondition(l, 0, 'self_hp');
