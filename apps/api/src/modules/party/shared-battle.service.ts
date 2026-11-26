@@ -58,7 +58,7 @@ export class SharedBattleService {
       if(!fight){await this.advanceCounters(ctx,roster);await ctx.manager.query(`UPDATE encounter_clocks SET status='consumed',roster=$2 WHERE "ownerKind"='party' AND "ownerId"=$1`,[p.id,JSON.stringify(roster)]);return false;}
     }
     const definitions={items:Object.fromEntries(Object.values(this.data.getItems()??{}).flat().filter((x:any)=>x&&typeof x==='object'&&x.id).map((x:any)=>[x.id,x])),skills:Object.fromEntries(this.data.getMonsterSkills().map((x:any)=>[x.id,x])),statuses:Object.fromEntries(this.data.getStatusEffects().map((x:any)=>[x.id,x]))};
-    const input:any={version:2,elementalRulesVersion:1,seed:clock.seed,tickDurationMs:500,actors:Shared.placeBattleActors(actors),definitions};
+    const input:any={version:2,elementalRulesVersion:1,movementRulesVersion:1,seed:clock.seed,tickDurationMs:500,actors:Shared.placeBattleActors(actors),definitions};
     // Formation is resolved by the pure engine, not by database order.
     const result=Shared.simulateBattleV2(input);
     if(!result.ended)throw new Error('Battle simulation exceeded execution limit; refusing terminal result');

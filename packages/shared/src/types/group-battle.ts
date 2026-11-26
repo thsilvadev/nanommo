@@ -36,7 +36,7 @@ export interface BattleActor {
   attackIntervalTicks?: number; damageTakenMultiplier?: Record<string, number>;
   weaponCategoryDamageTakenMultiplier?: Record<string, number>;
 }
-export interface BattleInputV2 { elementalRulesVersion?: 0 | 1; version: 2; seed: string; tickDurationMs: 500; actors: BattleActor[]; definitions: BattleDefinitionsV2; maxTicks?: number; regenTickOffset?: number }
+export interface BattleInputV2 { elementalRulesVersion?: 0 | 1; /** 1: the movement gauge does not bank past one step while an actor stands still (absent: legacy inputs, replayed as generated). */ movementRulesVersion?: 0 | 1; version: 2; seed: string; tickDurationMs: 500; actors: BattleActor[]; definitions: BattleDefinitionsV2; maxTicks?: number; regenTickOffset?: number }
 export interface PendingCastV2 { action: GroupGambitAction; targetId: ActorId; resolvesAtTick: number; startedAtTick: number }
 export interface BattleActorState extends Omit<CombatantSnapshot, 'position'> {
   id: ActorId; name: string; kind: BattleActorKind; team: TeamId; position: GridPosition;

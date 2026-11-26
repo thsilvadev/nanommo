@@ -32,6 +32,7 @@ function assertInput(input:BattleInputV2):void {
 function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
   assertInput(input);
   const elementalRules = input.elementalRulesVersion === 1;
+  const cappedMovement = input.movementRulesVersion === 1;
   const actors=[...input.actors].sort((a,b)=>a.team===b.team?(a.id<b.id?-1:a.id>b.id?1:0):a.team==='a'?-1:1);
   const actorById=new Map(actors.map(a=>[a.id,a]));
   const states=createActorStates(input.actors);const units=actors.map(a=>states[a.id]);const events:ActorEvent[]=[];
@@ -262,7 +263,8 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
     for(const actor of actors) {
       const self=states[actor.id];if(self.hp<=0||hasStatus(self,'stun'))continue;
       self.movementIntent=false;
-      if(tick>0)self.movementGauge+=Number(self.moveSpeed??self.moveSpeedBase??50);
+      // Standing still (in range, casting) earns at most the next step: no banked dash afterwards (it also voided slows).
+      if(tick>0)self.movementGauge=(cappedMovement?Math.min(Number(self.movementGauge),200):Number(self.movementGauge))+Number(self.moveSpeed??self.moveSpeedBase??50);
       if(self.pendingCast) {
         const pending=self.pendingCast;
         if(pending.resolvesAtTick<=tick){self.pendingCast=null;const original=states[pending.targetId];const skill=self.skillDefs?.[String(actionParams(pending.action).skillId)]??definitions.skills?.[String(actionParams(pending.action).skillId)];
