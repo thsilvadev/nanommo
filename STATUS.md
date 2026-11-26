@@ -1,3 +1,10 @@
+### Logs de minuto da API no servidor (DEBUGGING.md) — 2026-11-26
+
+- A API copia stdout/stderr (sem cores) para `logs/api/api_AAAA-MM-DD_HH-MMZ.log` (UTC, um arquivo por minuto) quando `LOG_MINUTE_DIR` está definido; a cada 30 min apaga os anteriores aos últimos 30. `docker-compose.yml` define `LOG_MINUTE_DIR` e monta `./logs/api` (`~/nanommo/logs/api` no servidor); `logs/` no `.gitignore` sobrevive ao `git clean -fd` do deploy.
+- `scripts/fetch-server-logs.sh` traz os arquivos via `scp` (alvo `NANOMMO_SSH`, padrão o alias `idlelords`) para `debug-logs/`. `DEBUGGING.md` descreve o fluxo (print + logs) e o `CLAUDE.md` pede aos agentes que lembrem o usuário dele.
+
+Validação: `minute-log-files` (novo: nomes, prune dos últimos 30 minutos, tee de stdout/stderr) passa; Nest `Logger` real conferido gravando no arquivo do minuto. `docker compose` não validado (sem Docker nesta máquina; YAML válido). Sem push/deploy; nenhuma migration.
+
 ### Batalha fantasma na arena (painel/sons numa batalha, arena em outra) — 2026-11-26
 
 Depurado com causa raiz: prints do usuário (Giant Spider no painel e Saltfang Crab na arena; TRAVELING no painel e a arena lutando) reproduzidos com o `ArenaSceneSource` real.
