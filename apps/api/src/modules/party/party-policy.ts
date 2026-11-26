@@ -17,3 +17,13 @@ export function pendingActionAtBoundary(now: number, dueAt: number | null, battl
 export function advanceTeleport<T extends { elapsedMs: number; lastAccruedAt: number; paused: boolean }>(state: T, now: number, paused: boolean): T {
   return { ...state, elapsedMs: Math.min(10000, state.elapsedMs + (state.paused ? 0 : Math.max(0, now - state.lastAccruedAt))), lastAccruedAt: now, paused };
 }
+
+/**
+ * The Town Guard's rule (as for a solo trip, MapService): leaving Town needs food still digesting — the
+ * Diet or a legacy active food buff. Nothing is eaten here: Auto Feed works at battle boundaries, not at the gate.
+ */
+export function townGuardHungry(character: { diet?: Array<{ digestUntil?: string | null }> | null; activeFoodBuff?: { expiresAt?: string | null } | null }, now: number): boolean {
+  const buff = Date.parse(String(character.activeFoodBuff?.expiresAt ?? '')) || 0;
+  const diet = (Array.isArray(character.diet) ? character.diet : []).reduce((max, row) => Math.max(max, Date.parse(String(row?.digestUntil ?? '')) || 0), 0);
+  return Math.max(buff, diet) <= now;
+}

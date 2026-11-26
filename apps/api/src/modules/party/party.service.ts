@@ -10,7 +10,7 @@ import { Character, User, BattleQueueEntry, InventoryItem, GambitPage, MapKillCo
 import { Mulberry32, rngForIndex, mulberry32Seed, TOWN_MAP_ID, findCardinalRoute, calculateTravelDurationSeconds, isInstantTownExitEdge } from '@nanommo/shared';
 import { BattleService, calculateEncounterSearchDelayMs } from '../battle/battle.service';
 import { DataService } from '../data/data.service';
-import { assertPartyJoin, nextPartyLeader, advanceTeleport } from './party-policy';
+import { assertPartyJoin, nextPartyLeader, advanceTeleport, townGuardHungry } from './party-policy';
 import { SharedBattleService } from './shared-battle.service';
 
 export interface PartyRow { id: string; kind: 'manual'|'auto'; leaderCharacterId: string; mapId: string; revision: string|number; activity: any }
@@ -356,7 +356,7 @@ export class PartyService {
         }
       }
       const hungry:string[]=[];
-      if(this.data.getMapById(p.mapId)?.type==='town')for(const m of ctx.members){const c=ctx.characters.find(c=>c.id===m.characterId)!;if(!await this.battle.preparePartyFood(c,ctx.now,ctx.manager))hungry.push(c.name);}
+      if(this.data.getMapById(p.mapId)?.type==='town')for(const m of ctx.members){const c=ctx.characters.find(c=>c.id===m.characterId)!;if(townGuardHungry(c as any,ctx.now))hungry.push(c.name);}
       if(hungry.length){for(const m of ctx.members)await this.event(ctx.manager,m.characterId,'party:actionUpdated',{status:'failed',message:`Town Guard: ${hungry.join(', ')} need to eat or cleanse their sins.`});return;}
       if(await this.isBusy(ctx,ctx.members.map(m=>m.characterId)))this.error('PARTY_BUSY');
       p.activity={kind:'route',destinationMapId:destination,routeMapIds:route,segmentIndex:0,generation:randomUUID(),participantIds:p.kind==='manual'?ctx.members.map(m=>m.characterId):[characterId],paused:false,segmentDueAt:ctx.now};
