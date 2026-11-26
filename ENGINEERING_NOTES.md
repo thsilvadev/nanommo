@@ -313,3 +313,11 @@ Phase guards (`ss:phase:<eventKey>:<kind>[:<minutes>]`) must stay unique per `ev
 - The arena water/ground draw order matters: the painted layers never write depth, so a 3D surface behind the far layer must draw before it (`renderOrder` between sky and far).
 - Screenshot harness: `page.screenshot` with a clip, not `locator.screenshot` (the stability wait stalls under SwiftShader); one process per region when shooting many.
 
+
+## Arena v2 round 3 traps — 2026-11-26
+
+- A V2 `move` event with `reason: 'push'` or `'revive'` belongs to the caster (`actorId`) but carries the target's cells: whoever animates or counts moves must use `targetIds[0]` for those reasons.
+- The engine records a step only when it completes: an actor killed (or a battle cut) mid-step has no event for the step under way. Renderers that stop at the last recorded cell show an actor standing idle before its death.
+- Movement rule changes must be versioned on `BattleInputV2` (like `elementalRulesVersion`): flee/checkpoints re-simulate persisted inputs, so an unversioned change rewrites battles already shown to players. `movementRulesVersion: 1` caps the movement gauge while standing still.
+- Battle sound follows two sources: the solo queue (`BattleStore.active()`, legacy `log.events`) and the party battle (`PartyStore.battle()`, V2 events). A new battle source needs its own audio path.
+- Party travel decisions must use the solo rules explicitly (hunger: `townGuardHungry`); `preparePartyFood` feeds people and is for battle boundaries only.

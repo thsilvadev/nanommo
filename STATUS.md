@@ -1,3 +1,18 @@
+### Arena v2, rodada 3 (bugs de produção): Violent Shot, monstros que paravam, som em party, parceiro cápsula, destino em batalha, fome, fade — 2026-11-26
+
+Branch `fix/arena-v2-round3` (a partir de `main` `8b22bbb`, sem upstream). Lista do usuário depurada com causa raiz antes de cada correção (vídeo do Violent Shot analisado quadro a quadro; batalhas reais do motor passadas pela projeção da arena num harness Node).
+
+- **Violent Shot trocava arqueiro e monstro de lugar** (arena): o motor V2 grava o empurrão (e o reviver) como evento `move` de quem lança, com as casas do alvo; `arena-positions` animava pelo `actorId` — o arqueiro deslizava até a ponta e o monstro ficava, depois andava "para longe" e batia de longe. Agora o movimento é do `targetIds[0]` em `push`/`revive`.
+- **Slow do Violent Shot ignorado** (motor): o medidor de movimento acumulava sem teto enquanto o ator ficava parado (melee, cast); empurrado depois de trocar golpes, o monstro voltava 1 casa por tick apesar dos −80%. Regra nova versionada no input (`movementRulesVersion: 1`, inputs novos solo e party): parado, acumula no máximo o próximo passo. Inputs persistidos sem o campo são re-simulados como foram gerados (determinismo de replay/flee).
+- **Monstros paravam ao levar dano / antes do golpe fatal** (arena): o clip `Damage` tinha prioridade sobre `Walk` (pernas congeladas deslizando); o passo em curso quando o golpe fatal chega nunca vira evento, então o monstro ficava parado até morrer. Agora andar vence o flinch, o passo segue até a morte (no ritmo e direção do último, sem completar a casa) e a duração do passo considera os slows do ator.
+- **Sem som em batalha de party**: o áudio só seguia a fila solo. A batalha compartilhada toca os mesmos sons pela perspectiva do jogador (seus golpes e itens, os golpes que leva). O caminho solo foi provado com uma entrada solo real (fixture agora com os eventos legados reais).
+- **Parceiro cápsula até a 1ª batalha**: a aparência dos membros só chegava pela batalha compartilhada; `GET /party` agora traz `look` por membro e a arena usa.
+- **PARTY BUSY ao mudar destino em batalha**: a rota é gravada pausada com `fleeBattleId` e o `tickParty` tenta o flee de grupo existente a cada 10 s (cada membro vivo contra cada inimigo vivo que o mira; só foge se todos ganharem). Se a batalha acabar antes, a viagem segue.
+- **Amigo saiu da cidade com fome**: a party rodava Auto Feed no portão; agora usa a regra do Town Guard do solo (`townGuardHungry`).
+- **Fade branco acabava antes da cena nova carregar**: o branco segura até todas as texturas da região nova carregarem (`ArenaScenery.ready`, `settleMapChange`, teto de 10 s).
+
+Validação: cada teste novo visto falhando antes da correção; Karma completo **654/654** (config isolada, porta 9931); `tsc` app e spec sem erros; `ng build --configuration production` OK; testes Node novos `movement-gauge-cap`, `party-destination-during-battle`, `party-town-hunger`, `party-arena-visuals` (estendido) e os de motor/party relacionados passam; integração de party num Postgres descartável: `party-concurrency` e `party-deadline-race` falham **igual** no `main` original (pré-existente). `battle-distance-movement` falha antes e depois (catálogo do Ice Bolt). **Não verificado no app rodando**; sem push/deploy; nenhuma migration.
+
 ### Arena v2, etapa 2 (estética): ninguém volta entre batalhas, chão com relevo e peças 3D, floresta escura, ponte ao pôr do sol, praia caprichada — 2026-11-25
 
 Branch `feat/arena-v2-aesthetics` (a partir de `main` `1768bd8`, já com a etapa 1 em produção). Plano `docs/superpowers/plans/2026-11-25-arena-v2.md`.
