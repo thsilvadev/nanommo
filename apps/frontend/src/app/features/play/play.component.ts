@@ -87,7 +87,10 @@ export class PlayComponent implements OnInit, OnDestroy {
       // none of them stalls a battle the first time it appears.
       const townPreload = this.townScene.preload;
       this.gamePreload.start(combinePreloads([...(townPreload ? [(onProgress?: PreloadProgress) => townPreload(onProgress)] : []), (onProgress?: PreloadProgress) => this.monsterWarmup.preload(onProgress), (onProgress?: PreloadProgress) => this.characterFace.preload(onProgress)]));
-      this.battle.bindEvents(this.character, this.inventory); this.gameAudio.start(this.character, this.battle, this.inventory, this.town);
+      this.battle.bindEvents(this.character, this.inventory); this.gameAudio.start(this.character, this.battle, this.inventory, this.town, {
+        battle: () => (this.party.party() ? this.party.battle() : null), selfId: () => this.character.character()?.id ?? null,
+        selfWeaponTypes: () => this.inventory.equipment().map((row) => String((this.catalog.item(row.itemId) as { weaponType?: string } | undefined)?.weaponType ?? '')).filter((type) => !!type),
+      });
       void Promise.all([this.character.load(), this.inventory.load(), this.battle.load(), this.catalog.load()]).then(() => { this.tryShowConnectionTip(); void this.loadActiveGambitTitle(); });
     }
     ngOnDestroy() { this.tipConnectionSubscription?.unsubscribe(); this.actions.stop(); this.partyResourceSubscription?.unsubscribe(); this.party.stop(); this.town.stop(); this.mailArrivalSubscription?.unsubscribe(); this.gameAudio.destroy(); }

@@ -11,6 +11,14 @@ type SoundName =
   | 'boughtItemFromNpc' | 'soldItemToNpc' | 'putInStorage' | 'takeFromStorage' | 'postItemOnMarket'
   | 'use_fairy_in_a_bottle' | 'use_tonic' | 'mailInbox' | 'saveTown' | 'pot_shatter';
 
+/** The party's shared battle as the viewer hears it (null battle or self: not in a party battle). */
+export interface SharedBattleAudioSource {
+  battle(): { id: string; startAt: string; endAt: string; snapshot: { actors: Array<{ id: string; kind: string }>; tickDurationMs?: number }; log: { events?: Array<{ tick: number; actorId: string; targetIds: string[]; action: string; payload?: Record<string, any> }> } } | null;
+  selfId(): string | null;
+  /** The viewer's equipped weapon types (bow, sword…): which hit sound their blows make. */
+  selfWeaponTypes(): string[];
+}
+
 /** A town event playing over the region's music (see TownStore.eventMusic). */
 export interface EventMusicSource { eventMusic(): { key: string; startsAt: number; now: number } | null }
 
@@ -62,6 +70,9 @@ export class GameAudioService {
   private lastBattleId = '';
   private lastBattleTick = -1;
   private lastBattleEventIndex = -1;
+  private shared: SharedBattleAudioSource | null = null;
+  private lastSharedBattleId = '';
+  private lastSharedEventIndex = -1;
   private seenResolvedId = '';
   private previousLevel: number | null = null;
   private readonly battleItemSoundCounts = new Map<string, Map<string, number>>();
@@ -197,10 +208,11 @@ export class GameAudioService {
     if (this.pendingMusic && this.pendingMusic !== this.music) this.pendingMusic.volume = 0;
   }
 
-  start(characterStore: any, battleStore: any, inventoryStore: any, eventMusic: EventMusicSource | null = null): void {
+  start(characterStore: any, battleStore: any, inventoryStore: any, eventMusic: EventMusicSource | null = null, shared: SharedBattleAudioSource | null = null): void {
     if (this.started) return;
     this.started = true;
     this.eventMusic = eventMusic;
+    this.shared = shared;
     // start() is called before the first map poll. Do not launch a competing
     // asynchronous stop/fade here: updateMusic owns the initial region transition.
     this.previousLevel = characterStore.character()?.level ?? null;
@@ -214,6 +226,7 @@ export class GameAudioService {
       if (this.previousLevel !== null && level > this.previousLevel) this.play('levelUp');
       this.previousLevel = level;
       this.updateBattleAudio(battleStore);
+      this.updateSharedBattleAudio();
       this.updateResolvedAudio(battleStore);
     }, 100));
   }
@@ -226,6 +239,9 @@ export class GameAudioService {
     this.musicTracks = [];
     this.musicSeek = null;
     this.eventMusic = null;
+    this.shared = null;
+    this.lastSharedBattleId = '';
+    this.lastSharedEventIndex = -1;
     this.musicTrackIndex = -1;
     ++this.musicGeneration;
     this.cancelMusicFade();
@@ -540,6 +556,39 @@ export class GameAudioService {
       this.lastBattleEventIndex = i;
     }
     this.lastBattleTick = elapsedTick;
+  }
+
+  /**
+   * Party battles (V2 log): the same sounds as a solo battle, from the viewer's side — their own blows and
+   * items, the blows they take. Allies' blows are not theirs to hear.
+   */
+  private updateSharedBattleAudio(now = Date.now()): void {
+    const battle = this.shared?.battle() ?? null;
+    const selfId = this.shared?.selfId() ?? null;
+    if (!battle || !selfId) { this.lastSharedBattleId = ''; this.lastSharedEventIndex = -1; return; }
+    const startAt = Date.parse(battle.startAt), endAt = Date.parse(battle.endAt);
+    if (!Number.isFinite(startAt) || now < startAt) return;
+    const events = battle.log?.events ?? [];
+    const elapsedTick = Math.floor((Math.min(now, Number.isFinite(endAt) ? endAt : now) - startAt) / (battle.snapshot.tickDurationMs ?? 500));
+    if (battle.id !== this.lastSharedBattleId) {
+      this.lastSharedBattleId = battle.id;
+      // First seen over (a reload, a late snapshot): nothing to replay.
+      this.lastSharedEventIndex = Number.isFinite(endAt) && now >= endAt ? events.length - 1 : events.reduce((last, event, index) => event.tick < elapsedTick ? index : last, -1);
+    }
+    const kinds = new Map(battle.snapshot.actors.map((actor) => [actor.id, actor.kind]));
+    const side = (id: string | undefined) => (id === selfId ? 'character' : kinds.get(String(id)) === 'monster' ? 'monster' : 'ally');
+    const entry = { id: battle.id, log: { header: { characterSnapshot: { equippedWeaponTypes: this.shared!.selfWeaponTypes() } } } };
+    for (let i = this.lastSharedEventIndex + 1; i < events.length; i++) {
+      const event = events[i];
+      if (event.tick > elapsedTick) break;
+      this.lastSharedEventIndex = i;
+      const p = event.payload ?? {};
+      this.playBattleEvent({
+        actor: side(event.actorId), target: side(event.targetIds?.[0] ?? event.actorId),
+        action: event.action === 'status_apply' ? 'status_applied' : event.action === 'status_tick' ? 'status_damage' : event.action,
+        damage: p['damage'], hit: p['hit'], damageType: p['damageType'], skillId: p['skillId'] ?? p['sourceSkillId'], status: p['statusId'], itemId: p['itemId'],
+      }, entry);
+    }
   }
 
   private playBattleEvent(event: any, entry: any): void {

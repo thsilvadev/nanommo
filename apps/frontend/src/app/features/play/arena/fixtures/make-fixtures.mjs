@@ -31,7 +31,7 @@ const solo = shared.simulateBattleV2Solo(
 const soloEntry = {
   id: 'entry-1', characterId: 'char-self', sequenceIndex: 1, tickDurationMs: 500, mapId: 'map_green_grounds_2',
   monsterId: bee.id, startAt: iso(START), endAt: iso(START + solo.durationTicks * 500), cancelledAt: null, cancellationReason: null,
-  outcome: solo.outcome, log: { header: solo.log.header, v2Events: solo.log.v2Events, events: [], outcome: solo.outcome, durationTicks: solo.durationTicks },
+  outcome: solo.outcome, log: { header: solo.log.header, v2Events: solo.log.v2Events, events: solo.log.events, outcome: solo.outcome, durationTicks: solo.durationTicks },
 };
 
 // Party: two melee characters against three monsters (one principal pair, two raid extras).

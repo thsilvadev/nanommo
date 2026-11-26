@@ -1,4 +1,5 @@
 import { GameAudioService } from './game-audio.service';
+import { SOLO_V2_ENTRY } from '../features/play/arena/fixtures/solo-v2.fixture';
 
 describe('GameAudioService battle event routing', () => {
   let audio: GameAudioService;
@@ -242,6 +243,79 @@ describe('GameAudioService battle event routing', () => {
     expect((audio as any).fileName('putInStorage')).toBe('new_packs/2/putInStorage.ogg');
     expect((audio as any).fileName('takeFromStorage')).toBe('new_packs/2/takeFromStorage.ogg');
     expect((audio as any).fileName('postItemOnMarket')).toBe('new_packs/2/postItemOnMarket.ogg');
+  });
+});
+
+describe('GameAudioService solo battles', () => {
+  it('plays the hits of a real solo queue entry as the battle reaches them', () => {
+    const audio = new GameAudioService();
+    spyOn(audio, 'play');
+    const entry = { ...SOLO_V2_ENTRY, log: { ...SOLO_V2_ENTRY.log, header: { ...SOLO_V2_ENTRY.log.header, characterSnapshot: { ...SOLO_V2_ENTRY.log.header.characterSnapshot, equippedWeaponTypes: ['bow'] } } } };
+    const store = { active: () => entry };
+    const start = Date.parse(entry.startAt);
+    const clock = spyOn(Date, 'now');
+    for (let t = start; t <= Date.parse(entry.endAt); t += 100) { clock.and.returnValue(t); (audio as any).updateBattleAudio(store); }
+    const hits = entry.log.events.filter((e: any) => e.actor === 'character' && e.action === 'attack' && e.hit !== false && e.damage > 0).length;
+    expect(hits).toBeGreaterThan(0);
+    expect((audio.play as jasmine.Spy).calls.allArgs().filter(([name]) => name === 'arrow_hit_1').length).toBe(hits);
+    audio.destroy();
+  });
+});
+
+describe('GameAudioService party battles', () => {
+  const view = (events: any[], startAt = 1_000_000) => ({
+    id: 'shared-1', revision: 1, state: 'started', startAt: new Date(startAt).toISOString(), endAt: new Date(startAt + 60_000).toISOString(),
+    snapshot: { tickDurationMs: 500, actors: [
+      { id: 'me', kind: 'character', team: 'a', snapshot: { hp: 100, sp: 10, maxHp: 100, maxSp: 10 } },
+      { id: 'ally', kind: 'character', team: 'a', snapshot: { hp: 100, sp: 10, maxHp: 100, maxSp: 10 } },
+      { id: 'wolf', kind: 'monster', team: 'b', snapshot: { hp: 100, sp: 0, maxHp: 100, maxSp: 0 } },
+    ] },
+    log: { events },
+  });
+  let audio: GameAudioService;
+  let battle: any;
+  beforeEach(() => {
+    localStorage.clear();
+    audio = new GameAudioService();
+    spyOn(audio, 'play');
+    (audio as any).shared = { battle: () => battle, selfId: () => 'me', selfWeaponTypes: () => ['bow'] };
+  });
+  afterEach(() => audio.destroy());
+
+  it('plays my hits, the hits I take and my items as the battle reaches them', () => {
+    battle = view([
+      { tick: 2, actorId: 'me', targetIds: ['wolf'], action: 'attack', payload: { type: 'action', damage: 30, hit: true, damageType: 'physical' } },
+      { tick: 4, actorId: 'wolf', targetIds: ['me'], action: 'attack', payload: { type: 'action', damage: 9, hit: true } },
+      { tick: 6, actorId: 'me', targetIds: ['me'], action: 'use_item', payload: { type: 'action', itemId: 'potion_red' } },
+    ]);
+    const start = 1_000_000;
+    (audio as any).updateSharedBattleAudio(start + 500);
+    expect(audio.play).not.toHaveBeenCalled();
+    (audio as any).updateSharedBattleAudio(start + 1000);
+    expect(audio.play).toHaveBeenCalledWith('arrow_hit_1');
+    (audio as any).updateSharedBattleAudio(start + 2100);
+    expect(audio.play).toHaveBeenCalledWith('enemy_hit_1');
+    (audio as any).updateSharedBattleAudio(start + 3000);
+    expect(audio.play).toHaveBeenCalledWith('potion_drink');
+    expect(audio.play).toHaveBeenCalledTimes(3);
+    (audio as any).updateSharedBattleAudio(start + 3500);
+    expect(audio.play).toHaveBeenCalledTimes(3);
+  });
+
+  it("stays quiet for an ally's blows and the hits allies take", () => {
+    battle = view([
+      { tick: 1, actorId: 'ally', targetIds: ['wolf'], action: 'attack', payload: { type: 'action', damage: 30, hit: true } },
+      { tick: 1, actorId: 'wolf', targetIds: ['ally'], action: 'attack', payload: { type: 'action', damage: 9, hit: true } },
+    ]);
+    (audio as any).updateSharedBattleAudio(1_000_000);
+    (audio as any).updateSharedBattleAudio(1_000_000 + 1000);
+    expect(audio.play).not.toHaveBeenCalled();
+  });
+
+  it('does not replay a battle that was over before it was first seen', () => {
+    battle = view([{ tick: 2, actorId: 'me', targetIds: ['wolf'], action: 'attack', payload: { type: 'action', damage: 30, hit: true } }]);
+    (audio as any).updateSharedBattleAudio(1_000_000 + 120_000);
+    expect(audio.play).not.toHaveBeenCalled();
   });
 });
 
