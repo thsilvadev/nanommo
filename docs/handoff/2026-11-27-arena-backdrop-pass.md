@@ -1,5 +1,7 @@
 # Handoff: arena painted backdrop in its own render pass (2026-11-27)
 
+> **Outcome (2026-11-27):** implemented and rejected by the user after before/after shots (distant props drawn over the painted hedge in orbit). Replaced by the whole-prop shrink (`nearLayerScale`); next step is dropping the `near` layer for 3D bushes. See STATUS.md.
+
 ## Problem
 
 In the battle arena the painted backdrop (`sky`, `far`, `near` layers in
