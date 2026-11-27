@@ -10,8 +10,8 @@ import type { ArenaRegionId } from './arena-region';
 export interface ArenaAtmosphereSpec {
   /** Low mist sheets (billboards), in the region's mist colour. */
   wisps: { count: number; color: string; opacity: number };
-  /** Tiny lights (additive points). */
-  motes: { count: number; colors: string[]; size: number };
+  /** Tiny lights (additive points); `fall` (m/s) makes them come down like snow, looping from the top. */
+  motes: { count: number; colors: string[]; size: number; fall?: number };
   /** Shafts of sunlight slanting down through the canopy (additive, fixed in the world, slowly breathing). */
   beams?: { count: number; color: string; opacity: number };
 }
@@ -26,6 +26,11 @@ const ATMOSPHERE: Partial<Record<ArenaRegionId, ArenaAtmosphereSpec>> = {
   menace_hills: {
     wisps: { count: 18, color: '#f4c49a', opacity: 0.2 },
     motes: { count: 200, colors: ['#ffc078', '#ffdca0', '#ff9a50'], size: 0.4 },
+  },
+  // A cold waste: snow drifting down, a grey mist low over the ground.
+  wastelands: {
+    wisps: { count: 26, color: '#e8ecf0', opacity: 0.3 },
+    motes: { count: 340, colors: ['#ffffff', '#f0f6ff', '#e6eef8'], size: 0.34, fall: 0.35 },
   },
   // Sunbeams in the old forest: pollen and dust glinting gold, a thin morning mist.
   forest_ruins: {
@@ -49,7 +54,7 @@ const WISP_STRIP_M = 120;
 /** Wisps drift with a faint breeze (m/s, towards +x). */
 const WISP_WIND_M_S = 0.12;
 
-export interface Mote { u: number; y: number; z: number; color: string; phase: [number, number, number, number]; rate: [number, number, number, number] }
+export interface Mote { u: number; y: number; z: number; fall: number; color: string; phase: [number, number, number, number]; rate: [number, number, number, number] }
 export interface Wisp { u: number; z: number; width: number; height: number; seed: number; bob: number }
 export interface Beam { u: number; z: number; width: number; height: number; phase: number }
 /** Sun shafts' strip and lean (screen-space shear: they all slant the same way, like light). */
@@ -71,7 +76,7 @@ export function atmosphereLayout(spec: ArenaAtmosphereSpec): { motes: Mote[]; wi
   const r = rng(0xa7b05);
   const range = (lo: number, hi: number) => lo + r() * (hi - lo);
   const motes = Array.from({ length: spec.motes.count }, (): Mote => ({
-    u: r() * MOTE_STRIP_M, y: range(0.8, 4.6), z: range(-28, 14),
+    u: r() * MOTE_STRIP_M, y: range(0.8, 4.6), z: range(-28, 14), fall: (spec.motes.fall ?? 0) * range(0.75, 1.25),
     color: spec.motes.colors[Math.floor(r() * spec.motes.colors.length)],
     phase: [r() * 6.28, r() * 6.28, r() * 6.28, r() * 6.28],
     // Drift (x, y, z) about once a minute; the glow pulses every 6–15 s.
@@ -86,6 +91,8 @@ export function atmosphereLayout(spec: ArenaAtmosphereSpec): { motes: Mote[]; wi
   return { motes, wisps, beams };
 }
 
+/** Falling motes loop between this height and this much above it. */
+const MOTE_FLOOR_M = 0.25, MOTE_FALL_SPAN_M = 6.5;
 const wrap = (v: number, period: number) => ((((v % period) + period) % period) - period / 2);
 
 /** A mote at `t` seconds when `travelled` metres have been walked (scenery-local x); `glow` 0..1. */
@@ -94,7 +101,7 @@ export function motePosition(m: Mote, t: number, travelled: number): { x: number
   const pulse = 0.5 + 0.5 * Math.sin(t * rg + pg);
   return {
     x: wrap(m.u - travelled + 1.6 * Math.sin(t * rx + px), MOTE_STRIP_M),
-    y: m.y + 0.5 * Math.sin(t * ry + py),
+    y: m.fall ? MOTE_FLOOR_M + ((((m.y - MOTE_FLOOR_M - m.fall * t) % MOTE_FALL_SPAN_M) + MOTE_FALL_SPAN_M) % MOTE_FALL_SPAN_M) : m.y + 0.5 * Math.sin(t * ry + py),
     z: m.z + 1.2 * Math.sin(t * rz + pz),
     glow: pulse * pulse,
   };

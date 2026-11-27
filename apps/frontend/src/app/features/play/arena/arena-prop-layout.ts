@@ -17,7 +17,7 @@ export const ARENA_TRUNK_HEIGHT_M = 30;
 
 /** Procedural kinds (built in arena-props) and modelled kinds (`MODEL_PROPS`, loaded from props.glb). */
 export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm' | 'post'
-  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab' | 'hill' | 'blossom' | 'crag';
+  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab' | 'hill' | 'blossom' | 'crag' | 'peak' | 'snow';
 /** Kinds drawn from `assets/arena/props.glb` (tools/arena-assets/build-arena-props.mjs): colours baked per vertex, tinted per instance. */
 export const MODEL_PROPS: ReadonlySet<ArenaPropKind> = new Set(['fern', 'shrub', 'tuft', 'flowers', 'stump', 'deadtree', 'mossrock']);
 export interface ArenaPropSpec {
@@ -102,10 +102,21 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
     { kind: 'pebble', count: 120, colors: ['#6b7660', '#5f6b52', '#7d7a6a'], size: [0.05, 0.14], bands: [ALL] },
   ],
   wastelands: [
-    { kind: 'rock', count: 48, colors: ['#8a8170', '#6f685a', '#a59d8a', '#5f594d'], size: [0.4, 1.5], bands: [BEHIND, BEHIND, FRONT] },
-    { kind: 'bush', count: 14, colors: ['#7a6a4a', '#6a5a3a'], size: [0.4, 0.8], bands: [BEHIND, FRONT] },
-    { kind: 'twig', count: 30, colors: ['#7a6a4a', '#5f5040'], size: [0.5, 1.0], bands: [ALL] },
-    { kind: 'pebble', count: 170, colors: ['#a59d8a', '#6f685a', '#8a8170'], size: [0.06, 0.18], bands: [ALL] },
+    // A cold waste: snowy peaks far off in the mist, grey crags and boulders, dead trees, frozen tufts.
+    { kind: 'peak', count: 14, colors: ['#e8eaee', '#dcdfe4'], size: [9, 14], bands: [[-88, -74]], even: true },
+    { kind: 'crag', count: 12, colors: ['#8a8c90', '#7a7c80', '#9a9ca0'], size: [2.6, 5], bands: [[-55, -32]], even: true },
+    { kind: 'crag', count: 14, colors: ['#8a8c90', '#7a7c80', '#9a9ca0'], size: [0.8, 1.6], bands: [BEHIND, DEEP] },
+    { kind: 'rock', count: 70, colors: ['#8a8170', '#6f685a', '#a59d8a', '#5f594d'], size: [0.4, 1.6], bands: [BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'mossrock', count: 20, colors: ['#c8ccd0', '#b8bcc0'], size: [0.8, 1.6], bands: [BEHIND, BEHIND, DEEP] },
+    { kind: 'deadtree', count: 18, colors: ['#b0aaa0', '#9a948a'], size: [0.45, 0.8], bands: [BEHIND, DEEP] },
+    { kind: 'bush', count: 100, colors: ['#8a8068', '#7a7058', '#9a9078', '#6f6a5a'], size: [0.4, 0.9], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'tuft', count: 340, colors: ['#c8c0a0', '#b8b090', '#d0c8b0'], size: [1.2, 2.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'stump', count: 8, colors: ['#a8a29a', '#98928a'], size: [0.7, 1.1], bands: [BEHIND, DEEP] },
+    // The battle floor: patches of old snow, grey pebbles, dead twigs, a few frozen sprouts.
+    { kind: 'snow', count: 170, colors: ['#c8ced6', '#bcc4cc', '#d2d8de'], size: [0.6, 1.5], bands: [ALL] },
+    { kind: 'pebble', count: 320, colors: ['#a59d8a', '#6f685a', '#8a8170', '#9a9ca0'], size: [0.06, 0.2], bands: [ALL] },
+    { kind: 'twig', count: 60, colors: ['#7a6a4a', '#5f5040'], size: [0.5, 1.0], bands: [ALL] },
+    { kind: 'sprout', count: 720, colors: ['#8a8a6a', '#7a7a5a', '#9a9878'], size: [0.8, 1.5], bands: [ALL] },
   ],
   caete: [
     // A misty day rainforest: giant mossy trunks right behind the grid, more of them fading into the mist.
@@ -208,4 +219,4 @@ export function propLocalX(u: number, travelled: number): number {
 }
 
 /** Kinds low enough for the battle band (flat, or below the ankle). */
-export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig', 'sprout', 'slab', 'blossom']);
+export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig', 'sprout', 'slab', 'blossom', 'snow']);

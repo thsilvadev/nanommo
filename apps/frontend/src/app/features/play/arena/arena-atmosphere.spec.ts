@@ -74,4 +74,17 @@ describe('arena atmosphere', () => {
     expect(Math.abs(b - a)).toBeLessThan(0.1);
     atmosphere.dispose();
   });
+
+  it('wastelands snow falls slowly and loops from the top, never below the ground', () => {
+    const spec = arenaAtmosphere('wastelands')!;
+    const { motes } = atmosphereLayout(spec);
+    let fell = 0;
+    for (const m of motes.slice(0, 50)) {
+      const a = motePosition(m, 20, 0).y, b = motePosition(m, 21, 0).y;
+      if (b < a) { fell++; expect(a - b).toBeLessThan(0.5); }
+      for (let t = 0; t < 300; t += 7) { const y = motePosition(m, t, 0).y; expect(y).toBeGreaterThan(0.2); expect(y).toBeLessThan(7); }
+    }
+    expect(fell).toBeGreaterThan(40);
+  });
 });
+

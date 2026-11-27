@@ -29,7 +29,7 @@ const LAYERS: LayerSpec[] = [
 ];
 
 /** Regions with no painted layer at all: a background, fog and (open sky) a 3D dome behind the 3D world (arenaLight). */
-const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins', 'green_grounds', 'menace_hills']);
+const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins', 'green_grounds', 'menace_hills', 'wastelands']);
 /**
  * Regions drawn without the painted near layer (every region without painted layers, and those keeping only
  * sky + far): their middle ground is 3D plants, which a turning painted plane at 22 m would cut through.
@@ -62,6 +62,11 @@ const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
   menace_hills: {
     sky: '#ffe2c0', ground: '#4a3a30', hemi: 1.4, sun: '#ffc490', sunIntensity: 2.2, background: '#dca482', fog: { near: 10, far: 90 }, groundTint: '#a89c8e',
     dome: { zenith: '#3e2a52', horizon: '#dca482', clouds: 0.5, cloudColor: '#ffbe8a' },
+  },
+  // Wastelands: a cold, overcast waste; snowy peaks fading into a grey mist, snow drifting down.
+  wastelands: {
+    sky: '#e6eef8', ground: '#4a4a50', hemi: 1.5, sun: '#e8eef8', sunIntensity: 1.6, background: '#d2d7dc', fog: { near: 9, far: 115 }, groundTint: '#e2e2e0',
+    dome: { zenith: '#8a94a2', horizon: '#d2d7dc', clouds: 0.9, cloudColor: '#eceef0' },
   },
   // Forest ruins: late afternoon under a closed canopy, a warm golden haze pierced by sun shafts.
   forest_ruins: { sky: '#fff0d0', ground: '#4a4630', hemi: 1.3, sun: '#ffdfa0', sunIntensity: 1.9, background: '#d9cfa6', fog: { near: 8, far: 66 }, groundTint: '#b4a67c' },

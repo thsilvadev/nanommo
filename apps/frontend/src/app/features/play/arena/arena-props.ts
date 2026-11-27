@@ -135,6 +135,30 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
       return hillGeometry();
     case 'blossom':
       return blossomGeometry();
+    case 'peak': {
+      // A mountain (radius 1, 1.3 high): a rough cone, rock below and snow above, its foot sunk in the ground.
+      const g = new THREE.ConeGeometry(1, 1.3, 12, 6);
+      const pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), k = 1 + 0.12 * jitter(Math.round(x * 100), Math.round(y * 100), Math.round(z * 100), 3);
+        pos.setXYZ(i, x * k, y + 0.05 * jitter(Math.round(x * 50), 4, Math.round(z * 50), 5) * (y < 0.6 ? 1 : 0), z * k);
+      }
+      g.translate(0, 0.6, 0);
+      return shadeRgb(g, (p, n) => {
+        const snow = p.y > 0.75 + 0.12 * Math.sin(Math.atan2(p.z, p.x) * 4) && n.y > 0.25;
+        return snow ? [1.05, 1.07, 1.1] : [0.55, 0.56, 0.6];
+      });
+    }
+    case 'snow': {
+      // A flat patch of old snow (about 0.9 x 0.6), a low dome over an irregular ring.
+      const verts: number[] = [];
+      const n = 12;
+      const ring = Array.from({ length: n }, (_, k) => { const a = (k / n) * Math.PI * 2, r = 0.5 * (0.85 + 0.15 * Math.sin(k * 1.9 + 1)); return [Math.cos(a) * r, 0.012, Math.sin(a) * r * 0.66]; });
+      for (let k = 0; k < n; k++) verts.push(0, 0.03, 0, ...ring[(k + 1) % n], ...ring[k]);
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      return shade(g, () => 1);
+    }
     case 'crag': {
       // A jagged rock spire (about 1.2 wide, 2.6 tall): a tapering seven-sided cone, every vertex knocked about.
       const g = new THREE.CylinderGeometry(0.16, 0.62, 2.6, 7, 4);
