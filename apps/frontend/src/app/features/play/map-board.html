@@ -2,7 +2,6 @@
   <div #viewport class="viewport" role="application" aria-label="World map. Drag to explore and select a revealed location." (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp($event)" (pointercancel)="onPointerCancel($event)" (lostpointercapture)="onPointerCancel($event)" (wheel)="onWheel($event)" (click)="onViewportClick($event)">
     <div class="map-head">
       <h1>Currently in: {{mapName()}}</h1>
-      <app-town-view-toggle *ngIf="inTownScene()" class="town-view-toggle" [mode]="$any(viewMode())" (modeChange)="setViewMode($event)" />
       <div class="map-meta">
         <div *ngIf="teleportActivity() as teleport" class="activity-gauge teleporting" role="progressbar" [attr.aria-label]="locale.t('Teleporting…')" [attr.aria-valuenow]="teleportProgress()" aria-valuemin="0" aria-valuemax="100">
           <div class="activity-gauge-fill" [style.width.%]="teleportProgress()"></div><strong>{{locale.t('Teleporting…')}}{{teleport.paused ? ' · '+locale.t('Paused during battle') : ''}}</strong>
@@ -21,6 +20,7 @@
     <!-- Battle arena (non-town maps): mounted on first use, then only hidden (it stops rendering). -->
     <app-arena-scene *ngIf="arenaMounted()" [class.arena-hidden]="viewMode()!=='arena'" [attr.aria-hidden]="viewMode()!=='arena' ? 'true' : null" [active]="viewMode()==='arena'" [mapId]="character.character()?.currentMapId ?? null" />
     <app-arena-toggle *ngIf="!inTownScene() && character.character()?.currentMapId" class="arena-view-toggle" [available]="webgl" [mode]="viewMode()==='arena' ? 'arena' : 'map'" (modeChange)="setArenaMode($event)" />
+    <app-town-view-toggle *ngIf="inTownScene()" class="town-view-toggle" [mode]="$any(viewMode())" (modeChange)="setViewMode($event)" />
     <!-- Kept mounted in the town view (only hidden): recreating it re-requested and re-decoded the map art on every switch. -->
     <div #world class="world" [class.world--hidden]="viewMode()!=='map'" [attr.aria-hidden]="viewMode()!=='map' ? 'true' : null" [style.transform]="'translate3d('+(-cameraX()*zoom())+'px,'+(-cameraY()*zoom())+'px,0) scale('+zoom()+')'">
       <img class="world-art" [src]="mapArtUrl" alt="" draggable="false" decoding="async">

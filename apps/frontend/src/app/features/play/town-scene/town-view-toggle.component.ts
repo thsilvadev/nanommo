@@ -13,7 +13,7 @@ export function mapViewMode(inTown: boolean, mapId: string | null | undefined, c
 }
 
 /**
- * One round illustrated button in the map head. It shows the *other* view:
+ * One round illustrated button at the bottom right. It shows the *other* view:
  * in the town it shows the map (and goes to the map); on the map it shows
  * the house (and goes back to the town).
  */
@@ -28,14 +28,14 @@ export function mapViewMode(inTown: boolean, mapId: string | null | undefined, c
     </button>`,
   styles: [`
     :host { display: inline-flex; }
-    .town-view-button { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; cursor: pointer;
-      background: radial-gradient(circle at 50% 38%, #3a2c46 0%, #1c1524 62%, #0e0a13 100%);
+    .town-view-button { width: 80px; height: 80px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; cursor: pointer;
+      background: radial-gradient(circle at 50% 38%, #53415f 0%, #33283d 62%, #211a2a 100%);
       box-shadow: 0 0 0 2px #d9a441, inset 0 1px 0 rgba(255, 236, 190, 0.35), 0 3px 8px rgba(0, 0, 0, 0.55);
       transition: transform 120ms, box-shadow 120ms; }
     .town-view-button:hover { transform: translateY(-1px); box-shadow: 0 0 0 2px #e8b955, inset 0 1px 0 rgba(255, 236, 190, 0.45), 0 5px 11px rgba(0, 0, 0, 0.6); }
     .town-view-button:active { transform: translateY(0); }
     .town-view-button:focus-visible { outline: 2px solid #ffd36a; outline-offset: 3px; }
-    img { width: 30px; height: 30px; display: block; pointer-events: none; user-select: none; }
+    img { width: 60px; height: 60px; display: block; pointer-events: none; user-select: none; }
   `],
 })
 export class TownViewToggleComponent {

@@ -1,3 +1,9 @@
+### Botão cidade/mapa alinhado ao botão arena/mapa — 2026-11-27
+
+O botão cidade/mapa também saiu do map-head e usa o canto inferior direito do viewport, com as mesmas margens de 18px do botão da arena. Tamanho 80×80px, ícones originais de mapa/casa ampliados para 60×60px e o mesmo fundo mais claro. Opções, rótulos, alternância e bloqueio de propagação de cliques preservados. Os dois controles compartilham a regra de posicionamento.
+
+Validação: Chromium **17/17** (town-view-toggle, arena-toggle e map-board-controls), build frontend aprovado com avisos de orçamento de tamanho e diff-check limpo. Sem deploy.
+
 ### Hotfix /teleport: destinatário nulo no party_outbox — 2026-11-27
 
 O cancelamento de convites durante `/teleport` interpretava o resultado de `EntityManager.query(UPDATE ... RETURNING)` como linhas diretas. O driver Postgres do TypeORM retorna `[linhas, quantidade]`; o código iterava também a lista inteira e a contagem, extraindo IDs `undefined` e gravando `characterId = NULL` no outbox, inclusive com zero convites. A transação falhava e revertia o teleporte. Corrigido extraindo somente a primeira parcela do retorno, preservando as notificações para todas as contrapartes.
