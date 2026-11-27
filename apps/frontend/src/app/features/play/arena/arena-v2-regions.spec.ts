@@ -11,6 +11,7 @@ import { arenaAtmosphere } from './arena-atmosphere';
  */
 /** `deck`: a bridge deck, the river behind the parapet (no undergrowth there). */
 const V2: Array<{ region: ArenaRegionId; sky: boolean; deck?: boolean }> = [
+  { region: 'kwaioua_forest', sky: false },
   { region: 'caete', sky: false },
   { region: 'forest_ruins', sky: false },
   { region: 'green_grounds', sky: true },

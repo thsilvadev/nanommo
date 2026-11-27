@@ -86,20 +86,22 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
     // Giant standing trunks with buttress roots (sapopemas) right behind the grid; their canopy (shrubs) far overhead.
     { kind: 'trunk', count: 9, colors: ['#6b5a48', '#5d4c3c', '#76644f'], size: [1.15, 1.7], bands: [[-22, -16]], even: true },
     // The modelled bush round the grid: low clumps, and big ones (2–3.5 m) standing in for small trees.
-    { kind: 'shrub', count: 170, colors: ['#5a7a4c', '#4c6a40', '#66865a'], size: [0.7, 1.5], bands: [BEHIND, BEHIND, FRONT, FRONT, DEEP], grow: { count: 40, factor: 2 } },
+    { kind: 'shrub', count: 170, colors: ['#5a7a4c', '#4c6a40', '#66865a'], size: [0.7, 1.5], bands: [BEHIND, BEHIND, BEHIND, BEHIND, FRONT, DEEP], grow: { count: 40, factor: 2 } },
     { kind: 'shrub', count: 90, colors: ['#5a7a4c', '#4c6a40', '#66865a', '#455f3a'], size: [1.9, 3.3], bands: [BEHIND, BEHIND, DEEP], grow: { count: 24, factor: 2 } },
     { kind: 'rock', count: 22, colors: ['#5f6b52', '#55604a', '#6b7660'], size: [0.35, 1.0], bands: [BEHIND, FRONT] },
-    { kind: 'bush', count: 50, colors: ['#1f3a17', '#25401a', '#2e4a20', '#173214'], size: [0.7, 1.7], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'bush', count: 64, colors: ['#1f3a17', '#25401a', '#2e4a20', '#173214'], size: [0.7, 1.7], bands: [BEHIND, BEHIND, BEHIND, FRONT] },
     // Modelled undergrowth (no painted near layer here): ferns everywhere behind, a dense shrub edge far back.
-    { kind: 'fern', count: 150, colors: ['#6f8f5f', '#5f7f50', '#7f9f6a', '#56744a'], size: [1.6, 2.8], bands: [BEHIND, BEHIND, DEEP, FRONT] },
-    // Past ~45 m the night fog hides everything: only a thin edge there.
-    { kind: 'shrub', count: 70, colors: ['#5a7a4c', '#4c6a40', '#66865a', '#455f3a'], size: [1.8, 3.4], bands: [EDGE, DEEP] },
-    { kind: 'tuft', count: 220, colors: ['#6f8f5a', '#5f7f4c'], size: [1.6, 3], bands: [BEHIND, DEEP, FRONT] },
+    { kind: 'fern', count: 150, colors: ['#6f8f5f', '#5f7f50', '#7f9f6a', '#56744a'], size: [1.6, 2.8], bands: [BEHIND, BEHIND, BEHIND, DEEP, FRONT] },
+    // Past ~45 m the night fog hides almost everything: only a thin edge there.
+    { kind: 'shrub', count: 40, colors: ['#5a7a4c', '#4c6a40', '#66865a', '#455f3a'], size: [1.8, 3.4], bands: [EDGE, DEEP] },
+    { kind: 'tuft', count: 220, colors: ['#6f8f5a', '#5f7f4c'], size: [1.6, 3], bands: [BEHIND, BEHIND, BEHIND, DEEP, FRONT] },
     { kind: 'stump', count: 10, colors: ['#9a8a7a', '#8a7a6a'], size: [0.8, 1.3], bands: [BEHIND, DEEP, FRONT] },
     { kind: 'mossrock', count: 18, colors: ['#9aa090', '#8a9080'], size: [0.8, 1.6], bands: [BEHIND, DEEP, DEEP, FRONT] },
     { kind: 'twig', count: 70, colors: ['#5a4128', '#6b4e30', '#4a3520'], size: [0.5, 1.1], bands: [ALL] },
     { kind: 'leaf', count: 560, colors: ['#3d5f2c', '#4f7a34', '#6b5a2e', '#8a6a2a', '#a07a30', '#5f7a2a', '#2f4f22'], size: [0.18, 0.34], bands: [ALL] },
     { kind: 'pebble', count: 120, colors: ['#6b7660', '#5f6b52', '#7d7a6a'], size: [0.05, 0.14], bands: [ALL] },
+    // Ankle-low sprouts on the battle floor, dark under the night.
+    { kind: 'sprout', count: 700, colors: ['#3f6a3a', '#4a7a42', '#355a32', '#527a48'], size: [0.9, 1.7], bands: [ALL] },
   ],
   wastelands: [
     // A cold waste: snowy peaks far off in the mist, grey crags and boulders, dead trees, frozen tufts.

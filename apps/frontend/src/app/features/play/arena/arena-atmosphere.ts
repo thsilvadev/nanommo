@@ -17,6 +17,11 @@ export interface ArenaAtmosphereSpec {
 }
 
 const ATMOSPHERE: Partial<Record<ArenaRegionId, ArenaAtmosphereSpec>> = {
+  // The night forest: fireflies blinking among the trunks, a lilac mist low over the ground.
+  kwaioua_forest: {
+    wisps: { count: 22, color: '#5a4a8a', opacity: 0.24 },
+    motes: { count: 280, colors: ['#d8ff7a', '#f0ff9a', '#b8ff8a'], size: 0.5 },
+  },
   // A bright meadow: dandelion seeds and pollen adrift, the faintest morning haze.
   green_grounds: {
     wisps: { count: 16, color: '#f4f8fb', opacity: 0.16 },

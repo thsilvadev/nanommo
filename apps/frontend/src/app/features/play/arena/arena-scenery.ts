@@ -59,7 +59,7 @@ const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
     sky: '#ffd2b0', ground: '#4a3a5a', hemi: 1.45, sun: '#ffb070', sunIntensity: 2.5, background: '#f3a27a', fog: { near: 14, far: 150 },
     dome: { zenith: '#3a2a6a', mid: '#c2577a', horizon: '#f3a27a', spread: 0.2, clouds: 0.35, cloudColor: '#ff9a8a', sun: { dir: [34, 9, -150], color: '#ffe0a0', size: 0.045 } },
   },
-  kwaioua_forest: { sky: '#d6ccff', ground: '#352a3e', hemi: 1.2, sun: '#f2e4ff', sunIntensity: 1.65, background: '#080515', fog: { near: 26, far: 74 }, stars: true },
+  kwaioua_forest: { sky: '#d6ccff', ground: '#352a3e', hemi: 1.2, sun: '#f2e4ff', sunIntensity: 1.65, background: '#080515', fog: { near: 14, far: 74 }, stars: true },
   // Caetê: a misty day under the canopy, soft green light; the mist reaches into the battle, the trunks fade into it.
   // Green grounds: a bright open meadow under the painted sky, hills fading into a pale blue haze.
   green_grounds: {
