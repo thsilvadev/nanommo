@@ -1,4 +1,5 @@
 import { ActionStateComponent } from '../../shared/action-state.component';
+import { skillRangeLabel } from '../../core/skill-range';
 import { CombatActionsStore } from '../../core/combat-actions.store';
 import { CombatTimersComponent } from './combat-timers.component';
 import { CombatTimersService } from './combat-timers.service';
@@ -30,7 +31,7 @@ import { BattleHitFeedbackDirective } from '../../shared/battle-hit-feedback';
 import { GameAudioService } from '../../shared/game-audio.service';
 import { LocaleService } from '../../core/locale.service';
 import { PartyStore } from '../../core/party.store';
-import { teleportProgress, isSharedBattleCurrent, sharedActorResources, sharedActorStatuses } from '../../core/party-projection';
+import { teleportProgress, teleportActivityOf, teleportStartedAtMs, isSharedBattleCurrent, sharedActorResources, sharedActorStatuses } from '../../core/party-projection';
 import { SharedBattlePanelComponent } from './shared-battle-panel.component';
 import { TownStore } from '../../core/town.store';
 import { TownSceneComponent } from './town-scene/town-scene.component';
@@ -102,7 +103,7 @@ export class CharacterSummary implements OnDestroy {
   readonly portraitRefinement = computed(() => portraitRefinement(this.inventory.equipment()));
   readonly portraitHands = computed(() => portraitHandTypes(this.inventory.equipment(), (id) => this.catalog.item(id) as { weaponType?: string } | undefined));
   /** Pose of the portrait: a pure function of the stores and the clock, evaluated by the rig every frame. */
-  readonly portraitAnimation = portraitAnimationSource(() => this.character.character(), () => this.battle.active(), () => this.portraitHands());
+  readonly portraitAnimation = portraitAnimationSource(() => this.character.character(), () => this.battle.active(), () => this.portraitHands(), () => teleportStartedAtMs(teleportActivityOf(this.party.party(), this.character.character())));
   readonly portraitLoaded = signal(false);
   readonly portraitFailed = signal(false);
   showPortraitInitial() { return !this.portrait() || !this.portraitLoaded() || this.portraitFailed() }
@@ -209,17 +210,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
     this.town.selectCharacter(selection.entry.characterId);
   }
   partyCanTravel(){const party=this.party.party();return !party || party.kind==='auto' || party.leaderCharacterId===this.character.character()?.id;}
-  teleportActivity() {
-    const group = this.party.party()?.teleport;
-    if (group) return group;
-    const intent = this.character.character()?.travelIntent;
-    if (!intent || !['saved-town-teleport', 'saved-town-route-teleport'].includes(intent.kind)) return null;
-    return {
-      elapsedMs: Number(intent.segmentProgress ?? 0) * 10_000,
-      lastAccruedAt: intent.lastAccruedAt,
-      paused: intent.waitingForBattle === true,
-    };
-  }
+  teleportActivity() { return teleportActivityOf(this.party.party(), this.character.character()); }
   teleportProgress() {
     const activity = this.teleportActivity();
     return activity ? teleportProgress(activity, this.activityNow()) : 0;
@@ -1153,7 +1144,7 @@ export class GrindInfo {
   monsterSp(entry:any){return Number(this.lastEvent(entry)?.spRemaining?.monster??this.monsterSnapshot(entry).sp??0)}
   monsterMaxSp(entry:any){return Number(this.monsterSnapshot(entry).maxSp??0)}
   monsterSkills(entry:any){const m:any=this.monster(entry.monsterId);const ids=new Set<string>(Array.isArray(m?.passiveSkills)?m.passiveSkills:[]);for(const line of m?.gambit??[]){const a=line?.action??{};const id=String(a.skillId??a.params?.skillId??'');if((a.type==='use_skill'||a.id==='use_skill')&&id)ids.add(id)}return [...ids].map(id=>this.catalog.skills().find((s:any)=>s.id===id)).filter(Boolean)}
-  skillTooltip(skill:any){return String(skill.description??`${skill.name} · ${Number(skill.spCost??0)} SP · ${Number(skill.baseCastTicks??0)} cast ticks · ${Number(skill.cooldownTicks??0)} cooldown · ${skill.effect?.type??''}`)}
+  skillTooltip(skill:any){const range=skillRangeLabel(skill);return String(skill.description??`${skill.name} · ${Number(skill.spCost??0)} SP · ${Number(skill.baseCastTicks??0)} cast ticks · ${Number(skill.cooldownTicks??0)} cooldown · ${skill.effect?.type??''}`)+(range?` · Range: ${range}`:'')}
   skillIcon(skill:any){return '/assets/ui/skill-icons/'+skill.id+'.svg'}
   monsterStats(entry: any) { return combatantStatRows(this.monsterSnapshot(entry)); }
 

@@ -24,6 +24,12 @@ const monsterHit = (tick: number, damage = 12, hp = 80) => ({ tick, actor: 'mons
 const grinding = { status: 'grinding' };
 
 describe('characterAnimationState', () => {
+  it('kneels while a saved-town teleport is under way', () => {
+    const state = characterAnimationState({ character: { status: 'grinding' }, activeBattle: null, nowMs: 10_000, teleportAtMs: 8_000 });
+    expect(state).toEqual({ base: 'Idle', oneShot: { clip: 'Kneel', startedAtMs: 8_000, speed: 1 } });
+    expect(characterAnimationState({ character: { status: 'grinding' }, activeBattle: null, nowMs: 10_000, teleportAtMs: null }).base).toBe('Walk');
+  });
+
   describe('outside battle', () => {
     it('idles with no character', () => {
       expect(characterAnimationState({ character: null, activeBattle: null, nowMs: START })).toEqual({ base: 'Idle' });

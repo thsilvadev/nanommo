@@ -3,7 +3,7 @@ import { Injectable, NgZone, inject, signal } from '@angular/core';
 
 type SoundName =
   | 'arrow_hit_1' | 'bash' | 'dagger_hit_1' | 'enemy_hit_1' | 'enemy_hit_2'
-  | 'eGem' | 'eat' | 'fatherMarcelus' | 'fire_hit_1' | 'fire_hit_2'
+  | 'eGem' | 'eat' | 'fatherMarcelus' | 'heal' | 'fire_hit_1' | 'fire_hit_2'
   | 'greatsword_hit_1' | 'hand_hit_1' | 'levelUp' | 'light_hit_1'
   | 'npcDialogue' | 'poisonApply' | 'poisonDamage' | 'questAccepted'
   | 'questCompleted' | 'respec' | 'refineFail' | 'refineSuccess' | 'rod_hit_1'
@@ -151,6 +151,7 @@ export class GameAudioService {
       use_tonic: 'new_packs/3/useTonic.mp3',
       mailInbox: 'new_packs/4/mailInbox.mp3',
       saveTown: 'new_packs/5/save.mp3', pot_shatter: 'new_packs/7/potShatter.wav',
+      heal: 'new_packs/7/heal.mp3',
     };
     return files[name];
   }
@@ -610,6 +611,8 @@ export class GameAudioService {
       this.lastEnemyHit = this.lastEnemyHit === 'enemy_hit_1' ? 'enemy_hit_2' : 'enemy_hit_1';
       this.play(this.lastEnemyHit); return;
     }
+    // Light of Heaven (Holy): the heal sound on whoever it lands (self, an ally, a foe it heals or burns).
+    if (actor === 'character' && action === 'use_skill' && skill === 'light_of_heaven') { this.play('heal'); return; }
     if (actor !== 'character' || event?.target !== 'monster') return;
     if (action === 'use_skill') {
       if (skill.includes('fire_ball') || skill === 'fireball') { this.play('fire_hit_1'); return; }

@@ -25,7 +25,7 @@ export interface CombatEffectDefinition {
   [key: string]: string | number | boolean | number[] | undefined;
 }
 export interface CombatSkillDefinition {
-  id?: string; target?: 'self' | 'ally' | 'foe'; damageType?: string; element?: string;
+  id?: string; /** 'any': the line's condition scope picks self, an ally or a foe. */ target?: 'self' | 'ally' | 'foe' | 'any'; damageType?: string; element?: string;
   ranged?: boolean; maxRange?: number; baseCastTicks?: number; spCost?: number; cooldownTicks?: number;
   masteryRank?: number; effect?: CombatEffectDefinition; effects?: CombatEffectDefinition[];
 }

@@ -2,7 +2,7 @@ import type { BattleActor, BattleActorState, BattleDefinitionsV2, GroupGambitAct
 import type { CombatantSnapshot, GambitGaugeType } from './index';
 import { activeGambitLines } from './active-gambits';
 import { GambitEvaluator } from './index';
-import { itemTargetError, legacyItemTarget, GAMBIT_ITEM_TARGETS, type GambitItemTarget } from './item-target';
+import { conditionScopeOf, itemTargetError, legacyItemTarget, GAMBIT_ITEM_TARGETS, type GambitItemTarget } from './item-target';
 import { findGridPathToRange, gridDistance, gridDistanceField, gridKey } from './grid';
 export const actionParams=(action:GroupGambitAction):Record<string,string|number|undefined>=>({...action,...action.params}) as Record<string,string|number|undefined>;
 export function actorDistance(self:BattleActorState,target:BattleActorState,states:BattleActorState[]):number {
@@ -38,7 +38,7 @@ export function selectGroupGambit(actor:BattleActor,self:BattleActorState,states
     // use_item: an explicit target (self/ally/foe) follows the shared rules; lines saved before it keep the legacy choice.
     const explicitItemTarget=action.id==='use_item'&&GAMBIT_ITEM_TARGETS.includes(params.target as GambitItemTarget)?params.target as GambitItemTarget:null;
     if(action.id==='use_item'&&params.target!==undefined&&(!explicitItemTarget||itemTargetError(explicitItemTarget,conditions[0],item)))continue;
-    const actionScope=action.id==='attack'?'foe':action.id==='use_item'?(explicitItemTarget??legacyItemTarget(conditions.map((c:any)=>String(c.id??'')),item?.effect?.type)):skill?.target??(hasAllyCondition?'ally':'self');
+    const actionScope=action.id==='attack'?'foe':action.id==='use_item'?(explicitItemTarget??legacyItemTarget(conditions.map((c:any)=>String(c.id??'')),item?.effect?.type)):skill?.target==='any'?conditionScopeOf(String(conditions[0]?.id??'')):skill?.target??(hasAllyCondition?'ally':'self');
     const revive=item?.effect?.type==='revive_ally'||item?.effect?.type==='revive_half'||item?.effect?.type==='revive_full_cleanse';
     let candidates=states.filter(s=>actionScope==='self'?s.id===self.id:actionScope==='ally'?s.team===self.team:s.team!==self.team).filter(s=>revive?s.hp<=0:s.hp>0);
     if(action.id==='use_item'&&revive&&self.hp<=0&&item?.effect?.type!=='revive_full_cleanse')continue;

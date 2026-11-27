@@ -44,6 +44,13 @@ describe('GameAudioService battle event routing', () => {
     expect(audio.play).toHaveBeenCalledWith('light_hit_1');
   });
 
+  it('plays the heal sound for Light of Heaven on any target', () => {
+    const entry = { log: { header: { characterSnapshot: { equippedWeaponTypes: ['rod'] } } } };
+    for (const target of ['character', 'monster']) (audio as any).playBattleEvent({ actor: 'character', action: 'use_skill', skillId: 'light_of_heaven', target, damage: 0 }, entry);
+    (audio as any).playBattleEvent({ actor: 'character', action: 'use_skill', skillId: 'light_of_heaven', target: 'monster', damage: 120 }, entry);
+    expect((audio.play as jasmine.Spy).calls.allArgs()).toEqual([['heal'], ['heal'], ['heal']]);
+  });
+
   it('plays poison sounds for poison application and damage events', () => {
     const entry = { log: { header: {} } };
     (audio as any).playBattleEvent({ actor: 'monster', action: 'status_applied', status: 'poison', target: 'character' }, entry);

@@ -13,7 +13,8 @@
 
 export type BaseClip = 'Idle' | 'Walk' | 'CombatIdle' | 'Sprint';
 /** Stun holds one frame of the Damage2 (Hit_Head) take: see apply-animation-state.ts. */
-export type OneShotClip = 'Attack' | 'Dead' | 'Gather' | 'Stun';
+/** Kneel (teleport) kneels down on the Gather take and holds there: see apply-animation-state.ts. */
+export type OneShotClip = 'Attack' | 'Dead' | 'Gather' | 'Stun' | 'Kneel';
 export type HitClip = 'Damage' | 'Damage2';
 
 export interface AnimationState {
@@ -65,6 +66,8 @@ export interface AnimationInput {
   nowMs: number;
   /** What the character attacks with; a bow shot starts before its hit. Default melee. */
   attackStyle?: AttackStyle;
+  /** A saved-town teleport under way since this instant: the character kneels. */
+  teleportAtMs?: number | null;
 }
 
 interface LogEvent {
@@ -77,9 +80,10 @@ interface LogEvent {
   hpRemaining?: { character?: number };
 }
 
-export function characterAnimationState({ character, activeBattle, nowMs, attackStyle = 'melee' }: AnimationInput): AnimationState {
+export function characterAnimationState({ character, activeBattle, nowMs, attackStyle = 'melee', teleportAtMs = null }: AnimationInput): AnimationState {
   const status = character?.status ?? null;
   if (status === 'dead_pending_return') return deadSince(nowMs - CLIP_SECONDS.Dead * 1000);
+  if (teleportAtMs !== null && nowMs >= teleportAtMs) return { base: 'Idle', oneShot: { clip: 'Kneel', startedAtMs: teleportAtMs, speed: 1 } };
 
   const battle = activeBattle ? battleTimeline(activeBattle) : null;
   if (!battle || status !== 'grinding') return { base: status === 'grinding' ? 'Walk' : 'Idle' };

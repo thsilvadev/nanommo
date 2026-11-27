@@ -119,6 +119,20 @@ describe('arenaScene', () => {
     expect(arenaScene(input({ nowMs: 5_000_000, gatherAtMs: 5_000_000 - ARENA_GATHER_MS - 1 })).scroll).toBe(1);
   });
 
+  it('teleport: every walker kneels in the light column and the ground stops', () => {
+    const party = [{ id: 'char-self', look: null }, { id: 'char-ally', look: null }];
+    const scene = arenaScene(input({ nowMs: 5_000_000, party, teleportAtMs: 5_000_000 - 2000 }));
+    expect(scene.scroll).toBe(0);
+    for (const a of scene.frame.actors) {
+      expect(a.anim.oneShot?.clip).toBe('Kneel');
+      expect(a.teleport).toEqual({ startedAtMs: 5_000_000 - 2000 });
+      expect(a.moving).toBeNull();
+    }
+    const walking = arenaScene(input({ nowMs: 5_000_000, teleportAtMs: null }));
+    expect(walking.scroll).toBe(1);
+    expect(walking.frame.actors[0].teleport).toBeUndefined();
+  });
+
   it('a late party battle: foes run in, then match the projection', () => {
     const view = fromSharedBattle(PARTY_V2_VIEW, 'char-self');
     const battle = { ...view, receivedAtMs: view.startAtMs + 800 };

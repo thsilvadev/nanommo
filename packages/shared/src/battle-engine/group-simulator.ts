@@ -1,5 +1,5 @@
 import { consumableCooldownKey } from './combat-timers';
-import { elementalMultiplier, basicAttackElementMultiplier } from '../elements';
+import { elementalMultiplier, basicAttackElementMultiplier, normalizeElement } from '../elements';
 import { burnStatusPayload, periodicDamageAmount, periodicDamageProfile } from './elemental-status';
 import type { ActorEvent, ActorEventPayload, BattleActor, BattleActorState, BattleInputV2, BattleResultV2, CombatEffectDefinition, CombatSkillDefinition, GroupGambitAction } from '../types/group-battle';
 import { BattleEngine, effectiveFoodStatValue, effectiveSkillCastTicks } from './index';
@@ -127,7 +127,7 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
     const skillId=String(actionParams(action).skillId);const def:CombatSkillDefinition=self.skillDefs?.[skillId]??definitions.skills?.[skillId]??{};const e=def.effect??{type:''};const rank=Math.max(1,Number(def.masteryRank??1));
     const baseCost=Number(def.spCost??0);const dynamoRank=Number(self.skillDefs?.arcane_dynamo?.masteryRank??0);const spCost=Math.max(0,baseCost);if(self.sp<spCost)return;
     const spBefore=self.sp;self.sp-=spCost;self.cooldowns![`skill:${skillId}`]=Math.max(0,Number(def.cooldownTicks??0))+(Number(def.cooldownTicks??0)>0?1:0);
-    const hpBefore=target.hp;let dealt=0;const type=String(e.type??'');
+    const hpBefore=target.hp;let dealt=0;let holyBurn=false;const type=String(e.type??'');
     // Area skills (effect.areaRadius): the same raw damage reaches every other living foe around the caster.
     let splashRaw:number|null=null;let splashType='physical';
     if(type==='rage'){target.statusEffects=(target.statusEffects??[]).filter(s=>(definitions.statuses?.[statusId(s)] as {polarity?:string}|undefined)?.polarity!=='debuff');applyStatus(self,target,'rage',Number(e.durationTicks??30),{sourceSkillId:skillId,atkBonus:Number(e.atk??20)});}
@@ -140,7 +140,13 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
     else if(type==='defense_buff')applyStatus(self,target,'war_cry_def',Number(e.durationTicks??20),{sourceSkillId:skillId,defBonus:Number(e.defBonusPerRank??10)*rank});
     else if(type==='magic_barrier')applyStatus(self,target,'magic_barrier',Number(e.durationTicks??600),{sourceSkillId:skillId,absorbRemaining:Number(e.absorbPerRank??100)*rank});
     else if(Number(e.healPercentMaxHp??0)>0||Number(e.healAmount??0)>0)target.hp=Math.min(target.maxHp,target.hp+Number(e.healAmount??Math.floor(target.maxHp*Number(e.healPercentMaxHp))));
-    else if(type==='self_heal'||type==='heal')target.hp=Math.min(target.maxHp,target.hp+Number(e.healFlat??Number(e.flatPerRank??50)*rank)+Math.floor(target.maxHp*Math.floor(self.matk/Number(e.matkScaleDenominator??20))/100));
+    else if(type==='self_heal'||type==='heal'){
+      const amount=Number(e.healFlat??Number(e.flatPerRank??50)*rank)+Math.floor(target.maxHp*Math.floor(self.matk/Number(e.matkScaleDenominator??20))/100);
+      // Holy light burns Shadow: the same amount as damage (no mitigation, variance or element scaling).
+      holyBurn=normalizeElement(def.element)==='holy'&&normalizeElement(target.element)==='shadow';
+      if(holyBurn)dealt=damage(self,target,amount,'pure',`skill:${skillId}:${target.id}`,false);
+      else target.hp=Math.min(target.maxHp,target.hp+amount);
+    }
     else if(type==='apply_status'&&e.status)applyStatus(self,target,e.status,e.durationTicks,{sourceSkillId:skillId});
     else if(type!=='arcane_dynamo_passive') {
       if(type==='blinkstrike') {const path=findGridPathToRange(self.position,target.position,blocked(self),1);if(path?.length){const from={...self.position};self.position={...path[path.length-1]};record(self,[target],'move',{type:'move',from,to:{...self.position},reason:'blinkstrike'});}}
@@ -170,10 +176,10 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
         if(gridKey(from)!==gridKey(target.position)){record(self,[target],'move',{type:'move',from,to:{...target.position},reason:'push'});if(e.targetDebuffOnSuccessfulPush)applyStatus(self,target,String(e.targetDebuffOnSuccessfulPush),Number(e.targetDebuffDurationTicks??12),{sourceSkillId:skillId,moveSpeedMultiplier:Number(e.targetMoveSpeedMultiplier??0.2)});}
       }
     }
-    record(self,[target],'use_skill',{type:'action',skillId,...(Number(self.cooldowns![`skill:${skillId}`])>0?{cooldown:{key:`skill:${skillId}`,durationTicks:self.cooldowns![`skill:${skillId}`]}}:{}),damage:dealt,damageType:def.damageType??(type.startsWith('magic_')?'magical':'physical'),hit:true,crit:false,spSpent:spCost,healAmount:Math.max(0,target.hp-hpBefore)});
+    record(self,[target],'use_skill',{type:'action',skillId,...(Number(self.cooldowns![`skill:${skillId}`])>0?{cooldown:{key:`skill:${skillId}`,durationTicks:self.cooldowns![`skill:${skillId}`]}}:{}),damage:dealt,damageType:holyBurn?'pure':def.damageType??(type.startsWith('magic_')?'magical':'physical'),hit:true,crit:false,spSpent:spCost,healAmount:Math.max(0,target.hp-hpBefore)});
     if(target.team!==self.team&&target.hp>0){const species=actorById.get(target.id)?.definitionId;if(species==='mon_unicorn')applyStatus(target,target,'magic_prowess',40,{matkBonus:20,sourceSkillId:'monster_skill_channel'});if(species==='mon_ruinsguardian')applyStatus(target,target,'prowess',40,{atkBonus:10,defBonus:10,sourceSkillId:'monster_skill_prowess'});}
     if(dynamoRank>0){const before=self.sp;self.sp=Math.min(self.maxSp,self.sp+2*dynamoRank);if(self.sp>before)record(self,[self],'sp_refund',{type:'action',spGain:self.sp-before});}
-    if(target.hp<=0)death(target);if(target.team!==self.team)reflect(self,target,dealt,def.damageType??(type.startsWith('magic_')?'magical':'physical'));
+    if(target.hp<=0)death(target);if(target.team!==self.team&&!holyBurn)reflect(self,target,dealt,def.damageType??(type.startsWith('magic_')?'magical':'physical'));
     const radius=Number(e.areaRadius??0);
     if(radius>0&&splashRaw!==null&&target.team!==self.team)for(const foe of units.filter(u=>u.team!==self.team&&u.hp>0&&u.id!==target.id&&gridDistance(self.position,u.position)<=radius)){
       if(self.hp<=0)break;

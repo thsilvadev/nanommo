@@ -11,6 +11,7 @@ import { CatalogService, ELEMENT_NAMES } from '../../core/catalog.service';
 import { ApiService } from '../../core/api.service';
 import { BrowserNotificationsService } from '../../core/browser-notifications.service';
 import { LocaleService } from '../../core/locale.service';
+import { skillRangeLabel } from '../../core/skill-range';
 import { GambitEditorComponent } from '../gambit/gambit-editor.component';
 import { InventoryGrid } from '../play/components';
 import { TooltipPositionDirective } from '../play/tooltip-position.directive';
@@ -47,6 +48,7 @@ export class CharacterPageComponent implements OnInit {
         return newItems || newSkills;
     }
     skillName(id: string) { return this.catalog.skills().find((skill: any) => skill.id === id)?.name ?? String(id ?? '').replace(/_/g, ' ') }
+    skillRange(skill: any): string | null { return skillRangeLabel(skill); }
     skillDescriptionHtml(skill: any) { const escaped = String(skill.effectDescription ?? skill.description ?? 'No description available.').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); return escaped.replace(/(\d+(?:[.,]\d+)?(?:\s*[×x–-]\s*\d+(?:[.,]\d+)?)*\s*%?)/g, '<strong>$1</strong>') }
 
     skillIcon(skill: any) { return '/assets/ui/skill-icons/' + skill.id + '.svg' }

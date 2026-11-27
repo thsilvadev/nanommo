@@ -1,4 +1,5 @@
 import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, HostListener, InjectionToken, NgZone, OnDestroy, ViewChild, ViewEncapsulation, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { teleportActivityOf, teleportStartedAtMs } from '../../../core/party-projection';
 import type { VisibleEquipment } from '@nanommo/shared';
 import { BattleStore, CharacterStore, InventoryStore } from '../../../core/game.store';
 import { CatalogService } from '../../../core/catalog.service';
@@ -244,6 +245,7 @@ export class ArenaSceneComponent implements AfterViewInit, OnDestroy {
       partyIds: party ? this.party.members().map((m) => m.characterId) : [],
       memberLooks: party ? this.memberLooks() : {},
       gatherAtMs: this.gatherAtMs,
+      teleportAtMs: teleportStartedAtMs(teleportActivityOf(party, c)),
     };
   }
 

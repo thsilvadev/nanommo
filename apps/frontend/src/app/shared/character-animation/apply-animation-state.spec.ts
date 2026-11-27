@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { applyAnimationState, STUN_HOLD_SECONDS, type AnimatedBody } from './apply-animation-state';
+import { applyAnimationState, KNEEL_HOLD_SECONDS, STUN_HOLD_SECONDS, type AnimatedBody } from './apply-animation-state';
 import { CLIP_SECONDS, type AnimationState } from './animation-state';
 
 const LENGTHS: Record<string, number> = {
@@ -88,6 +88,17 @@ describe('applyAnimationState', () => {
     applyAnimationState(body, state, 15_000);
     expect(time(body, 'Damage2')).toBeCloseTo(STUN_HOLD_SECONDS, 6);
     expect(weight(body, 'Damage2')).toBeCloseTo(1, 6);
+  });
+
+  it('Kneel (teleport) kneels down on the Gather action and holds there', () => {
+    const body = makeBody();
+    const state: AnimationState = { base: 'Idle', oneShot: { clip: 'Kneel', startedAtMs: 10_000, speed: 1 } };
+    applyAnimationState(body, state, 10_500);
+    expect(time(body, 'Gather')).toBeCloseTo(0.5, 6);
+    applyAnimationState(body, state, 19_000);
+    expect(time(body, 'Gather')).toBeCloseTo(KNEEL_HOLD_SECONDS, 6);
+    expect(weight(body, 'Gather')).toBeCloseTo(1, 6);
+    expect(weight(body, 'Idle')).toBeCloseTo(0, 6);
   });
 
   it('a body without the arena clips falls back instead of throwing', () => {

@@ -19,6 +19,8 @@ export interface ArenaActorFrame extends ArenaActorPose {
   projectile: ArenaProjectile | null;
   /** 0..1 while leaving the scene after a battle (set by arena-phase), absent otherwise. */
   exit?: number;
+  /** Teleporting since this instant: kneeling inside a column of blue light (set by arena-phase). */
+  teleport?: { startedAtMs: number };
 }
 export interface ArenaFrame { actors: ArenaActorFrame[]; feedback: ArenaFeedback[]; wiped: boolean; ended: boolean }
 

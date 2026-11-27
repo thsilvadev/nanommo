@@ -109,6 +109,9 @@ export class PartyService {
       if(!inviter.appearance||!target.appearance)this.error('APPEARANCE_REQUIRED');
       if(inviter.currentMapId!==target.currentMapId)this.error('PARTY_SAME_MAP_REQUIRED');
       if(await this.member(candidate,ctx.manager))this.error('CANDIDATE_ALREADY_IN_PARTY');
+      // One pending invitation per inviter and candidate: a second one would stack another popup.
+      const pending=await ctx.manager.query(`SELECT 1 FROM party_invites WHERE "inviterId"=$1 AND "candidateId"=$2 AND status IN ('offered','accepted') AND "expiresAt">to_timestamp($3/1000.0) LIMIT 1`,[inviterId,candidate,ctx.now]);
+      if(pending.length)this.error('INVITE_ALREADY_PENDING');
       if(ctx.party){try{assertPartyJoin({memberIds:ctx.members.map(m=>m.characterId),candidateId:candidate,mapId:ctx.party.mapId,candidateMapId:target.currentMapId,leaderId:ctx.party.leaderCharacterId,requesterId:inviterId});}catch(e){this.error(e.message);}}
       const id=randomUUID();
       await ctx.manager.query(`INSERT INTO party_invites(id,"inviterId","candidateId","partyId",mode,status,"expiresAt","clientRequestId") VALUES($1,$2,$3,$4,$5,$6,to_timestamp($7/1000.0),$8)`,[id,inviterId,candidate,ctx.party?.id??null,mode,mode==='auto'?'accepted':'offered',ctx.now+60000,requestId]);
@@ -228,6 +231,20 @@ export class PartyService {
   }
   async reorder(characterId:string,ids:string[]){
     await this.serialized([characterId],async ctx=>{const p=this.leader(ctx,characterId);if(ids.length!==ctx.members.length||new Set(ids).size!==ids.length||ids.some(id=>!ctx.members.some(m=>m.characterId===id)))this.error('INVALID_PARTY_ORDER');for(let n=0;n<ids.length;n++)await ctx.manager.query('UPDATE party_members SET "orderIndex"=$3 WHERE "partyId"=$1 AND "characterId"=$2',[p.id,ids[n],n]);await this.changed(ctx);});return this.get(characterId);
+  }
+  /** The leader hands leadership to another member; not while a shared trip/teleport (owned by the leader) is running. */
+  async transferLeader(characterId:string,newLeaderId:string){
+    await this.serialized([characterId],async ctx=>{
+      const p=this.leader(ctx,characterId);
+      if(newLeaderId===characterId)this.error('ALREADY_PARTY_LEADER');
+      const target=ctx.members.find(m=>m.characterId===newLeaderId);
+      if(!target)throw new NotFoundException('Member not found');
+      if(target.pendingLeave)this.error('MEMBER_LEAVING');
+      if(p.activity)this.error('PARTY_ACTIVITY_IN_PROGRESS');
+      await ctx.manager.query('UPDATE parties SET "leaderCharacterId"=$2 WHERE id=$1',[p.id,newLeaderId]);
+      p.leaderCharacterId=newLeaderId;
+      await this.changed(ctx);
+    });return this.get(characterId);
   }
   canUseAutoParty(_character:Character){return true;}
   async setAuto(characterId:string,enabled:boolean){
