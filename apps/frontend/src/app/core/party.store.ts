@@ -110,6 +110,7 @@ export class PartyStore {
   cancelInvite(id:string): Promise<boolean> { return this.mutate(() => this.api.delete(`/party/invites/${encodeURIComponent(id)}`)); }
   leave(cancel=false): Promise<boolean> { return this.mutate(() => this.api.post('/party/leave',{cancel,clientRequestId:this.requestId()})); }
   kick(id:string): Promise<boolean> { return this.mutate(() => this.api.delete(`/party/members/${encodeURIComponent(id)}`,{body:{clientRequestId:this.requestId()}})); }
+  transferLeader(characterId:string): Promise<boolean> { return this.mutate(() => this.api.put('/party/leader',{characterId,clientRequestId:this.requestId()})); }
   reorder(characterIds:string[]): Promise<boolean> { return this.mutate(() => this.api.put('/party/order',{characterIds,clientRequestId:this.requestId()})); }
   setAuto(enabled:boolean): Promise<boolean> { return this.mutate(() => this.api.put('/party/auto',{enabled,clientRequestId:this.requestId()})); }
   cancelAction(id:string): Promise<boolean> { return this.mutate(() => this.api.delete(`/party/actions/${encodeURIComponent(id)}`)); }

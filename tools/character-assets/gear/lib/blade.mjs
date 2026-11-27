@@ -52,3 +52,43 @@ function upperHull(points) {
 export function stretchBlade(positions, from, factor) {
   for (let i = 1; i < positions.length; i += 3) if (positions[i] > from) positions[i] = from + (positions[i] - from) * factor;
 }
+
+/**
+ * Curves a blade (long axis +Y, metres) above the guard at y = `from`, like a katana's sori: every
+ * vertex above it shifts across the blade's width by `sagitta` × t², t = 0 at the guard and 1 at the tip,
+ * so the tip ends `sagitta` m off the straight line, within the blade's plane. The width axis is the one
+ * (X or Z) where the blade above the guard is wider; the shift goes towards the spine, the side of that
+ * axis where the blade is thicker, so the edge stays on the convex side. Guard, grip and pommel stay.
+ * Mutates every array of `positionsList` together (one weapon, several primitives).
+ * `forcedSide` (+1 / -1 along the width axis) overrides the thickness guess (a source blade that already
+ * leans, or a flat spine, can fool it). Returns { axis: 0 | 2, side: 1 | -1 }, or null when nothing is above `from`.
+ */
+export function curveBlade(positionsList, from, sagitta, forcedSide = null) {
+  let tip = from;
+  const lo = [Infinity, 0, Infinity], hi = [-Infinity, 0, -Infinity];
+  for (const positions of positionsList) for (let i = 0; i < positions.length; i += 3) {
+    if (positions[i + 1] <= from) continue;
+    tip = Math.max(tip, positions[i + 1]);
+    for (const k of [0, 2]) { lo[k] = Math.min(lo[k], positions[i + k]); hi[k] = Math.max(hi[k], positions[i + k]); }
+  }
+  if (tip <= from) return null;
+  const axis = hi[2] - lo[2] > hi[0] - lo[0] ? 2 : 0;
+  const across = axis === 2 ? 0 : 2;
+  const mid = (lo[axis] + hi[axis]) / 2;
+  // Thickness (extent across) of each half of the width: the spine half is the thicker one.
+  const thick = { 1: [Infinity, -Infinity], [-1]: [Infinity, -Infinity] };
+  for (const positions of positionsList) for (let i = 0; i < positions.length; i += 3) {
+    if (positions[i + 1] <= from || positions[i + axis] === mid) continue;
+    const band = thick[positions[i + axis] > mid ? 1 : -1];
+    band[0] = Math.min(band[0], positions[i + across]); band[1] = Math.max(band[1], positions[i + across]);
+  }
+  const extent = (b) => (Number.isFinite(b[0]) ? b[1] - b[0] : 0);
+  const side = forcedSide === 1 || forcedSide === -1 ? forcedSide : extent(thick[1]) >= extent(thick[-1]) ? 1 : -1;
+  for (const positions of positionsList) for (let i = 0; i < positions.length; i += 3) {
+    const y = positions[i + 1];
+    if (y <= from) continue;
+    const t = (y - from) / (tip - from);
+    positions[i + axis] += side * sagitta * t * t;
+  }
+  return { axis, side };
+}

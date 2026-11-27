@@ -364,8 +364,8 @@
           "rank": 5
         },
         "spCost": 20,
-        "description": "20 SP per rank; rank-scaled self heal; 5 second cast.",
-        "effectDescription": "20 SP per rank; rank-scaled self heal; 5 second cast.",
+        "description": "20 SP per rank; Holy heal on self, an ally or a foe (range 8); a Shadow target takes the heal as damage instead; 5 second cast.",
+        "effectDescription": "20 SP per rank; Holy heal on self, an ally or a foe (range 8); a Shadow target takes the heal as damage instead; 5 second cast.",
         "requiresWeaponEquipped": "rod",
         "spCostPerRank": 20,
         "baseCastTicks": 10,
@@ -377,7 +377,9 @@
           6,
           5
         ],
-        "target": "self",
+        "target": "any",
+        "ranged": true,
+        "maxRange": 8,
         "effect": {
           "type": "self_heal",
           "flatPerRank": 50,

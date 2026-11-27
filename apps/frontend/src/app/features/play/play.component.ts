@@ -18,6 +18,7 @@ import { Subscription, auditTime, filter, merge } from 'rxjs';
 import { MailArrivalNoticeComponent } from './mail-arrival-notice.component';
 import { GrindInfo } from './components';
 import { PartyPanelComponent } from './party-panel.component';
+import { PartyInvitePopupComponent } from './party-invite-popup.component';
 import { PartyStore } from '../../core/party.store';
 import { TownStore } from '../../core/town.store';
 import { TOWN_SCENE_ENV } from './town-scene/town-scene.types';
@@ -30,7 +31,7 @@ import { ItemObtainedToastComponent } from './item-obtained-toast.component';
 import { ConnectionTipComponent } from './connection-tip.component';
 import { ConnectionTipsService, ConnectionTip } from '../../core/connection-tips.service';
 @Component({
-    selector: 'app-play', standalone: true, imports: [CommonModule, RouterOutlet, PartyPanelComponent, GrindInfo, LoginMusicControlComponent, MailArrivalNoticeComponent, GameLoadingScreenComponent, NotificationMessagesComponent, ItemObtainedToastComponent, ConnectionTipComponent],
+    selector: 'app-play', standalone: true, imports: [CommonModule, RouterOutlet, PartyPanelComponent, PartyInvitePopupComponent, GrindInfo, LoginMusicControlComponent, MailArrivalNoticeComponent, GameLoadingScreenComponent, NotificationMessagesComponent, ItemObtainedToastComponent, ConnectionTipComponent],
     templateUrl: './play.component.html', styleUrl: './play.component.css'
 })
 export class PlayComponent implements OnInit, OnDestroy {

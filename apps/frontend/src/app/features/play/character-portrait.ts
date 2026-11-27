@@ -57,10 +57,11 @@ export function portraitAnimationSource(
   character: () => AnimationInput['character'],
   activeBattle: () => AnimationBattleEntry | null,
   hands: () => { main: HandWeaponType | null; off: HandWeaponType | null } = () => ({ main: null, off: null }),
+  teleportAtMs: () => number | null = () => null,
 ): (nowMs: number) => AnimationState {
   return (nowMs) => {
     const { main, off } = hands();
     const attackStyle: AttackStyle = main === 'bow' || off === 'bow' ? 'bow' : 'melee';
-    return characterAnimationState({ character: character(), activeBattle: activeBattle(), nowMs, attackStyle });
+    return characterAnimationState({ character: character(), activeBattle: activeBattle(), nowMs, attackStyle, teleportAtMs: teleportAtMs() });
   };
 }

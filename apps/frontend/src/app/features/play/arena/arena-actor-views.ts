@@ -26,6 +26,19 @@ export interface ArenaActorVisual {
 const FLASH_COLORS: Record<ArenaFlash, string> = { white: '#ffffff', red: '#ff3b3b', green: '#4dff6a', orange: '#ff9a2e', darkred: '#6b0000' };
 const FLASH_MS = 180;
 const TEAM_RING: Record<ArenaTeam, string> = { a: '#ffcf5a', b: '#c070ff' };
+/** Teleport light column: rises from the feet past the top of the view in BEAM_RISE_MS. */
+export const ARENA_BEAM_HEIGHT_M = 16;
+const BEAM_RISE_MS = 700;
+let beamTexture: THREE.CanvasTexture | null = null;
+/** Vertical glow: brightest at the feet, still visible at the top (it reaches the ceiling of the view). */
+function beamGradient(): THREE.CanvasTexture {
+  if (beamTexture) return beamTexture;
+  const c = document.createElement('canvas'); c.width = 4; c.height = 128;
+  const g = c.getContext('2d')!; const grad = g.createLinearGradient(0, 128, 0, 0);
+  grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.25, 'rgba(255,255,255,0.75)'); grad.addColorStop(1, 'rgba(255,255,255,0.45)');
+  g.fillStyle = grad; g.fillRect(0, 0, 4, 128);
+  return (beamTexture = new THREE.CanvasTexture(c));
+}
 
 // ---- shared, page-wide pieces -------------------------------------------------
 let blobTexture: THREE.CanvasTexture | null = null;
@@ -137,6 +150,7 @@ export class ArenaActorView {
   private stars: THREE.Sprite[] = [];
   private zs: THREE.Sprite[] = [];
   private ice: THREE.Group | null = null;
+  private beam: THREE.Group | null = null;
   private readonly owned: Array<{ dispose(): void }> = [];
   /** Materials this view cloned for itself (flash and fade never touch shared materials). */
   private readonly tinter = new ArenaTint();
@@ -202,6 +216,7 @@ export class ArenaActorView {
     this.updateStars(frame.statuses.includes('stun'), head, nowMs);
     this.updateZs(frame.statuses.includes('sleep'), head, nowMs);
     this.updateIce(frame.statuses.includes('freeze'), this.posable.height());
+    this.updateBeam(frame.teleport ?? null, nowMs);
 
     // Hit flash: the newest flash on this actor, fading over FLASH_MS.
     const hit = feedback.filter((f) => f.targetId === this.visual.id && f.flash && nowMs - f.atMs < FLASH_MS).pop();
@@ -213,6 +228,7 @@ export class ArenaActorView {
     this.disposed = true;
     this.posable.dispose();
     this.pending?.dispose();
+    this.beam?.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); (m.material as THREE.Material | undefined)?.dispose?.(); });
     this.ice?.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); (m.material as THREE.Material | undefined)?.dispose?.(); });
     for (const s of [...this.stars, ...this.zs]) s.material.dispose();
     for (const o of this.owned) o.dispose();
@@ -279,6 +295,39 @@ export class ArenaActorView {
       s.material.opacity = Math.sin(t * Math.PI);
     });
   }
+
+  /** Teleport: a half-translucent blue column of light around the kneeling body, rising to the top of the view. */
+  private updateBeam(teleport: { startedAtMs: number } | null, nowMs: number): void {
+    if (teleport && !this.beam) {
+      this.beam = new THREE.Group();
+      this.beam.name = 'teleport-beam';
+      const layers: Array<[number, string, number]> = [[0.72, '#3d9bff', 0.32], [0.46, '#bfe4ff', 0.38]];
+      for (const [radius, color, opacity] of layers) {
+        const geometry = new THREE.CylinderGeometry(radius, radius, ARENA_BEAM_HEIGHT_M, 36, 1, true);
+        geometry.translate(0, ARENA_BEAM_HEIGHT_M / 2, 0); // base at the feet, scaled upwards
+        const material = new THREE.MeshBasicMaterial({ color, map: beamGradient(), transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.userData['baseOpacity'] = opacity;
+        mesh.renderOrder = 14;
+        this.beam.add(mesh);
+      }
+      this.fx.add(this.beam);
+    }
+    if (!this.beam) return;
+    this.beam.visible = !!teleport;
+    if (!teleport) return;
+    const rise = Math.min(1, Math.max(0, (nowMs - teleport.startedAtMs) / BEAM_RISE_MS));
+    this.beam.scale.set(1, Math.max(0.001, rise), 1);
+    const pulse = 0.85 + 0.15 * Math.sin(nowMs / 140);
+    this.beam.children.forEach((child, i) => {
+      const mesh = child as THREE.Mesh;
+      (mesh.material as THREE.MeshBasicMaterial).opacity = Number(mesh.userData['baseOpacity']) * pulse;
+      mesh.rotation.y = (nowMs / 900) * (i % 2 ? -1 : 1);
+    });
+  }
+
+  /** Teleport light column shown (tests). */
+  beamVisible(): boolean { return !!this.beam?.visible; }
 
   /** A ~90 % transparent ice-blue crystal block around the body. */
   /** `body`: the body's own height (a flyer's block sits around it, up in the air). */

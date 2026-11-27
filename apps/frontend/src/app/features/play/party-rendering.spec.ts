@@ -17,7 +17,7 @@ class RenderingHost {}
 describe('party components in constrained viewports',()=>{
   const start=Date.parse('2026-11-17T12:00:00Z');
   const party=signal<PartyView|null>(null),battle=signal<SharedBattleView|null>(null),clock=signal(Date.now());
-  const store={party,battle,members:computed(()=>party()?.members??[]),invites:signal([]),actions:signal([]),autoPartyEnabled:signal(false),busy:signal(false),error:signal(''),connection:signal('connected'),leave:jasmine.createSpy('leave'),kick:jasmine.createSpy('kick'),reorder:jasmine.createSpy('reorder'),setAuto:jasmine.createSpy('setAuto')};
+  const store={party,battle,members:computed(()=>party()?.members??[]),invites:signal([]),actions:signal([]),autoPartyEnabled:signal(false),busy:signal(false),error:signal(''),connection:signal('connected'),leave:jasmine.createSpy('leave'),kick:jasmine.createSpy('kick'),reorder:jasmine.createSpy('reorder'),setAuto:jasmine.createSpy('setAuto'),transferLeader:jasmine.createSpy('transferLeader'),lastErrorCode:signal('')};
   beforeEach(async()=>{
     party.set({id:'party',revision:1,kind:'manual',leaderCharacterId:'hero',mapId:'map',members:Array.from({length:5},(_,i)=>({characterId:i===0?'hero':'ally'+i,name:'Character '+(i+1),orderIndex:i,pendingLeave:false,hp:100,sp:50,maxHp:100,maxSp:50,statusEffects:[]}))});
     battle.set({id:'battle',revision:1,state:'started',startAt:new Date(start).toISOString(),endAt:new Date(start+60000).toISOString(),snapshot:{actors:[{id:'hero',kind:'character',team:'a',name:'Hero',snapshot:{hp:100,sp:50,maxHp:100,maxSp:50}},{id:'wolf',kind:'monster',team:'b',name:'Wolf',snapshot:{hp:70,sp:0,maxHp:70,maxSp:0}}]},log:{events:Array.from({length:100},(_,tick)=>({tick,actorId:'hero',targetIds:['wolf'],action:'attack',payload:{type:'action',damage:1},actorStates:{hero:{hp:100,sp:50,targetId:'wolf'},wolf:{hp:70,sp:0}}}))}});
@@ -37,6 +37,25 @@ describe('party components in constrained viewports',()=>{
     expect(loot.getBoundingClientRect().bottom).toBeLessThanOrEqual(host.getBoundingClientRect().bottom+1);
     expect(panel.scrollHeight).toBeGreaterThanOrEqual(panel.clientHeight);
     expect(host.querySelectorAll('.shared-event').length).toBe(100);
+    fixture.destroy();
+  });
+  it('lets the leader hand leadership to another member',()=>{
+    const fixture=TestBed.createComponent(RenderingHost);fixture.detectChanges();
+    const buttons=[...fixture.nativeElement.querySelectorAll('.member-controls button')] as HTMLButtonElement[];
+    const make=buttons.filter(b=>b.textContent?.trim()==='Make leader');
+    expect(make.length).toBe(4);
+    make[0].click();
+    expect(store.transferLeader).toHaveBeenCalledWith('ally1');
+    fixture.destroy();
+  });
+  it('leaves an invitation addressed to me to the popup, and lists the one I sent',()=>{
+    const invites=store.invites as any;
+    invites.set([{id:'in',inviterId:'x',candidateId:'hero',inviterName:'Xena',status:'offered',expiresAt:new Date(Date.now()+60000).toISOString(),mode:'manual'},{id:'out',inviterId:'hero',candidateId:'y',candidateName:'Yuri',status:'offered',expiresAt:new Date(Date.now()+60000).toISOString(),mode:'manual'}]);
+    const fixture=TestBed.createComponent(RenderingHost);fixture.detectChanges();
+    const listed=[...fixture.nativeElement.querySelectorAll('.invite')].map((e:any)=>e.textContent);
+    expect(listed.length).toBe(1);
+    expect(listed[0]).toContain('Yuri');
+    invites.set([]);
     fixture.destroy();
   });
   it('keeps non-leader removal and ordering controls unavailable',()=>{

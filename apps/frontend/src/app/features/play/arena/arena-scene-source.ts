@@ -36,6 +36,8 @@ export interface ArenaSourceInputs {
   /** How each party member looks now (from the party state): a partner is drawn before any shared battle. */
   memberLooks?: Readonly<Record<string, ArenaCharacterLook | null>>;
   gatherAtMs: number | null;
+  /** A saved-town teleport under way since this instant (the walkers kneel in a light column). */
+  teleportAtMs?: number | null;
 }
 
 /** Battles kept after they leave the queue (outro, previous) plus the queued ones. */
@@ -71,7 +73,7 @@ export class ArenaSceneSource {
     const lookOf = (id: string) => (id === input.selfId ? input.selfLook : input.memberLooks?.[id] ?? this.memberLooks.get(id) ?? null);
     const party = ids.map((id) => ({ id, look: lookOf(id) }));
     const offsets = this.layOut(previous, current, next);
-    const scene = arenaScene({ nowMs: now, current, previous, next, nextStartAtMs, party, selfId: input.selfId, gatherAtMs: input.gatherAtMs, offsets });
+    const scene = arenaScene({ nowMs: now, current, previous, next, nextStartAtMs, party, selfId: input.selfId, gatherAtMs: input.gatherAtMs, teleportAtMs: input.teleportAtMs ?? null, offsets });
 
     const visuals = new Map<string, ArenaActorVisual>();
     for (const b of [previous, current, next]) {

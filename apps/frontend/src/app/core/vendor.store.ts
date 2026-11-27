@@ -460,7 +460,7 @@ export class VendorStore {
         this.openProfession(next.openProfession);
       }
       await Promise.all([this.character.load(),this.inventory.load()]);
-      if(choiceId==='hungry_response' || choiceId==='fine_response') this.audio.play('fatherMarcelus');
+      if(choiceId==='hungry_response' || choiceId==='fine_response') this.audio.play('heal');
       else if(choiceId==='eat_bread') this.audio.play('eat');
     }catch(e:any){this.error.set(e?.error?.message??'NPC interaction rejected');}
     finally{this.busy.set(false);}

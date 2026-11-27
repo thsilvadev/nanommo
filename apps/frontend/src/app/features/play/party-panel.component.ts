@@ -23,7 +23,8 @@ export class PartyPanelComponent {
   trackIndex(index: number) { return index; }
   readonly isLeader = computed(() => this.party.party()?.leaderCharacterId === this.character.character()?.id);
   readonly ownMember = computed(() => this.party.members().find(member => member.characterId === this.character.character()?.id));
-  readonly activeInvites = computed(() => this.party.invites().filter(invite => ['offered','accepted'].includes(invite.status)));
+  /** Invites I sent, and accepted ones waiting for a battle boundary; an offer to me is the popup (PartyInvitePopupComponent). */
+  readonly activeInvites = computed(() => this.party.invites().filter(invite => ['offered','accepted'].includes(invite.status) && !(invite.status==='offered' && invite.candidateId===this.character.character()?.id)));
   resources(member: PartyMember) {
     const battle = this.party.battle();
     const projected=battle && isSharedBattleCurrent(battle,this.now()) ? sharedActorResources(battle, member.characterId, this.now()):null;

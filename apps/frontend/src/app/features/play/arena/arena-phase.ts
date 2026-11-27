@@ -51,6 +51,8 @@ export interface ArenaTimelineInput {
   selfId: string;
   /** When the viewing character last completed a gather. */
   gatherAtMs: number | null;
+  /** The walkers are teleporting (saved town) since this instant: they kneel in a light column, the ground stops. */
+  teleportAtMs?: number | null;
   /** Column offsets of the battles (ArenaSceneSource keeps them; see arenaBattleOffset). Default 0. */
   offsets?: { previous?: number; current?: number; next?: number };
 }
@@ -177,7 +179,7 @@ function sceneEnd(b: ArenaBattle): number {
 
 function walkers(input: ArenaTimelineInput, walk: Walk, scroll: number): ArenaActorFrame[] {
   const cells = walkFormation(input.party.length, walk.column);
-  return input.party.map((member, i) => {
+  return input.party.map((member, i): ArenaActorFrame => {
     const gathering = member.id === input.selfId && input.gatherAtMs !== null && input.nowMs >= input.gatherAtMs && input.nowMs < input.gatherAtMs + ARENA_GATHER_MS;
     const running = catchingUp(walk, member.id, input.nowMs);
     return {
@@ -185,12 +187,14 @@ function walkers(input: ArenaTimelineInput, walk: Walk, scroll: number): ArenaAc
       hp: 0, sp: 0, statuses: [], statusSinceMs: {}, deadAtMs: null, fleeing: null, cast: null, projectile: null,
       anim: gathering ? { base: 'Walk', oneShot: { clip: 'Gather', startedAtMs: input.gatherAtMs!, speed: ARENA_GATHER_SPEED } } : { base: running ? 'Sprint' : scroll > 0 ? 'Walk' : 'Idle' },
     };
-  });
+  }).map((frame): ArenaActorFrame => (teleporting(input) ? { ...frame, moving: null, anim: { base: 'Idle', oneShot: { clip: 'Kneel', startedAtMs: input.teleportAtMs!, speed: 1 } }, teleport: { startedAtMs: input.teleportAtMs! } } : frame));
 }
+
+const teleporting = (input: ArenaTimelineInput) => input.teleportAtMs != null && input.nowMs >= input.teleportAtMs;
 
 function walkScene(input: ArenaTimelineInput, walk: Walk): ArenaSceneFrame {
   const gathering = input.gatherAtMs !== null && input.nowMs >= input.gatherAtMs && input.nowMs < input.gatherAtMs + ARENA_GATHER_MS;
-  const scroll = gathering ? 0 : 1;
+  const scroll = gathering || teleporting(input) ? 0 : 1;
   const actors = walkers(input, walk, 1);
   return { phase: 'walk', scroll, frame: { actors, feedback: [], wiped: false, ended: false }, fade: 0, hud: false, battleId: null, origin: walk.column };
 }

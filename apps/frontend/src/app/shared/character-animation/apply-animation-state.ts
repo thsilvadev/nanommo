@@ -24,9 +24,9 @@ export interface AnimatedBody {
 /** Background loops, phased by the absolute clock. */
 const LOOPS = ['Idle', 'Walk', 'CombatIdle', 'Sprint'] as const;
 /** Full-body layers that take over from the loop. `Stun` is played on the Damage2 action. */
-const OVERLAYS = ['Attack', 'Dead', 'Gather', 'CastStart', 'CastLoop', 'Stun'] as const;
+const OVERLAYS = ['Attack', 'Dead', 'Gather', 'CastStart', 'CastLoop', 'Stun', 'Kneel'] as const;
 const HITS = ['Damage', 'Damage2'] as const;
-const OVERLAY_ACTION: Record<string, string> = { Stun: 'Damage2' };
+const OVERLAY_ACTION: Record<string, string> = { Stun: 'Damage2', Kneel: 'Gather' };
 /** Loops absent from an older animation file fall back to these. */
 const LOOP_FALLBACK: Record<string, string> = { Sprint: 'Walk' };
 
@@ -36,6 +36,8 @@ const FADE_OUT_SECONDS = 0.2;
 const HIT_PEAK = 0.4;
 /** Stun holds this instant of the Damage2 (Hit_Head) take: the head snapped back. */
 export const STUN_HOLD_SECONDS = 0.17;
+/** Kneel (teleport) plays the Gather take (Fixing_Kneeling) down to this instant and holds: the pelvis is lowest from ~0.9 s to ~3.7 s. */
+export const KNEEL_HOLD_SECONDS = 2.0;
 
 export function applyAnimationState(body: AnimatedBody, state: AnimationState, nowMs: number): void {
   const snap = body.animatedAtMs === null;
@@ -59,6 +61,7 @@ export function applyAnimationState(body: AnimatedBody, state: AnimationState, n
     if (has(target)) {
       overlay = clip;
       if (clip === 'Stun') hold(target, STUN_HOLD_SECONDS);
+      else if (clip === 'Kneel') hold(target, Math.min(KNEEL_HOLD_SECONDS, Math.max(0, ((t - state.oneShot.startedAtMs) / 1000) * state.oneShot.speed)));
       else hold(target, ((t - state.oneShot.startedAtMs) / 1000) * state.oneShot.speed);
     }
   } else if (state.cast && has('CastStart') && has('CastLoop')) {

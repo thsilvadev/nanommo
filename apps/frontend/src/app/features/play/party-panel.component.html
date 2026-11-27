@@ -16,6 +16,7 @@
     <div class="member-controls" *ngIf="isLeader()">
       <button type="button" [disabled]="party.busy() || index===0" (click)="move(member,-1)" [attr.aria-label]="locale.t('Move up')+' '+member.name">↑</button>
       <button type="button" [disabled]="party.busy() || index===party.members().length-1" (click)="move(member,1)" [attr.aria-label]="locale.t('Move down')+' '+member.name">↓</button>
+      <button type="button" *ngIf="member.characterId!==character.character()?.id" [disabled]="party.busy() || member.pendingLeave || !!party.party()?.routeActivity || !!party.party()?.teleport" (click)="party.transferLeader(member.characterId)">{{locale.t('Make leader')}}</button>
       <button type="button" *ngIf="member.characterId!==character.character()?.id" [disabled]="party.busy() || member.pendingLeave" (click)="party.kick(member.characterId)">{{locale.t('Remove')}}</button>
     </div>
   </article>
@@ -38,5 +39,5 @@
       <button type="button" [disabled]="party.busy()" (click)="party.cancelInvite(invite.id)">{{locale.t(invite.candidateId===character.character()?.id?'Decline':'Cancel')}}</button>
     </div>
   </article>
-  <p class="party-error" role="alert" *ngIf="party.error()">{{locale.t(party.error())}} <button type="button" (click)="party.refresh()">{{locale.t('Retry')}}</button></p>
+  <p class="party-error" role="alert" *ngIf="party.error()">{{locale.t(party.lastErrorCode() || party.error())}} <button type="button" (click)="party.refresh()">{{locale.t('Retry')}}</button></p>
 </section>

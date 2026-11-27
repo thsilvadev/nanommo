@@ -11,6 +11,7 @@ class InviteDto {
 }
 class LeaveDto { @IsOptional() @IsBoolean() cancel?:boolean; }
 class AutoDto { @IsBoolean() enabled!:boolean; }
+class LeaderDto { @IsUUID() characterId!:string; @IsOptional() @IsString() @MaxLength(100) clientRequestId?:string; }
 class OrderDto { @IsArray() @ArrayMaxSize(5) @IsUUID('all',{each:true}) characterIds!:string[]; }
 class ActionDto {
   @IsString() @MaxLength(100) clientRequestId!:string;
@@ -29,6 +30,7 @@ export class PartyController {
   @Post('leave') async leave(@Request()req:any,@Body()dto:LeaveDto){return this.parties.leave(await this.id(req),dto.cancel===true);}
   @Delete('members/:id') async kick(@Request()req:any,@Param('id')id:string){return this.parties.leave(await this.id(req),false,id);}
   @Put('order') async order(@Request()req:any,@Body()dto:OrderDto){return this.parties.reorder(await this.id(req),dto.characterIds);}
+  @Put('leader') async leader(@Request()req:any,@Body()dto:LeaderDto){return this.parties.transferLeader(await this.id(req),dto.characterId);}
   @Put('auto') async auto(@Request()req:any,@Body()dto:AutoDto){return this.parties.setAuto(await this.id(req),dto.enabled);}
   @Get('actions') async actions(@Request()req:any){return this.parties.actions(await this.id(req));}
   @Post('actions') async enqueue(@Request()req:any,@Body()dto:ActionDto){return this.parties.enqueue(await this.id(req),dto.clientRequestId,dto.kind,dto.payload);}

@@ -70,6 +70,28 @@ describe('ArenaActorView flyers', () => {
     null as unknown as TownCharacterFactory, new Promise(() => undefined),
   );
 
+  it('teleport: a blue light column rises from the feet to the top of the view, and goes away after', () => {
+    const v = view('mon_gravelhorn');
+    v.update(frame({ teleport: { startedAtMs: 1000 } }), 1350, []);
+    const beam = v.object3d.getObjectByName('teleport-beam')!;
+    expect(v.beamVisible()).toBeTrue();
+    expect(beam.scale.y).toBeCloseTo(0.5, 2);
+    v.update(frame({ teleport: { startedAtMs: 1000 } }), 5000, []);
+    expect(beam.scale.y).toBe(1);
+    const box = new THREE.Box3().setFromObject(beam);
+    expect(box.min.y).toBeCloseTo(0, 3);
+    expect(box.max.y).toBeGreaterThan(10);
+    for (const child of beam.children) {
+      const m = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
+      expect(m.transparent).toBeTrue();
+      expect(m.opacity).toBeGreaterThan(0.1);
+      expect(m.opacity).toBeLessThan(0.6);
+      expect(m.color.b).toBeGreaterThan(m.color.r);
+    }
+    v.update(frame(), 6000, []);
+    expect(v.beamVisible()).toBeFalse();
+  });
+
   it('a bee flies 1.2 m up (HUD and aim follow it), its shadow stays on the ground, and it lands once dead', () => {
     const bee = view('mon_mutantbee');
     const walker = view('mon_gravelhorn');

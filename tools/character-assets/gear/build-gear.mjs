@@ -28,7 +28,7 @@ import { autoskinStatic } from './lib/autoskin.mjs';
 import { REGION_OF_BONE, strayFilter } from './lib/regions.mjs';
 import { encodeAtlas, packAtlas } from './lib/atlas.mjs';
 import { readObj } from './lib/obj.mjs';
-import { smoothBladeEdge, stretchBlade } from './lib/blade.mjs';
+import { curveBlade, smoothBladeEdge, stretchBlade } from './lib/blade.mjs';
 import { simplifyTo } from './lib/simplify.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -593,6 +593,8 @@ const AXIS = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1], '-x': [-1, 0, 0], '-y':
  * 'shield' (back face, centred), or a fraction along the up axis from the bottom.
  * v.nodes: only these mesh nodes. v.stringMaterial: primitives that become the 'BowString' child.
  * v.bladeStretch: { from, factor }: the blade above `from` (m, after scaling to `length`) is `factor` × longer.
+ * v.bladeCurve: { from, sagitta, side? }: the blade above `from` curves like a katana, its tip `sagitta` m towards
+ *   the spine (side: +1 / -1 along the blade's width axis when the thickness guess picks the edge).
  */
 async function buildWeapon(id, v) {
   const [doc] = await loadSources(v, 'male');
@@ -642,6 +644,8 @@ async function buildWeapon(id, v) {
   }
   // bladeStretch: { from, factor } lengthens the blade above the guard (from, metres up the weapon); the grip keeps its size
   if (v.bladeStretch) for (const p of pieces) stretchBlade(p.position, v.bladeStretch.from, v.bladeStretch.factor);
+  // bladeCurve: { from, sagitta } bends the blade above the guard like a katana (tip `sagitta` m towards the spine)
+  if (v.bladeCurve) curveBlade(pieces.map((p) => p.position), v.bladeCurve.from, v.bladeCurve.sagitta, v.bladeCurve.side ?? null);
   // paint: [{ material, color, within }] recolours only that material's triangles within `within` m of the face centre (x, y)
   for (const paint of v.paint ?? []) {
     const cy = (min[1] + max[1]) / 2 - pivot[1], cx = (min[0] + max[0]) / 2 - pivot[0];

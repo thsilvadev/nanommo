@@ -44,6 +44,20 @@ export function sharedCurrentTarget(battle: SharedBattleView, actorId: string, n
   return target;
 }
 
+export interface TeleportActivity { elapsedMs: number; lastAccruedAt: string | number; paused: boolean }
+/** The teleport under way (the group's, else my saved-town teleport intent), or null. A teleport takes 10 s of unpaused time. */
+export function teleportActivityOf(party: { teleport?: TeleportActivity | null } | null | undefined, character: { travelIntent?: any } | null | undefined): TeleportActivity | null {
+  if (party?.teleport) return party.teleport;
+  const intent = character?.travelIntent;
+  if (!intent || !['saved-town-teleport', 'saved-town-route-teleport'].includes(intent.kind)) return null;
+  return { elapsedMs: Number(intent.segmentProgress ?? 0) * 10_000, lastAccruedAt: intent.lastAccruedAt, paused: intent.waitingForBattle === true };
+}
+/** When an unpaused teleport started (its accrued time counted back from the last accrual), or null while paused/unknown. */
+export function teleportStartedAtMs(activity: TeleportActivity | null): number | null {
+  if (!activity || activity.paused) return null;
+  const last = typeof activity.lastAccruedAt === 'number' ? activity.lastAccruedAt : Date.parse(activity.lastAccruedAt);
+  return Number.isFinite(last) ? last - Number(activity.elapsedMs ?? 0) : null;
+}
 export function teleportProgress(teleport: {elapsedMs:number;lastAccruedAt:string|number;paused:boolean}, now:number): number {
   const last=typeof teleport.lastAccruedAt==='number'?teleport.lastAccruedAt:Date.parse(teleport.lastAccruedAt);
   const accrued=teleport.paused || !Number.isFinite(last) ? 0 : Math.max(0,now-last);

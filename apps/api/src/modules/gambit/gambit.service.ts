@@ -233,7 +233,8 @@ export class GambitService {
       const skill: any = Object.values(trees).flat().find((entry: any) => entry.id === skillId);
       const scope = String(condition?.id ?? '').startsWith('foe_') ? 'foe' : String(condition?.id ?? '').startsWith('ally_') ? 'ally' : 'self';
       const target = skill?.target;
-      if (target && target !== scope) errors.push({ path: `${path}.action`, message: `Skill target ${target} is incompatible with condition target ${scope}` });
+      // 'any' (Light of Heaven): the condition scope picks self, an ally or a foe.
+      if (target && target !== 'any' && target !== scope) errors.push({ path: `${path}.action`, message: `Skill target ${target} is incompatible with condition target ${scope}` });
     }
 
     // --- action: must exist, and its skill/item refs must be real
