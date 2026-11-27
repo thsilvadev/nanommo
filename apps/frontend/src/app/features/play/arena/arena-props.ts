@@ -13,13 +13,22 @@ import { terrainHeight } from './arena-terrain';
 /**
  * Distance (m, from the scenery origin along the view) of the painted near layer, which turns with the
  * camera yaw. Painted layers are transparent, so three.js draws them after every opaque mesh: a prop
- * behind that plane would show the painting through it. Props beyond it are not drawn.
+ * behind that plane would show the painting through it.
  */
 export const ARENA_NEAR_LAYER_DISTANCE_M = 22;
+/** Extra shrink room (m) at the orbit limit: a prop turned towards the layer eases out over a few degrees. */
+const NEAR_LAYER_EASE_M = 4;
 
-/** Whether a scenery-local point is behind the painted near layer for a camera yaw (radians). */
-export function behindNearLayer(x: number, z: number, yawRad: number): boolean {
-  return -x * Math.sin(yawRad) - z * Math.cos(yawRad) > ARENA_NEAR_LAYER_DISTANCE_M;
+/**
+ * Scale (0..1) of a prop standing at scenery-local (x, z) that reaches `reach` metres round its base, for a
+ * camera yaw (radians): it shrinks about its base so its far edge never passes the painted near layer
+ * (whole, never sliced), and is gone once its base is behind it. From the front (yaw 0) only props that
+ * would cross the layer change; turned, they ease out over a few more metres.
+ */
+export function nearLayerScale(x: number, z: number, reach: number, yawRad: number): number {
+  const along = -x * Math.sin(yawRad) - z * Math.cos(yawRad);
+  const room = reach + NEAR_LAYER_EASE_M * Math.abs(Math.sin(yawRad));
+  return Math.min(1, Math.max(0, (ARENA_NEAR_LAYER_DISTANCE_M - along) / Math.max(room, 1e-6)));
 }
 
 /** Deterministic jitter from a vertex position (shared corners move together). */
@@ -154,16 +163,25 @@ function palmGeometry(): THREE.BufferGeometry {
   return mergeGeometries(parts)!;
 }
 
+/** Horizontal reach of a model round its origin (its base), with room for the props' tilt. */
+function reachOf(geometry: THREE.BufferGeometry): number {
+  const pos = geometry.getAttribute('position');
+  let r = 0;
+  for (let i = 0; i < pos.count; i++) r = Math.max(r, Math.hypot(pos.getX(i), pos.getZ(i)));
+  return r * 1.1;
+}
+
 /** A region's props: build once, then `update` every frame with the travel and the region's relief. */
 export class ArenaProps {
   readonly group = new THREE.Group();
   private readonly meshes: Array<{ mesh: THREE.InstancedMesh; items: ArenaPropInstance[] }> = [];
   // Double-sided: fronds and leaves are single sheets.
   private readonly material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide });
-  /** Direction away from the camera (scenery-local, horizontal) and the near layer's distance along it. */
-  private readonly away = { value: new THREE.Vector3(0, 0, -1) };
   private readonly geometries: THREE.BufferGeometry[] = [];
+  /** Per kind: how far the unit-size model reaches round its base (horizontal, metres). */
+  private readonly reach = new Map<ArenaPropKind, number>();
   private lastTravelled = Number.NaN;
+  private lastYaw = Number.NaN;
   private readonly m = new THREE.Matrix4();
   private readonly q = new THREE.Quaternion();
   private readonly e = new THREE.Euler();
@@ -172,23 +190,13 @@ export class ArenaProps {
 
   constructor(region: ArenaRegionId, private readonly relief: number) {
     this.group.name = `arena:props:${region}`;
-    const away = this.away;
-    this.material.onBeforeCompile = (shader) => {
-      shader.uniforms['uAway'] = away;
-      shader.uniforms['uNearLayer'] = { value: ARENA_NEAR_LAYER_DISTANCE_M };
-      shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vPropLocal;')
-        .replace('#include <project_vertex>', '#include <project_vertex>\n#ifdef USE_INSTANCING\nvPropLocal = (instanceMatrix * vec4(transformed, 1.0)).xyz;\n#else\nvPropLocal = transformed;\n#endif');
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vPropLocal;\nuniform vec3 uAway;\nuniform float uNearLayer;')
-        .replace('void main() {', 'void main() {\n  if (dot(vPropLocal, uAway) > uNearLayer) discard;');
-    };
     const byKind = new Map<ArenaPropKind, ArenaPropInstance[]>();
     for (const item of arenaPropLayout(region)) byKind.set(item.kind, [...(byKind.get(item.kind) ?? []), item]);
     const color = new THREE.Color();
     for (const [kind, items] of byKind) {
       const geometry = geometryOf(kind);
       this.geometries.push(geometry);
+      this.reach.set(kind, reachOf(geometry));
       const mesh = new THREE.InstancedMesh(geometry, this.material, items.length);
       mesh.name = `arena:props:${kind}`;
       mesh.frustumCulled = false;
@@ -200,23 +208,25 @@ export class ArenaProps {
 
   get instanceCount(): number { return this.meshes.reduce((n, m) => n + m.items.length, 0); }
 
-  /** The camera yaw (radians): props behind the painted near layer, which turns with it, are not drawn. */
-  setYaw(yawRad: number): void { this.away.value.set(-Math.sin(yawRad), 0, -Math.cos(yawRad)); }
+  /** How far a unit-size prop of `kind` reaches round its base (tests). */
+  reachOf(kind: ArenaPropKind): number { return this.reach.get(kind) ?? 0; }
 
-  /** Scenery-local direction away from the camera used by the cull (tests). */
-  awayDirection(): THREE.Vector3 { return this.away.value.clone(); }
-
-  /** Place every prop for `travelled` metres (scenery-local x: the scenery group follows the camera). */
-  update(travelled: number): void {
-    if (Math.abs(travelled - this.lastTravelled) < 1e-4) return;
+  /**
+   * Place every prop for `travelled` metres (scenery-local x: the scenery group follows the camera) and
+   * the camera yaw (radians): props shrink away before they cross the painted near layer, which turns with it.
+   */
+  update(travelled: number, yawRad = 0): void {
+    if (Math.abs(travelled - this.lastTravelled) < 1e-4 && Math.abs(yawRad - this.lastYaw) < 1e-5) return;
     this.lastTravelled = travelled;
+    this.lastYaw = yawRad;
     for (const { mesh, items } of this.meshes) {
+      const reach = this.reach.get(items[0].kind) ?? 0;
       items.forEach((item, i) => {
         const x = propLocalX(item.u, travelled);
         const y = terrainHeight(x + travelled, item.z, this.relief);
         this.p.set(x, y, item.z);
         this.q.setFromEuler(this.e.set(item.tilt * 0.5, item.yaw, item.kind === 'log' || item.kind === 'twig' ? 0 : item.tilt));
-        this.s.setScalar(item.size);
+        this.s.setScalar(item.size * nearLayerScale(x, item.z, reach * item.size, yawRad));
         mesh.setMatrixAt(i, this.m.compose(this.p, this.q, this.s));
       });
       mesh.instanceMatrix.needsUpdate = true;

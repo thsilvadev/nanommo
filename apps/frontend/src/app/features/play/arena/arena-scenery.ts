@@ -99,9 +99,8 @@ export class ArenaScenery {
       set.ground.offset.x = (travelled / GROUND_TILE_M) % 1;
       set.travel.value = travelled;
       set.time.value = (nowMs % 600_000) / 1000;
-      set.props.update(travelled);
+      set.props.update(travelled, yawRad);
       set.backdrop.rotation.y = yawRad;
-      set.props.setYaw(yawRad);
     }
     if (this.current) {
       const f = this.leaving ? Math.min(1, (nowMs - this.current.bornAt) / CROSSFADE_MS) : 1;
