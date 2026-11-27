@@ -131,6 +131,10 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
       return sproutGeometry();
     case 'column':
       return columnGeometry();
+    case 'hill':
+      return hillGeometry();
+    case 'blossom':
+      return blossomGeometry();
     case 'slab': {
       const g = new THREE.BoxGeometry(1, 0.07, 0.68, 2, 1, 2);
       const pos = g.getAttribute('position');
@@ -298,6 +302,49 @@ function columnGeometry(): THREE.BufferGeometry {
     const light = (n.y > 0.7 ? 1.08 : 0.9) + 0.05 * Math.sin(p.y * 9);
     return [light * (1 - 0.35 * moss), light * (1 - 0.08 * moss), light * (1 - 0.45 * moss)];
   });
+}
+
+/** A wide, gentle hill (radius 1, about 0.3 high): a smooth bump over a radial grid, sunk a little at its rim. */
+function hillGeometry(): THREE.BufferGeometry {
+  const rings = 7, spokes = 16;
+  const at = (ring: number, spoke: number) => {
+    const r = ring / rings, a = (spoke / spokes) * Math.PI * 2;
+    const bump = Math.cos((Math.PI / 2) * r) ** 2 * (1 + 0.18 * Math.sin(a * 3 + 1.1) * r);
+    return new THREE.Vector3(r * Math.cos(a), 0.3 * bump - 0.04, r * Math.sin(a));
+  };
+  const verts: number[] = [];
+  for (let ring = 0; ring < rings; ring++) for (let spoke = 0; spoke < spokes; spoke++) {
+    const a = at(ring, spoke), b = at(ring + 1, spoke), c = at(ring + 1, spoke + 1), d = at(ring, spoke + 1);
+    if (ring > 0) verts.push(...a.toArray(), ...d.toArray(), ...b.toArray());
+    verts.push(...b.toArray(), ...d.toArray(), ...c.toArray());
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  return shade(g, (p) => 0.88 + 0.5 * Math.max(0, p.y));
+}
+
+/** A little flower lying in the grass (0.25 m across): five petals round a yellow heart; the petals take the instance colour. */
+function blossomGeometry(): THREE.BufferGeometry {
+  const verts: number[] = [], colors: number[] = [];
+  const push = (rgb: number[], ...pts: number[][]) => { for (const p of pts) { verts.push(...p); colors.push(...rgb); } };
+  const h = 0.07;
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a), side = 0.045;
+    const at = (r: number, w: number, y: number) => [r * c - w * s, y, r * s + w * c];
+    push([1.05, 1.05, 1.05], at(0.02, 0, h), at(0.07, side, h + 0.01), at(0.12, 0, h - 0.01));
+    push([0.95, 0.95, 0.95], at(0.02, 0, h), at(0.12, 0, h - 0.01), at(0.07, -side, h + 0.01));
+  }
+  for (let k = 0; k < 3; k++) {
+    const a = (k / 3) * Math.PI * 2, b = ((k + 1) / 3) * Math.PI * 2;
+    push([1.25, 1.05, 0.3], [0, h + 0.025, 0], [0.035 * Math.cos(a), h + 0.012, 0.035 * Math.sin(a)], [0.035 * Math.cos(b), h + 0.012, 0.035 * Math.sin(b)]);
+  }
+  // A short stalk so it does not float above the relief's gentle slopes.
+  push([0.45, 0.7, 0.35], [0.008, 0, 0], [-0.008, 0, 0], [0, h, 0]);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  g.computeVertexNormals();
+  return g;
 }
 
 /** Horizontal reach of a model round its origin (its base), with room for the props' tilt. */

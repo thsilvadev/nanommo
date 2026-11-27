@@ -32,15 +32,10 @@ const LAYERS: LayerSpec[] = [
  * Regions drawn without the painted near layer: their middle ground is 3D plants (arena-prop-layout),
  * which a turning painted plane at 22 m would cut through.
  */
-const NO_NEAR_LAYER: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins']);
+const NO_NEAR_LAYER: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins', 'green_grounds']);
 export function arenaHasNearLayer(region: ArenaRegionId): boolean { return !NO_NEAR_LAYER.has(region); }
 /** Regions with no painted layer at all: a plain background and fog behind the 3D forest (arenaLight). */
-const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins']);
-/**
- * Open-air regions keep only the painted sky (opaque, 120 m away: nothing reaches it); their fog takes the
- * sky's horizon colour so the 3D ground and its silhouettes melt into it.
- */
-const SKY_ONLY: ReadonlySet<ArenaRegionId> = new Set([]);
+const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins', 'green_grounds']);
 
 /** Where a bridge deck ends behind the grid (world z): a parapet, then the drop to the river. */
 const DECK_BACK_Z = -15;
@@ -50,12 +45,19 @@ const BRIDGES: ReadonlySet<ArenaRegionId> = new Set(['gods_bridge']);
 
 /** Light per region (hemisphere sky/ground, sun): the bridge is lit by a low warm sunset. */
 /** `background`: clear colour (default the painted sky's blue); `fog`: distance fog in that colour; `stars`: a night dome; `groundTint`: multiplies the ground texture. */
-export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number }; stars?: boolean; groundTint?: string }
+export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number }; stars?: boolean; groundTint?: string; dome?: ArenaSkyDome }
+/** A procedural sky (regions without painted layers under an open sky): `horizon` should be the fog colour. */
+export interface ArenaSkyDome { zenith: string; horizon: string; clouds: number; cloudColor: string }
 const DEFAULT_LIGHT: ArenaLight = { sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2 };
 const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
   gods_bridge: { sky: '#ffd2b0', ground: '#4a3a5a', hemi: 1.45, sun: '#ffb070', sunIntensity: 2.5 },
   kwaioua_forest: { sky: '#d6ccff', ground: '#352a3e', hemi: 1.2, sun: '#f2e4ff', sunIntensity: 1.65, background: '#080515', fog: { near: 26, far: 74 }, stars: true },
   // Caetê: a misty day under the canopy, soft green light; the mist reaches into the battle, the trunks fade into it.
+  // Green grounds: a bright open meadow under the painted sky, hills fading into a pale blue haze.
+  green_grounds: {
+    sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2, background: '#dcecf4', fog: { near: 12, far: 96 }, groundTint: '#e4ecc8',
+    dome: { zenith: '#3f8fe0', horizon: '#dcecf4', clouds: 0.55, cloudColor: '#ffffff' },
+  },
   // Forest ruins: late afternoon under a closed canopy, a warm golden haze pierced by sun shafts.
   forest_ruins: { sky: '#fff0d0', ground: '#4a4630', hemi: 1.3, sun: '#ffdfa0', sunIntensity: 1.9, background: '#d9cfa6', fog: { near: 8, far: 66 }, groundTint: '#b4a67c' },
   caete: { sky: '#eef8e6', ground: '#3f4a30', hemi: 1.7, sun: '#fff4dc', sunIntensity: 1.2, background: '#a7bca9', fog: { near: 7, far: 56 } },
@@ -130,7 +132,7 @@ export class ArenaScenery {
       const f = this.leaving ? Math.min(1, (nowMs - this.current.bornAt) / CROSSFADE_MS) : 1;
       for (const m of this.current.materials) m.opacity = f;
       this.current.groundMaterial.opacity = f;
-      for (const m of this.current.extras) m.opacity = f;
+      for (const m of this.current.extras) { m.opacity = f; const u = (m as THREE.ShaderMaterial).uniforms?.['opacity']; if (u) u.value = f; }
       this.current.atmosphere?.fade(f);
       if (this.leaving && f >= 1) { this.dispose(this.leaving); this.leaving = null; }
     }
@@ -191,6 +193,50 @@ export class ArenaScenery {
     stars.frustumCulled = false;
     stars.renderOrder = -10;
     set.group.add(stars);
+    set.extras.push(material);
+  }
+
+  /** An open sky: a gradient dome from the fog's colour at the horizon to the zenith, soft clouds drifting overhead. */
+  private buildDome(set: LayerSet, dome: ArenaSkyDome): void {
+    const fading = !!this.current;
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uZenith: { value: new THREE.Color(dome.zenith) }, uHorizon: { value: new THREE.Color(dome.horizon) },
+        uCloud: { value: new THREE.Color(dome.cloudColor) }, uClouds: { value: dome.clouds }, uTime: set.time, opacity: { value: fading ? 0 : 1 },
+      },
+      side: THREE.BackSide, depthWrite: false, fog: false, transparent: fading,
+      vertexShader: /* glsl */ `
+        varying vec3 vDir;
+        void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uZenith; uniform vec3 uHorizon; uniform vec3 uCloud; uniform float uClouds; uniform float uTime; uniform float opacity;
+        varying vec3 vDir;
+        float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float noise(vec2 p) {
+          vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+        }
+        void main() {
+          vec3 d = normalize(vDir);
+          float e = d.y;
+          vec3 col = mix(uHorizon, uZenith, pow(smoothstep(-0.02, 0.5, e), 0.75));
+          if (e > 0.0) {
+            vec2 p = d.xz / (e + 0.15) * 1.6 + vec2(uTime * 0.006, uTime * 0.002);
+            float n = 0.5 * noise(p) + 0.28 * noise(p * 2.3 + 5.1) + 0.14 * noise(p * 4.7 - 2.3) + 0.08 * noise(p * 9.1);
+            float c = smoothstep(0.78 - 0.32 * uClouds, 0.95 - 0.2 * uClouds, n) * smoothstep(0.0, 0.18, e);
+            // Clouds melt into the haze near the horizon.
+            col = mix(col, mix(uHorizon, uCloud, smoothstep(0.0, 0.25, e)), c * 0.9);
+          }
+          gl_FragColor = vec4(col, opacity);
+        }`,
+    });
+    const geometry = new THREE.SphereGeometry(300, 32, 16);
+    this.geometries.push(geometry);
+    const sky = new THREE.Mesh(geometry, material);
+    sky.name = 'arena:dome';
+    sky.frustumCulled = false;
+    sky.renderOrder = -10;
+    set.group.add(sky);
     set.extras.push(material);
   }
 
@@ -259,7 +305,7 @@ export class ArenaScenery {
     this.building = set;
     // Painted layers: unlit, behind everything, never write depth (the grid draws over them).
     for (const spec of LAYERS) {
-      if ((spec.key === 'near' && !arenaHasNearLayer(region)) || NO_PAINTED_LAYERS.has(region) || (SKY_ONLY.has(region) && spec.key !== 'sky')) continue;
+      if ((spec.key === 'near' && !arenaHasNearLayer(region)) || NO_PAINTED_LAYERS.has(region)) continue;
       const texture = this.texture(assets[spec.key], spec.repeat);
       const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: this.current ? 0 : 1, depthWrite: false, fog: false });
       const geometry = new THREE.PlaneGeometry(spec.width, spec.height);
@@ -294,6 +340,7 @@ export class ArenaScenery {
     void set.props.loaded.then(() => { set.pending = Math.max(0, set.pending - 1); });
     group.add(set.props.group);
     if (bridge) this.buildBridge(set);
+    if (arenaLight(region).dome) this.buildDome(set, arenaLight(region).dome!);
     if (arenaLight(region).stars) this.buildStars(set);
     const air = arenaAtmosphere(region);
     if (air) { set.atmosphere = new ArenaAtmosphere(air, !!this.current); group.add(set.atmosphere.group); }

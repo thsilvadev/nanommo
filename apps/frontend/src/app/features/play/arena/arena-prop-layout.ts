@@ -17,7 +17,7 @@ export const ARENA_TRUNK_HEIGHT_M = 30;
 
 /** Procedural kinds (built in arena-props) and modelled kinds (`MODEL_PROPS`, loaded from props.glb). */
 export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm' | 'post'
-  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab';
+  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab' | 'hill' | 'blossom';
 /** Kinds drawn from `assets/arena/props.glb` (tools/arena-assets/build-arena-props.mjs): colours baked per vertex, tinted per instance. */
 export const MODEL_PROPS: ReadonlySet<ArenaPropKind> = new Set(['fern', 'shrub', 'tuft', 'flowers', 'stump', 'deadtree', 'mossrock']);
 export interface ArenaPropSpec {
@@ -50,9 +50,20 @@ const ALL: [number, number] = [-24, 22];
 const stone = ['#8a8f87', '#7a7f78', '#9a9a8e', '#6f746c'];
 const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
   green_grounds: [
-    { kind: 'rock', count: 34, colors: stone, size: [0.35, 1.1], bands: [BEHIND, FRONT] },
-    { kind: 'bush', count: 46, colors: ['#4f8a34', '#5f9a3f', '#3f7a2c', '#6aa84a'], size: [0.6, 1.4], bands: [BEHIND, BEHIND, FRONT] },
-    { kind: 'pebble', count: 140, colors: ['#9a9a8e', '#7a7f78', '#b0ab98'], size: [0.06, 0.16], bands: [ALL] },
+    // An open meadow: rolling hills melting into the haze, round trees, tall grass and flowers behind the grid.
+    { kind: 'hill', count: 9, colors: ['#7fae5a', '#74a252', '#88b664'], size: [22, 34], bands: [[-82, -60]], even: true },
+    { kind: 'shrub', count: 26, colors: ['#5f9a44', '#6aa84c', '#558e3c'], size: [4, 7], bands: [[-50, -30]] },
+    { kind: 'shrub', count: 30, colors: ['#6aa84c', '#5f9a44', '#78b458'], size: [2.6, 4.4], bands: [[-27, -17], DEEP] },
+    { kind: 'shrub', count: 110, colors: ['#6aa84a', '#5f9a3f', '#78b458'], size: [0.6, 1.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT], grow: { count: 24, factor: 1.8 } },
+    { kind: 'tuft', count: 300, colors: ['#8ac05a', '#7ab04c', '#94c864'], size: [1.2, 2.6], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'flowers', count: 60, colors: ['#ffffff', '#f6f6f6'], size: [0.9, 1.5], bands: [BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'fern', count: 40, colors: ['#7ab45a', '#6aa44c'], size: [1.2, 2], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'rock', count: 34, colors: stone, size: [0.35, 1.1], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'mossrock', count: 8, colors: ['#b0b8a0', '#a0a890'], size: [0.8, 1.4], bands: [BEHIND, DEEP] },
+    // The battle floor: a lawn of sprouts dotted with little flowers.
+    { kind: 'sprout', count: 1300, colors: ['#6aaa44', '#7aba4c', '#5f9a3a', '#88c058'], size: [0.9, 1.8], bands: [ALL] },
+    { kind: 'blossom', count: 700, colors: ['#ffffff', '#fff27a', '#ffb6d0', '#c8b4ff', '#9fd0ff', '#ffffff'], size: [0.8, 1.5], bands: [ALL] },
+    { kind: 'pebble', count: 100, colors: ['#9a9a8e', '#7a7f78', '#b0ab98'], size: [0.06, 0.16], bands: [ALL] },
   ],
   menace_hills: [
     { kind: 'rock', count: 52, colors: ['#8c7c62', '#7a6a50', '#9a8a6c', '#6e6250'], size: [0.4, 1.6], bands: [BEHIND, BEHIND, FRONT] },
@@ -186,4 +197,4 @@ export function propLocalX(u: number, travelled: number): number {
 }
 
 /** Kinds low enough for the battle band (flat, or below the ankle). */
-export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig', 'sprout', 'slab']);
+export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig', 'sprout', 'slab', 'blossom']);

@@ -17,6 +17,11 @@ export interface ArenaAtmosphereSpec {
 }
 
 const ATMOSPHERE: Partial<Record<ArenaRegionId, ArenaAtmosphereSpec>> = {
+  // A bright meadow: dandelion seeds and pollen adrift, the faintest morning haze.
+  green_grounds: {
+    wisps: { count: 16, color: '#f4f8fb', opacity: 0.16 },
+    motes: { count: 200, colors: ['#ffffff', '#fffbe6', '#fff6c8'], size: 0.4 },
+  },
   // Sunbeams in the old forest: pollen and dust glinting gold, a thin morning mist.
   forest_ruins: {
     wisps: { count: 24, color: '#f4ecd0', opacity: 0.26 },
