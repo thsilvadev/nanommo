@@ -1,6 +1,6 @@
 import { ARENA_REGIONS } from './arena-region';
 import { ARENA_PROP_PERIOD_M, FLAT_PROPS, arenaPropLayout, propLocalX } from './arena-prop-layout';
-import { ARENA_FLAT_HALF_DEPTH_M, terrainHeight } from './arena-terrain';
+import { ARENA_FLAT_HALF_DEPTH_M, ARENA_SEA_LEVEL_M, arenaShore, terrainHeight } from './arena-terrain';
 import { cellToWorld } from './arena-camera';
 
 describe('arena terrain', () => {
@@ -20,6 +20,17 @@ describe('arena terrain', () => {
     expect(terrainHeight(3, -24, 0)).toBe(0);
   });
 
+  it('a beach (ipora) runs down into the sea past its plants, the battle band and the band behind it untouched', () => {
+    const shore = arenaShore('ipora_beach');
+    expect(shore).toBeGreaterThan(0);
+    expect(arenaShore('caete')).toBe(0);
+    for (let x = 0; x < 60; x += 3.7) {
+      for (const z of [-24, -14, 0, 12, 22]) expect(terrainHeight(x, z, 0.6, shore)).toBeCloseTo(terrainHeight(x, z, 0.6), 6);
+      expect(terrainHeight(x, -40, 0.6, shore)).toBeLessThan(ARENA_SEA_LEVEL_M - 0.5);
+    }
+    for (let z = -50; z < -20; z += 1) expect(Math.abs(terrainHeight(5, z + 1, 0.6, shore) - terrainHeight(5, z, 0.6, shore))).toBeLessThan(0.5);
+  });
+
   it('is smooth: no step between neighbouring 1 m vertices', () => {
     for (let z = -30; z <= 30; z += 1) for (let x = 0; x < 60; x += 1) expect(Math.abs(terrainHeight(x + 1, z, 1.5) - terrainHeight(x, z, 1.5))).toBeLessThan(0.5);
   });
@@ -37,7 +48,7 @@ describe('arena props', () => {
   it('the same layout on every visit, and every region but the bridge has rocks or blocks', () => {
     expect(arenaPropLayout('kwaioua_forest')).toEqual(arenaPropLayout('kwaioua_forest'));
     for (const region of ARENA_REGIONS.filter((r) => r !== 'gods_bridge')) {
-      expect(arenaPropLayout(region).some((p) => p.kind === 'rock' || p.kind === 'block')).withContext(region).toBeTrue();
+      expect(arenaPropLayout(region).some((p) => ['rock', 'block', 'frostrock'].includes(p.kind))).withContext(region).toBeTrue();
     }
   });
 

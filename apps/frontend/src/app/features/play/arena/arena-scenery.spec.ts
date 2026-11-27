@@ -1,30 +1,30 @@
 import * as THREE from 'three';
 import { ArenaScenery, arenaHasNearLayer, arenaLight } from './arena-scenery';
+import { ARENA_REGIONS } from './arena-region';
 
 describe('ArenaScenery (live assets)', () => {
   it("is ready for a region once that region's textures have loaded", async () => {
     const scenery = new ArenaScenery(1);
-    expect(scenery.ready('forest_ruins')).toBeFalse();
-    scenery.setRegion('forest_ruins', 0);
-    expect(scenery.ready('forest_ruins')).toBeFalse();
+    expect(scenery.ready('gods_bridge')).toBeFalse();
+    scenery.setRegion('gods_bridge', 0);
+    expect(scenery.ready('gods_bridge')).toBeFalse();
     const started = performance.now();
-    while (!scenery.ready('forest_ruins') && performance.now() - started < 20_000) await new Promise((r) => setTimeout(r, 50));
-    expect(scenery.ready('forest_ruins')).toBeTrue();
+    while (!scenery.ready('gods_bridge') && performance.now() - started < 20_000) await new Promise((r) => setTimeout(r, 50));
+    expect(scenery.ready('gods_bridge')).toBeTrue();
     expect(scenery.ready('green_grounds')).toBeFalse();
     scenery.dispose();
   }, 30_000);
 
-  it('the painted backdrop turns with the camera; the ground stays on the world', () => {
-    const scenery = new ArenaScenery(1);
-    scenery.setRegion('forest_ruins', 0);
-    scenery.update(0, 16, 16, 0, 0.8);
-    const backdrop = scenery.group.getObjectByName('arena:backdrop')!;
-    expect(backdrop).toBeTruthy();
-    expect(backdrop.rotation.y).toBeCloseTo(0.8, 6);
-    expect(backdrop.children.length).toBe(3);
-    const region = scenery.group.getObjectByName('arena:scenery:forest_ruins')!;
-    expect(region.rotation.y).toBe(0);
-    scenery.dispose();
+  it('no region draws a painted layer any more (v2: everything 3D); the ground stays on the world when the camera turns', () => {
+    for (const r of ARENA_REGIONS) {
+      const scenery = new ArenaScenery(1);
+      scenery.setRegion(r, 0);
+      scenery.update(0, 16, 16, 0, 0.8);
+      expect(scenery.group.getObjectByName('arena:backdrop')!.children.length).withContext(r).toBe(0);
+      expect(arenaHasNearLayer(r)).withContext(r).toBeFalse();
+      expect(scenery.group.getObjectByName(`arena:scenery:${r}`)!.rotation.y).toBe(0);
+      scenery.dispose();
+    }
   });
 
   it('kwaioua_forest has no painted layer (a starry night instead): its modelled plants load before the region is ready', async () => {
@@ -44,7 +44,6 @@ describe('ArenaScenery (live assets)', () => {
       expect(mesh.geometry.getAttribute('color')).withContext(kind).toBeTruthy();
     }
     expect(arenaHasNearLayer('kwaioua_forest')).toBeFalse();
-    expect(arenaHasNearLayer('forest_ruins')).toBeTrue();
     scenery.dispose();
   }, 30_000);
 
@@ -68,4 +67,19 @@ describe('ArenaScenery (live assets)', () => {
     }
     scenery.dispose();
   }, 30_000);
+
+  it('forest_ruins is a starry night: black sky, stars, its ground recoloured blue', () => {
+    const light = arenaLight('forest_ruins');
+    expect(light.stars).toBeTrue();
+    expect(light.dome).toBeUndefined();
+    expect(new THREE.Color(light.background!).getHSL({ h: 0, s: 0, l: 0 }, THREE.SRGBColorSpace).l).toBeLessThan(0.06);
+    const blue = new THREE.Color(light.groundRecolor!);
+    expect(blue.b).toBeGreaterThan(blue.g);
+    expect(blue.b).toBeGreaterThan(blue.r);
+    const scenery = new ArenaScenery(1);
+    scenery.setRegion('forest_ruins', 0);
+    expect(scenery.group.getObjectByName('arena:stars')).toBeTruthy();
+    scenery.dispose();
+  });
 });
+

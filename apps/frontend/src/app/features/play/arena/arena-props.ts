@@ -9,7 +9,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ARENA_ASSET_BASE, type ArenaRegionId } from './arena-region';
 import { ARENA_TRUNK_HEIGHT_M, MODEL_PROPS, arenaPropLayout, propLocalX, type ArenaPropInstance, type ArenaPropKind } from './arena-prop-layout';
-import { terrainHeight } from './arena-terrain';
+import { arenaShore, terrainHeight } from './arena-terrain';
 
 /**
  * Distance (m, from the scenery origin along the view) of the painted near layer, which turns with the
@@ -129,6 +129,133 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
       return bigleafGeometry();
     case 'sprout':
       return sproutGeometry();
+    case 'column':
+      return columnGeometry();
+    case 'hill':
+      return hillGeometry();
+    case 'blossom':
+      return blossomGeometry();
+    case 'arch':
+      return archGeometry();
+    case 'wall':
+      return wallGeometry();
+    case 'drum': {
+      // A fallen column drum (0.7 m across, 0.9 long) lying on its side, fluted like the columns.
+      const g = new THREE.CylinderGeometry(0.34, 0.34, 0.9, 12, 1);
+      const pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), z = pos.getZ(i), a = Math.atan2(z, x), flute = Math.round(((a + Math.PI) / (2 * Math.PI)) * 12) % 2 ? 0.93 : 1;
+        if (Math.hypot(x, z) > 0.1) pos.setXYZ(i, x * flute, pos.getY(i), z * flute);
+      }
+      g.rotateZ(Math.PI / 2); g.translate(0, 0.3, 0);
+      g.deleteAttribute('uv');
+      return shadeRgb(g, (p, n) => { const l = Math.abs(n.x) > 0.9 ? 1.12 : 0.86 + 0.18 * Math.max(0, n.y); return [l * 0.92, l, l * 0.86]; });
+    }
+    case 'frostrock': {
+      // An angular dark boulder with old snow on its top faces (unlike the rounded rocks elsewhere).
+      const g = new THREE.DodecahedronGeometry(0.62, 0);
+      const pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), k = 1 + 0.3 * jitter(Math.round(x * 100), Math.round(y * 100), Math.round(z * 100), 8);
+        pos.setXYZ(i, x * k * 1.15, Math.max(-0.2, y * k * 0.72), z * k);
+      }
+      g.translate(0, 0.32, 0);
+      // Light instance colours: the vertex colours carry the dark rock, the snow stays white.
+      return shadeRgb(g, (_p, n) => (n.y > 0.72 ? [1.02, 1.04, 1.08] : [0.3 + 0.05 * n.y, 0.32 + 0.05 * n.y, 0.37 + 0.05 * n.y]));
+    }
+    case 'shard': {
+      // A cluster of basalt columns (about 1.6 wide, 2.8 tall): three hexagonal prisms of different heights,
+      // each snapped off at a slant with snow on its cut.
+      const prisms = ([[0, 0, 2.8, 0.42], [0.62, 0.3, 1.9, 0.34], [-0.5, 0.36, 1.4, 0.32]] as const).map(([x, z, h, r], k) => {
+        const g = new THREE.CylinderGeometry(r, r * 1.1, h, 6, 1);
+        const pos = g.getAttribute('position');
+        for (let i = 0; i < pos.count; i++) {
+          const px = pos.getX(i), py = pos.getY(i), pz = pos.getZ(i);
+          pos.setXYZ(i, px + 0.06 * (py / h) * (k - 1), py > 0 ? py - 0.35 * (px / r + 1) * (0.6 + 0.2 * k) : py, pz);
+        }
+        g.translate(x, h / 2, z); g.deleteAttribute('uv');
+        return g.toNonIndexed();
+      });
+      return shadeRgb(mergeGeometries(prisms)!, (p, n) => { const k = 0.22 + 0.05 * Math.min(1, p.y / 2.8); return n.y > 0.5 ? [1.02, 1.04, 1.08] : [k, k * 1.04, k * 1.18]; });
+    }
+    case 'puddle': {
+      // A black pool (about 1 x 0.85 m): a flat irregular disc just above the ground, its rim a little lighter.
+      const verts: number[] = [], colors: number[] = [], n = 14;
+      const ring = Array.from({ length: n }, (_, k) => { const a = (k / n) * Math.PI * 2, r = 0.5 * (0.8 + 0.2 * Math.sin(k * 2.3 + 0.7)); return [Math.cos(a) * r, 0.014, Math.sin(a) * r * 0.85]; });
+      for (let k = 0; k < n; k++) { verts.push(0, 0.016, 0, ...ring[(k + 1) % n], ...ring[k]); colors.push(0.8, 0.8, 0.85, 1.6, 1.6, 1.7, 1.6, 1.6, 1.7); }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      g.computeVertexNormals();
+      return g;
+    }
+    case 'starfish': {
+      // A starfish (0.3 m across): five tapering arms, a raised middle.
+      const verts: number[] = [];
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * Math.PI * 2, l = a - 0.32, r = a + 0.32;
+        const tip = [Math.cos(a) * 0.16, 0.012, Math.sin(a) * 0.16], left = [Math.cos(l) * 0.05, 0.022, Math.sin(l) * 0.05], right = [Math.cos(r) * 0.05, 0.022, Math.sin(r) * 0.05];
+        verts.push(0, 0.035, 0, ...right, ...tip, 0, 0.035, 0, ...tip, ...left);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      return shade(g, (p) => 0.85 + 6 * p.y);
+    }
+    case 'shell': {
+      // A little scallop shell (0.12 m): a ribbed fan lying on the sand.
+      const verts: number[] = [], n = 6;
+      for (let k = 0; k < n; k++) {
+        const a0 = -1.1 + (2.2 * k) / n, a1 = -1.1 + (2.2 * (k + 1)) / n, am = (a0 + a1) / 2;
+        verts.push(0, 0.012, 0.04, Math.sin(a1) * 0.1, 0.012, -Math.cos(a1) * 0.1 + 0.04, Math.sin(am) * 0.11, 0.035, -Math.cos(am) * 0.11 + 0.04);
+        verts.push(0, 0.012, 0.04, Math.sin(am) * 0.11, 0.035, -Math.cos(am) * 0.11 + 0.04, Math.sin(a0) * 0.1, 0.012, -Math.cos(a0) * 0.1 + 0.04);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      return shade(g, (p) => 0.85 + 4 * p.y);
+    }
+    case 'peak': {
+      // A mountain (radius 1, 1.3 high): a rough cone, rock below and snow above, its foot sunk in the ground.
+      const g = new THREE.ConeGeometry(1, 1.3, 12, 6);
+      const pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), k = 1 + 0.12 * jitter(Math.round(x * 100), Math.round(y * 100), Math.round(z * 100), 3);
+        pos.setXYZ(i, x * k, y + 0.05 * jitter(Math.round(x * 50), 4, Math.round(z * 50), 5) * (y < 0.6 ? 1 : 0), z * k);
+      }
+      g.translate(0, 0.6, 0);
+      return shadeRgb(g, (p, n) => {
+        const snow = p.y > 0.75 + 0.12 * Math.sin(Math.atan2(p.z, p.x) * 4) && n.y > 0.25;
+        return snow ? [1.05, 1.07, 1.1] : [0.55, 0.56, 0.6];
+      });
+    }
+    case 'snow': {
+      // A flat patch of old snow (about 0.9 x 0.6), a low dome over an irregular ring.
+      const verts: number[] = [];
+      const n = 12;
+      const ring = Array.from({ length: n }, (_, k) => { const a = (k / n) * Math.PI * 2, r = 0.5 * (0.85 + 0.15 * Math.sin(k * 1.9 + 1)); return [Math.cos(a) * r, 0.012, Math.sin(a) * r * 0.66]; });
+      for (let k = 0; k < n; k++) verts.push(0, 0.03, 0, ...ring[(k + 1) % n], ...ring[k]);
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      return shade(g, () => 1);
+    }
+    case 'crag': {
+      // A jagged rock spire (about 1.2 wide, 2.6 tall): a tapering seven-sided cone, every vertex knocked about.
+      const g = new THREE.CylinderGeometry(0.16, 0.62, 2.6, 7, 4);
+      const pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), k = 1 + 0.32 * jitter(Math.round(x * 100), Math.round(y * 100), Math.round(z * 100), 6);
+        pos.setXYZ(i, x * k + 0.12 * Math.sin(y * 2.1), y + (y > 1.2 ? 0.35 * jitter(Math.round(x * 100), 1, Math.round(z * 100), 2) : 0), z * k);
+      }
+      g.translate(0, 1.2, 0);
+      g.deleteAttribute('uv');
+      return shade(g, (p, n) => 0.78 + 0.18 * Math.min(1, p.y / 2.6) + (n.y > 0.5 ? 0.14 : 0));
+    }
+    case 'slab': {
+      const g = new THREE.BoxGeometry(1, 0.07, 0.68, 2, 1, 2);
+      const pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) pos.setXYZ(i, pos.getX(i) * (1 + 0.1 * jitter(pos.getX(i), 1, pos.getZ(i), 7)), pos.getY(i) + (pos.getY(i) > 0 ? 0.02 * jitter(pos.getX(i), 2, pos.getZ(i), 8) : 0), pos.getZ(i) * (1 + 0.1 * jitter(pos.getZ(i), 3, pos.getX(i), 9)));
+      g.translate(0, 0.015, 0);
+      return shade(g, (p, n) => (n.y > 0.7 ? 1.02 : 0.8) + 0.06 * Math.sin(p.x * 11 + p.z * 7));
+    }
     default:
       throw new Error(`arena prop ${kind} is modelled (props.glb), not built`);
   }
@@ -255,6 +382,124 @@ function sproutGeometry(): THREE.BufferGeometry {
   return shade(g, (p) => 0.85 + 2 * p.y);
 }
 
+/** Like `shade`, with a colour (r, g, b) per vertex: the instance colour multiplies it. */
+function shadeRgb(geometry: THREE.BufferGeometry, f: (p: THREE.Vector3, n: THREE.Vector3) => [number, number, number]): THREE.BufferGeometry {
+  const g = geometry.index ? geometry.toNonIndexed() : geometry;
+  g.deleteAttribute('uv');
+  g.computeVertexNormals();
+  const pos = g.getAttribute('position'), nor = g.getAttribute('normal');
+  const colors = new Float32Array(pos.count * 3);
+  const p = new THREE.Vector3(), n = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) { p.fromBufferAttribute(pos, i); n.fromBufferAttribute(nor, i); colors.set(f(p, n), i * 3); }
+  g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return g;
+}
+
+/** A broken stone column about 3 m tall: a square plinth, a fluted shaft snapped off unevenly, moss at its foot. */
+function columnGeometry(): THREE.BufferGeometry {
+  const plinth = new THREE.BoxGeometry(0.95, 0.28, 0.95);
+  plinth.translate(0, 0.14, 0);
+  const H = 2.7, sides = 12;
+  const shaft = new THREE.CylinderGeometry(0.31, 0.36, H, sides, 3);
+  const pos = shaft.getAttribute('position');
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), a = Math.atan2(z, x);
+    // Flutes: every other edge a little in; the top ring broken off at an angle with a jagged edge.
+    const flute = Math.round(((a + Math.PI) / (2 * Math.PI)) * sides) % 2 ? 0.93 : 1;
+    const top = y > H / 2 - 1e-3 ? -0.55 * (0.5 + 0.5 * Math.sin(a)) - 0.12 * Math.abs(Math.sin(a * 5.3)) : 0;
+    pos.setXYZ(i, x * flute, y + top, z * flute);
+  }
+  shaft.translate(0, 0.28 + H / 2, 0);
+  const g = mergeGeometries([plinth.toNonIndexed(), shaft.toNonIndexed()].map((x) => { x.deleteAttribute('uv'); return x; }))!;
+  return shadeRgb(g, (p, n) => {
+    const moss = Math.max(0, 1 - p.y / 1.1) * (0.6 + 0.4 * Math.sin(Math.atan2(p.z, p.x) * 3 + p.y * 4));
+    const light = (n.y > 0.7 ? 1.08 : 0.9) + 0.05 * Math.sin(p.y * 9);
+    return [light * (1 - 0.35 * moss), light * (1 - 0.08 * moss), light * (1 - 0.45 * moss)];
+  });
+}
+
+/** A wide, gentle hill (radius 1, about 0.3 high): a smooth bump over a radial grid, its rim sunk well below (no gap over water or past the ground). */
+function hillGeometry(): THREE.BufferGeometry {
+  const rings = 7, spokes = 16;
+  const at = (ring: number, spoke: number) => {
+    const r = ring / rings, a = (spoke / spokes) * Math.PI * 2;
+    const bump = Math.cos((Math.PI / 2) * r) ** 2 * (1 + 0.18 * Math.sin(a * 3 + 1.1) * r);
+    return new THREE.Vector3(r * Math.cos(a), ring === rings ? -0.3 : 0.3 * bump - 0.04, r * Math.sin(a));
+  };
+  const verts: number[] = [];
+  for (let ring = 0; ring < rings; ring++) for (let spoke = 0; spoke < spokes; spoke++) {
+    const a = at(ring, spoke), b = at(ring + 1, spoke), c = at(ring + 1, spoke + 1), d = at(ring, spoke + 1);
+    if (ring > 0) verts.push(...a.toArray(), ...d.toArray(), ...b.toArray());
+    verts.push(...b.toArray(), ...d.toArray(), ...c.toArray());
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  return shade(g, (p) => 0.88 + 0.5 * Math.max(0, p.y));
+}
+
+/** Moss at a ruin's foot: greener and darker low down (for `shadeRgb`). */
+function ruinStone(p: THREE.Vector3, n: THREE.Vector3): [number, number, number] {
+  const moss = Math.max(0, 1 - p.y / 1.1) * (0.6 + 0.4 * Math.sin(p.x * 3 + p.y * 4 + p.z * 2));
+  const light = (n.y > 0.7 ? 1.08 : 0.9) + 0.05 * Math.sin(p.y * 9 + p.x * 3);
+  return [light * (1 - 0.35 * moss), light * (1 - 0.08 * moss), light * (1 - 0.45 * moss)];
+}
+
+/** Boxes merged into one geometry (position + normal only). */
+function boxes(parts: Array<[w: number, h: number, d: number, x: number, y: number, z: number, rz?: number]>): THREE.BufferGeometry {
+  return mergeGeometries(parts.map(([w, h, d, x, y, z, rz = 0]) => {
+    const b = new THREE.BoxGeometry(w, h, d);
+    b.rotateZ(rz); b.translate(x, y, z); b.deleteAttribute('uv');
+    return b.toNonIndexed();
+  }))!;
+}
+
+/** A ruined arch (about 4.6 m wide, 5.6 tall): two square pillars and a round arch of voussoirs, two of them fallen. */
+function archGeometry(): THREE.BufferGeometry {
+  const parts: Array<[number, number, number, number, number, number, number?]> = [
+    [0.9, 0.3, 0.9, -2, 0.15, 0], [0.9, 0.3, 0.9, 2, 0.15, 0],
+    [0.7, 3.6, 0.7, -2, 2.1, 0], [0.7, 3.2, 0.7, 2, 1.9, 0],
+  ];
+  // Voussoirs round a half circle of radius 2 above the pillars; the right shoulder has lost two stones.
+  for (let k = 0; k < 9; k++) {
+    if (k === 1 || k === 2) continue;
+    const a = Math.PI - (k + 0.5) * (Math.PI / 9);
+    parts.push([0.72, 0.62, 0.7, Math.cos(a) * 2, 3.9 + Math.sin(a) * 2, 0, a - Math.PI / 2]);
+  }
+  return shadeRgb(boxes(parts), ruinStone);
+}
+
+/** A broken wall (about 4 m long): three courses of blocks, the top one ragged, a gap in the middle course. */
+function wallGeometry(): THREE.BufferGeometry {
+  const parts: Array<[number, number, number, number, number, number, number?]> = [];
+  const course = [[-1.5, -0.5, 0.5, 1.5], [-1.5, -0.5, 1.5], [-1.5, -0.6]];
+  course.forEach((xs, row) => xs.forEach((x, k) => parts.push([0.96, 0.58, 0.7, x + (row % 2) * 0.2, 0.3 + row * 0.6, 0.03 * Math.sin(k * 3 + row), 0.03 * Math.sin(k + row * 2)])));
+  return shadeRgb(boxes(parts), ruinStone);
+}
+
+/** A little flower lying in the grass (0.25 m across): five petals round a yellow heart; the petals take the instance colour. */
+function blossomGeometry(): THREE.BufferGeometry {
+  const verts: number[] = [], colors: number[] = [];
+  const push = (rgb: number[], ...pts: number[][]) => { for (const p of pts) { verts.push(...p); colors.push(...rgb); } };
+  const h = 0.07;
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a), side = 0.045;
+    const at = (r: number, w: number, y: number) => [r * c - w * s, y, r * s + w * c];
+    push([1.05, 1.05, 1.05], at(0.02, 0, h), at(0.07, side, h + 0.01), at(0.12, 0, h - 0.01));
+    push([0.95, 0.95, 0.95], at(0.02, 0, h), at(0.12, 0, h - 0.01), at(0.07, -side, h + 0.01));
+  }
+  for (let k = 0; k < 3; k++) {
+    const a = (k / 3) * Math.PI * 2, b = ((k + 1) / 3) * Math.PI * 2;
+    push([1.25, 1.05, 0.3], [0, h + 0.025, 0], [0.035 * Math.cos(a), h + 0.012, 0.035 * Math.sin(a)], [0.035 * Math.cos(b), h + 0.012, 0.035 * Math.sin(b)]);
+  }
+  // A short stalk so it does not float above the relief's gentle slopes.
+  push([0.45, 0.7, 0.35], [0.008, 0, 0], [-0.008, 0, 0], [0, h, 0]);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  g.computeVertexNormals();
+  return g;
+}
+
 /** Horizontal reach of a model round its origin (its base), with room for the props' tilt. */
 function reachOf(geometry: THREE.BufferGeometry): number {
   const pos = geometry.getAttribute('position');
@@ -300,6 +545,7 @@ export class ArenaProps {
   private readonly geometries: THREE.BufferGeometry[] = [];
   /** Per kind: how far the unit-size model reaches round its base (horizontal, metres). */
   private readonly reach = new Map<ArenaPropKind, number>();
+  private readonly shore: number;
   private lastTravelled = Number.NaN;
   private lastYaw = Number.NaN;
   private disposed = false;
@@ -314,6 +560,7 @@ export class ArenaProps {
   /** `layerDistance`: the painted layer props must stay in front of (the near layer, or the far one where there is none). */
   constructor(region: ArenaRegionId, private readonly relief: number, private readonly layerDistance = ARENA_NEAR_LAYER_DISTANCE_M) {
     this.group.name = `arena:props:${region}`;
+    this.shore = arenaShore(region);
     const byKind = new Map<ArenaPropKind, ArenaPropInstance[]>();
     for (const item of arenaPropLayout(region)) byKind.set(item.kind, [...(byKind.get(item.kind) ?? []), item]);
     const modelled = [...byKind].filter(([kind]) => MODEL_PROPS.has(kind));
@@ -361,7 +608,7 @@ export class ArenaProps {
       const reach = this.reach.get(items[0].kind) ?? 0;
       items.forEach((item, i) => {
         const x = propLocalX(item.u, travelled);
-        const y = terrainHeight(x + travelled, item.z, this.relief);
+        const y = terrainHeight(x + travelled, item.z, this.relief, this.shore);
         this.p.set(x, y, item.z);
         this.q.setFromEuler(this.e.set(item.tilt * 0.5, item.yaw, item.kind === 'log' || item.kind === 'twig' ? 0 : item.tilt));
         this.s.setScalar(item.size * nearLayerScale(x, item.z, reach * item.size, yawRad, this.layerDistance));

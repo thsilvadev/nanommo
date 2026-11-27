@@ -1,13 +1,17 @@
 import * as THREE from 'three';
-import { ArenaAtmosphere, arenaAtmosphere, atmosphereLayout, motePosition, wispPosition } from './arena-atmosphere';
-import { ArenaScenery } from './arena-scenery';
+import { ArenaAtmosphere, arenaAtmosphere, atmosphereLayout, beamPosition, motePosition, wispPosition } from './arena-atmosphere';
+import { ArenaScenery, arenaLight } from './arena-scenery';
+import { ARENA_REGIONS } from './arena-region';
 
 describe('arena atmosphere', () => {
-  it('caete has drifting mist wisps and tiny motes of light; regions without one get nothing', () => {
-    const caete = arenaAtmosphere('caete')!;
-    expect(caete.motes.count).toBeGreaterThan(100);
-    expect(caete.wisps.count).toBeGreaterThan(10);
-    expect(arenaAtmosphere('forest_ruins')).toBeNull();
+  it('every region has its air: drifting mist wisps and tiny motes of light', () => {
+    for (const region of ARENA_REGIONS) {
+      const air = arenaAtmosphere(region)!;
+      expect(air).withContext(region).not.toBeNull();
+      expect(air.motes.count).withContext(region).toBeGreaterThan(100);
+      // Mist only where there is fog (green_grounds has a clear sky).
+      if (arenaLight(region).fog) expect(air.wisps.count).withContext(region).toBeGreaterThan(10);
+    }
   });
 
   it('motes are small, float very slowly and stay round the arena, each glowing on its own beat', () => {
@@ -50,15 +54,38 @@ describe('arena atmosphere', () => {
     atmosphere.dispose();
   });
 
-  it('the scenery adds it for caete only', () => {
+  it('the scenery adds it to the region and takes it away with it', () => {
     const scenery = new ArenaScenery(1);
     scenery.setRegion('caete', 0);
     scenery.update(0, 16, 16);
     expect(scenery.group.getObjectByName('arena:motes')).toBeTruthy();
     scenery.dispose();
-    const other = new ArenaScenery(1);
-    other.setRegion('forest_ruins', 0);
-    expect(other.group.getObjectByName('arena:motes')).toBeFalsy();
-    other.dispose();
+    expect(scenery.group.getObjectByName('arena:motes')).toBeFalsy();
+  });
+
+  it('forest_ruins adds slanting sun shafts that breathe slowly', () => {
+    const spec = arenaAtmosphere('forest_ruins')!;
+    expect(spec.beams!.count).toBeGreaterThan(5);
+    const atmosphere = new ArenaAtmosphere(spec, false);
+    atmosphere.update(0, 3);
+    const beams = atmosphere.group.getObjectByName('arena:beams') as THREE.InstancedMesh;
+    expect(beams.count).toBe(spec.beams!.count);
+    const { beams: layout } = atmosphereLayout(spec);
+    const a = beamPosition(layout[0], 10, 0).glow, b = beamPosition(layout[0], 11, 0).glow;
+    expect(Math.abs(b - a)).toBeLessThan(0.1);
+    atmosphere.dispose();
+  });
+
+  it('wastelands snow falls slowly and loops from the top, never below the ground', () => {
+    const spec = arenaAtmosphere('wastelands')!;
+    const { motes } = atmosphereLayout(spec);
+    let fell = 0;
+    for (const m of motes.slice(0, 50)) {
+      const a = motePosition(m, 20, 0).y, b = motePosition(m, 21, 0).y;
+      if (b < a) { fell++; expect(a - b).toBeLessThan(0.5); }
+      for (let t = 0; t < 300; t += 7) { const y = motePosition(m, t, 0).y; expect(y).toBeGreaterThan(0.2); expect(y).toBeLessThan(7); }
+    }
+    expect(fell).toBeGreaterThan(40);
   });
 });
+

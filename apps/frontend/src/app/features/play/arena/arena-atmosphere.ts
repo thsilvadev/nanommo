@@ -10,11 +10,49 @@ import type { ArenaRegionId } from './arena-region';
 export interface ArenaAtmosphereSpec {
   /** Low mist sheets (billboards), in the region's mist colour. */
   wisps: { count: number; color: string; opacity: number };
-  /** Tiny lights (additive points). */
-  motes: { count: number; colors: string[]; size: number };
+  /** Tiny lights (additive points); `fall` (m/s) makes them come down like snow, looping from the top. */
+  motes: { count: number; colors: string[]; size: number; fall?: number };
+  /** Shafts of sunlight slanting down through the canopy (additive, fixed in the world, slowly breathing). */
+  beams?: { count: number; color: string; opacity: number };
 }
 
 const ATMOSPHERE: Partial<Record<ArenaRegionId, ArenaAtmosphereSpec>> = {
+  // The night forest: fireflies blinking among the trunks, a lilac mist low over the ground.
+  kwaioua_forest: {
+    wisps: { count: 22, color: '#5a4a8a', opacity: 0.24 },
+    motes: { count: 280, colors: ['#d8ff7a', '#f0ff9a', '#b8ff8a'], size: 0.5 },
+  },
+  // A bright meadow under a clear sky: dandelion seeds and pollen adrift, no mist.
+  green_grounds: {
+    wisps: { count: 0, color: '#f4f8fb', opacity: 0 },
+    motes: { count: 200, colors: ['#ffffff', '#fffbe6', '#fff6c8'], size: 0.4 },
+  },
+  // Sunset on the dry hills: warm dust and a few embers adrift, a thin dust haze.
+  menace_hills: {
+    wisps: { count: 18, color: '#f4c49a', opacity: 0.2 },
+    motes: { count: 200, colors: ['#ffc078', '#ffdca0', '#ff9a50'], size: 0.4 },
+  },
+  // A cold waste: snow drifting down, a grey mist low over the ground.
+  wastelands: {
+    wisps: { count: 26, color: '#e8ecf0', opacity: 0.3 },
+    motes: { count: 340, colors: ['#ffffff', '#f0f6ff', '#e6eef8'], size: 0.34, fall: 0.35 },
+  },
+  // A bright beach: sea spray drifting in low, glints of light in the salt air.
+  ipora_beach: {
+    wisps: { count: 16, color: '#f4fbff', opacity: 0.18 },
+    motes: { count: 160, colors: ['#ffffff', '#fff6d0', '#e8fbff'], size: 0.36 },
+  },
+  // Sunset over the river: golden dust in the low light, a pink mist rising off the water.
+  gods_bridge: {
+    wisps: { count: 22, color: '#f8c8b8', opacity: 0.22 },
+    motes: { count: 220, colors: ['#ffd890', '#ffc078', '#fff0c0'], size: 0.42 },
+  },
+  // The ruin at night: pale spirit lights drifting among the stones, a blue mist, faint shafts of moonlight.
+  forest_ruins: {
+    wisps: { count: 24, color: '#4a5a8a', opacity: 0.24 },
+    motes: { count: 240, colors: ['#a8e0ff', '#d0f0ff', '#88c8ff'], size: 0.46 },
+    beams: { count: 8, color: '#8aa8ff', opacity: 0.09 },
+  },
   caete: {
     wisps: { count: 34, color: '#dbe6d8', opacity: 0.34 },
     motes: { count: 260, colors: ['#fff6c0', '#f2ffd0', '#d8fff0'], size: 0.55 },
@@ -31,8 +69,12 @@ const WISP_STRIP_M = 120;
 /** Wisps drift with a faint breeze (m/s, towards +x). */
 const WISP_WIND_M_S = 0.12;
 
-export interface Mote { u: number; y: number; z: number; color: string; phase: [number, number, number, number]; rate: [number, number, number, number] }
+export interface Mote { u: number; y: number; z: number; fall: number; color: string; phase: [number, number, number, number]; rate: [number, number, number, number] }
 export interface Wisp { u: number; z: number; width: number; height: number; seed: number; bob: number }
+export interface Beam { u: number; z: number; width: number; height: number; phase: number }
+/** Sun shafts' strip and lean (screen-space shear: they all slant the same way, like light). */
+const BEAM_STRIP_M = 110;
+const BEAM_LEAN = 0.32;
 
 function rng(seed: number): () => number {
   let a = seed >>> 0;
@@ -45,11 +87,11 @@ function rng(seed: number): () => number {
   };
 }
 
-export function atmosphereLayout(spec: ArenaAtmosphereSpec): { motes: Mote[]; wisps: Wisp[] } {
+export function atmosphereLayout(spec: ArenaAtmosphereSpec): { motes: Mote[]; wisps: Wisp[]; beams: Beam[] } {
   const r = rng(0xa7b05);
   const range = (lo: number, hi: number) => lo + r() * (hi - lo);
   const motes = Array.from({ length: spec.motes.count }, (): Mote => ({
-    u: r() * MOTE_STRIP_M, y: range(0.8, 4.6), z: range(-28, 14),
+    u: r() * MOTE_STRIP_M, y: range(0.8, 4.6), z: range(-28, 14), fall: (spec.motes.fall ?? 0) * range(0.75, 1.25),
     color: spec.motes.colors[Math.floor(r() * spec.motes.colors.length)],
     phase: [r() * 6.28, r() * 6.28, r() * 6.28, r() * 6.28],
     // Drift (x, y, z) about once a minute; the glow pulses every 6–15 s.
@@ -58,9 +100,14 @@ export function atmosphereLayout(spec: ArenaAtmosphereSpec): { motes: Mote[]; wi
   const wisps = Array.from({ length: spec.wisps.count }, (): Wisp => ({
     u: r() * WISP_STRIP_M, z: range(-26, 14), width: range(7, 14), height: range(2.4, 4.4), seed: r() * 100, bob: r() * 6.28,
   }));
-  return { motes, wisps };
+  const beams = Array.from({ length: spec.beams?.count ?? 0 }, (): Beam => ({
+    u: r() * BEAM_STRIP_M, z: range(-24, 6), width: range(1.6, 3.6), height: range(18, 26), phase: r() * 6.28,
+  }));
+  return { motes, wisps, beams };
 }
 
+/** Falling motes loop between this height and this much above it. */
+const MOTE_FLOOR_M = 0.25, MOTE_FALL_SPAN_M = 6.5;
 const wrap = (v: number, period: number) => ((((v % period) + period) % period) - period / 2);
 
 /** A mote at `t` seconds when `travelled` metres have been walked (scenery-local x); `glow` 0..1. */
@@ -69,7 +116,7 @@ export function motePosition(m: Mote, t: number, travelled: number): { x: number
   const pulse = 0.5 + 0.5 * Math.sin(t * rg + pg);
   return {
     x: wrap(m.u - travelled + 1.6 * Math.sin(t * rx + px), MOTE_STRIP_M),
-    y: m.y + 0.5 * Math.sin(t * ry + py),
+    y: m.fall ? MOTE_FLOOR_M + ((((m.y - MOTE_FLOOR_M - m.fall * t) % MOTE_FALL_SPAN_M) + MOTE_FALL_SPAN_M) % MOTE_FALL_SPAN_M) : m.y + 0.5 * Math.sin(t * ry + py),
     z: m.z + 1.2 * Math.sin(t * rz + pz),
     glow: pulse * pulse,
   };
@@ -93,6 +140,11 @@ function glowTexture(): THREE.DataTexture {
   return texture;
 }
 
+/** A sun shaft's foot (scenery-local, on the ground) and brightness (0..1, a slow breathing) at `t` seconds. */
+export function beamPosition(b: Beam, t: number, travelled: number): { x: number; z: number; glow: number } {
+  return { x: wrap(b.u - travelled, BEAM_STRIP_M), z: b.z, glow: 0.65 + 0.35 * Math.sin(t * 0.17 + b.phase) };
+}
+
 export class ArenaAtmosphere {
   readonly group = new THREE.Group();
   private readonly motes: Mote[];
@@ -103,11 +155,14 @@ export class ArenaAtmosphere {
   private readonly sheet: THREE.InstancedMesh;
   private readonly sheetMaterial: THREE.ShaderMaterial;
   private readonly moteColors: THREE.Color[];
+  private readonly beams: Beam[];
+  private readonly shafts: THREE.InstancedMesh | null = null;
+  private readonly shaftMaterial: THREE.ShaderMaterial | null = null;
   private readonly m = new THREE.Matrix4();
 
   constructor(private readonly spec: ArenaAtmosphereSpec, fading: boolean) {
     this.group.name = 'arena:atmosphere';
-    ({ motes: this.motes, wisps: this.wisps } = atmosphereLayout(spec));
+    ({ motes: this.motes, wisps: this.wisps, beams: this.beams } = atmosphereLayout(spec));
     this.moteColors = this.motes.map((m) => new THREE.Color(m.color));
 
     const geometry = new THREE.BufferGeometry();
@@ -160,6 +215,41 @@ export class ArenaAtmosphere {
     this.sheet.name = 'arena:wisps';
     this.sheet.frustumCulled = false;
     this.group.add(this.sheet, this.points);
+
+    if (spec.beams && this.beams.length) {
+      this.shaftMaterial = new THREE.ShaderMaterial({
+        uniforms: { uColor: { value: new THREE.Color(spec.beams.color) }, uOpacity: { value: fading ? 0 : spec.beams.opacity }, uLean: { value: BEAM_LEAN } },
+        transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending,
+        vertexShader: /* glsl */ `
+          attribute float aGlow;
+          uniform float uLean;
+          varying vec2 vUv; varying float vGlow;
+          void main() {
+            vUv = uv; vGlow = aGlow;
+            // Its foot on the ground (instance position), spread upwards in view space and sheared sideways.
+            vec4 foot = modelViewMatrix * vec4(instanceMatrix[3].xyz, 1.0);
+            vec2 size = vec2(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz));
+            float up = (position.y + 0.5) * size.y;
+            foot.xy += vec2(position.x * size.x + up * uLean, up);
+            gl_Position = projectionMatrix * foot;
+          }`,
+        fragmentShader: /* glsl */ `
+          uniform vec3 uColor; uniform float uOpacity;
+          varying vec2 vUv; varying float vGlow;
+          void main() {
+            float across = 1.0 - abs(vUv.x - 0.5) * 2.0;
+            float a = uOpacity * vGlow * pow(across, 1.6) * smoothstep(0.0, 0.25, vUv.y) * (1.0 - smoothstep(0.55, 1.0, vUv.y));
+            if (a < 0.002) discard;
+            gl_FragColor = vec4(uColor * a, 1.0);
+          }`,
+      });
+      const quad = new THREE.PlaneGeometry(1, 1);
+      quad.setAttribute('aGlow', new THREE.InstancedBufferAttribute(new Float32Array(this.beams.length), 1));
+      this.shafts = new THREE.InstancedMesh(quad, this.shaftMaterial, this.beams.length);
+      this.shafts.name = 'arena:beams';
+      this.shafts.frustumCulled = false;
+      this.group.add(this.shafts);
+    }
   }
 
   /** Place everything for `travelled` metres walked at `tSec` seconds. */
@@ -180,12 +270,24 @@ export class ArenaAtmosphere {
     });
     this.sheet.instanceMatrix.needsUpdate = true;
     this.sheetMaterial.uniforms['uTime'].value = tSec % 3600;
+    if (this.shafts) {
+      const glow = this.shafts.geometry.getAttribute('aGlow') as THREE.InstancedBufferAttribute;
+      this.beams.forEach((b, i) => {
+        const p = beamPosition(b, tSec, travelled);
+        this.m.makeScale(b.width, b.height, 1).setPosition(p.x, 0, p.z);
+        this.shafts!.setMatrixAt(i, this.m);
+        glow.setX(i, p.glow);
+      });
+      this.shafts.instanceMatrix.needsUpdate = true;
+      glow.needsUpdate = true;
+    }
   }
 
   /** Crossfade between regions (0..1). */
   fade(f: number): void {
     this.pointsMaterial.opacity = f;
     this.sheetMaterial.uniforms['uOpacity'].value = this.spec.wisps.opacity * f;
+    if (this.shaftMaterial) this.shaftMaterial.uniforms['uOpacity'].value = (this.spec.beams?.opacity ?? 0) * f;
   }
 
   dispose(): void {
@@ -196,5 +298,8 @@ export class ArenaAtmosphere {
     this.sheet.geometry.dispose();
     this.sheetMaterial.dispose();
     this.sheet.dispose();
+    this.shafts?.geometry.dispose();
+    this.shaftMaterial?.dispose();
+    this.shafts?.dispose();
   }
 }
