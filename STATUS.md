@@ -1,3 +1,9 @@
+### Double Strike com dois sons de golpe — 2026-11-27
+
+O motor registra o Double Strike (adagas, `double_strike`) como **um** evento `attack` com `damageComponents: [a, b]`; o áudio tocava um som por evento. `GameAudioService.playBattleEvent` agora toca o som da arma uma vez por golpe (o segundo `DOUBLE_HIT_GAP_MS` = 150 ms depois); a batalha de grupo passa a repassar `damageComponents` ao áudio (a solo já recebia o payload inteiro).
+
+Validação: Karma `game-audio.service` **37/37** (2 specs novos: dois sons por Double Strike, repasse no grupo). **Não verificado no app rodando**; sem push.
+
 ### Katana nova (modelo com curva real) — 2026-11-27
 
 `equip_greatsword_t2` (`greatsword-katana` em `gear.config.mjs`) agora usa *katana* de local.yany no Sketchfab (CC-BY, 3.388 triângulos → até 2.600; crédito em `gear/CREDITS.md`), no lugar da lâmina reta curvada por `bladeCurve` (que fica disponível no pipeline). Novo `up: '-auto'` em `build-gear.mjs`: o eixo principal apontado para a ponta mais estreita (o modo `auto` punha a empunhadura para cima). `bladeStretch` 1,5× acima da guarda (0,24 m), como os outros espadões: mesmo comprimento da anterior. Build completo do gear: atlas reempacotado, então `gear-atlas.webp`, `gear-male.glb` e `gear-female.glb` mudaram junto. Teste de mapeamento de armas atualizado para a fonte nova.

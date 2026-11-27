@@ -1,6 +1,9 @@
 import { battleTickAt } from './battle-timing';
 import { Injectable, NgZone, inject, signal } from '@angular/core';
 
+/** Between the hit sounds of a Double Strike's two blows. */
+export const DOUBLE_HIT_GAP_MS = 150;
+
 type SoundName =
   | 'arrow_hit_1' | 'bash' | 'dagger_hit_1' | 'enemy_hit_1' | 'enemy_hit_2'
   | 'eGem' | 'eat' | 'fatherMarcelus' | 'heal' | 'fire_hit_1' | 'fire_hit_2'
@@ -588,6 +591,7 @@ export class GameAudioService {
         actor: side(event.actorId), target: side(event.targetIds?.[0] ?? event.actorId),
         action: event.action === 'status_apply' ? 'status_applied' : event.action === 'status_tick' ? 'status_damage' : event.action,
         damage: p['damage'], hit: p['hit'], damageType: p['damageType'], skillId: p['skillId'] ?? p['sourceSkillId'], status: p['statusId'], itemId: p['itemId'],
+        damageComponents: p['damageComponents'],
       }, entry);
     }
   }
@@ -626,13 +630,17 @@ export class GameAudioService {
     const header = entry.log?.header?.characterSnapshot ?? {};
     const types: string[] = header.equippedWeaponTypes ?? [];
     const weapon = String(types.find((type: string) => !['shield', 'rune'].includes(type)) ?? '').toLowerCase();
-    if (weapon === 'greatsword') this.play('greatsword_hit_1');
-    else if (weapon === 'dagger') this.play('dagger_hit_1');
-    else if (weapon === 'bow' || event?.damageType === 'ranged') this.play('arrow_hit_1');
-    else if (weapon === 'staff') this.play('staff_hit_1');
-    else if (weapon === 'rod') this.play('rod_hit_1');
-    else if (weapon === 'sword') this.play('sword_hit_1');
-    else this.play('hand_hit_1');
+    const sound: SoundName = weapon === 'greatsword' ? 'greatsword_hit_1'
+      : weapon === 'dagger' ? 'dagger_hit_1'
+      : weapon === 'bow' || event?.damageType === 'ranged' ? 'arrow_hit_1'
+      : weapon === 'staff' ? 'staff_hit_1'
+      : weapon === 'rod' ? 'rod_hit_1'
+      : weapon === 'sword' ? 'sword_hit_1'
+      : 'hand_hit_1';
+    this.play(sound);
+    // Double Strike lands two blows in one attack event (damageComponents): one hit sound per blow.
+    const blows = Array.isArray(event?.damageComponents) ? event.damageComponents.length : 1;
+    for (let blow = 1; blow < blows; blow++) setTimeout(() => this.play(sound), blow * DOUBLE_HIT_GAP_MS);
   }
 
 
