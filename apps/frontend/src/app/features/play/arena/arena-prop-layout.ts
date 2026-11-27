@@ -17,7 +17,7 @@ export const ARENA_TRUNK_HEIGHT_M = 30;
 
 /** Procedural kinds (built in arena-props) and modelled kinds (`MODEL_PROPS`, loaded from props.glb). */
 export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm' | 'post'
-  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab' | 'hill' | 'blossom';
+  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab' | 'hill' | 'blossom' | 'crag';
 /** Kinds drawn from `assets/arena/props.glb` (tools/arena-assets/build-arena-props.mjs): colours baked per vertex, tinted per instance. */
 export const MODEL_PROPS: ReadonlySet<ArenaPropKind> = new Set(['fern', 'shrub', 'tuft', 'flowers', 'stump', 'deadtree', 'mossrock']);
 export interface ArenaPropSpec {
@@ -66,9 +66,20 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
     { kind: 'pebble', count: 100, colors: ['#9a9a8e', '#7a7f78', '#b0ab98'], size: [0.06, 0.16], bands: [ALL] },
   ],
   menace_hills: [
-    { kind: 'rock', count: 52, colors: ['#8c7c62', '#7a6a50', '#9a8a6c', '#6e6250'], size: [0.4, 1.6], bands: [BEHIND, BEHIND, FRONT] },
-    { kind: 'bush', count: 30, colors: ['#7d7a3e', '#8a8a4a', '#6a6a34'], size: [0.5, 1.1], bands: [BEHIND, FRONT] },
-    { kind: 'pebble', count: 160, colors: ['#9a8a6c', '#7a6a50', '#b09460'], size: [0.06, 0.18], bands: [ALL] },
+    // Dry rocky hills at sunset: crags and bare hills fading into the dust, gnarled dead trees, straw-dry grass.
+    { kind: 'hill', count: 10, colors: ['#a0704a', '#8c6040', '#b07c52'], size: [20, 32], bands: [[-82, -58]], even: true },
+    { kind: 'crag', count: 14, colors: ['#8c6a4c', '#7a5c40', '#9a7656'], size: [2.6, 5], bands: [[-52, -30]], even: true },
+    { kind: 'crag', count: 12, colors: ['#8c6a4c', '#7a5c40', '#9a7656'], size: [0.9, 1.7], bands: [BEHIND, DEEP] },
+    { kind: 'rock', count: 60, colors: ['#8c7c62', '#7a6a50', '#9a8a6c', '#6e6250'], size: [0.4, 1.6], bands: [BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'deadtree', count: 16, colors: ['#a08c78', '#8a7a6a'], size: [0.5, 0.85], bands: [BEHIND, DEEP] },
+    { kind: 'bush', count: 100, colors: ['#8a7a3e', '#9a8a4a', '#7a6a34', '#a08a50'], size: [0.5, 1.1], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT], grow: { count: 20, factor: 1.7 } },
+    { kind: 'tuft', count: 380, colors: ['#c8b060', '#b8a050', '#d0b870'], size: [1.2, 2.6], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'stump', count: 8, colors: ['#9a8a7a', '#8a7a6a'], size: [0.7, 1.1], bands: [BEHIND, DEEP] },
+    // The battle floor: dry sprouts, pebbles, dead twigs and leaves.
+    { kind: 'sprout', count: 1200, colors: ['#a09040', '#8a8a3a', '#b0a050', '#7a7a34'], size: [0.9, 1.8], bands: [ALL] },
+    { kind: 'pebble', count: 260, colors: ['#9a8a6c', '#7a6a50', '#b09460'], size: [0.06, 0.2], bands: [ALL] },
+    { kind: 'twig', count: 80, colors: ['#7a6a4a', '#5f5040'], size: [0.5, 1.1], bands: [ALL] },
+    { kind: 'leaf', count: 200, colors: ['#8a6a3a', '#a07a40', '#6a5030'], size: [0.16, 0.3], bands: [ALL] },
   ],
   kwaioua_forest: [
     // Fallen trunks of every girth (the log scales as a whole: thin branches to old trunks).

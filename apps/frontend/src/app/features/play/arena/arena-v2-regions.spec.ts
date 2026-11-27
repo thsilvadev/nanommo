@@ -13,6 +13,7 @@ const V2: Array<{ region: ArenaRegionId; sky: boolean }> = [
   { region: 'caete', sky: false },
   { region: 'forest_ruins', sky: false },
   { region: 'green_grounds', sky: true },
+  { region: 'menace_hills', sky: true },
 ];
 
 describe('arena v2 regions (the caete standard)', () => {

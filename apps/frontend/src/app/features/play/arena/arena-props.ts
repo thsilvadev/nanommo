@@ -135,6 +135,18 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
       return hillGeometry();
     case 'blossom':
       return blossomGeometry();
+    case 'crag': {
+      // A jagged rock spire (about 1.2 wide, 2.6 tall): a tapering seven-sided cone, every vertex knocked about.
+      const g = new THREE.CylinderGeometry(0.16, 0.62, 2.6, 7, 4);
+      const pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), k = 1 + 0.32 * jitter(Math.round(x * 100), Math.round(y * 100), Math.round(z * 100), 6);
+        pos.setXYZ(i, x * k + 0.12 * Math.sin(y * 2.1), y + (y > 1.2 ? 0.35 * jitter(Math.round(x * 100), 1, Math.round(z * 100), 2) : 0), z * k);
+      }
+      g.translate(0, 1.2, 0);
+      g.deleteAttribute('uv');
+      return shade(g, (p, n) => 0.78 + 0.18 * Math.min(1, p.y / 2.6) + (n.y > 0.5 ? 0.14 : 0));
+    }
     case 'slab': {
       const g = new THREE.BoxGeometry(1, 0.07, 0.68, 2, 1, 2);
       const pos = g.getAttribute('position');

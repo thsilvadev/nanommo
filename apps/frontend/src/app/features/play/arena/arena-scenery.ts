@@ -28,14 +28,14 @@ const LAYERS: LayerSpec[] = [
   { key: 'near', z: -ARENA_NEAR_LAYER_DISTANCE_M, width: 120, height: 15, bottom: -1.2, repeat: 2, speed: 0.6, transparent: true },
 ];
 
+/** Regions with no painted layer at all: a background, fog and (open sky) a 3D dome behind the 3D world (arenaLight). */
+const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins', 'green_grounds', 'menace_hills']);
 /**
- * Regions drawn without the painted near layer: their middle ground is 3D plants (arena-prop-layout),
- * which a turning painted plane at 22 m would cut through.
+ * Regions drawn without the painted near layer (every region without painted layers, and those keeping only
+ * sky + far): their middle ground is 3D plants, which a turning painted plane at 22 m would cut through.
  */
-const NO_NEAR_LAYER: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins', 'green_grounds']);
+const NO_NEAR_LAYER: ReadonlySet<ArenaRegionId> = new Set([...NO_PAINTED_LAYERS]);
 export function arenaHasNearLayer(region: ArenaRegionId): boolean { return !NO_NEAR_LAYER.has(region); }
-/** Regions with no painted layer at all: a plain background and fog behind the 3D forest (arenaLight). */
-const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins', 'green_grounds']);
 
 /** Where a bridge deck ends behind the grid (world z): a parapet, then the drop to the river. */
 const DECK_BACK_Z = -15;
@@ -57,6 +57,11 @@ const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
   green_grounds: {
     sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2, background: '#dcecf4', fog: { near: 12, far: 96 }, groundTint: '#e4ecc8',
     dome: { zenith: '#3f8fe0', horizon: '#dcecf4', clouds: 0.55, cloudColor: '#ffffff' },
+  },
+  // Menace hills: dry rocky hills at sunset, crags fading into an orange dust haze under a darkening sky.
+  menace_hills: {
+    sky: '#ffe2c0', ground: '#4a3a30', hemi: 1.4, sun: '#ffc490', sunIntensity: 2.2, background: '#dca482', fog: { near: 10, far: 90 }, groundTint: '#a89c8e',
+    dome: { zenith: '#3e2a52', horizon: '#dca482', clouds: 0.5, cloudColor: '#ffbe8a' },
   },
   // Forest ruins: late afternoon under a closed canopy, a warm golden haze pierced by sun shafts.
   forest_ruins: { sky: '#fff0d0', ground: '#4a4630', hemi: 1.3, sun: '#ffdfa0', sunIntensity: 1.9, background: '#d9cfa6', fog: { near: 8, far: 66 }, groundTint: '#b4a67c' },
