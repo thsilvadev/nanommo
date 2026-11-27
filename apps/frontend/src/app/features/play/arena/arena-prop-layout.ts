@@ -17,7 +17,7 @@ export const ARENA_TRUNK_HEIGHT_M = 30;
 
 /** Procedural kinds (built in arena-props) and modelled kinds (`MODEL_PROPS`, loaded from props.glb). */
 export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm' | 'post'
-  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk';
+  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout';
 /** Kinds drawn from `assets/arena/props.glb` (tools/arena-assets/build-arena-props.mjs): colours baked per vertex, tinted per instance. */
 export const MODEL_PROPS: ReadonlySet<ArenaPropKind> = new Set(['fern', 'shrub', 'tuft', 'flowers', 'stump', 'deadtree', 'mossrock']);
 export interface ArenaPropSpec {
@@ -86,10 +86,25 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
     { kind: 'pebble', count: 170, colors: ['#a59d8a', '#6f685a', '#8a8170'], size: [0.06, 0.18], bands: [ALL] },
   ],
   caete: [
-    { kind: 'log', count: 14, colors: ['#4a3a24', '#3d2f1d'], size: [0.6, 1.4], bands: [BEHIND, FRONT] },
-    { kind: 'rock', count: 24, colors: ['#4f5a44', '#5d6650'], size: [0.35, 1.0], bands: [BEHIND, FRONT] },
-    { kind: 'bush', count: 46, colors: ['#2f4f26', '#3a5a2c', '#24401d'], size: [0.7, 1.5], bands: [BEHIND, BEHIND, FRONT] },
-    { kind: 'leaf', count: 260, colors: ['#2f4f26', '#5d4a2e', '#3a5a2c'], size: [0.14, 0.24], bands: [ALL] },
+    // A misty day rainforest: giant mossy trunks right behind the grid, more of them fading into the mist.
+    { kind: 'trunk', count: 7, colors: ['#7f8468', '#727a5e', '#8a8c70'], size: [1.2, 1.6], bands: [[-22, -16]], even: true },
+    { kind: 'trunk', count: 14, colors: ['#7f8468', '#727a5e', '#8a8c70'], size: [1.05, 1.7], bands: [[-40, -27]], even: true },
+    // Big tropical leaves (banana / heliconia): low ones in front, man-high ones behind, the nearest grown.
+    { kind: 'bigleaf', count: 190, colors: ['#4a7a3e', '#3f6e36', '#56864a', '#3a6432'], size: [0.6, 1.3], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'bigleaf', count: 60, colors: ['#4a7a3e', '#3f6e36', '#56864a', '#3a6432'], size: [1.4, 2.4], bands: [BEHIND, DEEP, DEEP], grow: { count: 16, factor: 1.5 } },
+    // A thick undergrowth behind the grid: low bush clumps, ferns and grass. Little in front (below the frame) and none deep (the mist hides it).
+    { kind: 'shrub', count: 150, colors: ['#6a8a5c', '#5f8052', '#74946a'], size: [0.6, 1.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT], grow: { count: 24, factor: 1.8 } },
+    { kind: 'shrub', count: 14, colors: ['#5f8052', '#55744a', '#6a8a5c'], size: [2, 3.2], bands: [DEEP] },
+    { kind: 'fern', count: 200, colors: ['#5f8f4f', '#4f7f42', '#6f9f5a'], size: [1.3, 2.6], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'tuft', count: 180, colors: ['#5f8a4c', '#527a42'], size: [1.2, 2.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    // Ankle-low sprouts carpet the whole floor, battle band included.
+    { kind: 'sprout', count: 1800, colors: ['#4f7f3a', '#5f8f44', '#3f6f30', '#6a8a3a'], size: [0.9, 1.8], bands: [ALL] },
+    { kind: 'log', count: 10, colors: ['#5a4a32', '#4a3d28'], size: [0.8, 1.6], bands: [BEHIND, FRONT] },
+    { kind: 'rock', count: 14, colors: ['#5f6b52', '#6b7660'], size: [0.35, 0.9], bands: [BEHIND, FRONT] },
+    { kind: 'mossrock', count: 14, colors: ['#a0a890', '#8f9a80'], size: [0.8, 1.5], bands: [BEHIND, DEEP, FRONT] },
+    { kind: 'stump', count: 8, colors: ['#9a8a6a', '#8a7a5e'], size: [0.8, 1.3], bands: [BEHIND, DEEP] },
+    { kind: 'twig', count: 50, colors: ['#5a4128', '#4a3520'], size: [0.5, 1.1], bands: [ALL] },
+    { kind: 'leaf', count: 420, colors: ['#3a5a2c', '#4f7a34', '#5d4a2e', '#6b5a2e', '#2f4f26'], size: [0.18, 0.34], bands: [ALL] },
   ],
   forest_ruins: [
     { kind: 'block', count: 26, colors: ['#9a9a8c', '#7d7d70', '#8a8a7c'], size: [0.5, 1.3], bands: [BEHIND, BEHIND, FRONT] },
@@ -156,4 +171,5 @@ export function propLocalX(u: number, travelled: number): number {
   return ((((u - travelled) % p) + p) % p) - p / 2;
 }
 
-export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig']);
+/** Kinds low enough for the battle band (flat, or below the ankle). */
+export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig', 'sprout']);
