@@ -48,6 +48,11 @@ export function tokenizeGmLine(line: string): string[] {
   return tokens;
 }
 
+/** The character a cheat targets: the name given, or the GM's own character when none is. */
+export function targetName(name: string | undefined, ctx: GmContext): string {
+  return name?.trim() || ctx.characterName;
+}
+
 /** Parses a whole-number argument or throws a GmCommandError naming it. */
 export function intArg(value: string | undefined, label: string, min: number, max: number): number {
   const n = Number(value);
