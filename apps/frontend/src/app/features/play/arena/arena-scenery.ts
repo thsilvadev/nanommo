@@ -27,6 +27,15 @@ const LAYERS: LayerSpec[] = [
   { key: 'near', z: -ARENA_NEAR_LAYER_DISTANCE_M, width: 120, height: 15, bottom: -1.2, repeat: 2, speed: 0.6, transparent: true },
 ];
 
+/**
+ * Regions drawn without the painted near layer: their middle ground is 3D plants (arena-prop-layout),
+ * which a turning painted plane at 22 m would cut through.
+ */
+const NO_NEAR_LAYER: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest']);
+export function arenaHasNearLayer(region: ArenaRegionId): boolean { return !NO_NEAR_LAYER.has(region); }
+/** Regions with no painted layer at all: a dark background and fog behind the 3D forest (arenaLight). */
+const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest']);
+
 /** Where a bridge deck ends behind the grid (world z): a parapet, then the drop to the river. */
 const DECK_BACK_Z = -15;
 const RIVER_Y = -1.8;
@@ -34,10 +43,12 @@ const RIVER_Y = -1.8;
 const BRIDGES: ReadonlySet<ArenaRegionId> = new Set(['gods_bridge']);
 
 /** Light per region (hemisphere sky/ground, sun): the bridge is lit by a low warm sunset. */
-export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number }
+/** `background`: clear colour (default the painted sky's blue); `fog`: distance fog in that colour. */
+export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number } }
 const DEFAULT_LIGHT: ArenaLight = { sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2 };
 const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
   gods_bridge: { sky: '#ffd2b0', ground: '#4a3a5a', hemi: 1.45, sun: '#ffb070', sunIntensity: 2.5 },
+  kwaioua_forest: { sky: '#d6ccff', ground: '#352a3e', hemi: 1.2, sun: '#f2e4ff', sunIntensity: 1.65, background: '#080515', fog: { near: 26, far: 74 } },
 };
 export function arenaLight(region: ArenaRegionId): ArenaLight { return LIGHTS[region] ?? DEFAULT_LIGHT; }
 
@@ -140,6 +151,34 @@ export class ArenaScenery {
     return texture;
   }
 
+  /** A starry night dome behind the 3D forest (regions without painted layers): fixed points, never fogged. */
+  private buildStars(set: LayerSet): void {
+    const fading = !!this.current;
+    let a = 0x5eed1234;
+    const r = () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const count = 1400, radius = 330;
+    const positions = new Float32Array(count * 3), colors = new Float32Array(count * 3);
+    const tint = new THREE.Color();
+    for (let i = 0; i < count; i++) {
+      const az = r() * Math.PI * 2, el = Math.asin(0.02 + 0.98 * r() ** 1.6); // denser towards the horizon
+      positions.set([Math.cos(el) * Math.sin(az) * radius, Math.sin(el) * radius - 20, -Math.cos(el) * Math.cos(az) * radius], i * 3);
+      const b = 0.35 + 0.65 * r() ** 3;
+      tint.setHSL(0.6 + 0.2 * r(), 0.5, 0.75).multiplyScalar(b);
+      colors.set([tint.r, tint.g, tint.b], i * 3);
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    this.geometries.push(geometry);
+    const material = new THREE.PointsMaterial({ size: 2.2, sizeAttenuation: false, vertexColors: true, fog: false, depthWrite: false, transparent: fading, opacity: fading ? 0 : 1 });
+    const stars = new THREE.Points(geometry, material);
+    stars.name = 'arena:stars';
+    stars.frustumCulled = false;
+    stars.renderOrder = -10;
+    set.group.add(stars);
+    set.extras.push(material);
+  }
+
   /** The river below the deck (animated, sunset reflection), the deck's side wall and its parapet rails. */
   private buildBridge(set: LayerSet): void {
     const fading = !!this.current;
@@ -205,6 +244,7 @@ export class ArenaScenery {
     this.building = set;
     // Painted layers: unlit, behind everything, never write depth (the grid draws over them).
     for (const spec of LAYERS) {
+      if ((spec.key === 'near' && !arenaHasNearLayer(region)) || NO_PAINTED_LAYERS.has(region)) continue;
       const texture = this.texture(assets[spec.key], spec.repeat);
       const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: this.current ? 0 : 1, depthWrite: false, fog: false });
       const geometry = new THREE.PlaneGeometry(spec.width, spec.height);
@@ -232,9 +272,14 @@ export class ArenaScenery {
     plane.renderOrder = -5;
     plane.frustumCulled = false;
     group.add(plane);
-    set.props = new ArenaProps(region, RELIEF[region] ?? 1);
+    // Without a near layer nothing bounds the props: behind the far layer they go behind its opaque wall of trees.
+    set.props = new ArenaProps(region, RELIEF[region] ?? 1, arenaHasNearLayer(region) ? ARENA_NEAR_LAYER_DISTANCE_M : Infinity);
+    // The modelled props download with the textures: the region is ready once they are in.
+    set.pending++;
+    void set.props.loaded.then(() => { set.pending = Math.max(0, set.pending - 1); });
     group.add(set.props.group);
     if (bridge) this.buildBridge(set);
+    if (NO_PAINTED_LAYERS.has(region)) this.buildStars(set);
     set.ground = ground; set.groundMaterial = groundMaterial; set.textures.push(ground);
     this.building = null;
     return set;

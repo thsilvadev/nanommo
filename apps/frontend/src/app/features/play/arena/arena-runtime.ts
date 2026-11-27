@@ -58,6 +58,8 @@ const CAMERA_FOLLOW_MS = 260;
 const SPARK_MS = 250;
 /** The arrow mesh is life-size (0.72 m); from the broadcast camera it needs to read. */
 const ARROW_SCALE = 2.2;
+/** Clear colour behind the painted sky (regions without painted layers set their own, arenaLight). */
+const ARENA_SKY_COLOR = '#9fc8ec';
 
 export async function createArenaRuntime(host: HTMLElement, init: ArenaRuntimeInit): Promise<ArenaRuntimeHandle> {
   const loader = new GLTFLoader();
@@ -107,7 +109,7 @@ class ArenaRuntime implements ArenaRuntimeHandle {
     // Shaders link before a model is first drawn (no stall on the frame it appears).
     factory.prepare = (object) => this.prepare(object);
 
-    this.scene.background = new THREE.Color('#9fc8ec');
+    this.scene.background = new THREE.Color(ARENA_SKY_COLOR);
     this.scene.add(this.hemi);
     this.sun.position.set(-8, 16, 12);
     this.scene.add(this.sun);
@@ -215,6 +217,9 @@ class ArenaRuntime implements ArenaRuntimeHandle {
       const light = arenaLight(input.region);
       this.hemi.color.set(light.sky); this.hemi.groundColor.set(light.ground); this.hemi.intensity = light.hemi;
       this.sun.color.set(light.sun); this.sun.intensity = light.sunIntensity;
+      const background = light.background ?? ARENA_SKY_COLOR;
+      (this.scene.background as THREE.Color).set(background);
+      this.scene.fog = light.fog ? new THREE.Fog(background, light.fog.near, light.fog.far) : null;
     }
 
     // Views: create for new actors, drop the ones that left the frame.

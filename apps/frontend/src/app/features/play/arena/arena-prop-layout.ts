@@ -12,8 +12,14 @@ import type { ArenaRegionId } from './arena-region';
 import { ARENA_FLAT_HALF_DEPTH_M } from './arena-terrain';
 
 export const ARENA_PROP_PERIOD_M = 180;
+/** Height of the unit giant trunk model (metres, before its instance size). */
+export const ARENA_TRUNK_HEIGHT_M = 30;
 
-export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm' | 'post';
+/** Procedural kinds (built in arena-props) and modelled kinds (`MODEL_PROPS`, loaded from props.glb). */
+export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm' | 'post'
+  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk';
+/** Kinds drawn from `assets/arena/props.glb` (tools/arena-assets/build-arena-props.mjs): colours baked per vertex, tinted per instance. */
+export const MODEL_PROPS: ReadonlySet<ArenaPropKind> = new Set(['fern', 'shrub', 'tuft', 'flowers', 'stump', 'deadtree', 'mossrock']);
 export interface ArenaPropSpec {
   kind: ArenaPropKind;
   count: number;
@@ -22,12 +28,22 @@ export interface ArenaPropSpec {
   size: [number, number];
   /** Depth bands (world z, metres) to scatter over. */
   bands: Array<[number, number]>;
+  /** Evenly spaced along the strip (a little jitter) instead of at random: big things that must not bunch up. */
+  even?: boolean;
+  /** The `count` instances nearest the grid are `factor` times bigger. */
+  grow?: { count: number; factor: number };
 }
 export interface ArenaPropInstance { kind: ArenaPropKind; u: number; z: number; size: number; yaw: number; tilt: number; color: string; variant: number }
 
 /** Standing props may only use these bands (behind the grid is where the relief rises). */
 const BEHIND: [number, number] = [-24, -(ARENA_FLAT_HALF_DEPTH_M + 0.8)];
 const FRONT: [number, number] = [ARENA_FLAT_HALF_DEPTH_M + 1.5, 26];
+/**
+ * Regions without a painted near layer fill the ground up to the far layer (70 m) with 3D plants:
+ * a thinning undergrowth past the grid's back rows, then a dense edge in front of the painted far trees.
+ */
+const DEEP: [number, number] = [-40, -24];
+const EDGE: [number, number] = [-50, -38];
 /** Flat props can lie anywhere, battle band included. */
 const ALL: [number, number] = [-24, 22];
 
@@ -45,9 +61,20 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
   ],
   kwaioua_forest: [
     // Fallen trunks of every girth (the log scales as a whole: thin branches to old trunks).
-    { kind: 'log', count: 26, colors: ['#5a4128', '#4a3520', '#6b4e30', '#3d2c1a'], size: [0.5, 2.4], bands: [BEHIND, BEHIND, FRONT] },
+    // Giant standing trunks with buttress roots (sapopemas) right behind the grid; their canopy (shrubs) far overhead.
+    { kind: 'trunk', count: 9, colors: ['#6b5a48', '#5d4c3c', '#76644f'], size: [1.15, 1.7], bands: [[-22, -16]], even: true },
+    // The modelled bush round the grid: low clumps, and big ones (2–3.5 m) standing in for small trees.
+    { kind: 'shrub', count: 170, colors: ['#5a7a4c', '#4c6a40', '#66865a'], size: [0.7, 1.5], bands: [BEHIND, BEHIND, FRONT, FRONT, DEEP], grow: { count: 40, factor: 2 } },
+    { kind: 'shrub', count: 90, colors: ['#5a7a4c', '#4c6a40', '#66865a', '#455f3a'], size: [1.9, 3.3], bands: [BEHIND, BEHIND, DEEP], grow: { count: 24, factor: 2 } },
     { kind: 'rock', count: 22, colors: ['#5f6b52', '#55604a', '#6b7660'], size: [0.35, 1.0], bands: [BEHIND, FRONT] },
     { kind: 'bush', count: 50, colors: ['#1f3a17', '#25401a', '#2e4a20', '#173214'], size: [0.7, 1.7], bands: [BEHIND, BEHIND, FRONT] },
+    // Modelled undergrowth (no painted near layer here): ferns everywhere behind, a dense shrub edge far back.
+    { kind: 'fern', count: 150, colors: ['#6f8f5f', '#5f7f50', '#7f9f6a', '#56744a'], size: [1.6, 2.8], bands: [BEHIND, BEHIND, DEEP, FRONT] },
+    // Past ~45 m the night fog hides everything: only a thin edge there.
+    { kind: 'shrub', count: 70, colors: ['#5a7a4c', '#4c6a40', '#66865a', '#455f3a'], size: [1.8, 3.4], bands: [EDGE, DEEP] },
+    { kind: 'tuft', count: 220, colors: ['#6f8f5a', '#5f7f4c'], size: [1.6, 3], bands: [BEHIND, DEEP, FRONT] },
+    { kind: 'stump', count: 10, colors: ['#9a8a7a', '#8a7a6a'], size: [0.8, 1.3], bands: [BEHIND, DEEP, FRONT] },
+    { kind: 'mossrock', count: 18, colors: ['#9aa090', '#8a9080'], size: [0.8, 1.6], bands: [BEHIND, DEEP, DEEP, FRONT] },
     { kind: 'twig', count: 70, colors: ['#5a4128', '#6b4e30', '#4a3520'], size: [0.5, 1.1], bands: [ALL] },
     { kind: 'leaf', count: 560, colors: ['#3d5f2c', '#4f7a34', '#6b5a2e', '#8a6a2a', '#a07a30', '#5f7a2a', '#2f4f22'], size: [0.18, 0.34], bands: [ALL] },
     { kind: 'pebble', count: 120, colors: ['#6b7660', '#5f6b52', '#7d7a6a'], size: [0.05, 0.14], bands: [ALL] },
@@ -103,15 +130,23 @@ export function arenaPropLayout(region: ArenaRegionId): ArenaPropInstance[] {
   // God's Bridge: the parapet's posts, evenly spaced along the deck's back edge.
   if (region === 'gods_bridge') for (let i = 0; i < ARENA_PROP_PERIOD_M / 2.5; i++) out.push({ kind: 'post', u: i * 2.5, z: -14.6, size: 1, yaw: 0, tilt: 0, color: '#c2b294', variant: 0 });
   for (const spec of arenaPropSpecs(region)) {
+    const first = out.length;
     for (let i = 0; i < spec.count; i++) {
       const band = spec.bands[Math.floor(r() * spec.bands.length)];
+      const u = spec.even ? ((i + 0.5 + (r() - 0.5) * 0.45) / spec.count) * ARENA_PROP_PERIOD_M + (spec.size[0] * 37) % 9 : r() * ARENA_PROP_PERIOD_M;
       out.push({
-        kind: spec.kind, u: r() * ARENA_PROP_PERIOD_M, z: band[0] + r() * (band[1] - band[0]),
+        kind: spec.kind, u, z: band[0] + r() * (band[1] - band[0]),
         size: spec.size[0] + r() * (spec.size[1] - spec.size[0]), yaw: r() * Math.PI * 2, tilt: (r() - 0.5) * 0.3,
         color: spec.colors[Math.floor(r() * spec.colors.length)], variant: Math.floor(r() * 4),
       });
     }
+    if (spec.grow) {
+      const mine = out.slice(first).sort((a, b) => Math.abs(a.z) - Math.abs(b.z));
+      for (const p of mine.slice(0, spec.grow.count)) p.size *= spec.grow.factor;
+    }
   }
+  // Giant trunks reach out of every view (no canopy is drawn): each leans slightly its own way.
+  for (const trunk of out) if (trunk.kind === 'trunk') trunk.tilt = (r() - 0.5) * 0.16;
   return out;
 }
 

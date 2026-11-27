@@ -22,3 +22,16 @@ confere a primeira e a última coluna). Não editar os `.webp` à mão: mude o s
 
 Regiões: `green_grounds`, `menace_hills`, `kwaioua_forest`, `wastelands`, `caete`, `forest_ruins`,
 `ipora_beach`, `gods_bridge` (fallback: `green_grounds`).
+
+## Props 3D modelados (`props.glb`)
+
+```bash
+node tools/arena-assets/build-arena-props.mjs
+```
+
+Gera `apps/frontend/public/assets/arena/props.glb`: uma malha por tipo (`prop_<tipo>`: fern, shrub, tuft,
+flowers, stump, deadtree, mossrock) a partir dos GLBs baixados em `tools/character-assets/source/arena-props/`
+(gitignorada). A textura de paleta vira cor por face (vértice); o modelo fica em pé em y = 0, centrado em x/z.
+A arena desenha esses tipos instanciados (`MODEL_PROPS` em `arena-prop-layout.ts`), tingidos por instância.
+Créditos e licenças: `CREDITS.md`. Folhagem com `alphaMode: BLEND` precisa virar recorte (`alphaTest`) antes de
+entrar: objetos transparentes são desenhados depois de todos os opacos.
