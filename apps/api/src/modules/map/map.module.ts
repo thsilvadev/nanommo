@@ -1,3 +1,4 @@
+import { GmTeleportModeModule } from '../gm/gm-teleport-mode.module';
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -17,6 +18,7 @@ import { QuestModule } from '../quests/quest.module';
 
 @Module({
   imports: [
+    GmTeleportModeModule,
     TypeOrmModule.forFeature([MapKillCounter, Character, User]),
     BullModule.registerQueue({ name: 'battle-queue' }),
     DataModule,

@@ -8,6 +8,7 @@ import { CharacterStore } from '../../core/game.store';
 import { LocaleService } from '../../core/locale.service';
 import { TownStore } from '../../core/town.store';
 import { IdleChatComponent } from './idle-chat.component';
+import { GmTeleportStore } from '../../core/gm-teleport.store';
 
 describe('IdleChatComponent slash commands', () => {
   let socket: any;
@@ -127,6 +128,22 @@ describe('IdleChatComponent slash commands', () => {
     chat.draft.set('/start-event party 5');
     await chat.send();
     expect(errorRows(chat).map(r => r.message)).toEqual(['/start-event: Unknown event code.\nUsage: /start-event <event-code> <minutesToEvent>']);
+  });
+
+  it('/teleport updates map mode from the server after each successful toggle', async () => {
+    let enabled = true;
+    const api = TestBed.inject(ApiService);
+    spyOn(api, 'get').and.callFake(((path: string) => of(path === '/maps/gm-teleport-mode' ? { enabled } : [])) as any);
+    socket.emit.and.resolveTo({ success: true, message: 'Teleport ON' });
+    const chat = create();
+    chat.draft.set('/teleport');
+    await chat.send();
+    expect(TestBed.inject(GmTeleportStore).enabled()).toBeTrue();
+    enabled = false;
+    chat.draft.set('/TELEPORT');
+    await chat.send();
+    expect(TestBed.inject(GmTeleportStore).enabled()).toBeFalse();
+    expect(socket.emit).not.toHaveBeenCalledWith('chat:send', jasmine.anything());
   });
 
   it('ChatNoticeService errors become red System lines', () => {

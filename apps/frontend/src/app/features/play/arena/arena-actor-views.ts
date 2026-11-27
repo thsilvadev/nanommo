@@ -388,6 +388,10 @@ export class ArenaTint {
 
   private copy(m: THREE.Material): THREE.Material {
     const copy = m.clone();
+    // Three's clone copies material values, but not shader hooks. Refinement is
+    // injected here, so a hit/fade must preserve both the shader and its cache key.
+    copy.onBeforeCompile = m.onBeforeCompile;
+    copy.customProgramCacheKey = m.customProgramCacheKey;
     const std = copy as THREE.MeshStandardMaterial;
     this.authored.set(copy, { emissive: std.emissive ? std.emissive.clone() : null, transparent: copy.transparent, opacity: copy.opacity });
     this.owned.push(copy);

@@ -2,8 +2,29 @@ import * as THREE from 'three';
 import { ArenaActorView, ArenaTint } from './arena-actor-views';
 import type { ArenaActorFrame } from './arena-actions';
 import type { TownCharacterFactory } from '../town-scene/town-character';
+import { gearMaterial } from '../../../shared/character-viewer/gear-merge';
+import type { LoadedGear } from '../../../shared/character-viewer/gear-manifest';
 
 describe('ArenaTint (hit flash and exit fade)', () => {
+  it('keeps the gold refinement shader through a hit and the following fade', () => {
+    const material = gearMaterial({ atlas: new THREE.Texture() } as LoadedGear, 2);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(), material);
+    const tint = new ArenaTint();
+    tint.apply(mesh, '#ffffff', 1, 1);
+    tint.apply(mesh, '#000000', 0, 0.5);
+    tint.apply(mesh, '#000000', 0, 1);
+    const copy = mesh.material as THREE.MeshStandardMaterial;
+    const shader = { uniforms: {}, vertexShader: '#include <common>\n#include <skinning_vertex>', fragmentShader: '#include <common>\n#include <dithering_fragment>' } as unknown as THREE.WebGLProgramParametersWithUniforms;
+    copy.onBeforeCompile(shader, {} as THREE.WebGLRenderer);
+    expect(shader.fragmentShader).toContain('uGlintTint');
+    expect(shader.uniforms['uGlintTint']?.value).toEqual(new THREE.Color(1, 0.72, 0.26));
+    expect(shader.uniforms['uGlintTime']).toBeDefined();
+    expect(copy.customProgramCacheKey()).toBe('gear-glint-2');
+    expect(copy).not.toBe(material);
+    expect(material.opacity).toBe(1);
+    tint.dispose();
+  });
+
   function model() {
     const material = new THREE.MeshStandardMaterial({ color: '#888888', emissive: '#335577', transparent: true, opacity: 0.6 });
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(), material);

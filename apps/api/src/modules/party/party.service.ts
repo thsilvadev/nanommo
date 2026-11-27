@@ -1,5 +1,5 @@
 import { publicCombatAction } from './combat-action-view';
-import { combatCooldownDurations } from '@nanommo/shared';
+import { combatCooldownDurations, replayBattleV2 } from '@nanommo/shared';
 import { guardEncounterDeadline, PARTY_DEADLINE_REACHED } from './party-deadline';
 import { loadArenaLooks, nextPartyEncounterAt } from './party-arena';
 import { Inject, forwardRef, BadRequestException, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
@@ -219,6 +219,25 @@ export class PartyService {
     }
     await this.changed(ctx,[id]);ctx.members=remaining;
   }
+  /** GM-only caller supplies authorization. Stop the immutable shared encounter at its real checkpoint
+   * before detaching one actor; everyone else remains here and resumes normal party encounters. */
+  async prepareGmTeleport(ctx: PartyContext, characterId: string): Promise<void> {
+    const row = (await ctx.manager.query(`SELECT b.* FROM shared_battles b JOIN active_battle_participants a ON a."battleId"=b.id WHERE a."characterId"=$1 FOR UPDATE OF b`, [characterId]))[0];
+    if (row) {
+      const ended = new Date(row.endAt).getTime() <= ctx.now;
+      const tick = Math.max(0, Math.min(Number(row.log.durationTicks), Math.floor((ctx.now - new Date(row.startAt).getTime()) / 500)));
+      await this.shared.resolve(ctx, row, (id, reason) => this.remove(ctx, id, reason), !ended,
+        ended ? undefined : replayBattleV2(row.snapshot, tick));
+    }
+    if (ctx.members.some(member => member.characterId === characterId)) await this.remove(ctx, characterId, 'map');
+    await ctx.manager.query(`UPDATE character_action_intents SET status='cancelled',"completedAt"=clock_timestamp(),result='{"message":"GM teleport"}'::jsonb WHERE "characterId"=$1 AND status='pending'`, [characterId]);
+    const cancelledInvites: Array<{ inviterId: string; candidateId: string }> = await ctx.manager.query(`UPDATE party_invites SET status='cancelled',revision=revision+1 WHERE ("inviterId"=$1 OR "candidateId"=$1) AND status IN ('offered','accepted') RETURNING "inviterId","candidateId"`, [characterId]);
+    for (const id of new Set(cancelledInvites.flatMap(invite => [invite.inviterId, invite.candidateId]))) {
+      await this.event(ctx.manager, id, 'party:updated', { refresh: true });
+    }
+    await this.event(ctx.manager, characterId, 'party:actionUpdated', { refresh: true });
+  }
+
   async leave(characterId:string,cancel=false,targetId?:string){
     await this.serialized([characterId],async ctx=>{
       if(!ctx.party)return;const id=targetId??characterId;

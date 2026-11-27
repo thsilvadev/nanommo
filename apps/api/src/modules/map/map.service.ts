@@ -1,3 +1,4 @@
+import { GmTeleportModeService } from '../gm/gm-teleport-mode.service';
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bull';
@@ -54,6 +55,7 @@ export class MapService {
     private readonly idleJournal: IdleJournalService,
     private readonly questService: QuestService,
     private readonly townRoster: TownRosterService,
+    private readonly gmTeleportMode: GmTeleportModeService,
   ) {}
 
   /**
@@ -62,6 +64,60 @@ export class MapService {
   async getMaps(): Promise<any[]> {
     // Map topology and monster-presence weights have their own canonical catalogue.
     return this.dataService.getMaps();
+  }
+
+  async gmTeleportEnabled(userId: string, characterId: string): Promise<boolean> {
+    return this.gmTeleportMode.enabled(userId, characterId);
+  }
+
+  /** Privileged arrival bypasses discovery/travel gates, never destination validity or server authority. */
+  async gmTeleport(userId: string, characterId: string, mapId: string): Promise<any> {
+    await this.gmTeleportMode.assertEnabled(userId, characterId);
+    const map = this.dataService.getMapById(mapId);
+    if (!map || map.isClickable === false || !['town', 'grind'].includes(String(map.type))) throw new BadRequestException('Map not found');
+    const party = this.battleService.partyCoordinator();
+    if (!party) throw new BadRequestException('Party authority unavailable');
+    // Party serialization acquires the same advisory authority used by solo queue writers,
+    // plus every shared participant's lock. Do not nest the solo session lock around it.
+    const result = await party.serialized([characterId], async ctx => {
+      await this.gmTeleportMode.assertEnabled(userId, characterId, ctx.manager);
+      const character = ctx.characters.find(c => c.id === characterId);
+      if (!character || character.userId !== userId) throw new NotFoundException('Character not found');
+      const previousMapId = character.currentMapId;
+      const previousLocations = new Map(ctx.characters.map(c => [c.id, c.currentMapId]));
+      const previousJobIds = [character.travelIntent?.scheduledJobId, (character.gatheringCycle as any)?.scheduledJobId].filter(Boolean).map(String);
+      await party.prepareGmTeleport(ctx, characterId);
+      const queueRepo = ctx.manager.getRepository(BattleQueueEntry);
+      const unresolved = await queueRepo.find({ where: { characterId, resolved: false } });
+      const cancelledBattleIds = unresolved.map(entry => entry.id);
+      if (cancelledBattleIds.length) await queueRepo.delete({ id: In(cancelledBattleIds), resolved: false });
+      await this.battleService.cancelPendingEncounterSearch(characterId, ctx.manager);
+      character.currentMapId = map.id;
+      character.status = map.type === 'town' ? 'town' : 'grinding';
+      character.travelIntent = null;
+      character.pendingMapTransition = null;
+      character.fleeNextAttemptAt = null;
+      character.fleeAttemptIndex = 0;
+      character.discoveredMapIds = [...new Set([...(character.discoveredMapIds ?? [TOWN_MAP_ID]), map.id])];
+      character.gatheringCycle = { progress: 0, cycleIndex: Number(character.gatheringCycle?.cycleIndex ?? 0) + 1, varianceSeconds: null, lastUpdatedAt: new Date(ctx.now).toISOString() };
+      character.encounterCycle = { cycleIndex: Number(character.encounterCycle?.cycleIndex ?? 0) + 1, nextAt: null };
+      character.lastSeenAt = new Date(ctx.now);
+      await ctx.manager.getRepository(Character).save(character);
+      const companionTransitions = ctx.characters.filter(c => c.id !== characterId && c.currentMapId !== previousLocations.get(c.id))
+        .map(c => ({ characterId: c.id, previousMapId: previousLocations.get(c.id) }));
+      return { previousMapId, previousJobIds, cancelledBattleIds, companionTransitions };
+    });
+    for (const jobId of result.previousJobIds) await this.removeJob(jobId);
+    if (result.cancelledBattleIds.length) await this.battleService.removeBattleQueueJobs(result.cancelledBattleIds);
+    for (const transition of [{ characterId, previousMapId: result.previousMapId }, ...result.companionTransitions]) {
+      try { await this.mapPresenceService.syncCharacter(transition.characterId, transition.previousMapId); }
+      catch (error) { this.logger.warn(`Map presence sync failed after GM teleport for ${transition.characterId}: ${error instanceof Error ? error.message : String(error)}`); }
+    }
+    // Resume existing activity workers after arrival; synchronous encounter projection
+    // could auto-feed/return a hungry character before the teleport response is hydrated.
+    if (map.type === 'grind') await this.scheduleStationaryActivity(characterId);
+    await this.battleService.publishQueueUpdated(characterId);
+    return { deferred: false, destinationMapId: map.id, currentMapId: map.id };
   }
 
   /** Request travel to a revealed map. Location/presence change only when a route segment commits. */

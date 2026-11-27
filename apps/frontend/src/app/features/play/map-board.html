@@ -3,7 +3,6 @@
     <div class="map-head">
       <h1>Currently in: {{mapName()}}</h1>
       <app-town-view-toggle *ngIf="inTownScene()" class="town-view-toggle" [mode]="$any(viewMode())" (modeChange)="setViewMode($event)" />
-      <app-arena-toggle *ngIf="!inTownScene() && character.character()?.currentMapId" class="town-view-toggle" [available]="webgl" [mode]="viewMode()==='arena' ? 'arena' : 'map'" (modeChange)="setArenaMode($event)" />
       <div class="map-meta">
         <div *ngIf="teleportActivity() as teleport" class="activity-gauge teleporting" role="progressbar" [attr.aria-label]="locale.t('Teleporting…')" [attr.aria-valuenow]="teleportProgress()" aria-valuemin="0" aria-valuemax="100">
           <div class="activity-gauge-fill" [style.width.%]="teleportProgress()"></div><strong>{{locale.t('Teleporting…')}}{{teleport.paused ? ' · '+locale.t('Paused during battle') : ''}}</strong>
@@ -21,16 +20,17 @@
     </div>
     <!-- Battle arena (non-town maps): mounted on first use, then only hidden (it stops rendering). -->
     <app-arena-scene *ngIf="arenaMounted()" [class.arena-hidden]="viewMode()!=='arena'" [attr.aria-hidden]="viewMode()!=='arena' ? 'true' : null" [active]="viewMode()==='arena'" [mapId]="character.character()?.currentMapId ?? null" />
+    <app-arena-toggle *ngIf="!inTownScene() && character.character()?.currentMapId" class="arena-view-toggle" [available]="webgl" [mode]="viewMode()==='arena' ? 'arena' : 'map'" (modeChange)="setArenaMode($event)" />
     <!-- Kept mounted in the town view (only hidden): recreating it re-requested and re-decoded the map art on every switch. -->
     <div #world class="world" [class.world--hidden]="viewMode()!=='map'" [attr.aria-hidden]="viewMode()!=='map' ? 'true' : null" [style.transform]="'translate3d('+(-cameraX()*zoom())+'px,'+(-cameraY()*zoom())+'px,0) scale('+zoom()+')'">
       <img class="world-art" [src]="mapArtUrl" alt="" draggable="false" decoding="async">
       <ng-container *ngFor="let cell of cells; trackBy: trackCell">
-        <div class="fog-cell" *ngIf="!isRevealed(cell.x,cell.y)" [style.left.px]="cell.col*153" [style.top.px]="cell.row*153" aria-hidden="true"></div>
+        <div class="fog-cell" *ngIf="!gmTeleport.enabled() && !isRevealed(cell.x,cell.y)" [style.left.px]="cell.col*153" [style.top.px]="cell.row*153" aria-hidden="true"></div>
       </ng-container>
       <svg *ngIf="destinationRoute().length>1" class="destination-route" viewBox="0 0 2295 1989" preserveAspectRatio="none" aria-hidden="true">
         <polyline [attr.points]="destinationRoutePoints()" />
       </svg>
-      <button *ngFor="let tile of maps; trackBy: trackMap" type="button" class="map-tile" [style.left.px]="gridColumn(tile)*153" [style.top.px]="gridRow(tile)*153" [class.current]="tile.id===character.character()?.currentMapId" [class.destination]="tile.id===displayDestinationMapId()" [attr.aria-label]="tile.name" [attr.data-map-id]="tile.id" [disabled]="!partyCanTravel() || !isRevealed(tile.coordinates.x,tile.coordinates.y) || tile.isClickable===false" (pointerenter)="showTileTooltip(tile,$event)" (pointermove)="moveTileTooltip($event)" (pointerleave)="hideTileTooltip()" (focus)="showTileTooltip(tile,$event)" (blur)="hideTileTooltip()">
+      <button *ngFor="let tile of maps; trackBy: trackMap" type="button" class="map-tile" [style.left.px]="gridColumn(tile)*153" [style.top.px]="gridRow(tile)*153" [class.current]="tile.id===character.character()?.currentMapId" [class.destination]="tile.id===displayDestinationMapId()" [attr.aria-label]="tile.name" [attr.data-map-id]="tile.id" [disabled]="tile.isClickable===false || (!gmTeleport.enabled() && (!partyCanTravel() || !isRevealed(tile.coordinates.x,tile.coordinates.y)))" (pointerenter)="showTileTooltip(tile,$event)" (pointermove)="moveTileTooltip($event)" (pointerleave)="hideTileTooltip()" (focus)="showTileTooltip(tile,$event)" (blur)="hideTileTooltip()">
         <img *ngIf="tile.id===displayDestinationMapId()" class="destination-pinpoint" src="/project/destination_pinpoint.png" alt="Destination">
         <img *ngIf="mapHasNpcNotification(tile)" class="map-notification-dot" src="/assets/ui/notification_dot.png" alt="New NPC available"><img *ngIf="tile.type==='town' && tile.id===character.character()?.savedTownMapId" class="town-waypoint" src="/project/T_waypoint.png" alt="Saved Town waypoint">
         <span class="map-tooltip-content"><strong>{{tile.name}}</strong><small *ngIf="tile.type==='grind'">Recommended level: {{tile.recommendedLevel ?? 1}}</small><small *ngIf="tile.type==='town'">Town</small><small *ngIf="tile.type!=='town' && tile.type!=='grind'">{{tile.type | titlecase}}</small></span>

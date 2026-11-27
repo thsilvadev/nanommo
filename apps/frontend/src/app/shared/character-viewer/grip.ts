@@ -42,5 +42,8 @@ export function gripMatrix(fist: Fist, type: HandWeaponType): THREE.Matrix4 {
     default: // dagger, sword, rod
       matrix = basis(through(0.5, 0.15), palm).setPosition(centre);
   }
+  // Scale about the authored grip origin, after placement: the fist stays fixed while
+  // limbs and string share the same frame in portraits, fused town gear and the arena.
+  if (type === 'bow') matrix.scale(new THREE.Vector3(1.35, 1.35, 1.35));
   return matrix;
 }

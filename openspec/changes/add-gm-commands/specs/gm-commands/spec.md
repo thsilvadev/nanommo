@@ -39,3 +39,28 @@ A town speech bubble SHALL keep the same on-screen size at every camera zoom lev
 #### Scenario: Maximum zoom-out
 - WHEN the camera zooms out as far as it goes while a bubble is up
 - THEN the bubble's on-screen height stays within 15% of its height at the closest top-down zoom.
+
+### Requirement: Toggle instant world-map teleport
+
+`/teleport` without arguments SHALL toggle a server-owned mode for the GM's character and report whether it is enabled. `/gm-help` SHALL list the command. While enabled, clicking a valid Town or Grind destination SHALL relocate only the GM immediately, including undiscovered destinations and when the GM is not the party leader. Town-floor walking SHALL remain unchanged. Disabling the mode SHALL restore ordinary map discovery and party travel restrictions.
+
+The server SHALL recheck the account's current GM role and enabled mode for every teleport; client state SHALL never authorize a bypass. Role checks inside an existing transaction SHALL reuse its connection. Invalid or non-clickable destinations SHALL be rejected. The committed arrival SHALL clear incompatible travel, encounter queues/jobs and pending actions, update discovery and reconcile map/town presence after commit. Normal hunger and activity rules SHALL resume through the existing workers.
+
+#### Scenario: Repeated toggle
+- WHEN a GM sends `/teleport` twice
+- THEN the first command enables instant world-map teleport and the second disables it
+- AND neither command appears in global chat.
+
+#### Scenario: Role revoked while enabled
+- WHEN an account loses its GM role after enabling the mode
+- THEN the next teleport request is refused even if its client still displays the enabled state.
+
+#### Scenario: Teleport out of shared combat
+- WHEN a GM teleports during an active shared encounter
+- THEN the encounter ends at its actual elapsed checkpoint before the GM leaves the party
+- AND the other members stay in their locations and resume normal encounters
+- AND an encounter already completed retains its normal resolution and rewards.
+
+#### Scenario: Cancelled invitations refresh other players
+- WHEN teleport cancels offered or accepted invitations involving the GM
+- THEN every affected inviter and candidate receives a post-commit refresh notification.

@@ -362,6 +362,7 @@ export class BattleEngine {
   static readonly MAX_ATTACK_DURATION_TICKS = 16;
   static readonly MAX_ATTACK_SPEED = 800;
   static readonly DEFAULT_MONSTER_CAST_TICKS = 12;
+  static readonly PHYSICAL_DEF_EFFECTIVENESS = 1.10;
   static readonly DEF_FLAT_REDUCTION_PER_POINT = 0.425;
   static readonly DEF_RELATIVE_SCALE = 250;
   static readonly MIN_PHYSICAL_DAMAGE_MULTIPLIER = 0.01;
@@ -441,11 +442,12 @@ export class BattleEngine {
   /**
    * Hybrid physical mitigation: DEF subtracts a flat component and also scales
    * with incoming damage through diminishing-return percentage mitigation.
-   * Keep at least 10% of the raw hit so armor cannot fully negate physical hits.
+   * Effective DEF is increased by 10% for both components.
+   * Keep at least 1% of the raw hit so armor cannot fully negate physical hits.
    */
   static calculatePhysicalDamage(rawDamage: number, def: number): number {
     const raw = Math.max(0, Number(rawDamage) || 0);
-    const armor = Math.max(0, Number(def) || 0);
+    const armor = Math.max(0, Number(def) || 0) * BattleEngine.PHYSICAL_DEF_EFFECTIVENESS;
     const flatReduction = armor * BattleEngine.DEF_FLAT_REDUCTION_PER_POINT;
     const relativeReduction = raw * armor / (armor + BattleEngine.DEF_RELATIVE_SCALE);
     return Math.max(raw * BattleEngine.MIN_PHYSICAL_DAMAGE_MULTIPLIER, raw - flatReduction - relativeReduction);

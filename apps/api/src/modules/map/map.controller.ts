@@ -29,6 +29,22 @@ export class MapController {
     return this.mapService.getRecommendedMaps(character.id);
   }
 
+  @Get('gm-teleport-mode')
+  async gmTeleportMode(@Request() req: any) {
+    const character = await this.characterService.getCharacterByUserId(req.user.userId);
+    if (!character) throw new BadRequestException('Character not found');
+    return { enabled: await this.mapService.gmTeleportEnabled(req.user.userId, character.id) };
+  }
+
+  @Post(':mapId/gm-teleport')
+  async gmTeleport(@Request() req: any, @Param('mapId') mapId: string) {
+    const character = await this.characterService.getCharacterByUserId(req.user.userId);
+    if (!character) throw new BadRequestException('Character not found');
+    const result = await this.mapService.gmTeleport(req.user.userId, character.id, mapId);
+    const updatedCharacter = await this.characterService.getCharacterDtoById(character.id);
+    return { success: true, ...result, currentMapId: updatedCharacter?.currentMapId ?? result.currentMapId, character: updatedCharacter };
+  }
+
   /**
    * Enter a map
    */

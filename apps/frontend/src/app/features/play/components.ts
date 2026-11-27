@@ -18,6 +18,7 @@ import { Component, EventEmitter, Input, Output, OnDestroy, HostListener, comput
 import { Router } from '@angular/router';
 import { CharacterStore, BattleStore, InventoryStore } from '../../core/game.store';
 import { CatalogService } from '../../core/catalog.service';
+import { GmTeleportStore } from '../../core/gm-teleport.store';
 import { UiClockService } from '../../core/ui-clock.service';
 import { MAP_ART_URL } from './map-art';
 import { installFogStyles } from './fog-sprites';
@@ -167,6 +168,7 @@ export class CharacterSummary implements OnDestroy {
 @Component({ selector: 'app-map-board', standalone: true, imports: [CommonModule, TownSceneComponent, TownViewToggleComponent, ArenaToggleComponent, ArenaSceneComponent], templateUrl: './map-board.html', styleUrl: './map-board.css' })
 export class MapBoard implements OnDestroy, AfterViewInit {
   readonly party = inject(PartyStore);
+  readonly gmTeleport = inject(GmTeleportStore);
   // ---- Town scene (map | house toggle) ----
   readonly town = inject(TownStore);
   /** View choices outlive this component (it is destroyed when another page opens). */
@@ -236,6 +238,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
     this.api.get<any[]>('/maps').subscribe({next:m=>{this.maps=m;this.rebuildDiscovery();this.centerOnCurrentMap();},error:e=>this.error.set(e?.error?.message??'Unable to load maps')});
     effect(()=>{
       const c=this.character.character();
+      untracked(()=>this.gmTeleport.forCharacter(c?.id));
       if(!c)return;
       this.trackLocationArrival(c);
       untracked(()=>this.worldView.forCharacter(c.id));
@@ -562,7 +565,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   onPointerUp(e:PointerEvent){if(this.viewMode()!=='map')return;const d=this.drag;if(!d||d.id!==e.pointerId)return;if(d.moved)this.suppressClickUntil=Date.now()+250;this.drag=null}
   onPointerCancel(e:PointerEvent){if(this.viewMode()!=='map')return;if(this.drag?.id===e.pointerId)this.drag=null}
   onViewportClick(e:MouseEvent){if(this.viewMode()!=='map')return;if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}const target=e.target as HTMLElement;const button=target.closest?.('.map-tile') as HTMLButtonElement|null;if(!button||button.disabled)return;const tile=this.maps.find(m=>m.id===button.getAttribute('data-map-id'));if(tile)this.onTileClick(e,tile)}
-  onTileClick(e:MouseEvent,tile:any){if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}if(!this.isRevealed(tile.coordinates.x,tile.coordinates.y))return;this.selected.set(tile.id);this.enter(tile.id)}
+  onTileClick(e:MouseEvent,tile:any){if(Date.now()<this.suppressClickUntil){e.preventDefault();e.stopPropagation();return}if(tile.isClickable===false||(!this.gmTeleport.enabled()&&!this.isRevealed(tile.coordinates.x,tile.coordinates.y)))return;this.selected.set(tile.id);this.enter(tile.id)}
   onWheel(e:WheelEvent){if(this.viewMode()!=='map')return;e.preventDefault();const viewport=e.currentTarget as HTMLElement;const rect=viewport.getBoundingClientRect();const localX=e.clientX-rect.left,localY=e.clientY-rect.top;const oldZoom=this.zoom();const nextZoom=Math.max(this.zoomMin,Math.min(this.zoomMax,Number((oldZoom*(e.deltaY>0?.9:1.1)).toFixed(4))));if(nextZoom===oldZoom)return;const worldX=this.cameraX()+localX/oldZoom,worldY=this.cameraY()+localY/oldZoom;const p=this.clampCamera(worldX-localX/nextZoom,worldY-localY/nextZoom,nextZoom);this.zoom.set(nextZoom);this.cameraX.set(p.x);this.cameraY.set(p.y)}
   showTileTooltip(tile:any,e:PointerEvent|FocusEvent){this.hoveredMap.set(tile);if(e instanceof PointerEvent)this.tooltipPointer={x:e.clientX,y:e.clientY};else{const r=(e.target as HTMLElement).getBoundingClientRect();this.tooltipPointer={x:r.left+r.width/2,y:r.top+r.height/2}}this.renderTileTooltip()}
   moveTileTooltip(e:PointerEvent){this.tooltipPointer={x:e.clientX,y:e.clientY};this.positionTileTooltip()}
@@ -574,8 +577,9 @@ export class MapBoard implements OnDestroy, AfterViewInit {
   enterTown(){this.requestMapTransition(TOWN_MAP_ID)}
   private requestMapTransition(id:string){
     const map=this.maps.find(m=>m.id===id); const current=this.character.character();
-    if(!map||!current||!this.partyCanTravel())return;
-    if(this.party.party() && id===current.savedTownMapId && id!==current.currentMapId){void this.party.teleport();return;}
+    const gmTeleport=this.gmTeleport.enabled();
+    if(!map||!current||(!gmTeleport&&!this.partyCanTravel()))return;
+    if(!gmTeleport&&this.party.party() && id===current.savedTownMapId && id!==current.currentMapId){void this.party.teleport();return;}
     if(current.currentMapId===id&&!current.pendingMapTransition&&!current.travelIntent)return;
     this.error.set(null);
     const requestSequence=++this.mapRequestSequence;
@@ -585,7 +589,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
     const requestedAt=new Date(this.lastRequestedAt).toISOString();
     const origin=current.currentMapId;
     this.routeOriginMapId.set(origin);this.destinationRequestedAt=requestedAt;this.destinationMapId.set(id);this.mapTransitionPending.set(false);
-    this.api.post<any>(`/maps/${id}/enter`,{requestedAt}).subscribe({
+    this.api.post<any>(`/maps/${id}/${gmTeleport?'gm-teleport':'enter'}`,{requestedAt}).subscribe({
       next:async result=>{
         if(requestSequence!==this.latestMapRequestSequence)return;
         const characterPatch=result?.character??{};
@@ -635,7 +639,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
             return;
           }
         }
-        await Promise.all([this.character.load(),this.battle.load()]);
+        await Promise.all([this.character.load(),this.battle.load(),...(gmTeleport?[this.party.refresh()]:[])]);
         this.rebuildDiscovery();
         this.centerOnCurrentMap();
         const acceptedMap=this.maps.find(candidate=>candidate.id===acceptedDestination);
@@ -646,7 +650,7 @@ export class MapBoard implements OnDestroy, AfterViewInit {
           try{await this.socket.emit('map:syncPresence',{mapId:acceptedDestination})}catch{}
         }
       },
-      error:e=>{if(requestSequence===this.latestMapRequestSequence){const message=String(e?.error?.message??'Map entry rejected by server');this.error.set(message.startsWith('Town Guard:')?'':message);this.finishDestinationPreview()}}
+      error:e=>{if(requestSequence===this.latestMapRequestSequence){const message=String(e?.error?.message??'Map entry rejected by server');this.error.set(message.startsWith('Town Guard:')?'':message);this.finishDestinationPreview();if(gmTeleport&&e?.status===403)void this.gmTeleport.refreshFor(current.id);}}
     });
   }
   private startTransitionPoll(){

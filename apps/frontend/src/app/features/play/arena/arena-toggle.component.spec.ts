@@ -56,4 +56,16 @@ describe('ArenaToggleComponent', () => {
   it('without a face it keeps the head icon', () => {
     expect(button(render('map', true, null))!.querySelector('img')!.getAttribute('src')).toContain('arena-view-head');
   });
+
+  it('provides an 80px control and doubles its icon without passing clicks into the map', () => {
+    const f = render('map');
+    expect(button(f)!.getBoundingClientRect().width).toBe(80);
+    expect(button(f)!.getBoundingClientRect().height).toBe(80);
+    expect(getComputedStyle(button(f)!.querySelector('img')!).width).toBe('60px');
+    const mapClick = jasmine.createSpy('mapClick');
+    f.nativeElement.addEventListener('click', mapClick);
+    button(f)!.click();
+    expect(mapClick).not.toHaveBeenCalled();
+    expect(getComputedStyle(button(f)!).backgroundImage).toContain('rgb(83, 65, 95)');
+  });
 });

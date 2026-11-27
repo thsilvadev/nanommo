@@ -4,8 +4,8 @@ import type { ArenaChoice } from './arena-view-mode';
 import { CharacterFaceService } from './character-face.service';
 
 /**
- * Round button in the map head of a non-town map, same look as the town
- * toggle. It shows the *other* view: on the map a head (go to the arena), in
+ * Round button at the bottom right of a non-town map. It shows the
+ * other view: on the map a head (go to the arena), in
  * the arena the map. Hidden when the arena cannot run (no WebGL).
  */
 @Component({
@@ -25,15 +25,15 @@ import { CharacterFaceService } from './character-face.service';
     }`,
   styles: [`
     :host { display: inline-flex; }
-    .arena-view-button { width: 40px; height: 40px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; cursor: pointer;
-      background: radial-gradient(circle at 50% 38%, #3a2c46 0%, #1c1524 62%, #0e0a13 100%);
+    .arena-view-button { width: 80px; height: 80px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; cursor: pointer;
+      background: radial-gradient(circle at 50% 38%, #53415f 0%, #33283d 62%, #211a2a 100%);
       box-shadow: 0 0 0 2px #d9a441, inset 0 1px 0 rgba(255, 236, 190, 0.35), 0 3px 8px rgba(0, 0, 0, 0.55);
       transition: transform 120ms, box-shadow 120ms; }
     .arena-view-button:hover { transform: translateY(-1px); box-shadow: 0 0 0 2px #e8b955, inset 0 1px 0 rgba(255, 236, 190, 0.45), 0 5px 11px rgba(0, 0, 0, 0.6); }
     .arena-view-button:active { transform: translateY(0); }
     .arena-view-button:focus-visible { outline: 2px solid #ffd36a; outline-offset: 3px; }
-    img { width: 30px; height: 30px; display: block; pointer-events: none; user-select: none; }
-    img.face { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+    img { width: 60px; height: 60px; display: block; pointer-events: none; user-select: none; }
+    img.face { width: 68px; height: 68px; border-radius: 50%; object-fit: cover; }
   `],
 })
 export class ArenaToggleComponent {

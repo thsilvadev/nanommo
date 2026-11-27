@@ -8,6 +8,7 @@ import { CharacterStore } from '../../core/game.store';
 import { LocaleService } from '../../core/locale.service';
 import { TownStore } from '../../core/town.store';
 import { CatalogService } from '../../core/catalog.service';
+import { GmTeleportStore } from '../../core/gm-teleport.store';
 import { formatServerAnnounce } from '../../core/server-announce-text';
 
 type ChatRow = {
@@ -56,6 +57,7 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly characters = inject(CharacterStore);
   private readonly locale = inject(LocaleService);
   private readonly catalog = inject(CatalogService);
+  private readonly gmTeleport = inject(GmTeleportStore);
 
   constructor(private readonly api: ApiService, private readonly socket: GameSocketService) {}
 
@@ -73,7 +75,7 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
       this.notices.error(this.locale.t(text).replace('{name}', notice?.candidateName || '?'));
     }));
     this.subscriptions.push(this.socket.onConnectionState().subscribe(state => {
-      if (state === 'connected') void this.loadHistory();
+      if (state === 'connected') { void this.loadHistory(); void this.gmTeleport.refreshFor(this.characters.character()?.id); }
     }));
     void this.loadHistory();
   }
@@ -191,7 +193,10 @@ export class IdleChatComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.socket.connected) { this.error.set('Chat is disconnected; message was not sent.'); return; }
     let reply: { success?: boolean; message?: string; error?: string } | null = null;
     try { reply = await this.socket.emit<any>('gm:command', { line: text }); } catch { reply = null; }
-    if (reply?.success && typeof reply.message === 'string') { this.appendLocalNotice(reply.message); return; }
+    if (reply?.success && typeof reply.message === 'string') {
+      if (text.slice(1).trim().split(/\s+/)[0].toLowerCase() === 'teleport') await this.gmTeleport.refreshFor(this.characters.character()?.id);
+      this.appendLocalNotice(reply.message); return;
+    }
     const error = reply?.error;
     if (!error || error === 'UNKNOWN_COMMAND') { this.notices.error(this.locale.t('Unknown command.')); return; }
     this.appendLocalError(error);

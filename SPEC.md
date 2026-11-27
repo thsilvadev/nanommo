@@ -409,13 +409,13 @@ Equipment stat bonuses are added to the corresponding attributes before these fo
 **Physical damage mitigation (hybrid flat + relative DEF):**
 ```
 raw = max(0, rawDamage)
-armor = max(0, DEF)
+armor = max(0, DEF) * 1.10
 flatReduction = armor * 0.425
 relativeReduction = raw * armor / (armor + 250)
 finalPhysicalDamage = max(raw * 0.01, raw - flatReduction - relativeReduction)
 ```
 
-DEF combines a flat reduction (0.425 damage per DEF) with a relative reduction (`DEF / (DEF + 250)`) so it remains useful against both small early-game hits and large later-game hits. Physical damage cannot be reduced below 1% of its raw pre-mitigation value. These values are NanoMMO balance parameters, not a copied Dota formula; validate against representative equipment tiers and monster attacks before further tuning. Critical-hit scaling, monster damage-type multipliers, and direct-damage variance are applied in their existing order around physical mitigation.
+Physical mitigation treats DEF (including buffs) as 10% more effective armor in both terms. Effective armor combines a flat reduction (0.425 damage per effective armor) with a relative reduction (`armor / (armor + 250)`) so DEF remains useful against both small early-game hits and large later-game hits. This scales DEF's contribution, rather than applying a flat 10% damage reduction: zero DEF still provides no mitigation. Physical damage cannot be reduced below 1% of its raw pre-mitigation value. Magical and pure damage are unchanged. These values are NanoMMO balance parameters, not a copied Dota formula; validate against representative equipment tiers and monster attacks before further tuning. Critical-hit scaling, monster damage-type multipliers, and direct-damage variance are applied in their existing order around physical mitigation.
 The combined flat and relative terms have diminishing returns, while the 1% floor ensures that even very high DEF cannot fully negate physical hits. Unlike a purely percentage-based armor curve, the flat term also creates visible value at low DEF values; unlike pure flat reduction, relative mitigation scales against large late-game hits.
 
 **Magic damage mitigation (flat %, per spec §11 of the confirmed answers — MDEF is a percentage from gear only):**
