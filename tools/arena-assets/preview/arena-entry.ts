@@ -4,7 +4,7 @@ import { createArenaRuntime, type ArenaActorVisual, type ArenaRuntimeHandle, typ
 import { arenaBattleOffset, arenaScene, arenaWalkColumn, type ArenaTimelineInput } from '../../../apps/frontend/src/app/features/play/arena/arena-phase';
 import { fromSharedBattle, fromSoloEntry } from '../../../apps/frontend/src/app/features/play/arena/arena-battle';
 import type { ArenaBattle, ArenaCharacterLook } from '../../../apps/frontend/src/app/features/play/arena/arena.types';
-import type { ArenaRegionId } from '../../../apps/frontend/src/app/features/play/arena/arena-region';
+import { ARENA_REGIONS, type ArenaRegionId } from '../../../apps/frontend/src/app/features/play/arena/arena-region';
 import { renderFace } from '../../../apps/frontend/src/app/features/play/arena/character-face-render';
 import { SOLO_V2_ENTRY } from '../../../apps/frontend/src/app/features/play/arena/fixtures/solo-v2.fixture';
 import { PARTY_V2_VIEW } from '../../../apps/frontend/src/app/features/play/arena/fixtures/party-v2.fixture';
@@ -64,6 +64,10 @@ const SHOTS: Record<string, Shot> = {
   chain_intro: { battle: party, region: 'green_grounds', mode: 'chain', at: (b) => b.endAtMs + CHAIN_GAP - 600, party: ['char-self', 'char-ally'] },
   chain_start: { battle: party, region: 'green_grounds', mode: 'chain', at: (b) => b.endAtMs + CHAIN_GAP + 1500, party: ['char-self', 'char-ally'] },
 };
+// Every region seen from both orbit limits (scenery must stay solid when the camera turns): orbit_<region>_l / _r.
+for (const region of ARENA_REGIONS) for (const [side, yawDeg] of [['l', -70], ['r', 70]] as const) {
+  SHOTS[`orbit_${region}_${side}`] = { battle: party, region, mode: 'battle', at: (b) => b.startAtMs + 5 * 500 + 30, party: ['char-self', 'char-ally'], view: { zoom: 0.6, yawDeg, pitchDeg: 10 } };
+}
 const CHAIN_GAP = 6000;
 const chained = new WeakMap<ArenaBattle, ArenaBattle>();
 function nextOf(b: ArenaBattle): ArenaBattle {
@@ -103,6 +107,8 @@ let runtime: ArenaRuntimeHandle | null = null;
   runtime.setView({ focusId: null, selfId: 'char-self', zoom: 0, yawDeg: 0, pitchDeg: 12, ...shot.view });
   // Let every model load and dress, then replay the last 1.5 s at 60 fps (crossfades, camera ease).
   for (let i = 0; i < 80; i++) { runtime.renderOnce(clock); await new Promise((r) => setTimeout(r, 100)); }
+  // Painted layers load asynchronously: never shoot a region before its scenery is in.
+  for (let i = 0; i < 300 && !runtime.sceneryReady(shot.region); i++) { runtime.renderOnce(clock); await new Promise((r) => setTimeout(r, 100)); }
   const actorsAtWarm = arenaScene(input(clock)).frame.actors.map((a) => `${a.id}@${a.column.toFixed(1)},${a.row.toFixed(1)}`);
   for (; clock < target; clock = Math.min(target, clock + 1000 / 60)) runtime.renderOnce(clock);
   runtime.renderOnce(target);

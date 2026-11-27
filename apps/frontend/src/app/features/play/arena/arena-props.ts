@@ -10,6 +10,18 @@ import type { ArenaRegionId } from './arena-region';
 import { arenaPropLayout, propLocalX, type ArenaPropInstance, type ArenaPropKind } from './arena-prop-layout';
 import { terrainHeight } from './arena-terrain';
 
+/**
+ * Distance (m, from the scenery origin along the view) of the painted near layer, which turns with the
+ * camera yaw. Painted layers are transparent, so three.js draws them after every opaque mesh: a prop
+ * behind that plane would show the painting through it. Props beyond it are not drawn.
+ */
+export const ARENA_NEAR_LAYER_DISTANCE_M = 22;
+
+/** Whether a scenery-local point is behind the painted near layer for a camera yaw (radians). */
+export function behindNearLayer(x: number, z: number, yawRad: number): boolean {
+  return -x * Math.sin(yawRad) - z * Math.cos(yawRad) > ARENA_NEAR_LAYER_DISTANCE_M;
+}
+
 /** Deterministic jitter from a vertex position (shared corners move together). */
 const jitter = (x: number, y: number, z: number, k: number) => Math.sin(x * 12.9898 + y * 78.233 + z * 37.719 + k) * 43758.5453 % 1;
 
@@ -148,6 +160,8 @@ export class ArenaProps {
   private readonly meshes: Array<{ mesh: THREE.InstancedMesh; items: ArenaPropInstance[] }> = [];
   // Double-sided: fronds and leaves are single sheets.
   private readonly material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide });
+  /** Direction away from the camera (scenery-local, horizontal) and the near layer's distance along it. */
+  private readonly away = { value: new THREE.Vector3(0, 0, -1) };
   private readonly geometries: THREE.BufferGeometry[] = [];
   private lastTravelled = Number.NaN;
   private readonly m = new THREE.Matrix4();
@@ -158,6 +172,17 @@ export class ArenaProps {
 
   constructor(region: ArenaRegionId, private readonly relief: number) {
     this.group.name = `arena:props:${region}`;
+    const away = this.away;
+    this.material.onBeforeCompile = (shader) => {
+      shader.uniforms['uAway'] = away;
+      shader.uniforms['uNearLayer'] = { value: ARENA_NEAR_LAYER_DISTANCE_M };
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vPropLocal;')
+        .replace('#include <project_vertex>', '#include <project_vertex>\n#ifdef USE_INSTANCING\nvPropLocal = (instanceMatrix * vec4(transformed, 1.0)).xyz;\n#else\nvPropLocal = transformed;\n#endif');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vPropLocal;\nuniform vec3 uAway;\nuniform float uNearLayer;')
+        .replace('void main() {', 'void main() {\n  if (dot(vPropLocal, uAway) > uNearLayer) discard;');
+    };
     const byKind = new Map<ArenaPropKind, ArenaPropInstance[]>();
     for (const item of arenaPropLayout(region)) byKind.set(item.kind, [...(byKind.get(item.kind) ?? []), item]);
     const color = new THREE.Color();
@@ -174,6 +199,12 @@ export class ArenaProps {
   }
 
   get instanceCount(): number { return this.meshes.reduce((n, m) => n + m.items.length, 0); }
+
+  /** The camera yaw (radians): props behind the painted near layer, which turns with it, are not drawn. */
+  setYaw(yawRad: number): void { this.away.value.set(-Math.sin(yawRad), 0, -Math.cos(yawRad)); }
+
+  /** Scenery-local direction away from the camera used by the cull (tests). */
+  awayDirection(): THREE.Vector3 { return this.away.value.clone(); }
 
   /** Place every prop for `travelled` metres (scenery-local x: the scenery group follows the camera). */
   update(travelled: number): void {

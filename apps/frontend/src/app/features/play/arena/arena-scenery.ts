@@ -6,7 +6,7 @@
  */
 import * as THREE from 'three';
 import { arenaRegionAssets, type ArenaRegionId } from './arena-region';
-import { ArenaProps } from './arena-props';
+import { ARENA_NEAR_LAYER_DISTANCE_M, ArenaProps } from './arena-props';
 import { TERRAIN_GLSL } from './arena-terrain';
 
 /** Walking pace of the ground, metres per second. */
@@ -24,7 +24,7 @@ interface LayerSpec { key: 'sky' | 'far' | 'near'; z: number; width: number; hei
 const LAYERS: LayerSpec[] = [
   { key: 'sky', z: -120, width: 560, height: 140, bottom: -20, repeat: 1, speed: 0.04, transparent: false },
   { key: 'far', z: -70, width: 168, height: 42, bottom: -9, repeat: 1, speed: 0.22, transparent: true },
-  { key: 'near', z: -22, width: 120, height: 15, bottom: -1.2, repeat: 2, speed: 0.6, transparent: true },
+  { key: 'near', z: -ARENA_NEAR_LAYER_DISTANCE_M, width: 120, height: 15, bottom: -1.2, repeat: 2, speed: 0.6, transparent: true },
 ];
 
 /** Where a bridge deck ends behind the grid (world z): a parapet, then the drop to the river. */
@@ -101,6 +101,7 @@ export class ArenaScenery {
       set.time.value = (nowMs % 600_000) / 1000;
       set.props.update(travelled);
       set.backdrop.rotation.y = yawRad;
+      set.props.setYaw(yawRad);
     }
     if (this.current) {
       const f = this.leaving ? Math.min(1, (nowMs - this.current.bornAt) / CROSSFADE_MS) : 1;
