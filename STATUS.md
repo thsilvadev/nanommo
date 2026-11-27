@@ -1,3 +1,9 @@
+### Katana nova (modelo com curva real) — 2026-11-27
+
+`equip_greatsword_t2` (`greatsword-katana` em `gear.config.mjs`) agora usa *katana* de local.yany no Sketchfab (CC-BY, 3.388 triângulos → até 2.600; crédito em `gear/CREDITS.md`), no lugar da lâmina reta curvada por `bladeCurve` (que fica disponível no pipeline). Novo `up: '-auto'` em `build-gear.mjs`: o eixo principal apontado para a ponta mais estreita (o modo `auto` punha a empunhadura para cima). `bladeStretch` 1,5× acima da guarda (0,24 m), como os outros espadões: mesmo comprimento da anterior. Build completo do gear: atlas reempacotado, então `gear-atlas.webp`, `gear-male.glb` e `gear-female.glb` mudaram junto. Teste de mapeamento de armas atualizado para a fonte nova.
+
+Validação: `gear:test` **34/34**; Karma `shared/character-viewer` **45/45**; silhuetas antes/depois conferidas em `tools/character-assets/preview/screenshots/katana-new.png` (não versionada). Cores/textura **não verificadas no app rodando**; sem push.
+
 ### Katana levemente curva — 2026-11-27
 
 `gear.config.mjs` `greatsword-katana`: `bladeCurve: { from: 0.22, sagitta: 0.05, side: -1 }` — a lâmina acima da guarda curva no plano da lâmina (eixo mais largo, Z), a ponta 5 cm para o lado do dorso (a linha reta −Z até a ponta), como o sori de uma katana; empunhadura e guarda iguais. `curveBlade` em `gear/lib/blade.mjs` (detecta o eixo da largura; o lado do dorso é palpite pela espessura e pode ser forçado com `side`, porque esta lâmina já é inclinada e o palpite escolheu o fio). O modelo é low-poly: a curva sai em dois segmentos. Build completo do gear: só `gear-rigid.glb`, `manifest.json` e `build-report.json` mudaram (+6 triângulos na simplificação). Antes/depois em `tools/character-assets/preview/screenshots/katana-curve-before-after.png` (pasta não versionada).

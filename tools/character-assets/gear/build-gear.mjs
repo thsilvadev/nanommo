@@ -588,7 +588,7 @@ async function buildRigid(id, v) {
 const AXIS = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1], '-x': [-1, 0, 0], '-y': [0, -1, 0], '-z': [0, 0, -1] };
 /**
  * A hand item in the viewer's convention: grip at the origin, long axis +Y, longest extent = length (m).
- * v.up: source axis that becomes +Y ('auto': the longest axis, pointing at its wider end).
+ * v.up: source axis that becomes +Y ('auto': the longest axis, pointing at its wider end; '-auto': at its narrower end).
  * v.grip: 'blade' (middle of the handle: half-way from the guard at 0 to the pommel), 'origin',
  * 'shield' (back face, centred), or a fraction along the up axis from the bottom.
  * v.nodes: only these mesh nodes. v.stringMaterial: primitives that become the 'BowString' child.
@@ -610,7 +610,7 @@ async function buildWeapon(id, v) {
   const all = raw.flatMap(([, ps]) => ps);
   const ext = (k) => [Math.min(...all.map((p) => p[k])), Math.max(...all.map((p) => p[k]))];
   let axis = AXIS[v.up ?? 'y'];
-  if (v.up === 'auto') {
+  if (v.up === 'auto' || v.up === '-auto') {
     // principal axis of the vertices (power iteration on the covariance), pointing at the wider end
     const c = [0, 1, 2].map((k) => all.reduce((acc, p) => acc + p[k], 0) / all.length);
     const cov = [0, 1, 2].map((i) => [0, 1, 2].map((j) => all.reduce((acc, p) => acc + (p[i] - c[i]) * (p[j] - c[j]), 0)));
@@ -620,6 +620,7 @@ async function buildWeapon(id, v) {
     const lo = Math.min(...along), hi = Math.max(...along), band = (hi - lo) * 0.2;
     const radius = (sel) => { const pts = all.filter((_, i) => sel(along[i])); return pts.length ? Math.max(...pts.map((p, i) => { const d = [0, 1, 2].map((k) => p[k] - c[k]); const t = d[0] * e[0] + d[1] * e[1] + d[2] * e[2]; return Math.hypot(d[0] - t * e[0], d[1] - t * e[1], d[2] - t * e[2]); })) : 0; };
     axis = radius((t) => t > hi - band) >= radius((t) => t < lo + band) ? e : e.map((x) => -x);
+    if (v.up === '-auto') axis = axis.map((x) => -x); // the narrower end up (a katana's wide end is its handle)
   }
   const q = quat.rotationTo(quat.create(), axis, [0, 1, 0]);
   const rot = (p) => [...vec3.transformQuat(vec3.create(), p, q)];

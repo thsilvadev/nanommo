@@ -96,7 +96,7 @@
       "triangles": 830
     },
     "greatsword-katana": {
-      "triangles": 1404
+      "triangles": 2464
     },
     "greatsword-kaykit": {
       "triangles": 412
@@ -171,10 +171,10 @@
   "files": {
     "gear-male.glb": 2563828,
     "gear-female.glb": 2683144,
-    "gear-rigid.glb": 1694332,
-    "gear-atlas.webp": 1442910,
+    "gear-rigid.glb": 1694712,
+    "gear-atlas.webp": 1532644,
     "manifest.json": 31189
   },
   "atlas": 2048,
-  "totalBytes": 8415403
+  "totalBytes": 8505517
 }
