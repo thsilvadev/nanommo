@@ -47,6 +47,13 @@ The shared 12px `ActionStateComponent` uses a static clock for queued work, moti
 
 `GameAudioService` owns every regional music element until it is stopped. Pending startup and resume attempts are tied to the media element, so late promises cannot unlock another track or create competing transitions. Crossfade, resume and stop share one cancellable animation owner. General/Music controls supersede the fade, stop outgoing elements and apply the current settings; teardown cancels retries and stops all owned media immediately. A retained previous track restores the current target volume if a new region interrupts its initial fade before the first frame.
 
+## Arena scenery: from painted parallax layers to a 3D set — 2026-11-27
+
+- **Painted planes and an orbiting camera do not mix.** The arena's `sky`/`far`/`near` layers are transparent planes turning with the camera yaw; three.js draws transparent meshes after all opaque ones, so a 3D prop behind a painted plane looks see-through, and cutting or culling props at the plane slices them while the camera is dragged. Drawing the painting in its own pass first puts distant props on top of the painting instead. Regions that keep painted layers use the whole-prop shrink guard (`nearLayerScale`).
+- **Direction: regions become fully 3D.** kwaioua_forest (first, approved) has no painted layer: a background colour + fog (`arenaLight(region).background/fog`, applied by the runtime on region change), a star dome, giant procedural trunks and modelled bushes. Other regions follow one at a time (`docs/handoff/2026-11-27-arena-3d-scenery-v2.md`).
+- **Modelled props are baked, instanced and tinted.** Downloaded low-poly models (CC0 first) are baked offline into one `assets/arena/props.glb` (palette texture → vertex colours, `tools/arena-assets/build-arena-props.mjs`) and drawn with the same instanced, flat-shaded, per-instance-tinted material as the procedural props: one draw call per kind, no textures, no transparency. The region's map fade waits for the file.
+- **Budget.** kwaioua is ~350k instanced triangles (others ~30k). Fog bounds what is worth placing (~45 m from the default camera); canopies above every framing are not drawn.
+
 ## Public combat timers and shared HUD — 2026-11-22
 
 - `CombatTimersComponent` renders uniform status/cooldown icons for Character, Grind targets and Group allies. `CombatTimersService` selects actor-specific server state; pure projections in `shared/combat-timers.ts` use the shared `UiClockService` without additional per-icon timers.
