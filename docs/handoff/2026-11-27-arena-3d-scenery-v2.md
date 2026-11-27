@@ -36,6 +36,14 @@ mist reaches into the battle), no stars (`ArenaLight.stars`), mossy giant trunks
 User feedback: "adiciona mais das plantas rasteiras/arbustos, muito mais", "deixa a fog invadir a batalha",
 "partículas flutuando muito lenta e suavemente, tipo seres de luz" → then "amei". Next region: forest_ruins.
 
+**All regions v2 (2026-11-27, branch `feat/arena-v2-regions`, one commit per region, NOT merged — awaiting the
+user's approval of `debug-logs/arena-v2-prints/`):** the user asked to bring every region to the caete standard
+autonomously overnight. forest_ruins (golden forest ruin, sun beams), green_grounds (sunny meadow, sky dome, hills),
+menace_hills (dusk dry hills, crags), wastelands (cold waste, snowy peaks, falling snow), ipora_beach (3D sea, palms,
+shells/starfish), gods_bridge (sunset dome with a 3D sun, hills across the river), kwaioua_forest (fireflies, fog into
+the battle, sprouts). When approved: merge `feat/arena-v2-regions` into local `main` (no push). If the user wants changes
+for a region, adjust on the branch and re-shoot that region only.
+
 ## The user's taste (learned by iteration — follow it)
 
 - Liked: giant buttressed trunks very close to the arena (only the trunk visible), dark sky, stars, purple tint,
