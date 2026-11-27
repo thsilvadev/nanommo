@@ -143,6 +143,32 @@ export class BattleService {
     return this.latestFoodExpiry(this.getActiveDietFoodBuffs(character, at)) > at;
   }
 
+  /**
+   * The Postgres half of the encounter-chain lock (`character:<id>`, the key PartyService.serialized
+   * also takes with pg_advisory_xact_lock). Tried without blocking, and the pooled connection goes
+   * back to the pool between attempts: a waiter never holds a connection, so waiters cannot drain the
+   * pool while the holder (a party transaction) needs one more to finish — the 2026-11-27 freeze.
+   * Returns the connection that holds the lock, or undefined when there is no database (unit tests).
+   */
+  private async acquireCharacterAdvisoryLock(characterId: string, deadline: number) {
+    const connection = this.characterRepo?.manager?.connection;
+    if (!connection?.createQueryRunner) return undefined;
+    for (;;) {
+      const runner = connection.createQueryRunner();
+      let held = false;
+      try {
+        await runner.connect();
+        const [row] = await runner.query('SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS locked', [`character:${characterId}`]);
+        held = row?.locked === true;
+      } finally {
+        if (!held) await runner.release();
+      }
+      if (held) return runner;
+      if (Date.now() >= deadline) throw new Error(`Timed out acquiring encounter-chain lock for character ${characterId}`);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  }
+
   /** Serialize operations that may change a character's encounter chain across API/worker replicas. */
   async withCharacterQueueLock<T>(characterId: string, operation: () => Promise<T>): Promise<T> {
     if (this.queueAuthority?.getStore()?.characterId === characterId) return operation();
@@ -171,10 +197,8 @@ export class BattleService {
     (renewal as any).unref?.();
     let runner: ReturnType<EntityManager['connection']['createQueryRunner']> | undefined;
     try {
-      runner = this.characterRepo?.manager?.connection?.createQueryRunner?.();
+      runner = await this.acquireCharacterAdvisoryLock(characterId, deadline);
       if (!runner) return await operation();
-      await runner.connect();
-      await runner.query('SELECT pg_advisory_lock(hashtextextended($1,0))', [`character:${characterId}`]);
       return await this.queueAuthority.run({characterId,manager:runner.manager}, operation);
     } finally {
       if (runner) {

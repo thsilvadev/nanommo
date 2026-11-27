@@ -66,6 +66,13 @@ import { getBattleRuntimeConfig } from './config/battle-runtime.config';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
       migrationsRun: false,
+      // Pool: up to ~12 Bull jobs (concurrencies add up per queue) can each hold an encounter-chain lock
+      // connection and open a transaction, plus party pulses and HTTP. A bounded wait for a connection
+      // turns any remaining hold-and-wait into an error the job retries, never a frozen API.
+      extra: {
+        max: Number(process.env.DB_POOL_MAX ?? 30),
+        connectionTimeoutMillis: Number(process.env.DB_POOL_CONNECTION_TIMEOUT_MS ?? 15_000),
+      },
     }),
     PassportModule,
     AuthModule,

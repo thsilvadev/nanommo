@@ -1,3 +1,9 @@
+### Hotfix: API congelada (lock da fila × pool do Postgres) e laço de fugas — 2026-11-27
+
+Produção travou às 00:47 UTC (só `Timed out acquiring encounter-chain lock`, até o rebuild de presença parou; restart manual). Causa: quem espera o `withCharacterQueueLock` segurava uma conexão do pool bloqueado em `pg_advisory_lock('character:<id>')`, chave que a transação do grupo (`PartyService.serialized`) segura com `pg_advisory_xact_lock` e que precisava de mais uma conexão para terminar; pool padrão de 10 conexões contra ~12 jobs Bull simultâneos. Correções: `pg_try_advisory_lock` em laço devolvendo a conexão entre tentativas; pool `DB_POOL_MAX` (30) com `connectionTimeoutMillis` 15 s; o pulso do grupo espera 10 s antes de regenerar a fila de quem só gerou fugas pré-combate (00:28–00:29: ~2.400 simulações de fuga do CuiabamaN em 2 min).
+
+Validação: `encounter-lock-pool.test.js` (novo; com o lock bloqueante antigo trava em deadlock, com o novo passa) e `party-worker-empty-queue-backoff.test.js` (novo) passam; `party-*`, `stationary-scheduling-stance`, `stance-search-restart`, `stale-battle-location-guard` passam; `gathering-cycle-regression`, `map-presence-cleanup`, `inventory-obtained-emitters` falham igual sem a correção. Não reproduzido contra Postgres real. Sem migration.
+
 ### GM: cheats miram o próprio GM quando não há nome — 2026-11-26
 
 `/grant-equip`, `/grant-foods`, `/reset-diet`, `/upgrade-diet`, `/reset-skilltree` aceitam o nome como opcional (`[charName]`); sem nome, o alvo é o personagem do GM (`targetName`). `/grant-equip` reconhece que o primeiro argumento já é a lista de itens quando todos os ids existem no catálogo; `/grant-foods 5` é quantidade para si. Validação: `gm-commands.test.js` (casos novos com e sem nome) passa; DI do `GmModule` compilada (7 comandos). Sem push/deploy; nenhuma migration nova.
