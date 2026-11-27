@@ -1,4 +1,4 @@
-import { GameAudioService } from './game-audio.service';
+import { DOUBLE_HIT_GAP_MS, GameAudioService } from './game-audio.service';
 import { SOLO_V2_ENTRY } from '../features/play/arena/fixtures/solo-v2.fixture';
 
 describe('GameAudioService battle event routing', () => {
@@ -42,6 +42,31 @@ describe('GameAudioService battle event routing', () => {
     expect(audio.play).toHaveBeenCalledWith('fire_hit_1');
     expect(audio.play).toHaveBeenCalledWith('fire_hit_2');
     expect(audio.play).toHaveBeenCalledWith('light_hit_1');
+  });
+
+  it('a Double Strike plays one dagger hit per blow', () => {
+    jasmine.clock().install();
+    try {
+      const entry = { log: { header: { characterSnapshot: { equippedWeaponTypes: ['dagger'] } } } };
+      (audio as any).playBattleEvent({ actor: 'character', action: 'attack', target: 'monster', hit: true, damage: 40, damageComponents: [21, 19] }, entry);
+      expect((audio.play as jasmine.Spy).calls.allArgs()).toEqual([['dagger_hit_1']]);
+      jasmine.clock().tick(DOUBLE_HIT_GAP_MS);
+      expect((audio.play as jasmine.Spy).calls.allArgs()).toEqual([['dagger_hit_1'], ['dagger_hit_1']]);
+      (audio.play as jasmine.Spy).calls.reset();
+      (audio as any).playBattleEvent({ actor: 'character', action: 'attack', target: 'monster', hit: true, damage: 20 }, entry);
+      jasmine.clock().tick(1000);
+      expect((audio.play as jasmine.Spy).calls.count()).toBe(1);
+    } finally { jasmine.clock().uninstall(); }
+  });
+
+  it('a party battle passes the Double Strike blows on to the hit sounds', () => {
+    const play = spyOn(audio as any, 'playBattleEvent') as jasmine.Spy;
+    const battle = { id: 'b', startAt: new Date(0).toISOString(), endAt: new Date(60_000).toISOString(), snapshot: { tickDurationMs: 500, actors: [{ id: 'me', kind: 'character' }, { id: 'm', kind: 'monster' }] },
+      log: { events: [{ tick: 1, actorId: 'me', targetIds: ['m'], action: 'attack', payload: { type: 'action', damage: 40, hit: true, damageComponents: [21, 19] } }] } };
+    (audio as any).shared = { battle: () => battle, selfId: () => 'me', selfWeaponTypes: () => ['dagger'] };
+    (audio as any).lastSharedBattleId = 'b'; (audio as any).lastSharedEventIndex = -1;
+    (audio as any).updateSharedBattleAudio(2000);
+    expect(play.calls.mostRecent().args[0].damageComponents).toEqual([21, 19]);
   });
 
   it('plays the heal sound for Light of Heaven on any target', () => {
