@@ -4,25 +4,25 @@ import { ArenaScenery, arenaHasNearLayer, arenaLight } from './arena-scenery';
 describe('ArenaScenery (live assets)', () => {
   it("is ready for a region once that region's textures have loaded", async () => {
     const scenery = new ArenaScenery(1);
-    expect(scenery.ready('forest_ruins')).toBeFalse();
-    scenery.setRegion('forest_ruins', 0);
-    expect(scenery.ready('forest_ruins')).toBeFalse();
+    expect(scenery.ready('gods_bridge')).toBeFalse();
+    scenery.setRegion('gods_bridge', 0);
+    expect(scenery.ready('gods_bridge')).toBeFalse();
     const started = performance.now();
-    while (!scenery.ready('forest_ruins') && performance.now() - started < 20_000) await new Promise((r) => setTimeout(r, 50));
-    expect(scenery.ready('forest_ruins')).toBeTrue();
+    while (!scenery.ready('gods_bridge') && performance.now() - started < 20_000) await new Promise((r) => setTimeout(r, 50));
+    expect(scenery.ready('gods_bridge')).toBeTrue();
     expect(scenery.ready('green_grounds')).toBeFalse();
     scenery.dispose();
   }, 30_000);
 
   it('the painted backdrop turns with the camera; the ground stays on the world', () => {
     const scenery = new ArenaScenery(1);
-    scenery.setRegion('forest_ruins', 0);
+    scenery.setRegion('gods_bridge', 0);
     scenery.update(0, 16, 16, 0, 0.8);
     const backdrop = scenery.group.getObjectByName('arena:backdrop')!;
     expect(backdrop).toBeTruthy();
     expect(backdrop.rotation.y).toBeCloseTo(0.8, 6);
     expect(backdrop.children.length).toBe(3);
-    const region = scenery.group.getObjectByName('arena:scenery:forest_ruins')!;
+    const region = scenery.group.getObjectByName('arena:scenery:gods_bridge')!;
     expect(region.rotation.y).toBe(0);
     scenery.dispose();
   });
@@ -44,7 +44,7 @@ describe('ArenaScenery (live assets)', () => {
       expect(mesh.geometry.getAttribute('color')).withContext(kind).toBeTruthy();
     }
     expect(arenaHasNearLayer('kwaioua_forest')).toBeFalse();
-    expect(arenaHasNearLayer('forest_ruins')).toBeTrue();
+    expect(arenaHasNearLayer('gods_bridge')).toBeTrue();
     scenery.dispose();
   }, 30_000);
 

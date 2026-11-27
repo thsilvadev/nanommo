@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ArenaAtmosphere, arenaAtmosphere, atmosphereLayout, motePosition, wispPosition } from './arena-atmosphere';
+import { ArenaAtmosphere, arenaAtmosphere, atmosphereLayout, beamPosition, motePosition, wispPosition } from './arena-atmosphere';
 import { ArenaScenery } from './arena-scenery';
 
 describe('arena atmosphere', () => {
@@ -7,7 +7,7 @@ describe('arena atmosphere', () => {
     const caete = arenaAtmosphere('caete')!;
     expect(caete.motes.count).toBeGreaterThan(100);
     expect(caete.wisps.count).toBeGreaterThan(10);
-    expect(arenaAtmosphere('forest_ruins')).toBeNull();
+    expect(arenaAtmosphere('gods_bridge')).toBeNull();
   });
 
   it('motes are small, float very slowly and stay round the arena, each glowing on its own beat', () => {
@@ -57,8 +57,21 @@ describe('arena atmosphere', () => {
     expect(scenery.group.getObjectByName('arena:motes')).toBeTruthy();
     scenery.dispose();
     const other = new ArenaScenery(1);
-    other.setRegion('forest_ruins', 0);
+    other.setRegion('gods_bridge', 0);
     expect(other.group.getObjectByName('arena:motes')).toBeFalsy();
     other.dispose();
+  });
+
+  it('forest_ruins adds slanting sun shafts that breathe slowly', () => {
+    const spec = arenaAtmosphere('forest_ruins')!;
+    expect(spec.beams!.count).toBeGreaterThan(5);
+    const atmosphere = new ArenaAtmosphere(spec, false);
+    atmosphere.update(0, 3);
+    const beams = atmosphere.group.getObjectByName('arena:beams') as THREE.InstancedMesh;
+    expect(beams.count).toBe(spec.beams!.count);
+    const { beams: layout } = atmosphereLayout(spec);
+    const a = beamPosition(layout[0], 10, 0).glow, b = beamPosition(layout[0], 11, 0).glow;
+    expect(Math.abs(b - a)).toBeLessThan(0.1);
+    atmosphere.dispose();
   });
 });

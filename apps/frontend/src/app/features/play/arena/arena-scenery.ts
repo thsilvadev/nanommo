@@ -32,10 +32,15 @@ const LAYERS: LayerSpec[] = [
  * Regions drawn without the painted near layer: their middle ground is 3D plants (arena-prop-layout),
  * which a turning painted plane at 22 m would cut through.
  */
-const NO_NEAR_LAYER: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete']);
+const NO_NEAR_LAYER: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins']);
 export function arenaHasNearLayer(region: ArenaRegionId): boolean { return !NO_NEAR_LAYER.has(region); }
 /** Regions with no painted layer at all: a plain background and fog behind the 3D forest (arenaLight). */
-const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete']);
+const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins']);
+/**
+ * Open-air regions keep only the painted sky (opaque, 120 m away: nothing reaches it); their fog takes the
+ * sky's horizon colour so the 3D ground and its silhouettes melt into it.
+ */
+const SKY_ONLY: ReadonlySet<ArenaRegionId> = new Set([]);
 
 /** Where a bridge deck ends behind the grid (world z): a parapet, then the drop to the river. */
 const DECK_BACK_Z = -15;
@@ -44,13 +49,15 @@ const RIVER_Y = -1.8;
 const BRIDGES: ReadonlySet<ArenaRegionId> = new Set(['gods_bridge']);
 
 /** Light per region (hemisphere sky/ground, sun): the bridge is lit by a low warm sunset. */
-/** `background`: clear colour (default the painted sky's blue); `fog`: distance fog in that colour; `stars`: a night dome. */
-export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number }; stars?: boolean }
+/** `background`: clear colour (default the painted sky's blue); `fog`: distance fog in that colour; `stars`: a night dome; `groundTint`: multiplies the ground texture. */
+export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number }; stars?: boolean; groundTint?: string }
 const DEFAULT_LIGHT: ArenaLight = { sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2 };
 const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
   gods_bridge: { sky: '#ffd2b0', ground: '#4a3a5a', hemi: 1.45, sun: '#ffb070', sunIntensity: 2.5 },
   kwaioua_forest: { sky: '#d6ccff', ground: '#352a3e', hemi: 1.2, sun: '#f2e4ff', sunIntensity: 1.65, background: '#080515', fog: { near: 26, far: 74 }, stars: true },
   // Caetê: a misty day under the canopy, soft green light; the mist reaches into the battle, the trunks fade into it.
+  // Forest ruins: late afternoon under a closed canopy, a warm golden haze pierced by sun shafts.
+  forest_ruins: { sky: '#fff0d0', ground: '#4a4630', hemi: 1.3, sun: '#ffdfa0', sunIntensity: 1.9, background: '#d9cfa6', fog: { near: 8, far: 66 }, groundTint: '#b4a67c' },
   caete: { sky: '#eef8e6', ground: '#3f4a30', hemi: 1.7, sun: '#fff4dc', sunIntensity: 1.2, background: '#a7bca9', fog: { near: 7, far: 56 } },
 };
 export function arenaLight(region: ArenaRegionId): ArenaLight { return LIGHTS[region] ?? DEFAULT_LIGHT; }
@@ -252,7 +259,7 @@ export class ArenaScenery {
     this.building = set;
     // Painted layers: unlit, behind everything, never write depth (the grid draws over them).
     for (const spec of LAYERS) {
-      if ((spec.key === 'near' && !arenaHasNearLayer(region)) || NO_PAINTED_LAYERS.has(region)) continue;
+      if ((spec.key === 'near' && !arenaHasNearLayer(region)) || NO_PAINTED_LAYERS.has(region) || (SKY_ONLY.has(region) && spec.key !== 'sky')) continue;
       const texture = this.texture(assets[spec.key], spec.repeat);
       const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: this.current ? 0 : 1, depthWrite: false, fog: false });
       const geometry = new THREE.PlaneGeometry(spec.width, spec.height);
@@ -270,7 +277,7 @@ export class ArenaScenery {
     const size = bridge ? { w: 240, d: 40 - DECK_BACK_Z } : { w: 240, d: 120 };
     const centreZ = bridge ? (DECK_BACK_Z + 40) / 2 : GROUND_Z;
     const ground = this.texture(assets.ground, size.w / GROUND_TILE_M, size.d / GROUND_TILE_M);
-    const groundMaterial = new THREE.MeshLambertMaterial({ map: ground, transparent: !!this.current, opacity: this.current ? 0 : 1 });
+    const groundMaterial = new THREE.MeshLambertMaterial({ map: ground, color: arenaLight(region).groundTint ?? '#ffffff', transparent: !!this.current, opacity: this.current ? 0 : 1 });
     terrainShader(groundMaterial, set.travel, RELIEF[region] ?? 1, centreZ);
     const geometry = new THREE.PlaneGeometry(size.w, size.d, size.w, size.d);
     this.geometries.push(geometry);

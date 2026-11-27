@@ -129,6 +129,15 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
       return bigleafGeometry();
     case 'sprout':
       return sproutGeometry();
+    case 'column':
+      return columnGeometry();
+    case 'slab': {
+      const g = new THREE.BoxGeometry(1, 0.07, 0.68, 2, 1, 2);
+      const pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) pos.setXYZ(i, pos.getX(i) * (1 + 0.1 * jitter(pos.getX(i), 1, pos.getZ(i), 7)), pos.getY(i) + (pos.getY(i) > 0 ? 0.02 * jitter(pos.getX(i), 2, pos.getZ(i), 8) : 0), pos.getZ(i) * (1 + 0.1 * jitter(pos.getZ(i), 3, pos.getX(i), 9)));
+      g.translate(0, 0.015, 0);
+      return shade(g, (p, n) => (n.y > 0.7 ? 1.02 : 0.8) + 0.06 * Math.sin(p.x * 11 + p.z * 7));
+    }
     default:
       throw new Error(`arena prop ${kind} is modelled (props.glb), not built`);
   }
@@ -253,6 +262,42 @@ function sproutGeometry(): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
   return shade(g, (p) => 0.85 + 2 * p.y);
+}
+
+/** Like `shade`, with a colour (r, g, b) per vertex: the instance colour multiplies it. */
+function shadeRgb(geometry: THREE.BufferGeometry, f: (p: THREE.Vector3, n: THREE.Vector3) => [number, number, number]): THREE.BufferGeometry {
+  const g = geometry.index ? geometry.toNonIndexed() : geometry;
+  g.deleteAttribute('uv');
+  g.computeVertexNormals();
+  const pos = g.getAttribute('position'), nor = g.getAttribute('normal');
+  const colors = new Float32Array(pos.count * 3);
+  const p = new THREE.Vector3(), n = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) { p.fromBufferAttribute(pos, i); n.fromBufferAttribute(nor, i); colors.set(f(p, n), i * 3); }
+  g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return g;
+}
+
+/** A broken stone column about 3 m tall: a square plinth, a fluted shaft snapped off unevenly, moss at its foot. */
+function columnGeometry(): THREE.BufferGeometry {
+  const plinth = new THREE.BoxGeometry(0.95, 0.28, 0.95);
+  plinth.translate(0, 0.14, 0);
+  const H = 2.7, sides = 12;
+  const shaft = new THREE.CylinderGeometry(0.31, 0.36, H, sides, 3);
+  const pos = shaft.getAttribute('position');
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), a = Math.atan2(z, x);
+    // Flutes: every other edge a little in; the top ring broken off at an angle with a jagged edge.
+    const flute = Math.round(((a + Math.PI) / (2 * Math.PI)) * sides) % 2 ? 0.93 : 1;
+    const top = y > H / 2 - 1e-3 ? -0.55 * (0.5 + 0.5 * Math.sin(a)) - 0.12 * Math.abs(Math.sin(a * 5.3)) : 0;
+    pos.setXYZ(i, x * flute, y + top, z * flute);
+  }
+  shaft.translate(0, 0.28 + H / 2, 0);
+  const g = mergeGeometries([plinth.toNonIndexed(), shaft.toNonIndexed()].map((x) => { x.deleteAttribute('uv'); return x; }))!;
+  return shadeRgb(g, (p, n) => {
+    const moss = Math.max(0, 1 - p.y / 1.1) * (0.6 + 0.4 * Math.sin(Math.atan2(p.z, p.x) * 3 + p.y * 4));
+    const light = (n.y > 0.7 ? 1.08 : 0.9) + 0.05 * Math.sin(p.y * 9);
+    return [light * (1 - 0.35 * moss), light * (1 - 0.08 * moss), light * (1 - 0.45 * moss)];
+  });
 }
 
 /** Horizontal reach of a model round its origin (its base), with room for the props' tilt. */

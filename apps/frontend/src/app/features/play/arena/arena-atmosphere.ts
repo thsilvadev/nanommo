@@ -12,9 +12,17 @@ export interface ArenaAtmosphereSpec {
   wisps: { count: number; color: string; opacity: number };
   /** Tiny lights (additive points). */
   motes: { count: number; colors: string[]; size: number };
+  /** Shafts of sunlight slanting down through the canopy (additive, fixed in the world, slowly breathing). */
+  beams?: { count: number; color: string; opacity: number };
 }
 
 const ATMOSPHERE: Partial<Record<ArenaRegionId, ArenaAtmosphereSpec>> = {
+  // Sunbeams in the old forest: pollen and dust glinting gold, a thin morning mist.
+  forest_ruins: {
+    wisps: { count: 24, color: '#f4ecd0', opacity: 0.26 },
+    motes: { count: 240, colors: ['#fff2b8', '#ffe8a0', '#fffbe0'], size: 0.42 },
+    beams: { count: 12, color: '#ffe9b0', opacity: 0.16 },
+  },
   caete: {
     wisps: { count: 34, color: '#dbe6d8', opacity: 0.34 },
     motes: { count: 260, colors: ['#fff6c0', '#f2ffd0', '#d8fff0'], size: 0.55 },
@@ -33,6 +41,10 @@ const WISP_WIND_M_S = 0.12;
 
 export interface Mote { u: number; y: number; z: number; color: string; phase: [number, number, number, number]; rate: [number, number, number, number] }
 export interface Wisp { u: number; z: number; width: number; height: number; seed: number; bob: number }
+export interface Beam { u: number; z: number; width: number; height: number; phase: number }
+/** Sun shafts' strip and lean (screen-space shear: they all slant the same way, like light). */
+const BEAM_STRIP_M = 110;
+const BEAM_LEAN = 0.32;
 
 function rng(seed: number): () => number {
   let a = seed >>> 0;
@@ -45,7 +57,7 @@ function rng(seed: number): () => number {
   };
 }
 
-export function atmosphereLayout(spec: ArenaAtmosphereSpec): { motes: Mote[]; wisps: Wisp[] } {
+export function atmosphereLayout(spec: ArenaAtmosphereSpec): { motes: Mote[]; wisps: Wisp[]; beams: Beam[] } {
   const r = rng(0xa7b05);
   const range = (lo: number, hi: number) => lo + r() * (hi - lo);
   const motes = Array.from({ length: spec.motes.count }, (): Mote => ({
@@ -58,7 +70,10 @@ export function atmosphereLayout(spec: ArenaAtmosphereSpec): { motes: Mote[]; wi
   const wisps = Array.from({ length: spec.wisps.count }, (): Wisp => ({
     u: r() * WISP_STRIP_M, z: range(-26, 14), width: range(7, 14), height: range(2.4, 4.4), seed: r() * 100, bob: r() * 6.28,
   }));
-  return { motes, wisps };
+  const beams = Array.from({ length: spec.beams?.count ?? 0 }, (): Beam => ({
+    u: r() * BEAM_STRIP_M, z: range(-24, 6), width: range(1.6, 3.6), height: range(18, 26), phase: r() * 6.28,
+  }));
+  return { motes, wisps, beams };
 }
 
 const wrap = (v: number, period: number) => ((((v % period) + period) % period) - period / 2);
@@ -93,6 +108,11 @@ function glowTexture(): THREE.DataTexture {
   return texture;
 }
 
+/** A sun shaft's foot (scenery-local, on the ground) and brightness (0..1, a slow breathing) at `t` seconds. */
+export function beamPosition(b: Beam, t: number, travelled: number): { x: number; z: number; glow: number } {
+  return { x: wrap(b.u - travelled, BEAM_STRIP_M), z: b.z, glow: 0.65 + 0.35 * Math.sin(t * 0.17 + b.phase) };
+}
+
 export class ArenaAtmosphere {
   readonly group = new THREE.Group();
   private readonly motes: Mote[];
@@ -103,11 +123,14 @@ export class ArenaAtmosphere {
   private readonly sheet: THREE.InstancedMesh;
   private readonly sheetMaterial: THREE.ShaderMaterial;
   private readonly moteColors: THREE.Color[];
+  private readonly beams: Beam[];
+  private readonly shafts: THREE.InstancedMesh | null = null;
+  private readonly shaftMaterial: THREE.ShaderMaterial | null = null;
   private readonly m = new THREE.Matrix4();
 
   constructor(private readonly spec: ArenaAtmosphereSpec, fading: boolean) {
     this.group.name = 'arena:atmosphere';
-    ({ motes: this.motes, wisps: this.wisps } = atmosphereLayout(spec));
+    ({ motes: this.motes, wisps: this.wisps, beams: this.beams } = atmosphereLayout(spec));
     this.moteColors = this.motes.map((m) => new THREE.Color(m.color));
 
     const geometry = new THREE.BufferGeometry();
@@ -160,6 +183,41 @@ export class ArenaAtmosphere {
     this.sheet.name = 'arena:wisps';
     this.sheet.frustumCulled = false;
     this.group.add(this.sheet, this.points);
+
+    if (spec.beams && this.beams.length) {
+      this.shaftMaterial = new THREE.ShaderMaterial({
+        uniforms: { uColor: { value: new THREE.Color(spec.beams.color) }, uOpacity: { value: fading ? 0 : spec.beams.opacity }, uLean: { value: BEAM_LEAN } },
+        transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending,
+        vertexShader: /* glsl */ `
+          attribute float aGlow;
+          uniform float uLean;
+          varying vec2 vUv; varying float vGlow;
+          void main() {
+            vUv = uv; vGlow = aGlow;
+            // Its foot on the ground (instance position), spread upwards in view space and sheared sideways.
+            vec4 foot = modelViewMatrix * vec4(instanceMatrix[3].xyz, 1.0);
+            vec2 size = vec2(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz));
+            float up = (position.y + 0.5) * size.y;
+            foot.xy += vec2(position.x * size.x + up * uLean, up);
+            gl_Position = projectionMatrix * foot;
+          }`,
+        fragmentShader: /* glsl */ `
+          uniform vec3 uColor; uniform float uOpacity;
+          varying vec2 vUv; varying float vGlow;
+          void main() {
+            float across = 1.0 - abs(vUv.x - 0.5) * 2.0;
+            float a = uOpacity * vGlow * pow(across, 1.6) * smoothstep(0.0, 0.25, vUv.y) * (1.0 - smoothstep(0.55, 1.0, vUv.y));
+            if (a < 0.002) discard;
+            gl_FragColor = vec4(uColor * a, 1.0);
+          }`,
+      });
+      const quad = new THREE.PlaneGeometry(1, 1);
+      quad.setAttribute('aGlow', new THREE.InstancedBufferAttribute(new Float32Array(this.beams.length), 1));
+      this.shafts = new THREE.InstancedMesh(quad, this.shaftMaterial, this.beams.length);
+      this.shafts.name = 'arena:beams';
+      this.shafts.frustumCulled = false;
+      this.group.add(this.shafts);
+    }
   }
 
   /** Place everything for `travelled` metres walked at `tSec` seconds. */
@@ -180,12 +238,24 @@ export class ArenaAtmosphere {
     });
     this.sheet.instanceMatrix.needsUpdate = true;
     this.sheetMaterial.uniforms['uTime'].value = tSec % 3600;
+    if (this.shafts) {
+      const glow = this.shafts.geometry.getAttribute('aGlow') as THREE.InstancedBufferAttribute;
+      this.beams.forEach((b, i) => {
+        const p = beamPosition(b, tSec, travelled);
+        this.m.makeScale(b.width, b.height, 1).setPosition(p.x, 0, p.z);
+        this.shafts!.setMatrixAt(i, this.m);
+        glow.setX(i, p.glow);
+      });
+      this.shafts.instanceMatrix.needsUpdate = true;
+      glow.needsUpdate = true;
+    }
   }
 
   /** Crossfade between regions (0..1). */
   fade(f: number): void {
     this.pointsMaterial.opacity = f;
     this.sheetMaterial.uniforms['uOpacity'].value = this.spec.wisps.opacity * f;
+    if (this.shaftMaterial) this.shaftMaterial.uniforms['uOpacity'].value = (this.spec.beams?.opacity ?? 0) * f;
   }
 
   dispose(): void {
@@ -196,5 +266,8 @@ export class ArenaAtmosphere {
     this.sheet.geometry.dispose();
     this.sheetMaterial.dispose();
     this.sheet.dispose();
+    this.shafts?.geometry.dispose();
+    this.shaftMaterial?.dispose();
+    this.shafts?.dispose();
   }
 }

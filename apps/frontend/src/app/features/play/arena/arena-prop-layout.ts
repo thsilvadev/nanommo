@@ -17,7 +17,7 @@ export const ARENA_TRUNK_HEIGHT_M = 30;
 
 /** Procedural kinds (built in arena-props) and modelled kinds (`MODEL_PROPS`, loaded from props.glb). */
 export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm' | 'post'
-  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout';
+  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab';
 /** Kinds drawn from `assets/arena/props.glb` (tools/arena-assets/build-arena-props.mjs): colours baked per vertex, tinted per instance. */
 export const MODEL_PROPS: ReadonlySet<ArenaPropKind> = new Set(['fern', 'shrub', 'tuft', 'flowers', 'stump', 'deadtree', 'mossrock']);
 export interface ArenaPropSpec {
@@ -107,10 +107,24 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
     { kind: 'leaf', count: 420, colors: ['#3a5a2c', '#4f7a34', '#5d4a2e', '#6b5a2e', '#2f4f26'], size: [0.18, 0.34], bands: [ALL] },
   ],
   forest_ruins: [
-    { kind: 'block', count: 26, colors: ['#9a9a8c', '#7d7d70', '#8a8a7c'], size: [0.5, 1.3], bands: [BEHIND, BEHIND, FRONT] },
-    { kind: 'rock', count: 20, colors: stone, size: [0.35, 0.9], bands: [BEHIND, FRONT] },
-    { kind: 'bush', count: 36, colors: ['#4d7f34', '#5d8a3f', '#3f6f2c'], size: [0.6, 1.3], bands: [BEHIND, FRONT] },
-    { kind: 'pebble', count: 120, colors: ['#9a9a8c', '#8a8a7c'], size: [0.06, 0.16], bands: [ALL] },
+    // An old ruin in a golden forest: broken mossy columns and fallen blocks among big round, trunkless trees.
+    { kind: 'column', count: 16, colors: ['#9a9682', '#8f8b78', '#a6a28c'], size: [0.7, 1.35], bands: [[-23, -15]], even: true },
+    { kind: 'column', count: 14, colors: ['#9a9682', '#8f8b78'], size: [1.2, 2], bands: [[-44, -28]], even: true },
+    { kind: 'block', count: 40, colors: ['#8f8b78', '#85826f', '#9a9682'], size: [0.5, 1.3], bands: [BEHIND, BEHIND, DEEP, FRONT] },
+    // Round crowns standing on the ground (the user's "small trees without a trunk"): a wall round the ruin, bigger in the haze.
+    { kind: 'shrub', count: 44, colors: ['#5f8a44', '#527a3a', '#6a9450'], size: [2.8, 4.6], bands: [[-26, -16], [-26, -16], DEEP] },
+    { kind: 'shrub', count: 36, colors: ['#5f8a44', '#527a3a'], size: [5, 8], bands: [[-50, -30]] },
+    { kind: 'shrub', count: 100, colors: ['#6a944e', '#5f8a44', '#74a058'], size: [0.6, 1.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT], grow: { count: 24, factor: 1.8 } },
+    { kind: 'fern', count: 180, colors: ['#6a9a4e', '#5f8a44', '#78a85a'], size: [1.3, 2.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'tuft', count: 200, colors: ['#78a050', '#6a9044'], size: [1.2, 2.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'flowers', count: 40, colors: ['#ffffff', '#f2f2f2'], size: [0.9, 1.4], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'mossrock', count: 16, colors: ['#a0a890', '#909880'], size: [0.8, 1.5], bands: [BEHIND, DEEP, FRONT] },
+    { kind: 'rock', count: 14, colors: ['#8f8b78', '#7f7c6a'], size: [0.35, 0.9], bands: [BEHIND, FRONT] },
+    // The battle floor: worn paving slabs half lost in the grass, sprouts, fallen golden leaves, pebbles.
+    { kind: 'slab', count: 110, colors: ['#8f8b78', '#85826f', '#7a7866'], size: [0.5, 1], bands: [ALL] },
+    { kind: 'sprout', count: 1400, colors: ['#5f8a3a', '#6a9440', '#527a32', '#748a3a'], size: [0.9, 1.8], bands: [ALL] },
+    { kind: 'leaf', count: 480, colors: ['#8a8a34', '#b09a40', '#c0903a', '#7a6a34', '#a07a30', '#5f7a2c'], size: [0.18, 0.32], bands: [ALL] },
+    { kind: 'pebble', count: 120, colors: ['#9a9682', '#85826f'], size: [0.06, 0.16], bands: [ALL] },
   ],
   ipora_beach: [
     { kind: 'palm', count: 9, colors: ['#ffffff', '#f2f2e6', '#e8eedc'], size: [0.8, 1.15], bands: [[-24, -17]] },
@@ -172,4 +186,4 @@ export function propLocalX(u: number, travelled: number): number {
 }
 
 /** Kinds low enough for the battle band (flat, or below the ankle). */
-export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig', 'sprout']);
+export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig', 'sprout', 'slab']);
