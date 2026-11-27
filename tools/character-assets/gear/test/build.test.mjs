@@ -219,7 +219,7 @@ test('weapon mapping requested by the user (2026-11-22)', () => {
   assert.equal(ITEMS.equip_dagger_t2, 'dagger-kaykit');
   assert.ok(VISUALS[ITEMS.equip_dagger_t3].smoothBlade);
   assert.equal(VISUALS[ITEMS.equip_sword_t2].source, 'weapons:Claymore');
-  assert.match(VISUALS[ITEMS.equip_greatsword_t2].source, /09ef2c4a/);
+  assert.match(VISUALS[ITEMS.equip_greatsword_t2].source, /83e7494e/ /* katana by local.yany, requested 2026-11-27 (was 09ef2c4a) */);
   assert.equal(ITEMS.equip_staff_t2, 'staff-ancient-gold');
   assert.equal(ITEMS.equip_staff_t3, 'staff-skeleton');
   for (const t of [1, 2, 3]) assert.match(ITEMS[`equip_rune_t${t}`], /^rune-orb/);
