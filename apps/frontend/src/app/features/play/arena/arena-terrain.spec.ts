@@ -48,7 +48,7 @@ describe('arena props', () => {
   it('the same layout on every visit, and every region but the bridge has rocks or blocks', () => {
     expect(arenaPropLayout('kwaioua_forest')).toEqual(arenaPropLayout('kwaioua_forest'));
     for (const region of ARENA_REGIONS.filter((r) => r !== 'gods_bridge')) {
-      expect(arenaPropLayout(region).some((p) => p.kind === 'rock' || p.kind === 'block')).withContext(region).toBeTrue();
+      expect(arenaPropLayout(region).some((p) => ['rock', 'block', 'frostrock'].includes(p.kind))).withContext(region).toBeTrue();
     }
   });
 

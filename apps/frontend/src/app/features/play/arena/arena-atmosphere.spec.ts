@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ArenaAtmosphere, arenaAtmosphere, atmosphereLayout, beamPosition, motePosition, wispPosition } from './arena-atmosphere';
-import { ArenaScenery } from './arena-scenery';
+import { ArenaScenery, arenaLight } from './arena-scenery';
 import { ARENA_REGIONS } from './arena-region';
 
 describe('arena atmosphere', () => {
@@ -9,7 +9,8 @@ describe('arena atmosphere', () => {
       const air = arenaAtmosphere(region)!;
       expect(air).withContext(region).not.toBeNull();
       expect(air.motes.count).withContext(region).toBeGreaterThan(100);
-      expect(air.wisps.count).withContext(region).toBeGreaterThan(10);
+      // Mist only where there is fog (green_grounds has a clear sky).
+      if (arenaLight(region).fog) expect(air.wisps.count).withContext(region).toBeGreaterThan(10);
     }
   });
 

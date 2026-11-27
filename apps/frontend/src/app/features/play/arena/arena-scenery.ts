@@ -48,10 +48,10 @@ const ARENA_SKY_FALLBACK = '#cfe8f4';
 const BRIDGES: ReadonlySet<ArenaRegionId> = new Set(['gods_bridge']);
 
 /** Light per region (hemisphere sky/ground, sun): the bridge is lit by a low warm sunset. */
-/** `background`: clear colour (default the painted sky's blue); `fog`: distance fog in that colour; `stars`: a night dome; `groundTint`: multiplies the ground texture. */
-export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number }; stars?: boolean; groundTint?: string; dome?: ArenaSkyDome }
-/** A procedural sky (regions without painted layers under an open sky): `horizon` should be the fog colour; `mid` a band between it and the zenith, reached at `spread` (sine of the elevation, default 0.5). */
-export interface ArenaSkyDome { zenith: string; horizon: string; clouds: number; cloudColor: string; mid?: string; spread?: number; sun?: { dir: [number, number, number]; color: string; size: number } }
+/** `background`: clear colour (default the painted sky's blue); `fog`: distance fog in that colour; `stars`: a night dome; `groundTint`: multiplies the ground texture; `groundRecolor`: replaces its hue (its brightness times this colour). */
+export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number }; stars?: boolean; groundTint?: string; groundRecolor?: string; dome?: ArenaSkyDome }
+/** A procedural sky (regions without painted layers under an open sky): `horizon` should be the fog colour; `mid` a band between it and the zenith, reached at `spread` (sine of the elevation, default 0.5); `below`: the dome under the horizon (default `horizon`), a land colour where there is no fog to hide the ground's far edge. */
+export interface ArenaSkyDome { zenith: string; horizon: string; clouds: number; cloudColor: string; mid?: string; spread?: number; below?: string; sun?: { dir: [number, number, number]; color: string; size: number } }
 const DEFAULT_LIGHT: ArenaLight = { sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2 };
 const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
   // The sun sits where the river's glitter path points (34 m right, ~150 m out: buildBridge).
@@ -61,10 +61,10 @@ const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
   },
   kwaioua_forest: { sky: '#d6ccff', ground: '#352a3e', hemi: 1.2, sun: '#f2e4ff', sunIntensity: 1.65, background: '#080515', fog: { near: 14, far: 74 }, stars: true },
   // Caetê: a misty day under the canopy, soft green light; the mist reaches into the battle, the trunks fade into it.
-  // Green grounds: a bright open meadow under the painted sky, hills fading into a pale blue haze.
+  // Green grounds: a bright open meadow under a clear blue sky, no fog; the dome under the horizon is grass-coloured.
   green_grounds: {
-    sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2, background: '#dcecf4', fog: { near: 12, far: 96 }, groundTint: '#e4ecc8',
-    dome: { zenith: '#3f8fe0', horizon: '#dcecf4', clouds: 0.55, cloudColor: '#ffffff' },
+    sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2, background: '#9ccdf2', groundTint: '#e4ecc8',
+    dome: { zenith: '#2a7ee0', horizon: '#9ccdf2', below: '#7aa456', spread: 0.35, clouds: 0.5, cloudColor: '#ffffff' },
   },
   // Menace hills: dry rocky hills at sunset, crags fading into an orange dust haze under a darkening sky.
   menace_hills: {
@@ -81,8 +81,8 @@ const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
     sky: '#fff8e8', ground: '#c8a870', hemi: 1.7, sun: '#fff4e0', sunIntensity: 2.3, background: '#cfe8f4', fog: { near: 12, far: 120 },
     dome: { zenith: '#2a8ae6', horizon: '#cfe8f4', clouds: 0.4, cloudColor: '#ffffff' },
   },
-  // Forest ruins: late afternoon under a closed canopy, a warm golden haze pierced by sun shafts.
-  forest_ruins: { sky: '#fff0d0', ground: '#4a4630', hemi: 1.3, sun: '#ffdfa0', sunIntensity: 1.9, background: '#d9cfa6', fog: { near: 8, far: 66 }, groundTint: '#b4a67c' },
+  // Forest ruins: a starry night over the ruin, moonlight, a deep blue haze; the ground recoloured blue.
+  forest_ruins: { sky: '#9fb4ff', ground: '#1c2236', hemi: 1.3, sun: '#c8d6ff', sunIntensity: 1.6, background: '#03040a', fog: { near: 14, far: 80 }, stars: true, groundRecolor: '#2c3a66' },
   caete: { sky: '#eef8e6', ground: '#3f4a30', hemi: 1.7, sun: '#fff4dc', sunIntensity: 1.2, background: '#a7bca9', fog: { near: 7, far: 56 } },
 };
 export function arenaLight(region: ArenaRegionId): ArenaLight { return LIGHTS[region] ?? DEFAULT_LIGHT; }
@@ -226,6 +226,7 @@ export class ArenaScenery {
       uniforms: {
         uZenith: { value: new THREE.Color(dome.zenith) }, uHorizon: { value: new THREE.Color(dome.horizon) },
         uCloud: { value: new THREE.Color(dome.cloudColor) }, uClouds: { value: dome.clouds }, uTime: set.time, opacity: { value: fading ? 0 : 1 },
+        uBelow: { value: new THREE.Color(dome.below ?? dome.horizon) },
         uMid: { value: new THREE.Color(dome.mid ?? dome.zenith).lerp(new THREE.Color(dome.mid ? dome.mid : dome.horizon), dome.mid ? 0 : 0.5) }, uSpread: { value: dome.spread ?? 0.5 },
         uSunDir: { value: new THREE.Vector3(...(dome.sun?.dir ?? [0, 1, 0])).normalize() }, uSunColor: { value: new THREE.Color(dome.sun?.color ?? '#000000') }, uSunSize: { value: dome.sun?.size ?? 0 },
       },
@@ -235,7 +236,7 @@ export class ArenaScenery {
         void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: /* glsl */ `
         uniform vec3 uZenith; uniform vec3 uHorizon; uniform vec3 uCloud; uniform float uClouds; uniform float uTime; uniform float opacity;
-        uniform vec3 uSunDir; uniform vec3 uSunColor; uniform float uSunSize; uniform vec3 uMid; uniform float uSpread;
+        uniform vec3 uSunDir; uniform vec3 uSunColor; uniform float uSunSize; uniform vec3 uMid; uniform float uSpread; uniform vec3 uBelow;
         varying vec3 vDir;
         float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
         float noise(vec2 p) {
@@ -247,6 +248,7 @@ export class ArenaScenery {
           float e = d.y;
           float t = pow(smoothstep(-0.02, uSpread, e), 0.75);
           vec3 col = t < 0.5 ? mix(uHorizon, uMid, t * 2.0) : mix(uMid, uZenith, t * 2.0 - 1.0);
+          col = mix(col, uBelow, smoothstep(0.0, -0.03, e));
           if (e > 0.0) {
             vec2 p = d.xz / (e + 0.15) * 1.6 + vec2(uTime * 0.006, uTime * 0.002);
             float n = 0.5 * noise(p) + 0.28 * noise(p * 2.3 + 5.1) + 0.14 * noise(p * 4.7 - 2.3) + 0.08 * noise(p * 9.1);
@@ -406,7 +408,7 @@ export class ArenaScenery {
     const centreZ = bridge ? (DECK_BACK_Z + 40) / 2 : GROUND_Z;
     const ground = this.texture(assets.ground, size.w / GROUND_TILE_M, size.d / GROUND_TILE_M);
     const groundMaterial = new THREE.MeshLambertMaterial({ map: ground, color: arenaLight(region).groundTint ?? '#ffffff', transparent: !!this.current, opacity: this.current ? 0 : 1 });
-    terrainShader(groundMaterial, set.travel, RELIEF[region] ?? 1, centreZ, arenaShore(region));
+    terrainShader(groundMaterial, set.travel, RELIEF[region] ?? 1, centreZ, arenaShore(region), arenaLight(region).groundRecolor);
     const geometry = new THREE.PlaneGeometry(size.w, size.d, size.w, size.d);
     this.geometries.push(geometry);
     const plane = new THREE.Mesh(geometry, groundMaterial);
@@ -441,11 +443,13 @@ const GROUND_Z = -120 / 2 + 40;
  * and a less repetitive texture: a second, rotated sample at another scale blended in by a slow noise,
  * and a broad light/dark variation. `travel` (metres walked + camera x) keeps both fixed to the world.
  */
-function terrainShader(material: THREE.MeshLambertMaterial, travel: { value: number }, relief: number, centreZ: number, shore = 0): void {
+function terrainShader(material: THREE.MeshLambertMaterial, travel: { value: number }, relief: number, centreZ: number, shore = 0, recolor?: string): void {
   material.onBeforeCompile = (shader) => {
     shader.uniforms['uTravel'] = travel;
     shader.uniforms['uRelief'] = { value: relief };
     shader.uniforms['uShore'] = { value: shore };
+    shader.uniforms['uRecolor'] = { value: new THREE.Color(recolor ?? '#ffffff') };
+    shader.uniforms['uRecolorOn'] = { value: recolor ? 1 : 0 };
     shader.uniforms['uGroundZ'] = { value: centreZ };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>
@@ -464,7 +468,7 @@ vec3 objectNormal = normalize(vec3(-hx / 0.5, hz / 0.5, 1.0));
 vTerrain = terrainAt;`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
-varying vec2 vTerrain;`)
+varying vec2 vTerrain; uniform vec3 uRecolor; uniform float uRecolorOn;`)
       .replace('#include <map_fragment>', `#ifdef USE_MAP
   vec4 tileA = texture2D(map, vMapUv);
   vec2 uvB = mat2(0.8, -0.6, 0.6, 0.8) * (vTerrain / 9.3);
@@ -473,6 +477,8 @@ varying vec2 vTerrain;`)
   vec4 tile = mix(tileA, tileB, mixB * 0.85);
   float broad = 0.5 + 0.5 * (0.6 * sin(0.045 * vTerrain.x + 0.07 * vTerrain.y) + 0.4 * sin(0.11 * vTerrain.x - 0.05 * vTerrain.y + 1.7));
   tile.rgb *= mix(0.84, 1.1, broad);
+  // A recoloured ground keeps the texture's light and dark, in the region's own hue.
+  tile.rgb = mix(tile.rgb, vec3(dot(tile.rgb, vec3(0.3, 0.59, 0.11))) * uRecolor * 2.2, uRecolorOn);
   diffuseColor *= tile;
 #endif`);
   };

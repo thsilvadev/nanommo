@@ -22,9 +22,9 @@ const ATMOSPHERE: Partial<Record<ArenaRegionId, ArenaAtmosphereSpec>> = {
     wisps: { count: 22, color: '#5a4a8a', opacity: 0.24 },
     motes: { count: 280, colors: ['#d8ff7a', '#f0ff9a', '#b8ff8a'], size: 0.5 },
   },
-  // A bright meadow: dandelion seeds and pollen adrift, the faintest morning haze.
+  // A bright meadow under a clear sky: dandelion seeds and pollen adrift, no mist.
   green_grounds: {
-    wisps: { count: 16, color: '#f4f8fb', opacity: 0.16 },
+    wisps: { count: 0, color: '#f4f8fb', opacity: 0 },
     motes: { count: 200, colors: ['#ffffff', '#fffbe6', '#fff6c8'], size: 0.4 },
   },
   // Sunset on the dry hills: warm dust and a few embers adrift, a thin dust haze.
@@ -47,11 +47,11 @@ const ATMOSPHERE: Partial<Record<ArenaRegionId, ArenaAtmosphereSpec>> = {
     wisps: { count: 22, color: '#f8c8b8', opacity: 0.22 },
     motes: { count: 220, colors: ['#ffd890', '#ffc078', '#fff0c0'], size: 0.42 },
   },
-  // Sunbeams in the old forest: pollen and dust glinting gold, a thin morning mist.
+  // The ruin at night: pale spirit lights drifting among the stones, a blue mist, faint shafts of moonlight.
   forest_ruins: {
-    wisps: { count: 24, color: '#f4ecd0', opacity: 0.26 },
-    motes: { count: 240, colors: ['#fff2b8', '#ffe8a0', '#fffbe0'], size: 0.42 },
-    beams: { count: 12, color: '#ffe9b0', opacity: 0.16 },
+    wisps: { count: 24, color: '#4a5a8a', opacity: 0.24 },
+    motes: { count: 240, colors: ['#a8e0ff', '#d0f0ff', '#88c8ff'], size: 0.46 },
+    beams: { count: 8, color: '#8aa8ff', opacity: 0.09 },
   },
   caete: {
     wisps: { count: 34, color: '#dbe6d8', opacity: 0.34 },

@@ -135,6 +135,60 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
       return hillGeometry();
     case 'blossom':
       return blossomGeometry();
+    case 'arch':
+      return archGeometry();
+    case 'wall':
+      return wallGeometry();
+    case 'drum': {
+      // A fallen column drum (0.7 m across, 0.9 long) lying on its side, fluted like the columns.
+      const g = new THREE.CylinderGeometry(0.34, 0.34, 0.9, 12, 1);
+      const pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), z = pos.getZ(i), a = Math.atan2(z, x), flute = Math.round(((a + Math.PI) / (2 * Math.PI)) * 12) % 2 ? 0.93 : 1;
+        if (Math.hypot(x, z) > 0.1) pos.setXYZ(i, x * flute, pos.getY(i), z * flute);
+      }
+      g.rotateZ(Math.PI / 2); g.translate(0, 0.3, 0);
+      g.deleteAttribute('uv');
+      return shadeRgb(g, (p, n) => { const l = Math.abs(n.x) > 0.9 ? 1.12 : 0.86 + 0.18 * Math.max(0, n.y); return [l * 0.92, l, l * 0.86]; });
+    }
+    case 'frostrock': {
+      // An angular dark boulder with old snow on its top faces (unlike the rounded rocks elsewhere).
+      const g = new THREE.DodecahedronGeometry(0.62, 0);
+      const pos = g.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), k = 1 + 0.3 * jitter(Math.round(x * 100), Math.round(y * 100), Math.round(z * 100), 8);
+        pos.setXYZ(i, x * k * 1.15, Math.max(-0.2, y * k * 0.72), z * k);
+      }
+      g.translate(0, 0.32, 0);
+      // Light instance colours: the vertex colours carry the dark rock, the snow stays white.
+      return shadeRgb(g, (_p, n) => (n.y > 0.72 ? [1.02, 1.04, 1.08] : [0.3 + 0.05 * n.y, 0.32 + 0.05 * n.y, 0.37 + 0.05 * n.y]));
+    }
+    case 'shard': {
+      // A cluster of basalt columns (about 1.6 wide, 2.8 tall): three hexagonal prisms of different heights,
+      // each snapped off at a slant with snow on its cut.
+      const prisms = ([[0, 0, 2.8, 0.42], [0.62, 0.3, 1.9, 0.34], [-0.5, 0.36, 1.4, 0.32]] as const).map(([x, z, h, r], k) => {
+        const g = new THREE.CylinderGeometry(r, r * 1.1, h, 6, 1);
+        const pos = g.getAttribute('position');
+        for (let i = 0; i < pos.count; i++) {
+          const px = pos.getX(i), py = pos.getY(i), pz = pos.getZ(i);
+          pos.setXYZ(i, px + 0.06 * (py / h) * (k - 1), py > 0 ? py - 0.35 * (px / r + 1) * (0.6 + 0.2 * k) : py, pz);
+        }
+        g.translate(x, h / 2, z); g.deleteAttribute('uv');
+        return g.toNonIndexed();
+      });
+      return shadeRgb(mergeGeometries(prisms)!, (p, n) => { const k = 0.22 + 0.05 * Math.min(1, p.y / 2.8); return n.y > 0.5 ? [1.02, 1.04, 1.08] : [k, k * 1.04, k * 1.18]; });
+    }
+    case 'puddle': {
+      // A black pool (about 1 x 0.85 m): a flat irregular disc just above the ground, its rim a little lighter.
+      const verts: number[] = [], colors: number[] = [], n = 14;
+      const ring = Array.from({ length: n }, (_, k) => { const a = (k / n) * Math.PI * 2, r = 0.5 * (0.8 + 0.2 * Math.sin(k * 2.3 + 0.7)); return [Math.cos(a) * r, 0.014, Math.sin(a) * r * 0.85]; });
+      for (let k = 0; k < n; k++) { verts.push(0, 0.016, 0, ...ring[(k + 1) % n], ...ring[k]); colors.push(0.8, 0.8, 0.85, 1.6, 1.6, 1.7, 1.6, 1.6, 1.7); }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      g.computeVertexNormals();
+      return g;
+    }
     case 'starfish': {
       // A starfish (0.3 m across): five tapering arms, a raised middle.
       const verts: number[] = [];
@@ -381,6 +435,45 @@ function hillGeometry(): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
   return shade(g, (p) => 0.88 + 0.5 * Math.max(0, p.y));
+}
+
+/** Moss at a ruin's foot: greener and darker low down (for `shadeRgb`). */
+function ruinStone(p: THREE.Vector3, n: THREE.Vector3): [number, number, number] {
+  const moss = Math.max(0, 1 - p.y / 1.1) * (0.6 + 0.4 * Math.sin(p.x * 3 + p.y * 4 + p.z * 2));
+  const light = (n.y > 0.7 ? 1.08 : 0.9) + 0.05 * Math.sin(p.y * 9 + p.x * 3);
+  return [light * (1 - 0.35 * moss), light * (1 - 0.08 * moss), light * (1 - 0.45 * moss)];
+}
+
+/** Boxes merged into one geometry (position + normal only). */
+function boxes(parts: Array<[w: number, h: number, d: number, x: number, y: number, z: number, rz?: number]>): THREE.BufferGeometry {
+  return mergeGeometries(parts.map(([w, h, d, x, y, z, rz = 0]) => {
+    const b = new THREE.BoxGeometry(w, h, d);
+    b.rotateZ(rz); b.translate(x, y, z); b.deleteAttribute('uv');
+    return b.toNonIndexed();
+  }))!;
+}
+
+/** A ruined arch (about 4.6 m wide, 5.6 tall): two square pillars and a round arch of voussoirs, two of them fallen. */
+function archGeometry(): THREE.BufferGeometry {
+  const parts: Array<[number, number, number, number, number, number, number?]> = [
+    [0.9, 0.3, 0.9, -2, 0.15, 0], [0.9, 0.3, 0.9, 2, 0.15, 0],
+    [0.7, 3.6, 0.7, -2, 2.1, 0], [0.7, 3.2, 0.7, 2, 1.9, 0],
+  ];
+  // Voussoirs round a half circle of radius 2 above the pillars; the right shoulder has lost two stones.
+  for (let k = 0; k < 9; k++) {
+    if (k === 1 || k === 2) continue;
+    const a = Math.PI - (k + 0.5) * (Math.PI / 9);
+    parts.push([0.72, 0.62, 0.7, Math.cos(a) * 2, 3.9 + Math.sin(a) * 2, 0, a - Math.PI / 2]);
+  }
+  return shadeRgb(boxes(parts), ruinStone);
+}
+
+/** A broken wall (about 4 m long): three courses of blocks, the top one ragged, a gap in the middle course. */
+function wallGeometry(): THREE.BufferGeometry {
+  const parts: Array<[number, number, number, number, number, number, number?]> = [];
+  const course = [[-1.5, -0.5, 0.5, 1.5], [-1.5, -0.5, 1.5], [-1.5, -0.6]];
+  course.forEach((xs, row) => xs.forEach((x, k) => parts.push([0.96, 0.58, 0.7, x + (row % 2) * 0.2, 0.3 + row * 0.6, 0.03 * Math.sin(k * 3 + row), 0.03 * Math.sin(k + row * 2)])));
+  return shadeRgb(boxes(parts), ruinStone);
 }
 
 /** A little flower lying in the grass (0.25 m across): five petals round a yellow heart; the petals take the instance colour. */

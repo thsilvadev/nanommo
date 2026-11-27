@@ -67,4 +67,19 @@ describe('ArenaScenery (live assets)', () => {
     }
     scenery.dispose();
   }, 30_000);
+
+  it('forest_ruins is a starry night: black sky, stars, its ground recoloured blue', () => {
+    const light = arenaLight('forest_ruins');
+    expect(light.stars).toBeTrue();
+    expect(light.dome).toBeUndefined();
+    expect(new THREE.Color(light.background!).getHSL({ h: 0, s: 0, l: 0 }, THREE.SRGBColorSpace).l).toBeLessThan(0.06);
+    const blue = new THREE.Color(light.groundRecolor!);
+    expect(blue.b).toBeGreaterThan(blue.g);
+    expect(blue.b).toBeGreaterThan(blue.r);
+    const scenery = new ArenaScenery(1);
+    scenery.setRegion('forest_ruins', 0);
+    expect(scenery.group.getObjectByName('arena:stars')).toBeTruthy();
+    scenery.dispose();
+  });
 });
+

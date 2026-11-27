@@ -17,7 +17,7 @@ export const ARENA_TRUNK_HEIGHT_M = 30;
 
 /** Procedural kinds (built in arena-props) and modelled kinds (`MODEL_PROPS`, loaded from props.glb). */
 export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm' | 'post'
-  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab' | 'hill' | 'blossom' | 'crag' | 'peak' | 'snow' | 'shell' | 'starfish';
+  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab' | 'hill' | 'blossom' | 'crag' | 'peak' | 'snow' | 'shell' | 'starfish' | 'arch' | 'wall' | 'drum' | 'frostrock' | 'shard' | 'puddle';
 /** Kinds drawn from `assets/arena/props.glb` (tools/arena-assets/build-arena-props.mjs): colours baked per vertex, tinted per instance. */
 export const MODEL_PROPS: ReadonlySet<ArenaPropKind> = new Set(['fern', 'shrub', 'tuft', 'flowers', 'stump', 'deadtree', 'mossrock']);
 export interface ArenaPropSpec {
@@ -50,36 +50,32 @@ const ALL: [number, number] = [-24, 22];
 const stone = ['#8a8f87', '#7a7f78', '#9a9a8e', '#6f746c'];
 const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
   green_grounds: [
-    // An open meadow: rolling hills melting into the haze, round trees, tall grass and flowers behind the grid.
+    // An open meadow under a clear sky: rolling hills on the horizon, round trees, a little grass and a few flowers.
     { kind: 'hill', count: 9, colors: ['#7fae5a', '#74a252', '#88b664'], size: [22, 34], bands: [[-82, -60]], even: true },
-    { kind: 'shrub', count: 26, colors: ['#5f9a44', '#6aa84c', '#558e3c'], size: [4, 7], bands: [[-50, -30]] },
-    { kind: 'shrub', count: 30, colors: ['#6aa84c', '#5f9a44', '#78b458'], size: [2.6, 4.4], bands: [[-27, -17], DEEP] },
-    { kind: 'shrub', count: 110, colors: ['#6aa84a', '#5f9a3f', '#78b458'], size: [0.6, 1.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT], grow: { count: 24, factor: 1.8 } },
-    { kind: 'tuft', count: 300, colors: ['#8ac05a', '#7ab04c', '#94c864'], size: [1.2, 2.6], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
-    { kind: 'flowers', count: 60, colors: ['#ffffff', '#f6f6f6'], size: [0.9, 1.5], bands: [BEHIND, BEHIND, BEHIND, FRONT] },
-    { kind: 'fern', count: 40, colors: ['#7ab45a', '#6aa44c'], size: [1.2, 2], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'shrub', count: 22, colors: ['#5f9a44', '#6aa84c', '#558e3c'], size: [4, 7], bands: [[-50, -30]] },
+    { kind: 'shrub', count: 22, colors: ['#6aa84c', '#5f9a44', '#78b458'], size: [2.6, 4.4], bands: [[-27, -17], DEEP] },
+    { kind: 'shrub', count: 30, colors: ['#6aa84a', '#5f9a3f', '#78b458'], size: [0.6, 1.3], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'tuft', count: 70, colors: ['#8ac05a', '#7ab04c', '#94c864'], size: [1.2, 2.4], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'flowers', count: 24, colors: ['#ffffff', '#f6f6f6'], size: [0.9, 1.4], bands: [BEHIND, BEHIND, FRONT] },
     { kind: 'rock', count: 34, colors: stone, size: [0.35, 1.1], bands: [BEHIND, BEHIND, FRONT] },
     { kind: 'mossrock', count: 8, colors: ['#b0b8a0', '#a0a890'], size: [0.8, 1.4], bands: [BEHIND, DEEP] },
-    // The battle floor: a lawn of sprouts dotted with little flowers.
-    { kind: 'sprout', count: 1300, colors: ['#6aaa44', '#7aba4c', '#5f9a3a', '#88c058'], size: [0.9, 1.8], bands: [ALL] },
-    { kind: 'blossom', count: 700, colors: ['#ffffff', '#fff27a', '#ffb6d0', '#c8b4ff', '#9fd0ff', '#ffffff'], size: [0.8, 1.5], bands: [ALL] },
-    { kind: 'pebble', count: 100, colors: ['#9a9a8e', '#7a7f78', '#b0ab98'], size: [0.06, 0.16], bands: [ALL] },
+    // The battle floor: a few sprouts and little flowers, pebbles.
+    { kind: 'sprout', count: 160, colors: ['#6aaa44', '#7aba4c', '#5f9a3a', '#88c058'], size: [0.9, 1.6], bands: [ALL] },
+    { kind: 'blossom', count: 130, colors: ['#ffffff', '#fff27a', '#ffb6d0', '#c8b4ff', '#9fd0ff', '#ffffff'], size: [0.8, 1.4], bands: [ALL] },
+    { kind: 'pebble', count: 140, colors: ['#9a9a8e', '#7a7f78', '#b0ab98'], size: [0.06, 0.16], bands: [ALL] },
   ],
   menace_hills: [
-    // Dry rocky hills at sunset: crags and bare hills fading into the dust, gnarled dead trees, straw-dry grass.
+    // Dry rocky hills at sunset: crags and bare hills fading into the dust, gnarled dead trees; no grass, no bushes.
     { kind: 'hill', count: 10, colors: ['#a0704a', '#8c6040', '#b07c52'], size: [20, 32], bands: [[-82, -58]], even: true },
     { kind: 'crag', count: 14, colors: ['#8c6a4c', '#7a5c40', '#9a7656'], size: [2.6, 5], bands: [[-52, -30]], even: true },
     { kind: 'crag', count: 12, colors: ['#8c6a4c', '#7a5c40', '#9a7656'], size: [0.9, 1.7], bands: [BEHIND, DEEP] },
     { kind: 'rock', count: 60, colors: ['#8c7c62', '#7a6a50', '#9a8a6c', '#6e6250'], size: [0.4, 1.6], bands: [BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
-    { kind: 'deadtree', count: 16, colors: ['#a08c78', '#8a7a6a'], size: [0.5, 0.85], bands: [BEHIND, DEEP] },
-    { kind: 'bush', count: 100, colors: ['#8a7a3e', '#9a8a4a', '#7a6a34', '#a08a50'], size: [0.5, 1.1], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT], grow: { count: 20, factor: 1.7 } },
-    { kind: 'tuft', count: 380, colors: ['#c8b060', '#b8a050', '#d0b870'], size: [1.2, 2.6], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'deadtree', count: 26, colors: ['#a08c78', '#8a7a6a'], size: [0.5, 0.85], bands: [BEHIND, BEHIND, DEEP] },
     { kind: 'stump', count: 8, colors: ['#9a8a7a', '#8a7a6a'], size: [0.7, 1.1], bands: [BEHIND, DEEP] },
-    // The battle floor: dry sprouts, pebbles, dead twigs and leaves.
-    { kind: 'sprout', count: 1200, colors: ['#a09040', '#8a8a3a', '#b0a050', '#7a7a34'], size: [0.9, 1.8], bands: [ALL] },
-    { kind: 'pebble', count: 260, colors: ['#9a8a6c', '#7a6a50', '#b09460'], size: [0.06, 0.2], bands: [ALL] },
-    { kind: 'twig', count: 80, colors: ['#7a6a4a', '#5f5040'], size: [0.5, 1.1], bands: [ALL] },
-    { kind: 'leaf', count: 200, colors: ['#8a6a3a', '#a07a40', '#6a5030'], size: [0.16, 0.3], bands: [ALL] },
+    // The battle floor: pebbles, dead twigs and dry leaves.
+    { kind: 'pebble', count: 300, colors: ['#9a8a6c', '#7a6a50', '#b09460'], size: [0.06, 0.2], bands: [ALL] },
+    { kind: 'twig', count: 90, colors: ['#7a6a4a', '#5f5040'], size: [0.5, 1.1], bands: [ALL] },
+    { kind: 'leaf', count: 220, colors: ['#8a6a3a', '#a07a40', '#6a5030'], size: [0.16, 0.3], bands: [ALL] },
   ],
   kwaioua_forest: [
     // Fallen trunks of every girth (the log scales as a whole: thin branches to old trunks).
@@ -104,21 +100,18 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
     { kind: 'sprout', count: 700, colors: ['#3f6a3a', '#4a7a42', '#355a32', '#527a48'], size: [0.9, 1.7], bands: [ALL] },
   ],
   wastelands: [
-    // A cold waste: snowy peaks far off in the mist, grey crags and boulders, dead trees, frozen tufts.
+    // A cold waste: snowy peaks in the mist, dark basalt shards and snow-capped boulders, dead trees, black pools.
     { kind: 'peak', count: 14, colors: ['#e8eaee', '#dcdfe4'], size: [9, 14], bands: [[-88, -74]], even: true },
-    { kind: 'crag', count: 12, colors: ['#8a8c90', '#7a7c80', '#9a9ca0'], size: [2.6, 5], bands: [[-55, -32]], even: true },
-    { kind: 'crag', count: 14, colors: ['#8a8c90', '#7a7c80', '#9a9ca0'], size: [0.8, 1.6], bands: [BEHIND, DEEP] },
-    { kind: 'rock', count: 70, colors: ['#8a8170', '#6f685a', '#a59d8a', '#5f594d'], size: [0.4, 1.6], bands: [BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
-    { kind: 'mossrock', count: 20, colors: ['#c8ccd0', '#b8bcc0'], size: [0.8, 1.6], bands: [BEHIND, BEHIND, DEEP] },
+    { kind: 'shard', count: 14, colors: ['#e0e4ec', '#d0d4dc', '#eceef4'], size: [2.4, 4.6], bands: [[-55, -32]], even: true },
+    { kind: 'shard', count: 16, colors: ['#e0e4ec', '#d0d4dc', '#eceef4'], size: [0.7, 1.5], bands: [BEHIND, DEEP] },
+    { kind: 'frostrock', count: 64, colors: ['#e8eaf0', '#d8dce4', '#f0f2f6', '#dcdfe6'], size: [0.4, 1.5], bands: [BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
     { kind: 'deadtree', count: 18, colors: ['#b0aaa0', '#9a948a'], size: [0.45, 0.8], bands: [BEHIND, DEEP] },
-    { kind: 'bush', count: 100, colors: ['#8a8068', '#7a7058', '#9a9078', '#6f6a5a'], size: [0.4, 0.9], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
-    { kind: 'tuft', count: 340, colors: ['#c8c0a0', '#b8b090', '#d0c8b0'], size: [1.2, 2.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
     { kind: 'stump', count: 8, colors: ['#a8a29a', '#98928a'], size: [0.7, 1.1], bands: [BEHIND, DEEP] },
-    // The battle floor: patches of old snow, grey pebbles, dead twigs, a few frozen sprouts.
+    // The battle floor: old snow, black pools, grey pebbles, dead twigs.
     { kind: 'snow', count: 170, colors: ['#c8ced6', '#bcc4cc', '#d2d8de'], size: [0.6, 1.5], bands: [ALL] },
-    { kind: 'pebble', count: 320, colors: ['#a59d8a', '#6f685a', '#8a8170', '#9a9ca0'], size: [0.06, 0.2], bands: [ALL] },
+    { kind: 'puddle', count: 55, colors: ['#0c0d12', '#101218', '#08090c'], size: [1.6, 3.4], bands: [ALL] },
+    { kind: 'pebble', count: 320, colors: ['#5a5e68', '#4e525c', '#7a7e88', '#8a8e98'], size: [0.06, 0.2], bands: [ALL] },
     { kind: 'twig', count: 60, colors: ['#7a6a4a', '#5f5040'], size: [0.5, 1.0], bands: [ALL] },
-    { kind: 'sprout', count: 720, colors: ['#8a8a6a', '#7a7a5a', '#9a9878'], size: [0.8, 1.5], bands: [ALL] },
   ],
   caete: [
     // A misty day rainforest: giant mossy trunks right behind the grid, more of them fading into the mist.
@@ -142,47 +135,42 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
     { kind: 'leaf', count: 420, colors: ['#3a5a2c', '#4f7a34', '#5d4a2e', '#6b5a2e', '#2f4f26'], size: [0.18, 0.34], bands: [ALL] },
   ],
   forest_ruins: [
-    // An old ruin in a golden forest: broken mossy columns and fallen blocks among big round, trunkless trees.
-    { kind: 'column', count: 16, colors: ['#9a9682', '#8f8b78', '#a6a28c'], size: [0.7, 1.35], bands: [[-23, -15]], even: true },
+    // An old ruin under a starry night: arches, broken walls and columns, fallen drums and blocks, a few trees.
+    { kind: 'column', count: 20, colors: ['#9a9682', '#8f8b78', '#a6a28c'], size: [0.7, 1.35], bands: [[-23, -15]], even: true },
     { kind: 'column', count: 14, colors: ['#9a9682', '#8f8b78'], size: [1.2, 2], bands: [[-44, -28]], even: true },
-    { kind: 'block', count: 40, colors: ['#8f8b78', '#85826f', '#9a9682'], size: [0.5, 1.3], bands: [BEHIND, BEHIND, DEEP, FRONT] },
-    // Round crowns standing on the ground (the user's "small trees without a trunk"): a wall round the ruin, bigger in the haze.
-    { kind: 'shrub', count: 44, colors: ['#5f8a44', '#527a3a', '#6a9450'], size: [2.8, 4.6], bands: [[-26, -16], [-26, -16], DEEP] },
-    { kind: 'shrub', count: 36, colors: ['#5f8a44', '#527a3a'], size: [5, 8], bands: [[-50, -30]] },
-    { kind: 'shrub', count: 100, colors: ['#6a944e', '#5f8a44', '#74a058'], size: [0.6, 1.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT], grow: { count: 24, factor: 1.8 } },
-    { kind: 'fern', count: 180, colors: ['#6a9a4e', '#5f8a44', '#78a85a'], size: [1.3, 2.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
-    { kind: 'tuft', count: 200, colors: ['#78a050', '#6a9044'], size: [1.2, 2.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
-    { kind: 'flowers', count: 40, colors: ['#ffffff', '#f2f2f2'], size: [0.9, 1.4], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'arch', count: 7, colors: ['#9a9682', '#a6a28c'], size: [0.9, 1.2], bands: [[-25, -18]], even: true },
+    { kind: 'arch', count: 6, colors: ['#9a9682', '#8f8b78'], size: [1.2, 1.7], bands: [[-46, -30]], even: true },
+    { kind: 'wall', count: 18, colors: ['#8f8b78', '#9a9682', '#85826f'], size: [0.8, 1.4], bands: [BEHIND, BEHIND, DEEP] },
+    { kind: 'drum', count: 22, colors: ['#9a9682', '#8f8b78', '#a6a28c'], size: [0.8, 1.3], bands: [BEHIND, BEHIND, FRONT, DEEP] },
+    { kind: 'block', count: 50, colors: ['#8f8b78', '#85826f', '#9a9682'], size: [0.5, 1.3], bands: [BEHIND, BEHIND, DEEP, FRONT] },
+    { kind: 'shrub', count: 18, colors: ['#3f5a4a', '#344e40', '#4a6656'], size: [3, 5.5], bands: [[-30, -17], DEEP, DEEP] },
+    { kind: 'shrub', count: 30, colors: ['#4a6a56', '#3f5a4a'], size: [0.6, 1.3], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'fern', count: 40, colors: ['#4a6a56', '#3f5a4a'], size: [1.2, 2.2], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'tuft', count: 60, colors: ['#5a7a6a', '#4a6a5a'], size: [1.2, 2.2], bands: [BEHIND, BEHIND, FRONT] },
     { kind: 'mossrock', count: 16, colors: ['#a0a890', '#909880'], size: [0.8, 1.5], bands: [BEHIND, DEEP, FRONT] },
     { kind: 'rock', count: 14, colors: ['#8f8b78', '#7f7c6a'], size: [0.35, 0.9], bands: [BEHIND, FRONT] },
-    // The battle floor: worn paving slabs half lost in the grass, sprouts, fallen golden leaves, pebbles.
-    { kind: 'slab', count: 110, colors: ['#8f8b78', '#85826f', '#7a7866'], size: [0.5, 1], bands: [ALL] },
-    { kind: 'sprout', count: 1400, colors: ['#5f8a3a', '#6a9440', '#527a32', '#748a3a'], size: [0.9, 1.8], bands: [ALL] },
-    { kind: 'leaf', count: 480, colors: ['#8a8a34', '#b09a40', '#c0903a', '#7a6a34', '#a07a30', '#5f7a2c'], size: [0.18, 0.32], bands: [ALL] },
-    { kind: 'pebble', count: 120, colors: ['#9a9682', '#85826f'], size: [0.06, 0.16], bands: [ALL] },
+    // The battle floor: worn paving slabs, a few sprouts, fallen leaves, pebbles.
+    { kind: 'slab', count: 200, colors: ['#8f8b78', '#85826f', '#7a7866'], size: [0.5, 1.1], bands: [ALL] },
+    { kind: 'sprout', count: 120, colors: ['#4a6a56', '#5a7a66', '#3f5a4a'], size: [0.8, 1.5], bands: [ALL] },
+    { kind: 'leaf', count: 240, colors: ['#6a6a40', '#8a7a40', '#5a5030', '#4a5a34'], size: [0.18, 0.32], bands: [ALL] },
+    { kind: 'pebble', count: 160, colors: ['#9a9682', '#85826f'], size: [0.06, 0.16], bands: [ALL] },
   ],
   ipora_beach: [
-    // A tropical beach: a line of coconut palms and leafy plants behind the grid, then sand down to the 3D sea.
-    { kind: 'palm', count: 18, colors: ['#ffffff', '#f2f2e6', '#e8eedc'], size: [0.8, 1.2], bands: [[-25, -16]], even: true },
-    { kind: 'bigleaf', count: 160, colors: ['#4f9a40', '#5aa848', '#45883a', '#62b04e'], size: [0.6, 1.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
-    { kind: 'bush', count: 60, colors: ['#3f8a3a', '#4f9a44', '#357a30'], size: [0.6, 1.3], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
-    { kind: 'tuft', count: 300, colors: ['#a8c070', '#b8c87a', '#98b060'], size: [1.2, 2.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    // A tropical beach: only coconut palms behind the grid, then sand down to the 3D sea.
+    { kind: 'palm', count: 22, colors: ['#ffffff', '#f2f2e6', '#e8eedc'], size: [0.8, 1.2], bands: [[-25, -15]], even: true },
     { kind: 'log', count: 8, colors: ['#c9b89a', '#b8a585'], size: [0.5, 1.1], bands: [BEHIND, FRONT, [-30, -26]] },
     { kind: 'rock', count: 30, colors: ['#b9a98a', '#a8977a', '#c9b99a'], size: [0.3, 1.1], bands: [BEHIND, BEHIND, FRONT, [-32, -26]] },
-    // The battle floor: shells, starfish, pebbles, tufts of sea grass.
+    // The battle floor: shells, starfish, pebbles, driftwood bits.
     { kind: 'shell', count: 300, colors: ['#fff4ea', '#ffc8b4', '#f6e0c0', '#ffffff', '#e8c8e0'], size: [1.6, 2.8], bands: [ALL] },
     { kind: 'starfish', count: 90, colors: ['#ff8a50', '#ff6a5a', '#ffae5a', '#e8705a'], size: [0.8, 1.4], bands: [ALL] },
     { kind: 'pebble', count: 360, colors: ['#d9c3a0', '#c8b08a', '#b8a080', '#ffffff'], size: [0.07, 0.18], bands: [ALL] },
-    { kind: 'sprout', count: 800, colors: ['#8ab060', '#9ac06a', '#7aa050'], size: [0.9, 1.7], bands: [ALL] },
     { kind: 'twig', count: 40, colors: ['#c9b89a', '#b8a585'], size: [0.5, 1.0], bands: [ALL] },
   ],
   gods_bridge: [
     // Across the river at sunset: purple hills melting into the haze.
     { kind: 'hill', count: 9, colors: ['#4a2f57', '#553560', '#402a4e'], size: [26, 40], bands: [[-125, -100]], even: true },
-    // The deck: leaves and petals blown in, moss and grit between the flagstones.
+    // The deck: leaves blown in, grit between the flagstones (no plants on the stone).
     { kind: 'leaf', count: 520, colors: ['#c0703a', '#a85a30', '#d08a40', '#8a4a2a', '#b0603a'], size: [0.18, 0.32], bands: [[-14, 22]] },
-    { kind: 'blossom', count: 160, colors: ['#ffb6d0', '#ffd0e0', '#f6a0c0'], size: [0.7, 1.2], bands: [[-14, 22]] },
-    { kind: 'sprout', count: 420, colors: ['#6a8a44', '#5a7a3a', '#7a9a4e'], size: [0.7, 1.3], bands: [[-14, 22]] },
     { kind: 'pebble', count: 260, colors: ['#c2b294', '#a8987a', '#d0c0a0'], size: [0.05, 0.14], bands: [[-14, 22]] },
   ],
 };
@@ -238,4 +226,4 @@ export function propLocalX(u: number, travelled: number): number {
 }
 
 /** Kinds low enough for the battle band (flat, or below the ankle). */
-export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig', 'sprout', 'slab', 'blossom', 'snow', 'shell', 'starfish']);
+export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig', 'sprout', 'slab', 'blossom', 'snow', 'shell', 'starfish', 'puddle']);
