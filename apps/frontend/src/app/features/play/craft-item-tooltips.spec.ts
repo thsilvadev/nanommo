@@ -8,7 +8,7 @@ import { TooltipPositionDirective } from './tooltip-position.directive';
 @Component({standalone:true,imports:[CommonModule,TooltipPositionDirective],template:`
   <section *ngIf="open" style="height:60px;width:180px;overflow:hidden;position:relative;z-index:1000">
     <span class="craft-trigger" tabindex="0">Item
-      <span class="item-tooltip craft-item-tooltip" role="tooltip"><strong>{{catalog.craftItemName('sword')}}</strong>
+      <span class="item-tooltip craft-item-tooltip" role="tooltip"><strong [class]="catalog.itemTitleClass('sword')">{{catalog.craftItemName('sword')}}</strong>
         <span *ngFor="let line of catalog.craftItemTooltipLines('sword',{refinementLevel:2})">{{line.label}}: {{line.value}}</span>
       </span>
     </span>
@@ -19,7 +19,7 @@ describe('craft item floating details',()=>{
   const frame=()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
   beforeEach(async()=>{
     await TestBed.configureTestingModule({imports:[CraftTooltipHost],providers:[CatalogService,LocaleService]}).compileComponents();
-    TestBed.inject(CatalogService).items.set([{id:'sword',name:'Reinforced Sword',type:'equipment',slot:'mainHand',weaponType:'sword',levelReq:8,fixedStats:{atk:28},requiredUnlock:'equipment_access_t2',description:'A dependable blade for experienced adventurers.'}] as any);
+    TestBed.inject(CatalogService).items.set([{id:'sword',name:'Reinforced Sword',type:'equipment',tier:2,slot:'mainHand',weaponType:'sword',levelReq:8,fixedStats:{atk:28},requiredUnlock:'equipment_access_t2',description:'A dependable blade for experienced adventurers.'}] as any);
   });
   it('floats readable item details above the modal, outside clipped containers',async()=>{
     const fixture=TestBed.createComponent(CraftTooltipHost);fixture.detectChanges();
@@ -27,7 +27,8 @@ describe('craft item floating details',()=>{
     const tooltip=document.querySelector<HTMLElement>('.craft-item-tooltip.nm-floating-tooltip')!;
     expect(tooltip.parentElement).toBe(document.body);
     expect(Number(getComputedStyle(tooltip).zIndex)).toBeGreaterThan(1000);
-    expect(tooltip.textContent).toContain('Reinforced Sword');expect(tooltip.textContent).toContain('+38');
+    expect(tooltip.textContent).toContain('Reinforced Sword');expect(tooltip.textContent).toContain('+28 (+10)');
+    expect(getComputedStyle(tooltip.querySelector('strong')!).color).toBe('rgb(95, 196, 107)');
     expect(tooltip.textContent).not.toContain('equipment_access_t2');
     expect(tooltip.getBoundingClientRect().right).toBeLessThanOrEqual(document.documentElement.clientWidth);
     expect(tooltip.getBoundingClientRect().bottom).toBeLessThanOrEqual(document.documentElement.clientHeight);

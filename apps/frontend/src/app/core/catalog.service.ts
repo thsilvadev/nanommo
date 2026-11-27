@@ -1,4 +1,4 @@
-import { ELEMENTS, elementalResistances, itemAffinity, normalizeElement, weaponElement } from '@nanommo/shared';
+import { ELEMENTS, elementalResistances, itemAffinity, normalizeElement, weaponElement, refinementDirectStatGain, refinementLevel } from '@nanommo/shared';
 
 export const ELEMENT_NAMES:Record<string,string>={neutral:'Neutral',earth:'Earth',water:'Water',fire:'Fire',wind:'Wind',holy:'Holy',shadow:'Shadow'};
 import { craftItemTooltipLines } from './craft-item-tooltip';
@@ -15,6 +15,11 @@ export class CatalogService {
  statusEffect(id:string){return this.statusEffects().find(x=>x.id===id);}
  item(id:string){return this.items().find(x=>x.id===id);}
  itemTierClass(id:string){const item:any=this.item(id);const tier=Number(item?.tier??0);return item?.type==='equipment' && Number.isInteger(tier) && tier>=2 && tier<=5?'tier-'+tier:'';}
+ itemTitleClass(id:string,instanceData?:any){
+  const item:any=this.item(id);if(item?.type!=='equipment')return '';
+  const tier=Number(item.tier??1);const level=refinementLevel(instanceData);
+  return ['equipment-title',Number.isInteger(tier)&&tier>=1&&tier<=5?'tier-'+tier:'',level>=10?'refinement-'+level:''].filter(Boolean).join(' ');
+ }
  itemName(id:string,instanceData?:any){const item:any=this.item(id);if(!item)return id;const name=this.locale.localized(item,'name',item.name)||id;const level=Math.max(0,Math.min(12,Math.floor(Number(instanceData?.refinementLevel??0))));return level?name+' +'+level:name;}
  itemTypeLabel(idOrType:string){
   const item:any=this.item(idOrType);const type=String(item?.type??idOrType??'');
@@ -143,20 +148,31 @@ export class CatalogService {
 
  equipmentStatLines(itemId:string,instanceData?:any,equippedSlot?:string){
   const item:any=this.item(itemId);if(item?.type!=='equipment')return [];
-  const lines:any[]=[];const fixed=item.fixedStats??{};const refine=Math.max(0,Math.min(12,Math.floor(Number(instanceData?.refinementLevel??0))));
+  const lines:any[]=[];const fixed=item.fixedStats??{};const refine=refinementLevel(instanceData);
+  const signed=(value:number,suffix='')=>`${value<0?'':'+'}${value}${suffix}`;
+  const breakdown=(base:number,bonus:number,suffix='')=>signed(base,suffix)+(bonus?` (${signed(bonus,suffix)})`:'');
+  // Stored rolls already contain refinement. Only a persisted base can split them reliably.
+  const rollBreakdown=(total:number,savedBase:unknown,suffix='')=>{
+   const base=savedBase!==undefined&&savedBase!==null&&Number.isFinite(Number(savedBase))?Number(savedBase):total;
+   return breakdown(base,total-base,suffix);
+  };
   const labels:Record<string,string>={atk:'Attack',matk:'Magic ATK',def:'Defense',mdefPercent:'MDEF',maxHp:'Max HP',maxSp:'Max SP',moveSpeed:'Move Speed'};
   for(const key of ['atk','matk','def','mdefPercent','maxHp','maxSp','moveSpeed']){
    const base=fixed[key];if(base===undefined||base===null||!Number(base))continue;
-   const refinementGain=item?.slot==='mainHand'&&!!item?.weaponType&&(key==='atk'||key==='matk')?5:3;const value=Number(base)+(['atk','matk','def','mdefPercent'].includes(key)&&refine?refinementGain*refine:0);
-   if(key==='atk'&&equippedSlot==='offHand'&&item.weaponType&&!['shield','rune'].includes(String(item.weaponType))){lines.push({label:this.locale.t(labels[key]),originalValue:'+'+value,value:'+'+Math.floor(value/2)});}
-   else lines.push({label:this.locale.t(labels[key]),value:'+'+value+(key==='mdefPercent'?'%':'' )});
+   const bonus=['atk','matk','def','mdefPercent'].includes(key)?refinementDirectStatGain(item,key)*refine:0;
+   const suffix=key==='mdefPercent'?'%':'';
+   if(key==='atk'&&equippedSlot==='offHand'&&item.weaponType&&!['shield','rune'].includes(String(item.weaponType))){
+    const effectiveBase=Math.floor(Number(base)/2);const effectiveTotal=Math.floor((Number(base)+bonus)/2);
+    lines.push({label:this.locale.t(labels[key]),originalValue:breakdown(Number(base),bonus),value:breakdown(effectiveBase,effectiveTotal-effectiveBase)});
+   }
+   else lines.push({label:this.locale.t(labels[key]),value:breakdown(Number(base),bonus,suffix)});
   }
   for(const [key,value] of Object.entries(fixed.statBonus??{})){const n=Number(value);if(n)lines.push({label:this.locale.t(key.toLowerCase()),value:`+${n}`});}
   const rolledAttribute=String(instanceData?.rolledAttribute??'');const rolledValue=Number(instanceData?.rolledValue??0);
-  if(rolledAttribute&&rolledValue)lines.push({label:`${this.locale.t(rolledAttribute.toLowerCase())} (rolled)`,value:`+${rolledValue}`});
+  if(rolledAttribute&&rolledValue)lines.push({label:this.locale.t(rolledAttribute.toLowerCase()),value:rollBreakdown(rolledValue,instanceData?.refinementBaseRolledValue),rolledAttribute:true});
   const rolledStat=String(instanceData?.rolledStat??'');const rolledStatValue=Number(instanceData?.rolledStatValue??0);
   const statLabels:Record<string,string>={atk:'Attack',matk:'Magic ATK',castTimeReduction:'Cast Time Reduction',accuracy:'Accuracy',criticalPercent:'Critical Chance',atkSpeed:'Attack Speed',hp:'Max HP',sp:'Max SP',evasion:'Evasion',defense:'Defense'};
-  if(rolledStat&&rolledStatValue)lines.push({label:`${this.locale.t(statLabels[rolledStat]??rolledStat)} (rolled)`,value:`+${rolledStatValue}`});
+  if(rolledStat&&rolledStatValue)lines.push({label:this.locale.t(statLabels[rolledStat]??rolledStat),value:rollBreakdown(rolledStatValue,instanceData?.refinementBaseRolledStatValue,rolledStat==='criticalPercent'?'%':''),rolledStat:true});
   if(item.slot==='shoes'){
    const affinity=itemAffinity(item);
    lines.push({label:this.locale.t('Elemental Affinity'),value:this.elementName(affinity)});

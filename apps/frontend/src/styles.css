@@ -525,6 +525,29 @@ app-character-summary .equip-slot > img.mirrored-hand {
 .nm-floating-tooltip .tier-5 {
   color: #e0ad45;
 }
+/* Title-only refinement palettes retain each tier's identity. Hidden source tooltips do not animate. */
+.equipment-title.tier-1 { --refinement-10: #f0d29c; --refinement-11: #ffd086; --refinement-12: #ffc06b; }
+.equipment-title.tier-2 { --refinement-10: #78d45d; --refinement-11: #91e454; --refinement-12: #b0ef50; }
+.equipment-title.tier-3 { --refinement-10: #78adff; --refinement-11: #89aeff; --refinement-12: #9baeff; }
+.equipment-title.tier-4 { --refinement-10: #ca7dff; --refinement-11: #db83ff; --refinement-12: #ea8aff; }
+.equipment-title.tier-5 { --refinement-10: #efb64d; --refinement-11: #ffc052; --refinement-12: #ffca62; }
+.nm-floating-tooltip .equipment-title.refinement-10 { color: var(--refinement-10, #f0d29c); }
+.nm-floating-tooltip .equipment-title.refinement-11 { color: var(--refinement-11, #ffd086); }
+.nm-floating-tooltip .equipment-title.refinement-12 {
+  color: var(--refinement-12, #ffc06b);
+  animation: equipment-title-vibration .36s linear infinite;
+}
+.nm-floating-tooltip .tooltip-rolled-attribute { color: #dce3eb; }
+.nm-floating-tooltip .tooltip-rolled-stat { color: #ffb347; }
+@keyframes equipment-title-vibration {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(.22px, -.12px); }
+  50% { transform: translate(-.18px, .12px); }
+  75% { transform: translate(.12px, .08px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nm-floating-tooltip .equipment-title.refinement-12 { animation: none; }
+}
 .nm-floating-tooltip .tooltip-warning {
   color: #e05252;
 }
@@ -774,7 +797,8 @@ app-character-summary .equip-slot > img.mirrored-hand {
 .nm-floating-tooltip.combatant-details .portrait-drops-heading{margin-top:12px}
 
 .nm-floating-tooltip.craft-item-tooltip{max-height:calc(100dvh - 20px);overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;min-width:220px;width:max-content;max-width:min(380px,calc(100vw - 20px));gap:5px;padding:12px 14px;background:linear-gradient(145deg,#21170f,#100b07);border-color:#a98750;box-shadow:0 8px 24px #000d}
-.nm-floating-tooltip.craft-item-tooltip strong{margin-bottom:3px;font:700 18px/1.2 Georgia,serif;color:#f0d9ac}
+.nm-floating-tooltip.craft-item-tooltip strong{margin-bottom:3px;font:700 18px/1.2 Georgia,serif}
+.nm-floating-tooltip.craft-item-tooltip strong:not(.equipment-title){color:#f0d9ac}
 .nm-floating-tooltip.craft-item-tooltip span{font:12px/1.45 Arial,sans-serif}
 .nm-floating-tooltip.craft-item-tooltip .tooltip-warning{color:#e5a48b}
 

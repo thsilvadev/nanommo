@@ -530,6 +530,7 @@ export class VendorStore {
   async closeProfession(){if(this.professionState()?.session){await this.cancelProfession();if(this.professionState()?.session)return;}this.professionModal.set(false);}
   async openRefinement(){this.refinementSelectedId.set(this.refinableInventoryRows()[0]?.id??'');this.refinementUseDivineShard.set(false);this.refinementModal.set(true);await this.refreshRefinementPreview();}
   refinableInventoryRows(){return this.inventory.items().filter((row:any)=>row.location==='inventory'&&this.catalog.item(row.itemId)?.type==='equipment'&&Number(row.quantity)===1);}
+  refinementInstanceData(inventoryItemId:string){return this.inventory.items().find(row=>row.id===inventoryItemId)?.instanceData;}
   selectRefinement(inventoryItemId:string){this.refinementSelectedId.set(inventoryItemId);this.refinementConfirm.set(false);this.refinementResult.set(null);void this.refreshRefinementPreview();}
   setRefinementShard(use:boolean){this.refinementUseDivineShard.set(use);this.refinementConfirm.set(false);void this.refreshRefinementPreview();}
   async refreshRefinementPreview(){const id=this.refinementSelectedId();if(!id||!this.refinementModal()){this.refinementPreview.set(null);return;}try{const use=this.refinementUseDivineShard();const preview=await this.api.get<any>('/equipment/refine/preview/'+encodeURIComponent(id)+'?useDivineShard='+use).toPromise();this.refinementPreview.set(preview??null);}catch(e:any){this.refinementPreview.set(null);this.error.set(e?.error?.message??'Unable to preview refinement');}}

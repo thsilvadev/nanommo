@@ -1,7 +1,7 @@
 <ng-template #craftItemDetails let-itemId="itemId" let-instanceData="instanceData">
   <span class="item-tooltip craft-item-tooltip" role="tooltip">
-    <strong>{{vendor.catalog.craftItemName(itemId,instanceData)}}</strong>
-    <span *ngFor="let line of vendor.catalog.craftItemTooltipLines(itemId,instanceData)" [class.tooltip-warning]="line.warning">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+    <strong [class]="vendor.catalog.itemTitleClass(itemId,instanceData)">{{vendor.catalog.craftItemName(itemId,instanceData)}}</strong>
+    <span *ngFor="let line of vendor.catalog.craftItemTooltipLines(itemId,instanceData)" [class.tooltip-warning]="line.warning" [class.tooltip-rolled-attribute]="line.rolledAttribute" [class.tooltip-rolled-stat]="line.rolledStat">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
   </span>
 </ng-template>
 <section class="vendor-panel" aria-label="Town NPC" (click)="revealInteractionText()">
@@ -43,9 +43,9 @@
             (dblclick)="doubleClickWarehouse(item)" class="vendor-item">
             <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId,item.instanceData)"
               class="vendor-icon"><b *ngIf="item.quantity>1">{{item.quantity}}</b>
-            <div class="item-tooltip"><strong>{{vendor.itemName(item.itemId,item.instanceData)}}</strong><span
+            <div class="item-tooltip"><strong [class]="vendor.catalog.itemTitleClass(item.itemId,item.instanceData)">{{vendor.itemName(item.itemId,item.instanceData)}}</strong><span
                 *ngFor="let line of catalog.itemTooltipLines(item.itemId,item.instanceData)"
-                [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+                [class.tooltip-warning]="line.warning" [class.tooltip-rolled-attribute]="line.rolledAttribute" [class.tooltip-rolled-stat]="line.rolledStat" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
             </div>
             <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)"
                 [alt]="vendor.itemName(item.itemId,item.instanceData)"></ng-template><ng-template cdkDragPlaceholder><span
@@ -66,9 +66,9 @@
             <img [src]="vendor.catalog.itemIcon(item.itemId)" [alt]="vendor.itemName(item.itemId)" class="vendor-icon">
             <b>∞</b>
             <div class="item-tooltip"><strong
-                [class]="itemTierClass(item.itemId)">{{vendor.itemName(item.itemId)}}</strong><span
+                [class]="vendor.catalog.itemTitleClass(item.itemId)">{{vendor.itemName(item.itemId)}}</strong><span
                 *ngFor="let line of catalog.itemTooltipLines(item.itemId)"
-                [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+                [class.tooltip-warning]="line.warning" [class.tooltip-rolled-attribute]="line.rolledAttribute" [class.tooltip-rolled-stat]="line.rolledStat" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
             </div><small>{{item.buyPrice}} G</small>
             <ng-template cdkDragPreview><img class="vendor-drag-preview" [src]="vendor.catalog.itemIcon(item.itemId)"
                 [alt]="vendor.itemName(item.itemId)"></ng-template>
@@ -107,9 +107,9 @@
               <div class="mailbox-item-icon">
                 <img [src]="vendor.catalog.itemIcon(attached.itemId)" [alt]="vendor.itemName(attached.itemId,attached.instanceData)">
                 <b *ngIf="attached.quantity>1">{{attached.quantity}}</b>
-                <div class="item-tooltip"><strong>{{vendor.itemName(attached.itemId,attached.instanceData)}}</strong><span
+                <div class="item-tooltip"><strong [class]="vendor.catalog.itemTitleClass(attached.itemId,attached.instanceData)">{{vendor.itemName(attached.itemId,attached.instanceData)}}</strong><span
                     *ngFor="let line of catalog.itemTooltipLines(attached.itemId,attached.instanceData)"
-                    [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
+                    [class.tooltip-warning]="line.warning" [class.tooltip-rolled-attribute]="line.rolledAttribute" [class.tooltip-rolled-stat]="line.rolledStat" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' : ''}}{{line.value}}</span>
                 </div>
               </div><button type="button" class="mail-attachment-remove" aria-label="Remove attachment"
                 title="Remove attachment" (click)="vendor.mailboxItemId.set('')">×</button>
@@ -132,9 +132,9 @@
           <span class="mailbox-message-item" *ngIf="mail.itemId"><span class="mailbox-item-icon">
               <img [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId,mail.itemInstanceData)">
               <b *ngIf="mail.quantity>1">{{mail.quantity}}</b>
-              <span class="item-tooltip"><strong>{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><span
+              <span class="item-tooltip"><strong [class]="vendor.catalog.itemTitleClass(mail.itemId,mail.itemInstanceData)">{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><span
                   *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)"
-                  [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' :
+                  [class.tooltip-warning]="line.warning" [class.tooltip-rolled-attribute]="line.rolledAttribute" [class.tooltip-rolled-stat]="line.rolledStat" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' :
                   ''}}{{line.value}}</span></span>
             </span></span>
         </button>
@@ -158,10 +158,10 @@
             <div class="mailbox-modal-attachment" *ngIf="mail.itemId"><span class="mailbox-item-icon"><img
                   [src]="vendor.catalog.itemIcon(mail.itemId)" [alt]="vendor.itemName(mail.itemId,mail.itemInstanceData)"><b
                   *ngIf="mail.quantity>1">{{mail.quantity}}</b><span
-                  class="item-tooltip"><strong>{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><span
+                  class="item-tooltip"><strong [class]="vendor.catalog.itemTitleClass(mail.itemId,mail.itemInstanceData)">{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><span
                     *ngFor="let line of catalog.itemTooltipLines(mail.itemId,mail.itemInstanceData)"
-                    [class.tooltip-warning]="line.warning" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' :
-                    ''}}{{line.value}}</span></span></span><span><strong>{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><small>Quantity:
+                    [class.tooltip-warning]="line.warning" [class.tooltip-rolled-attribute]="line.rolledAttribute" [class.tooltip-rolled-stat]="line.rolledStat" [class.comparison-header]="line.comparisonHeader" [class.comparison-positive]="line.comparisonPositive" [class.comparison-negative]="line.comparisonNegative">{{line.label ? line.label + ': ' :
+                    ''}}{{line.value}}</span></span></span><span><strong [class]="vendor.catalog.itemTitleClass(mail.itemId,mail.itemInstanceData)">{{vendor.itemName(mail.itemId,mail.itemInstanceData)}}</strong><small>Quantity:
                   {{mail.quantity}}</small></span></div>
             <div class="mailbox-modal-attachment" *ngIf="mail.attachedGold"><img src="/assets/ui/coin.svg" alt="Gold"
                 width="28" height="28"><span><strong>{{mail.attachedGold | number}} gold</strong><small>Gold
@@ -344,7 +344,7 @@
           </section>
           <section class="refinement-details">
         <ng-container *ngIf="vendor.refinementPreview() as preview">
-          <div class="refinement-summary"><strong class="craft-item-name" tabindex="0">{{vendor.catalog.craftItemName(preview.itemId,{refinementLevel:preview.refinementLevel})}}<ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:preview.itemId,instanceData:{refinementLevel:preview.refinementLevel}}" /></strong>
+          <div class="refinement-summary"><strong class="craft-item-name" tabindex="0">{{vendor.catalog.craftItemName(preview.itemId,{refinementLevel:preview.refinementLevel})}}<ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:preview.itemId,instanceData:vendor.refinementInstanceData(preview.inventoryItemId)}" /></strong>
             <span>{{vendor.t('Current refinement')}}: +{{preview.refinementLevel}}</span>
             <span>{{vendor.t('Next refinement')}}: +{{preview.nextRefinementLevel}}</span>
             <span>{{vendor.t('Chance')}}: {{preview.chancePercent}}%</span>
