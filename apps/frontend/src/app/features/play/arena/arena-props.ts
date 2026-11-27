@@ -364,13 +364,13 @@ function columnGeometry(): THREE.BufferGeometry {
   });
 }
 
-/** A wide, gentle hill (radius 1, about 0.3 high): a smooth bump over a radial grid, sunk a little at its rim. */
+/** A wide, gentle hill (radius 1, about 0.3 high): a smooth bump over a radial grid, its rim sunk well below (no gap over water or past the ground). */
 function hillGeometry(): THREE.BufferGeometry {
   const rings = 7, spokes = 16;
   const at = (ring: number, spoke: number) => {
     const r = ring / rings, a = (spoke / spokes) * Math.PI * 2;
     const bump = Math.cos((Math.PI / 2) * r) ** 2 * (1 + 0.18 * Math.sin(a * 3 + 1.1) * r);
-    return new THREE.Vector3(r * Math.cos(a), 0.3 * bump - 0.04, r * Math.sin(a));
+    return new THREE.Vector3(r * Math.cos(a), ring === rings ? -0.3 : 0.3 * bump - 0.04, r * Math.sin(a));
   };
   const verts: number[] = [];
   for (let ring = 0; ring < rings; ring++) for (let spoke = 0; spoke < spokes; spoke++) {

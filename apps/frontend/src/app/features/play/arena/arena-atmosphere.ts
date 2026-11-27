@@ -37,6 +37,11 @@ const ATMOSPHERE: Partial<Record<ArenaRegionId, ArenaAtmosphereSpec>> = {
     wisps: { count: 16, color: '#f4fbff', opacity: 0.18 },
     motes: { count: 160, colors: ['#ffffff', '#fff6d0', '#e8fbff'], size: 0.36 },
   },
+  // Sunset over the river: golden dust in the low light, a pink mist rising off the water.
+  gods_bridge: {
+    wisps: { count: 22, color: '#f8c8b8', opacity: 0.22 },
+    motes: { count: 220, colors: ['#ffd890', '#ffc078', '#fff0c0'], size: 0.42 },
+  },
   // Sunbeams in the old forest: pollen and dust glinting gold, a thin morning mist.
   forest_ruins: {
     wisps: { count: 24, color: '#f4ecd0', opacity: 0.26 },

@@ -7,7 +7,7 @@ describe('arena atmosphere', () => {
     const caete = arenaAtmosphere('caete')!;
     expect(caete.motes.count).toBeGreaterThan(100);
     expect(caete.wisps.count).toBeGreaterThan(10);
-    expect(arenaAtmosphere('gods_bridge')).toBeNull();
+    expect(arenaAtmosphere('kwaioua_forest')).toBeNull();
   });
 
   it('motes are small, float very slowly and stay round the arena, each glowing on its own beat', () => {
@@ -50,14 +50,14 @@ describe('arena atmosphere', () => {
     atmosphere.dispose();
   });
 
-  it('the scenery adds it for caete only', () => {
+  it('the scenery adds it for the regions that have one', () => {
     const scenery = new ArenaScenery(1);
     scenery.setRegion('caete', 0);
     scenery.update(0, 16, 16);
     expect(scenery.group.getObjectByName('arena:motes')).toBeTruthy();
     scenery.dispose();
     const other = new ArenaScenery(1);
-    other.setRegion('gods_bridge', 0);
+    other.setRegion('kwaioua_forest', 0);
     expect(other.group.getObjectByName('arena:motes')).toBeFalsy();
     other.dispose();
   });

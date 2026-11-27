@@ -174,7 +174,15 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
     { kind: 'sprout', count: 800, colors: ['#8ab060', '#9ac06a', '#7aa050'], size: [0.9, 1.7], bands: [ALL] },
     { kind: 'twig', count: 40, colors: ['#c9b89a', '#b8a585'], size: [0.5, 1.0], bands: [ALL] },
   ],
-  gods_bridge: [],
+  gods_bridge: [
+    // Across the river at sunset: purple hills melting into the haze.
+    { kind: 'hill', count: 9, colors: ['#4a2f57', '#553560', '#402a4e'], size: [26, 40], bands: [[-125, -100]], even: true },
+    // The deck: leaves and petals blown in, moss and grit between the flagstones.
+    { kind: 'leaf', count: 520, colors: ['#c0703a', '#a85a30', '#d08a40', '#8a4a2a', '#b0603a'], size: [0.18, 0.32], bands: [[-14, 22]] },
+    { kind: 'blossom', count: 160, colors: ['#ffb6d0', '#ffd0e0', '#f6a0c0'], size: [0.7, 1.2], bands: [[-14, 22]] },
+    { kind: 'sprout', count: 420, colors: ['#6a8a44', '#5a7a3a', '#7a9a4e'], size: [0.7, 1.3], bands: [[-14, 22]] },
+    { kind: 'pebble', count: 260, colors: ['#c2b294', '#a8987a', '#d0c0a0'], size: [0.05, 0.14], bands: [[-14, 22]] },
+  ],
 };
 
 export function arenaPropSpecs(region: ArenaRegionId): ArenaPropSpec[] {

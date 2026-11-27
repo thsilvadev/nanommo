@@ -9,17 +9,19 @@ import { arenaAtmosphere } from './arena-atmosphere';
  * horizon is the fog colour), fog that reaches into the battle, a dense undergrowth behind the grid,
  * ankle-low cover on the battle floor, and the region's air (mist wisps, motes of light).
  */
-const V2: Array<{ region: ArenaRegionId; sky: boolean }> = [
+/** `deck`: a bridge deck, the river behind the parapet (no undergrowth there). */
+const V2: Array<{ region: ArenaRegionId; sky: boolean; deck?: boolean }> = [
   { region: 'caete', sky: false },
   { region: 'forest_ruins', sky: false },
   { region: 'green_grounds', sky: true },
   { region: 'menace_hills', sky: true },
   { region: 'wastelands', sky: true },
   { region: 'ipora_beach', sky: true },
+  { region: 'gods_bridge', sky: true, deck: true },
 ];
 
 describe('arena v2 regions (the caete standard)', () => {
-  for (const { region, sky } of V2) {
+  for (const { region, sky, deck } of V2) {
     it(`${region}: no painted layer${sky ? ' (a 3D sky dome in the fog colour)' : ''}, fog into the battle, its own air`, () => {
       expect(arenaHasNearLayer(region)).toBeFalse();
       const scenery = new ArenaScenery(1);
@@ -39,7 +41,7 @@ describe('arena v2 regions (the caete standard)', () => {
     it(`${region}: dense undergrowth behind the grid, cover on the battle floor, nothing past the fog`, () => {
       const props = arenaPropLayout(region);
       const behind = props.filter((p) => !FLAT_PROPS.has(p.kind) && p.z < -13.5 && p.z > -25);
-      expect(behind.length).withContext('standing props behind the grid').toBeGreaterThan(450);
+      if (!deck) expect(behind.length).withContext('standing props behind the grid').toBeGreaterThan(450);
       const floor = props.filter((p) => FLAT_PROPS.has(p.kind) && Math.abs(p.z) < 12);
       expect(floor.length).withContext('ground cover on the battle floor').toBeGreaterThan(600);
       const far = arenaLight(region).fog!.far;

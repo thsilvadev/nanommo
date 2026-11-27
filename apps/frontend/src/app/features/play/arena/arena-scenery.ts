@@ -29,7 +29,7 @@ const LAYERS: LayerSpec[] = [
 ];
 
 /** Regions with no painted layer at all: a background, fog and (open sky) a 3D dome behind the 3D world (arenaLight). */
-const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins', 'green_grounds', 'menace_hills', 'wastelands', 'ipora_beach']);
+const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins', 'green_grounds', 'menace_hills', 'wastelands', 'ipora_beach', 'gods_bridge']);
 /**
  * Regions drawn without the painted near layer (every region without painted layers, and those keeping only
  * sky + far): their middle ground is 3D plants, which a turning painted plane at 22 m would cut through.
@@ -50,11 +50,15 @@ const BRIDGES: ReadonlySet<ArenaRegionId> = new Set(['gods_bridge']);
 /** Light per region (hemisphere sky/ground, sun): the bridge is lit by a low warm sunset. */
 /** `background`: clear colour (default the painted sky's blue); `fog`: distance fog in that colour; `stars`: a night dome; `groundTint`: multiplies the ground texture. */
 export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number }; stars?: boolean; groundTint?: string; dome?: ArenaSkyDome }
-/** A procedural sky (regions without painted layers under an open sky): `horizon` should be the fog colour. */
-export interface ArenaSkyDome { zenith: string; horizon: string; clouds: number; cloudColor: string }
+/** A procedural sky (regions without painted layers under an open sky): `horizon` should be the fog colour; `mid` a band between it and the zenith, reached at `spread` (sine of the elevation, default 0.5). */
+export interface ArenaSkyDome { zenith: string; horizon: string; clouds: number; cloudColor: string; mid?: string; spread?: number; sun?: { dir: [number, number, number]; color: string; size: number } }
 const DEFAULT_LIGHT: ArenaLight = { sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2 };
 const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
-  gods_bridge: { sky: '#ffd2b0', ground: '#4a3a5a', hemi: 1.45, sun: '#ffb070', sunIntensity: 2.5 },
+  // The sun sits where the river's glitter path points (34 m right, ~150 m out: buildBridge).
+  gods_bridge: {
+    sky: '#ffd2b0', ground: '#4a3a5a', hemi: 1.45, sun: '#ffb070', sunIntensity: 2.5, background: '#f3a27a', fog: { near: 14, far: 150 },
+    dome: { zenith: '#3a2a6a', mid: '#c2577a', horizon: '#f3a27a', spread: 0.2, clouds: 0.35, cloudColor: '#ff9a8a', sun: { dir: [34, 9, -150], color: '#ffe0a0', size: 0.045 } },
+  },
   kwaioua_forest: { sky: '#d6ccff', ground: '#352a3e', hemi: 1.2, sun: '#f2e4ff', sunIntensity: 1.65, background: '#080515', fog: { near: 26, far: 74 }, stars: true },
   // Caetê: a misty day under the canopy, soft green light; the mist reaches into the battle, the trunks fade into it.
   // Green grounds: a bright open meadow under the painted sky, hills fading into a pale blue haze.
@@ -222,6 +226,8 @@ export class ArenaScenery {
       uniforms: {
         uZenith: { value: new THREE.Color(dome.zenith) }, uHorizon: { value: new THREE.Color(dome.horizon) },
         uCloud: { value: new THREE.Color(dome.cloudColor) }, uClouds: { value: dome.clouds }, uTime: set.time, opacity: { value: fading ? 0 : 1 },
+        uMid: { value: new THREE.Color(dome.mid ?? dome.zenith).lerp(new THREE.Color(dome.mid ? dome.mid : dome.horizon), dome.mid ? 0 : 0.5) }, uSpread: { value: dome.spread ?? 0.5 },
+        uSunDir: { value: new THREE.Vector3(...(dome.sun?.dir ?? [0, 1, 0])).normalize() }, uSunColor: { value: new THREE.Color(dome.sun?.color ?? '#000000') }, uSunSize: { value: dome.sun?.size ?? 0 },
       },
       side: THREE.BackSide, depthWrite: false, fog: false, transparent: fading,
       vertexShader: /* glsl */ `
@@ -229,6 +235,7 @@ export class ArenaScenery {
         void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: /* glsl */ `
         uniform vec3 uZenith; uniform vec3 uHorizon; uniform vec3 uCloud; uniform float uClouds; uniform float uTime; uniform float opacity;
+        uniform vec3 uSunDir; uniform vec3 uSunColor; uniform float uSunSize; uniform vec3 uMid; uniform float uSpread;
         varying vec3 vDir;
         float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
         float noise(vec2 p) {
@@ -238,13 +245,20 @@ export class ArenaScenery {
         void main() {
           vec3 d = normalize(vDir);
           float e = d.y;
-          vec3 col = mix(uHorizon, uZenith, pow(smoothstep(-0.02, 0.5, e), 0.75));
+          float t = pow(smoothstep(-0.02, uSpread, e), 0.75);
+          vec3 col = t < 0.5 ? mix(uHorizon, uMid, t * 2.0) : mix(uMid, uZenith, t * 2.0 - 1.0);
           if (e > 0.0) {
             vec2 p = d.xz / (e + 0.15) * 1.6 + vec2(uTime * 0.006, uTime * 0.002);
             float n = 0.5 * noise(p) + 0.28 * noise(p * 2.3 + 5.1) + 0.14 * noise(p * 4.7 - 2.3) + 0.08 * noise(p * 9.1);
             float c = smoothstep(0.78 - 0.32 * uClouds, 0.95 - 0.2 * uClouds, n) * smoothstep(0.0, 0.18, e);
             // Clouds melt into the haze near the horizon.
             col = mix(col, mix(uHorizon, uCloud, smoothstep(0.0, 0.25, e)), c * 0.9);
+          }
+          if (uSunSize > 0.0) {
+            // The sun: a soft-edged disc and a wide glow round it.
+            float a = acos(clamp(dot(d, uSunDir), -1.0, 1.0));
+            col = mix(col, uSunColor, 1.0 - smoothstep(uSunSize * 0.85, uSunSize, a));
+            col += uSunColor * 0.35 * exp(-a / (uSunSize * 4.0));
           }
           gl_FragColor = vec4(col, opacity);
         }`,
