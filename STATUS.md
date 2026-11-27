@@ -1,3 +1,9 @@
+### Arena: objetos do cenário "transparentes" ao girar a câmera — 2026-11-27
+
+As camadas pintadas (`sky`/`far`/`near`) são planos transparentes que giram com a câmera; o three.js desenha tudo o que é transparente **depois** dos opacos, então um prop 3D atrás do plano `near` (22 m) recebia a pintura por cima e parecia vazado (pedra com grama pintada atravessando, arbusto 3D sobre a cerca pintada). De frente quase nada fica atrás do plano; girando até ±70° a câmera olha ao longo da faixa de props (±90 m em X). Correção: o material dos props descarta fragmentos atrás do plano `near` na direção em que a câmera olha (`ArenaProps.setYaw`, chamado por `ArenaScenery.update` com o mesmo yaw do fundo; `ARENA_NEAR_LAYER_DISTANCE_M` compartilhado com a camada). De frente, nada muda. Harness `tools/arena-assets/preview`: tiros `orbit_<região>_l/_r` em todas as regiões e espera o cenário carregar antes da foto.
+
+Validação: Karma `features/play/arena` **172/172** (spec novo `arena-props.spec.ts`); fotos antes/depois em WebGL real (`debug-logs/orbit-shots`, `debug-logs/orbit-after2`, não versionadas) conferidas em campo verde e ruínas. **Não verificado no app rodando**; sem push.
+
 ### Double Strike com dois sons de golpe — 2026-11-27
 
 O motor registra o Double Strike (adagas, `double_strike`) como **um** evento `attack` com `damageComponents: [a, b]`; o áudio tocava um som por evento. `GameAudioService.playBattleEvent` agora toca o som da arma uma vez por golpe (o segundo `DOUBLE_HIT_GAP_MS` = 150 ms depois); a batalha de grupo passa a repassar `damageComponents` ao áudio (a solo já recebia o payload inteiro).
