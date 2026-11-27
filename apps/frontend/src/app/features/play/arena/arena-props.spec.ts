@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ARENA_NEAR_LAYER_DISTANCE_M, ArenaProps, nearLayerScale } from './arena-props';
+import { arenaPropLayout } from './arena-prop-layout';
 
 describe('ArenaProps near the painted near layer', () => {
   const yaw = (70 * Math.PI) / 180;
@@ -56,6 +57,21 @@ describe('ArenaProps near the painted near layer', () => {
     expect(turned.filter((s) => s < 1e-6).length).toBeGreaterThan(front.filter((s) => s < 1e-6).length + 20);
     props.update(0, 0);
     expect(scales()).toEqual(front);
+    props.dispose();
+  });
+});
+
+describe('ArenaProps ground cover', () => {
+  it("caete's sprouts carpet the battle band too, never taller than an ankle", () => {
+    const props = new ArenaProps('caete', 0.9, Infinity);
+    const mesh = props.group.getObjectByName('arena:props:sprout') as THREE.InstancedMesh;
+    expect(mesh).toBeTruthy();
+    mesh.geometry.computeBoundingBox();
+    const unitHeight = mesh.geometry.boundingBox!.max.y;
+    const sprouts = arenaPropLayout('caete').filter((p) => p.kind === 'sprout');
+    expect(sprouts.filter((p) => Math.abs(p.z) < 12).length).toBeGreaterThan(150);
+    for (const p of sprouts) expect(unitHeight * p.size).toBeLessThan(0.22);
+    expect(props.reachOf('sprout') * 1.3).toBeLessThan(0.8);
     props.dispose();
   });
 });

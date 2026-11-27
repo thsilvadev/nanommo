@@ -29,6 +29,13 @@ rocks). Turned 70°, the camera looks along the prop strip (±90 m in x) and man
   nearest the grid ×2 via `grow`), `fern`, `tuft`, `stump`, `mossrock`; procedural `bush`, `rock`, `twig`, `leaf`, `pebble` kept.
 - Estimated ~350k instanced triangles (other regions ~30k). FPS not measured; mobile not checked.
 
+**caete v2 (done, approved, merged 2026-11-27):** a misty *day* rainforest. Background/fog `#a7bca9` 7–56 m (the
+mist reaches into the battle), no stars (`ArenaLight.stars`), mossy giant trunks (7 near, 14 in the mist), procedural
+`bigleaf` (tropical rosette) and `sprout` (ankle-low ground cover allowed in the battle band), dense undergrowth in
+`BEHIND`, plus `arena-atmosphere.ts`: drifting mist wisps and slow glowing motes ("seres de luz"). ~407k tris.
+User feedback: "adiciona mais das plantas rasteiras/arbustos, muito mais", "deixa a fog invadir a batalha",
+"partículas flutuando muito lenta e suavemente, tipo seres de luz" → then "amei". Next region: forest_ruins.
+
 ## The user's taste (learned by iteration — follow it)
 
 - Liked: giant buttressed trunks very close to the arena (only the trunk visible), dark sky, stars, purple tint,

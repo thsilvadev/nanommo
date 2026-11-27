@@ -26,7 +26,7 @@ describe('arena terrain', () => {
 });
 
 describe('arena props', () => {
-  it('only flat props (leaves, pebbles, twigs) lie inside the battle band', () => {
+  it('only flat or ankle-low props (leaves, pebbles, twigs, sprouts) lie inside the battle band', () => {
     for (const region of ARENA_REGIONS) {
       for (const p of arenaPropLayout(region)) {
         if (!FLAT_PROPS.has(p.kind)) expect(Math.abs(p.z)).withContext(`${region} ${p.kind} z=${p.z.toFixed(2)}`).toBeGreaterThan(ARENA_FLAT_HALF_DEPTH_M);
@@ -61,4 +61,17 @@ describe('arena props', () => {
     expect(bigShrubs.length).toBeGreaterThan(10); // the grown "small trees" (1.9–3.3 m doubled)
     expect(props.some((p) => p.kind === 'log')).toBeFalse();
   });
+
+  it("caete's giant trunks stand behind the grid and, more of them, deeper in the mist; nothing past the fog", () => {
+    const props = arenaPropLayout('caete');
+    const trunks = props.filter((p) => p.kind === 'trunk');
+    const near = trunks.filter((t) => t.z > -23), misty = trunks.filter((t) => t.z <= -23);
+    expect(near.length).toBeGreaterThanOrEqual(5);
+    expect(misty.length).toBeGreaterThan(near.length);
+    for (const t of near) expect(t.z).toBeLessThan(-15.9);
+    expect(props.filter((p) => p.kind === 'bigleaf').length).toBeGreaterThan(40);
+    for (const t of trunks) expect(t.z).toBeLessThan(0);
+    for (const p of props) expect(p.z).withContext(`${p.kind} z=${p.z.toFixed(1)}`).toBeGreaterThan(-56);
+  });
 });
+

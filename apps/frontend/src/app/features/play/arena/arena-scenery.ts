@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { arenaRegionAssets, type ArenaRegionId } from './arena-region';
 import { ARENA_NEAR_LAYER_DISTANCE_M, ArenaProps } from './arena-props';
 import { TERRAIN_GLSL } from './arena-terrain';
+import { ArenaAtmosphere, arenaAtmosphere } from './arena-atmosphere';
 
 /** Walking pace of the ground, metres per second. */
 export const ARENA_WALK_SPEED_M_S = 1.4;
@@ -31,10 +32,10 @@ const LAYERS: LayerSpec[] = [
  * Regions drawn without the painted near layer: their middle ground is 3D plants (arena-prop-layout),
  * which a turning painted plane at 22 m would cut through.
  */
-const NO_NEAR_LAYER: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest']);
+const NO_NEAR_LAYER: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete']);
 export function arenaHasNearLayer(region: ArenaRegionId): boolean { return !NO_NEAR_LAYER.has(region); }
-/** Regions with no painted layer at all: a dark background and fog behind the 3D forest (arenaLight). */
-const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest']);
+/** Regions with no painted layer at all: a plain background and fog behind the 3D forest (arenaLight). */
+const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete']);
 
 /** Where a bridge deck ends behind the grid (world z): a parapet, then the drop to the river. */
 const DECK_BACK_Z = -15;
@@ -43,12 +44,14 @@ const RIVER_Y = -1.8;
 const BRIDGES: ReadonlySet<ArenaRegionId> = new Set(['gods_bridge']);
 
 /** Light per region (hemisphere sky/ground, sun): the bridge is lit by a low warm sunset. */
-/** `background`: clear colour (default the painted sky's blue); `fog`: distance fog in that colour. */
-export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number } }
+/** `background`: clear colour (default the painted sky's blue); `fog`: distance fog in that colour; `stars`: a night dome. */
+export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number }; stars?: boolean }
 const DEFAULT_LIGHT: ArenaLight = { sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2 };
 const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
   gods_bridge: { sky: '#ffd2b0', ground: '#4a3a5a', hemi: 1.45, sun: '#ffb070', sunIntensity: 2.5 },
-  kwaioua_forest: { sky: '#d6ccff', ground: '#352a3e', hemi: 1.2, sun: '#f2e4ff', sunIntensity: 1.65, background: '#080515', fog: { near: 26, far: 74 } },
+  kwaioua_forest: { sky: '#d6ccff', ground: '#352a3e', hemi: 1.2, sun: '#f2e4ff', sunIntensity: 1.65, background: '#080515', fog: { near: 26, far: 74 }, stars: true },
+  // Caetê: a misty day under the canopy, soft green light; the mist reaches into the battle, the trunks fade into it.
+  caete: { sky: '#eef8e6', ground: '#3f4a30', hemi: 1.7, sun: '#fff4dc', sunIntensity: 1.2, background: '#a7bca9', fog: { near: 7, far: 56 } },
 };
 export function arenaLight(region: ArenaRegionId): ArenaLight { return LIGHTS[region] ?? DEFAULT_LIGHT; }
 
@@ -59,6 +62,8 @@ interface LayerSet {
   backdrop: THREE.Group;
   /** Extra materials faded with the ground (the bridge's river, wall and parapet). */
   extras: THREE.Material[];
+  /** Mist wisps and motes of light (regions that have them). */
+  atmosphere: ArenaAtmosphere | null;
   /** Textures still downloading (the region is drawn whole once this is 0; a failed one counts as done). */
   pending: number;
 }
@@ -112,12 +117,14 @@ export class ArenaScenery {
       set.time.value = (nowMs % 600_000) / 1000;
       set.props.update(travelled, yawRad);
       set.backdrop.rotation.y = yawRad;
+      set.atmosphere?.update(travelled, nowMs / 1000);
     }
     if (this.current) {
       const f = this.leaving ? Math.min(1, (nowMs - this.current.bornAt) / CROSSFADE_MS) : 1;
       for (const m of this.current.materials) m.opacity = f;
       this.current.groundMaterial.opacity = f;
       for (const m of this.current.extras) m.opacity = f;
+      this.current.atmosphere?.fade(f);
       if (this.leaving && f >= 1) { this.dispose(this.leaving); this.leaving = null; }
     }
   }
@@ -129,6 +136,7 @@ export class ArenaScenery {
       set.groundMaterial.dispose();
       for (const m of set.extras) m.dispose();
       set.props.dispose();
+      set.atmosphere?.dispose();
       for (const t of set.textures) t.dispose();
       return;
     }
@@ -151,7 +159,7 @@ export class ArenaScenery {
     return texture;
   }
 
-  /** A starry night dome behind the 3D forest (regions without painted layers): fixed points, never fogged. */
+  /** A starry night dome behind the 3D forest (night regions without painted layers): fixed points, never fogged. */
   private buildStars(set: LayerSet): void {
     const fading = !!this.current;
     let a = 0x5eed1234;
@@ -238,7 +246,7 @@ export class ArenaScenery {
     const assets = arenaRegionAssets(region);
     const group = new THREE.Group();
     group.name = `arena:scenery:${region}`;
-    const set: LayerSet = { region, group, materials: [], textures: [], layers: [], ground: null!, groundMaterial: null!, travel: { value: 0 }, time: { value: 0 }, props: null!, bornAt: nowMs, extras: [], pending: 0, backdrop: new THREE.Group() };
+    const set: LayerSet = { region, group, materials: [], textures: [], layers: [], ground: null!, groundMaterial: null!, travel: { value: 0 }, time: { value: 0 }, props: null!, bornAt: nowMs, extras: [], pending: 0, backdrop: new THREE.Group(), atmosphere: null };
     set.backdrop.name = 'arena:backdrop';
     group.add(set.backdrop);
     this.building = set;
@@ -279,7 +287,9 @@ export class ArenaScenery {
     void set.props.loaded.then(() => { set.pending = Math.max(0, set.pending - 1); });
     group.add(set.props.group);
     if (bridge) this.buildBridge(set);
-    if (NO_PAINTED_LAYERS.has(region)) this.buildStars(set);
+    if (arenaLight(region).stars) this.buildStars(set);
+    const air = arenaAtmosphere(region);
+    if (air) { set.atmosphere = new ArenaAtmosphere(air, !!this.current); group.add(set.atmosphere.group); }
     set.ground = ground; set.groundMaterial = groundMaterial; set.textures.push(ground);
     this.building = null;
     return set;

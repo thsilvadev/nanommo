@@ -125,6 +125,10 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
       return palmGeometry();
     case 'trunk':
       return trunkGeometry();
+    case 'bigleaf':
+      return bigleafGeometry();
+    case 'sprout':
+      return sproutGeometry();
     default:
       throw new Error(`arena prop ${kind} is modelled (props.glb), not built`);
   }
@@ -183,6 +187,72 @@ function palmGeometry(): THREE.BufferGeometry {
     parts.push(paint(nut, '#6b4a26'));
   }
   return mergeGeometries(parts)!;
+}
+
+/**
+ * A big-leaved tropical plant about 1.6 m tall (banana / heliconia): a rosette of long blades on short
+ * stalks, the inner ones upright, the outer ones arching out and drooping, each folded along its midrib.
+ * Grey shading in the vertex colours (the instance colour is the green).
+ */
+function bigleafGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const leaves = 8, steps = 7;
+  for (let k = 0; k < leaves; k++) {
+    const outer = k / (leaves - 1);
+    const rise = 1.25 - 0.75 * outer, length = 1.15 + 0.35 * Math.abs(Math.sin(k * 2.1)), width = 0.26 + 0.06 * Math.cos(k * 1.3);
+    const stalk = 0.35 + 0.25 * (1 - outer);
+    const base = new THREE.Vector3(Math.cos(rise) * stalk, Math.sin(rise) * stalk, 0);
+    // Midrib: leaves the stalk at its angle, bends over under its weight.
+    const rib = (t: number) => new THREE.Vector3(
+      base.x + length * t * (0.35 + 0.65 * Math.cos(rise * (1 - 0.55 * t))),
+      base.y + length * (Math.sin(rise) * t - (0.55 + 0.4 * outer) * t * t),
+      0);
+    const verts: number[] = [], shades: number[] = [];
+    const edge = (t: number, side: number) => {
+      const w = width * Math.sin(Math.PI * Math.min(1, t * 1.08)) ** 0.7 * side, c = rib(t);
+      return new THREE.Vector3(c.x, c.y - 0.35 * Math.abs(w), w);
+    };
+    for (let i = 0; i < steps; i++) {
+      const t0 = i / steps, t1 = (i + 1) / steps;
+      const c0 = rib(t0), c1 = rib(t1);
+      for (const side of [1, -1]) {
+        const e0 = edge(t0, side), e1 = edge(t1, side);
+        const tri = side > 0 ? [c0, e0, c1, c1, e0, e1] : [c0, c1, e0, e0, c1, e1];
+        for (const v of tri) { verts.push(...v.toArray()); const g = 0.82 + 0.3 * (v.y / 1.6) + (Math.abs(v.z) < 1e-6 ? 0.12 : 0); shades.push(g, g, g); }
+      }
+    }
+    // The stalk: a thin flat-shaded prism from the ground to the blade.
+    const stem = new THREE.CylinderGeometry(0.025, 0.04, stalk, 4, 1, true);
+    stem.deleteAttribute('uv');
+    stem.translate(0, stalk / 2, 0);
+    stem.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), base.clone().normalize()));
+    const stalkGeometry = shade(stem, () => 0.95);
+    const blade = new THREE.BufferGeometry();
+    blade.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+    blade.setAttribute('color', new THREE.Float32BufferAttribute(shades, 3));
+    blade.computeVertexNormals();
+    for (const g of [blade, stalkGeometry]) {
+      g.rotateY(k * 2.399 + 0.2); // golden angle: no two leaves overlap
+      parts.push(g);
+    }
+  }
+  return mergeGeometries(parts)!;
+}
+
+/** Ground cover about 0.4 m across and 0.11 m high: five leaflets lying out, three standing up in the middle. */
+function sproutGeometry(): THREE.BufferGeometry {
+  const verts: number[] = [];
+  const leaflet = (yaw: number, length: number, lift: number, width: number) => {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    const at = (along: number, side: number, y: number) => [along * c - side * s, y, along * s + side * c];
+    const base = at(0, 0, 0.01), left = at(length * 0.45, width, lift * 0.6), right = at(length * 0.45, -width, lift * 0.6), tip = at(length, 0, lift);
+    verts.push(...base, ...left, ...tip, ...base, ...tip, ...right);
+  };
+  for (let k = 0; k < 5; k++) leaflet(k * 1.2566 + 0.3, 0.19, 0.06, 0.05);
+  for (let k = 0; k < 3; k++) leaflet(k * 2.094, 0.1, 0.11, 0.035);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  return shade(g, (p) => 0.85 + 2 * p.y);
 }
 
 /** Horizontal reach of a model round its origin (its base), with room for the props' tilt. */
