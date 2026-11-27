@@ -50,4 +50,15 @@ describe('arena props', () => {
       expect(x).toBeLessThan(ARENA_PROP_PERIOD_M / 2);
     }
   });
+
+  it("kwaioua's giant trunks are evenly spread behind the grid, and its nearest bushes grow twice as big", () => {
+    const props = arenaPropLayout('kwaioua_forest');
+    const trunks = props.filter((p) => p.kind === 'trunk').sort((a, b) => a.u - b.u);
+    expect(trunks.length).toBe(9);
+    for (const t of trunks) { expect(t.z).toBeLessThan(-15.9); expect(t.z).toBeGreaterThan(-22.1); }
+    for (let i = 1; i < trunks.length; i++) expect(trunks[i].u - trunks[i - 1].u).withContext(`gap ${i}`).toBeGreaterThan(8);
+    const bigShrubs = props.filter((p) => p.kind === 'shrub' && p.size > 3.3);
+    expect(bigShrubs.length).toBeGreaterThan(10); // the grown "small trees" (1.9–3.3 m doubled)
+    expect(props.some((p) => p.kind === 'log')).toBeFalse();
+  });
 });

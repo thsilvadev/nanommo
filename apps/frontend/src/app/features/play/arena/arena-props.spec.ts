@@ -37,6 +37,10 @@ describe('ArenaProps near the painted near layer', () => {
     expect(last).toBe(0);
   });
 
+  it('without a near layer (no bound) props keep their size wherever the camera turns', () => {
+    for (const [x, z] of [[0, -50], [-60, -16], [-90, -70]]) expect(nearLayerScale(x, z, 2, yaw, Infinity)).toBe(1);
+  });
+
   it('the instances shrink about their base with the yaw, and grow back when the camera turns back', () => {
     const props = new ArenaProps('green_grounds', 1);
     expect(props.reachOf('rock')).toBeGreaterThan(0.5);

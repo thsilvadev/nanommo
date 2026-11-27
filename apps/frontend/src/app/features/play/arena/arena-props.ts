@@ -6,8 +6,9 @@
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { ArenaRegionId } from './arena-region';
-import { arenaPropLayout, propLocalX, type ArenaPropInstance, type ArenaPropKind } from './arena-prop-layout';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { ARENA_ASSET_BASE, type ArenaRegionId } from './arena-region';
+import { ARENA_TRUNK_HEIGHT_M, MODEL_PROPS, arenaPropLayout, propLocalX, type ArenaPropInstance, type ArenaPropKind } from './arena-prop-layout';
 import { terrainHeight } from './arena-terrain';
 
 /**
@@ -25,10 +26,27 @@ const NEAR_LAYER_EASE_M = 4;
  * (whole, never sliced), and is gone once its base is behind it. From the front (yaw 0) only props that
  * would cross the layer change; turned, they ease out over a few more metres.
  */
-export function nearLayerScale(x: number, z: number, reach: number, yawRad: number): number {
+export function nearLayerScale(x: number, z: number, reach: number, yawRad: number, layerDistance = ARENA_NEAR_LAYER_DISTANCE_M): number {
   const along = -x * Math.sin(yawRad) - z * Math.cos(yawRad);
   const room = reach + NEAR_LAYER_EASE_M * Math.abs(Math.sin(yawRad));
-  return Math.min(1, Math.max(0, (ARENA_NEAR_LAYER_DISTANCE_M - along) / Math.max(room, 1e-6)));
+  return Math.min(1, Math.max(0, (layerDistance - along) / Math.max(room, 1e-6)));
+}
+
+/** The modelled kinds' geometries (one download, shared by every region; never disposed). */
+let modelGeometries: Promise<Map<ArenaPropKind, THREE.BufferGeometry>> | null = null;
+function loadModelGeometries(): Promise<Map<ArenaPropKind, THREE.BufferGeometry>> {
+  modelGeometries ??= new GLTFLoader().loadAsync(`${ARENA_ASSET_BASE}props.glb`).then((gltf) => {
+    const out = new Map<ArenaPropKind, THREE.BufferGeometry>();
+    gltf.scene.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || !o.name.startsWith('prop_')) return;
+      const geometry = mesh.geometry.clone();
+      geometry.computeVertexNormals();
+      out.set(o.name.slice('prop_'.length) as ArenaPropKind, geometry);
+    });
+    return out;
+  }).catch((error) => { modelGeometries = null; throw error; });
+  return modelGeometries;
 }
 
 /** Deterministic jitter from a vertex position (shared corners move together). */
@@ -105,6 +123,10 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
     }
     case 'palm':
       return palmGeometry();
+    case 'trunk':
+      return trunkGeometry();
+    default:
+      throw new Error(`arena prop ${kind} is modelled (props.glb), not built`);
   }
 }
 
@@ -171,6 +193,34 @@ function reachOf(geometry: THREE.BufferGeometry): number {
   return r * 1.1;
 }
 
+/** A giant rainforest trunk (ARENA_TRUNK_HEIGHT_M tall) flaring into buttress roots (sapopemas) at its foot. */
+function trunkGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const trunk = new THREE.CylinderGeometry(0.7, 1.05, ARENA_TRUNK_HEIGHT_M, 10, 8);
+  const pos = trunk.getAttribute('position');
+  for (let i = 0; i < pos.count; i++) {
+    const s = 1 + 0.08 * jitter(Math.round(pos.getX(i) * 100), Math.round(pos.getY(i) * 10), Math.round(pos.getZ(i) * 100), 4);
+    pos.setXYZ(i, pos.getX(i) * s, pos.getY(i), pos.getZ(i) * s);
+  }
+  trunk.translate(0, ARENA_TRUNK_HEIGHT_M / 2, 0);
+  parts.push(trunk.toNonIndexed());
+  for (let k = 0; k < 6; k++) {
+    // A fin: tall against the trunk, sweeping down and out to the ground.
+    const reach = 2.6 + 1.4 * Math.abs(Math.sin(k * 2.3)), rise = 3.5 + 2 * Math.abs(Math.cos(k * 1.7));
+    const shape = new THREE.Shape();
+    shape.moveTo(0.5, 0); shape.lineTo(reach, 0);
+    shape.quadraticCurveTo(1.4, 0.35, 0.8, rise); shape.lineTo(0.5, rise + 0.3); shape.lineTo(0.5, 0);
+    const fin = new THREE.ExtrudeGeometry(shape, { depth: 0.32, bevelEnabled: false, curveSegments: 4 });
+    fin.translate(0, 0, -0.16);
+    fin.rotateY((k / 6) * Math.PI * 2 + 0.4 * Math.sin(k * 3.1));
+    fin.deleteAttribute('uv');
+    parts.push(fin.index ? fin.toNonIndexed() : fin);
+  }
+  for (const p of parts) p.deleteAttribute('uv');
+  const g = mergeGeometries(parts)!;
+  return shade(g, (p) => 0.78 + 0.22 * Math.min(1, p.y / 8) + 0.06 * Math.sin(Math.atan2(p.z, p.x) * 9));
+}
+
 /** A region's props: build once, then `update` every frame with the travel and the region's relief. */
 export class ArenaProps {
   readonly group = new THREE.Group();
@@ -182,28 +232,46 @@ export class ArenaProps {
   private readonly reach = new Map<ArenaPropKind, number>();
   private lastTravelled = Number.NaN;
   private lastYaw = Number.NaN;
+  private disposed = false;
+  /** Settles once the modelled kinds are in (or failed to load: the region is drawn without them). */
+  readonly loaded: Promise<void>;
   private readonly m = new THREE.Matrix4();
   private readonly q = new THREE.Quaternion();
   private readonly e = new THREE.Euler();
   private readonly p = new THREE.Vector3();
   private readonly s = new THREE.Vector3();
 
-  constructor(region: ArenaRegionId, private readonly relief: number) {
+  /** `layerDistance`: the painted layer props must stay in front of (the near layer, or the far one where there is none). */
+  constructor(region: ArenaRegionId, private readonly relief: number, private readonly layerDistance = ARENA_NEAR_LAYER_DISTANCE_M) {
     this.group.name = `arena:props:${region}`;
     const byKind = new Map<ArenaPropKind, ArenaPropInstance[]>();
     for (const item of arenaPropLayout(region)) byKind.set(item.kind, [...(byKind.get(item.kind) ?? []), item]);
-    const color = new THREE.Color();
+    const modelled = [...byKind].filter(([kind]) => MODEL_PROPS.has(kind));
     for (const [kind, items] of byKind) {
+      if (MODEL_PROPS.has(kind)) continue;
       const geometry = geometryOf(kind);
       this.geometries.push(geometry);
-      this.reach.set(kind, reachOf(geometry));
-      const mesh = new THREE.InstancedMesh(geometry, this.material, items.length);
-      mesh.name = `arena:props:${kind}`;
-      mesh.frustumCulled = false;
-      items.forEach((item, i) => mesh.setColorAt(i, color.set(item.color)));
-      this.group.add(mesh);
-      this.meshes.push({ mesh, items });
+      this.addKind(kind, geometry, items);
     }
+    this.loaded = !modelled.length ? Promise.resolve() : loadModelGeometries().then((geometries) => {
+      if (this.disposed) return;
+      for (const [kind, items] of modelled) { const g = geometries.get(kind); if (g) this.addKind(kind, g, items); }
+      // Place the new kinds where the others are.
+      const travelled = this.lastTravelled, yaw = this.lastYaw;
+      this.lastTravelled = Number.NaN;
+      if (Number.isFinite(travelled)) this.update(travelled, yaw);
+    }).catch(() => undefined);
+  }
+
+  private addKind(kind: ArenaPropKind, geometry: THREE.BufferGeometry, items: ArenaPropInstance[]): void {
+    this.reach.set(kind, reachOf(geometry));
+    const mesh = new THREE.InstancedMesh(geometry, this.material, items.length);
+    mesh.name = `arena:props:${kind}`;
+    mesh.frustumCulled = false;
+    const color = new THREE.Color();
+    items.forEach((item, i) => mesh.setColorAt(i, color.set(item.color)));
+    this.group.add(mesh);
+    this.meshes.push({ mesh, items });
   }
 
   get instanceCount(): number { return this.meshes.reduce((n, m) => n + m.items.length, 0); }
@@ -226,7 +294,7 @@ export class ArenaProps {
         const y = terrainHeight(x + travelled, item.z, this.relief);
         this.p.set(x, y, item.z);
         this.q.setFromEuler(this.e.set(item.tilt * 0.5, item.yaw, item.kind === 'log' || item.kind === 'twig' ? 0 : item.tilt));
-        this.s.setScalar(item.size * nearLayerScale(x, item.z, reach * item.size, yawRad));
+        this.s.setScalar(item.size * nearLayerScale(x, item.z, reach * item.size, yawRad, this.layerDistance));
         mesh.setMatrixAt(i, this.m.compose(this.p, this.q, this.s));
       });
       mesh.instanceMatrix.needsUpdate = true;
@@ -234,6 +302,7 @@ export class ArenaProps {
   }
 
   dispose(): void {
+    this.disposed = true;
     this.group.removeFromParent();
     for (const g of this.geometries) g.dispose();
     this.material.dispose();
