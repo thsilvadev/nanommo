@@ -2959,11 +2959,21 @@
           },
           "action": {
             "type": "use_skill",
-            "skillId": "monster_skill_arcane_surge"
+            "skillId": "monster_skill_magic_reflection"
           }
         },
         {
           "priority": 2,
+          "condition": {
+            "type": "always"
+          },
+          "action": {
+            "type": "use_skill",
+            "skillId": "monster_skill_arcane_surge"
+          }
+        },
+        {
+          "priority": 3,
           "condition": {
             "type": "always"
           },

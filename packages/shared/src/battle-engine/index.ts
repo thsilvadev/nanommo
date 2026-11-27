@@ -1571,9 +1571,8 @@ export class BattleEngine {
               };
             }
           }
-        } else if (monsterDefinition?.id === 'mon_arcanewisp') {
-          // Preserve Arcane Wisp's resource reaction without routing it through
-          // an additional cast action: it gains reflection when Surge is unaffordable.
+        } else if (monsterDefinition?.id === 'mon_arcanewisp' && monsterSkillDefs.monster_skill_magic_reflection?.kind === 'passive') {
+          // Preserve the resource reaction only for old immutable battle definitions.
           const surgeCost = Number(monsterSkillDefs.monster_skill_arcane_surge?.spCost ?? 60);
           if (Number(foe.sp ?? 0) < surgeCost
             && Number(foeCooldowns['skill:monster_skill_arcane_surge'] ?? 0) <= 0
@@ -1715,6 +1714,10 @@ export class BattleEngine {
           );
           if (skillId === 'monster_skill_pickpocket') {
             // Pickpocket resolves its own inventory event and does no direct damage.
+          } else if (def.target === 'self' && effect.type === 'apply_status' && effect.status) {
+            applyStatus(foe, String(effect.status), skillId, Number(effect.durationTicks ?? 30),
+              effect.reflectPercent !== undefined ? { reflectPercent: Number(effect.reflectPercent) } : {}, 'monster');
+            record({ tick, actor: 'monster', action: 'use_skill', skillId, target: 'monster', damage: 0, hit: true, spSpent: spCost });
           } else if (healAmount > 0) {
             const before = foe.hp;
             foe.hp = Math.min(foe.maxHp, foe.hp + healAmount);

@@ -1,3 +1,11 @@
+### Arcane Wisp abre com Magic Reflection ativa — 2026-11-27
+
+Magic Reflection agora é uma habilidade ativa prioritária de alvo próprio, instantânea, sem custo de SP e com cooldown de 60 ticks (30 s). Mantidos o buff de 30 ticks (15 s) e a reflexão de 30%. O Gambit do Wisp usa Reflection → Arcane Surge → ataque básico. A falta de SP não ativa mais reflexão nos novos encontros; após expirar, o buff precisa aguardar o cooldown. Silence impede ativação. Catálogos raiz/frontend sincronizados somente para as entradas alteradas e contrato OpenSpec atualizado.
+
+Os motores unificado e legado aplicam o buff como ação de alvo próprio, sem dano acidental ao personagem. Entradas imutáveis antigas com a definição passiva preservam sua reação original em replays; novos encontros usam a definição ativa. Sem alteração retroativa de batalhas já projetadas.
+
+Validação: quatro regressões de combate passaram (abertura/ordem/cooldown/SP/Gambit, Silence, motor legado e replay antigo), paridade solo/grupo e testes de defesa passaram; builds shared/API/frontend aprovados (frontend com avisos de orçamento de tamanho). Paridade JSON raiz/frontend confirmada. O validador geral `validate-monster-catalog.js` permanece falhando no `mapLength` de Green Grounds 0 (20 atual versus 25 esperado), valor já presente no HEAD antes desta mudança. Sem deploy.
+
 ### Botão cidade/mapa alinhado ao botão arena/mapa — 2026-11-27
 
 O botão cidade/mapa também saiu do map-head e usa o canto inferior direito do viewport, com as mesmas margens de 18px do botão da arena. Tamanho 80×80px, ícones originais de mapa/casa ampliados para 60×60px e o mesmo fundo mais claro. Opções, rótulos, alternância e bloqueio de propagação de cliques preservados. Os dois controles compartilham a regra de posicionamento.

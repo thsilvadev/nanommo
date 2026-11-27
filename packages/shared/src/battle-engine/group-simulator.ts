@@ -147,7 +147,7 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
       if(holyBurn)dealt=damage(self,target,amount,'pure',`skill:${skillId}:${target.id}`,false);
       else target.hp=Math.min(target.maxHp,target.hp+amount);
     }
-    else if(type==='apply_status'&&e.status)applyStatus(self,target,e.status,e.durationTicks,{sourceSkillId:skillId});
+    else if(type==='apply_status'&&e.status)applyStatus(self,target,e.status,e.durationTicks,{sourceSkillId:skillId,...(e.reflectPercent!==undefined?{reflectPercent:Number(e.reflectPercent)}:{})});
     else if(type!=='arcane_dynamo_passive') {
       if(type==='blinkstrike') {const path=findGridPathToRange(self.position,target.position,blocked(self),1);if(path?.length){const from={...self.position};self.position={...path[path.length-1]};record(self,[target],'move',{type:'move',from,to:{...self.position},reason:'blinkstrike'});}}
       let raw=self.atk;
@@ -294,7 +294,8 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
       }
       const cast=choose(actor,self,'cast');
       if(!cast||cast.action.id!=='use_skill'){const attackIntent=choose(actor,self,'attack');if(attackIntent)setTarget(self,attackIntent.target);}
-      if(actor.definitionId==='mon_arcanewisp'&&self.sp<Number(self.skillDefs?.monster_skill_arcane_surge?.spCost??60)&&!hasStatus(self,'silence')&&!hasStatus(self,'magic_reflection'))applyStatus(self,self,'magic_reflection',30,{reflectPercent:30,sourceSkillId:'monster_skill_magic_reflection'});
+      // Replay old immutable inputs with their passive definition; new encounters use the active Gambit skill.
+      if(actor.definitionId==='mon_arcanewisp'&&self.skillDefs?.monster_skill_magic_reflection?.kind==='passive'&&self.sp<Number(self.skillDefs?.monster_skill_arcane_surge?.spCost??60)&&!hasStatus(self,'silence')&&!hasStatus(self,'magic_reflection'))applyStatus(self,self,'magic_reflection',30,{reflectPercent:30,sourceSkillId:'monster_skill_magic_reflection'});
       if(cast?.action.id==='use_skill'&&Number(self.castLockTicks??0)<=0) {
         const skillId=String(actionParams(cast.action).skillId);const def:CombatSkillDefinition=self.skillDefs?.[skillId]??definitions.skills?.[skillId]??{};const range=Math.max(0,Number(def.maxRange??(def.ranged?7:1))-1);
         setTarget(self,cast.target);

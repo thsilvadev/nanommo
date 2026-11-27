@@ -171,18 +171,26 @@ Ruins Guardian SHALL gain one Prowess stack when the player character resolves a
 
 ### Requirement: Conditional reflection is finite, typed and non-recursive
 
-Broken Sentinel SHALL activate physical reflection for 15 ticks when newly Disarmed. Arcane Wisp SHALL activate magic reflection for 15 ticks when its top-priority Arcane Surge action becomes illegal specifically because of insufficient SP. Wailing Wraith Ice Bolt remains zero-cost and has no cooldown. Each active reaction reflects 30% of qualifying final damage received, then applies the original attacker's ordinary DEF/MDEF mitigation. Reflection cannot recursively trigger more reflection.
+Broken Sentinel SHALL activate physical reflection for 15 ticks when newly Disarmed. Arcane Wisp SHALL prioritize Magic Reflection as an active, instant, zero-SP self skill at the beginning of combat, with a 60-tick (30-second) cooldown and a 30-tick (15-second) buff. Arcane Surge SHALL be its next-priority action, followed by basic attacks. Insufficient SP SHALL NOT activate or refresh reflection outside that cooldown. Wailing Wraith Ice Bolt remains zero-cost and has no cooldown. Each active reflection reflects 30% of qualifying final damage received, then applies the original attacker's ordinary DEF/MDEF mitigation. Reflection cannot recursively trigger more reflection.
 
 #### Scenario: Physical reflection follows Disarm
 - **GIVEN** Broken Sentinel receives a newly applied Disarm
 - **WHEN** the status application resolves
 - **THEN** physical reflection activates for 15 ticks and logs its start/expiry.
 
-#### Scenario: Magic reflection follows insufficient SP
-- **GIVEN** Wailing Wraith cannot execute its top Ice Bolt Gambit line specifically because SP is insufficient
-- **WHEN** that state transition is detected
-- **THEN** magic reflection activates for 15 ticks
-- **AND** an action blocked by cooldown, Silence or range does not trigger this reflection.
+#### Scenario: Wisp opens with reflection before Surge
+- **GIVEN** an unsilenced Arcane Wisp starts an encounter
+- **WHEN** it chooses its first action
+- **THEN** it immediately applies Magic Reflection to itself without consuming SP or approaching the player
+- **AND** its next available spell is Arcane Surge
+- **AND** the active buff is visible to foe-status Gambit conditions.
+
+#### Scenario: Reflection expires before its cooldown
+- **GIVEN** the Wisp applied Magic Reflection and then spent its SP on Arcane Surge
+- **WHEN** the reflection buff expires after 15 seconds
+- **THEN** insufficient SP does not reactivate reflection
+- **AND** the skill can be used again only after its 30-second cooldown, according to the normal cooldown tick boundary
+- **AND** Silence prevents activation while present.
 
 #### Scenario: Reflection damage is mitigated once
 - **GIVEN** an active reflection receives a qualifying nonzero hit

@@ -639,19 +639,27 @@
     {
       "id": "monster_skill_magic_reflection",
       "name": "Magic Reflection",
-      "kind": "passive",
+      "kind": "active",
       "target": "self",
       "effects": [
         {
-          "type": "reflect_when_skill_illegal_for_sp",
-          "skillId": "monster_skill_ice_bolt",
+          "type": "apply_status",
           "status": "magic_reflection",
           "durationTicks": 30,
           "reflectPercent": 30,
           "damageType": "magic"
         }
       ],
-      "element": "neutral"
+      "element": "neutral",
+      "spCost": 0,
+      "cooldownTicks": 60,
+      "baseCastTicks": 0,
+      "effect": {
+        "type": "apply_status",
+        "status": "magic_reflection",
+        "durationTicks": 30,
+        "reflectPercent": 30
+      }
     },
     {
       "id": "monster_skill_rage",
