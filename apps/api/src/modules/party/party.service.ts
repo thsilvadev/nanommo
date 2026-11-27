@@ -231,7 +231,8 @@ export class PartyService {
     }
     if (ctx.members.some(member => member.characterId === characterId)) await this.remove(ctx, characterId, 'map');
     await ctx.manager.query(`UPDATE character_action_intents SET status='cancelled',"completedAt"=clock_timestamp(),result='{"message":"GM teleport"}'::jsonb WHERE "characterId"=$1 AND status='pending'`, [characterId]);
-    const cancelledInvites: Array<{ inviterId: string; candidateId: string }> = await ctx.manager.query(`UPDATE party_invites SET status='cancelled',revision=revision+1 WHERE ("inviterId"=$1 OR "candidateId"=$1) AND status IN ('offered','accepted') RETURNING "inviterId","candidateId"`, [characterId]);
+    // TypeORM's Postgres UPDATE result is [returned rows, affected count], even when no rows matched.
+    const [cancelledInvites]: [Array<{ inviterId: string; candidateId: string }>, number] = await ctx.manager.query(`UPDATE party_invites SET status='cancelled',revision=revision+1 WHERE ("inviterId"=$1 OR "candidateId"=$1) AND status IN ('offered','accepted') RETURNING "inviterId","candidateId"`, [characterId]);
     for (const id of new Set(cancelledInvites.flatMap(invite => [invite.inviterId, invite.candidateId]))) {
       await this.event(ctx.manager, id, 'party:updated', { refresh: true });
     }

@@ -62,7 +62,7 @@ const { TeleportCommand } = require(`${dist}/modules/gm/commands/teleport.comman
   const row = {id:'shared',startAt:new Date(0),endAt:new Date(60000),snapshot:input,log:{durationTicks:120}};
   const members=[{characterId:'gm'},{characterId:'a'},{characterId:'b'}];
   const chars=members.map(m=>({id:m.characterId,currentMapId:'field'}));
-  const ctx={now:8000,members,characters:chars,party:{id:'party'},manager:{query:async sql=>sql.includes('FOR UPDATE OF b')?[row]:[]}};
+  const ctx={now:8000,members,characters:chars,party:{id:'party'},manager:{query:async sql=>sql.includes('FOR UPDATE OF b')?[row]:sql.includes('UPDATE party_invites')?[[],0]:[]}};
   const calls=[];
   const service=Object.create(PartyService.prototype);
   Object.assign(service,{shared:{resolve:async(_ctx,_row,remove,fled,checkpoint)=>calls.push({fled,checkpoint})},remove:async(_ctx,id,reason)=>{calls.push({id,reason});ctx.members=ctx.members.filter(m=>m.characterId!==id);},event:async()=>{}});
@@ -114,19 +114,39 @@ const { TeleportCommand } = require(`${dist}/modules/gm/commands/teleport.comman
   console.log('GM teleport transaction authorization connection tests passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
+// Exercise the real TypeORM PostgresQueryRunner result conversion. PostgreSQL
+// UPDATE ... RETURNING is [rows, affected], including [[], 0] without invitations.
 (async () => {
   const { PartyService } = require(`${dist}/modules/party/party.service`);
-  const invites = [{inviterId:'gm',candidateId:'outside-a'},{inviterId:'outside-b',candidateId:'gm'}];
-  const events=[];
-  const ctx={members:[],manager:{query:async(sql,args)=>{
-    if(sql.includes('UPDATE party_invites')){assert.deepEqual(args,['gm']);assert.match(sql,/RETURNING "inviterId","candidateId"/);return invites;}
-    return [];
-  }}};
-  const service=Object.create(PartyService.prototype);
-  service.event=async(manager,id,event,payload)=>{assert.equal(manager,ctx.manager);events.push({id,event,payload});};
-  await service.prepareGmTeleport(ctx,'gm');
-  const refreshes=events.filter(e=>e.event==='party:updated');
-  assert.deepEqual(refreshes.map(e=>e.id).sort(),['gm','outside-a','outside-b'],'every affected invitation participant receives one refresh');
-  assert.ok(refreshes.every(e=>e.payload.refresh===true));
-  console.log('GM teleport cancelled invitation counterpart refresh tests passed');
+  const { PostgresQueryRunner } = require('typeorm/driver/postgres/PostgresQueryRunner');
+  for (const {invites,recipients} of [
+    {invites:[],recipients:[]},
+    {invites:[{inviterId:'gm',candidateId:'outside-a'}],recipients:['gm','outside-a']},
+    {invites:[{inviterId:'gm',candidateId:'outside-a'},{inviterId:'outside-b',candidateId:'gm'}],recipients:['gm','outside-a','outside-b']},
+  ]) {
+    const events=[];
+    const connection={subscribers:[],logger:{logQuery(){},logQueryError(){}}};
+    const runner=new PostgresQueryRunner({connection,options:{}}, 'master');
+    runner.databaseConnection={query:async(sql,args)=>{
+      if(sql.includes('UPDATE party_invites')) {
+        assert.deepEqual(args,['gm']);
+        return {command:'UPDATE',rows:invites,rowCount:invites.length};
+      }
+      if(sql.includes('INSERT INTO party_outbox')) {
+        assert.equal(typeof args[1],'string','outbox recipient must be a character ID');
+        assert.ok(args[1].length>0,'outbox recipient must not be empty');
+        events.push({id:args[1],event:args[2],payload:JSON.parse(args[3])});
+        return {command:'INSERT',rows:[],rowCount:1};
+      }
+      return {command:sql.startsWith('UPDATE')?'UPDATE':'SELECT',rows:[],rowCount:0};
+    }};
+    const ctx={members:[],manager:{query:runner.query.bind(runner)}};
+    const service=Object.create(PartyService.prototype);
+    await service.prepareGmTeleport(ctx,'gm');
+    const refreshes=events.filter(e=>e.event==='party:updated');
+    assert.deepEqual(refreshes.map(e=>e.id).sort(),recipients,'each affected invitation participant receives one refresh');
+    assert.ok(refreshes.every(e=>e.payload.refresh===true));
+    assert.deepEqual(events.filter(e=>e.event==='party:actionUpdated').map(e=>e.id),['gm']);
+  }
+  console.log('GM teleport Postgres outbox recipient regression tests passed (0, 1 and 2 invitations)');
 })().catch(error=>{console.error(error);process.exitCode=1;});
