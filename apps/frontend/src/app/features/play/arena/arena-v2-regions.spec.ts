@@ -15,6 +15,7 @@ const V2: Array<{ region: ArenaRegionId; sky: boolean }> = [
   { region: 'green_grounds', sky: true },
   { region: 'menace_hills', sky: true },
   { region: 'wastelands', sky: true },
+  { region: 'ipora_beach', sky: true },
 ];
 
 describe('arena v2 regions (the caete standard)', () => {

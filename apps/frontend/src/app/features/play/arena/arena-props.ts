@@ -9,7 +9,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ARENA_ASSET_BASE, type ArenaRegionId } from './arena-region';
 import { ARENA_TRUNK_HEIGHT_M, MODEL_PROPS, arenaPropLayout, propLocalX, type ArenaPropInstance, type ArenaPropKind } from './arena-prop-layout';
-import { terrainHeight } from './arena-terrain';
+import { arenaShore, terrainHeight } from './arena-terrain';
 
 /**
  * Distance (m, from the scenery origin along the view) of the painted near layer, which turns with the
@@ -135,6 +135,30 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
       return hillGeometry();
     case 'blossom':
       return blossomGeometry();
+    case 'starfish': {
+      // A starfish (0.3 m across): five tapering arms, a raised middle.
+      const verts: number[] = [];
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * Math.PI * 2, l = a - 0.32, r = a + 0.32;
+        const tip = [Math.cos(a) * 0.16, 0.012, Math.sin(a) * 0.16], left = [Math.cos(l) * 0.05, 0.022, Math.sin(l) * 0.05], right = [Math.cos(r) * 0.05, 0.022, Math.sin(r) * 0.05];
+        verts.push(0, 0.035, 0, ...right, ...tip, 0, 0.035, 0, ...tip, ...left);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      return shade(g, (p) => 0.85 + 6 * p.y);
+    }
+    case 'shell': {
+      // A little scallop shell (0.12 m): a ribbed fan lying on the sand.
+      const verts: number[] = [], n = 6;
+      for (let k = 0; k < n; k++) {
+        const a0 = -1.1 + (2.2 * k) / n, a1 = -1.1 + (2.2 * (k + 1)) / n, am = (a0 + a1) / 2;
+        verts.push(0, 0.012, 0.04, Math.sin(a1) * 0.1, 0.012, -Math.cos(a1) * 0.1 + 0.04, Math.sin(am) * 0.11, 0.035, -Math.cos(am) * 0.11 + 0.04);
+        verts.push(0, 0.012, 0.04, Math.sin(am) * 0.11, 0.035, -Math.cos(am) * 0.11 + 0.04, Math.sin(a0) * 0.1, 0.012, -Math.cos(a0) * 0.1 + 0.04);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+      return shade(g, (p) => 0.85 + 4 * p.y);
+    }
     case 'peak': {
       // A mountain (radius 1, 1.3 high): a rough cone, rock below and snow above, its foot sunk in the ground.
       const g = new THREE.ConeGeometry(1, 1.3, 12, 6);
@@ -428,6 +452,7 @@ export class ArenaProps {
   private readonly geometries: THREE.BufferGeometry[] = [];
   /** Per kind: how far the unit-size model reaches round its base (horizontal, metres). */
   private readonly reach = new Map<ArenaPropKind, number>();
+  private readonly shore: number;
   private lastTravelled = Number.NaN;
   private lastYaw = Number.NaN;
   private disposed = false;
@@ -442,6 +467,7 @@ export class ArenaProps {
   /** `layerDistance`: the painted layer props must stay in front of (the near layer, or the far one where there is none). */
   constructor(region: ArenaRegionId, private readonly relief: number, private readonly layerDistance = ARENA_NEAR_LAYER_DISTANCE_M) {
     this.group.name = `arena:props:${region}`;
+    this.shore = arenaShore(region);
     const byKind = new Map<ArenaPropKind, ArenaPropInstance[]>();
     for (const item of arenaPropLayout(region)) byKind.set(item.kind, [...(byKind.get(item.kind) ?? []), item]);
     const modelled = [...byKind].filter(([kind]) => MODEL_PROPS.has(kind));
@@ -489,7 +515,7 @@ export class ArenaProps {
       const reach = this.reach.get(items[0].kind) ?? 0;
       items.forEach((item, i) => {
         const x = propLocalX(item.u, travelled);
-        const y = terrainHeight(x + travelled, item.z, this.relief);
+        const y = terrainHeight(x + travelled, item.z, this.relief, this.shore);
         this.p.set(x, y, item.z);
         this.q.setFromEuler(this.e.set(item.tilt * 0.5, item.yaw, item.kind === 'log' || item.kind === 'twig' ? 0 : item.tilt));
         this.s.setScalar(item.size * nearLayerScale(x, item.z, reach * item.size, yawRad, this.layerDistance));

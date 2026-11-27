@@ -17,7 +17,7 @@ export const ARENA_TRUNK_HEIGHT_M = 30;
 
 /** Procedural kinds (built in arena-props) and modelled kinds (`MODEL_PROPS`, loaded from props.glb). */
 export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm' | 'post'
-  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab' | 'hill' | 'blossom' | 'crag' | 'peak' | 'snow';
+  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab' | 'hill' | 'blossom' | 'crag' | 'peak' | 'snow' | 'shell' | 'starfish';
 /** Kinds drawn from `assets/arena/props.glb` (tools/arena-assets/build-arena-props.mjs): colours baked per vertex, tinted per instance. */
 export const MODEL_PROPS: ReadonlySet<ArenaPropKind> = new Set(['fern', 'shrub', 'tuft', 'flowers', 'stump', 'deadtree', 'mossrock']);
 export interface ArenaPropSpec {
@@ -160,10 +160,19 @@ const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
     { kind: 'pebble', count: 120, colors: ['#9a9682', '#85826f'], size: [0.06, 0.16], bands: [ALL] },
   ],
   ipora_beach: [
-    { kind: 'palm', count: 9, colors: ['#ffffff', '#f2f2e6', '#e8eedc'], size: [0.8, 1.15], bands: [[-24, -17]] },
-    { kind: 'log', count: 4, colors: ['#c9b89a', '#b8a585'], size: [0.5, 0.9], bands: [BEHIND, FRONT] },
-    { kind: 'rock', count: 14, colors: ['#b9a98a', '#a8977a', '#c9b99a'], size: [0.3, 0.9], bands: [BEHIND, FRONT] },
-    { kind: 'pebble', count: 150, colors: ['#f3e6bf', '#e6d2a0', '#d9c3a0', '#ffffff'], size: [0.04, 0.1], bands: [ALL] },
+    // A tropical beach: a line of coconut palms and leafy plants behind the grid, then sand down to the 3D sea.
+    { kind: 'palm', count: 18, colors: ['#ffffff', '#f2f2e6', '#e8eedc'], size: [0.8, 1.2], bands: [[-25, -16]], even: true },
+    { kind: 'bigleaf', count: 160, colors: ['#4f9a40', '#5aa848', '#45883a', '#62b04e'], size: [0.6, 1.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'bush', count: 60, colors: ['#3f8a3a', '#4f9a44', '#357a30'], size: [0.6, 1.3], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'tuft', count: 300, colors: ['#a8c070', '#b8c87a', '#98b060'], size: [1.2, 2.4], bands: [BEHIND, BEHIND, BEHIND, BEHIND, BEHIND, FRONT] },
+    { kind: 'log', count: 8, colors: ['#c9b89a', '#b8a585'], size: [0.5, 1.1], bands: [BEHIND, FRONT, [-30, -26]] },
+    { kind: 'rock', count: 30, colors: ['#b9a98a', '#a8977a', '#c9b99a'], size: [0.3, 1.1], bands: [BEHIND, BEHIND, FRONT, [-32, -26]] },
+    // The battle floor: shells, starfish, pebbles, tufts of sea grass.
+    { kind: 'shell', count: 300, colors: ['#fff4ea', '#ffc8b4', '#f6e0c0', '#ffffff', '#e8c8e0'], size: [1.6, 2.8], bands: [ALL] },
+    { kind: 'starfish', count: 90, colors: ['#ff8a50', '#ff6a5a', '#ffae5a', '#e8705a'], size: [0.8, 1.4], bands: [ALL] },
+    { kind: 'pebble', count: 360, colors: ['#d9c3a0', '#c8b08a', '#b8a080', '#ffffff'], size: [0.07, 0.18], bands: [ALL] },
+    { kind: 'sprout', count: 800, colors: ['#8ab060', '#9ac06a', '#7aa050'], size: [0.9, 1.7], bands: [ALL] },
+    { kind: 'twig', count: 40, colors: ['#c9b89a', '#b8a585'], size: [0.5, 1.0], bands: [ALL] },
   ],
   gods_bridge: [],
 };
@@ -219,4 +228,4 @@ export function propLocalX(u: number, travelled: number): number {
 }
 
 /** Kinds low enough for the battle band (flat, or below the ankle). */
-export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig', 'sprout', 'slab', 'blossom', 'snow']);
+export const FLAT_PROPS: ReadonlySet<ArenaPropKind> = new Set(['leaf', 'pebble', 'twig', 'sprout', 'slab', 'blossom', 'snow', 'shell', 'starfish']);

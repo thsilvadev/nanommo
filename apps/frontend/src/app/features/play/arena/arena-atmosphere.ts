@@ -32,6 +32,11 @@ const ATMOSPHERE: Partial<Record<ArenaRegionId, ArenaAtmosphereSpec>> = {
     wisps: { count: 26, color: '#e8ecf0', opacity: 0.3 },
     motes: { count: 340, colors: ['#ffffff', '#f0f6ff', '#e6eef8'], size: 0.34, fall: 0.35 },
   },
+  // A bright beach: sea spray drifting in low, glints of light in the salt air.
+  ipora_beach: {
+    wisps: { count: 16, color: '#f4fbff', opacity: 0.18 },
+    motes: { count: 160, colors: ['#ffffff', '#fff6d0', '#e8fbff'], size: 0.36 },
+  },
   // Sunbeams in the old forest: pollen and dust glinting gold, a thin morning mist.
   forest_ruins: {
     wisps: { count: 24, color: '#f4ecd0', opacity: 0.26 },

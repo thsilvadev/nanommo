@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { arenaRegionAssets, type ArenaRegionId } from './arena-region';
 import { ARENA_NEAR_LAYER_DISTANCE_M, ArenaProps } from './arena-props';
-import { TERRAIN_GLSL } from './arena-terrain';
+import { ARENA_SEA_LEVEL_M, TERRAIN_GLSL, arenaShore } from './arena-terrain';
 import { ArenaAtmosphere, arenaAtmosphere } from './arena-atmosphere';
 
 /** Walking pace of the ground, metres per second. */
@@ -29,7 +29,7 @@ const LAYERS: LayerSpec[] = [
 ];
 
 /** Regions with no painted layer at all: a background, fog and (open sky) a 3D dome behind the 3D world (arenaLight). */
-const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins', 'green_grounds', 'menace_hills', 'wastelands']);
+const NO_PAINTED_LAYERS: ReadonlySet<ArenaRegionId> = new Set(['kwaioua_forest', 'caete', 'forest_ruins', 'green_grounds', 'menace_hills', 'wastelands', 'ipora_beach']);
 /**
  * Regions drawn without the painted near layer (every region without painted layers, and those keeping only
  * sky + far): their middle ground is 3D plants, which a turning painted plane at 22 m would cut through.
@@ -40,6 +40,10 @@ export function arenaHasNearLayer(region: ArenaRegionId): boolean { return !NO_N
 /** Where a bridge deck ends behind the grid (world z): a parapet, then the drop to the river. */
 const DECK_BACK_Z = -15;
 const RIVER_Y = -1.8;
+/** Where the beach meets the sea (metres behind the grid, about where the sand passes sea level). */
+const SHORE_LINE_M = 29;
+/** Fog colour for a sea in a region with no `background` (none today). */
+const ARENA_SKY_FALLBACK = '#cfe8f4';
 /** Regions whose ground is a bridge deck over a river. */
 const BRIDGES: ReadonlySet<ArenaRegionId> = new Set(['gods_bridge']);
 
@@ -67,6 +71,11 @@ const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
   wastelands: {
     sky: '#e6eef8', ground: '#4a4a50', hemi: 1.5, sun: '#e8eef8', sunIntensity: 1.6, background: '#d2d7dc', fog: { near: 9, far: 115 }, groundTint: '#e2e2e0',
     dome: { zenith: '#8a94a2', horizon: '#d2d7dc', clouds: 0.9, cloudColor: '#eceef0' },
+  },
+  // Ipora beach: a bright tropical shore, the 3D sea running out to a pale horizon.
+  ipora_beach: {
+    sky: '#fff8e8', ground: '#c8a870', hemi: 1.7, sun: '#fff4e0', sunIntensity: 2.3, background: '#cfe8f4', fog: { near: 12, far: 120 },
+    dome: { zenith: '#2a8ae6', horizon: '#cfe8f4', clouds: 0.4, cloudColor: '#ffffff' },
   },
   // Forest ruins: late afternoon under a closed canopy, a warm golden haze pierced by sun shafts.
   forest_ruins: { sky: '#fff0d0', ground: '#4a4630', hemi: 1.3, sun: '#ffdfa0', sunIntensity: 1.9, background: '#d9cfa6', fog: { near: 8, far: 66 }, groundTint: '#b4a67c' },
@@ -250,6 +259,55 @@ export class ArenaScenery {
     set.extras.push(material);
   }
 
+  /**
+   * The sea behind a beach: a wide plane at sea level (the sand runs down under it), turquoise in the shallows,
+   * deep blue further out, wave crests and foam at the shore line, fading into the fog colour at the horizon.
+   */
+  private buildSea(set: LayerSet, light: ArenaLight): void {
+    const fading = !!this.current;
+    const fog = light.fog ?? { near: 60, far: 160 };
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTravel: set.travel, uTime: set.time, opacity: { value: fading ? 0 : 1 },
+        uFog: { value: new THREE.Color(light.background ?? ARENA_SKY_FALLBACK) }, uFogNear: { value: fog.near }, uFogFar: { value: fog.far * 1.6 },
+      },
+      transparent: fading, fog: false,
+      vertexShader: /* glsl */ `
+        varying vec3 vWorld; varying float vLocalX;
+        void main() { vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; vLocalX = position.x; gl_Position = projectionMatrix * viewMatrix * w; }`,
+      fragmentShader: /* glsl */ `
+        uniform float uTravel; uniform float uTime; uniform float opacity; uniform vec3 uFog; uniform float uFogNear; uniform float uFogFar;
+        varying vec3 vWorld; varying float vLocalX;
+        void main() {
+          // World-fixed coordinates: x along the shore (scrolls with the walk), d = metres out from the shore line.
+          float x = vLocalX + uTravel;
+          float d = -vWorld.z - ${SHORE_LINE_M.toFixed(1)};
+          float deep = smoothstep(0.0, 40.0, d);
+          vec3 col = mix(vec3(0.30, 0.80, 0.78), vec3(0.10, 0.42, 0.72), deep);
+          float waves = sin(x * 0.35 + d * 0.9 - uTime * 1.1 + sin(x * 0.07) * 2.0) * sin(x * 0.11 - d * 0.4 + uTime * 0.6);
+          col += vec3(0.06, 0.08, 0.08) * waves;
+          // Crests: thin bright lines rolling towards the beach.
+          float crest = smoothstep(0.92, 1.0, sin(d * 0.8 + uTime * 1.4 + sin(x * 0.13) * 1.5)) * (1.0 - deep);
+          // Foam where the water meets the sand, the line breathing in and out.
+          float edge = d - 0.6 * sin(uTime * 0.7 + x * 0.21) - 0.3 * sin(x * 0.53 + 1.0);
+          float foam = (1.0 - smoothstep(0.0, 1.6, edge)) * (0.6 + 0.4 * sin(x * 1.7 + uTime * 2.0));
+          col = mix(col, vec3(0.96, 0.98, 1.0), clamp(crest * 0.55 + foam, 0.0, 1.0));
+          float dist = length(vWorld - cameraPosition);
+          col = mix(col, uFog, smoothstep(uFogNear, uFogFar, dist));
+          gl_FragColor = vec4(col, opacity);
+        }`,
+    });
+    const geometry = new THREE.PlaneGeometry(320, 260);
+    geometry.rotateX(-Math.PI / 2);
+    geometry.translate(0, ARENA_SEA_LEVEL_M, -SHORE_LINE_M - 130 + 6);
+    this.geometries.push(geometry);
+    const sea = new THREE.Mesh(geometry, material);
+    sea.name = 'arena:sea';
+    sea.frustumCulled = false;
+    set.group.add(sea);
+    set.extras.push(material);
+  }
+
   /** The river below the deck (animated, sunset reflection), the deck's side wall and its parapet rails. */
   private buildBridge(set: LayerSet): void {
     const fading = !!this.current;
@@ -334,7 +392,7 @@ export class ArenaScenery {
     const centreZ = bridge ? (DECK_BACK_Z + 40) / 2 : GROUND_Z;
     const ground = this.texture(assets.ground, size.w / GROUND_TILE_M, size.d / GROUND_TILE_M);
     const groundMaterial = new THREE.MeshLambertMaterial({ map: ground, color: arenaLight(region).groundTint ?? '#ffffff', transparent: !!this.current, opacity: this.current ? 0 : 1 });
-    terrainShader(groundMaterial, set.travel, RELIEF[region] ?? 1, centreZ);
+    terrainShader(groundMaterial, set.travel, RELIEF[region] ?? 1, centreZ, arenaShore(region));
     const geometry = new THREE.PlaneGeometry(size.w, size.d, size.w, size.d);
     this.geometries.push(geometry);
     const plane = new THREE.Mesh(geometry, groundMaterial);
@@ -350,6 +408,7 @@ export class ArenaScenery {
     void set.props.loaded.then(() => { set.pending = Math.max(0, set.pending - 1); });
     group.add(set.props.group);
     if (bridge) this.buildBridge(set);
+    if (arenaShore(region) > 0) this.buildSea(set, arenaLight(region));
     if (arenaLight(region).dome) this.buildDome(set, arenaLight(region).dome!);
     if (arenaLight(region).stars) this.buildStars(set);
     const air = arenaAtmosphere(region);
@@ -368,25 +427,26 @@ const GROUND_Z = -120 / 2 + 40;
  * and a less repetitive texture: a second, rotated sample at another scale blended in by a slow noise,
  * and a broad light/dark variation. `travel` (metres walked + camera x) keeps both fixed to the world.
  */
-function terrainShader(material: THREE.MeshLambertMaterial, travel: { value: number }, relief: number, centreZ: number): void {
+function terrainShader(material: THREE.MeshLambertMaterial, travel: { value: number }, relief: number, centreZ: number, shore = 0): void {
   material.onBeforeCompile = (shader) => {
     shader.uniforms['uTravel'] = travel;
     shader.uniforms['uRelief'] = { value: relief };
+    shader.uniforms['uShore'] = { value: shore };
     shader.uniforms['uGroundZ'] = { value: centreZ };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>
-uniform float uTravel; uniform float uRelief; uniform float uGroundZ; varying vec2 vTerrain;
+uniform float uTravel; uniform float uRelief; uniform float uShore; uniform float uGroundZ; varying vec2 vTerrain;
 ${TERRAIN_GLSL}`)
       .replace('#include <beginnormal_vertex>', `
 // Plane space: x along the ground, y = -(world z - uGroundZ), z up.
 vec2 terrainAt = vec2(position.x + uTravel, -position.y + uGroundZ);
-float hx = arenaHeight(terrainAt + vec2(0.25, 0.0), uRelief) - arenaHeight(terrainAt - vec2(0.25, 0.0), uRelief);
-float hz = arenaHeight(terrainAt + vec2(0.0, 0.25), uRelief) - arenaHeight(terrainAt - vec2(0.0, 0.25), uRelief);
+float hx = arenaHeight(terrainAt + vec2(0.25, 0.0), uRelief, uShore) - arenaHeight(terrainAt - vec2(0.25, 0.0), uRelief, uShore);
+float hz = arenaHeight(terrainAt + vec2(0.0, 0.25), uRelief, uShore) - arenaHeight(terrainAt - vec2(0.0, 0.25), uRelief, uShore);
 vec3 objectNormal = normalize(vec3(-hx / 0.5, hz / 0.5, 1.0));
 #ifdef USE_TANGENT
   vec3 objectTangent = vec3(tangent.xyz);
 #endif`)
-      .replace('#include <begin_vertex>', `vec3 transformed = vec3(position.xy, arenaHeight(terrainAt, uRelief));
+      .replace('#include <begin_vertex>', `vec3 transformed = vec3(position.xy, arenaHeight(terrainAt, uRelief, uShore));
 vTerrain = terrainAt;`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
@@ -402,5 +462,5 @@ varying vec2 vTerrain;`)
   diffuseColor *= tile;
 #endif`);
   };
-  material.customProgramCacheKey = () => 'arena-terrain';
+  material.customProgramCacheKey = () => `arena-terrain:${shore > 0 ? 'shore' : 'land'}`;
 }
