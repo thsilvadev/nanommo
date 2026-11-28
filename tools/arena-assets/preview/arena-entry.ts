@@ -5,6 +5,7 @@ import { arenaBattleOffset, arenaScene, arenaWalkColumn, type ArenaTimelineInput
 import { fromSharedBattle, fromSoloEntry } from '../../../apps/frontend/src/app/features/play/arena/arena-battle';
 import type { ArenaBattle, ArenaCharacterLook } from '../../../apps/frontend/src/app/features/play/arena/arena.types';
 import { ARENA_REGIONS, type ArenaRegionId } from '../../../apps/frontend/src/app/features/play/arena/arena-region';
+import { arenaPropLayout } from '../../../apps/frontend/src/app/features/play/arena/arena-prop-layout';
 import { renderFace } from '../../../apps/frontend/src/app/features/play/arena/character-face-render';
 import { SOLO_V2_ENTRY } from '../../../apps/frontend/src/app/features/play/arena/fixtures/solo-v2.fixture';
 import { PARTY_V2_VIEW } from '../../../apps/frontend/src/app/features/play/arena/fixtures/party-v2.fixture';
@@ -32,7 +33,9 @@ function statuses(): ArenaBattle {
 }
 const visualsOf = (b: ArenaBattle) => new Map<string, ArenaActorVisual>(b.actors.map((a) => [a.id, { id: a.id, team: a.team, kind: a.kind, name: a.name, look: a.look, monsterId: a.monsterId }]));
 
-interface Shot { battle: () => ArenaBattle; region: ArenaRegionId; at: (b: ArenaBattle) => number; mode: 'battle' | 'walk' | 'intro' | 'outro' | 'chain'; party?: string[]; view?: Omit<ArenaView, 'selfId' | 'focusId'> }
+interface Shot { battle: () => ArenaBattle; region: ArenaRegionId; at: (b: ArenaBattle) => number; mode: 'battle' | 'walk' | 'intro' | 'outro' | 'chain'; party?: string[]; view?: Omit<ArenaView, 'selfId' | 'focusId'>;
+  /** Walk the scenery so the region's first prop of `kind` stands `x` metres right of the camera at the shot. */
+  propAt?: { kind: string; x: number } }
 const SHOTS: Record<string, Shot> = {
   walk: { battle: solo, region: 'green_grounds', mode: 'walk', at: (b) => b.startAtMs - 6000 },
   walk_green_grounds: { battle: solo, region: 'green_grounds', mode: 'walk', at: (b) => b.startAtMs - 6000 },
@@ -64,6 +67,10 @@ const SHOTS: Record<string, Shot> = {
   chain_intro: { battle: party, region: 'green_grounds', mode: 'chain', at: (b) => b.endAtMs + CHAIN_GAP - 600, party: ['char-self', 'char-ally'] },
   chain_start: { battle: party, region: 'green_grounds', mode: 'chain', at: (b) => b.endAtMs + CHAIN_GAP + 1500, party: ['char-self', 'char-ally'] },
 };
+// Green Grounds' rare fence on the near side of the grid: passing in front of the walker, and of a walking party.
+SHOTS['walk_green_grounds_fence'] = { ...SHOTS['walk_green_grounds'], propAt: { kind: 'fence', x: 0.5 } };
+SHOTS['party_walk_green_grounds_fence'] = { ...SHOTS['chain_walk'], propAt: { kind: 'fence', x: -1.5 } };
+SHOTS['high_green_grounds'] = { battle: party, region: 'green_grounds', mode: 'battle', at: (b) => b.startAtMs + 5 * 500 + 30, party: ['char-self', 'char-ally'], view: { zoom: 0, yawDeg: 20, pitchDeg: 50 } };
 // Every region seen from both orbit limits (scenery must stay solid when the camera turns): orbit_<region>_l / _r.
 for (const region of ARENA_REGIONS) for (const [side, yawDeg] of [['l', -70], ['r', 70]] as const) {
   SHOTS[`orbit_${region}_${side}`] = { battle: party, region, mode: 'battle', at: (b) => b.startAtMs + 5 * 500 + 30, party: ['char-self', 'char-ally'], view: { zoom: 0.6, yawDeg, pitchDeg: 10 } };
@@ -109,11 +116,19 @@ let runtime: ArenaRuntimeHandle | null = null;
   for (let i = 0; i < 80; i++) { runtime.renderOnce(clock); await new Promise((r) => setTimeout(r, 100)); }
   // Painted layers load asynchronously: never shoot a region before its scenery is in.
   for (let i = 0; i < 300 && !runtime.sceneryReady(shot.region); i++) { runtime.renderOnce(clock); await new Promise((r) => setTimeout(r, 100)); }
+  if (shot.propAt) {
+    // Scenery-local x of a prop is ((u - travelled) mod 180) - 90, travelled = walked + camera x; the last 1.5 s still walks on.
+    const prop = arenaPropLayout(shot.region).find((p) => p.kind === shot.propAt!.kind);
+    const scenery = (runtime as any).scenery;
+    const walkOn = shot.mode === 'walk' || shot.mode === 'chain' ? 1.4 * (target - clock) / 1000 : 0;
+    if (prop) scenery.walked = prop.u - 90 - shot.propAt.x - scenery.group.position.x - walkOn;
+  }
   const actorsAtWarm = arenaScene(input(clock)).frame.actors.map((a) => `${a.id}@${a.column.toFixed(1)},${a.row.toFixed(1)}`);
   for (; clock < target; clock = Math.min(target, clock + 1000 / 60)) runtime.renderOnce(clock);
   runtime.renderOnce(target);
   const anchors = [...runtime.screenAnchors()].map(([id, a]) => `${id}:${Math.round(a.x)},${Math.round(a.y)},${a.visible}`);
-  return { actors: runtime.actorCount(), actorsAtWarm, anchors };
+  const cam = (runtime as any).camera.position, sc = (runtime as any).scenery;
+  return { actors: runtime.actorCount(), actorsAtWarm, anchors, camera: [cam.x, cam.y, cam.z].map((v: number) => +v.toFixed(1)), sceneryX: +sc.group.position.x.toFixed(1), walked: +sc.walked.toFixed(1) };
 };
 /** The arena toggle's picture: the archer's bare face (the look wears a helmet; the face must not). */
 async function shootFace(): Promise<object> {

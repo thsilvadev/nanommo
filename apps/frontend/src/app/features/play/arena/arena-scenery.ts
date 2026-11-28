@@ -6,7 +6,7 @@
  */
 import * as THREE from 'three';
 import { arenaRegionAssets, type ArenaRegionId } from './arena-region';
-import { ARENA_NEAR_LAYER_DISTANCE_M, ArenaProps } from './arena-props';
+import { ARENA_NEAR_LAYER_DISTANCE_M, ArenaProps, arenaTreeShadows, type ArenaTreeShadow } from './arena-props';
 import { ARENA_SEA_LEVEL_M, TERRAIN_GLSL, arenaShore } from './arena-terrain';
 import { ArenaAtmosphere, arenaAtmosphere } from './arena-atmosphere';
 
@@ -49,7 +49,13 @@ const BRIDGES: ReadonlySet<ArenaRegionId> = new Set(['gods_bridge']);
 
 /** Light per region (hemisphere sky/ground, sun): the bridge is lit by a low warm sunset. */
 /** `background`: clear colour (default the painted sky's blue); `fog`: distance fog in that colour; `stars`: a night dome; `groundTint`: multiplies the ground texture; `groundRecolor`: replaces its hue (its brightness times this colour). */
-export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number }; stars?: boolean; groundTint?: string; groundRecolor?: string; dome?: ArenaSkyDome }
+export interface ArenaLight { sky: string; ground: string; hemi: number; sun: string; sunIntensity: number; background?: string; fog?: { near: number; far: number }; stars?: boolean; groundTint?: string; groundRecolor?: string; dome?: ArenaSkyDome; meadow?: ArenaMeadow }
+/**
+ * A meadow floor: golden dry-grass patches laid over the grass in world space (bigger than a ground tile, so
+ * they never repeat in view), the texture's blades kept in the patch's own colour. `cover` (0..1) is about how
+ * much of the floor they take; `scale` their size (metres).
+ */
+export interface ArenaMeadow { dry: string; cover: number; scale: number }
 /** A procedural sky (regions without painted layers under an open sky): `horizon` should be the fog colour; `mid` a band between it and the zenith, reached at `spread` (sine of the elevation, default 0.5); `below`: the dome under the horizon (default `horizon`), a land colour where there is no fog to hide the ground's far edge. */
 export interface ArenaSkyDome { zenith: string; horizon: string; clouds: number; cloudColor: string; mid?: string; spread?: number; below?: string; sun?: { dir: [number, number, number]; color: string; size: number } }
 const DEFAULT_LIGHT: ArenaLight = { sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2 };
@@ -61,10 +67,12 @@ const LIGHTS: Partial<Record<ArenaRegionId, ArenaLight>> = {
   },
   kwaioua_forest: { sky: '#d6ccff', ground: '#352a3e', hemi: 1.2, sun: '#f2e4ff', sunIntensity: 1.65, background: '#080515', fog: { near: 14, far: 74 }, stars: true },
   // Caetê: a misty day under the canopy, soft green light; the mist reaches into the battle, the trunks fade into it.
-  // Green grounds: a bright open meadow under a clear blue sky, no fog; the dome under the horizon is grass-coloured.
+  // Green grounds: a cosy, sun-warmed meadow under a clear blue sky, no fog: warm yellow-green grass with golden
+  // dry patches, round trees casting soft shadows; the dome under the horizon is grass-coloured.
   green_grounds: {
-    sky: '#fff6e6', ground: '#5a6a3a', hemi: 1.6, sun: '#ffffff', sunIntensity: 2.2, background: '#9ccdf2', groundTint: '#e4ecc8',
-    dome: { zenith: '#2a7ee0', horizon: '#9ccdf2', below: '#7aa456', spread: 0.35, clouds: 0.5, cloudColor: '#ffffff' },
+    sky: '#fff2d6', ground: '#6a6a34', hemi: 1.55, sun: '#fff0d2', sunIntensity: 2.3, background: '#9ccdf2',
+    dome: { zenith: '#2a7ee0', horizon: '#a8d4f2', below: '#9aa654', spread: 0.35, clouds: 0.5, cloudColor: '#ffffff' },
+    meadow: { dry: '#caa44e', cover: 0.33, scale: 9 },
   },
   // Menace hills: dry rocky hills at sunset, crags fading into an orange dust haze under a darkening sky.
   menace_hills: {
@@ -404,11 +412,13 @@ export class ArenaScenery {
     // so the relief (flat across the grid) can rise behind and in front of it.
     // A bridge deck stops at its parapet behind the grid; elsewhere the ground runs to the far layer.
     const bridge = BRIDGES.has(region);
-    const size = bridge ? { w: 240, d: 40 - DECK_BACK_Z } : { w: 240, d: 120 };
-    const centreZ = bridge ? (DECK_BACK_Z + 40) / 2 : GROUND_Z;
+    // Without fog, the ground runs on under the hills (its far edge must never show between them).
+    const depth = arenaLight(region).fog ? 120 : GROUND_DEPTH_CLEAR_M;
+    const size = bridge ? { w: 240, d: 40 - DECK_BACK_Z } : { w: 240, d: depth };
+    const centreZ = bridge ? (DECK_BACK_Z + 40) / 2 : -depth / 2 + 40;
     const ground = this.texture(assets.ground, size.w / GROUND_TILE_M, size.d / GROUND_TILE_M);
     const groundMaterial = new THREE.MeshLambertMaterial({ map: ground, color: arenaLight(region).groundTint ?? '#ffffff', transparent: !!this.current, opacity: this.current ? 0 : 1 });
-    terrainShader(groundMaterial, set.travel, RELIEF[region] ?? 1, centreZ, arenaShore(region), arenaLight(region).groundRecolor);
+    terrainShader(groundMaterial, set.travel, RELIEF[region] ?? 1, centreZ, arenaShore(region), arenaLight(region).groundRecolor, arenaLight(region).meadow, arenaTreeShadows(region));
     const geometry = new THREE.PlaneGeometry(size.w, size.d, size.w, size.d);
     this.geometries.push(geometry);
     const plane = new THREE.Mesh(geometry, groundMaterial);
@@ -435,16 +445,24 @@ export class ArenaScenery {
   }
 }
 
-/** The ground plane's centre depth (world z): it reaches 40 m in front of the grid. */
-const GROUND_Z = -120 / 2 + 40;
+/** Depth of the ground plane (it reaches 40 m in front of the grid) where no fog hides its far edge. */
+const GROUND_DEPTH_CLEAR_M = 170;
 
 /**
  * Ground shader additions: the relief (vertices raised by the terrain height, normals from its slope)
  * and a less repetitive texture: a second, rotated sample at another scale blended in by a slow noise,
  * and a broad light/dark variation. `travel` (metres walked + camera x) keeps both fixed to the world.
  */
-function terrainShader(material: THREE.MeshLambertMaterial, travel: { value: number }, relief: number, centreZ: number, shore = 0, recolor?: string): void {
+/** At most this many tree shadows on a region's ground (a fixed-size uniform array). */
+const MAX_TREE_SHADOWS = 32;
+function terrainShader(material: THREE.MeshLambertMaterial, travel: { value: number }, relief: number, centreZ: number, shore = 0, recolor?: string, meadow?: ArenaMeadow, shadows: ArenaTreeShadow[] = []): void {
+  const shade = shadows.slice(0, MAX_TREE_SHADOWS).map((t) => new THREE.Vector4(t.u, t.z, t.radius, t.dx));
+  while (shade.length < MAX_TREE_SHADOWS) shade.push(new THREE.Vector4(0, 0, 0, 0));
   material.onBeforeCompile = (shader) => {
+    shader.uniforms['uMeadowDry'] = { value: new THREE.Color(meadow?.dry ?? '#ffffff') };
+    shader.uniforms['uMeadow'] = { value: new THREE.Vector3(meadow ? 1 : 0, meadow?.cover ?? 0, meadow?.scale ?? 1) };
+    shader.uniforms['uShade'] = { value: shade };
+    shader.uniforms['uShadeCount'] = { value: Math.min(shadows.length, MAX_TREE_SHADOWS) };
     shader.uniforms['uTravel'] = travel;
     shader.uniforms['uRelief'] = { value: relief };
     shader.uniforms['uShore'] = { value: shore };
@@ -468,7 +486,15 @@ vec3 objectNormal = normalize(vec3(-hx / 0.5, hz / 0.5, 1.0));
 vTerrain = terrainAt;`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
-varying vec2 vTerrain; uniform vec3 uRecolor; uniform float uRecolorOn;`)
+varying vec2 vTerrain; uniform vec3 uRecolor; uniform float uRecolorOn;
+uniform vec3 uMeadowDry; uniform vec3 uMeadow; uniform vec4 uShade[${MAX_TREE_SHADOWS}]; uniform int uShadeCount;
+// Sine-free hash (Hoskins): stays stable far from the origin, where sin() of a big argument bands.
+float meadowHash(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+float meadowNoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(meadowHash(i), meadowHash(i + vec2(1.0, 0.0)), u.x), mix(meadowHash(i + vec2(0.0, 1.0)), meadowHash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+float meadowFbm(vec2 p) { return 0.55 * meadowNoise(p) + 0.3 * meadowNoise(p * 2.3 + 7.1) + 0.15 * meadowNoise(p * 5.1 + 3.7); }`)
       .replace('#include <map_fragment>', `#ifdef USE_MAP
   vec4 tileA = texture2D(map, vMapUv);
   vec2 uvB = mat2(0.8, -0.6, 0.6, 0.8) * (vTerrain / 9.3);
@@ -479,8 +505,27 @@ varying vec2 vTerrain; uniform vec3 uRecolor; uniform float uRecolorOn;`)
   tile.rgb *= mix(0.84, 1.1, broad);
   // A recoloured ground keeps the texture's light and dark, in the region's own hue.
   tile.rgb = mix(tile.rgb, vec3(dot(tile.rgb, vec3(0.3, 0.59, 0.11))) * uRecolor * 2.2, uRecolorOn);
+  if (uMeadow.x > 0.5) {
+    // Golden dry-grass patches with ragged edges, in world space (unwrapped: a wrap would draw a straight seam).
+    vec2 mp = vTerrain / uMeadow.z;
+    float n = meadowFbm(mp) + 0.12 * (meadowNoise(mp * 9.0) - 0.5);
+    float dry = smoothstep(1.0 - uMeadow.y - 0.07, 1.0 - uMeadow.y + 0.07, n * 1.25 - 0.1);
+    float lum = dot(tile.rgb, vec3(0.3, 0.59, 0.11));
+    tile.rgb = mix(tile.rgb, (0.35 + 1.6 * lum) * uMeadowDry, dry);
+  }
+  // Soft, dappled shadows of the trees (the sun stands up-left in front: they fall right and back).
+  float shadow = 0.0;
+  for (int i = 0; i < ${MAX_TREE_SHADOWS}; i++) {
+    if (i >= uShadeCount) break;
+    vec4 t = uShade[i];
+    vec2 d = vec2(mod(vTerrain.x - t.x + 180.0, 180.0) - 90.0 - t.w, vTerrain.y - t.y + 0.6 * t.w);
+    float r = length(d * vec2(0.85, 1.25)) / t.z;
+    float dapple = 0.16 * (meadowNoise(vTerrain * 1.7 + float(i) * 3.1) - 0.5);
+    shadow = max(shadow, 1.0 - smoothstep(0.62, 1.0, r + dapple));
+  }
+  tile.rgb *= 1.0 - 0.45 * shadow;
   diffuseColor *= tile;
 #endif`);
   };
-  material.customProgramCacheKey = () => `arena-terrain:${shore > 0 ? 'shore' : 'land'}`;
+  material.customProgramCacheKey = () => `arena-terrain:${shore > 0 ? 'shore' : 'land'}:${meadow ? 'meadow' : 'plain'}`;
 }

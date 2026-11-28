@@ -1,5 +1,5 @@
 import { ARENA_REGIONS } from './arena-region';
-import { ARENA_PROP_PERIOD_M, FLAT_PROPS, arenaPropLayout, propLocalX } from './arena-prop-layout';
+import { ARENA_PROP_PERIOD_M, FLAT_PROPS, NEAR_SIDE, NEAR_SIDE_PROPS, arenaPropLayout, propLocalX } from './arena-prop-layout';
 import { ARENA_FLAT_HALF_DEPTH_M, ARENA_SEA_LEVEL_M, arenaShore, terrainHeight } from './arena-terrain';
 import { cellToWorld } from './arena-camera';
 
@@ -37,10 +37,11 @@ describe('arena terrain', () => {
 });
 
 describe('arena props', () => {
-  it('only flat or ankle-low props (leaves, pebbles, twigs, sprouts) lie inside the battle band', () => {
+  it('only flat or ankle-low props (leaves, pebbles, twigs, sprouts) lie inside the battle band (and the near-side fences between rows 6 and 7)', () => {
     for (const region of ARENA_REGIONS) {
       for (const p of arenaPropLayout(region)) {
-        if (!FLAT_PROPS.has(p.kind)) expect(Math.abs(p.z)).withContext(`${region} ${p.kind} z=${p.z.toFixed(2)}`).toBeGreaterThan(ARENA_FLAT_HALF_DEPTH_M);
+        if (NEAR_SIDE_PROPS.has(p.kind) && p.z > 0) expect(p.z >= NEAR_SIDE[0] && p.z <= NEAR_SIDE[1]).withContext(`${region} ${p.kind} z=${p.z.toFixed(2)}`).toBeTrue();
+        else if (!FLAT_PROPS.has(p.kind)) expect(Math.abs(p.z)).withContext(`${region} ${p.kind} z=${p.z.toFixed(2)}`).toBeGreaterThan(ARENA_FLAT_HALF_DEPTH_M);
       }
     }
   });

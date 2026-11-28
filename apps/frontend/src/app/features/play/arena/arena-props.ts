@@ -133,6 +133,12 @@ function geometryOf(kind: ArenaPropKind): THREE.BufferGeometry {
       return columnGeometry();
     case 'hill':
       return hillGeometry();
+    case 'knoll':
+      return knollGeometry();
+    case 'tree':
+      return treeGeometry();
+    case 'fence':
+      return fenceGeometry();
     case 'blossom':
       return blossomGeometry();
     case 'arch':
@@ -437,6 +443,29 @@ function hillGeometry(): THREE.BufferGeometry {
   return shade(g, (p) => 0.88 + 0.5 * Math.max(0, p.y));
 }
 
+/**
+ * A meadow hill (radius 1, about 0.32 high): the hill's shape on a finer grid (no facets at 60–100 m), a little
+ * lopsided, shaded from a darker foot to a sunlit crown so the ranges read as rounded shapes, not flat cut-outs.
+ */
+const KNOLL_SINK_M = 2;
+function knollGeometry(): THREE.BufferGeometry {
+  const rings = 14, spokes = 36;
+  const at = (ring: number, spoke: number) => {
+    const r = ring / rings, a = (spoke / spokes) * Math.PI * 2;
+    const bump = Math.cos((Math.PI / 2) * r) ** 2 * (1 + 0.2 * Math.sin(a * 2 + 0.6) * r + 0.08 * Math.sin(a * 5 + 1.3) * r);
+    return new THREE.Vector3(r * Math.cos(a), ring === rings ? -0.3 : 0.32 * bump - 0.04, r * Math.sin(a));
+  };
+  const verts: number[] = [];
+  for (let ring = 0; ring < rings; ring++) for (let spoke = 0; spoke < spokes; spoke++) {
+    const a = at(ring, spoke), b = at(ring + 1, spoke), c = at(ring + 1, spoke + 1), d = at(ring, spoke + 1);
+    if (ring > 0) verts.push(...a.toArray(), ...d.toArray(), ...b.toArray());
+    verts.push(...b.toArray(), ...d.toArray(), ...c.toArray());
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  return shadeRgb(g, (p) => { const t = Math.max(0, Math.min(1, (p.y + 0.02) / 0.34)); const l = 0.74 + 0.36 * t; return [l * (0.96 + 0.08 * t), l, l * (1.02 - 0.06 * t)]; });
+}
+
 /** Moss at a ruin's foot: greener and darker low down (for `shadeRgb`). */
 function ruinStone(p: THREE.Vector3, n: THREE.Vector3): [number, number, number] {
   const moss = Math.max(0, 1 - p.y / 1.1) * (0.6 + 0.4 * Math.sin(p.x * 3 + p.y * 4 + p.z * 2));
@@ -536,6 +565,83 @@ function trunkGeometry(): THREE.BufferGeometry {
   return shade(g, (p) => 0.78 + 0.22 * Math.min(1, p.y / 8) + 0.06 * Math.sin(Math.atan2(p.z, p.x) * 9));
 }
 
+/** Unit tree: height of the crown's middle above the ground, and its radius (metres, before the instance size). */
+const TREE_CROWN_Y = 3.7, TREE_CROWN_R = 2.6;
+
+/**
+ * A broadleaf meadow tree about 6.5 m tall: a stout trunk forking into two limbs under a full, round crown of
+ * leafy clumps, lit warm on top and darker beneath (colours baked; the instance colour only tints it).
+ */
+function treeGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const bark = (g: THREE.BufferGeometry) => { g.deleteAttribute('uv'); return shadeRgb(g, (p, n) => { const k = 0.82 + 0.2 * Math.max(0, n.x) + 0.05 * Math.sin(p.y * 6); return [0.42 * k, 0.29 * k, 0.18 * k]; }); };
+  const trunk = new THREE.CylinderGeometry(0.22, 0.34, 3, 8, 3);
+  const pos = trunk.getAttribute('position');
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i), flare = y < -1.1 ? 1 + 0.6 * ((-1.1 - y) / 0.4) : 1;
+    pos.setXYZ(i, pos.getX(i) * flare, y, pos.getZ(i) * flare);
+  }
+  trunk.translate(0, 1.5, 0);
+  parts.push(bark(trunk));
+  for (const [ax, az, len] of [[0.7, 0.2, 1.8], [-0.6, -0.3, 1.6], [0.1, -0.7, 1.4]] as const) {
+    const limb = new THREE.CylinderGeometry(0.09, 0.16, len, 6, 1);
+    limb.translate(0, len / 2, 0);
+    limb.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(ax, 1, az).normalize()));
+    limb.translate(0, 2.2, 0);
+    parts.push(bark(limb));
+  }
+  // The crown: a big middle clump, a ring of clumps round it, a few on top.
+  const greens: Array<[number, number, number]> = [[0.2, 0.4, 0.07], [0.25, 0.45, 0.08], [0.17, 0.35, 0.06], [0.3, 0.5, 0.1]];
+  const clumps: Array<[number, number, number, number]> = [[0, TREE_CROWN_Y + 0.3, 0, 1.9]];
+  for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2 + 0.3; clumps.push([Math.cos(a) * 1.6, TREE_CROWN_Y - 0.3 + 0.35 * Math.sin(k * 2.1), Math.sin(a) * 1.6, 1.05 + 0.25 * Math.abs(Math.sin(k * 1.7))]); }
+  for (let k = 0; k < 4; k++) { const a = (k / 4) * Math.PI * 2 + 1.1; clumps.push([Math.cos(a) * 0.8, TREE_CROWN_Y + 1.35, Math.sin(a) * 0.8, 1.0 + 0.15 * (k % 2)]); }
+  clumps.forEach(([x, y, z, r], k) => {
+    const g = lumpy(r, 1, 0.86, k * 1.9 + 0.4); g.translate(x, y, z); g.deleteAttribute('uv');
+    const [cr, cg, cb] = greens[k % greens.length];
+    parts.push(shadeRgb(g, (p, n) => {
+      // Sunlit on top and towards the sun, shaded underneath; a warm yellow cast on the brightest leaves.
+      const up = Math.max(0, Math.min(1, (p.y - (TREE_CROWN_Y - 1.7)) / 3.6));
+      const l = 0.5 + 0.62 * up + 0.14 * Math.max(0, n.y) + 0.07 * jitter(Math.round(p.x * 50), Math.round(p.y * 50), Math.round(p.z * 50), 2);
+      return [cr * l * (1 + 0.35 * up), cg * l * (1 + 0.08 * up), cb * l];
+    }));
+  });
+  return mergeGeometries(parts.map((p) => (p.index ? p.toNonIndexed() : p)))!;
+}
+
+/**
+ * A short stretch of rustic fence (4.5 m long, about 1 m tall), Sierra's design: two wooden rails on four posts,
+ * a little crooked, centred on its middle; colours baked (the instance colour only tints it).
+ */
+function fenceGeometry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const wood = (g: THREE.BufferGeometry, k: number) => {
+    g.deleteAttribute('uv');
+    // Weathered wood: darker grain streaks along the plank, lighter tops.
+    return shadeRgb(g, (p, n) => { const l = (n.y > 0.7 ? 1.1 : 0.8 + 0.14 * Math.max(0, n.z)) * k * (0.88 + 0.12 * Math.sin(p.x * 23 + p.y * 41)); return [0.34 * l, 0.23 * l, 0.14 * l]; });
+  };
+  [-2.25, -0.75, 0.75, 2.25].forEach((x, i) => {
+    const h = 1.0 + 0.08 * Math.sin(i * 2.7);
+    const post = new THREE.BoxGeometry(0.12, h, 0.12, 1, 4, 1);
+    post.translate(0, h / 2, 0); post.rotateZ(0.04 * Math.sin(i * 1.9)); post.translate(x, 0, 0);
+    parts.push(wood(post, 0.92 + 0.08 * Math.cos(i * 3.1)));
+  });
+  for (const [y, tilt] of [[0.35, 0.012], [0.75, -0.01]] as const) {
+    const rail = new THREE.BoxGeometry(4.6, 0.1, 0.06, 12, 1, 1);
+    rail.rotateZ(tilt); rail.translate(0, y, 0.09);
+    parts.push(wood(rail, 1.05));
+  }
+  return mergeGeometries(parts.map((p) => (p.index ? p.toNonIndexed() : p)))!;
+}
+
+/** A tree's shadow on the ground: where it stands (`u` along the strip, `z`), its radius and how far right the sun throws it (it falls 0.6× that back). */
+export interface ArenaTreeShadow { u: number; z: number; radius: number; dx: number }
+/** The shadows of a region's trees, nearest the grid first (painted by the ground shader). */
+export function arenaTreeShadows(region: ArenaRegionId): ArenaTreeShadow[] {
+  return arenaPropLayout(region).filter((p) => p.kind === 'tree')
+    .map((p) => ({ u: p.u, z: p.z, radius: TREE_CROWN_R * 1.2 * p.size, dx: 0.4 * TREE_CROWN_Y * p.size }))
+    .sort((a, b) => Math.abs(a.z) - Math.abs(b.z));
+}
+
 /** A region's props: build once, then `update` every frame with the travel and the region's relief. */
 export class ArenaProps {
   readonly group = new THREE.Group();
@@ -608,7 +714,8 @@ export class ArenaProps {
       const reach = this.reach.get(items[0].kind) ?? 0;
       items.forEach((item, i) => {
         const x = propLocalX(item.u, travelled);
-        const y = terrainHeight(x + travelled, item.z, this.relief, this.shore);
+        // Meadow hills sink below the relief's highest mound, so their rim never stands out as a step.
+        const y = terrainHeight(x + travelled, item.z, this.relief, this.shore) - (item.kind === 'knoll' ? KNOLL_SINK_M : 0);
         this.p.set(x, y, item.z);
         this.q.setFromEuler(this.e.set(item.tilt * 0.5, item.yaw, item.kind === 'log' || item.kind === 'twig' ? 0 : item.tilt));
         this.s.setScalar(item.size * nearLayerScale(x, item.z, reach * item.size, yawRad, this.layerDistance));

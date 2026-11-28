@@ -4,11 +4,12 @@ import { ArenaScenery, arenaLight } from './arena-scenery';
 import { ARENA_REGIONS } from './arena-region';
 
 describe('arena atmosphere', () => {
-  it('every region has its air: drifting mist wisps and tiny motes of light', () => {
+  it('every region has its air: drifting mist wisps and tiny motes of light (green_grounds: still air, nothing floating)', () => {
     for (const region of ARENA_REGIONS) {
       const air = arenaAtmosphere(region)!;
       expect(air).withContext(region).not.toBeNull();
-      expect(air.motes.count).withContext(region).toBeGreaterThan(100);
+      if (region === 'green_grounds') expect(air.motes.count).toBe(0);
+      else expect(air.motes.count).withContext(region).toBeGreaterThan(100);
       // Mist only where there is fog (green_grounds has a clear sky).
       if (arenaLight(region).fog) expect(air.wisps.count).withContext(region).toBeGreaterThan(10);
     }
@@ -52,6 +53,14 @@ describe('arena atmosphere', () => {
     atmosphere.fade(0.5);
     expect((motes.material as THREE.PointsMaterial).opacity).toBeCloseTo(0.5, 6);
     atmosphere.dispose();
+  });
+
+  it('a region with no motes draws no motes at all', () => {
+    const scenery = new ArenaScenery(1);
+    scenery.setRegion('green_grounds', 0);
+    scenery.update(0, 16, 16);
+    expect(scenery.group.getObjectByName('arena:motes')).toBeFalsy();
+    scenery.dispose();
   });
 
   it('the scenery adds it to the region and takes it away with it', () => {

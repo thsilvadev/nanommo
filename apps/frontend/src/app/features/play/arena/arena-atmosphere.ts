@@ -22,10 +22,10 @@ const ATMOSPHERE: Partial<Record<ArenaRegionId, ArenaAtmosphereSpec>> = {
     wisps: { count: 22, color: '#5a4a8a', opacity: 0.24 },
     motes: { count: 280, colors: ['#d8ff7a', '#f0ff9a', '#b8ff8a'], size: 0.5 },
   },
-  // A bright meadow under a clear sky: dandelion seeds and pollen adrift, no mist.
+  // A bright meadow under a clear sky: still air, no mist and nothing floating.
   green_grounds: {
     wisps: { count: 0, color: '#f4f8fb', opacity: 0 },
-    motes: { count: 200, colors: ['#ffffff', '#fffbe6', '#fff6c8'], size: 0.4 },
+    motes: { count: 0, colors: ['#ffffff'], size: 0.4 },
   },
   // Sunset on the dry hills: warm dust and a few embers adrift, a thin dust haze.
   menace_hills: {
@@ -214,7 +214,8 @@ export class ArenaAtmosphere {
     this.sheet = new THREE.InstancedMesh(quad, this.sheetMaterial, this.wisps.length);
     this.sheet.name = 'arena:wisps';
     this.sheet.frustumCulled = false;
-    this.group.add(this.sheet, this.points);
+    this.group.add(this.sheet);
+    if (this.motes.length) this.group.add(this.points);
 
     if (spec.beams && this.beams.length) {
       this.shaftMaterial = new THREE.ShaderMaterial({

@@ -223,6 +223,25 @@ function ground(r, { base, speckles, patches, patchOpacity = 0.55, extra = '' })
   return svg(G, G, body + extra, blur('gblur', 10));
 }
 
+/**
+ * Green Grounds: a warm meadow (yellow-green, sun-warmed) of fine blades over soft darker and lighter clumps,
+ * no bare patches (the arena shader lays the golden dry-grass patches in world space, bigger than a tile).
+ */
+function meadow(r) {
+  const both = (make) => [-G, 0, G].flatMap((dx) => [-G, 0, G].map((dy) => make(dx, dy))).join('');
+  let body = `<rect width="${G}" height="${G}" fill="#6c9632"/>`;
+  for (let i = 0; i < 22; i++) {
+    const x = range(r, 0, G), y = range(r, 0, G), rx = range(r, 30, 90), ry = range(r, 20, 60), c = ['#557a26', '#7ea23c', '#5f8a2c', '#8aaa44'][Math.floor(r() * 4)];
+    body += `<g filter="url(#gblur)" opacity="0.6">${both((dx, dy) => `<ellipse cx="${x + dx}" cy="${y + dy}" rx="${rx}" ry="${ry}" fill="${c}"/>`)}</g>`;
+  }
+  const blades = ['#4e7420', '#628a2a', '#76a034', '#86aa3c', '#456a1c', '#98b048', '#6e962e', '#a8b452'];
+  for (let i = 0; i < 9000; i++) {
+    const x = range(r, 0, G), y = range(r, 0, G), l = range(r, 4, 10), c = blades[Math.floor(r() * blades.length)], lean = range(r, -3, 3);
+    body += both((dx, dy) => `<path d="M${(x + dx).toFixed(1)},${(y + dy).toFixed(1)} q${(lean * 0.3).toFixed(1)},-${(l * 0.5).toFixed(1)} ${lean.toFixed(1)},-${l.toFixed(1)}" stroke="${c}" stroke-width="1.3" fill="none" stroke-linecap="round"/>`);
+  }
+  return svg(G, G, body, blur('gblur', 14));
+}
+
 /** God's Bridge deck: courses of worn stone slabs running along the bridge, dark joints, a little moss. */
 function deck(r) {
   const courses = 4, h = G / courses;
@@ -250,7 +269,7 @@ const REGIONS = {
     sky: sky('#5aa9f0', '#dff3ff', clouds(r, { count: 10 })),
     far: svg(W, H, mountains(r, { base: 300, amp: 45, fill: '#8fbf88', shade: '#79ab72' }) + treeline(r, { base: 380, amp: 18, count: 70, size: 34, colors: ['#5b9a45', '#4f8c3c', '#68a650'] })),
     near: svg(W, H, bushes(r, { count: 26, y: 470, size: 70, colors: ['#3f7d31', '#4b8c38', '#356e2b'] }) + grassTufts(r, { count: 160, y: 430, height: 26, colors: ['#5c9d3e', '#6fb04b', '#4a8a33'] })),
-    ground: ground(r, { base: '#5f9a3f', patches: { count: 14, colors: ['#8b6b43', '#7a5d39', '#6aa84a'] }, speckles: { count: 1400, size: 5, colors: ['#4d8834', '#76b04f', '#5a9440', '#3f7a2c'], blades: true } }),
+    ground: meadow(r),
   }),
   menace_hills: (r) => ({
     sky: sky('#e46a3a', '#ffd49a', clouds(r, { count: 6, color: '#ffe3c4', opacity: 0.55, y: [60, 180] })),

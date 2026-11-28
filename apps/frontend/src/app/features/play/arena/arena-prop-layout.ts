@@ -17,7 +17,7 @@ export const ARENA_TRUNK_HEIGHT_M = 30;
 
 /** Procedural kinds (built in arena-props) and modelled kinds (`MODEL_PROPS`, loaded from props.glb). */
 export type ArenaPropKind = 'rock' | 'block' | 'bush' | 'log' | 'twig' | 'leaf' | 'pebble' | 'palm' | 'post'
-  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab' | 'hill' | 'blossom' | 'crag' | 'peak' | 'snow' | 'shell' | 'starfish' | 'arch' | 'wall' | 'drum' | 'frostrock' | 'shard' | 'puddle';
+  | 'fern' | 'shrub' | 'tuft' | 'flowers' | 'stump' | 'deadtree' | 'mossrock' | 'trunk' | 'bigleaf' | 'sprout' | 'column' | 'slab' | 'hill' | 'blossom' | 'crag' | 'peak' | 'snow' | 'shell' | 'starfish' | 'arch' | 'wall' | 'drum' | 'frostrock' | 'shard' | 'puddle' | 'tree' | 'fence' | 'knoll';
 /** Kinds drawn from `assets/arena/props.glb` (tools/arena-assets/build-arena-props.mjs): colours baked per vertex, tinted per instance. */
 export const MODEL_PROPS: ReadonlySet<ArenaPropKind> = new Set(['fern', 'shrub', 'tuft', 'flowers', 'stump', 'deadtree', 'mossrock']);
 export interface ArenaPropSpec {
@@ -44,25 +44,38 @@ const FRONT: [number, number] = [ARENA_FLAT_HALF_DEPTH_M + 1.5, 26];
  */
 const DEEP: [number, number] = [-40, -24];
 const EDGE: [number, number] = [-50, -38];
+/**
+ * The near side of the grid, between the party and the camera (which stands only ~7–11 m in front of it): halfway
+ * between deployment rows 6 (z 3.6) and 7 (z 6.0), where no formation stands. Only `NEAR_SIDE_PROPS` go here.
+ */
+export const NEAR_SIDE: [number, number] = [4.65, 4.95];
+/** Low set pieces allowed on the near side of the grid (they pass in front of the walkers' legs). */
+export const NEAR_SIDE_PROPS: ReadonlySet<ArenaPropKind> = new Set(['fence']);
 /** Flat props can lie anywhere, battle band included. */
 const ALL: [number, number] = [-24, 22];
 
 const stone = ['#8a8f87', '#7a7f78', '#9a9a8e', '#6f746c'];
 const PROPS: Record<ArenaRegionId, ArenaPropSpec[]> = {
   green_grounds: [
-    // An open meadow under a clear sky: rolling hills on the horizon, round trees, a little grass and a few flowers.
-    { kind: 'hill', count: 9, colors: ['#7fae5a', '#74a252', '#88b664'], size: [22, 34], bands: [[-82, -60]], even: true },
-    { kind: 'shrub', count: 22, colors: ['#5f9a44', '#6aa84c', '#558e3c'], size: [4, 7], bands: [[-50, -30]] },
-    { kind: 'shrub', count: 22, colors: ['#6aa84c', '#5f9a44', '#78b458'], size: [2.6, 4.4], bands: [[-27, -17], DEEP] },
-    { kind: 'shrub', count: 30, colors: ['#6aa84a', '#5f9a3f', '#78b458'], size: [0.6, 1.3], bands: [BEHIND, BEHIND, FRONT] },
-    { kind: 'tuft', count: 70, colors: ['#8ac05a', '#7ab04c', '#94c864'], size: [1.2, 2.4], bands: [BEHIND, BEHIND, FRONT] },
-    { kind: 'flowers', count: 24, colors: ['#ffffff', '#f6f6f6'], size: [0.9, 1.4], bands: [BEHIND, BEHIND, FRONT] },
-    { kind: 'rock', count: 34, colors: stone, size: [0.35, 1.1], bands: [BEHIND, BEHIND, FRONT] },
-    { kind: 'mossrock', count: 8, colors: ['#b0b8a0', '#a0a890'], size: [0.8, 1.4], bands: [BEHIND, DEEP] },
+    // A cosy meadow under a clear sky: two ranges of rounded hills (the far one paled by the air), round
+    // broadleaf trees in loose groves behind the grid and a few between the camera and the grid (the walkers
+    // pass behind them), little grass, a few flowers. Fields: less is more.
+    { kind: 'knoll', count: 7, colors: ['#98bc8c', '#90b484', '#a0c294'], size: [34, 48], bands: [[-108, -96]], even: true },
+    { kind: 'knoll', count: 9, colors: ['#78a03a', '#84aa42', '#6e9634'], size: [20, 30], bands: [[-76, -64]], even: true },
+    { kind: 'tree', count: 5, colors: ['#ffffff', '#f6f2dc', '#fff6e0'], size: [0.9, 1.2], bands: [[-34, -24]] },
+    { kind: 'tree', count: 12, colors: ['#ffffff', '#f2f0dc', '#fff6e0'], size: [0.8, 1.1], bands: [[-58, -38]] },
+    // Now and then a short stretch of rustic fence (Sierra's) between the camera and the party, along the walk.
+    { kind: 'fence', count: 2, colors: ['#ffffff', '#f2e8d8'], size: [0.72, 0.8], bands: [NEAR_SIDE], even: true },
+    // …and a few old stretches out in the fields behind the arena.
+    { kind: 'fence', count: 5, colors: ['#ffffff', '#f2e8d8', '#e8dcc8'], size: [0.85, 1.05], bands: [[-30, -17]], even: true },
+    { kind: 'shrub', count: 18, colors: ['#7a9a3a', '#6e8e34', '#86a444'], size: [0.8, 1.6], bands: [BEHIND, BEHIND, DEEP] },
+    { kind: 'tuft', count: 50, colors: ['#9ab44c', '#8aa842', '#a8bc56'], size: [1.2, 2.2], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'flowers', count: 30, colors: ['#ffffff', '#fff6c8'], size: [0.9, 1.4], bands: [BEHIND, BEHIND, FRONT] },
+    { kind: 'rock', count: 12, colors: ['#a49c86', '#968f7a', '#b0a890'], size: [0.35, 0.9], bands: [BEHIND, FRONT] },
     // The battle floor: a few sprouts and little flowers, pebbles.
-    { kind: 'sprout', count: 160, colors: ['#6aaa44', '#7aba4c', '#5f9a3a', '#88c058'], size: [0.9, 1.6], bands: [ALL] },
-    { kind: 'blossom', count: 130, colors: ['#ffffff', '#fff27a', '#ffb6d0', '#c8b4ff', '#9fd0ff', '#ffffff'], size: [0.8, 1.4], bands: [ALL] },
-    { kind: 'pebble', count: 140, colors: ['#9a9a8e', '#7a7f78', '#b0ab98'], size: [0.06, 0.16], bands: [ALL] },
+    { kind: 'sprout', count: 140, colors: ['#8aa83e', '#9ab448', '#7a9a36', '#a6b850'], size: [0.9, 1.5], bands: [ALL] },
+    { kind: 'blossom', count: 140, colors: ['#ffffff', '#fff27a', '#ffd0dc', '#ffffff', '#ffe8a0'], size: [0.8, 1.3], bands: [ALL] },
+    { kind: 'pebble', count: 60, colors: ['#b0a890', '#9a9480', '#c0b498'], size: [0.06, 0.14], bands: [ALL] },
   ],
   menace_hills: [
     // Dry rocky hills at sunset: crags and bare hills fading into the dust, gnarled dead trees; no grass, no bushes.
@@ -216,6 +229,8 @@ export function arenaPropLayout(region: ArenaRegionId): ArenaPropInstance[] {
   }
   // Giant trunks reach out of every view (no canopy is drawn): each leans slightly its own way.
   for (const trunk of out) if (trunk.kind === 'trunk') trunk.tilt = (r() - 0.5) * 0.16;
+  // Fences run along the walk (almost square to the camera), standing upright.
+  for (const fence of out) if (fence.kind === 'fence') { fence.yaw = (r() - 0.5) * 0.12; fence.tilt = 0; }
   return out;
 }
 
