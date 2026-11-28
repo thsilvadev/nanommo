@@ -24,6 +24,7 @@ async function testCompletedGatheringCycleGrantsAndRestarts() {
   const journalRows = [];
   const repo = {
     findOne: async () => character,
+    update: async (_where, patch) => Object.assign(character, patch),
     save: async row => { Object.assign(character, row); return row; },
   };
   const queueRepo = {
@@ -38,13 +39,14 @@ async function testCompletedGatheringCycleGrantsAndRestarts() {
     },
   };
   const manager = {
+    query: async () => [],
     getRepository(entity) { return entity?.name === 'Character' ? repo : queueRepo; },
     transaction: async work => work(manager),
   };
   repo.manager = manager;
   const service = Object.create(MapService.prototype);
   service.characterRepo = repo;
-  service.battleService = { withCharacterQueueLock: async (_id, work) => work(), publishQueueUpdated: async (id, cue) => { published.push([id, cue]); } };
+  service.battleService = { publishItemsObtained: async()=>undefined, withCharacterQueueLock: async (_id, work) => work(), publishQueueUpdated: async (id, cue) => { published.push([id, cue]); } };
   service.questService = { applyGatheringBonuses: async () => undefined };
   service.mapPresenceService = { countActiveGrinders: async () => 1 };
   service.dataService = {

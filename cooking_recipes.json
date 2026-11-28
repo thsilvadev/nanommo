@@ -21,11 +21,15 @@
       "ingredients": [
         {
           "itemId": "mat_wild_blueberries",
-          "quantity": 2
+          "quantity": 1
+        },
+        {
+          "itemId": "mat_sugar",
+          "quantity": 1
         }
       ],
       "outputItemId": "food_blueberry",
-      "xpReward": 5,
+      "xpReward": 8,
       "order": 2
     },
     {
@@ -35,11 +39,11 @@
       "ingredients": [
         {
           "itemId": "mat_milk",
-          "quantity": 3
+          "quantity": 2
         }
       ],
       "outputItemId": "food_cheese",
-      "xpReward": 18,
+      "xpReward": 12,
       "order": 3
     },
     {
@@ -49,11 +53,11 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 4
+          "quantity": 5
         }
       ],
       "outputItemId": "food_herbtea",
-      "xpReward": 18,
+      "xpReward": 12,
       "order": 4
     },
     {
@@ -63,11 +67,11 @@
       "ingredients": [
         {
           "itemId": "mat_honeycomb",
-          "quantity": 5
+          "quantity": 2
         }
       ],
       "outputItemId": "food_honey",
-      "xpReward": 20,
+      "xpReward": 45,
       "order": 5
     },
     {
@@ -76,16 +80,16 @@
       "requiredLevel": 6,
       "ingredients": [
         {
-          "itemId": "mat_herbs",
-          "quantity": 6
-        },
-        {
-          "itemId": "mat_carrot",
+          "itemId": "mat_meat",
           "quantity": 4
         },
         {
-          "itemId": "mat_meat",
-          "quantity": 2
+          "itemId": "mat_carrot",
+          "quantity": 1
+        },
+        {
+          "itemId": "mat_cabbage",
+          "quantity": 1
         },
         {
           "itemId": "mat_cooking_oil",
@@ -93,7 +97,7 @@
         }
       ],
       "outputItemId": "food_stew",
-      "xpReward": 25,
+      "xpReward": 65,
       "order": 6
     },
     {
@@ -103,15 +107,19 @@
       "ingredients": [
         {
           "itemId": "mat_meat",
-          "quantity": 8
+          "quantity": 6
         },
         {
           "itemId": "mat_cooking_oil",
-          "quantity": 4
+          "quantity": 2
+        },
+        {
+          "itemId": "mat_sugar",
+          "quantity": 1
         }
       ],
       "outputItemId": "food_roast",
-      "xpReward": 30,
+      "xpReward": 90,
       "order": 7
     }
   ]

@@ -92,33 +92,7 @@ for (const id of ['mat_wild_blueberries','mat_wheat','mat_cooking_oil','mat_milk
 assert.equal(items.consumables.find(item=>item.id==='food_blueberry').name,'Blueberry Jelly');
 assert.equal(items.consumables.find(item=>item.id==='food_honey').name,'Honey');
 assert.equal(maps.filter(map=>map.type==='grind' && Array.isArray(map.gatheringPool)).length,35, 'only regionally assigned grind maps have pools; unassigned maps are valid');
-const regionalGathering = new Map([
-  ['map_green_grounds_0', {mat_wheat:50,mat_milk:50}],
-  ['map_green_grounds_1', {mat_cabbage:40,mat_carrot:40,mat_honeycomb:20}],
-  ['map_green_grounds_2', {mat_cabbage:50,mat_carrot:50}],
-  ['map_green_grounds_3', {mat_wheat:100}],
-  ['map_green_grounds_4', {mat_sugar:80,mat_honeycomb:20}],
-  ['map_green_grounds_5', {mat_sugar:100}],
-  ['map_menace_hills_0', {mat_wild_blueberries:100}],
-  ['map_menace_hills_1', {mat_wild_blueberries:100}],
-  ['map_menace_hills_2', {mat_bronze_ore:100}],
-  ['map_wastelands_0', {mat_bronze_ore:100}],
-  ['map_wastelands_1', {mat_bronze_ore:100}],
-  ['map_wastelands_2', {mat_bronze_ore:100}],
-  ['map_menace_hills_3', {mat_wild_blueberries:100}],
-  ['map_ipora_beach_0', {mat_cooking_oil:100}],
-  ['map_ipora_beach_1', {mat_cooking_oil:100}],
-]);
-for (const map of maps) if (/^map_kwaioua_forest_[0-7]$/.test(map.id) || /^map_forest_ruins_[0-3]$/.test(map.id) || /^map_caete_[0-7]$/.test(map.id)) regionalGathering.set(map.id,{mat_herbs:100});
-// Forest specialties (db9d25a): herbs plus one or two regional materials.
-for (const [id, pool] of Object.entries({
-  map_kwaioua_forest_0: {mat_herbs:70,mat_ashwagandha:30}, map_kwaioua_forest_1: {mat_herbs:70,mat_ashwagandha:30},
-  map_kwaioua_forest_2: {mat_herbs:70,mat_ironshroom:30}, map_kwaioua_forest_3: {mat_herbs:70,mat_ironshroom:30},
-  map_kwaioua_forest_4: {mat_herbs:60,mat_ironshroom:20,mat_ashwagandha:20}, map_kwaioua_forest_5: {mat_herbs:60,mat_rushroom:20,mat_guarana:20},
-  map_kwaioua_forest_6: {mat_herbs:70,mat_rushroom:30}, map_kwaioua_forest_7: {mat_herbs:70,mat_guarana:30},
-  map_caete_0: {mat_herbs:70,mat_mystic_dust:30}, map_caete_1: {mat_herbs:70,mat_mystic_dust:30},
-  map_caete_2: {mat_herbs:70,mat_mystic_dust:30}, map_caete_6: {mat_herbs:63,mat_mystic_dust:27,mat_sapupema_leaf:10},
-})) regionalGathering.set(id, pool);
+const regionalGathering = new Map([["map_green_grounds_0", {"mat_wheat": 50, "mat_milk": 50}], ["map_green_grounds_1", {"mat_carrot": 40, "mat_cabbage": 40, "mat_honeycomb": 20}], ["map_green_grounds_2", {"mat_wild_blueberries": 70, "mat_honeycomb": 30}], ["map_green_grounds_3", {"mat_wheat": 100}], ["map_green_grounds_4", {"mat_sugar": 60, "mat_honeycomb": 40}], ["map_green_grounds_5", {"mat_sugar": 80, "mat_cooking_oil": 20}], ["map_ipora_beach_0", {"mat_cooking_oil": 40, "mat_sugar": 60}], ["map_ipora_beach_1", {"mat_cooking_oil": 70, "mat_sugar": 30}], ["map_kwaioua_forest_0", {"mat_herbs": 80, "mat_ashwagandha": 20}], ["map_kwaioua_forest_1", {"mat_herbs": 75, "mat_ashwagandha": 20, "mat_sapupema_leaf": 5}], ["map_kwaioua_forest_2", {"mat_herbs": 80, "mat_ironshroom": 20}], ["map_kwaioua_forest_3", {"mat_herbs": 85, "mat_ironshroom": 15}], ["map_kwaioua_forest_4", {"mat_herbs": 60, "mat_ironshroom": 20, "mat_ashwagandha": 20}], ["map_kwaioua_forest_5", {"mat_herbs": 50, "mat_rushroom": 25, "mat_guarana": 25}], ["map_kwaioua_forest_6", {"mat_herbs": 70, "mat_rushroom": 30}], ["map_kwaioua_forest_7", {"mat_herbs": 70, "mat_guarana": 30}], ["map_caete_0", {"mat_sapupema_leaf": 100}], ["map_caete_1", {"mat_sapupema_leaf": 70, "mat_herbs": 30}], ["map_caete_2", {"mat_sapupema_leaf": 80, "mat_herbs": 20}], ["map_caete_3", {"mat_herbs": 80, "mat_sapupema_leaf": 20}], ["map_caete_4", {"mat_herbs": 90, "mat_sapupema_leaf": 10}], ["map_caete_5", {"mat_herbs": 100}], ["map_caete_6", {"mat_sapupema_leaf": 60, "mat_herbs": 40}], ["map_caete_7", {"mat_herbs": 90, "mat_sapupema_leaf": 10}], ["map_forest_ruins_0", {"mat_herbs": 70, "mat_mystic_dust": 30}], ["map_forest_ruins_1", {"mat_herbs": 60, "mat_mystic_dust": 40}], ["map_forest_ruins_2", {"mat_herbs": 50, "mat_mystic_dust": 50}], ["map_forest_ruins_3", {"mat_mystic_dust": 100}], ["map_menace_hills_0", {"mat_bronze_ore": 75, "mat_coal": 25}], ["map_menace_hills_1", {"mat_bronze_ore": 100}], ["map_menace_hills_2", {"mat_bronze_ore": 60, "mat_coal": 40}], ["map_menace_hills_3", {"mat_bronze_ore": 75, "mat_coal": 25}], ["map_wastelands_0", {"mat_bronze_ore": 100}], ["map_wastelands_1", {"mat_bronze_ore": 50, "mat_coal": 50}], ["map_wastelands_2", {"mat_coal": 100}]]);
 assert.ok(maps.filter(map=>map.type==='town').every(map=>map.gatheringPool===undefined), 'Town maps never gather materials');
 for (const map of maps) {
   const expected = regionalGathering.get(map.id);
@@ -128,7 +102,7 @@ for (const map of maps) {
   assert.ok(map.gatheringPool.every(entry=>items.materials.some(item=>item.id===entry.itemId&&item.type==='material')));
   assert.ok(!map.gatheringPool.some(entry=>entry.itemId==='mat_meat'));
 }
-assert.deepEqual(maps.filter(map=>map.gatheringPool?.some(entry=>entry.itemId==='mat_honeycomb')).map(map=>map.id).sort(),['map_green_grounds_1','map_green_grounds_4']);
+assert.deepEqual(maps.filter(map=>map.gatheringPool?.some(entry=>entry.itemId==='mat_honeycomb')).map(map=>map.id).sort(),['map_green_grounds_1','map_green_grounds_2','map_green_grounds_4']);
 assert.deepEqual(monsters.filter(monster=>monster.drops.some(drop=>drop.itemId==='mat_meat'&&drop.chance===0.2)).map(monster=>monster.id).sort(),['mon_direwolf','mon_needlebackstalker']);
 console.log('world-travel-gathering-flee contract tests passed');
 

@@ -144,8 +144,8 @@ export class MarketService implements OnModuleInit, OnModuleDestroy {
       if (source.quantity !== quantity) throw new BadRequestException('Market listing must use the full selected stack; split the stack in Inventory first');
       if (source.instanceData?.questReward?.marketTradable === false && typeof source.instanceData?.questReward?.questId === 'string') throw new BadRequestException('Quest-reward equipment cannot be listed on the Market');
       if ((!itemDef.stackable || Number(itemDef.maxStack ?? 1) <= 1) && quantity !== 1) throw new BadRequestException('Non-stackable items must be listed one at a time');
-      if (character.cookingSession) {
-        const reserved = (character.cookingSession.ingredients ?? []).filter((row: any) => row.itemId === itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
+      if (character.cookingSession || character.craftingSession) {
+        const reserved = [character.cookingSession, character.craftingSession].flatMap(session => session?.ingredients ?? []).filter((row: any) => row.itemId === itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
         const owned = await inventory.find({ where: { characterId, itemId, location: 'inventory' } });
         if (owned.reduce((sum, row) => sum + Number(row.quantity), 0) - source.quantity < reserved) throw new BadRequestException('Items are reserved for your active Cooking session');
       }

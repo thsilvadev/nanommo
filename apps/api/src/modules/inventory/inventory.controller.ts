@@ -103,17 +103,6 @@ export class InventoryController {
   }
 
   /**
-   * Add item to inventory
-   */
-  @Post('add')
-  async addItem(@Request() req: any, @Body() body: { itemId: string; quantity?: number }) {
-    const userId = req.user.userId;
-    const character = await this.characterService.getCharacterByUserId(userId);
-    const quantity = body.quantity || 1;
-    return this.inventoryService.addItem(character.id, body.itemId, quantity);
-  }
-
-  /**
    * Remove item from inventory
    */
   @Post('remove')

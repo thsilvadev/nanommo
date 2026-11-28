@@ -24,7 +24,7 @@ export class TownController {
   async getVendorStock(@Request() req: any, @Param('vendorId') vendorId: string) { return this.townService.getVendorStock(await this.characterId(req), vendorId); }
 
   @Get('vendor/:vendorId/quote/:itemId')
-  async getVendorQuote(@Request() req: any, @Param('vendorId') vendorId: string, @Param('itemId') itemId: string) { return this.townService.getVendorQuote(await this.characterId(req), vendorId, itemId); }
+  async getVendorQuote(@Request() req: any, @Param('vendorId') vendorId: string, @Param('itemId') itemId: string) { return this.townService.getVendorQuote(await this.characterId(req), vendorId, itemId, req.query?.sourceInventoryItemId); }
 
   @Post('vendor/:vendorId/buy')
   async buyFromVendor(@Request() req: any, @Param('vendorId') vendorId: string, @Body() body: { itemId: string; quantity: number }) {

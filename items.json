@@ -10,13 +10,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 90,
+      "sellPriceToVendor": 36,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A glossy glob of resilient slime, useful to traders and alchemists."
+      "description": "A glossy glob of resilient slime, useful to traders and alchemists.",
+      "marketBasePrice": 90
     },
     {
       "id": "part_slime_rare",
@@ -46,13 +47,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 110,
+      "sellPriceToVendor": 44,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A leathery bat wing with a thin membrane and sturdy supporting bones."
+      "description": "A leathery bat wing with a thin membrane and sturdy supporting bones.",
+      "marketBasePrice": 110
     },
     {
       "id": "part_fieldbat_rare",
@@ -82,13 +84,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 385,
+      "sellPriceToVendor": 154,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A thorn-covered strip of bark with sharp natural barbs."
+      "description": "A thorn-covered strip of bark with sharp natural barbs.",
+      "marketBasePrice": 385
     },
     {
       "id": "part_thornsprout_rare",
@@ -118,13 +121,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 410,
+      "sellPriceToVendor": 164,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A mud-coated carapace plate, toughened by life in wet terrain."
+      "description": "A mud-coated carapace plate, toughened by life in wet terrain.",
+      "marketBasePrice": 410
     },
     {
       "id": "part_mudcrawler_rare",
@@ -154,13 +158,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 470,
+      "sellPriceToVendor": 188,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A sharp wolf fang, still sturdy enough to be worked into a weapon or charm."
+      "description": "A sharp wolf fang, still sturdy enough to be worked into a weapon or charm.",
+      "marketBasePrice": 470
     },
     {
       "id": "part_direwolf_rare",
@@ -190,13 +195,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 515,
+      "sellPriceToVendor": 208,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A heavy scorpion claw with a hard, ridged shell."
+      "description": "A heavy scorpion claw with a hard, ridged shell.",
+      "marketBasePrice": 520
     },
     {
       "id": "part_sandscorpion_rare",
@@ -218,7 +224,7 @@
     },
     {
       "id": "part_duneraider_common",
-      "name": "Raider Cloth",
+      "name": "Raider’s Broken Blade",
       "type": "monster_part",
       "rarity": "common",
       "droppedBy": [
@@ -226,13 +232,24 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 605,
+      "sellPriceToVendor": 246,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A durable piece of desert raider cloth, weathered by sand and sun."
+      "description": "A worn tool recovered from an outlaw.",
+      "locales": {
+        "en-US": {
+          "name": "Raider’s Broken Blade",
+          "description": "A worn tool recovered from an outlaw."
+        },
+        "pt-BR": {
+          "name": "Lâmina quebrada do saqueador",
+          "description": "Uma ferramenta desgastada recuperada de um fora da lei."
+        }
+      },
+      "marketBasePrice": 615
     },
     {
       "id": "part_duneraider_rare",
@@ -262,13 +279,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 750,
+      "sellPriceToVendor": 314,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A fragment of the golem’s core, warm with residual heat."
+      "description": "A fragment of the golem’s core, warm with residual heat.",
+      "marketBasePrice": 785
     },
     {
       "id": "part_cindergolem_rare",
@@ -298,13 +316,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 640,
+      "sellPriceToVendor": 260,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A sharp viper fang coated with traces of venom."
+      "description": "A sharp viper fang coated with traces of venom.",
+      "marketBasePrice": 650
     },
     {
       "id": "part_venomviper_rare",
@@ -334,13 +353,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 3285,
+      "sellPriceToVendor": 1322,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A tough strip of hide that shimmers faintly in the light."
+      "description": "A tough strip of hide that shimmers faintly in the light.",
+      "marketBasePrice": 3305
     },
     {
       "id": "part_mirageStalker_rare",
@@ -370,13 +390,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 3530,
+      "sellPriceToVendor": 1424,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A rune fragment recovered from an ancient sentinel."
+      "description": "A rune fragment recovered from an ancient sentinel.",
+      "marketBasePrice": 3560
     },
     {
       "id": "part_brokensentinel_rare",
@@ -406,13 +427,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 4020,
+      "sellPriceToVendor": 1622,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A wisp of condensed spectral essence, cold to the touch."
+      "description": "A wisp of condensed spectral essence, cold to the touch.",
+      "marketBasePrice": 4055
     },
     {
       "id": "part_wraith_rare",
@@ -442,13 +464,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 4265,
+      "sellPriceToVendor": 1714,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A small spark of arcane light left behind by a wandering wisp."
+      "description": "A small spark of arcane light left behind by a wandering wisp.",
+      "marketBasePrice": 4285
     },
     {
       "id": "part_arcanewisp_rare",
@@ -478,13 +501,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 4755,
+      "sellPriceToVendor": 1914,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A dense bone fragment left by an armored skeletal warrior."
+      "description": "A dense bone fragment left by an armored skeletal warrior.",
+      "marketBasePrice": 4785
     },
     {
       "id": "part_boneknight_rare",
@@ -514,13 +538,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 5000,
+      "sellPriceToVendor": 2010,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A guardian sigil marked with the patterns of ancient ruins."
+      "description": "A guardian sigil marked with the patterns of ancient ruins.",
+      "marketBasePrice": 5025
     },
     {
       "id": "part_ruinsguardian_rare",
@@ -552,10 +577,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 470,
+      "sellPriceToVendor": 190,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 475
     },
     {
       "id": "part_mudflatcrocodile_rare",
@@ -576,20 +602,31 @@
     },
     {
       "id": "part_bandit_common",
-      "name": "Bandit Leather",
+      "name": "Bandit’s Lockpick",
       "type": "monster_part",
       "tier": 3,
-      "description": "A strip of tough bandit leather, weathered by travel and combat.",
+      "description": "A worn tool recovered from an outlaw.",
       "rarity": "common",
       "droppedBy": [
         "mon_bandit"
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 650,
+      "sellPriceToVendor": 264,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "locales": {
+        "en-US": {
+          "name": "Bandit’s Lockpick",
+          "description": "A worn tool recovered from an outlaw."
+        },
+        "pt-BR": {
+          "name": "Gazua do bandido",
+          "description": "Uma ferramenta desgastada recuperada de um fora da lei."
+        }
+      },
+      "marketBasePrice": 660
     },
     {
       "id": "part_bandit_rare",
@@ -620,10 +657,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 965,
+      "sellPriceToVendor": 392,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 980
     },
     {
       "id": "part_kwaioua_ranger_rare",
@@ -654,10 +692,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 1530,
+      "sellPriceToVendor": 622,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 1555
     },
     {
       "id": "part_sacredforestguardian_rare",
@@ -688,10 +727,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 525,
+      "sellPriceToVendor": 212,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 530
     },
     {
       "id": "part_gravelhorn_rare",
@@ -722,10 +762,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 360,
+      "sellPriceToVendor": 146,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 365
     },
     {
       "id": "part_ridgebreaker_rare",
@@ -756,10 +797,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 460,
+      "sellPriceToVendor": 186,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 465
     },
     {
       "id": "part_saltfangcrab_rare",
@@ -790,10 +832,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 770,
+      "sellPriceToVendor": 312,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 780
     },
     {
       "id": "part_needlebackstalker_rare",
@@ -824,10 +867,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 641,
+      "sellPriceToVendor": 260,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 650
     },
     {
       "id": "part_giantmosquito_rare",
@@ -858,10 +902,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 858,
+      "sellPriceToVendor": 347,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 868
     },
     {
       "id": "part_rootboundbrute_rare",
@@ -892,10 +937,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 1120,
+      "sellPriceToVendor": 456,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 1140
     },
     {
       "id": "part_moonleafarcanist_rare",
@@ -926,10 +972,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 1434,
+      "sellPriceToVendor": 583,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 1458
     },
     {
       "id": "part_aramaianwarden_rare",
@@ -958,13 +1005,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 380,
+      "sellPriceToVendor": 152,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A sharp stinger from a Mutant Bee, still carrying traces of venom."
+      "description": "A sharp stinger from a Mutant Bee, still carrying traces of venom.",
+      "marketBasePrice": 380
     },
     {
       "id": "part_mutantbee_rare",
@@ -994,13 +1042,14 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 420,
+      "sellPriceToVendor": 174,
       "usableFor": [
         "market_trade",
         "future_crafting",
         "future_quests"
       ],
-      "description": "A vivid violet ink droplet harvested from a Giant Mantis; glossy, thick, and strongly pigmented."
+      "description": "A vivid violet ink droplet harvested from a Giant Mantis; glossy, thick, and strongly pigmented.",
+      "marketBasePrice": 435
     },
     {
       "id": "part_giantmantis_rare",
@@ -1073,7 +1122,7 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 520,
+      "sellPriceToVendor": 214,
       "usableFor": [
         "market_trade",
         "future_crafting",
@@ -1087,7 +1136,8 @@
           "name": "Charred Treant Bark"
         }
       },
-      "description": "A charred strip of treant bark split by glowing ember fissures."
+      "description": "A charred strip of treant bark split by glowing ember fissures.",
+      "marketBasePrice": 535
     },
     {
       "id": "part_giantspider_common",
@@ -1101,10 +1151,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 500,
+      "sellPriceToVendor": 204,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 510
     },
     {
       "id": "part_giantspider_rare",
@@ -1135,10 +1186,11 @@
       ],
       "stackable": true,
       "maxStack": 20,
-      "sellPriceToVendor": 700,
+      "sellPriceToVendor": 286,
       "usableFor": [
         "market_trade"
-      ]
+      ],
+      "marketBasePrice": 715
     },
     {
       "id": "part_unicorn_rare",
@@ -1634,15 +1686,15 @@
       "sellPriceToVendor": 1000,
       "cooldownInSeconds": 60,
       "rarity": "epic",
-      "description": "When triggered by Self: Status = KO, revives you with full HP and SP and removes every active buff and debuff. Shares a 60-second cooldown with Super Tonics.",
+      "description": "When triggered by Self: Status = KO, revives you with full HP, zero SP and removes every active buff and debuff. Shares a 60-second cooldown with Super Tonics.",
       "locales": {
         "pt-BR": {
           "name": "Fada na Garrafa",
-          "description": "Quando ativada por Self: Status = KO, revive você com HP e SP completos e remove todos os buffs e debuffs ativos. Compartilha um cooldown de 60 segundos com Super Tônicos."
+          "description": "Quando ativada por Self: Status = KO, revive você com HP completo, zero SP e remove todos os buffs e debuffs ativos. Compartilha um cooldown de 60 segundos com Super Tônicos."
         },
         "en-US": {
           "name": "Fairy in a Bottle",
-          "description": "When triggered by Self: Status = KO, revives you with full HP and SP and removes every active buff and debuff. Shares a 60-second cooldown with Super Tonics."
+          "description": "When triggered by Self: Status = KO, revives you with full HP, zero SP and removes every active buff and debuff. Shares a 60-second cooldown with Super Tonics."
         }
       }
     },
@@ -5197,6 +5249,610 @@
           }
         }
       }
+    },
+    {
+      "id": "equip_head_phys_t4",
+      "name": "Ironbound Dreaded Warrior's Helm",
+      "type": "equipment",
+      "slot": "head",
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "def": 20,
+        "statBonus": {
+          "VIT": 4,
+          "STR": 3
+        }
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_head_phys_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Dreaded Warrior's Helm",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Dreaded Warrior's Helm de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_head_magic_t4",
+      "name": "Ironbound Archmage's Hat",
+      "type": "equipment",
+      "slot": "head",
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "mdefPercent": 11,
+        "statBonus": {
+          "INT": 4,
+          "DEX": 3
+        }
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_head_magic_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Archmage's Hat",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Archmage's Hat de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_body_phys_t4",
+      "name": "Ironbound Dark Knight's Armor",
+      "type": "equipment",
+      "slot": "body",
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "def": 39,
+        "statBonus": {
+          "VIT": 4,
+          "STR": 3
+        }
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_body_phys_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Dark Knight's Armor",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Dark Knight's Armor de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_body_magic_t4",
+      "name": "Ironbound Archmage's Robe",
+      "type": "equipment",
+      "slot": "body",
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "mdefPercent": 22,
+        "statBonus": {
+          "INT": 4,
+          "DEX": 3
+        }
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_body_magic_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Archmage's Robe",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Archmage's Robe de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_cape_phys_t4",
+      "name": "Ironbound Knight's Royal Cape",
+      "type": "equipment",
+      "slot": "cape",
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "def": 15,
+        "statBonus": {
+          "VIT": 4,
+          "STR": 3
+        }
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_cape_phys_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Knight's Royal Cape",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Knight's Royal Cape de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_cape_magic_t4",
+      "name": "Ironbound Archmage's Sigil Cape",
+      "type": "equipment",
+      "slot": "cape",
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "mdefPercent": 8,
+        "statBonus": {
+          "INT": 4,
+          "DEX": 3
+        }
+      },
+      "sellPriceToVendor": 7680,
+      "marketBasePrice": 19200,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_cape_magic_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Archmage's Sigil Cape",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Archmage's Sigil Cape de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_sword_t4",
+      "name": "Ironbound Royal Sword",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "sword",
+      "twoHanded": false,
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "atk": 63
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_sword_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Royal Sword",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Royal Sword de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_greatsword_t4",
+      "name": "Ironbound Royal Greatsword",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "greatsword",
+      "twoHanded": true,
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "atk": 92
+      },
+      "sellPriceToVendor": 11040,
+      "marketBasePrice": 27600,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_greatsword_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Royal Greatsword",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Royal Greatsword de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_dagger_t4",
+      "name": "Ironbound Royal Dagger",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "dagger",
+      "twoHanded": false,
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "atk": 53
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "secondaryHand": true,
+      "sameTypePairingAllowed": true,
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_dagger_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Royal Dagger",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Royal Dagger de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_bow_t4",
+      "name": "Ironbound Elite Crimson Bow",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "bow",
+      "twoHanded": true,
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "atk": 95
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_bow_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Elite Crimson Bow",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Elite Crimson Bow de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_staff_t4",
+      "name": "Ironbound Ancient Dark Wizzard's Staff",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "staff",
+      "twoHanded": true,
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "matk": 82
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_staff_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Ancient Dark Wizzard's Staff",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Ancient Dark Wizzard's Staff de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_rod_t4",
+      "name": "Ironbound Runebound Rod",
+      "type": "equipment",
+      "slot": "mainHand",
+      "weaponType": "rod",
+      "twoHanded": false,
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "matk": 63
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "allowedOffHandTypes": [
+        "dagger",
+        "shield",
+        "rune"
+      ],
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_rod_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Runebound Rod",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Runebound Rod de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_shield_t4",
+      "name": "Ironbound Royal Shield",
+      "type": "equipment",
+      "slot": "offHand",
+      "weaponType": "shield",
+      "twoHanded": false,
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "def": 48
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_shield_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Royal Shield",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Royal Shield de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
+    },
+    {
+      "id": "equip_rune_t4",
+      "name": "Ironbound Violet Rune",
+      "type": "equipment",
+      "slot": "offHand",
+      "weaponType": "rune",
+      "twoHanded": false,
+      "levelReq": 22,
+      "tier": 4,
+      "fixedStats": {
+        "def": 12,
+        "mdefPercent": 42
+      },
+      "sellPriceToVendor": 8640,
+      "marketBasePrice": 21600,
+      "randomRollOnCraft": {
+        "enabled": true,
+        "min": 4,
+        "max": 12,
+        "attributesPool": [
+          "STR",
+          "AGI",
+          "DEX",
+          "VIT",
+          "INT",
+          "LUK"
+        ]
+      },
+      "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives.",
+      "availability": "future",
+      "previewModelItemId": "equip_rune_t3",
+      "locales": {
+        "en-US": {
+          "name": "Ironbound Violet Rune",
+          "description": "Future Ironbound equipment preview. Crafting is unavailable until the iron supply arrives."
+        },
+        "pt-BR": {
+          "name": "Violet Rune de Ferro",
+          "description": "Prévia de equipamento de ferro. Fabricação indisponível até a chegada da cadeia de ferro."
+        }
+      }
     }
   ],
   "materials": [
@@ -5597,6 +6253,126 @@
         "pt-BR": {
           "name": "Folha de Sapupema",
           "description": "Uma folha larga de nervuras marcadas, coletada em Caetê 6 para preparar um chá revigorante."
+        }
+      }
+    },
+    {
+      "id": "mat_leather",
+      "name": "Leather",
+      "type": "material",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 4,
+      "marketBasePrice": 10,
+      "description": "A shared crafting material.",
+      "locales": {
+        "en-US": {
+          "name": "Leather",
+          "description": "A shared crafting material."
+        },
+        "pt-BR": {
+          "name": "Couro",
+          "description": "Material compartilhado de fabricação."
+        }
+      }
+    },
+    {
+      "id": "mat_wood",
+      "name": "Wood",
+      "type": "material",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 3,
+      "marketBasePrice": 8,
+      "description": "A shared crafting material.",
+      "locales": {
+        "en-US": {
+          "name": "Wood",
+          "description": "A shared crafting material."
+        },
+        "pt-BR": {
+          "name": "Madeira",
+          "description": "Material compartilhado de fabricação."
+        }
+      }
+    },
+    {
+      "id": "mat_silkthread",
+      "name": "Silkthread",
+      "type": "material",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 4,
+      "marketBasePrice": 10,
+      "description": "A shared crafting material.",
+      "locales": {
+        "en-US": {
+          "name": "Silkthread",
+          "description": "A shared crafting material."
+        },
+        "pt-BR": {
+          "name": "Fio de seda",
+          "description": "Material compartilhado de fabricação."
+        }
+      }
+    },
+    {
+      "id": "mat_glue",
+      "name": "Glue",
+      "type": "material",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 2,
+      "marketBasePrice": 5,
+      "description": "A shared crafting material.",
+      "locales": {
+        "en-US": {
+          "name": "Glue",
+          "description": "A shared crafting material."
+        },
+        "pt-BR": {
+          "name": "Cola",
+          "description": "Material compartilhado de fabricação."
+        }
+      }
+    },
+    {
+      "id": "mat_coal",
+      "name": "Coal",
+      "type": "material",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 2,
+      "marketBasePrice": 5,
+      "description": "A shared crafting material.",
+      "locales": {
+        "en-US": {
+          "name": "Coal",
+          "description": "A shared crafting material."
+        },
+        "pt-BR": {
+          "name": "Carvão",
+          "description": "Material compartilhado de fabricação."
+        }
+      }
+    },
+    {
+      "id": "mat_iron_ingot",
+      "name": "Iron Ingot",
+      "type": "material",
+      "stackable": true,
+      "maxStack": 20,
+      "sellPriceToVendor": 30,
+      "marketBasePrice": 75,
+      "description": "Future crafting material. No source is available yet.",
+      "locales": {
+        "en-US": {
+          "name": "Iron Ingot",
+          "description": "Future crafting material. No source is available yet."
+        },
+        "pt-BR": {
+          "name": "Lingote de ferro",
+          "description": "Material de fabricação futura. Ainda sem fonte disponível."
         }
       }
     }

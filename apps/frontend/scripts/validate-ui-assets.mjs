@@ -14,9 +14,9 @@ const missing = [];
 const builtMissing = [];
 const builtAssets = path.join(root, 'apps/frontend/dist/frontend/browser/assets/ui');
 const checkBuilt = (relative, label) => { if (fs.existsSync(builtAssets) && !fs.existsSync(path.join(builtAssets, relative))) builtMissing.push(`${label}: /assets/ui/${relative.replaceAll(path.sep, '/')}`); };
-const itemRows = [...(itemCatalog.equipment ?? []), ...(itemCatalog.consumables ?? []), ...(itemCatalog.monsterParts ?? [])];
+const itemRows = [...(itemCatalog.equipment ?? []), ...(itemCatalog.consumables ?? []), ...(itemCatalog.monsterParts ?? []), ...(itemCatalog.materials ?? [])];
 for (const item of itemRows) {
-  const folder = item.type === 'equipment' ? 'equipment' : item.type === 'monster_part' ? 'monster_parts' : 'consumables';
+  const folder = item.type === 'equipment' ? 'equipment' : item.type === 'monster_part' ? 'monster_parts' : item.type === 'material' ? 'materials' : 'consumables';
   for (const variant of ['svg', 'svg-noframe']) {
     const animatedMaterial = variant === 'svg-noframe' && (item.id === 'mat_bliss_stone' || item.id === 'mat_divine_shard');
     const filename = animatedMaterial ? `${item.id}_alpha.png` : `${item.id}.svg`;

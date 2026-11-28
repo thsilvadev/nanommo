@@ -30,6 +30,7 @@ function harness(character, rows=[]) {
   const characterRepo = { findOne:async()=>state.character, manager:{transaction:async(fn)=>fn(manager)} };
   const inventoryRepo = { find: async(opts)=>state.rows.filter(r=>r.characterId===opts.where.characterId && r.location===opts.where.location), count: async(opts)=>state.rows.filter(r=>r.characterId===opts.where.characterId && r.location===opts.where.location).length };
   const data = {
+    getNpcCatalog:()=>({npcs:[]}),
     getMapById:(id)=>id==='map_town'?{id,type:'town'}:{id,type:'grind'},
     getNpcVendor:()=>({id:'william',name:'William',type:'vendor',location:'town',buysAnyItem:true,buyRatePercent:40,sellStock:[{itemId:'pot_hp_small',price:15,infiniteStock:true},{itemId:'pot_hp_medium',price:40,infiniteStock:true}]}),
     getItemById:(id)=>items[id]||null,

@@ -1,3 +1,4 @@
+const {recipeVersion}=require('../dist/apps/api/src/modules/town/recipe-version');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -23,16 +24,13 @@ const character = {
   cookingLevel: 1, cookingXp: 0, craftingSession: null,
 };
 const session = {
-  id: 'session-craft-roll-fixed-seed', profession: 'blacksmith', recipeId: recipe.id,
+  recipeVersion: recipeVersion(recipe), id: 'session-craft-roll-fixed-seed', profession: 'blacksmith', recipeId: recipe.id,
   startedAt: new Date(Date.now() - 30000).toISOString(), completesAt: new Date(Date.now() - 1000).toISOString(),
   ingredients: [{ itemId: 'mat_bronze_ingot', quantity: Number(recipe.ingredients[0].quantity) }],
   outputItemId: recipe.outputItemId, outputQuantity: 1, xpReward: Number(recipe.xpReward),
 };
 character.craftingSession = session;
-let inventoryRows = [{
-  id: 'ingots-stack', characterId: character.id, itemId: 'mat_bronze_ingot',
-  quantity: Number(recipe.ingredients[0].quantity), location: 'inventory', slotIndex: 0, instanceData: null,
-}];
+let inventoryRows = recipe.ingredients.map((req,i)=>({id:'input-'+i,characterId:character.id,itemId:req.itemId,quantity:req.quantity,location:'inventory',slotIndex:i,instanceData:null}));
 let rowSequence = 0;
 const characterRepo = {
   manager: null,
@@ -56,6 +54,8 @@ const manager = { getRepository: entity => entity === Character ? characterRepo 
 manager.transaction = async callback => callback(manager);
 characterRepo.manager = manager;
 const dataService = {
+  getNpcVendor:()=>require('../../../npc_vendor.json'),
+  getNpcCatalog:()=>require('../../../npc_catalog.json'),
   getItemById: itemById,
   getAlchemyRecipes: () => ({ recipes: [] }),
   getBlacksmithRecipes: () => ({ recipes }),

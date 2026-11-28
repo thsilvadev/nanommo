@@ -23,7 +23,7 @@ function dummy(overrides = {}) {
 function testElixirRestoresHpAndSpWithSharedPotionCooldown() {
   const item = { id: 'elixir_greater', type: 'consumable', alchemyCategory: 'potions', cooldownInSeconds: 10, effect: { type: 'heal_hp_sp', hpAmount: 300, spAmount: 230 } };
   const result = BattleEngine.simulateBattle(character(), dummy(), { lines: [
-    { priority: 1, conditions: [{ id: 'self_hp_below_percent', value: 90 }], action: { id: 'use_item', itemId: 'elixir_greater' } },
+    { priority: 1, conditions: [{ id: 'self_hp', params: {value: 90, unit:'percent', comparator:'lt'} }], action: { id: 'use_item', itemId: 'elixir_greater' } },
     { priority: 2, conditions: [{ id: 'always' }], action: { id: 'wait' } },
   ] }, 'alchemy-potion-test', { inventory: { elixir_greater: 2 }, itemDefinitions: { elixir_greater: item }, stopAfterTick: 20 });
   assert.equal(result.hpAfter, 350, 'Elixir restores the configured HP amount');
@@ -33,10 +33,10 @@ function testElixirRestoresHpAndSpWithSharedPotionCooldown() {
   assert.equal(use.healAmount, 300);
   assert.equal(use.spGain, 230);
   const cooldownProbe = BattleEngine.simulateBattle(character(), dummy(), { lines: [
-    { priority: 1, conditions: [{ id: 'self_hp_below_percent', value: 90 }], action: { id: 'use_item', itemId: 'elixir_greater' } },
+    { priority: 1, conditions: [{ id: 'self_hp', params: {value: 90, unit:'percent', comparator:'lt'} }], action: { id: 'use_item', itemId: 'elixir_greater' } },
     { priority: 2, conditions: [{ id: 'always' }], action: { id: 'wait' } },
-  ] }, 'alchemy-potion-cooldown-test', { inventory: { elixir_greater: 2 }, itemDefinitions: { elixir_greater: item }, stopAfterTick: 8 });
-  assert.equal(cooldownProbe.cooldownsAfter['item:potion'], 9, 'the shared potion cooldown starts at 10 seconds and ticks down once per combat second');
+  ] }, 'alchemy-potion-cooldown-test', { inventory: { elixir_greater: 2 }, itemDefinitions: { elixir_greater: item }, stopAfterTick: 16 });
+  assert.equal(cooldownProbe.cooldownsAfter['item:potion'], 19, 'the shared potion cooldown starts at 10 seconds and ticks down every half second');
 }
 
 function testFontouraAppliesThirtySecondDefenseBuffAndPersistsAcrossBattleBoundary() {
@@ -53,7 +53,7 @@ function testFontouraAppliesThirtySecondDefenseBuffAndPersistsAcrossBattleBounda
   const persisted = persistStatusEffectsAtCheckpoint(result.statusEffectsAfter, result.durationTicks - 1, endAt);
   assert.equal(persisted[0].defBonus, 15);
   assert.ok(Date.parse(persisted[0].expiresAt) > endAt);
-  assert.equal(statusEffectsForBattle(persisted, endAt)[0].expiresAtTick, 16);
+  assert.equal(statusEffectsForBattle(persisted, endAt)[0].expiresAtTick, 54);
 }
 
 function testAllTonicStatusPayloadsAreApplied() {
@@ -93,8 +93,8 @@ function testTonicBuffsModifyCombatStatsAndHasteDoublesAttackFrequency() {
 
   const attackPage = { lines: [{ priority: 1, conditions: [{ id: 'always' }], action: { id: 'attack' } }] };
   const passiveMonster = { ...dummy({ hp: 100000 }), atk: 0, gambit: [] };
-  const baseAttacks = BattleEngine.simulateBattle(character({ hp: 1000, attackSpeed: 100 }), passiveMonster, attackPage, 'haste-frequency', { stopAfterTick: 30 }).log.events.filter(event => event.action === 'attack');
-  const hastedAttacks = BattleEngine.simulateBattle(character({ hp: 1000, attackSpeed: 100, statusEffects: [{ type: 'haste_shot', attackSpeedMultiplier: 2 }] }), passiveMonster, attackPage, 'haste-frequency', { stopAfterTick: 30 }).log.events.filter(event => event.action === 'attack');
+  const baseAttacks = BattleEngine.simulateBattle(character({ hp: 1000, attackSpeed: 100 }), passiveMonster, attackPage, 'haste-frequency', { stopAfterTick: 300 }).log.events.filter(event => event.action === 'attack');
+  const hastedAttacks = BattleEngine.simulateBattle(character({ hp: 1000, attackSpeed: 100, statusEffects: [{ type: 'haste_shot', attackSpeedMultiplier: 2 }] }), passiveMonster, attackPage, 'haste-frequency', { stopAfterTick: 300 }).log.events.filter(event => event.action === 'attack');
   assert.ok(hastedAttacks.length >= baseAttacks.length * 1.6, 'Haste Shot doubles the basic attack frequency');
 }
 
@@ -110,7 +110,7 @@ function testFairyTriggersOnlyUponDeathAndCleansEveryStatus() {
   const revival = result.log.events.find(event => event.revived === true);
   assert.ok(revival, 'Upon Death Gambit consumes the Fairy and revives the Character');
   assert.equal(revival.restoredHp, 1000);
-  assert.equal(revival.restoredSp, 1000);
+  assert.equal(revival.restoredSp, 0);
   assert.deepEqual(revival.cleansedStatuses, ['poison']);
   assert.deepEqual(result.itemsConsumed, [{ itemId: 'fairy_in_a_bottle', quantity: 1 }]);
   assert.ok(result.log.events.some(event => event.reason === 'fairy_revival' && event.status === 'poison'));

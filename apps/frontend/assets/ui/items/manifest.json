@@ -120,7 +120,7 @@
     "png256": "png/256/part_sandscorpion_rare.png"
   },
   "part_duneraider_common": {
-    "name": "Raider Cloth",
+    "name": "Raider’s Broken Blade",
     "category": "monster_parts",
     "rarity": "common",
     "svg": "svg/monster_parts/part_duneraider_common.svg",
@@ -1002,11 +1002,14 @@
     "svg_noframe": "svg-noframe/monster_parts/part_mudflatcrocodile_rare.svg"
   },
   "part_bandit_common": {
-    "name": "Bandit Common Part",
+    "name": "Bandit’s Lockpick",
     "category": "monster_parts",
     "rarity": "common",
     "svg": "svg/monster_parts/part_bandit_common.svg",
-    "svg_noframe": "svg-noframe/monster_parts/part_bandit_common.svg"
+    "svg_noframe": "svg-noframe/monster_parts/part_bandit_common.svg",
+    "png64": "png/64/part_bandit_common.png",
+    "png128": "png/128/part_bandit_common.png",
+    "png256": "png/256/part_bandit_common.png"
   },
   "part_bandit_rare": {
     "name": "Bandit Rare Part",
@@ -1406,5 +1409,212 @@
     "rarity": "rare",
     "svg": "svg/materials/mat_mystic_dust.svg",
     "svg_noframe": "svg-noframe/materials/mat_mystic_dust.svg"
+  },
+  "mat_leather": {
+    "name": "Leather",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_leather.svg",
+    "svg_noframe": "svg-noframe/materials/mat_leather.svg",
+    "png64": "png/64/mat_leather.png",
+    "png128": "png/128/mat_leather.png",
+    "png256": "png/256/mat_leather.png"
+  },
+  "mat_wood": {
+    "name": "Wood",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_wood.svg",
+    "svg_noframe": "svg-noframe/materials/mat_wood.svg",
+    "png64": "png/64/mat_wood.png",
+    "png128": "png/128/mat_wood.png",
+    "png256": "png/256/mat_wood.png"
+  },
+  "mat_silkthread": {
+    "name": "Silkthread",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_silkthread.svg",
+    "svg_noframe": "svg-noframe/materials/mat_silkthread.svg",
+    "png64": "png/64/mat_silkthread.png",
+    "png128": "png/128/mat_silkthread.png",
+    "png256": "png/256/mat_silkthread.png"
+  },
+  "mat_glue": {
+    "name": "Glue",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_glue.svg",
+    "svg_noframe": "svg-noframe/materials/mat_glue.svg",
+    "png64": "png/64/mat_glue.png",
+    "png128": "png/128/mat_glue.png",
+    "png256": "png/256/mat_glue.png"
+  },
+  "mat_coal": {
+    "name": "Coal",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_coal.svg",
+    "svg_noframe": "svg-noframe/materials/mat_coal.svg",
+    "png64": "png/64/mat_coal.png",
+    "png128": "png/128/mat_coal.png",
+    "png256": "png/256/mat_coal.png"
+  },
+  "mat_iron_ingot": {
+    "name": "Iron Ingot",
+    "category": "materials",
+    "rarity": "common",
+    "svg": "svg/materials/mat_iron_ingot.svg",
+    "svg_noframe": "svg-noframe/materials/mat_iron_ingot.svg",
+    "png64": "png/64/mat_iron_ingot.png",
+    "png128": "png/128/mat_iron_ingot.png",
+    "png256": "png/256/mat_iron_ingot.png"
+  },
+  "equip_head_phys_t4": {
+    "name": "Ironbound Dreaded Warrior's Helm",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_head_phys_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_head_phys_t4.svg",
+    "png64": "png/64/equip_head_phys_t4.png",
+    "png128": "png/128/equip_head_phys_t4.png",
+    "png256": "png/256/equip_head_phys_t4.png"
+  },
+  "equip_head_magic_t4": {
+    "name": "Ironbound Archmage's Hat",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_head_magic_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_head_magic_t4.svg",
+    "png64": "png/64/equip_head_magic_t4.png",
+    "png128": "png/128/equip_head_magic_t4.png",
+    "png256": "png/256/equip_head_magic_t4.png"
+  },
+  "equip_body_phys_t4": {
+    "name": "Ironbound Dark Knight's Armor",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_body_phys_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_body_phys_t4.svg",
+    "png64": "png/64/equip_body_phys_t4.png",
+    "png128": "png/128/equip_body_phys_t4.png",
+    "png256": "png/256/equip_body_phys_t4.png"
+  },
+  "equip_body_magic_t4": {
+    "name": "Ironbound Archmage's Robe",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_body_magic_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_body_magic_t4.svg",
+    "png64": "png/64/equip_body_magic_t4.png",
+    "png128": "png/128/equip_body_magic_t4.png",
+    "png256": "png/256/equip_body_magic_t4.png"
+  },
+  "equip_cape_phys_t4": {
+    "name": "Ironbound Knight's Royal Cape",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_cape_phys_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_cape_phys_t4.svg",
+    "png64": "png/64/equip_cape_phys_t4.png",
+    "png128": "png/128/equip_cape_phys_t4.png",
+    "png256": "png/256/equip_cape_phys_t4.png"
+  },
+  "equip_cape_magic_t4": {
+    "name": "Ironbound Archmage's Sigil Cape",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_cape_magic_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_cape_magic_t4.svg",
+    "png64": "png/64/equip_cape_magic_t4.png",
+    "png128": "png/128/equip_cape_magic_t4.png",
+    "png256": "png/256/equip_cape_magic_t4.png"
+  },
+  "equip_sword_t4": {
+    "name": "Ironbound Royal Sword",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_sword_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_sword_t4.svg",
+    "png64": "png/64/equip_sword_t4.png",
+    "png128": "png/128/equip_sword_t4.png",
+    "png256": "png/256/equip_sword_t4.png"
+  },
+  "equip_greatsword_t4": {
+    "name": "Ironbound Royal Greatsword",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_greatsword_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_greatsword_t4.svg",
+    "png64": "png/64/equip_greatsword_t4.png",
+    "png128": "png/128/equip_greatsword_t4.png",
+    "png256": "png/256/equip_greatsword_t4.png"
+  },
+  "equip_dagger_t4": {
+    "name": "Ironbound Royal Dagger",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_dagger_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_dagger_t4.svg",
+    "png64": "png/64/equip_dagger_t4.png",
+    "png128": "png/128/equip_dagger_t4.png",
+    "png256": "png/256/equip_dagger_t4.png"
+  },
+  "equip_bow_t4": {
+    "name": "Ironbound Elite Crimson Bow",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_bow_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_bow_t4.svg",
+    "png64": "png/64/equip_bow_t4.png",
+    "png128": "png/128/equip_bow_t4.png",
+    "png256": "png/256/equip_bow_t4.png"
+  },
+  "equip_staff_t4": {
+    "name": "Ironbound Ancient Dark Wizzard's Staff",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_staff_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_staff_t4.svg",
+    "png64": "png/64/equip_staff_t4.png",
+    "png128": "png/128/equip_staff_t4.png",
+    "png256": "png/256/equip_staff_t4.png"
+  },
+  "equip_rod_t4": {
+    "name": "Ironbound Runebound Rod",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_rod_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_rod_t4.svg",
+    "png64": "png/64/equip_rod_t4.png",
+    "png128": "png/128/equip_rod_t4.png",
+    "png256": "png/256/equip_rod_t4.png"
+  },
+  "equip_shield_t4": {
+    "name": "Ironbound Royal Shield",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_shield_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_shield_t4.svg",
+    "png64": "png/64/equip_shield_t4.png",
+    "png128": "png/128/equip_shield_t4.png",
+    "png256": "png/256/equip_shield_t4.png"
+  },
+  "equip_rune_t4": {
+    "name": "Ironbound Violet Rune",
+    "category": "equipment",
+    "rarity": "epic",
+    "svg": "svg/equipment/equip_rune_t4.svg",
+    "svg_noframe": "svg-noframe/equipment/equip_rune_t4.svg",
+    "png64": "png/64/equip_rune_t4.png",
+    "png128": "png/128/equip_rune_t4.png",
+    "png256": "png/256/equip_rune_t4.png"
+  },
+  "elixir": {
+    "name": "Elixir",
+    "category": "consumables",
+    "rarity": "common",
+    "svg": "svg/consumables/elixir.svg",
+    "svg_noframe": "svg-noframe/consumables/elixir.svg"
   }
 }

@@ -1,3 +1,4 @@
+import legacyRewards from './legacy-rewards.json';
 import { guardEncounterDeadline } from './party-deadline';
 import { Inject, forwardRef, BadRequestException, Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
@@ -58,7 +59,7 @@ export class SharedBattleService {
       if(!fight){await this.advanceCounters(ctx,roster);await ctx.manager.query(`UPDATE encounter_clocks SET status='consumed',roster=$2 WHERE "ownerKind"='party' AND "ownerId"=$1`,[p.id,JSON.stringify(roster)]);return false;}
     }
     const definitions={items:Object.fromEntries(Object.values(this.data.getItems()??{}).flat().filter((x:any)=>x&&typeof x==='object'&&x.id).map((x:any)=>[x.id,x])),skills:Object.fromEntries(this.data.getMonsterSkills().map((x:any)=>[x.id,x])),statuses:Object.fromEntries(this.data.getStatusEffects().map((x:any)=>[x.id,x]))};
-    const input:any={version:2,elementalRulesVersion:1,movementRulesVersion:1,seed:clock.seed,tickDurationMs:500,actors:Shared.placeBattleActors(actors),definitions};
+    const input:any={version:2,balanceRulesVersion:1,rewardSnapshot:{items:this.data.getItems(),globalItemDrops:this.data.getGlobalItemDrops()?.drops??[],monsters:Object.fromEntries(actors.filter(a=>a.kind==='monster').map(a=>[a.definitionId,this.data.getMonsterById(a.definitionId)]))},elementalRulesVersion:1,movementRulesVersion:1,seed:clock.seed,tickDurationMs:500,actors:Shared.placeBattleActors(actors),definitions};
     // Formation is resolved by the pure engine, not by database order.
     const result=Shared.simulateBattleV2(input);
     if(!result.ended)throw new Error('Battle simulation exceeded execution limit; refusing terminal result');
@@ -91,9 +92,13 @@ export class SharedBattleService {
     if(win){
       let totalXp=0;
       for(const monster of input.actors.filter((a:any)=>a.kind==='monster')){
-        const definition=this.data.getMonsterById(monster.definitionId);totalXp+=Number(definition.xpReward??0);
-        const rewards=resolveRewards({monster:definition,mapId:locked.mapId,outcome:'win',items:this.data.getItems(),killIndex:Number(locked.result?.roster?.find(r=>monster.id.includes(r.characterId))?.killIndex??0),seed:`${locked.seed}:${monster.id}:drops`,characterLevel:Math.max(...participants.map(a=>a.snapshot.level)),globalItemDrops:this.data.getGlobalItemDrops()?.drops??[]});
-        let dropIndex=0;for(const drop of rewards.drops??[])for(let unit=0;unit<drop.quantity;unit++){const recipient=new Mulberry32(`${locked.seed}:${monster.id}:loot:${dropIndex++}`).pick(alive);awards[recipient].drops.push({...drop,quantity:1});}
+        const frozen=input.rewardSnapshot ?? (!input.balanceRulesVersion ? legacyRewards : null);
+        const definition=frozen?.monsters?.[monster.definitionId] ?? this.data.getMonsterById(monster.definitionId);totalXp+=Number(definition.xpReward??0);
+        const rewards=resolveRewards({monster:definition,mapId:locked.mapId,outcome:'win',items:frozen?.items??this.data.getItems(),killIndex:Number(locked.result?.roster?.find(r=>monster.id.includes(r.characterId))?.killIndex??0),seed:`${locked.seed}:${monster.id}:drops`,characterLevel:Math.max(...participants.map(a=>a.snapshot.level)),globalItemDrops:frozen?.globalItemDrops??this.data.getGlobalItemDrops()?.drops??[]});
+        let dropIndex=0;for(const drop of rewards.drops??[])for(let unit=0;unit<drop.quantity;unit++){
+          const extra = ['mat_leather','mat_wood','mat_silkthread','mat_glue'].includes(drop.itemId) || (drop.itemId==='mat_meat' && ['mon_mudflatcrocodile','mon_unicorn'].includes(definition.id));
+          const domain=extra?`${locked.seed}:${monster.id}:balance-loot:${drop.itemId}:${unit}`:`${locked.seed}:${monster.id}:loot:${dropIndex++}`;
+          const recipient=new Mulberry32(domain).pick(alive);awards[recipient].drops.push({...drop,quantity:1});}
       }
       alive.forEach((id,index)=>awards[id].xp=Math.floor(totalXp/alive.length)+(index<totalXp%alive.length?1:0));
     }
@@ -127,7 +132,7 @@ export class SharedBattleService {
       awards[c.id].drops=grantedDrops;
       if(grantedDrops.length)await this.event(ctx.manager,c.id,'inventory:obtained',{items:grantedDrops.map((d:any)=>({itemId:d.itemId,quantity:Number(d.quantity??1)})),source:'party_battle'});
       if(win&&alive.includes(c.id))for(const monster of input.actors.filter(a=>a.kind==='monster'))await this.quests.recordBattleVictory(ctx.manager,c,{id:`${locked.id}:${monster.id}`,monsterId:monster.definitionId,mapId:locked.mapId,endAt:new Date(at)},true);
-      if(c.hpCurrent<=0){c.hpCurrent=1;c.spCurrent=0;c.currentMapId=c.savedTownMapId??TOWN_MAP_ID;c.status='town';c.travelIntent=null;c.lastDeathLog={version:2,battleId:locked.id,log:locked.log};await remove(c.id,'death');}
+      if(c.hpCurrent<=0){c.xp=Math.max(0,Number(c.xp)-Shared.deathXpLoss(this.data.getXpToNextLevel(c.level),Number(c.xp)));c.hpCurrent=1;c.spCurrent=0;c.currentMapId=c.savedTownMapId??TOWN_MAP_ID;c.status='town';c.travelIntent=null;c.lastDeathLog={version:2,battleId:locked.id,log:locked.log};await remove(c.id,'death');}
       await ctx.manager.getRepository(Character).save(c);
       await ctx.manager.query('UPDATE shared_battle_participants SET result=$3 WHERE "battleId"=$1 AND "characterId"=$2',[locked.id,c.id,JSON.stringify({...awards[c.id],hp:c.hpCurrent,sp:c.spCurrent})]);
       await this.event(ctx.manager,c.id,'battle:sharedUpdated',{refresh:true,battleId:locked.id,revision:Number(locked.revision)+1,state:fled?'fled':'resolved'});

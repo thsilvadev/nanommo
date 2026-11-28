@@ -38,5 +38,8 @@ const { InventoryController } = require('../dist/apps/api/src/modules/inventory/
   assert.deepEqual(calls.filter(c=>c[0]==='legacy-read'),[['legacy-read','char-a']]);
   assert.deepEqual(calls.filter(c=>c[0]==='legacy-to'),[['legacy-to','char-b','potion',20]]);
   assert.deepEqual(calls.filter(c=>c[0]==='legacy-from'),[['legacy-from','char-a','potion',20]]);
+  const { TownService } = require('../dist/apps/api/src/modules/town/town.service');
+  const real = Object.create(TownService.prototype); real.assertTown=async()=>({id:'char-a'});real.inventoryRepo={count:async()=>14};
+  assert.deepEqual(await real.getWarehouseCapacity('char-a'),{used:14,max:15});
   console.log('town-storage.controller: passed JWT-owned character isolation and valid/invalid row-ID transfer requests');
 })().catch(error=>{console.error(error);process.exit(1)});

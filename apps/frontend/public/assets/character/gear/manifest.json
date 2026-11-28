@@ -51,7 +51,21 @@
     "equip_staff_t3": "staff-skeleton",
     "equip_sword_t1": "sword-medieval",
     "equip_sword_t2": "sword-claymore",
-    "equip_sword_t3": "sword-golden"
+    "equip_sword_t3": "sword-golden",
+    "equip_head_phys_t4": "head-warrior-helmet",
+    "equip_head_magic_t4": "head-magician-hat",
+    "equip_body_phys_t4": "body-handpainted-knight",
+    "equip_body_magic_t4": "body-purple-mage",
+    "equip_cape_phys_t4": "cape-knight",
+    "equip_cape_magic_t4": "cape-king",
+    "equip_sword_t4": "sword-golden",
+    "equip_greatsword_t4": "greatsword-kaykit",
+    "equip_dagger_t4": "dagger-golden",
+    "equip_bow_t4": "bow-evil",
+    "equip_staff_t4": "staff-skeleton",
+    "equip_rod_t4": "rod-orb",
+    "equip_shield_t4": "shield-celtic-golden",
+    "equip_rune_t4": "rune-orb"
   },
   "visuals": {
     "body-dark-knight": {

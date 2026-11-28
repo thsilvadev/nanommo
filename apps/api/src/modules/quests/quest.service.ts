@@ -1,3 +1,4 @@
+import { professionLevelForXp } from '@nanommo/shared';
 import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { REDIS_CLIENT } from '../../config/redis.provider';
@@ -323,9 +324,12 @@ export class QuestService {
   }
   private async consumeRequirements(manager: EntityManager, characterId: string, instanceId: string, requirements: any[]): Promise<void> {
     const repo = manager.getRepository(InventoryItem);
+    const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
     for (const req of requirements) {
       let remaining = Number(req.quantity);
       const rows = await repo.find({ where: { characterId, itemId: req.itemId, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
+      const reserved = [character?.cookingSession, character?.craftingSession].flatMap(session => session?.ingredients ?? []).filter((row: any) => row.itemId === req.itemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
+      if (rows.reduce((sum, row) => sum + Number(row.quantity), 0) - remaining < reserved) throw new BadRequestException('Items are reserved for your active crafting session');
       const def = this.data.getItemById(req.itemId);
       const eligible = rows.filter(row => !def?.questOnly || row.instanceData?.questInstanceId === instanceId);
       if (eligible.reduce((sum, row) => sum + Number(row.quantity), 0) < remaining) throw new BadRequestException(`Missing required item: ${def?.name ?? req.itemId}`);
@@ -410,7 +414,8 @@ export class QuestService {
       character.xp = xp; character.level = level; if (gained) character.unspentAttributePoints = Number(character.unspentAttributePoints ?? 0) + 5 * gained;
       for (const reward of rewards.professionXp ?? []) {
         if (reward.profession === 'gathering') { character.gatheringXp = Math.max(0, Number(character.gatheringXp ?? 0)) + Number(reward.amount); character.gatheringLevel = gatheringLevelForXp(character.gatheringXp); }
-        else if (reward.profession === 'cooking') { character.cookingXp = Math.max(0, Number(character.cookingXp ?? 0)) + Number(reward.amount); character.cookingLevel = this.cookingLevelForXp(Number(character.cookingXp)); }
+        else if (reward.profession === 'cooking') { character.cookingXp = Math.max(0, Number(character.cookingXp ?? 0)) + Number(reward.amount); character.cookingLevel = Math.max(character.cookingLevel ?? 1, professionLevelForXp(Number(character.cookingXp))); }
+        else if (['alchemy','blacksmith'].includes(reward.profession)) { const xpField = reward.profession + 'Xp', levelField = reward.profession + 'Level'; (character as any)[xpField] = Math.max(0, Number((character as any)[xpField] ?? 0)) + Number(reward.amount); (character as any)[levelField] = Math.max(Number((character as any)[levelField] ?? 1), professionLevelForXp((character as any)[xpField])); }
       }
       fresh.status = 'completed'; fresh.completedAt = new Date(); await repo.save(fresh); await manager.getRepository(Character).save(character);
       const completion = quest.completionDialogue;
@@ -422,8 +427,7 @@ export class QuestService {
     if (this.redis) await publishItemsObtainedVia(this.redis, characterId, granted, 'quest').catch(() => undefined);
     return outcome;
   }
-  private cookingThreshold(level: number): number { const known = [0,20,44,78,128,328,828,1578]; if (level <= 1) return 0; if (known[level-1] !== undefined) return known[level-1]; let total=known[known.length-1], increment=known[known.length-1]-known[known.length-2]; for(let current=known.length;current<level;current++){increment=Math.floor(increment*1.5);total+=increment;}return total; }
-  private cookingLevelForXp(xp: number): number { let level=1; while(level<99 && xp>=this.cookingThreshold(level+1)) level++; return level; }
+
 
   async recordTalkAction(manager: EntityManager, characterId: string, npcId: string, objectiveId?: string): Promise<void> {
     const rows = await manager.getRepository(QuestInstance).find({ where: { characterId, status: 'active' }, lock: { mode: 'pessimistic_write' } });

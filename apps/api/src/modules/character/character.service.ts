@@ -1,3 +1,4 @@
+import { professionLevelForXp } from '@nanommo/shared';
 import { containsProhibitedLanguage } from '../moderation/language-filter';
 import { equipmentAffinity, elementalResistances, combatCooldownDurations } from '@nanommo/shared';
 import { Injectable, BadRequestException, NotFoundException, Logger, ConflictException, forwardRef, Inject } from '@nestjs/common';
@@ -309,16 +310,27 @@ export class CharacterService {
     return this.toDto(saved);
   }
 
+  private async reconcileProfessionLevels(character: Character | null): Promise<Character | null> {
+    if (!character) return null;
+    const changes: Record<string, number> = {};
+    for (const profession of ['cooking', 'alchemy', 'blacksmith']) {
+      const field = profession + 'Level';
+      const level = Math.max(Number((character as any)[field] ?? 1), professionLevelForXp(Number((character as any)[profession + 'Xp'] ?? 0)));
+      if (level !== Number((character as any)[field] ?? 1)) { changes[field] = level; (character as any)[field] = level; }
+    }
+    if (Object.keys(changes).length) {
+      const entries = Object.entries(changes);
+      await this.characterRepository.query('UPDATE characters SET ' + entries.map(([field], i) => '"' + field.replace('Level', '_level') + '"=GREATEST("' + field.replace('Level', '_level') + '",$' + (i + 2) + ')').join(',') + ' WHERE id=$1', [character.id, ...entries.map(([, level]) => level)]);
+    }
+    return character;
+  }
+
   async getCharacterByUserId(userId: string): Promise<Character | null> {
-    return this.characterRepository.findOne({
-      where: { userId },
-    });
+    return this.reconcileProfessionLevels(await this.characterRepository.findOne({ where: { userId } }));
   }
 
   async getCharacterById(characterId: string): Promise<Character | null> {
-    return this.characterRepository.findOne({
-      where: { id: characterId },
-    });
+    return this.reconcileProfessionLevels(await this.characterRepository.findOne({ where: { id: characterId } }));
   }
 
   async getWeaponProficiencyByUserId(userId: string): Promise<Array<{ weaponType: string; level: number; xp: number; spentSkillPoints: number; skillRanks: Record<string, number> }>> {

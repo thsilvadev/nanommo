@@ -101,7 +101,7 @@ function execute(input:BattleInputV2,throughTick=Infinity):BattleResultV2 {
     if(type==='heal_hp')target.hp=Math.min(target.maxHp,target.hp+Number(e.amount??0));
     if(type==='heal_sp')target.sp=Math.min(target.maxSp,target.sp+Number(e.amount??0));
     if(type==='heal_hp_sp'){target.hp=Math.min(target.maxHp,target.hp+Number(e.hpAmount??0));target.sp=Math.min(target.maxSp,target.sp+Number(e.spAmount??0));}
-    if(type==='revive_full_cleanse')revive(self,target,100,100,true);
+    if(type==='revive_full_cleanse')revive(self,target,100,input.balanceRulesVersion === 1 ? 0 : 100,true);
     if(type==='revive_ally'||type==='revive_half')revive(self,target,Number(e.hpPercent??50),Number(e.spPercent??50),false);
     if(type==='cure_status'||type==='heal_status')target.statusEffects=(target.statusEffects??[]).filter(s=>statusId(s)!==e.status);
     if(type==='apply_status'&&e.status)applyStatus(self,target,e.status,e.durationSeconds!==undefined?secondsToBattleTicks(e.durationSeconds):undefined,{...Object.fromEntries(['defBonus','mdefPercentBonus','attackSpeedMultiplier','castTimeReductionMultiplier'].filter(k=>e[k]!==undefined).map(k=>[k,Number(e[k])]))});

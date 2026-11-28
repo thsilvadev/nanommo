@@ -11,7 +11,7 @@ const items = JSON.parse(fs.readFileSync(path.join(repo, 'items.json'), 'utf8'))
 const manifest = JSON.parse(fs.readFileSync(path.join(gearDir, 'manifest.json'), 'utf8'));
 
 const wearable = items.filter((i) => i.slot !== 'accessory');
-assert.equal(wearable.length, 50, 'non-accessory equipment count changed: update the gear pipeline');
+assert.equal(wearable.length, 64, 'non-accessory equipment count changed: update the gear pipeline');
 const missing = wearable.filter((i) => !manifest.visuals[manifest.items[i.id]]).map((i) => i.id);
 assert.deepEqual(missing, [], `items without a 3D visual: ${missing.join(', ')}`);
 for (const i of wearable) {

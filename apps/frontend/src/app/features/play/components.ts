@@ -979,7 +979,7 @@ export class VendorPanel implements OnDestroy {
     if(!this.vendor.error()){this.openedMail.set(null);this.mailboxDeleteConfirm.set(false)}
   }
 
-  readonly vendor = inject(VendorStore); readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly character = inject(CharacterStore); readonly slots = Array.from({ length: 10 }, (_, i) => i);
+  readonly vendor = inject(VendorStore); readonly inventory = inject(InventoryStore); readonly catalog = inject(CatalogService); readonly character = inject(CharacterStore); readonly storageSlots = Array.from({ length: 15 }, (_, i) => i); readonly slots = Array.from({ length: 10 }, (_, i) => i);
   readonly storageDropListIds = ['storage-drop-list'];
   private lastTownMapId: string|null = null;
   constructor() {

@@ -1,0 +1,520 @@
+{
+  "cooking": [
+    {
+      "id": "bread",
+      "name": "Bread",
+      "requiredLevel": 1,
+      "ingredients": [
+        {
+          "itemId": "mat_wheat",
+          "quantity": 1
+        }
+      ],
+      "outputItemId": "food_bread",
+      "xpReward": 5,
+      "order": 1
+    },
+    {
+      "id": "blueberry_jelly",
+      "name": "Blueberry Jelly",
+      "requiredLevel": 1,
+      "ingredients": [
+        {
+          "itemId": "mat_wild_blueberries",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "food_blueberry",
+      "xpReward": 5,
+      "order": 2
+    },
+    {
+      "id": "cheese",
+      "name": "Cheese",
+      "requiredLevel": 2,
+      "ingredients": [
+        {
+          "itemId": "mat_milk",
+          "quantity": 3
+        }
+      ],
+      "outputItemId": "food_cheese",
+      "xpReward": 18,
+      "order": 3
+    },
+    {
+      "id": "herbtea",
+      "name": "Herbtea",
+      "requiredLevel": 2,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 4
+        }
+      ],
+      "outputItemId": "food_herbtea",
+      "xpReward": 18,
+      "order": 4
+    },
+    {
+      "id": "honey",
+      "name": "Honey",
+      "requiredLevel": 5,
+      "ingredients": [
+        {
+          "itemId": "mat_honeycomb",
+          "quantity": 5
+        }
+      ],
+      "outputItemId": "food_honey",
+      "xpReward": 20,
+      "order": 5
+    },
+    {
+      "id": "hunters_stew",
+      "name": "Hunter's Stew",
+      "requiredLevel": 6,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 6
+        },
+        {
+          "itemId": "mat_carrot",
+          "quantity": 4
+        },
+        {
+          "itemId": "mat_meat",
+          "quantity": 2
+        },
+        {
+          "itemId": "mat_cooking_oil",
+          "quantity": 1
+        }
+      ],
+      "outputItemId": "food_stew",
+      "xpReward": 25,
+      "order": 6
+    },
+    {
+      "id": "roasted_barbecue",
+      "name": "Roasted Barbecue",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_meat",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_cooking_oil",
+          "quantity": 4
+        }
+      ],
+      "outputItemId": "food_roast",
+      "xpReward": 30,
+      "order": 7
+    }
+  ],
+  "alchemy": [
+    {
+      "id": "elixir",
+      "name": "Elixir",
+      "category": "potions",
+      "requiredLevel": 1,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "elixir_greater",
+      "xpReward": 5,
+      "order": 1
+    },
+    {
+      "id": "greater_elixir",
+      "name": "Greater Elixir",
+      "category": "potions",
+      "requiredLevel": 2,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 4
+        }
+      ],
+      "outputItemId": "greater_elixir",
+      "xpReward": 8,
+      "order": 2
+    },
+    {
+      "id": "mega_elixir",
+      "name": "Mega Elixir",
+      "category": "potions",
+      "requiredLevel": 3,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 6
+        }
+      ],
+      "outputItemId": "mega_elixir",
+      "xpReward": 12,
+      "order": 3
+    },
+    {
+      "id": "fontoura",
+      "name": "Fontoura",
+      "category": "tonics",
+      "requiredLevel": 4,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_ironshroom",
+          "quantity": 1
+        }
+      ],
+      "outputItemId": "tonic_fontoura",
+      "xpReward": 15,
+      "order": 4
+    },
+    {
+      "id": "kombucha",
+      "name": "Kombucha",
+      "category": "tonics",
+      "requiredLevel": 4,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_ashwagandha",
+          "quantity": 1
+        }
+      ],
+      "outputItemId": "tonic_kombucha",
+      "xpReward": 15,
+      "order": 5
+    },
+    {
+      "id": "haste_shot",
+      "name": "Haste Shot",
+      "category": "tonics",
+      "requiredLevel": 5,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_rushroom",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "tonic_haste_shot",
+      "xpReward": 20,
+      "order": 6
+    },
+    {
+      "id": "capo",
+      "name": "Çapó",
+      "category": "tonics",
+      "requiredLevel": 5,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_guarana",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "tonic_capo",
+      "xpReward": 20,
+      "order": 7
+    },
+    {
+      "id": "fairy_in_a_bottle",
+      "name": "Fairy in a Bottle",
+      "category": "super_tonics",
+      "requiredLevel": 10,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 30
+        },
+        {
+          "itemId": "mat_mystic_dust",
+          "quantity": 10
+        }
+      ],
+      "outputItemId": "fairy_in_a_bottle",
+      "xpReward": 30,
+      "order": 8
+    },
+    {
+      "id": "antidote",
+      "name": "Antidote",
+      "category": "potions",
+      "requiredLevel": 1,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "antidote",
+      "xpReward": 5,
+      "order": 9
+    },
+    {
+      "id": "sapupema_tea",
+      "name": "Sapupema Leaf Tea",
+      "category": "super_tonics",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_herbs",
+          "quantity": 25
+        },
+        {
+          "itemId": "mat_sapupema_leaf",
+          "quantity": 8
+        }
+      ],
+      "outputItemId": "super_tonic_sapupema_tea",
+      "xpReward": 25,
+      "order": 10
+    }
+  ],
+  "blacksmith": [
+    {
+      "id": "bronze_ingot",
+      "name": "Bronze Ingot",
+      "requiredLevel": 1,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ore",
+          "quantity": 5
+        }
+      ],
+      "outputItemId": "mat_bronze_ingot",
+      "xpReward": 5,
+      "order": 1
+    },
+    {
+      "id": "head_phys_t2",
+      "name": "Reinforced Helm",
+      "requiredLevel": 2,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "equip_head_phys_t2",
+      "xpReward": 6,
+      "order": 2
+    },
+    {
+      "id": "head_magic_t2",
+      "name": "Reinforced Arcane Helm",
+      "requiredLevel": 2,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 2
+        }
+      ],
+      "outputItemId": "equip_head_magic_t2",
+      "xpReward": 6,
+      "order": 3
+    },
+    {
+      "id": "cape_phys_t2",
+      "name": "Reinforced Cape",
+      "requiredLevel": 3,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 3
+        }
+      ],
+      "outputItemId": "equip_cape_phys_t2",
+      "xpReward": 7,
+      "order": 4
+    },
+    {
+      "id": "cape_magic_t2",
+      "name": "Reinforced Arcane Cape",
+      "requiredLevel": 3,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 3
+        }
+      ],
+      "outputItemId": "equip_cape_magic_t2",
+      "xpReward": 7,
+      "order": 5
+    },
+    {
+      "id": "body_phys_t2",
+      "name": "Reinforced Chestplate",
+      "requiredLevel": 4,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 4
+        }
+      ],
+      "outputItemId": "equip_body_phys_t2",
+      "xpReward": 8,
+      "order": 6
+    },
+    {
+      "id": "body_magic_t2",
+      "name": "Reinforced Arcane Chestplate",
+      "requiredLevel": 4,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 4
+        }
+      ],
+      "outputItemId": "equip_body_magic_t2",
+      "xpReward": 8,
+      "order": 7
+    },
+    {
+      "id": "traveler_boots_t1",
+      "name": "Traveler's Boots",
+      "requiredLevel": 5,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 5
+        }
+      ],
+      "outputItemId": "equip_shoes_traveler_t1",
+      "xpReward": 9,
+      "order": 8
+    },
+    {
+      "id": "sword_t2",
+      "name": "Reinforced Sword",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_sword_t2",
+      "xpReward": 10,
+      "order": 9
+    },
+    {
+      "id": "greatsword_t2",
+      "name": "Reinforced Greatsword",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_greatsword_t2",
+      "xpReward": 10,
+      "order": 10
+    },
+    {
+      "id": "dagger_t2",
+      "name": "Reinforced Dagger",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_dagger_t2",
+      "xpReward": 10,
+      "order": 11
+    },
+    {
+      "id": "bow_t2",
+      "name": "Reinforced Bow",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_bow_t2",
+      "xpReward": 10,
+      "order": 12
+    },
+    {
+      "id": "staff_t2",
+      "name": "Reinforced Staff",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_staff_t2",
+      "xpReward": 10,
+      "order": 13
+    },
+    {
+      "id": "rod_t2",
+      "name": "Reinforced Rod",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_rod_t2",
+      "xpReward": 10,
+      "order": 14
+    },
+    {
+      "id": "shield_t2",
+      "name": "Reinforced Shield",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_shield_t2",
+      "xpReward": 10,
+      "order": 15
+    },
+    {
+      "id": "rune_t2",
+      "name": "Runed Rune",
+      "requiredLevel": 7,
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        }
+      ],
+      "outputItemId": "equip_rune_t2",
+      "xpReward": 10,
+      "order": 16
+    }
+  ]
+}

@@ -63,6 +63,10 @@
         {
           "itemId": "equip_shoes_traveler_t1",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.05
         }
       ],
       "gambit": [
@@ -154,6 +158,10 @@
         {
           "itemId": "equip_shoes_traveler_t1",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.05
         }
       ],
       "gambit": [
@@ -238,6 +246,10 @@
         {
           "itemId": "equip_shoes_traveler_t1",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.1
         }
       ],
       "gambit": [
@@ -333,6 +345,10 @@
         {
           "itemId": "equip_shoes_traveler_t1",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_wood",
+          "chance": 0.05
         }
       ],
       "gambit": [
@@ -418,6 +434,10 @@
         {
           "itemId": "equip_shoes_traveler_t1",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.15
         }
       ],
       "gambit": [
@@ -506,6 +526,10 @@
         {
           "itemId": "equip_shoes_traveler_t1",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_leather",
+          "chance": 0.15
         }
       ],
       "gambit": [
@@ -601,6 +625,10 @@
         {
           "itemId": "equip_shoes_traveler_t1",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_leather",
+          "chance": 0.1
         }
       ],
       "gambit": [
@@ -685,6 +713,14 @@
         {
           "itemId": "equip_shoes_traveler_t1",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_leather",
+          "chance": 0.2
+        },
+        {
+          "itemId": "mat_meat",
+          "chance": 0.05
         }
       ],
       "gambit": [
@@ -769,6 +805,10 @@
         {
           "itemId": "equip_shoes_traveler_t1",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.05
         }
       ],
       "gambit": [
@@ -905,6 +945,10 @@
         {
           "itemId": "equip_rune_t2",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_leather",
+          "chance": 0.1
         }
       ],
       "gambit": [
@@ -1033,6 +1077,10 @@
         {
           "itemId": "equip_rune_t2",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.05
         }
       ],
       "gambit": [
@@ -1165,6 +1213,10 @@
         {
           "itemId": "equip_rune_t2",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_leather",
+          "chance": 0.15
         }
       ],
       "gambit": [
@@ -1296,6 +1348,10 @@
         {
           "itemId": "equip_rune_t2",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_silkthread",
+          "chance": 0.2
         }
       ],
       "gambit": [
@@ -1424,6 +1480,10 @@
         {
           "itemId": "equip_rune_t2",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_leather",
+          "chance": 0.1
         }
       ],
       "gambit": [
@@ -1551,6 +1611,10 @@
         {
           "itemId": "equip_rune_t2",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_leather",
+          "chance": 0.1
         }
       ],
       "gambit": [
@@ -1690,6 +1754,10 @@
         {
           "itemId": "equip_rune_t2",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_leather",
+          "chance": 0.1
         }
       ],
       "gambit": [
@@ -1829,6 +1897,10 @@
         {
           "itemId": "equip_rune_t2",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.2
         }
       ],
       "gambit": [
@@ -1957,6 +2029,10 @@
         {
           "itemId": "equip_rune_t2",
           "chance": 0.001
+        },
+        {
+          "itemId": "mat_wood",
+          "chance": 0.15
         }
       ],
       "gambit": [
@@ -2107,6 +2183,14 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_silkthread",
+          "chance": 0.1
+        },
+        {
+          "itemId": "mat_meat",
+          "chance": 0.05
         }
       ],
       "gambit": [
@@ -2254,6 +2338,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_silkthread",
+          "chance": 0.1
         }
       ],
       "gambit": [
@@ -2402,6 +2490,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_silkthread",
+          "chance": 0.2
         }
       ],
       "gambit": [
@@ -2538,6 +2630,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_wood",
+          "chance": 0.2
         }
       ],
       "gambit": [
@@ -2677,6 +2773,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_silkthread",
+          "chance": 0.15
         }
       ],
       "gambit": [
@@ -2813,6 +2913,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_leather",
+          "chance": 0.2
         }
       ],
       "gambit": [
@@ -2949,6 +3053,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.1
         }
       ],
       "gambit": [
@@ -3113,6 +3221,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_wood",
+          "chance": 0.2
         }
       ],
       "gambit": [
@@ -3259,6 +3371,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_wood",
+          "chance": 0.2
         }
       ],
       "gambit": [
@@ -3395,6 +3511,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.1
         }
       ],
       "gambit": [
@@ -3541,6 +3661,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.15
         }
       ],
       "gambit": [
@@ -3688,6 +3812,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.15
         }
       ],
       "gambit": [
@@ -3832,6 +3960,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_glue",
+          "chance": 0.15
         }
       ],
       "gambit": [
@@ -3968,6 +4100,10 @@
         {
           "itemId": "equip_shoes_holy_t4",
           "chance": 5e-05
+        },
+        {
+          "itemId": "mat_silkthread",
+          "chance": 0.15
         }
       ],
       "gambit": [

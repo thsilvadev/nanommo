@@ -245,36 +245,42 @@ export class DataService implements OnModuleInit {
     const mapIds = new Set<string>();
     const coordinates = new Set<string>();
     const exactGatheringAllowList = new Map<string, Set<string>>([
-      ['map_green_grounds_0', new Set(['mat_wheat', 'mat_milk'])],
-      ['map_green_grounds_1', new Set(['mat_cabbage', 'mat_carrot', 'mat_honeycomb'])],
-      ['map_green_grounds_2', new Set(['mat_cabbage', 'mat_carrot'])],
-      ['map_green_grounds_3', new Set(['mat_wheat'])],
-      ['map_green_grounds_4', new Set(['mat_sugar', 'mat_honeycomb'])],
-      ['map_green_grounds_5', new Set(['mat_sugar'])],
-      ['map_menace_hills_0', new Set(['mat_wild_blueberries'])],
-      ['map_menace_hills_1', new Set(['mat_wild_blueberries'])],
-      ['map_menace_hills_3', new Set(['mat_wild_blueberries'])],
-      ['map_ipora_beach_0', new Set(['mat_cooking_oil'])],
-      ['map_ipora_beach_1', new Set(['mat_cooking_oil'])],
-      ['map_wastelands_0', new Set(['mat_bronze_ore'])],
-      ['map_wastelands_1', new Set(['mat_bronze_ore'])],
-      ['map_wastelands_2', new Set(['mat_bronze_ore'])],
-      ['map_menace_hills_2', new Set(['mat_bronze_ore'])],
+      ['map_green_grounds_0', new Set(["mat_wheat", "mat_milk"])],
+      ['map_green_grounds_1', new Set(["mat_carrot", "mat_cabbage", "mat_honeycomb"])],
+      ['map_green_grounds_2', new Set(["mat_wild_blueberries", "mat_honeycomb"])],
+      ['map_green_grounds_3', new Set(["mat_wheat"])],
+      ['map_green_grounds_4', new Set(["mat_sugar", "mat_honeycomb"])],
+      ['map_green_grounds_5', new Set(["mat_sugar", "mat_cooking_oil"])],
+      ['map_ipora_beach_0', new Set(["mat_cooking_oil", "mat_sugar"])],
+      ['map_ipora_beach_1', new Set(["mat_cooking_oil", "mat_sugar"])],
+      ['map_kwaioua_forest_0', new Set(["mat_herbs", "mat_ashwagandha"])],
+      ['map_kwaioua_forest_1', new Set(["mat_herbs", "mat_ashwagandha", "mat_sapupema_leaf"])],
+      ['map_kwaioua_forest_2', new Set(["mat_herbs", "mat_ironshroom"])],
+      ['map_kwaioua_forest_3', new Set(["mat_herbs", "mat_ironshroom"])],
+      ['map_kwaioua_forest_4', new Set(["mat_herbs", "mat_ironshroom", "mat_ashwagandha"])],
+      ['map_kwaioua_forest_5', new Set(["mat_herbs", "mat_rushroom", "mat_guarana"])],
+      ['map_kwaioua_forest_6', new Set(["mat_herbs", "mat_rushroom"])],
+      ['map_kwaioua_forest_7', new Set(["mat_herbs", "mat_guarana"])],
+      ['map_caete_0', new Set(["mat_sapupema_leaf"])],
+      ['map_caete_1', new Set(["mat_sapupema_leaf", "mat_herbs"])],
+      ['map_caete_2', new Set(["mat_sapupema_leaf", "mat_herbs"])],
+      ['map_caete_3', new Set(["mat_herbs", "mat_sapupema_leaf"])],
+      ['map_caete_4', new Set(["mat_herbs", "mat_sapupema_leaf"])],
+      ['map_caete_5', new Set(["mat_herbs"])],
+      ['map_caete_6', new Set(["mat_sapupema_leaf", "mat_herbs"])],
+      ['map_caete_7', new Set(["mat_herbs", "mat_sapupema_leaf"])],
+      ['map_forest_ruins_0', new Set(["mat_herbs", "mat_mystic_dust"])],
+      ['map_forest_ruins_1', new Set(["mat_herbs", "mat_mystic_dust"])],
+      ['map_forest_ruins_2', new Set(["mat_herbs", "mat_mystic_dust"])],
+      ['map_forest_ruins_3', new Set(["mat_mystic_dust"])],
+      ['map_menace_hills_0', new Set(["mat_bronze_ore", "mat_coal"])],
+      ['map_menace_hills_1', new Set(["mat_bronze_ore"])],
+      ['map_menace_hills_2', new Set(["mat_bronze_ore", "mat_coal"])],
+      ['map_menace_hills_3', new Set(["mat_bronze_ore", "mat_coal"])],
+      ['map_wastelands_0', new Set(["mat_bronze_ore"])],
+      ['map_wastelands_1', new Set(["mat_bronze_ore", "mat_coal"])],
+      ['map_wastelands_2', new Set(["mat_coal"])],
     ]);
-    for (const map of maps) {
-      if (/^map_kwaioua_forest_[0-7]$/.test(String(map.id)) || /^map_forest_ruins_[0-3]$/.test(String(map.id)) || /^map_caete_[0-7]$/.test(String(map.id))) {
-        const regionalResources: Record<string, string[]> = {
-          map_kwaioua_forest_0: ['mat_herbs', 'mat_ashwagandha'], map_kwaioua_forest_1: ['mat_herbs', 'mat_ashwagandha'],
-          map_kwaioua_forest_2: ['mat_herbs', 'mat_ironshroom'], map_kwaioua_forest_3: ['mat_herbs', 'mat_ironshroom'],
-          map_kwaioua_forest_4: ['mat_herbs', 'mat_ironshroom', 'mat_ashwagandha'],
-          map_kwaioua_forest_5: ['mat_herbs', 'mat_rushroom', 'mat_guarana'], map_kwaioua_forest_6: ['mat_herbs', 'mat_rushroom'],
-          map_kwaioua_forest_7: ['mat_herbs', 'mat_guarana'],
-          map_caete_0: ['mat_herbs', 'mat_mystic_dust'], map_caete_1: ['mat_herbs', 'mat_mystic_dust'],
-          map_caete_2: ['mat_herbs', 'mat_mystic_dust'], map_caete_6: ['mat_herbs', 'mat_mystic_dust', 'mat_sapupema_leaf'],
-        };
-        exactGatheringAllowList.set(String(map.id), new Set(regionalResources[String(map.id)] ?? ['mat_herbs']));
-      }
-    }
     for (const map of maps) {
       if (!map?.id || mapIds.has(map.id)) throw new Error(`Duplicate or missing map ID: ${map?.id}`);
       mapIds.add(map.id);
@@ -336,7 +342,7 @@ export class DataService implements OnModuleInit {
         if (label === 'Alchemy' && this.getItemById(recipe.outputItemId)?.type !== 'consumable') throw new Error('Alchemy outputs must be consumables: ' + recipe.id);
         if (label === 'Alchemy' && !['potions', 'tonics', 'super_tonics'].includes(String(recipe.category))) throw new Error('Alchemy recipe has invalid category: ' + recipe.id);
         if (label === 'Alchemy' && this.getItemById(recipe.outputItemId)?.alchemyCategory !== recipe.category) throw new Error('Alchemy recipe category differs from output: ' + recipe.id);
-        if (label === 'Alchemy' && recipe.ingredients.some((ingredient: any) => this.getItemById(ingredient.itemId)?.type !== 'material')) throw new Error('Alchemy ingredients must be materials: ' + recipe.id);
+        if (label === 'Alchemy' && recipe.ingredients.some((ingredient: any) => !['material', 'monster_part'].includes(String(this.getItemById(ingredient.itemId)?.type)) || this.getItemById(ingredient.itemId)?.questOnly === true)) throw new Error('Alchemy ingredients must be materials or non-quest monster parts: ' + recipe.id);
         if (label === 'Blacksmith' && !['material', 'equipment'].includes(String(this.getItemById(recipe.outputItemId)?.type))) throw new Error('Blacksmith output must be a material/equipment: ' + recipe.id);
         for (const ingredient of recipe.ingredients) if (!validItemIds.has(String(ingredient.itemId)) || !Number.isInteger(Number(ingredient.quantity)) || Number(ingredient.quantity) < 1) throw new Error(label + ' recipe has invalid ingredient: ' + recipe.id);
       }

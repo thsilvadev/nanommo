@@ -1,3 +1,4 @@
+import { pendingCraftsFit, projectedGrant } from '../inventory/crafting-reservation';
 import { Injectable, BadRequestException, NotFoundException, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { DataSource, EntityManager, LessThan, MoreThan } from 'typeorm';
 import { MailMessage } from '../../database/entities/mail-message.entity';
@@ -116,7 +117,7 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
         if (!definition) throw new NotFoundException('Item definition not found');
         if (definition.questOnly === true) throw new BadRequestException('Quest-only items cannot be attached to Mail');
         const rows = await manager.getRepository(InventoryItem).find({ where: { characterId: senderId, itemId: attachedItemId, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
-        const reserved = (sender.cookingSession?.ingredients ?? []).filter((row: any) => row.itemId === attachedItemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
+        const reserved = [sender.cookingSession, sender.craftingSession].flatMap(session => session?.ingredients ?? []).filter((row: any) => row.itemId === attachedItemId).reduce((sum: number, row: any) => sum + Number(row.quantity), 0);
         itemRow = attachedInventoryItemId ? rows.find(row => row.id === attachedInventoryItemId) ?? null : rows.find(row => row.quantity >= quantity) ?? null;
         if (!itemRow || itemRow.quantity < quantity) throw new BadRequestException('Selected attachment stack does not contain the requested quantity');
         if (itemRow.instanceData?.questReward?.marketTradable === false) throw new BadRequestException('Quest-reward items cannot be attached to Mail');
@@ -216,17 +217,9 @@ export class MailService implements OnModuleInit, OnModuleDestroy {
           remaining -= add;
         }
         // Preserve the free slot (or merge room) reserved for an active Cooking output.
-        if (character.cookingSession) {
-          const projected = rows.map(row => ({ id: row.id, itemId: row.itemId, quantity: Number(row.quantity) }));
-          for (const placement of placements) {
-            if (placement.row) {
-              const projectedRow = projected.find(row => row.id === placement.row!.id);
-              if (projectedRow) projectedRow.quantity += placement.quantity;
-            } else projected.push({ id: '', itemId: mail.itemId!, quantity: placement.quantity });
-          }
-          const output = this.dataService.getItemById(character.cookingSession.outputItemId);
-          const outputCanMerge = !!output?.stackable && projected.some(row => row.itemId === output.id && row.quantity < Number(output.maxStack ?? 1));
-          if (!outputCanMerge && projected.length >= 50) throw new BadRequestException('Inventory space is reserved for your active Cooking session');
+        if (character.cookingSession || character.craftingSession) {
+          const projected = projectedGrant(rows, definition, quantity, mail.itemInstanceData);
+          if (!projected || !pendingCraftsFit(this.dataService, projected, character)) throw new BadRequestException('Inventory space is reserved for your active crafting session');
         }
         // All capacity is checked before any gold or item is transferred.
         for (const placement of placements) {

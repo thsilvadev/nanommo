@@ -1,3 +1,7 @@
+import { pendingCraftsFit, projectedGrant } from '../inventory/crafting-reservation';
+import { recipeVersion, sessionRecipeMatches } from './recipe-version';
+import { professionThreshold, professionLevelForXp, professionProgressForXp } from '@nanommo/shared';
+import { safeNpcSellPrice, instanceNpcPayment, craftOriginFor } from './npc-price-policy';
 import { ChatService } from '../chat/chat.service';
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -7,7 +11,7 @@ import { InventoryItem } from '../../database/entities/inventory-item.entity';
 import { DataService } from '../data/data.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { CharacterService } from '../character/character.service';
-import { TOWN_MAP_ID } from '@nanommo/shared';
+import { TOWN_MAP_ID, WAREHOUSE_SLOTS } from '@nanommo/shared';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { createHash, randomUUID } from 'crypto';
@@ -73,10 +77,26 @@ export class TownService {
     if (!vendor.buysAnyItem) throw new BadRequestException('Vendor does not buy items');
     const item = this.item(itemId);
     const base = Number(item.marketBasePrice ?? item.sellPriceToVendor ?? 0);
-    const price = Math.floor(base * vendor.buyRatePercent / 100);
+    const rawCatalog = this.dataService.getNpcCatalog();
+    const vendors = [this.dataService.getNpcVendor(), ...(rawCatalog?.npcs ?? []).map((npc: any) => npc.vendor)].filter(Boolean);
+    let cheapest: number | null = null;
+    for (const source of vendors) {
+      for (const entry of source.sellStock ?? []) {
+        if (entry.itemId !== itemId || entry.infiniteStock !== true) continue;
+        const buy = Number(entry.priceFromItem ? item.marketBasePrice ?? item.sellPriceToVendor ?? 0 : entry.price);
+        if (!Number.isSafeInteger(buy) || buy <= 0) throw new BadRequestException('Vendor price is invalid');
+        cheapest = cheapest === null ? buy : Math.min(cheapest, buy);
+      }
+    }
+    const price = safeNpcSellPrice(Math.floor(base * vendor.buyRatePercent / 100), cheapest);
     if (!Number.isSafeInteger(price) || price <= 0) throw new BadRequestException('Item has no valid vendor sell value');
     return price;
   }
+
+  private instanceSellPrice(vendor: Vendor, itemId: string, metadata: any): number {
+    return instanceNpcPayment(this.dataService, itemId, metadata, vendor.buyRatePercent);
+  }
+  private craftOrigin(recipe: any, rows: InventoryItem[]): any { return craftOriginFor(this.dataService, recipe, rows); }
 
   private async characterForTown(manager: EntityManager, characterId: string): Promise<Character> {
     const character = await manager.getRepository(Character).findOne({
@@ -93,7 +113,7 @@ export class TownService {
     const rows = await manager.getRepository(InventoryItem).find({ where: { characterId, location: 'inventory', itemId }, lock: { mode: 'pessimistic_write' } });
     let remaining = quantity;
     if (item.stackable) {
-      for (const row of rows) remaining = Math.max(0, remaining - Math.max(0, Number(item.maxStack ?? remaining) - row.quantity));
+      for (const row of rows.filter(row => !row.instanceData)) remaining = Math.max(0, remaining - Math.max(0, Number(item.maxStack ?? remaining) - row.quantity));
     }
     if (remaining <= 0) return true;
     const used = await manager.getRepository(InventoryItem).count({ where: { characterId, location: 'inventory' } });
@@ -103,21 +123,17 @@ export class TownService {
 
   private async addInventoryAtomic(manager: EntityManager, characterId: string, itemId: string, quantity: number) {
     const character = await manager.getRepository(Character).findOne({ where: { id: characterId }, lock: { mode: 'pessimistic_write' } });
-    const active = character?.cookingSession ?? character?.craftingSession;
-    if (active) {
-      const output = this.item(active.outputItemId);
-      const rows = await manager.getRepository(InventoryItem).find({ where: { characterId, location: 'inventory' } });
-      const granted = this.item(itemId);
-      const rowCountAfter = rows.length + (granted.stackable && rows.some(row => row.itemId === itemId && row.quantity < Number(granted.maxStack ?? 1)) ? 0 : Math.ceil(quantity / Number(granted.maxStack ?? 1)));
-      const outputCanMerge = output.stackable && rows.some(row => row.itemId === output.id && row.quantity < Number(output.maxStack ?? 1)) && !(itemId === output.id && rowCountAfter > rows.length);
-      if (!outputCanMerge && rowCountAfter >= INVENTORY_SLOTS) throw new BadRequestException('Inventory space is reserved for your active crafting session');
+    if (character?.cookingSession || character?.craftingSession) {
+      const current = await manager.getRepository(InventoryItem).find({ where: { characterId, location: 'inventory' } });
+      const projected = projectedGrant(current, this.item(itemId), quantity);
+      if (!projected || !pendingCraftsFit(this.dataService, projected, character)) throw new BadRequestException('Inventory space is reserved for your active crafting session');
     }
     const item = this.item(itemId);
     let remaining = quantity;
     const repo = manager.getRepository(InventoryItem);
     const rows = await repo.find({ where: { characterId, location: 'inventory', itemId }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
     if (item.stackable) {
-      for (const row of rows) {
+      for (const row of rows.filter(row => !row.instanceData)) {
         const room = Number(item.maxStack ?? 1) - row.quantity;
         if (room <= 0) continue;
         const add = Math.min(room, remaining);
@@ -185,17 +201,19 @@ export class TownService {
     }));
   }
 
-  async getVendorQuote(characterId: string, vendorId: string, itemId: string) {
+  async getVendorQuote(characterId: string, vendorId: string, itemId: string, sourceInventoryItemId?: string) {
     await this.assertTown(characterId);
     const v = this.vendor(vendorId);
     if (vendorId !== v.id) throw new NotFoundException('Vendor not found');
     const item = this.item(itemId);
     const buyEntry = v.sellStock.find(x => x.itemId === itemId);
+    const source = sourceInventoryItemId ? await this.inventoryRepo.findOne({ where: { id: sourceInventoryItemId, characterId, itemId, location: 'inventory' } }) : null;
+    if (sourceInventoryItemId && !source) throw new BadRequestException('Selected inventory stack no longer exists');
     return {
       vendorId: v.id,
       itemId,
       buyPrice: buyEntry ? this.buyPrice(v, itemId) : null,
-      sellPrice: v.buysAnyItem ? this.sellPrice(v, itemId) : null,
+      sellPrice: v.buysAnyItem ? this.instanceSellPrice(v, itemId, source?.instanceData) : null,
       stackable: Boolean(item.stackable),
       maxStack: Number(item.maxStack ?? 1),
     };
@@ -230,12 +248,22 @@ export class TownService {
     const v = this.vendor(vendorId);
     const item = this.item(itemId);
     if (!item.stackable && quantity !== 1) throw new BadRequestException('Non-stackable items can only be sold one at a time');
-    const unitPrice = this.sellPrice(v, itemId);
-    const total = unitPrice * quantity;
-    if (!Number.isSafeInteger(total)) throw new BadRequestException('Transaction total is invalid');
-
     return this.characterRepo.manager.transaction(async manager => {
       const character = await this.characterForTown(manager, characterId);
+      const rows = await manager.getRepository(InventoryItem).find({ where: { characterId, itemId, location: 'inventory' }, order: { slotIndex: 'ASC' }, lock: { mode: 'pessimistic_write' } });
+      const selected = sourceInventoryItemId ? rows.filter(row => row.id === sourceInventoryItemId) : rows;
+      if (sourceInventoryItemId && !selected.length) throw new BadRequestException('Selected inventory stack no longer exists; reload and retry');
+      if (sourceInventoryItemId && quantity > Number(selected[0].quantity)) throw new BadRequestException('Sale quantity exceeds the selected stack');
+      let remaining = quantity, total = 0;
+      for (const row of selected) {
+        const take = Math.min(remaining, Number(row.quantity));
+        total += take * this.instanceSellPrice(v, itemId, row.instanceData);
+        remaining -= take;
+        if (!remaining) break;
+      }
+      if (remaining) throw new BadRequestException('Insufficient selected item quantity');
+      if (!Number.isSafeInteger(total)) throw new BadRequestException('Transaction total is invalid');
+      const unitPrice = total / quantity;
       await this.removeInventoryAtomic(manager, characterId, itemId, quantity, sourceInventoryItemId);
       character.gold = Math.min(Number(character.gold) + total, GOLD_CAP);
       await manager.getRepository(Character).save(character);
@@ -398,28 +426,9 @@ export class TownService {
     return { npcId: npc.id, types: npc.types, name: npc.name };
   }
 
-  private cookingThresholds(): number[] { return [0, 20, 44, 78, 128, 328, 828, 1578]; }
-
-  private cookingLevelForXp(xpValue: number): number {
-    const xp = Math.max(0, Number(xpValue) || 0);
-    let level = 1;
-    while (level < 99 && xp >= this.cookingThreshold(level + 1)) level++;
-    return level;
-  }
-
-  private cookingThreshold(level: number): number {
-    const known = this.cookingThresholds(); if (level <= 1) return 0; if (known[level - 1] !== undefined) return known[level - 1];
-    let total = known[known.length - 1], increment = known[known.length - 1] - known[known.length - 2];
-    for (let current = known.length; current < level; current++) { increment = Math.floor(increment * 1.5); total += increment; }
-    return total;
-  }
-
-  private cookingProgress(character: Character) {
-    const xp = Math.max(0, Number(character.cookingXp ?? 0));
-    const level = this.cookingLevelForXp(xp);
-    const current = this.cookingThreshold(level); const next = this.cookingThreshold(level + 1);
-    return { level, xp, totalXp: xp, xpIntoLevel: xp - current, xpToNextLevel: next - current, nextLevelXp: next, progressPercent: Math.max(0, Math.min(100, (xp - current) / Math.max(1, next - current) * 100)) };
-  }
+  private cookingLevelForXp(xp: number): number { return professionLevelForXp(xp); }
+  private cookingThreshold(level: number): number { return professionThreshold(level); }
+  private cookingProgress(character: Character) { return professionProgressForXp(Number(character.cookingXp ?? 0), Number(character.cookingLevel ?? 1)); }
 
   private async cookingState(manager: EntityManager, character: Character) {
     const recipes = this.dataService.getCookingRecipes()?.recipes ?? [];
@@ -436,27 +445,37 @@ export class TownService {
       const output = this.item(recipe.outputItemId);
       const hasIngredients = ingredients.every((req: any) => req.available >= Number(req.quantity));
       const maxByIngredients = ingredients.length ? Math.min(...ingredients.map((req: any) => Math.floor(req.available / Math.max(1, Number(req.quantity))))) : 0;
-      const maxCookQuantity = Math.max(0, Math.min(99, maxByIngredients, this.maxReservableOutputQuantity(rows, output)));
-      const canReserveOutput = this.canReserveCapacity(rows, output);
+      const maxCookQuantity = Math.max(0, Math.min(99, maxByIngredients, this.maxReservableOutputQuantity(rows, output, recipe)));
+      const canReserveOutput = this.maxReservableOutputQuantity(rows, output, recipe) > 0;
       return { ...recipe, output, ingredients, maxCookQuantity, unlocked: progress.level >= recipe.requiredLevel, hasIngredients, canReserveOutput, available: character.currentMapId === TOWN_MAP_ID && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition && progress.level >= recipe.requiredLevel && maxCookQuantity >= 1 && canReserveOutput && !session && !character.craftingSession };
     });
     return { characterId: character.id, progress, recipes: recipeStates, session, otherSessionActive: !!character.craftingSession };
   }
 
-  private maxReservableOutputQuantity(rows: InventoryItem[], item: any): number {
+  private maxReservableOutputQuantity(rows: InventoryItem[], item: any, recipe: any): number {
     if (!item) return 0;
-    const freeSlots = Math.max(0, INVENTORY_SLOTS - rows.length);
-    if (!item.stackable) return freeSlots;
-    const maxStack = Math.max(1, Number(item.maxStack ?? 1));
-    const existingRoom = rows.filter(row => row.itemId === item.id).reduce((sum, row) => sum + Math.max(0, maxStack - Number(row.quantity)), 0);
-    return existingRoom + freeSlots * maxStack;
-  }
-
-  private canReserveCapacity(rows: InventoryItem[], item: any): boolean {
-    if (item?.stackable) {
-      if (rows.some(row => row.itemId === item.id && row.quantity < Number(item.maxStack ?? 1))) return true;
+    const projected: any[] = rows.map(row => ({ ...row, quantity: Number(row.quantity) }));
+    const maxStack = item.stackable ? Math.max(1, Number(item.maxStack ?? 1)) : 1;
+    let completed = 0;
+    for (; completed < 99; completed++) {
+      if (recipe.ingredients.some((req: any) => projected.filter(row => row.itemId === req.itemId).reduce((sum, row) => sum + row.quantity, 0) < req.quantity)) break;
+      const origin = this.craftOrigin(recipe, projected);
+      for (const req of recipe.ingredients) {
+        let remaining = Number(req.quantity);
+        for (const row of projected.filter(row => row.itemId === req.itemId).sort((a, b) => a.slotIndex - b.slotIndex)) {
+          const take = Math.min(remaining, row.quantity); row.quantity -= take; remaining -= take;
+          if (!row.quantity) projected.splice(projected.indexOf(row), 1);
+          if (!remaining) break;
+        }
+      }
+      const merge = item.stackable && projected.find(row => row.itemId === item.id && row.quantity < maxStack && JSON.stringify(row.instanceData ?? null) === JSON.stringify(origin));
+      if (merge) merge.quantity++;
+      else {
+        if (projected.length >= INVENTORY_SLOTS) break;
+        projected.push({ itemId: item.id, quantity: 1, slotIndex: 50 + completed, instanceData: origin });
+      }
     }
-    return rows.length < INVENTORY_SLOTS;
+    return completed;
   }
 
   private cookingJobId(characterId: string, session: any): string {
@@ -494,7 +513,7 @@ export class TownService {
       const candidate = state.recipes.find((row: any) => row.id === recipeId);
       if (!candidate?.unlocked) throw new BadRequestException('Cooking level too low for this recipe');
       if (quantity > Number(candidate?.maxCookQuantity ?? 0)) throw new BadRequestException('Not enough ingredients or inventory capacity for that Cooking batch');
-      const now = new Date(); const session = { id: randomUUID(), generation: randomUUID(), recipeId, quantity, completedQuantity: 0, startedAt: now.toISOString(), completesAt: new Date(now.getTime() + 10_000).toISOString(), ingredients: recipe.ingredients.map((req: any) => ({ itemId: req.itemId, quantity: Number(req.quantity) * quantity })), outputItemId: recipe.outputItemId };
+      const now = new Date(); const session = { id: randomUUID(), generation: randomUUID(), recipeVersion: recipeVersion(recipe), recipeId, quantity, completedQuantity: 0, startedAt: now.toISOString(), completesAt: new Date(now.getTime() + 10_000).toISOString(), ingredients: recipe.ingredients.map((req: any) => ({ itemId: req.itemId, quantity: Number(req.quantity) * quantity })), outputItemId: recipe.outputItemId };
       character.cookingSession = session; await manager.getRepository(Character).save(character);
       return { character, session };
     }));
@@ -536,6 +555,8 @@ export class TownService {
     for (const character of characters) {
       const session = character.cookingSession;
       if (!session?.id || !session.completesAt) continue;
+      const current = (this.dataService.getCookingRecipes()?.recipes ?? []).find((row: any) => row.id === session.recipeId);
+      if (!sessionRecipeMatches(session, current, 'cooking')) { await this.completeCooking(character.id, session.id); continue; }
       const jobId = this.cookingJobId(character.id, session);
       const job = await this.bullQueue.getJob(jobId).catch(() => null);
       if (!job) await this.scheduleCookingCompletion(character.id, session);
@@ -550,6 +571,8 @@ export class TownService {
       if (!character) throw new NotFoundException('Character not found');
       const session = character.cookingSession;
       if (!session || session.id !== sessionId) return null;
+      const currentRecipe = (this.dataService.getCookingRecipes()?.recipes ?? []).find((row: any) => row.id === session.recipeId);
+      if (!sessionRecipeMatches(session, currentRecipe, 'cooking')) { character.cookingSession = null; await characterRepo.save(character); return null; }
       if (Date.now() < Date.parse(session.completesAt)) return null;
       const previousLevel = Math.max(1, Number(character.cookingLevel ?? 1));
       const recipe = (this.dataService.getCookingRecipes()?.recipes ?? []).find((row: any) => row.id === session.recipeId);
@@ -558,10 +581,11 @@ export class TownService {
       const rows = await invRepo.find({ where: { characterId, location: 'inventory' }, lock: { mode: 'pessimistic_write' } });
       const totals = new Map<string, number>(); for (const row of rows) totals.set(row.itemId, (totals.get(row.itemId) ?? 0) + Number(row.quantity));
       for (const req of recipe.ingredients ?? []) if ((totals.get(req.itemId) ?? 0) < Number(req.quantity)) throw new BadRequestException(`Reserved ingredient missing: ${req.itemId}`);
+      const origin = this.craftOrigin(recipe, rows);
       for (const req of recipe.ingredients ?? []) await this.inventoryService.removeItem(characterId, req.itemId, Number(req.quantity), manager, true);
-      await this.inventoryService.addItem(characterId, session.outputItemId, 1, 'inventory', undefined, manager, true);
+      await this.inventoryService.addItem(characterId, session.outputItemId, 1, 'inventory', origin, manager, true);
       character.cookingXp = Number(character.cookingXp ?? 0) + Number(recipe.xpReward);
-      character.cookingLevel = this.cookingLevelForXp(character.cookingXp);
+      character.cookingLevel = Math.max(Number(character.cookingLevel ?? 1), this.cookingLevelForXp(character.cookingXp));
       const totalQuantity = Math.max(1, Number(session.quantity ?? 1));
       const completedQuantity = Math.max(0, Number(session.completedQuantity ?? 0)) + 1;
       let nextSession: any = null;
@@ -599,11 +623,7 @@ export class TownService {
 
   private professionProgress(character: Character, profession: 'alchemy' | 'blacksmith') {
     const fields = this.professionFields(profession);
-    const xp = Math.max(0, Number((character as any)[fields.xpField] ?? 0));
-    const level = Math.max(1, Number((character as any)[fields.levelField] ?? 1));
-    const current = this.cookingThreshold(level), next = this.cookingThreshold(level + 1);
-    return { level, xp, totalXp: xp, xpIntoLevel: Math.max(0, xp - current), xpToNextLevel: next - current, nextLevelXp: next,
-      progressPercent: Math.max(0, Math.min(100, (xp - current) / Math.max(1, next - current) * 100)) };
+    return professionProgressForXp(Number((character as any)[fields.xpField] ?? 0), Number((character as any)[fields.levelField] ?? 1));
   }
 
   private assertProfessionNpc(character: Character, npcId: string, profession: 'alchemy' | 'blacksmith'): any {
@@ -633,11 +653,11 @@ export class TownService {
         available: Math.max(0, (totals.get(req.itemId) ?? 0) - Number(reserved[req.itemId] ?? 0)), item: this.item(req.itemId) }));
       const output = this.item(recipe.outputItemId);
       const hasIngredients = ingredients.every((req: any) => req.available >= Number(req.quantity));
-      const canReserveOutput = this.canReserveCapacity(rows, output);
+      const canReserveOutput = this.maxReservableOutputQuantity(rows, output, recipe) > 0;
       const maxByIngredients = ingredients.length ? Math.min(...ingredients.map((req: any) => Math.floor(req.available / Math.max(1, Number(req.quantity))))) : 0;
-      const maxCraftQuantity = Math.max(0, Math.min(99, maxByIngredients, this.maxReservableOutputQuantity(rows, output)));
+      const maxCraftQuantity = Math.max(0, Math.min(99, maxByIngredients, this.maxReservableOutputQuantity(rows, output, recipe)));
       return { ...recipe, output, ingredients, maxCraftQuantity, unlocked: progress.level >= Number(recipe.requiredLevel), hasIngredients, canReserveOutput,
-        available: !active && !character.cookingSession && !character.craftingSession && maxCraftQuantity >= 1 && this.dataService.getMapById(character.currentMapId)?.type === 'town' && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition
+        available: recipe.availability !== 'future' && !active && !character.cookingSession && !character.craftingSession && maxCraftQuantity >= 1 && this.dataService.getMapById(character.currentMapId)?.type === 'town' && character.status === 'town' && !character.travelIntent && !character.pendingMapTransition
           && progress.level >= Number(recipe.requiredLevel) && hasIngredients && canReserveOutput };
     });
     return { characterId: character.id, npcId, profession, progress, recipes, session: active, otherSessionActive: !!character.cookingSession || !!(character.craftingSession && !active) };
@@ -663,6 +683,7 @@ export class TownService {
     const fields = this.professionFields(profession);
     const recipe = fields.recipes.find((row: any) => row.id === recipeId);
     if (!recipe) throw new BadRequestException('Unknown ' + fields.label + ' recipe');
+    if (recipe.availability === 'future') throw new BadRequestException('This recipe is future content and is not available');
     const result = await this.battleService.withCharacterQueueLock(characterId, () => this.characterRepo.manager.transaction(async manager => {
       const character = await this.characterForTown(manager, characterId);
       this.assertProfessionNpc(character, npcId, profession);
@@ -673,7 +694,7 @@ export class TownService {
       if (quantity > Number(candidate?.maxCraftQuantity ?? 0)) throw new BadRequestException('Not enough ingredients or inventory capacity for that batch');
 
       const now = new Date();
-      const session = { id: randomUUID(), generation: randomUUID(), profession, npcId, recipeId, quantity, startedAt: now.toISOString(),
+      const session = { id: randomUUID(), generation: randomUUID(), recipeVersion: recipeVersion(recipe), profession, npcId, recipeId, quantity, startedAt: now.toISOString(),
         completesAt: new Date(now.getTime() + 10_000).toISOString(),
         ingredients: recipe.ingredients.map((req: any) => ({ itemId: req.itemId, quantity: Number(req.quantity) * quantity })),
         outputItemId: recipe.outputItemId, outputQuantity: quantity, xpReward: Number(recipe.xpReward) * quantity };
@@ -717,6 +738,8 @@ export class TownService {
     for (const character of characters) {
       const session = character.craftingSession;
       if (!session?.id || !session.completesAt) continue;
+      const current = this.professionFields(session.profession).recipes.find((row: any) => row.id === session.recipeId);
+      if (!sessionRecipeMatches(session, current, session.profession)) { await this.completeCrafting(character.id, session.id); continue; }
       const jobId = 'crafting-' + character.id + '-' + session.id;
       const job = await this.bullQueue.getJob(jobId).catch(() => null);
       if (!job) await this.scheduleCraftingCompletion(character.id, session);
@@ -731,6 +754,8 @@ export class TownService {
       if (!character) throw new NotFoundException('Character not found');
       const session = character.craftingSession;
       if (!session || session.id !== sessionId) return null;
+      const candidateRecipe = this.professionFields(session.profession).recipes.find((row: any) => row.id === session.recipeId);
+      if (!sessionRecipeMatches(session, candidateRecipe, session.profession)) { character.craftingSession = null; await characterRepo.save(character); return null; }
       if (Date.now() < Date.parse(session.completesAt)) return null;
       const profession = session.profession as 'alchemy' | 'blacksmith';
       if (profession !== 'alchemy' && profession !== 'blacksmith') throw new BadRequestException('Unknown crafting profession');
@@ -742,6 +767,7 @@ export class TownService {
       const totals = new Map<string, number>();
       for (const row of rows) totals.set(row.itemId, (totals.get(row.itemId) ?? 0) + Number(row.quantity));
       for (const req of recipe.ingredients ?? []) if ((totals.get(req.itemId) ?? 0) < Number(req.quantity)) throw new BadRequestException('Reserved ingredient missing: ' + req.itemId);
+      const origin = this.craftOrigin(recipe, rows);
       for (const req of recipe.ingredients ?? []) await this.inventoryService.removeItem(characterId, req.itemId, Number(req.quantity), manager, true);
       const output = this.item(session.outputItemId);
       let instanceData: any = null;
@@ -754,12 +780,12 @@ export class TownService {
           instanceData = { rolledAttribute: pool[digest.readUInt32BE(0) % pool.length], rolledValue: min + digest.readUInt32BE(4) % (max - min + 1), craftedByProfession: profession, craftedRecipeId: recipe.id };
         }
       }
-      await this.inventoryService.addItem(characterId, session.outputItemId, 1, 'inventory', instanceData, manager, true);
+      await this.inventoryService.addItem(characterId, session.outputItemId, 1, 'inventory', { ...instanceData, ...origin }, manager, true);
       const knownItems = Array.isArray(character.knownItemIds) ? character.knownItemIds : [];
       if (!knownItems.includes(session.outputItemId)) character.knownItemIds = [...knownItems, session.outputItemId];
       const previousLevel = Math.max(1, Number((character as any)[fields.levelField] ?? 1));
       (character as any)[fields.xpField] = Number((character as any)[fields.xpField] ?? 0) + Number(recipe.xpReward ?? 0);
-      (character as any)[fields.levelField] = this.cookingLevelForXp(Number((character as any)[fields.xpField]));
+      (character as any)[fields.levelField] = Math.max(previousLevel, this.cookingLevelForXp(Number((character as any)[fields.xpField])));
       const total = Math.max(1, Number(session.quantity ?? session.outputQuantity ?? 1));
       const completedQuantity = Number(session.completedQuantity ?? 0) + 1;
       let nextSession: any = null;
@@ -782,7 +808,7 @@ export class TownService {
   }
 
   async getWarehouse(characterId: string): Promise<InventoryItem[]> { await this.assertTown(characterId); return this.inventoryRepo.find({ where: { characterId, location: 'warehouse' }, order: { slotIndex: 'ASC' } }); }
-  async getWarehouseCapacity(characterId: string) { await this.assertTown(characterId); const used = await this.inventoryRepo.count({ where: { characterId, location: 'warehouse' } }); return { used, max: 10 }; }
+  async getWarehouseCapacity(characterId: string) { await this.assertTown(characterId); const used = await this.inventoryRepo.count({ where: { characterId, location: 'warehouse' } }); return { used, max: WAREHOUSE_SLOTS }; }
   async depositToWarehouse(characterId: string, itemId: string, quantity: number) { await this.assertTown(characterId); return this.inventoryService.transferToWarehouse(characterId, itemId, quantity); }
   async withdrawFromWarehouse(characterId: string, itemId: string, quantity: number) { await this.assertTown(characterId); return this.inventoryService.transferFromWarehouse(characterId, itemId, quantity); }
   async transferWarehouseRow(characterId: string, rowId: string, direction: 'deposit' | 'withdraw') {

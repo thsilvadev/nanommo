@@ -7,96 +7,16 @@
       "ingredients": [
         {
           "itemId": "mat_bronze_ore",
-          "quantity": 5
+          "quantity": 3
+        },
+        {
+          "itemId": "mat_coal",
+          "quantity": 1
         }
       ],
       "outputItemId": "mat_bronze_ingot",
       "xpReward": 5,
       "order": 1
-    },
-    {
-      "id": "head_phys_t2",
-      "name": "Reinforced Helm",
-      "requiredLevel": 2,
-      "ingredients": [
-        {
-          "itemId": "mat_bronze_ingot",
-          "quantity": 2
-        }
-      ],
-      "outputItemId": "equip_head_phys_t2",
-      "xpReward": 6,
-      "order": 2
-    },
-    {
-      "id": "head_magic_t2",
-      "name": "Reinforced Arcane Helm",
-      "requiredLevel": 2,
-      "ingredients": [
-        {
-          "itemId": "mat_bronze_ingot",
-          "quantity": 2
-        }
-      ],
-      "outputItemId": "equip_head_magic_t2",
-      "xpReward": 6,
-      "order": 3
-    },
-    {
-      "id": "cape_phys_t2",
-      "name": "Reinforced Cape",
-      "requiredLevel": 3,
-      "ingredients": [
-        {
-          "itemId": "mat_bronze_ingot",
-          "quantity": 3
-        }
-      ],
-      "outputItemId": "equip_cape_phys_t2",
-      "xpReward": 7,
-      "order": 4
-    },
-    {
-      "id": "cape_magic_t2",
-      "name": "Reinforced Arcane Cape",
-      "requiredLevel": 3,
-      "ingredients": [
-        {
-          "itemId": "mat_bronze_ingot",
-          "quantity": 3
-        }
-      ],
-      "outputItemId": "equip_cape_magic_t2",
-      "xpReward": 7,
-      "order": 5
-    },
-    {
-      "id": "body_phys_t2",
-      "name": "Reinforced Chestplate",
-      "requiredLevel": 4,
-      "ingredients": [
-        {
-          "itemId": "mat_bronze_ingot",
-          "quantity": 4
-        }
-      ],
-      "outputItemId": "equip_body_phys_t2",
-      "xpReward": 8,
-      "order": 6
-    },
-    {
-      "id": "body_magic_t2",
-      "name": "Reinforced Arcane Chestplate",
-      "requiredLevel": 4,
-      "ingredients": [
-        {
-          "itemId": "mat_bronze_ingot",
-          "quantity": 4
-        }
-      ],
-      "outputItemId": "equip_body_magic_t2",
-      "xpReward": 8,
-      "order": 7
     },
     {
       "id": "traveler_boots_t1",
@@ -110,119 +30,1329 @@
       ],
       "outputItemId": "equip_shoes_traveler_t1",
       "xpReward": 9,
+      "order": 2
+    },
+    {
+      "id": "shield_t1",
+      "name": "Oak Shield",
+      "requiredLevel": 1,
+      "xpReward": 15,
+      "outputItemId": "equip_shield_t1",
+      "ingredients": [
+        {
+          "itemId": "mat_wood",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 1
+        }
+      ],
+      "order": 3
+    },
+    {
+      "id": "head_phys_t2",
+      "name": "Bronze Helm",
+      "requiredLevel": 2,
+      "xpReward": 40,
+      "outputItemId": "equip_head_phys_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 4
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 1
+        },
+        {
+          "itemId": "part_gravelhorn_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 4
+    },
+    {
+      "id": "head_phys_t3",
+      "name": "Dreaded Warrior's Helm",
+      "requiredLevel": 8,
+      "xpReward": 500,
+      "outputItemId": "equip_head_phys_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_ridgebreaker_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 5
+    },
+    {
+      "id": "head_phys_t4",
+      "name": "Ironbound Dreaded Warrior's Helm",
+      "requiredLevel": 12,
+      "xpReward": 1700,
+      "outputItemId": "equip_head_phys_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 16
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 15
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_brokensentinel_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 6
+    },
+    {
+      "id": "head_magic_t2",
+      "name": "Crimson Wizard Hat",
+      "requiredLevel": 2,
+      "xpReward": 40,
+      "outputItemId": "equip_head_magic_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 3
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 1
+        },
+        {
+          "itemId": "part_gravelhorn_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 7
+    },
+    {
+      "id": "head_magic_t3",
+      "name": "Archmage's Hat",
+      "requiredLevel": 8,
+      "xpReward": 500,
+      "outputItemId": "equip_head_magic_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 7
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 20
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_ridgebreaker_rare",
+          "quantity": 3
+        }
+      ],
       "order": 8
     },
     {
-      "id": "sword_t2",
-      "name": "Reinforced Sword",
-      "requiredLevel": 7,
+      "id": "head_magic_t4",
+      "name": "Ironbound Archmage's Hat",
+      "requiredLevel": 12,
+      "xpReward": 1700,
+      "outputItemId": "equip_head_magic_t4",
       "ingredients": [
         {
-          "itemId": "mat_bronze_ingot",
+          "itemId": "mat_iron_ingot",
+          "quantity": 15
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 30
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_brokensentinel_rare",
           "quantity": 7
         }
       ],
-      "outputItemId": "equip_sword_t2",
-      "xpReward": 10,
+      "availability": "future",
       "order": 9
     },
     {
-      "id": "greatsword_t2",
-      "name": "Reinforced Greatsword",
-      "requiredLevel": 7,
+      "id": "body_phys_t2",
+      "name": "Plate Armor",
+      "requiredLevel": 4,
+      "xpReward": 90,
+      "outputItemId": "equip_body_phys_t2",
       "ingredients": [
         {
           "itemId": "mat_bronze_ingot",
-          "quantity": 7
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_mudcrawler_rare",
+          "quantity": 1
         }
       ],
-      "outputItemId": "equip_greatsword_t2",
-      "xpReward": 10,
       "order": 10
     },
     {
-      "id": "dagger_t2",
-      "name": "Reinforced Dagger",
-      "requiredLevel": 7,
+      "id": "body_phys_t3",
+      "name": "Dark Knight's Armor",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_body_phys_t3",
       "ingredients": [
         {
           "itemId": "mat_bronze_ingot",
-          "quantity": 7
+          "quantity": 12
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_mirageStalker_rare",
+          "quantity": 3
         }
       ],
-      "outputItemId": "equip_dagger_t2",
-      "xpReward": 10,
       "order": 11
     },
     {
-      "id": "bow_t2",
-      "name": "Reinforced Bow",
-      "requiredLevel": 7,
+      "id": "body_phys_t4",
+      "name": "Ironbound Dark Knight's Armor",
+      "requiredLevel": 14,
+      "xpReward": 2800,
+      "outputItemId": "equip_body_phys_t4",
       "ingredients": [
         {
-          "itemId": "mat_bronze_ingot",
+          "itemId": "mat_iron_ingot",
+          "quantity": 24
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 15
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 4
+        },
+        {
+          "itemId": "part_cindergolem_rare",
           "quantity": 7
         }
       ],
-      "outputItemId": "equip_bow_t2",
-      "xpReward": 10,
+      "availability": "future",
       "order": 12
     },
     {
-      "id": "staff_t2",
-      "name": "Reinforced Staff",
-      "requiredLevel": 7,
+      "id": "body_magic_t2",
+      "name": "Crimson Mage's Robe",
+      "requiredLevel": 4,
+      "xpReward": 90,
+      "outputItemId": "equip_body_magic_t2",
       "ingredients": [
         {
           "itemId": "mat_bronze_ingot",
           "quantity": 7
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_mudcrawler_rare",
+          "quantity": 1
         }
       ],
-      "outputItemId": "equip_staff_t2",
-      "xpReward": 10,
       "order": 13
     },
     {
-      "id": "rod_t2",
-      "name": "Reinforced Rod",
-      "requiredLevel": 7,
+      "id": "body_magic_t3",
+      "name": "Archmage's Robe",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_body_magic_t3",
       "ingredients": [
         {
           "itemId": "mat_bronze_ingot",
-          "quantity": 7
+          "quantity": 11
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 20
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_mirageStalker_rare",
+          "quantity": 3
         }
       ],
-      "outputItemId": "equip_rod_t2",
-      "xpReward": 10,
       "order": 14
     },
     {
-      "id": "shield_t2",
-      "name": "Reinforced Shield",
-      "requiredLevel": 7,
+      "id": "body_magic_t4",
+      "name": "Ironbound Archmage's Robe",
+      "requiredLevel": 14,
+      "xpReward": 2800,
+      "outputItemId": "equip_body_magic_t4",
       "ingredients": [
         {
-          "itemId": "mat_bronze_ingot",
+          "itemId": "mat_iron_ingot",
+          "quantity": 23
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 30
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 4
+        },
+        {
+          "itemId": "part_cindergolem_rare",
           "quantity": 7
         }
       ],
-      "outputItemId": "equip_shield_t2",
-      "xpReward": 10,
+      "availability": "future",
       "order": 15
     },
     {
-      "id": "rune_t2",
-      "name": "Runed Rune",
-      "requiredLevel": 7,
+      "id": "cape_phys_t2",
+      "name": "Barbarian's War Cape",
+      "requiredLevel": 3,
+      "xpReward": 60,
+      "outputItemId": "equip_cape_phys_t2",
       "ingredients": [
         {
           "itemId": "mat_bronze_ingot",
+          "quantity": 2
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 1
+        },
+        {
+          "itemId": "part_duneraider_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 16
+    },
+    {
+      "id": "cape_phys_t3",
+      "name": "Knight's Royal Cape",
+      "requiredLevel": 9,
+      "xpReward": 660,
+      "outputItemId": "equip_cape_phys_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 4
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_flamingtreant_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 17
+    },
+    {
+      "id": "cape_phys_t4",
+      "name": "Ironbound Knight's Royal Cape",
+      "requiredLevel": 13,
+      "xpReward": 2200,
+      "outputItemId": "equip_cape_phys_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 15
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_wraith_rare",
           "quantity": 7
         }
       ],
+      "availability": "future",
+      "order": 18
+    },
+    {
+      "id": "cape_magic_t2",
+      "name": "Mage's Mantle",
+      "requiredLevel": 3,
+      "xpReward": 60,
+      "outputItemId": "equip_cape_magic_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 1
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 1
+        },
+        {
+          "itemId": "part_duneraider_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 19
+    },
+    {
+      "id": "cape_magic_t3",
+      "name": "Archmage's Sigil Cape",
+      "requiredLevel": 9,
+      "xpReward": 660,
+      "outputItemId": "equip_cape_magic_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 3
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 20
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_flamingtreant_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 20
+    },
+    {
+      "id": "cape_magic_t4",
+      "name": "Ironbound Archmage's Sigil Cape",
+      "requiredLevel": 13,
+      "xpReward": 2200,
+      "outputItemId": "equip_cape_magic_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 7
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 30
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_wraith_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 21
+    },
+    {
+      "id": "sword_t2",
+      "name": "Gilded Sword",
+      "requiredLevel": 7,
+      "xpReward": 270,
+      "outputItemId": "equip_sword_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 3
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_direwolf_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 22
+    },
+    {
+      "id": "sword_t3",
+      "name": "Royal Sword",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_sword_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 12
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_giantmantis_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 23
+    },
+    {
+      "id": "sword_t4",
+      "name": "Ironbound Royal Sword",
+      "requiredLevel": 15,
+      "xpReward": 3600,
+      "outputItemId": "equip_sword_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 24
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 4
+        },
+        {
+          "itemId": "part_boneknight_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 24
+    },
+    {
+      "id": "greatsword_t2",
+      "name": "Katana",
+      "requiredLevel": 7,
+      "xpReward": 270,
+      "outputItemId": "equip_greatsword_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_gravelhorn_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 25
+    },
+    {
+      "id": "greatsword_t3",
+      "name": "Royal Greatsword",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_greatsword_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 16
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_rootboundbrute_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 26
+    },
+    {
+      "id": "greatsword_t4",
+      "name": "Ironbound Royal Greatsword",
+      "requiredLevel": 15,
+      "xpReward": 3600,
+      "outputItemId": "equip_greatsword_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 32
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 12
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 4
+        },
+        {
+          "itemId": "part_cindergolem_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 27
+    },
+    {
+      "id": "dagger_t2",
+      "name": "Gilded Dagger",
+      "requiredLevel": 7,
+      "xpReward": 270,
+      "outputItemId": "equip_dagger_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 6
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 3
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_sandscorpion_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 28
+    },
+    {
+      "id": "dagger_t3",
+      "name": "Royal Dagger",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_dagger_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_venomviper_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 29
+    },
+    {
+      "id": "dagger_t4",
+      "name": "Ironbound Royal Dagger",
+      "requiredLevel": 15,
+      "xpReward": 3600,
+      "outputItemId": "equip_dagger_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 20
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 4
+        },
+        {
+          "itemId": "part_wraith_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 30
+    },
+    {
+      "id": "bow_t2",
+      "name": "Gilded Bow",
+      "requiredLevel": 7,
+      "xpReward": 270,
+      "outputItemId": "equip_bow_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 4
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_thornsprout_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 31
+    },
+    {
+      "id": "bow_t3",
+      "name": "Elite Crimson Bow",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_bow_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 6
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_rootboundbrute_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 32
+    },
+    {
+      "id": "bow_t4",
+      "name": "Ironbound Elite Crimson Bow",
+      "requiredLevel": 15,
+      "xpReward": 3600,
+      "outputItemId": "equip_bow_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 12
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 15
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 15
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 4
+        },
+        {
+          "itemId": "part_sacredforestguardian_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 33
+    },
+    {
+      "id": "staff_t2",
+      "name": "High Order's Pole of Plainness",
+      "requiredLevel": 7,
+      "xpReward": 270,
+      "outputItemId": "equip_staff_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 4
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_giantspider_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 34
+    },
+    {
+      "id": "staff_t3",
+      "name": "Ancient Dark Wizzard's Staff",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_staff_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 6
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_arcanewisp_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 35
+    },
+    {
+      "id": "staff_t4",
+      "name": "Ironbound Ancient Dark Wizzard's Staff",
+      "requiredLevel": 15,
+      "xpReward": 3600,
+      "outputItemId": "equip_staff_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 12
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 15
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 4
+        },
+        {
+          "itemId": "part_ruinsguardian_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 36
+    },
+    {
+      "id": "rod_t2",
+      "name": "Sapphire Rod",
+      "requiredLevel": 7,
+      "xpReward": 270,
+      "outputItemId": "equip_rod_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 3
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 3
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 2
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_venomviper_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 37
+    },
+    {
+      "id": "rod_t3",
+      "name": "Runebound Rod",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_rod_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 4
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_moonleafarcanist_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 38
+    },
+    {
+      "id": "rod_t4",
+      "name": "Ironbound Runebound Rod",
+      "requiredLevel": 15,
+      "xpReward": 3600,
+      "outputItemId": "equip_rod_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 6
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 4
+        },
+        {
+          "itemId": "part_wraith_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 39
+    },
+    {
+      "id": "shield_t2",
+      "name": "Knight's Shield",
+      "requiredLevel": 7,
+      "xpReward": 270,
+      "outputItemId": "equip_shield_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 2
+        },
+        {
+          "itemId": "mat_wood",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_gravelhorn_common",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_ridgebreaker_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 40
+    },
+    {
+      "id": "shield_t3",
+      "name": "Royal Shield",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_shield_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 16
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_ridgebreaker_common",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_sacredforestguardian_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 41
+    },
+    {
+      "id": "shield_t4",
+      "name": "Ironbound Royal Shield",
+      "requiredLevel": 15,
+      "xpReward": 3600,
+      "outputItemId": "equip_shield_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 24
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 4
+        },
+        {
+          "itemId": "part_ridgebreaker_common",
+          "quantity": 5
+        },
+        {
+          "itemId": "part_brokensentinel_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 42
+    },
+    {
+      "id": "rune_t2",
+      "name": "Crimson Rune",
+      "requiredLevel": 7,
+      "xpReward": 270,
       "outputItemId": "equip_rune_t2",
-      "xpReward": 10,
-      "order": 16
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 1
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 4
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_slime_common",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_slime_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 43
+    },
+    {
+      "id": "rune_t3",
+      "name": "Violet Rune",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_rune_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 3
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_slime_common",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_unicorn_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 44
+    },
+    {
+      "id": "rune_t4",
+      "name": "Ironbound Violet Rune",
+      "requiredLevel": 15,
+      "xpReward": 3600,
+      "outputItemId": "equip_rune_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 12
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 4
+        },
+        {
+          "itemId": "part_slime_common",
+          "quantity": 5
+        },
+        {
+          "itemId": "part_ruinsguardian_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 45
+    },
+    {
+      "id": "shoes_earth_t2",
+      "name": "Earthly Boots",
+      "requiredLevel": 5,
+      "xpReward": 135,
+      "outputItemId": "equip_shoes_earth_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 2
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 5
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 1
+        },
+        {
+          "itemId": "part_giantspider_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 46
+    },
+    {
+      "id": "shoes_fire_t3",
+      "name": "Ember Greaves",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_shoes_fire_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 4
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_giantmantis_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 47
+    },
+    {
+      "id": "shoes_wind_t4",
+      "name": "Storm Shoes",
+      "requiredLevel": 15,
+      "xpReward": 3600,
+      "outputItemId": "equip_shoes_wind_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 8
+        },
+        {
+          "itemId": "mat_leather",
+          "quantity": 15
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_ruinsguardian_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 48
+    },
+    {
+      "id": "shoes_water_t2",
+      "name": "Tide Boots",
+      "requiredLevel": 5,
+      "xpReward": 135,
+      "outputItemId": "equip_shoes_water_t2",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 1
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 10
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 1
+        },
+        {
+          "itemId": "part_giantspider_rare",
+          "quantity": 1
+        }
+      ],
+      "order": 49
+    },
+    {
+      "id": "shoes_shadow_t3",
+      "name": "Umbral Boots",
+      "requiredLevel": 10,
+      "xpReward": 880,
+      "outputItemId": "equip_shoes_shadow_t3",
+      "ingredients": [
+        {
+          "itemId": "mat_bronze_ingot",
+          "quantity": 3
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 20
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 2
+        },
+        {
+          "itemId": "part_giantmantis_rare",
+          "quantity": 3
+        }
+      ],
+      "order": 50
+    },
+    {
+      "id": "shoes_holy_t4",
+      "name": "Sacred Boots",
+      "requiredLevel": 15,
+      "xpReward": 3600,
+      "outputItemId": "equip_shoes_holy_t4",
+      "ingredients": [
+        {
+          "itemId": "mat_iron_ingot",
+          "quantity": 7
+        },
+        {
+          "itemId": "mat_silkthread",
+          "quantity": 30
+        },
+        {
+          "itemId": "mat_glue",
+          "quantity": 3
+        },
+        {
+          "itemId": "part_ruinsguardian_rare",
+          "quantity": 7
+        }
+      ],
+      "availability": "future",
+      "order": 51
     }
   ]
 }

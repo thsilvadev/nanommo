@@ -1,3 +1,4 @@
+import { deathXpLoss } from '@nanommo/shared';
 import { equipmentElementSnapshot } from '@nanommo/shared';
 import { forwardRef, Inject, Injectable, Logger, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
 import { AsyncLocalStorage } from 'async_hooks';
@@ -1295,7 +1296,9 @@ export class BattleService {
         }
       }
 
-      if (battle.outcome === 'loss') {
+      if (battle.log?.finalCharacterCooldowns && typeof battle.log.finalCharacterCooldowns === 'object') character.consumableCooldowns = battle.log.finalCharacterCooldowns;
+
+      if (battle.hpAfter <= 0) {
         this.applyResolvedFoodState(character, battle);
         // The immutable battle owns every globally aligned 10-second regen boundary through endAt.
         // Advance the off-battle checkpoint before the death path resets HP to 1.
@@ -1315,6 +1318,27 @@ export class BattleService {
           committedConsumptions,
           autoFedItems: [],
         };
+      }
+
+      if (battle.outcome === 'loss') {
+        // Stalemate/exhaustion with a living final actor is not a death or a victory.
+        character.hpCurrent = Math.max(1, battle.hpAfter);
+        character.spCurrent = Math.max(0, battle.spAfter);
+        this.applyResolvedFoodState(character, battle);
+        this.advanceResourceRegenCheckpoint(character, battle.endAt);
+        character.status = 'town';
+        character.currentMapId = character.savedTownMapId ?? TOWN_MAP_ID;
+        character.travelIntent = null;
+        character.pendingMapTransition = null;
+        const pending = await battleRepo.find({ where: { characterId: character.id, resolved: false } });
+        const discardedBattleIds = pending.filter(entry => entry.id !== battle.id).map(entry => entry.id);
+        if (discardedBattleIds.length) await battleRepo.delete({ id: In(discardedBattleIds) });
+        await characterRepo.save(character);
+        battle.resolved = true;
+        await battleRepo.save(battle);
+        await this.encounterClocks?.consumeProjection(battle, manager);
+        return { alreadyResolved: false as const, kind: 'survived-loss' as const, battle, character,
+          previousMapId: battle.mapId, discardedBattleIds, committedConsumptions };
       }
 
       // --- XP and combat result
@@ -1537,6 +1561,11 @@ export class BattleService {
       }
     }
 
+    if (result.kind === 'survived-loss') {
+      await this.safePublishBattleResolved(result.character.id, result.battle);
+      return true;
+    }
+
     if (result.kind === 'death') {
       await this.safePublishBattleResolved(result.character.id, result.battle);
       await this.safePublishCharacterDied(result.character.id, result.deathLog);
@@ -1652,6 +1681,7 @@ export class BattleService {
           statusEffectDefs: Object.fromEntries(this.dataService.getStatusEffects().map((status: any) => [status.id, status])),
           regenTickOffset: Number(start.regenTickOffset ?? 0),
           stopAfterTick: targetTick,
+          balanceRulesVersion: battle.log?.header?.balanceRulesVersion ?? 0,
           ...(battle.log?.header?.engineVersion === 2 ? { persistedInput: battle.log?.header?.v2Input } : {}),
         },
       );
@@ -1712,6 +1742,10 @@ export class BattleService {
 
       character.hpCurrent = Math.max(1, Math.min(Number(checkpoint.hp), Number(start.snapshot.maxHp)));
       character.spCurrent = Math.max(0, Math.min(Number(checkpoint.sp), Number(start.snapshot.maxSp)));
+      character.consumableCooldowns = Object.fromEntries(Object.entries(checkpoint.cooldowns ?? {}).flatMap(([key, value]) => {
+        const ticks = Math.max(0, Math.floor(Number(value)));
+        return ticks > 0 ? [[key, new Date(timestamp + ticks * battleTickDurationMs).toISOString()]] : [];
+      }));
       character.activeTempBuffs = (character.activeTempBuffs ?? []).filter((buff: any) => {
         const expiry = Date.parse(String(buff?.expiresAt ?? buff?.endsAt ?? ''));
         return !Number.isFinite(expiry) || expiry > timestamp;
@@ -2072,9 +2106,10 @@ export class BattleService {
     character.fleeAttemptIndex = 0;
     character.lastSeenAt = new Date();
     character.hpCurrent = 1;
+    character.spCurrent = 0;
     character.pendingMapTransition = null;
 
-    const xpLoss = Math.floor(this.dataService.getXpToNextLevel(character.level) * 0.05);
+    const xpLoss = deathXpLoss(this.dataService.getXpToNextLevel(character.level), Number(character.xp));
     character.xp = Math.max(0, Number(character.xp) - xpLoss);
     character.lastDeathLog = {
       monsterId: battle.monsterId,

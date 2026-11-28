@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const {planBalanceCutover}=require('../dist/apps/api/src/maintenance/balance-cutover');
+const {recipeVersion}=require('../dist/apps/api/src/modules/town/recipe-version');
+const catalogs=Object.fromEntries(['cooking','alchemy','blacksmith'].map(p=>[p,require('../../../'+p+'_recipes.json')]));
+const bread=catalogs.cooking.recipes.find(r=>r.id==='bread');
+const old={cooking_level:1,cooking_xp:3558,alchemy_level:20,alchemy_xp:0,blacksmith_level:1,blacksmith_xp:0,cooking_session:{id:'old',recipeId:'bread',outputItemId:'food_bread'},crafting_session:null};
+const before=structuredClone(old),patch=planBalanceCutover(old,catalogs);
+assert.deepEqual(old,before,'dry run does not mutate state');
+assert.deepEqual(patch,{cooking_level:10,cooking_session:null});
+assert.deepEqual(planBalanceCutover({...old,...patch},catalogs),{},'second application is a no-op');
+const current={...old,...patch,cooking_session:{recipeId:'bread',recipeVersion:recipeVersion(bread)}};
+assert.deepEqual(planBalanceCutover(current,catalogs),{},'current version is retained');
+console.log('Cutover dry-run planning: non-mutating, monotonic levels, cancellation and idempotence passed');

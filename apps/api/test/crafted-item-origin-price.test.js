@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict');
+const {TownService}=require('../dist/apps/api/src/modules/town/town.service');
+const {craftedNpcSellPrice}=require('../dist/apps/api/src/modules/town/npc-price-policy');
+(async()=>{
+ assert.equal(typeof craftedNpcSellPrice,'function','crafted price policy required');
+ assert.equal(craftedNpcSellPrice(100,4160),105);
+ assert.equal(craftedNpcSellPrice(2000,4160),1040);
+ assert.equal(craftedNpcSellPrice(26,null),27);
+ const defs={ingredient:{id:'ingredient',marketBasePrice:250},gear:{id:'gear',type:'equipment',droppedBy:['mob'],stackable:false,marketBasePrice:10400}};
+ const data={getBlacksmithRecipes:()=>({recipes:[{id:'gear',outputItemId:'gear',ingredients:[{itemId:'ingredient',quantity:1}]}]}),getItemById:id=>defs[id],getNpcVendor:()=>({id:'william',location:'town',buysAnyItem:true,buyRatePercent:40,sellStock:[]}),getNpcCatalog:()=>({npcs:[]}),getMapById:()=>({type:'town'})};
+ const c={id:'c',gold:0,status:'town',currentMapId:'town',pendingMapTransition:null};
+ const rows=[{id:'crafted',itemId:'gear',quantity:1,instanceData:{origin:'crafted',craftedRecipeId:'gear',npcSellValueAtCraft:105}}];
+ const inv={find:async()=>rows,save:async x=>x,remove:async x=>rows.splice(rows.indexOf(x),1)};
+ const chars={findOne:async()=>c,save:async x=>x};
+ const manager={getRepository:e=>e.name==='Character'?chars:inv};
+ chars.manager={transaction:async work=>work(manager)};
+ const service=new TownService(chars,inv,data,{}, {},{},{});
+ const result=await service.sellToVendor('c','william','gear',1,'crafted');
+ assert.equal(result.goldReceived,105);assert.equal(c.gold,105);assert.equal(rows.length,0);
+ assert.equal(service.sellPrice(service.vendor(),'gear'),4160,'drop income unchanged');
+ console.log('Crafted instance sale transaction and price caps passed');
+})().catch(e=>{console.error(e);process.exitCode=1});

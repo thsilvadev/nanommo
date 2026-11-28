@@ -1,0 +1,2780 @@
+{
+  "date": "2026-11-27",
+  "purpose": "Baseline de preços e taxas anteriores ao update, não evidência de implementação.",
+  "catalog_sha256": {
+    "items.json": "8b4261fe149eda9a1d0067ef31c71f3aa6247225c50c16644d3547389e6be635",
+    "monsters.json": "e93d5b270e22f050908018ebb6aea59b71d0c3940bed4fc38b907f0d74c1dbec",
+    "maps.json": "ee9e987fb60ba63204757804576f49584a46e67dfa92634abfac8a9f916488c8",
+    "npc_catalog.json": "82bb088f570b02f6e03d47cef4ba2f5feb4721261bf9e578cba8109fe801aee7",
+    "npc_vendor.json": "9b8aca8bcf62172ac34f4c0d45216208866b9d47711777e557d14545d6eb9200",
+    "blacksmith_recipes.json": "9769aa209ff47c8794c269b46ce572653f1f1ea0d95b92f2ea8ae3ebedf491cb",
+    "alchemy_recipes.json": "cf1b206d18f184fe57d219111a418705e3b296975d44631518d41fb6bedf7234",
+    "cooking_recipes.json": "6fb5d75909fa6c171d371b06b79d774e99d38d7223a3ae7b3c309502af2219c6"
+  },
+  "working_tree_status": [
+    " M apps/api/src/modules/notifications/notifications.service.ts",
+    " M apps/api/src/modules/town-event/town-event.module.ts",
+    " M apps/api/src/modules/town-event/town-event.service.ts",
+    " M apps/api/test/smashing-spree-review-fixes.test.js",
+    " M apps/api/test/town-event-service.test.js",
+    " M apps/frontend/public/sw.js",
+    " M apps/frontend/src/app/features/play/arena/arena-atmosphere.spec.ts",
+    " M apps/frontend/src/app/features/play/arena/arena-atmosphere.ts",
+    " M apps/frontend/src/app/features/play/arena/arena-v2-regions.spec.ts",
+    " M apps/frontend/src/app/features/play/components.ts",
+    " M apps/frontend/src/app/features/play/town-scene/town-character.ts",
+    " M apps/frontend/src/app/features/play/vendor-panel.css",
+    " M apps/frontend/src/app/features/play/vendor-panel.html",
+    "?? GAME_PHILOSOPHY.md",
+    "?? apps/api/test/town-event-push.test.js",
+    "?? apps/frontend/src/app/features/play/town-scene/npc-portrait-runtime.ts",
+    "?? apps/frontend/src/app/features/play/town-scene/npc-portrait.component.spec.ts",
+    "?? apps/frontend/src/app/features/play/town-scene/npc-portrait.component.ts",
+    "?? docs/superpowers/plans/2026-11-27-professions-economy-survival.md",
+    "?? docs/superpowers/specs/2026-11-27-professions-economy-survival-design.md"
+  ],
+  "original_common_part_prices": [
+    {
+      "id": "part_slime_common",
+      "sellPriceToVendor": 90,
+      "droppedBy": [
+        "mon_slime"
+      ]
+    },
+    {
+      "id": "part_fieldbat_common",
+      "sellPriceToVendor": 110,
+      "droppedBy": [
+        "mon_fieldbat"
+      ]
+    },
+    {
+      "id": "part_thornsprout_common",
+      "sellPriceToVendor": 385,
+      "droppedBy": [
+        "mon_thornsprout"
+      ]
+    },
+    {
+      "id": "part_mudcrawler_common",
+      "sellPriceToVendor": 410,
+      "droppedBy": [
+        "mon_mudcrawler"
+      ]
+    },
+    {
+      "id": "part_direwolf_common",
+      "sellPriceToVendor": 470,
+      "droppedBy": [
+        "mon_direwolf"
+      ]
+    },
+    {
+      "id": "part_sandscorpion_common",
+      "sellPriceToVendor": 515,
+      "droppedBy": [
+        "mon_sandscorpion"
+      ]
+    },
+    {
+      "id": "part_duneraider_common",
+      "sellPriceToVendor": 605,
+      "droppedBy": [
+        "mon_duneraider"
+      ]
+    },
+    {
+      "id": "part_cindergolem_common",
+      "sellPriceToVendor": 750,
+      "droppedBy": [
+        "mon_cindergolem"
+      ]
+    },
+    {
+      "id": "part_venomviper_common",
+      "sellPriceToVendor": 640,
+      "droppedBy": [
+        "mon_venomviper"
+      ]
+    },
+    {
+      "id": "part_mirageStalker_common",
+      "sellPriceToVendor": 3285,
+      "droppedBy": [
+        "mon_mirageStalker"
+      ]
+    },
+    {
+      "id": "part_brokensentinel_common",
+      "sellPriceToVendor": 3530,
+      "droppedBy": [
+        "mon_brokensentinel"
+      ]
+    },
+    {
+      "id": "part_wraith_common",
+      "sellPriceToVendor": 4020,
+      "droppedBy": [
+        "mon_wraith"
+      ]
+    },
+    {
+      "id": "part_arcanewisp_common",
+      "sellPriceToVendor": 4265,
+      "droppedBy": [
+        "mon_arcanewisp"
+      ]
+    },
+    {
+      "id": "part_boneknight_common",
+      "sellPriceToVendor": 4755,
+      "droppedBy": [
+        "mon_boneknight"
+      ]
+    },
+    {
+      "id": "part_ruinsguardian_common",
+      "sellPriceToVendor": 5000,
+      "droppedBy": [
+        "mon_ruinsguardian"
+      ]
+    },
+    {
+      "id": "part_mudflatcrocodile_common",
+      "sellPriceToVendor": 470,
+      "droppedBy": [
+        "mon_mudflatcrocodile"
+      ]
+    },
+    {
+      "id": "part_bandit_common",
+      "sellPriceToVendor": 650,
+      "droppedBy": [
+        "mon_bandit"
+      ]
+    },
+    {
+      "id": "part_kwaioua_ranger_common",
+      "sellPriceToVendor": 965,
+      "droppedBy": [
+        "mon_kwaiouaranger"
+      ]
+    },
+    {
+      "id": "part_sacredforestguardian_common",
+      "sellPriceToVendor": 1530,
+      "droppedBy": [
+        "mon_sacredforestguardian"
+      ]
+    },
+    {
+      "id": "part_gravelhorn_common",
+      "sellPriceToVendor": 525,
+      "droppedBy": [
+        "mon_gravelhorn"
+      ]
+    },
+    {
+      "id": "part_ridgebreaker_common",
+      "sellPriceToVendor": 360,
+      "droppedBy": [
+        "mon_ridgebreaker"
+      ]
+    },
+    {
+      "id": "part_saltfangcrab_common",
+      "sellPriceToVendor": 460,
+      "droppedBy": [
+        "mon_saltfangcrab"
+      ]
+    },
+    {
+      "id": "part_needlebackstalker_common",
+      "sellPriceToVendor": 770,
+      "droppedBy": [
+        "mon_needlebackstalker"
+      ]
+    },
+    {
+      "id": "part_giantmosquito_common",
+      "sellPriceToVendor": 641,
+      "droppedBy": [
+        "mon_giantmosquito"
+      ]
+    },
+    {
+      "id": "part_rootboundbrute_common",
+      "sellPriceToVendor": 858,
+      "droppedBy": [
+        "mon_rootboundbrute"
+      ]
+    },
+    {
+      "id": "part_moonleafarcanist_common",
+      "sellPriceToVendor": 1120,
+      "droppedBy": [
+        "mon_moonleafarcanist"
+      ]
+    },
+    {
+      "id": "part_aramaianwarden_common",
+      "sellPriceToVendor": 1434,
+      "droppedBy": [
+        "mon_aramaianwarden"
+      ]
+    },
+    {
+      "id": "part_mutantbee_common",
+      "sellPriceToVendor": 380,
+      "droppedBy": [
+        "mon_mutantbee"
+      ]
+    },
+    {
+      "id": "part_giantmantis_common",
+      "sellPriceToVendor": 420,
+      "droppedBy": [
+        "mon_giantmantis"
+      ]
+    },
+    {
+      "id": "part_flamingtreant_common",
+      "sellPriceToVendor": 920,
+      "droppedBy": [
+        "mon_flamingtreant"
+      ],
+      "questOnly": true
+    },
+    {
+      "id": "part_flamingtreant_bark",
+      "sellPriceToVendor": 520,
+      "droppedBy": [
+        "mon_flamingtreant"
+      ]
+    },
+    {
+      "id": "part_giantspider_common",
+      "sellPriceToVendor": 500,
+      "droppedBy": [
+        "mon_giantspider"
+      ]
+    },
+    {
+      "id": "part_unicorn_common",
+      "sellPriceToVendor": 700,
+      "droppedBy": [
+        "mon_unicorn"
+      ]
+    }
+  ],
+  "original_monster_drop_tables": [
+    {
+      "id": "mon_slime",
+      "level": 1,
+      "drops": [
+        {
+          "itemId": "part_slime_common",
+          "chance": 0.7
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_slime_rare",
+          "chance": 0.02
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_fieldbat",
+      "level": 2,
+      "drops": [
+        {
+          "itemId": "part_fieldbat_common",
+          "chance": 0.7
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_fieldbat_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_mutantbee",
+      "level": 5,
+      "drops": [
+        {
+          "itemId": "part_mutantbee_common",
+          "chance": 0.55
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "part_mutantbee_rare",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_thornsprout",
+      "level": 6,
+      "drops": [
+        {
+          "itemId": "part_thornsprout_common",
+          "chance": 0.5
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_thornsprout_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_mudcrawler",
+      "level": 7,
+      "drops": [
+        {
+          "itemId": "part_mudcrawler_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_mudcrawler_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_direwolf",
+      "level": 9,
+      "drops": [
+        {
+          "itemId": "part_direwolf_common",
+          "chance": 1
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_direwolf_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "mat_meat",
+          "chance": 0.2
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_gravelhorn",
+      "level": 11,
+      "drops": [
+        {
+          "itemId": "part_gravelhorn_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_gravelhorn_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_mudflatcrocodile",
+      "level": 12,
+      "drops": [
+        {
+          "itemId": "part_mudflatcrocodile_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_mudflatcrocodile_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_sandscorpion",
+      "level": 14,
+      "drops": [
+        {
+          "itemId": "part_sandscorpion_common",
+          "chance": 0.2
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_sandscorpion_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_head_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_phys_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_cape_magic_t1",
+          "chance": 0.008
+        },
+        {
+          "itemId": "equip_accessory_dex_t1",
+          "chance": 0.005
+        },
+        {
+          "itemId": "equip_shoes_traveler_t1",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_ridgebreaker",
+      "level": 18,
+      "drops": [
+        {
+          "itemId": "part_ridgebreaker_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_ridgebreaker_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_saltfangcrab",
+      "level": 18,
+      "drops": [
+        {
+          "itemId": "part_saltfangcrab_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_saltfangcrab_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_needlebackstalker",
+      "level": 21,
+      "drops": [
+        {
+          "itemId": "part_needlebackstalker_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_needlebackstalker_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "mat_meat",
+          "chance": 0.2
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_giantspider",
+      "level": 22,
+      "drops": [
+        {
+          "itemId": "part_giantspider_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_giantspider_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_duneraider",
+      "level": 23,
+      "drops": [
+        {
+          "itemId": "part_duneraider_common",
+          "chance": 0.15
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_duneraider_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_venomviper",
+      "level": 25,
+      "drops": [
+        {
+          "itemId": "part_venomviper_common",
+          "chance": 0.2
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_venomviper_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_bandit",
+      "level": 25,
+      "drops": [
+        {
+          "itemId": "part_bandit_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_bandit_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_giantmosquito",
+      "level": 27,
+      "drops": [
+        {
+          "itemId": "part_giantmosquito_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_giantmosquito_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_rootboundbrute",
+      "level": 29,
+      "drops": [
+        {
+          "itemId": "part_rootboundbrute_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_rootboundbrute_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t2",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_earth_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_water_t2",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t2",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t2",
+          "chance": 0.001
+        }
+      ]
+    },
+    {
+      "id": "mon_unicorn",
+      "level": 31,
+      "drops": [
+        {
+          "itemId": "part_unicorn_common",
+          "chance": 0.35
+        },
+        {
+          "itemId": "part_unicorn_rare",
+          "chance": 0.015
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.08,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0002
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_kwaiouaranger",
+      "level": 33,
+      "drops": [
+        {
+          "itemId": "part_kwaioua_ranger_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_kwaioua_ranger_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_giantmantis",
+      "level": 36,
+      "drops": [
+        {
+          "itemId": "part_giantmantis_common",
+          "chance": 0.4
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "part_giantmantis_rare",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_flamingtreant",
+      "level": 38,
+      "drops": [
+        {
+          "itemId": "part_flamingtreant_bark",
+          "chance": 0.35
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "part_flamingtreant_rare",
+          "chance": 0.0008
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_moonleafarcanist",
+      "level": 41,
+      "drops": [
+        {
+          "itemId": "part_moonleafarcanist_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_moonleafarcanist_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_mirageStalker",
+      "level": 45,
+      "drops": [
+        {
+          "itemId": "part_mirageStalker_common",
+          "chance": 0.15
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_mirageStalker_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_arcanewisp",
+      "level": 45,
+      "drops": [
+        {
+          "itemId": "part_arcanewisp_common",
+          "chance": 0.15
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_arcanewisp_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_sacredforestguardian",
+      "level": 50,
+      "drops": [
+        {
+          "itemId": "part_sacredforestguardian_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_sacredforestguardian_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_aramaianwarden",
+      "level": 55,
+      "drops": [
+        {
+          "itemId": "part_aramaianwarden_common",
+          "chance": 0.3
+        },
+        {
+          "itemId": "part_aramaianwarden_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time"
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_ruinsguardian",
+      "level": 58,
+      "drops": [
+        {
+          "itemId": "part_ruinsguardian_common",
+          "chance": 0.15
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_ruinsguardian_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_boneknight",
+      "level": 62,
+      "drops": [
+        {
+          "itemId": "part_boneknight_common",
+          "chance": 0.2
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_boneknight_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_brokensentinel",
+      "level": 68,
+      "drops": [
+        {
+          "itemId": "part_brokensentinel_common",
+          "chance": 0.2
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_brokensentinel_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_cindergolem",
+      "level": 70,
+      "drops": [
+        {
+          "itemId": "part_cindergolem_common",
+          "chance": 0.2
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_cindergolem_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    },
+    {
+      "id": "mon_wraith",
+      "level": 73,
+      "drops": [
+        {
+          "itemId": "part_wraith_common",
+          "chance": 0.15
+        },
+        {
+          "itemId": "item_consumable_random_map_tier",
+          "chance": 0.02,
+          "note": "resolved to a tier-appropriate consumable at roll time, see items.json"
+        },
+        {
+          "itemId": "part_wraith_rare",
+          "chance": 0.002
+        },
+        {
+          "itemId": "equip_head_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_head_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_cape_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_accessory_dex_t3",
+          "chance": 0.0005
+        },
+        {
+          "itemId": "equip_shoes_fire_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_shoes_shadow_t3",
+          "chance": 0.0001
+        },
+        {
+          "itemId": "equip_body_phys_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_body_magic_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_sword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_greatsword_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_dagger_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_bow_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_staff_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rod_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shield_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_rune_t3",
+          "chance": 0.001
+        },
+        {
+          "itemId": "equip_shoes_wind_t4",
+          "chance": 5e-05
+        },
+        {
+          "itemId": "equip_shoes_holy_t4",
+          "chance": 5e-05
+        }
+      ]
+    }
+  ]
+}

@@ -8,7 +8,11 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 2
+          "quantity": 4
+        },
+        {
+          "itemId": "part_slime_common",
+          "quantity": 1
         }
       ],
       "outputItemId": "elixir_greater",
@@ -23,11 +27,15 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 4
+          "quantity": 3
+        },
+        {
+          "itemId": "part_slime_common",
+          "quantity": 2
         }
       ],
       "outputItemId": "greater_elixir",
-      "xpReward": 8,
+      "xpReward": 12,
       "order": 2
     },
     {
@@ -38,11 +46,15 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 6
+          "quantity": 4
+        },
+        {
+          "itemId": "part_slime_common",
+          "quantity": 3
         }
       ],
       "outputItemId": "mega_elixir",
-      "xpReward": 12,
+      "xpReward": 20,
       "order": 3
     },
     {
@@ -53,15 +65,19 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 5
+          "quantity": 4
         },
         {
           "itemId": "mat_ironshroom",
           "quantity": 1
+        },
+        {
+          "itemId": "part_mudcrawler_common",
+          "quantity": 1
         }
       ],
       "outputItemId": "tonic_fontoura",
-      "xpReward": 15,
+      "xpReward": 30,
       "order": 4
     },
     {
@@ -72,15 +88,19 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 5
+          "quantity": 4
         },
         {
           "itemId": "mat_ashwagandha",
           "quantity": 1
+        },
+        {
+          "itemId": "part_saltfangcrab_common",
+          "quantity": 1
         }
       ],
       "outputItemId": "tonic_kombucha",
-      "xpReward": 15,
+      "xpReward": 30,
       "order": 5
     },
     {
@@ -91,15 +111,19 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 8
+          "quantity": 6
         },
         {
           "itemId": "mat_rushroom",
           "quantity": 2
+        },
+        {
+          "itemId": "part_giantmosquito_common",
+          "quantity": 1
         }
       ],
       "outputItemId": "tonic_haste_shot",
-      "xpReward": 20,
+      "xpReward": 45,
       "order": 6
     },
     {
@@ -110,15 +134,19 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 8
+          "quantity": 6
         },
         {
           "itemId": "mat_guarana",
           "quantity": 2
+        },
+        {
+          "itemId": "part_moonleafarcanist_common",
+          "quantity": 1
         }
       ],
       "outputItemId": "tonic_capo",
-      "xpReward": 20,
+      "xpReward": 45,
       "order": 7
     },
     {
@@ -129,15 +157,19 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 30
+          "quantity": 12
         },
         {
           "itemId": "mat_mystic_dust",
-          "quantity": 10
+          "quantity": 3
+        },
+        {
+          "itemId": "part_arcanewisp_common",
+          "quantity": 5
         }
       ],
       "outputItemId": "fairy_in_a_bottle",
-      "xpReward": 30,
+      "xpReward": 220,
       "order": 8
     },
     {
@@ -149,10 +181,14 @@
         {
           "itemId": "mat_herbs",
           "quantity": 2
+        },
+        {
+          "itemId": "part_venomviper_common",
+          "quantity": 1
         }
       ],
       "outputItemId": "antidote",
-      "xpReward": 5,
+      "xpReward": 8,
       "order": 9
     },
     {
@@ -163,15 +199,19 @@
       "ingredients": [
         {
           "itemId": "mat_herbs",
-          "quantity": 25
+          "quantity": 8
         },
         {
           "itemId": "mat_sapupema_leaf",
-          "quantity": 8
+          "quantity": 3
+        },
+        {
+          "itemId": "part_unicorn_common",
+          "quantity": 1
         }
       ],
       "outputItemId": "super_tonic_sapupema_tea",
-      "xpReward": 25,
+      "xpReward": 90,
       "order": 10
     }
   ]

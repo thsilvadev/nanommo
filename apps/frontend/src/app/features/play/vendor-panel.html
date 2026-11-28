@@ -37,7 +37,7 @@
       <div id="storage-drop-list" cdkDropList [cdkDropListConnectedTo]="['inventory-drop-list']"
         cdkDropListSortingDisabled (cdkDropListDropped)="drop($event)" class="vendor-grid storage-grid"
         [class.drop-target-active]="shouldHighlightDropTarget()">
-        <div *ngFor="let slot of slots" class="vendor-slot" [class.filled]="warehouseAt(slot)">
+        <div *ngFor="let slot of storageSlots" class="vendor-slot" [class.filled]="warehouseAt(slot)">
           <div *ngIf="warehouseAt(slot) as item" cdkDrag [cdkDragData]="warehouseDragData(item)"
             (cdkDragStarted)="onVendorDragStart(item)" (cdkDragEnded)="onVendorDragEnd()"
             (dblclick)="doubleClickWarehouse(item)" class="vendor-item">
@@ -53,7 +53,7 @@
           </div>
         </div>
       </div>
-      <small class="storage-hint">10 slots · Double-click to withdraw · Drag to Inventory to withdraw</small>
+      <small class="storage-hint">15 slots · Double-click to withdraw · Drag to Inventory to withdraw</small>
     </ng-container>
 
     <ng-container *ngIf="npc.types.includes('vendor')">
@@ -257,7 +257,7 @@
                     <ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:ingredient.itemId}" />
                   </span>{{last?'':' · '}}
                 </ng-container></span><span *ngIf="!recipe.canReserveOutput" class="cooking-warning">Not enough
-                inventory space</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients"
+                inventory space</span><span *ngIf="recipe.availability === 'future'" class="cooking-warning">{{vendor.t('Future content — unavailable')}}</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients"
                 class="cooking-warning">{{vendor.t('Missing ingredients')}}<ng-container *ngIf="vendor.cookingState()?.session || vendor.cookingState()?.otherSessionActive"> (some may be reserved for an active session)</ng-container></span><span *ngIf="!recipe.unlocked"
                 class="cooking-locked-label">Unlock at Cooking level {{recipe.requiredLevel}}</span></div>
             <app-craft-quantity *ngIf="recipe.available && !vendor.cookingState()?.session"
@@ -304,7 +304,7 @@
                   <ng-container *ngTemplateOutlet="craftItemDetails;context:{itemId:ingredient.itemId}" />
                 </span>{{last?'':' · '}}
               </ng-container></span>
-              <span *ngIf="recipe.unlocked && !recipe.hasIngredients" class="cooking-warning">{{vendor.t('Missing ingredients')}}</span>
+              <span *ngIf="recipe.availability === 'future'" class="cooking-warning">{{vendor.t('Future content — unavailable')}}</span><span *ngIf="recipe.unlocked && !recipe.hasIngredients" class="cooking-warning">{{vendor.t('Missing ingredients')}}</span>
               <span *ngIf="!recipe.canReserveOutput" class="cooking-warning">{{vendor.t('Not enough inventory space')}}</span>
             </div>
             <app-craft-quantity *ngIf="recipe.maxCraftQuantity>1"

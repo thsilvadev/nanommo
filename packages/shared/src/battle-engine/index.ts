@@ -529,6 +529,7 @@ export class BattleEngine {
     gambitPage: any,
     seed: string,
     options: {
+      balanceRulesVersion?: 0 | 1;
       inventory?: Record<string, number>;
       /** Legacy catalog metadata. Character attack intervals now use the universal Attack Speed scale. */
       weaponBaseAttackTicks?: number;
@@ -802,7 +803,7 @@ export class BattleEngine {
       const cleansedStatuses = (self.statusEffects ?? []).map((status: any) => String(status.type ?? status.id ?? '')).filter(Boolean);
       self.statusEffects = [];
       self.hp = self.maxHp;
-      self.sp = self.maxSp;
+      self.sp = options.balanceRulesVersion === 0 ? self.maxSp : 0;
       self.movementIntent = false;
       self.movementIntentRange = undefined;
       self.castLockTicks = 2;
@@ -1949,6 +1950,7 @@ export class BattleEngine {
       durationTicks: tick,
       log: {
         header: {
+          balanceRulesVersion: options.balanceRulesVersion ?? 1,
           monsterId: monsterDefinition?.id ?? null,
           seedUsed: seed,
           characterSnapshot: { ...characterSnapshot, position: startingPositions.character, combatStyle: startingStyles.character, basicAttackDamageType: self.basicAttackDamageType, basicAttackRange: self.basicAttackRange, moveSpeedBase: startingMoveSpeeds.character, moveSpeed: startingMoveSpeeds.character, movementGauge: 0 },

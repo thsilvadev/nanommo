@@ -560,7 +560,7 @@ export class VendorStore {
     const owned=this.totalOwned(itemId);
     if(owned<=0)return;
     try{
-      const q=await this.api.get<VendorQuote>('/town/vendor/'+this.selectedNpcId()+'/quote/'+itemId).toPromise();
+      const q=await this.api.get<VendorQuote>('/town/vendor/'+this.selectedNpcId()+'/quote/'+itemId+(sourceInventoryItemId ? '?sourceInventoryItemId='+encodeURIComponent(sourceInventoryItemId) : '')).toPromise();
       const unit=Number(q?.sellPrice??0);
       if(unit<=0){this.error.set('This vendor cannot buy this item');return;}
       // Selling from a dragged stack scopes the modal to that stack, not the

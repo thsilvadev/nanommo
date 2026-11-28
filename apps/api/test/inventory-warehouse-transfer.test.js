@@ -46,7 +46,15 @@ async function run(){
   await assert.rejects(()=>h.service.transferInventoryRow('c1','other','warehouse','inventory'),/Source stack not found/);
   assert.equal(h.rows.find(x=>x.id==='other').characterId,'c2');
 
-  const full=Array.from({length:10},(_,i)=>row('w'+i,'warehouse',i,'sword',1));
+  h=harness([...Array.from({length:14},(_,i)=>row('w'+i,'warehouse',i,'sword',1)),row('source','inventory',0,'sword',1)]);
+  await h.service.transferInventoryRow('c1','source','inventory','warehouse');
+  assert.equal(h.rows.find(x=>x.id==='source').slotIndex,14);
+  await h.service.transferInventoryRow('c1','source','warehouse','inventory');
+  assert.equal(h.rows.find(x=>x.id==='source').location,'inventory');
+  h=harness([row('bad','warehouse',15,'sword',1)]);
+  await assert.rejects(()=>h.service.transferInventoryRow('c1','bad','warehouse','inventory'),/invalid slot index/);
+
+  const full=Array.from({length:15},(_,i)=>row('w'+i,'warehouse',i,'sword',1));
   full.push(row('source','inventory',0)); h=harness(full);
   const before=JSON.stringify(h.rows);
   await assert.rejects(()=>h.service.transferInventoryRow('c1','source','inventory','warehouse'),/Warehouse is full/);
@@ -56,7 +64,7 @@ async function run(){
   await h.service.transferInventoryRow('c1','source','inventory','warehouse');
   assert.equal(h.rows.length,1); assert.equal(h.rows[0].id,'merge'); assert.equal(h.rows[0].quantity,15);
 
-  h=harness([row('source','inventory',0,'potion',5),row('partial','warehouse',0,'potion',18),...Array.from({length:9},(_,i)=>row('w'+(i+1),'warehouse',i+1,'sword',1))]);
+  h=harness([row('source','inventory',0,'potion',5),row('partial','warehouse',0,'potion',18),...Array.from({length:14},(_,i)=>row('w'+(i+1),'warehouse',i+1,'sword',1))]);
   const noRoom=JSON.stringify(h.rows);
   await assert.rejects(()=>h.service.transferInventoryRow('c1','source','inventory','warehouse'),/Warehouse is full/);
   assert.equal(JSON.stringify(h.rows),noRoom,'insufficient compatible merge room plus no free slot rejects without partial merge');
@@ -70,10 +78,10 @@ async function run(){
   await assert.rejects(()=>h.service.transferInventoryRow('c1','bad-source','inventory','warehouse'),/invalid slot index/);
   assert.equal(h.rows[0].location,'inventory');
 
-  h=harness([row('source','inventory',0,'potion',5),row('partial','warehouse',0,'potion',18),...Array.from({length:8},(_,i)=>row('w'+(i+1),'warehouse',i+1,'sword',1))]);
+  h=harness([row('source','inventory',0,'potion',5),row('partial','warehouse',0,'potion',18),...Array.from({length:13},(_,i)=>row('w'+(i+1),'warehouse',i+1,'sword',1))]);
   await h.service.transferInventoryRow('c1','source','inventory','warehouse');
   assert.equal(h.rows.find(x=>x.id==='partial').quantity,18,'must not partially merge into an incompatible partial room');
-  assert.equal(h.rows.find(x=>x.id==='source').location,'warehouse'); assert.equal(h.rows.find(x=>x.id==='source').slotIndex,9);
+  assert.equal(h.rows.find(x=>x.id==='source').location,'warehouse'); assert.equal(h.rows.find(x=>x.id==='source').slotIndex,14);
 
   h=harness([row('a','inventory',0,'potion',5),row('b','inventory',1,'potion',5)]);
   await assert.rejects(()=>h.service.transferItem('c1','potion',5,'inventory','warehouse'),/Ambiguous source stack/);
