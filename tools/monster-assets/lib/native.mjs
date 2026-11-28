@@ -150,6 +150,9 @@ export function buildNative(doc, id, cfg) {
     if (!cfg.tint) break;
     const f = m.getBaseColorFactor(); m.setBaseColorFactor([f[0] * cfg.tint[0], f[1] * cfg.tint[1], f[2] * cfg.tint[2], f[3]]);
   }
+  if (cfg.alpha !== undefined) for (const m of root.listMaterials()) {
+    const f = m.getBaseColorFactor(); m.setBaseColorFactor([f[0], f[1], f[2], cfg.alpha]).setAlphaMode('BLEND').setDoubleSided(false);
+  }
   return { height: +(size[1] * k).toFixed(2), clips: [...made.keys()].sort((a, b) => (BATTLE.indexOf(a) + 1 || 99) - (BATTLE.indexOf(b) + 1 || 99)), generated };
 }
 

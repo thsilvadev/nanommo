@@ -9,12 +9,13 @@
  * kind 'char'      — no GLB: the regular character model with `character` (appearance + equipment).
  *
  * size: { h } height or { len } longest horizontal extent, in metres (the character is ~1.75 m).
- * rotY: degrees to turn the model so it faces +Z. rev: cache-busting version of a GLB rebuilt in place. tint: [r,g,b] multiplier on every material
+ * rotY: degrees to turn the model so it faces +Z. rev: cache-busting version of a GLB rebuilt in place. tint: [r,g,b] multiplier on every material. alpha: 0..1 makes every material see-through (blended, front faces only)
  * (or { match: /material name/, rgb }). recolor: hue-range swaps on textures. attach: cones on bones.
  * fx: runtime effects for the arena (not built here).
  */
 export const MONSTERS = {
-  slime: { kind: 'native', size: { h: 0.7 }, clips: {Walk: 'Walk',  Idle: 'Idle', Attack: 'Attack1', Damage: 'Damage', Dead: 'Death', Cast: 'Pulse' }, tint: [0.55, 1.15, 0.35] },
+  // A pink, half-see-through jelly: the dark green texture greyed and brightened, then tinted pink.
+  slime: { kind: 'native', size: { h: 0.7 }, rev: 2, clips: {Walk: 'Walk',  Idle: 'Idle', Attack: 'Attack1', Damage: 'Damage', Dead: 'Death', Cast: 'Pulse' }, hue: { s: 0.2, b: 2.6 }, tint: [1, 0.34, 0.86], alpha: 0.72 },
   fieldbat: { kind: 'native', size: { len: 2.2 }, clips: {Walk: '2legsWalk',  Idle: '2legsIdle', Attack: '2legsWingAttackR', Dead: '2legsDeath', Cast: '2legsRoar' } },
   mutantbee: { kind: 'native', size: { len: 1.2 }, clips: {Walk: '_bee_hover',  Idle: '_bee_hover' }, maxTris: 15000 },
   thornsprout: { kind: 'native', size: { h: 1.3 }, clips: { Idle: 'Idle', Attack: 'Bite', Dead: 'Dying', Cast: 'Spit' } },
