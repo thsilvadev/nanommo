@@ -4,12 +4,18 @@ import { ArenaScenery, arenaLight } from './arena-scenery';
 import { ARENA_REGIONS } from './arena-region';
 
 describe('arena atmosphere', () => {
-  it('every region has its air: drifting mist wisps and tiny motes of light (green_grounds: still air, nothing floating)', () => {
+  it('keeps floating motes only in the forests, Caete and ruins, preserving regional mist', () => {
     for (const region of ARENA_REGIONS) {
       const air = arenaAtmosphere(region)!;
       expect(air).withContext(region).not.toBeNull();
-      if (region === 'green_grounds') expect(air.motes.count).toBe(0);
-      else expect(air.motes.count).withContext(region).toBeGreaterThan(100);
+      if (['kwaioua_forest', 'caete', 'forest_ruins'].includes(region)) {
+        expect(air.motes.count).withContext(region).toBeGreaterThan(100);
+      } else {
+        expect(air.motes.count).withContext(region).toBe(0);
+        const atmosphere = new ArenaAtmosphere(air, false);
+        expect(atmosphere.group.getObjectByName('arena:motes')).withContext(region).toBeUndefined();
+        atmosphere.dispose();
+      }
       // Mist only where there is fog (green_grounds has a clear sky).
       if (arenaLight(region).fog) expect(air.wisps.count).withContext(region).toBeGreaterThan(10);
     }
@@ -85,16 +91,5 @@ describe('arena atmosphere', () => {
     atmosphere.dispose();
   });
 
-  it('wastelands snow falls slowly and loops from the top, never below the ground', () => {
-    const spec = arenaAtmosphere('wastelands')!;
-    const { motes } = atmosphereLayout(spec);
-    let fell = 0;
-    for (const m of motes.slice(0, 50)) {
-      const a = motePosition(m, 20, 0).y, b = motePosition(m, 21, 0).y;
-      if (b < a) { fell++; expect(a - b).toBeLessThan(0.5); }
-      for (let t = 0; t < 300; t += 7) { const y = motePosition(m, t, 0).y; expect(y).toBeGreaterThan(0.2); expect(y).toBeLessThan(7); }
-    }
-    expect(fell).toBeGreaterThan(40);
-  });
 });
 

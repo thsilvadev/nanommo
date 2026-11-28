@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bull';
 import { RedisModule } from '../../config/redis.module';
 import { DataModule } from '../data/data.module';
 import { PresenceModule } from '../presence/presence.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ChatModule } from '../chat/chat.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { MailModule } from '../mail/mail.module';
@@ -17,7 +18,7 @@ const MAINTENANCE_ONLY = process.env.BATTLE_QUEUE_MAINTENANCE_ONLY === 'true';
 
 /** Smashing Spree (Quebra-Quebra) scheduled town event. */
 @Module({
-  imports: [BullModule.registerQueue({ name: 'town-event' }), RedisModule, DataModule, PresenceModule, ChatModule, InventoryModule, MailModule, forwardRef(() => BattleModule)],
+  imports: [BullModule.registerQueue({ name: 'town-event' }), RedisModule, DataModule, PresenceModule, ChatModule, NotificationsModule, InventoryModule, MailModule, forwardRef(() => BattleModule)],
   providers: [TownEventService, TownEventGrantService, SmashingSpreeGmEvent, ...(MAINTENANCE_ONLY ? [] : [TownEventScheduler, TownEventProcessor])],
   exports: [TownEventService, SmashingSpreeGmEvent],
 })

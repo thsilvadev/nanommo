@@ -413,7 +413,7 @@ export class TownCharacter {
   private bow: HeldBow | null = null;
   private readonly bowShot = new BowShotState();
 
-  constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean; visual?: NpcFigure; arena?: boolean } = {}) {
+  constructor(private readonly factory: TownCharacterFactory, entry: TownRosterEntry, readonly opts: { npc?: boolean; self?: boolean; visual?: NpcFigure; arena?: boolean; portrait?: boolean } = {}) {
     this.entry = entry;
     const pick: TownPickInfo = { kind: opts.npc ? 'npc' : 'character', id: entry.characterId };
     this.object3d.name = `${pick.kind}:${pick.id}`;
@@ -422,7 +422,8 @@ export class TownCharacter {
     this.hitbox = new THREE.Mesh(hitGeometry, hitMaterial);
     this.hitbox.position.y = 0.95;
     this.hitbox.userData['pick'] = pick;
-    this.object3d.add(this.model, this.hitbox);
+    this.object3d.add(this.model);
+    if (!opts.portrait) this.object3d.add(this.hitbox);
     if (opts.self) {
       ringGeometry ??= new THREE.RingGeometry(0.45, 0.62, 32);
       ringMaterial ??= new THREE.MeshBasicMaterial({ color: '#ffd36a', transparent: true, opacity: 0.85, depthWrite: false, fog: false });
@@ -910,7 +911,7 @@ export class TownCharacter {
   private plateY(): number { return townPlateY(this.plateScale); }
 
   private updatePlate(): void {
-    if (this.opts.arena) return; // the arena draws names and bars in HTML
+    if (this.opts.arena || this.opts.portrait) return; // names are drawn in HTML
     const text = this.opts.npc ? this.entry.name : `${this.entry.name}  Lv ${this.entry.level}`;
     const key = `${text}|${this.entry.online}|${this.opts.self}`;
     if (key === this.plateKey) return;

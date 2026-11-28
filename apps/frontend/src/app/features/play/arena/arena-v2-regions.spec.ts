@@ -45,7 +45,7 @@ describe('arena v2 regions', () => {
       scenery.update(0, 16, 16);
       expect(scenery.group.getObjectByName('arena:backdrop')!.children.length).toBe(0);
       expect(!!scenery.group.getObjectByName('arena:dome')).toBe(sky);
-      expect(!!scenery.group.getObjectByName('arena:motes')).toBe(arenaAtmosphere(region)!.motes.count > 0);
+      expect(!!scenery.group.getObjectByName('arena:motes')).toBe(['kwaioua_forest', 'caete', 'forest_ruins'].includes(region));
       scenery.dispose();
       const light = arenaLight(region);
       if (fog) {

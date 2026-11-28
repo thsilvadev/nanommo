@@ -6,6 +6,7 @@ import type { TownEventSnapshot, TownEventVase } from '@nanommo/shared';
 import { REDIS_CLIENT } from '../../config/redis.provider';
 import { DataService } from '../data/data.service';
 import { TownRosterService, TOWN_EVENTS_CHANNEL } from '../presence/town-roster.service';
+import { NotificationsService, GamePushEvent } from '../notifications/notifications.service';
 import { ChatService } from '../chat/chat.service';
 import { TownEventGrantService, PrizeDelivery, PENDING_GRANTS_KEY } from './town-event-grant.service';
 import { assignPrizes, eventSeed, placeVases, SmashingSpreePhase } from './smashing-spree.logic';
@@ -46,6 +47,7 @@ export class TownEventService {
     private readonly roster: TownRosterService,
     private readonly chat: ChatService,
     private readonly grants: TownEventGrantService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -61,6 +63,7 @@ export class TownEventService {
         `The Smashing Spree starts in ${phase.minutes} ${unit}! Prepare to be in ${this.townName()} in time!`,
         `${phase.eventKey}:soon:${phase.minutes}`, 'event.smashingSpree.soon', { minutes: phase.minutes, mapId: this.townMapId() },
       ));
+      await this.notifyPhase(`${base}:push`, phase);
       return;
     }
     if (phase.kind === 'start') {
@@ -70,6 +73,7 @@ export class TownEventService {
         catch (error) { failed.push(mapId); this.logger.error(`Smashing Spree start failed in ${mapId}: ${this.describe(error)}`); }
       }
       await this.once(`${base}:announce`, () => this.chat.announceServerMessage(`The Smashing Spree has begun! Break the vases in ${this.townName()}!`, `${phase.eventKey}:started`, 'event.smashingSpree.started', { mapId: this.townMapId() }));
+      if (!failed.length) await this.notifyPhase(`${base}:push`, phase);
       if (failed.length) throw new Error(`Smashing Spree start failed in ${failed.join(', ')}`);
       return;
     }
@@ -82,6 +86,35 @@ export class TownEventService {
         await this.publish('town:event:ended', mapId, { eventKey: phase.eventKey, reason: 'timeout' });
       }
     });
+  }
+
+  /** Push is best effort and separately guarded so chat retries cannot duplicate it. */
+  private async notifyPhase(guard: string, phase: Exclude<SmashingSpreePhase, { kind: 'end' }>): Promise<void> {
+    const soon = phase.kind === 'announce';
+    // A countdown is accurate only in its scheduled minute; start notices live until event end.
+    const expiresAt = phase.kind === 'announce'
+      ? Math.min(phase.startMs, phase.startMs - phase.minutes * 60_000 + 60_000)
+      : phase.endsAt;
+    if (expiresAt <= Date.now()) return;
+    const minutes = phase.kind === 'announce' ? phase.minutes : 0;
+    const event: GamePushEvent = {
+      kind: 'town_event', target: 'town',
+      title: { 'pt-BR': 'Quebra-Quebra', 'en-US': 'Smashing Spree' },
+      body: {
+        'pt-BR': soon
+          ? `O Quebra-Quebra começa em ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}! Prepare-se para estar em ${this.townName()} a tempo!`
+          : `O Quebra-Quebra começou! Quebre os vasos em ${this.townName()}!`,
+        'en-US': soon
+          ? `The Smashing Spree starts in ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}! Prepare to be in ${this.townName()} in time!`
+          : `The Smashing Spree has begun! Break the vases in ${this.townName()}!`,
+      },
+      data: { eventKey: phase.eventKey, mapId: this.townMapId(), startsAt: phase.startMs },
+    };
+    try {
+      await this.once(guard, () => this.notifications.broadcast(event, {
+        id: `${phase.eventKey}:${soon ? `soon:${minutes}` : 'started'}`, expiresAt,
+      }));
+    } catch (error) { this.logger.warn(`Smashing Spree push failed: ${this.describe(error)}`); }
   }
 
   /** Runs `work` unless `guard` is already taken; on failure the guard is released for a retry. */

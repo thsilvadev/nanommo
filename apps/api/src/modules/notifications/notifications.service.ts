@@ -1,17 +1,17 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, MoreThan, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import * as webpush from 'web-push';
 import { Character } from '../../database/entities/character.entity';
 import { PushSubscription } from '../../database/entities/push-subscription.entity';
 
-export type GamePushKind = 'inventory_full' | 'rare_drop_discarded' | 'level_up' | 'market_sale';
+export type GamePushKind = 'inventory_full' | 'rare_drop_discarded' | 'level_up' | 'market_sale' | 'town_event';
 export interface GamePushEvent {
   kind: GamePushKind;
   title: { 'pt-BR': string; 'en-US': string };
   body: { 'pt-BR': string; 'en-US': string };
-  target: 'inventory' | 'character' | 'inbox';
+  target: 'inventory' | 'character' | 'inbox' | 'town';
   data?: Record<string, unknown>;
 }
 interface PendingPush { id: string; token: string; event: GamePushEvent; createdAt: string; }
@@ -83,6 +83,36 @@ export class NotificationsService {
       await repo.save(character);
     });
     await this.deliverPending(characterId);
+  }
+  /** Time-limited global notices bypass the single durable character pendingPush slot. */
+  async broadcast(event: GamePushEvent, notice: { id: string; expiresAt: number }): Promise<void> {
+    if (!this.vapidReady || !Number.isFinite(notice.expiresAt) || notice.expiresAt <= Date.now()) return;
+    const token = randomUUID();
+    let afterId: string | undefined;
+    // Keyset pagination remains correct when expired subscriptions are removed during delivery.
+    while (Date.now() < notice.expiresAt) {
+      const rows = await this.subscriptions.find({
+        where: afterId ? { id: MoreThan(afterId) } : {}, order: { id: 'ASC' }, take: 100,
+      });
+      if (!rows.length) return;
+      await Promise.all(rows.map(async row => {
+        const ttl = Math.floor((notice.expiresAt - Date.now()) / 1000);
+        if (ttl <= 0) return;
+        try {
+          const locale = row.locale === 'pt-BR' ? 'pt-BR' : 'en-US';
+          const payload = JSON.stringify({ characterId: row.characterId, id: notice.id, token,
+            title: event.title[locale], body: event.body[locale], target: event.target, data: event.data ?? {},
+            expiresAt: notice.expiresAt, receiptRequired: false });
+          await webpush.sendNotification({ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } }, payload,
+            { TTL: ttl, urgency: 'high', timeout: 10000 });
+        } catch (error: any) {
+          if (error?.statusCode === 404 || error?.statusCode === 410) await this.subscriptions.delete({ id: row.id });
+          else this.logger.warn(`Push delivery failed for character ${row.characterId}: ${error?.statusCode ?? error?.message ?? error}`);
+        }
+      }));
+      afterId = rows[rows.length - 1].id;
+      if (rows.length < 100) return;
+    }
   }
   async deliverPending(characterId: string): Promise<void> {
     if (!this.vapidReady) return;

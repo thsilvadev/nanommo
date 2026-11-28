@@ -24,7 +24,8 @@ function setup(overrides = {}) {
     { getSmashingSpreeConfig: () => cfg, getTownSceneMapIds: () => mapIds, getTownScene: (id) => towns.find((t) => t.mapId === id) ?? null, getMaps: () => [{ id: 'map_town', name: 'Sierra Village' }] },
     { poseOf: async (id) => poses.get(id) ?? null },
     { announceServerMessage: async () => undefined, announceEventFind: async () => undefined },
-    overrides.grant ?? { grant: async (...a) => { grants.push(a); return 'bag'; } });
+    overrides.grant ?? { grant: async (...a) => { grants.push(a); return 'bag'; } },
+    { broadcast: async () => undefined });
   svc.logger = { error: () => undefined, warn: () => undefined, log: () => undefined };
   return { svc, redis, poses, grants };
 }
@@ -112,7 +113,7 @@ function setup(overrides = {}) {
   // M5: lock release failing after the bag commit does not mail a second copy.
   {
     let mailed = 0;
-    const svc = new TownEventGrantService(createFakeRedis(), { transaction: async (fn) => fn({}) }, { addItem: async () => ({}) },
+    const svc = new TownEventGrantService(createFakeRedis(), { transaction: async (fn) => fn({}) }, { addItem: async () => ({}), rememberKnownItem: async () => undefined },
       { sendSystemMail: async () => { mailed++; return { id: 'm' }; } },
       { withCharacterQueueLock: async (_id, op) => { await op(); throw new Error('advisory unlock failed'); } },
       { publishMailNewItem: async () => undefined, publishItemsObtained: async () => undefined });

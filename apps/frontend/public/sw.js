@@ -3,7 +3,8 @@ self.addEventListener('push', event => {
     let payload = {};
     try { payload = event.data ? event.data.json() : {}; } catch { return; }
     if (!payload.id || !payload.token || !payload.characterId) return;
-    const routeByTarget = { inventory: '/play/grind', character: '/play/character', inbox: '/play/grind' };
+    if (payload.expiresAt != null && (!Number.isFinite(payload.expiresAt) || Date.now() >= payload.expiresAt)) return;
+    const routeByTarget = { inventory: '/play/grind', character: '/play/character', inbox: '/play/grind', town: '/play/grind' };
     const target = routeByTarget[payload.target] || '/play/grind';
     await self.registration.showNotification(payload.title || 'NanoMMO', {
       body: payload.body || '',
@@ -16,7 +17,7 @@ self.addEventListener('push', event => {
     // Confirm only after showNotification resolves. A lost receipt can safely be retried;
     // the stable notification tag replaces the same displayed notification.
     const apiBase = new URL(self.location.href).searchParams.get('api') || '';
-    if (apiBase) {
+    if (apiBase && payload.receiptRequired !== false) {
       try {
         await fetch(apiBase.replace(/\/$/, '') + '/notifications/push/displayed', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },

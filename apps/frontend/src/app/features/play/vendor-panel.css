@@ -25,13 +25,18 @@
   min-height: var(--nm-control-h);
 }
 .npc-profile {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
   margin: 2px auto 8px;
-  width: 100%;
+  width: 167px;
+  height: 199px;
+  max-width: 100%;
   min-height: 0;
 }
+.npc-3d { position: absolute; inset: 0; }
+.npc-portrait[hidden] { display: none; }
 .npc-portrait {
   display: block;
   width: 167px;

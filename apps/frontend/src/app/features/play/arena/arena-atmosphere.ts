@@ -27,25 +27,25 @@ const ATMOSPHERE: Partial<Record<ArenaRegionId, ArenaAtmosphereSpec>> = {
     wisps: { count: 0, color: '#f4f8fb', opacity: 0 },
     motes: { count: 0, colors: ['#ffffff'], size: 0.4 },
   },
-  // Sunset on the dry hills: warm dust and a few embers adrift, a thin dust haze.
+  // Sunset on the dry hills, a thin dust haze.
   menace_hills: {
     wisps: { count: 18, color: '#f4c49a', opacity: 0.2 },
-    motes: { count: 200, colors: ['#ffc078', '#ffdca0', '#ff9a50'], size: 0.4 },
+    motes: { count: 0, colors: ['#ffc078', '#ffdca0', '#ff9a50'], size: 0.4 },
   },
-  // A cold waste: snow drifting down, a grey mist low over the ground.
+  // A cold waste, a grey mist low over the ground.
   wastelands: {
     wisps: { count: 26, color: '#e8ecf0', opacity: 0.3 },
-    motes: { count: 340, colors: ['#ffffff', '#f0f6ff', '#e6eef8'], size: 0.34, fall: 0.35 },
+    motes: { count: 0, colors: ['#ffffff', '#f0f6ff', '#e6eef8'], size: 0.34 },
   },
-  // A bright beach: sea spray drifting in low, glints of light in the salt air.
+  // A bright beach, sea spray drifting in low.
   ipora_beach: {
     wisps: { count: 16, color: '#f4fbff', opacity: 0.18 },
-    motes: { count: 160, colors: ['#ffffff', '#fff6d0', '#e8fbff'], size: 0.36 },
+    motes: { count: 0, colors: ['#ffffff', '#fff6d0', '#e8fbff'], size: 0.36 },
   },
-  // Sunset over the river: golden dust in the low light, a pink mist rising off the water.
+  // Sunset over the river, a pink mist rising off the water.
   gods_bridge: {
     wisps: { count: 22, color: '#f8c8b8', opacity: 0.22 },
-    motes: { count: 220, colors: ['#ffd890', '#ffc078', '#fff0c0'], size: 0.42 },
+    motes: { count: 0, colors: ['#ffd890', '#ffc078', '#fff0c0'], size: 0.42 },
   },
   // The ruin at night: pale spirit lights drifting among the stones, a blue mist, faint shafts of moonlight.
   forest_ruins: {

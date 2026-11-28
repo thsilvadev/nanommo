@@ -17,7 +17,7 @@ let clock = startMs + 1000;
 const realNow = Date.now;
 Date.now = () => clock;
 
-function setup() {
+function setup({ failPush = false } = {}) {
   const redis = createFakeRedis(() => clock);
   const poses = new Map(); // characterId -> { mapId, x, z, name }
   const roster = { poseOf: async (id) => poses.get(id) ?? null };
@@ -26,8 +26,10 @@ function setup() {
   const grants = [];
   const grant = { grant: async (...args) => { grants.push(args); return 'bag'; } };
   const data = { getSmashingSpreeConfig: () => cfg, getTownSceneMapIds: () => mapIds, getTownScene: (id) => towns.find((t) => t.mapId === id) ?? null, getMaps: () => [{ id: 'map_town', name: 'Sierra Village' }] };
-  const svc = new TownEventService(redis, data, roster, chat, grant);
-  return { svc, redis, poses, announces, finds, grants };
+  const pushes = [];
+  const notifications = { broadcast: async (...args) => { pushes.push(args); if (failPush) throw new Error('push unavailable'); } };
+  const svc = new TownEventService(redis, data, roster, chat, grant, notifications);
+  return { svc, redis, poses, announces, finds, grants, pushes };
 }
 const ofEvent = (redis, event) => redis.published.filter((p) => p.payload.kind === 'town' && p.payload.event === event);
 async function vasesOf(svc, mapId) { return (await svc.activeEvent(mapId)).vases; }
@@ -49,6 +51,44 @@ const standAt = (poses, id, mapId, v, dx = 0) => poses.set(id, { mapId, x: v.x +
     await svc.runPhase({ kind: 'announce', eventKey, startMs, minutes: 5 }); await svc.runPhase({ kind: 'announce', eventKey, startMs, minutes: 5 });
     assert.equal(announces.length, 2); assert.equal(announces[1][2], 'event.smashingSpree.soon'); assert.deepEqual(announces[1][3], { minutes: 5, mapId: 'map_town' });
     assert.match(announces[1][0], /Smashing Spree starts in 5 minutes! Prepare to be in Sierra Village in time!/);
+  }
+  // Browser notices share phase guards, remain localized, and expire without replacing chat.
+  {
+    clock = startMs - 5 * 60_000;
+    const { svc, pushes, announces } = setup();
+    const countdown = { kind: 'announce', eventKey, startMs, minutes: 5 };
+    await svc.runPhase(countdown); await svc.runPhase(countdown);
+    assert.equal(pushes.length, 1);
+    assert.equal(announces.length, 1);
+    assert.equal(pushes[0][0].target, 'town');
+    assert.match(pushes[0][0].body['pt-BR'], /5 minutos/);
+    assert.match(pushes[0][0].body['en-US'], /5 minutes/);
+    assert.deepEqual(pushes[0][1], { id: `${eventKey}:soon:5`, expiresAt: clock + 60_000 });
+    clock = startMs + 1000;
+    await svc.runPhase(startPhase); await svc.runPhase(startPhase);
+    assert.equal(pushes.length, 2);
+    assert.equal(pushes[1][1].id, `${eventKey}:started`);
+    assert.equal(pushes[1][1].expiresAt, startPhase.endsAt);
+    assert.match(pushes[1][0].body['pt-BR'], /começou/);
+    // A late warning is never pushed even if its chat phase is invoked directly.
+    await svc.runPhase({ ...countdown, minutes: 1 });
+    assert.equal(pushes.length, 2);
+    clock = startPhase.endsAt;
+    const late = setup();
+    await late.svc.runPhase(startPhase);
+    assert.equal(late.pushes.length, 0);
+  }
+  // Push outages never prevent the event or existing chat announcements.
+  {
+    clock = startMs + 1000;
+    const { svc, pushes, announces } = setup({ failPush: true });
+    await svc.runPhase(startPhase);
+    assert.ok(await svc.activeEvent('map_town'));
+    assert.equal(announces.length, 1);
+    assert.equal(pushes.length, 1);
+    await svc.runPhase(startPhase);
+    assert.equal(announces.length, 1, 'push retry does not repeat chat');
+    assert.equal(pushes.length, 2, 'failed push guard released for retry');
   }
   // Hit validation.
   {
