@@ -75,9 +75,14 @@ function hslToRgb(h: number, s: number, l: number, out: [number, number, number]
   out[1] = hueToRgb(p, q, h) * 255;
   out[2] = hueToRgb(p, q, h - 1 / 3) * 255;
 }
-const PLATE_HEIGHT = 2.15;
-/** Name plates come down towards this height as the close-up camera shrinks them (just over the head). */
-const PLATE_CLOSE_HEIGHT = 1.9;
+/** Name plate height (m) at the usual zoom: clear of the tallest characters (2.05 m, plus hair or a helmet). */
+export const PLATE_HEIGHT = 2.5;
+/** Name plates come down towards this height as the close-up camera shrinks them (just over the tallest head). */
+export const PLATE_CLOSE_HEIGHT = 2.2;
+/** Name plate sprite height (m) at plate scale 1 (its width is 3.4 m). */
+export const PLATE_SPRITE_HEIGHT = 0.64;
+/** Centre height (m) of a name plate drawn at `scale` (1: the usual zoom; smaller in close-up). The chat bubble sits on top of it. */
+export function townPlateY(scale: number): number { return PLATE_CLOSE_HEIGHT + (PLATE_HEIGHT - PLATE_CLOSE_HEIGHT) * scale; }
 
 export type TownLod = 'full' | 'low';
 export interface TownPickInfo { kind: 'npc' | 'character'; id: string }
@@ -895,14 +900,14 @@ export class TownCharacter {
   setPlateScale(scale: number): void {
     if (Math.abs(scale - this.plateScale) < 1e-3) return;
     this.plateScale = scale;
-    this.plate?.scale.set(3.4 * scale, 0.64 * scale, 1);
+    this.plate?.scale.set(3.4 * scale, PLATE_SPRITE_HEIGHT * scale, 1);
     this.plate?.position.setY(this.plateY());
   }
 
   /** Speech bubble size (1 = top-down size at the closest zoom); the runtime keeps it constant on screen. */
   setBubbleScale(scale: number): void { this.bubbleScale = scale; }
 
-  private plateY(): number { return PLATE_CLOSE_HEIGHT + (PLATE_HEIGHT - PLATE_CLOSE_HEIGHT) * this.plateScale; }
+  private plateY(): number { return townPlateY(this.plateScale); }
 
   private updatePlate(): void {
     if (this.opts.arena) return; // the arena draws names and bars in HTML
@@ -930,7 +935,7 @@ export class TownCharacter {
     texture.colorSpace = THREE.SRGBColorSpace;
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, fog: false });
     this.plate = new THREE.Sprite(material);
-    this.plate.scale.set(3.4 * this.plateScale, 0.64 * this.plateScale, 1);
+    this.plate.scale.set(3.4 * this.plateScale, PLATE_SPRITE_HEIGHT * this.plateScale, 1);
     this.plate.position.y = this.plateY();
     this.plate.renderOrder = 10;
     this.object3d.add(this.plate);
